@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -43,6 +44,16 @@ func NewProvidersClientWithBaseURI(baseURI string, subscriptionID string) Provid
 // Parameters:
 // resourceProviderNamespace - namespace of the resource provider.
 func (client ProvidersClient) Get(ctx context.Context, resourceProviderNamespace string) (result Provider, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceProviderNamespace)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Get", nil, "Failure preparing request")
@@ -87,8 +98,8 @@ func (client ProvidersClient) GetPreparer(ctx context.Context, resourceProviderN
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProvidersClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -108,6 +119,16 @@ func (client ProvidersClient) GetResponder(resp *http.Response) (result Provider
 // Parameters:
 // top - query parameters. If null is passed returns all deployments.
 func (client ProvidersClient) List(ctx context.Context, top *int32) (result ProviderListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.List")
+		defer func() {
+			sc := -1
+			if result.plr.Response.Response != nil {
+				sc = result.plr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, top)
 	if err != nil {
@@ -155,8 +176,8 @@ func (client ProvidersClient) ListPreparer(ctx context.Context, top *int32) (*ht
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProvidersClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -173,8 +194,8 @@ func (client ProvidersClient) ListResponder(resp *http.Response) (result Provide
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ProvidersClient) listNextResults(lastResults ProviderListResult) (result ProviderListResult, err error) {
-	req, err := lastResults.providerListResultPreparer()
+func (client ProvidersClient) listNextResults(ctx context.Context, lastResults ProviderListResult) (result ProviderListResult, err error) {
+	req, err := lastResults.providerListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -195,6 +216,16 @@ func (client ProvidersClient) listNextResults(lastResults ProviderListResult) (r
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ProvidersClient) ListComplete(ctx context.Context, top *int32) (result ProviderListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, top)
 	return
 }
@@ -203,6 +234,16 @@ func (client ProvidersClient) ListComplete(ctx context.Context, top *int32) (res
 // Parameters:
 // resourceProviderNamespace - namespace of the resource provider.
 func (client ProvidersClient) Register(ctx context.Context, resourceProviderNamespace string) (result Provider, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.Register")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.RegisterPreparer(ctx, resourceProviderNamespace)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Register", nil, "Failure preparing request")
@@ -247,8 +288,8 @@ func (client ProvidersClient) RegisterPreparer(ctx context.Context, resourceProv
 // RegisterSender sends the Register request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProvidersClient) RegisterSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RegisterResponder handles the response to the Register request. The method always
@@ -268,6 +309,16 @@ func (client ProvidersClient) RegisterResponder(resp *http.Response) (result Pro
 // Parameters:
 // resourceProviderNamespace - namespace of the resource provider.
 func (client ProvidersClient) Unregister(ctx context.Context, resourceProviderNamespace string) (result Provider, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.Unregister")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UnregisterPreparer(ctx, resourceProviderNamespace)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Unregister", nil, "Failure preparing request")
@@ -312,8 +363,8 @@ func (client ProvidersClient) UnregisterPreparer(ctx context.Context, resourcePr
 // UnregisterSender sends the Unregister request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProvidersClient) UnregisterSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UnregisterResponder handles the response to the Unregister request. The method always

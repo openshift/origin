@@ -15,7 +15,6 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/lpabon/godbc"
 
-	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/idgen"
 )
 
@@ -268,25 +267,6 @@ func populateBrickSet(
 		device.BrickAdd(brick.Id())
 	}
 	return bs, ds, nil
-}
-
-func allocateBricks(
-	db wdb.RODB,
-	cluster string,
-	v *VolumeEntry,
-	numBrickSets int,
-	brick_size uint64) (*BrickAllocation, error) {
-
-	var r *BrickAllocation
-	opts := NewVolumePlacementOpts(v, brick_size, numBrickSets)
-	err := db.View(func(tx *bolt.Tx) error {
-		var err error
-		dsrc := NewClusterDeviceSource(tx, cluster)
-		placer := PlacerForVolume(v)
-		r, err = placer.PlaceAll(dsrc, opts, nil)
-		return err
-	})
-	return r, err
 }
 
 type ClusterDeviceSource struct {

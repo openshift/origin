@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/template"
 
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/kubernetes"
@@ -233,7 +234,7 @@ var volumeCreateCommand = &cobra.Command{
 				}
 				fmt.Fprintf(stdout, string(data))
 			} else {
-				fmt.Fprintf(stdout, "%v", volume)
+				printVolumeInfo(volume)
 			}
 		}
 
@@ -313,7 +314,7 @@ var volumeExpandCommand = &cobra.Command{
 			}
 			fmt.Fprintf(stdout, string(data))
 		} else {
-			fmt.Fprintf(stdout, "%v", volume)
+			printVolumeInfo(volume)
 		}
 		return nil
 	},
@@ -366,7 +367,7 @@ var volumeBlockHostingRestrictionLockCommand = &cobra.Command{
 			}
 			fmt.Fprintf(stdout, string(data))
 		} else {
-			fmt.Fprintf(stdout, "%v", volume)
+			printVolumeInfo(volume)
 		}
 		return nil
 	},
@@ -413,7 +414,7 @@ var volumeBlockHostingRestrictionUnlockCommand = &cobra.Command{
 			}
 			fmt.Fprintf(stdout, string(data))
 		} else {
-			fmt.Fprintf(stdout, "%v", volume)
+			printVolumeInfo(volume)
 		}
 		return nil
 	},
@@ -440,7 +441,6 @@ var volumeInfoCommand = &cobra.Command{
 			return err
 		}
 
-		// Create cluster
 		info, err := heketi.VolumeInfo(volumeId)
 		if err != nil {
 			return err
@@ -453,11 +453,62 @@ var volumeInfoCommand = &cobra.Command{
 			}
 			fmt.Fprintf(stdout, string(data))
 		} else {
-			fmt.Fprintf(stdout, "%v", info)
+			printVolumeInfo(info)
 		}
 		return nil
 
 	},
+}
+
+var volumeTemplate = `
+{{- /* remove whitespace */ -}}
+Name: {{.Name}}
+Size: {{.Size}}
+Volume Id: {{.Id}}
+Cluster Id: {{.Cluster}}
+Mount: {{.Mount.GlusterFS.MountPoint}}
+Mount Options: {{ range $k, $v := .Mount.GlusterFS.Options }}{{$k}}={{$v}}{{ end }}
+Block: {{.Block}}
+Free Size: {{.BlockInfo.FreeSize}}
+Reserved Size: {{.BlockInfo.ReservedSize}}
+Block Hosting Restriction: {{.BlockInfo.Restriction}}
+Block Volumes: {{.BlockInfo.BlockVolumes}}
+Durability Type: {{.Durability.Type}}
+Distribute Count: {{ . | distributeCount }}
+{{- if eq .Durability.Type "replicate" }}
+Replica Count: {{.Durability.Replicate.Replica}}
+{{- else if eq .Durability.Type "disperse" }}
+Disperse Data Count: {{.Durability.Disperse.Data}}
+Disperse Redundancy Count: {{.Durability.Disperse.Redundancy}}
+{{- end}}
+{{- if .Snapshot.Enable }}
+Snapshot Factor: {{.Snapshot.Factor | printf "%.2f"}}
+{{end}}
+`
+
+func printVolumeInfo(volume *api.VolumeInfoResponse) {
+	fm := template.FuncMap{
+		"distributeCount": func(v *api.VolumeInfoResponse) int {
+			switch v.Durability.Type {
+			case api.DurabilityDistributeOnly:
+				return len(v.Bricks)
+			case api.DurabilityReplicate:
+				return len(v.Bricks) / v.Durability.Replicate.Replica
+			case api.DurabilityEC:
+				return len(v.Bricks) / (v.Durability.Disperse.Data + v.Durability.Disperse.Redundancy)
+			default:
+				return 0
+			}
+		},
+	}
+	t, err := template.New("volume").Funcs(fm).Parse(volumeTemplate)
+	if err != nil {
+		panic(err)
+	}
+	err = t.Execute(os.Stdout, volume)
+	if err != nil {
+		panic(err)
+	}
 }
 
 var volumeListCommand = &cobra.Command{
@@ -546,7 +597,7 @@ var volumeCloneCommand = &cobra.Command{
 			}
 			fmt.Fprintf(stdout, string(data))
 		} else {
-			fmt.Fprintf(stdout, "%v", volume)
+			printVolumeInfo(volume)
 		}
 		return nil
 	},

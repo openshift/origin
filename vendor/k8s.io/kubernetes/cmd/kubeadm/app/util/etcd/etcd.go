@@ -19,10 +19,8 @@ package etcd
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -31,13 +29,23 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/config"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util/staticpod"
 )
+
+// Exponential backoff for MemberAdd/Remove (values exclude jitter):
+// 0, 50, 150, 350, 750, 1550, 3150, 6350, 12750 ms
+var addRemoveBackoff = wait.Backoff{
+	Steps:    8,
+	Duration: 50 * time.Millisecond,
+	Factor:   2.0,
+	Jitter:   0.1,
+}
 
 // ClusterInterrogator is an interface to get etcd cluster related information
 type ClusterInterrogator interface {
@@ -78,50 +86,10 @@ func New(endpoints []string, ca, cert, key string) (*Client, error) {
 	return &client, nil
 }
 
-// IsEtcdListeningOnLocalHostOnly return true if the etcd manifest have etcd listening on localhost only.
-// Listening on local host only was the default in kubeadm <= v1.12, while starting from v1.13 etcd is listening
-// on localhost and API server advertise address (thus allowing add new member when doing join --control-plane).
-// N.B. this code is necessary only in v1.14; starting from v1.15 all the etcd manifest should have 2 endpoints
-func IsEtcdListeningOnLocalHostOnly() bool {
-	etcdManifestFile := constants.GetStaticPodFilepath(constants.Etcd, constants.GetStaticPodDirectory())
-	if _, err := os.Stat(etcdManifestFile); err == nil {
-		klog.V(1).Infoln("checking etcd manifest")
-		etcdPod, err := staticpod.ReadStaticPodFromDisk(etcdManifestFile)
-		if err == nil && len(etcdPod.Spec.Containers) > 0 {
-			etcdContainer := etcdPod.Spec.Containers[0]
-			for _, arg := range etcdContainer.Command {
-				if arg == "--listen-client-urls=https://127.0.0.1:2379" {
-					klog.V(1).Infoln("etcd manifest created by kubeadm v1.12 or older")
-					return true
-				}
-			}
-		}
-	}
-
-	return false
-}
-
 // NewFromCluster creates an etcd client for the etcd endpoints defined in the ClusterStatus value stored in
 // the kubeadm-config ConfigMap in kube-system namespace.
 // Once created, the client synchronizes client's endpoints with the known endpoints from the etcd membership API (reality check).
 func NewFromCluster(client clientset.Interface, certificatesDir string) (*Client, error) {
-	// if etcd is listening on localhost only, connect to it
-	if IsEtcdListeningOnLocalHostOnly() {
-		endpoints := []string{fmt.Sprintf("localhost:%d", constants.EtcdListenClientPort)}
-
-		etcdClient, err := New(
-			endpoints,
-			filepath.Join(certificatesDir, constants.EtcdCACertName),
-			filepath.Join(certificatesDir, constants.EtcdHealthcheckClientCertName),
-			filepath.Join(certificatesDir, constants.EtcdHealthcheckClientKeyName),
-		)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error creating etcd client for %v endpoint", endpoints)
-		}
-
-		return etcdClient, nil
-	}
-
 	// etcd is listening the API server advertise address on each control-plane node
 	// so it is necessary to get the list of endpoints from kubeadm cluster status before connecting
 
@@ -159,12 +127,20 @@ func NewFromCluster(client clientset.Interface, certificatesDir string) (*Client
 	return etcdClient, nil
 }
 
+// dialTimeout is the timeout for failing to establish a connection.
+// It is set to 20 seconds as times shorter than that will cause TLS connections to fail
+// on heavily loaded arm64 CPUs (issue #64649)
+const dialTimeout = 20 * time.Second
+
 // Sync synchronizes client's endpoints with the known endpoints from the etcd membership.
 func (c *Client) Sync() error {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Endpoints,
-		DialTimeout: 20 * time.Second,
-		TLS:         c.TLS,
+		DialTimeout: dialTimeout,
+		DialOptions: []grpc.DialOption{
+			grpc.WithBlock(), // block until the underlying connection is up
+		},
+		TLS: c.TLS,
 	})
 	if err != nil {
 		return err
@@ -194,8 +170,11 @@ type Member struct {
 func (c *Client) GetMemberID(peerURL string) (uint64, error) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Endpoints,
-		DialTimeout: 30 * time.Second,
-		TLS:         c.TLS,
+		DialTimeout: dialTimeout,
+		DialOptions: []grpc.DialOption{
+			grpc.WithBlock(), // block until the underlying connection is up
+		},
+		TLS: c.TLS,
 	})
 	if err != nil {
 		return 0, err
@@ -221,8 +200,11 @@ func (c *Client) GetMemberID(peerURL string) (uint64, error) {
 func (c *Client) RemoveMember(id uint64) ([]Member, error) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Endpoints,
-		DialTimeout: 30 * time.Second,
-		TLS:         c.TLS,
+		DialTimeout: dialTimeout,
+		DialOptions: []grpc.DialOption{
+			grpc.WithBlock(), // block until the underlying connection is up
+		},
+		TLS: c.TLS,
 	})
 	if err != nil {
 		return nil, err
@@ -230,11 +212,18 @@ func (c *Client) RemoveMember(id uint64) ([]Member, error) {
 	defer cli.Close()
 
 	// Remove an existing member from the cluster
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	resp, err := cli.MemberRemove(ctx, id)
-	cancel()
+	var lastError error
+	var resp *clientv3.MemberRemoveResponse
+	err = wait.ExponentialBackoff(addRemoveBackoff, func() (bool, error) {
+		resp, err = cli.MemberRemove(context.Background(), id)
+		if err == nil {
+			return true, nil
+		}
+		lastError = err
+		return false, nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, lastError
 	}
 
 	// Returns the updated list of etcd members
@@ -258,8 +247,11 @@ func (c *Client) AddMember(name string, peerAddrs string) ([]Member, error) {
 
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Endpoints,
-		DialTimeout: 20 * time.Second,
-		TLS:         c.TLS,
+		DialTimeout: dialTimeout,
+		DialOptions: []grpc.DialOption{
+			grpc.WithBlock(), // block until the underlying connection is up
+		},
+		TLS: c.TLS,
 	})
 	if err != nil {
 		return nil, err
@@ -267,11 +259,18 @@ func (c *Client) AddMember(name string, peerAddrs string) ([]Member, error) {
 	defer cli.Close()
 
 	// Adds a new member to the cluster
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	resp, err := cli.MemberAdd(ctx, []string{peerAddrs})
-	cancel()
+	var lastError error
+	var resp *clientv3.MemberAddResponse
+	err = wait.ExponentialBackoff(addRemoveBackoff, func() (bool, error) {
+		resp, err = cli.MemberAdd(context.Background(), []string{peerAddrs})
+		if err == nil {
+			return true, nil
+		}
+		lastError = err
+		return false, nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, lastError
 	}
 
 	// Returns the updated list of etcd members
@@ -339,8 +338,11 @@ func (c *Client) ClusterAvailable() (bool, error) {
 func (c *Client) GetClusterStatus() (map[string]*clientv3.StatusResponse, error) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Endpoints,
-		DialTimeout: 5 * time.Second,
-		TLS:         c.TLS,
+		DialTimeout: dialTimeout,
+		DialOptions: []grpc.DialOption{
+			grpc.WithBlock(), // block until the underlying connection is up
+		},
+		TLS: c.TLS,
 	})
 	if err != nil {
 		return nil, err

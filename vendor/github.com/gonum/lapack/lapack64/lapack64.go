@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// This repository is no longer maintained.
+// Development has moved to https://github.com/gonum/gonum.
+//
 // Package lapack64 provides a set of convenient wrapper functions for LAPACK
 // calls, as specified in the netlib standard (www.netlib.org).
 //

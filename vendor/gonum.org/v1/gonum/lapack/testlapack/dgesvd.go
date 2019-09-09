@@ -6,6 +6,8 @@ package testlapack
 
 import (
 	"fmt"
+	"math"
+	"sort"
 	"testing"
 
 	"golang.org/x/exp/rand"
@@ -20,268 +22,350 @@ type Dgesvder interface {
 	Dgesvd(jobU, jobVT lapack.SVDJob, m, n int, a []float64, lda int, s, u []float64, ldu int, vt []float64, ldvt int, work []float64, lwork int) (ok bool)
 }
 
-func DgesvdTest(t *testing.T, impl Dgesvder) {
+func DgesvdTest(t *testing.T, impl Dgesvder, tol float64) {
+	for _, m := range []int{0, 1, 2, 3, 4, 5, 10, 150, 300} {
+		for _, n := range []int{0, 1, 2, 3, 4, 5, 10, 150} {
+			for _, mtype := range []int{1, 2, 3, 4, 5} {
+				dgesvdTest(t, impl, m, n, mtype, tol)
+			}
+		}
+	}
+}
+
+// dgesvdTest tests a Dgesvd implementation on an m×n matrix A generated
+// according to mtype as:
+//  - the zero matrix if mtype == 1,
+//  - the identity matrix if mtype == 2,
+//  - a random matrix with a given condition number and singular values if mtype == 3, 4, or 5.
+// It first computes the full SVD  A = U*Sigma*V^T  and checks that
+//  - U has orthonormal columns, and V^T has orthonormal rows,
+//  - U*Sigma*V^T multiply back to A,
+//  - the singular values are non-negative and sorted in decreasing order.
+// Then all combinations of partial SVD results are computed and checked whether
+// they match the full SVD result.
+func dgesvdTest(t *testing.T, impl Dgesvder, m, n, mtype int, tol float64) {
 	rnd := rand.New(rand.NewSource(1))
-	// TODO(btracey): Add tests for all of the cases when the SVD implementation
-	// is finished.
-	// TODO(btracey): Add tests for m > mnthr and n > mnthr when other SVD
-	// conditions are implemented. Right now mnthr is 5,000,000 which is too
-	// large to create a square matrix of that size.
-	for _, test := range []struct {
-		m, n, lda, ldu, ldvt int
-	}{
-		{5, 5, 0, 0, 0},
-		{5, 6, 0, 0, 0},
-		{6, 5, 0, 0, 0},
-		{5, 9, 0, 0, 0},
-		{9, 5, 0, 0, 0},
 
-		{5, 5, 10, 11, 12},
-		{5, 6, 10, 11, 12},
-		{6, 5, 10, 11, 12},
-		{5, 5, 10, 11, 12},
-		{5, 9, 10, 11, 12},
-		{9, 5, 10, 11, 12},
+	// Use a fixed leading dimension to reduce testing time.
+	lda := n + 3
+	ldu := m + 5
+	ldvt := n + 7
 
-		{300, 300, 0, 0, 0},
-		{300, 400, 0, 0, 0},
-		{400, 300, 0, 0, 0},
-		{300, 600, 0, 0, 0},
-		{600, 300, 0, 0, 0},
+	minmn := min(m, n)
 
-		{300, 300, 400, 450, 460},
-		{300, 400, 500, 550, 560},
-		{400, 300, 550, 550, 560},
-		{300, 600, 700, 750, 760},
-		{600, 300, 700, 750, 760},
-	} {
-		jobU := lapack.SVDAll
-		jobVT := lapack.SVDAll
+	// Allocate A and fill it with random values. The in-range elements will
+	// be overwritten below according to mtype.
+	a := make([]float64, m*lda)
+	for i := range a {
+		a[i] = rnd.NormFloat64()
+	}
 
-		m := test.m
-		n := test.n
-		lda := test.lda
-		if lda == 0 {
-			lda = n
+	var aNorm float64
+	switch mtype {
+	default:
+		panic("unknown test matrix type")
+	case 1:
+		// Zero matrix.
+		for i := 0; i < m; i++ {
+			for j := 0; j < n; j++ {
+				a[i*lda+j] = 0
+			}
 		}
-		ldu := test.ldu
-		if ldu == 0 {
-			ldu = m
+		aNorm = 0
+	case 2:
+		// Identity matrix.
+		for i := 0; i < m; i++ {
+			for j := 0; j < n; j++ {
+				if i == j {
+					a[i*lda+i] = 1
+				} else {
+					a[i*lda+j] = 0
+				}
+			}
 		}
-		ldvt := test.ldvt
-		if ldvt == 0 {
-			ldvt = n
+		aNorm = 1
+	case 3, 4, 5:
+		// Scaled random matrix.
+		// Generate singular values.
+		s := make([]float64, minmn)
+		Dlatm1(s,
+			4,                      // s[i] = 1 - i*(1-1/cond)/(minmn-1)
+			float64(max(1, minmn)), // where cond = max(1,minmn)
+			false,                  // signs of s[i] are not randomly flipped
+			1, rnd)                 // random numbers are drawn uniformly from [0,1)
+		// Decide scale factor for the singular values based on the matrix type.
+		ulp := dlamchP
+		unfl := dlamchS
+		ovfl := 1 / unfl
+		aNorm = 1
+		if mtype == 4 {
+			aNorm = unfl / ulp
 		}
-
-		a := make([]float64, m*lda)
-		for i := range a {
-			a[i] = rnd.NormFloat64()
+		if mtype == 5 {
+			aNorm = ovfl * ulp
 		}
+		// Scale singular values so that the maximum singular value is
+		// equal to aNorm (we know that the singular values are
+		// generated above to be spread linearly between 1/cond and 1).
+		floats.Scale(aNorm, s)
+		// Generate A by multiplying S by random orthogonal matrices
+		// from left and right.
+		Dlagge(m, n, max(0, m-1), max(0, n-1), s, a, lda, rnd, make([]float64, m+n))
+	}
+	aCopy := make([]float64, len(a))
+	copy(aCopy, a)
 
-		u := make([]float64, m*ldu)
-		for i := range u {
-			u[i] = rnd.NormFloat64()
-		}
-
-		vt := make([]float64, n*ldvt)
-		for i := range vt {
-			vt[i] = rnd.NormFloat64()
-		}
-
-		uAllOrig := make([]float64, len(u))
-		copy(uAllOrig, u)
-		vtAllOrig := make([]float64, len(vt))
-		copy(vtAllOrig, vt)
-		aCopy := make([]float64, len(a))
-		copy(aCopy, a)
-
-		s := make([]float64, min(m, n))
-
-		work := make([]float64, 1)
-		impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, u, ldu, vt, ldvt, work, -1)
-
-		if !floats.Equal(a, aCopy) {
-			t.Errorf("a changed during call to get work length")
-		}
-
-		work = make([]float64, int(work[0]))
-		impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, u, ldu, vt, ldvt, work, len(work))
-
-		errStr := fmt.Sprintf("m = %v, n = %v, lda = %v, ldu = %v, ldv = %v", m, n, lda, ldu, ldvt)
-		svdCheck(t, false, errStr, m, n, s, a, u, ldu, vt, ldvt, aCopy, lda)
-		svdCheckPartial(t, impl, lapack.SVDAll, errStr, uAllOrig, vtAllOrig, aCopy, m, n, a, lda, s, u, ldu, vt, ldvt, work, false)
-
-		// Test InPlace
-		jobU = lapack.SVDInPlace
-		jobVT = lapack.SVDInPlace
+	for _, wl := range []worklen{minimumWork, mediumWork, optimumWork} {
+		// Restore A because Dgesvd overwrites it.
 		copy(a, aCopy)
-		copy(u, uAllOrig)
-		copy(vt, vtAllOrig)
 
-		impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, u, ldu, vt, ldvt, work, len(work))
-		svdCheck(t, true, errStr, m, n, s, a, u, ldu, vt, ldvt, aCopy, lda)
-		svdCheckPartial(t, impl, lapack.SVDInPlace, errStr, uAllOrig, vtAllOrig, aCopy, m, n, a, lda, s, u, ldu, vt, ldvt, work, false)
-	}
-}
+		// Allocate slices that will be used below to store the results of full
+		// SVD and fill them.
+		uAll := make([]float64, m*ldu)
+		for i := range uAll {
+			uAll[i] = rnd.NormFloat64()
+		}
+		vtAll := make([]float64, n*ldvt)
+		for i := range vtAll {
+			vtAll[i] = rnd.NormFloat64()
+		}
+		sAll := make([]float64, min(m, n))
+		for i := range sAll {
+			sAll[i] = math.NaN()
+		}
 
-// svdCheckPartial checks that the singular values and vectors are computed when
-// not all of them are computed.
-func svdCheckPartial(t *testing.T, impl Dgesvder, job lapack.SVDJob, errStr string, uAllOrig, vtAllOrig, aCopy []float64, m, n int, a []float64, lda int, s, u []float64, ldu int, vt []float64, ldvt int, work []float64, shortWork bool) {
-	rnd := rand.New(rand.NewSource(1))
-	jobU := job
-	jobVT := job
-	// Compare the singular values when computed with {SVDNone, SVDNone.}
-	sCopy := make([]float64, len(s))
-	copy(sCopy, s)
-	copy(a, aCopy)
-	for i := range s {
-		s[i] = rnd.Float64()
-	}
-	tmp1 := make([]float64, 1)
-	tmp2 := make([]float64, 1)
-	jobU = lapack.SVDNone
-	jobVT = lapack.SVDNone
+		prefix := fmt.Sprintf("m=%v,n=%v,work=%v,mtype=%v", m, n, wl, mtype)
 
-	impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, tmp1, ldu, tmp2, ldvt, work, -1)
-	work = make([]float64, int(work[0]))
-	lwork := len(work)
-	if shortWork {
-		lwork--
-	}
-	ok := impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, tmp1, ldu, tmp2, ldvt, work, lwork)
-	if !ok {
-		t.Errorf("Dgesvd did not complete successfully")
-	}
-	if !floats.EqualApprox(s, sCopy, 1e-10) {
-		t.Errorf("Singular value mismatch when singular vectors not computed: %s", errStr)
-	}
-	// Check that the singular vectors are correctly computed when the other
-	// is none.
-	uAll := make([]float64, len(u))
-	copy(uAll, u)
-	vtAll := make([]float64, len(vt))
-	copy(vtAll, vt)
+		// Determine workspace size based on wl.
+		minwork := max(1, max(5*min(m, n), 3*min(m, n)+max(m, n)))
+		var lwork int
+		switch wl {
+		case minimumWork:
+			lwork = minwork
+		case mediumWork:
+			work := make([]float64, 1)
+			impl.Dgesvd(lapack.SVDAll, lapack.SVDAll, m, n, a, lda, sAll, uAll, ldu, vtAll, ldvt, work, -1)
+			lwork = (int(work[0]) + minwork) / 2
+		case optimumWork:
+			work := make([]float64, 1)
+			impl.Dgesvd(lapack.SVDAll, lapack.SVDAll, m, n, a, lda, sAll, uAll, ldu, vtAll, ldvt, work, -1)
+			lwork = int(work[0])
+		}
+		work := make([]float64, max(1, lwork))
+		for i := range work {
+			work[i] = math.NaN()
+		}
 
-	// Copy the original vectors so the data outside the matrix bounds is the same.
-	copy(u, uAllOrig)
-	copy(vt, vtAllOrig)
+		// Compute the full SVD which will be used later for checking the partial results.
+		ok := impl.Dgesvd(lapack.SVDAll, lapack.SVDAll, m, n, a, lda, sAll, uAll, ldu, vtAll, ldvt, work, len(work))
+		if !ok {
+			t.Fatalf("Case %v: unexpected failure in full SVD", prefix)
+		}
 
-	jobU = job
-	jobVT = lapack.SVDNone
-	copy(a, aCopy)
-	for i := range s {
-		s[i] = rnd.Float64()
-	}
-	impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, u, ldu, tmp2, ldvt, work, -1)
-	work = make([]float64, int(work[0]))
-	lwork = len(work)
-	if shortWork {
-		lwork--
-	}
-	impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, u, ldu, tmp2, ldvt, work, len(work))
-	if !floats.EqualApprox(uAll, u, 1e-10) {
-		t.Errorf("U mismatch when VT is not computed: %s", errStr)
-	}
-	if !floats.EqualApprox(s, sCopy, 1e-10) {
-		t.Errorf("Singular value mismatch when U computed VT not")
-	}
-	jobU = lapack.SVDNone
-	jobVT = job
-	copy(a, aCopy)
-	for i := range s {
-		s[i] = rnd.Float64()
-	}
-	impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, tmp1, ldu, vt, ldvt, work, -1)
-	work = make([]float64, int(work[0]))
-	lwork = len(work)
-	if shortWork {
-		lwork--
-	}
-	impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, tmp1, ldu, vt, ldvt, work, len(work))
-	if !floats.EqualApprox(vtAll, vt, 1e-10) {
-		t.Errorf("VT mismatch when U is not computed: %s", errStr)
-	}
-	if !floats.EqualApprox(s, sCopy, 1e-10) {
-		t.Errorf("Singular value mismatch when VT computed U not")
-	}
-}
-
-// svdCheck checks that the singular value decomposition correctly multiplies back
-// to the original matrix.
-func svdCheck(t *testing.T, thin bool, errStr string, m, n int, s, a, u []float64, ldu int, vt []float64, ldvt int, aCopy []float64, lda int) {
-	sigma := blas64.General{
-		Rows:   m,
-		Cols:   n,
-		Stride: n,
-		Data:   make([]float64, m*n),
-	}
-	for i := 0; i < min(m, n); i++ {
-		sigma.Data[i*sigma.Stride+i] = s[i]
-	}
-
-	uMat := blas64.General{
-		Rows:   m,
-		Cols:   m,
-		Stride: ldu,
-		Data:   u,
-	}
-	vTMat := blas64.General{
-		Rows:   n,
-		Cols:   n,
-		Stride: ldvt,
-		Data:   vt,
-	}
-	if thin {
-		sigma.Rows = min(m, n)
-		sigma.Cols = min(m, n)
-		uMat.Cols = min(m, n)
-		vTMat.Rows = min(m, n)
-	}
-
-	tmp := blas64.General{
-		Rows:   m,
-		Cols:   n,
-		Stride: n,
-		Data:   make([]float64, m*n),
-	}
-	ans := blas64.General{
-		Rows:   m,
-		Cols:   n,
-		Stride: lda,
-		Data:   make([]float64, m*lda),
-	}
-	copy(ans.Data, a)
-
-	blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, uMat, sigma, 0, tmp)
-	blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, tmp, vTMat, 0, ans)
-
-	if !floats.EqualApprox(ans.Data, aCopy, 1e-8) {
-		t.Errorf("Decomposition mismatch. Trim = %v, %s", thin, errStr)
-	}
-
-	if !thin {
-		// Check that U and V are orthogonal.
-		for i := 0; i < uMat.Rows; i++ {
-			for j := i + 1; j < uMat.Rows; j++ {
-				dot := blas64.Dot(uMat.Cols,
-					blas64.Vector{Inc: 1, Data: uMat.Data[i*uMat.Stride:]},
-					blas64.Vector{Inc: 1, Data: uMat.Data[j*uMat.Stride:]},
-				)
-				if dot > 1e-8 {
-					t.Errorf("U not orthogonal %s", errStr)
-				}
+		// Check that uAll, sAll, and vtAll multiply back to A by computing a residual
+		//  |A - U*S*VT| / (n*aNorm)
+		if resid := svdFullResidual(m, n, aNorm, aCopy, lda, uAll, ldu, sAll, vtAll, ldvt); resid > tol {
+			t.Errorf("Case %v: original matrix not recovered for full SVD, |A - U*D*VT|=%v", prefix, resid)
+		}
+		if minmn > 0 {
+			// Check that uAll is orthogonal.
+			if !hasOrthonormalColumns(blas64.General{Rows: m, Cols: m, Data: uAll, Stride: ldu}) {
+				t.Errorf("Case %v: UAll is not orthogonal", prefix)
+			}
+			// Check that vtAll is orthogonal.
+			if !hasOrthonormalRows(blas64.General{Rows: n, Cols: n, Data: vtAll, Stride: ldvt}) {
+				t.Errorf("Case %v: VTAll is not orthogonal", prefix)
 			}
 		}
-		for i := 0; i < vTMat.Rows; i++ {
-			for j := i + 1; j < vTMat.Rows; j++ {
-				dot := blas64.Dot(vTMat.Cols,
-					blas64.Vector{Inc: 1, Data: vTMat.Data[i*vTMat.Stride:]},
-					blas64.Vector{Inc: 1, Data: vTMat.Data[j*vTMat.Stride:]},
-				)
-				if dot > 1e-8 {
-					t.Errorf("V not orthogonal %s", errStr)
+		// Check that singular values are decreasing.
+		if !sort.IsSorted(sort.Reverse(sort.Float64Slice(sAll))) {
+			t.Errorf("Case %v: singular values from full SVD are not decreasing", prefix)
+		}
+		// Check that singular values are non-negative.
+		if minmn > 0 && floats.Min(sAll) < 0 {
+			t.Errorf("Case %v: some singular values from full SVD are negative", prefix)
+		}
+
+		// Do partial SVD and compare the results to sAll, uAll, and vtAll.
+		for _, jobU := range []lapack.SVDJob{lapack.SVDAll, lapack.SVDStore, lapack.SVDOverwrite, lapack.SVDNone} {
+			for _, jobVT := range []lapack.SVDJob{lapack.SVDAll, lapack.SVDStore, lapack.SVDOverwrite, lapack.SVDNone} {
+				if jobU == lapack.SVDOverwrite || jobVT == lapack.SVDOverwrite {
+					// Not implemented.
+					continue
+				}
+				if jobU == lapack.SVDAll && jobVT == lapack.SVDAll {
+					// Already checked above.
+					continue
+				}
+
+				prefix := prefix + ",job=" + svdJobString(jobU) + "U-" + svdJobString(jobVT) + "VT"
+
+				// Restore A to its original values.
+				copy(a, aCopy)
+
+				// Allocate slices for the results of partial SVD and fill them.
+				u := make([]float64, m*ldu)
+				for i := range u {
+					u[i] = rnd.NormFloat64()
+				}
+				vt := make([]float64, n*ldvt)
+				for i := range vt {
+					vt[i] = rnd.NormFloat64()
+				}
+				s := make([]float64, min(m, n))
+				for i := range s {
+					s[i] = math.NaN()
+				}
+
+				for i := range work {
+					work[i] = math.NaN()
+				}
+
+				ok := impl.Dgesvd(jobU, jobVT, m, n, a, lda, s, u, ldu, vt, ldvt, work, len(work))
+				if !ok {
+					t.Fatalf("Case %v: unexpected failure in partial Dgesvd", prefix)
+				}
+
+				if minmn == 0 {
+					// No panic and the result is ok, there is
+					// nothing else to check.
+					continue
+				}
+
+				// Check that U has orthogonal columns and that it matches UAll.
+				switch jobU {
+				case lapack.SVDStore:
+					if !hasOrthonormalColumns(blas64.General{Rows: m, Cols: minmn, Data: u, Stride: ldu}) {
+						t.Errorf("Case %v: columns of U are not orthogonal", prefix)
+					}
+					if res := svdPartialUResidual(m, minmn, u, uAll, ldu); res > tol {
+						t.Errorf("Case %v: columns of U do not match UAll", prefix)
+					}
+				case lapack.SVDAll:
+					if !hasOrthonormalColumns(blas64.General{Rows: m, Cols: m, Data: u, Stride: ldu}) {
+						t.Errorf("Case %v: columns of U are not orthogonal", prefix)
+					}
+					if res := svdPartialUResidual(m, m, u, uAll, ldu); res > tol {
+						t.Errorf("Case %v: columns of U do not match UAll", prefix)
+					}
+				}
+				// Check that VT has orthogonal rows and that it matches VTAll.
+				switch jobVT {
+				case lapack.SVDStore:
+					if !hasOrthonormalRows(blas64.General{Rows: minmn, Cols: n, Data: vtAll, Stride: ldvt}) {
+						t.Errorf("Case %v: rows of VT are not orthogonal", prefix)
+					}
+					if res := svdPartialVTResidual(minmn, n, vt, vtAll, ldvt); res > tol {
+						t.Errorf("Case %v: rows of VT do not match VTAll", prefix)
+					}
+				case lapack.SVDAll:
+					if !hasOrthonormalRows(blas64.General{Rows: n, Cols: n, Data: vtAll, Stride: ldvt}) {
+						t.Errorf("Case %v: rows of VT are not orthogonal", prefix)
+					}
+					if res := svdPartialVTResidual(n, n, vt, vtAll, ldvt); res > tol {
+						t.Errorf("Case %v: rows of VT do not match VTAll", prefix)
+					}
+				}
+				// Check that singular values are decreasing.
+				if !sort.IsSorted(sort.Reverse(sort.Float64Slice(s))) {
+					t.Errorf("Case %v: singular values from full SVD are not decreasing", prefix)
+				}
+				// Check that singular values are non-negative.
+				if floats.Min(s) < 0 {
+					t.Errorf("Case %v: some singular values from full SVD are negative", prefix)
+				}
+				if !floats.EqualApprox(s, sAll, tol/10) {
+					t.Errorf("Case %v: singular values differ between full and partial SVD\n%v\n%v", prefix, s, sAll)
 				}
 			}
 		}
 	}
+}
+
+// svdFullResidual returns
+//  |A - U*D*VT| / (n * aNorm)
+// where U, D, and VT are as computed by Dgesvd with jobU = jobVT = lapack.SVDAll.
+func svdFullResidual(m, n int, aNorm float64, a []float64, lda int, u []float64, ldu int, d []float64, vt []float64, ldvt int) float64 {
+	// The implementation follows TESTING/dbdt01.f from the reference.
+
+	minmn := min(m, n)
+	if minmn == 0 {
+		return 0
+	}
+
+	// j-th column of A - U*D*VT.
+	aMinusUDVT := make([]float64, m)
+	// D times the j-th column of VT.
+	dvt := make([]float64, minmn)
+	// Compute the residual |A - U*D*VT| one column at a time.
+	var resid float64
+	for j := 0; j < n; j++ {
+		// Copy j-th column of A to aj.
+		blas64.Copy(blas64.Vector{N: m, Data: a[j:], Inc: lda}, blas64.Vector{N: m, Data: aMinusUDVT, Inc: 1})
+		// Multiply D times j-th column of VT.
+		for i := 0; i < minmn; i++ {
+			dvt[i] = d[i] * vt[i*ldvt+j]
+		}
+		// Compute the j-th column of A - U*D*VT.
+		blas64.Gemv(blas.NoTrans,
+			-1, blas64.General{Rows: m, Cols: minmn, Data: u, Stride: ldu}, blas64.Vector{N: minmn, Data: dvt, Inc: 1},
+			1, blas64.Vector{N: m, Data: aMinusUDVT, Inc: 1})
+		resid = math.Max(resid, blas64.Asum(blas64.Vector{N: m, Data: aMinusUDVT, Inc: 1}))
+	}
+	if aNorm == 0 {
+		if resid != 0 {
+			// Original matrix A is zero but the residual is non-zero,
+			// return infinity.
+			return math.Inf(1)
+		}
+		// Original matrix A is zero, residual is zero, return 0.
+		return 0
+	}
+	// Original matrix A is non-zero.
+	if aNorm >= resid {
+		resid = resid / aNorm / float64(n)
+	} else {
+		if aNorm < 1 {
+			resid = math.Min(resid, float64(n)*aNorm) / aNorm / float64(n)
+		} else {
+			resid = math.Min(resid/aNorm, float64(n)) / float64(n)
+		}
+	}
+	return resid
+}
+
+// svdPartialUResidual compares U and URef to see if their columns span the same
+// spaces. It returns the maximum over columns of
+//  |URef(i) - S*U(i)|
+// where URef(i) and U(i) are the i-th columns of URef and U, respectively, and
+// S is ±1 chosen to minimize the expression.
+func svdPartialUResidual(m, n int, u, uRef []float64, ldu int) float64 {
+	var res float64
+	for j := 0; j < n; j++ {
+		imax := blas64.Iamax(blas64.Vector{N: m, Data: uRef[j:], Inc: ldu})
+		s := math.Copysign(1, uRef[imax*ldu+j]) * math.Copysign(1, u[imax*ldu+j])
+		for i := 0; i < m; i++ {
+			diff := math.Abs(uRef[i*ldu+j] - s*u[i*ldu+j])
+			res = math.Max(res, diff)
+		}
+	}
+	return res
+}
+
+// svdPartialVTResidual compares VT and VTRef to see if their rows span the same
+// spaces. It returns the maximum over rows of
+//  |VTRef(i) - S*VT(i)|
+// where VTRef(i) and VT(i) are the i-th columns of VTRef and VT, respectively, and
+// S is ±1 chosen to minimize the expression.
+func svdPartialVTResidual(m, n int, vt, vtRef []float64, ldvt int) float64 {
+	var res float64
+	for i := 0; i < m; i++ {
+		jmax := blas64.Iamax(blas64.Vector{N: n, Data: vtRef[i*ldvt:], Inc: 1})
+		s := math.Copysign(1, vtRef[i*ldvt+jmax]) * math.Copysign(1, vt[i*ldvt+jmax])
+		for j := 0; j < n; j++ {
+			diff := math.Abs(vtRef[i*ldvt+j] - s*vt[i*ldvt+j])
+			res = math.Max(res, diff)
+		}
+	}
+	return res
 }

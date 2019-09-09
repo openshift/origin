@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewRoutingRulesClientWithBaseURI(baseURI string, subscriptionID string) Rou
 // routingRuleName - name of the Routing Rule which is unique within the Front Door.
 // routingRuleParameters - routing Rule properties needed to create a new Front Door.
 func (client RoutingRulesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, frontDoorName string, routingRuleName string, routingRuleParameters RoutingRule) (result RoutingRulesCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RoutingRulesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 80, Chain: nil},
@@ -92,6 +103,7 @@ func (client RoutingRulesClient) CreateOrUpdatePreparer(ctx context.Context, res
 		"api-version": APIVersion,
 	}
 
+	routingRuleParameters.Type = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -105,13 +117,9 @@ func (client RoutingRulesClient) CreateOrUpdatePreparer(ctx context.Context, res
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client RoutingRulesClient) CreateOrUpdateSender(req *http.Request) (future RoutingRulesCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -138,6 +146,16 @@ func (client RoutingRulesClient) CreateOrUpdateResponder(resp *http.Response) (r
 // frontDoorName - name of the Front Door which is globally unique.
 // routingRuleName - name of the Routing Rule which is unique within the Front Door.
 func (client RoutingRulesClient) Delete(ctx context.Context, resourceGroupName string, frontDoorName string, routingRuleName string) (result RoutingRulesDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RoutingRulesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 80, Chain: nil},
@@ -194,13 +212,9 @@ func (client RoutingRulesClient) DeletePreparer(ctx context.Context, resourceGro
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client RoutingRulesClient) DeleteSender(req *http.Request) (future RoutingRulesDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -226,6 +240,16 @@ func (client RoutingRulesClient) DeleteResponder(resp *http.Response) (result au
 // frontDoorName - name of the Front Door which is globally unique.
 // routingRuleName - name of the Routing Rule which is unique within the Front Door.
 func (client RoutingRulesClient) Get(ctx context.Context, resourceGroupName string, frontDoorName string, routingRuleName string) (result RoutingRule, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RoutingRulesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 80, Chain: nil},
@@ -288,8 +312,8 @@ func (client RoutingRulesClient) GetPreparer(ctx context.Context, resourceGroupN
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client RoutingRulesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -310,6 +334,16 @@ func (client RoutingRulesClient) GetResponder(resp *http.Response) (result Routi
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // frontDoorName - name of the Front Door which is globally unique.
 func (client RoutingRulesClient) ListByFrontDoor(ctx context.Context, resourceGroupName string, frontDoorName string) (result RoutingRuleListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RoutingRulesClient.ListByFrontDoor")
+		defer func() {
+			sc := -1
+			if result.rrlr.Response.Response != nil {
+				sc = result.rrlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 80, Chain: nil},
@@ -368,8 +402,8 @@ func (client RoutingRulesClient) ListByFrontDoorPreparer(ctx context.Context, re
 // ListByFrontDoorSender sends the ListByFrontDoor request. The method will close the
 // http.Response Body if it receives an error.
 func (client RoutingRulesClient) ListByFrontDoorSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByFrontDoorResponder handles the response to the ListByFrontDoor request. The method always
@@ -386,8 +420,8 @@ func (client RoutingRulesClient) ListByFrontDoorResponder(resp *http.Response) (
 }
 
 // listByFrontDoorNextResults retrieves the next set of results, if any.
-func (client RoutingRulesClient) listByFrontDoorNextResults(lastResults RoutingRuleListResult) (result RoutingRuleListResult, err error) {
-	req, err := lastResults.routingRuleListResultPreparer()
+func (client RoutingRulesClient) listByFrontDoorNextResults(ctx context.Context, lastResults RoutingRuleListResult) (result RoutingRuleListResult, err error) {
+	req, err := lastResults.routingRuleListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "frontdoor.RoutingRulesClient", "listByFrontDoorNextResults", nil, "Failure preparing next results request")
 	}
@@ -408,6 +442,16 @@ func (client RoutingRulesClient) listByFrontDoorNextResults(lastResults RoutingR
 
 // ListByFrontDoorComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RoutingRulesClient) ListByFrontDoorComplete(ctx context.Context, resourceGroupName string, frontDoorName string) (result RoutingRuleListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RoutingRulesClient.ListByFrontDoor")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByFrontDoor(ctx, resourceGroupName, frontDoorName)
 	return
 }

@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/containernetworking/cni/pkg/version/testhelpers"
 	. "github.com/onsi/ginkgo"
@@ -46,6 +47,9 @@ func main() { skel.PluginMain(c, c) }
 		outputDir, err = ioutil.TempDir("", "bin")
 		Expect(err).NotTo(HaveOccurred())
 		outputFilePath = filepath.Join(outputDir, "some-binary")
+		if runtime.GOOS == "windows" {
+			outputFilePath += ".exe"
+		}
 	})
 
 	AfterEach(func() {

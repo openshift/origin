@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // +build go1.7
+// +build gc
 
 package gcexportdata_test
 
@@ -50,7 +51,12 @@ func ExampleRead() {
 	}
 
 	// Print package information.
-	fmt.Printf("Package members:    %s...\n", pkg.Scope().Names()[:5])
+	members := pkg.Scope().Names()
+	if members[0] == ".inittask" {
+		// An improvement to init handling in 1.13 added ".inittask". Remove so go >= 1.13 and go < 1.13 both pass.
+		members = members[1:]
+	}
+	fmt.Printf("Package members:    %s...\n", members[:5])
 	println := pkg.Scope().Lookup("Println")
 	posn := fset.Position(println.Pos())
 	posn.Line = 123 // make example deterministic
@@ -69,14 +75,15 @@ func ExampleRead() {
 // ExampleNewImporter demonstrates usage of NewImporter to provide type
 // information for dependencies when type-checking Go source code.
 func ExampleNewImporter() {
-	const src = `package twopi
+	const src = `package myrpc
 
-import "math"
+// choosing a package that doesn't change across releases
+import "net/rpc"
 
-const TwoPi = 2 * math.Pi
+const serverError rpc.ServerError = ""
 `
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, "twopi.go", src, 0)
+	f, err := parser.ParseFile(fset, "myrpc.go", src, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,32 +91,33 @@ const TwoPi = 2 * math.Pi
 	packages := make(map[string]*types.Package)
 	imp := gcexportdata.NewImporter(fset, packages)
 	conf := types.Config{Importer: imp}
-	pkg, err := conf.Check("twopi", fset, []*ast.File{f}, nil)
+	pkg, err := conf.Check("myrpc", fset, []*ast.File{f}, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// object from imported package
-	pi := packages["math"].Scope().Lookup("Pi")
-	fmt.Printf("const %s.%s %s = %s // %s\n",
+	pi := packages["net/rpc"].Scope().Lookup("ServerError")
+	fmt.Printf("type %s.%s %s // %s\n",
 		pi.Pkg().Path(),
 		pi.Name(),
-		pi.Type(),
-		pi.(*types.Const).Val(),
-		slashify(fset.Position(pi.Pos())))
+		pi.Type().Underlying(),
+		slashify(fset.Position(pi.Pos())),
+	)
 
 	// object in source package
-	twopi := pkg.Scope().Lookup("TwoPi")
+	twopi := pkg.Scope().Lookup("serverError")
 	fmt.Printf("const %s %s = %s // %s\n",
 		twopi.Name(),
 		twopi.Type(),
 		twopi.(*types.Const).Val(),
-		slashify(fset.Position(twopi.Pos())))
+		slashify(fset.Position(twopi.Pos())),
+	)
 
 	// Output:
 	//
-	// const math.Pi untyped float = 3.14159 // $GOROOT/src/math/const.go:11:1
-	// const TwoPi untyped float = 6.28319 // twopi.go:5:7
+	// type net/rpc.ServerError string // $GOROOT/src/net/rpc/client.go:20:1
+	// const serverError net/rpc.ServerError = "" // myrpc.go:6:7
 }
 
 func slashify(posn token.Position) token.Position {

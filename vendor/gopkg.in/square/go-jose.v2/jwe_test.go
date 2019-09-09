@@ -23,6 +23,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"math/big"
+	"regexp"
 	"testing"
 )
 
@@ -269,7 +270,7 @@ func TestVectorsJWE(t *testing.T) {
 		"tag":"XFBoMYUZodetZdvTiFvSkQ" }`)
 
 	// Mock random reader
-	randReader = bytes.NewReader([]byte{
+	RandReader = bytes.NewReader([]byte{
 		// Encryption key
 		177, 161, 244, 128, 84, 143, 225, 115, 63, 180, 3, 255, 107, 154,
 		212, 246, 138, 7, 110, 91, 112, 46, 34, 105, 47, 130, 203, 46, 122,
@@ -300,6 +301,13 @@ func TestVectorsJWE(t *testing.T) {
 	if serialized != expectedFull {
 		t.Error("Full serialization is not what we expected")
 	}
+}
+
+func TestJWENilProtected(t *testing.T) {
+	key := []byte("1234567890123456")
+	serialized := `{"unprotected":{"alg":"dir","enc":"A128GCM"}}`
+	jwe, _ := ParseEncrypted(serialized)
+	jwe.Decrypt(key)
 }
 
 func TestVectorsJWECorrupt(t *testing.T) {
@@ -540,4 +548,72 @@ func TestSampleJose4jJWEMessagesECDH(t *testing.T) {
 			t.Error("plaintext is not what we expected for msg", msg)
 		}
 	}
+}
+
+func TestSampleAESCBCHMACMessagesFromNodeJose(t *testing.T) {
+	samples := []struct {
+		key        []byte
+		ciphertext string
+	}{
+		// A256CBC
+		{
+			fromBase64URLBytes("5SeJepAQ8Hmza4bM_wAQjvW0cFbPo_0TBc-sPblNBKs5SeJepAQ8Hmza4bM_wAQjvW0cFbPo_0TBc-sPblNBKs"),
+			`{"protected":"eyJjdHkiOiJKV1QiLCJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidGVzdDUxMiJ9","iv":"9Gloee8teNSSjXG_ifPRnA","ciphertext":"x12B46biQ6axL4ee5mHwpA","tag":"ec7qQ4c8Gyx57BelJoULIW6GRW7Bccm44d0iEfU4yIw"}`,
+		},
+		// A192CBC
+		{
+			fromBase64URLBytes("b0ha2QPh_1D-wxtRK3jzzg7MEuD1g91zb0ha2QPh_1D-wxtRK3jzzg7MEuD1g91z"),
+			`{"protected":"eyJjdHkiOiJKV1QiLCJhbGciOiJkaXIiLCJlbmMiOiJBMTkyQ0JDLUhTMzg0Iiwia2lkIjoidGVzdDM4NCJ9","iv":"zocDwPrIX4PZ7ObdoP3m7A","ciphertext":"kLTpZfiX7Qv3r2TaZzUCFg","tag":"Hxk9xu72WHBos5JWpShFmasiNbVqBQqi"}`,
+		},
+		// A128CBC
+		{
+			fromBase64URLBytes("5SeJepAQ8Hmza4bM_wAQjvW0cFbPo_0TBc-sPblNBKs"),
+			`{"protected":"eyJjdHkiOiJKV1QiLCJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2Iiwia2lkIjoidGVzdDI1NiJ9","iv":"oDjxSLU4joRZR9YybE83RQ","ciphertext":"y93rgZp209nvmbX8hvN0Zg","tag":"NrivXSKPqzkmcpQTThXpzQ"}`,
+		},
+	}
+
+	for _, sample := range samples {
+		obj, err := ParseEncrypted(sample.ciphertext)
+		if err != nil {
+			t.Error("unable to parse message", sample.ciphertext, err)
+			continue
+		}
+		plaintext, err := obj.Decrypt(sample.key)
+		if err != nil {
+			t.Error("unable to decrypt message", sample.ciphertext, err)
+			continue
+		}
+		if string(plaintext) != "Hello World" {
+			t.Error("plaintext is not what we expected for msg", sample.ciphertext, string(plaintext))
+		}
+	}
+}
+
+func TestTamperedJWE(t *testing.T) {
+	key := []byte("1234567890123456")
+
+	encrypter, _ := NewEncrypter(A128GCM,
+		Recipient{Algorithm: DIRECT, Key: key}, nil)
+
+	var plaintext = []byte("Lorem ipsum dolor sit amet")
+	object, _ := encrypter.Encrypt(plaintext)
+
+	serialized := object.FullSerialize()
+
+	// Inject a longer iv
+	serialized = regexp.MustCompile(`"iv":"[^"]+"`).
+		ReplaceAllString(serialized, `"iv":"UotNnfiavtNOOSZAcfI03i"`)
+
+	object, _ = ParseEncrypted(serialized)
+
+	_, err := object.Decrypt(key)
+	if err == nil {
+		t.Error("Decrypt() on invalid object should fail")
+	}
+}
+
+func TestJWEWithNullAlg(t *testing.T) {
+	// {"alg":null,"enc":"A128GCM"}
+	serialized := `{"protected":"eyJhbGciOm51bGwsImVuYyI6IkExMjhHQ00ifQ"}`
+	ParseEncrypted(serialized)
 }

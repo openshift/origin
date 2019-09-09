@@ -2,14 +2,14 @@ foo = ["fatih", "arslan"           ]
 
 foo = [        "bar", "qaz", ]
 
-foo = [             "zeynep", 
+foo = [             "zeynep",
 "arslan", ]
 
 foo = ["fatih", "zeynep",
 "arslan", ]
 
 foo = [
-	"vim-go", 
+	"vim-go",
 	"golang", "hcl"]
 
 foo = []
@@ -19,3 +19,19 @@ foo = [1,   2,3,       4]
 foo = [
 	"kenya",        "ethiopia",
 	"columbia"]
+
+foo = [
+    <<EOS
+one
+EOS
+,
+    <<EOS
+two
+EOS
+,
+    ]
+
+foo = [<<EOS
+one
+EOS
+    ]

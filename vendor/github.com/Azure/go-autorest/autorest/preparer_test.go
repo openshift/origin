@@ -15,6 +15,7 @@ package autorest
 //  limitations under the License.
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -163,6 +164,30 @@ func ExampleWithBaseURL_second() {
 	// Output: parse :: missing protocol scheme
 }
 
+// Create a request whose Body is a byte array
+func TestWithBytes(t *testing.T) {
+	input := []byte{41, 82, 109}
+
+	r, err := Prepare(&http.Request{},
+		WithBytes(&input))
+	if err != nil {
+		t.Fatalf("ERROR: %v\n", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("ERROR: %v\n", err)
+	}
+
+	if len(b) != len(input) {
+		t.Fatalf("Expected the Body to contain %d bytes but got %d", len(input), len(b))
+	}
+
+	if !reflect.DeepEqual(b, input) {
+		t.Fatalf("Body doesn't contain the same bytes: %s (Expected %s)", b, input)
+	}
+}
+
 func ExampleWithCustomBaseURL() {
 	r, err := Prepare(&http.Request{},
 		WithCustomBaseURL("https://{account}.{service}.core.windows.net/",
@@ -236,6 +261,26 @@ func ExampleWithJSON() {
 		fmt.Printf("Request Body contains %s\n", string(b))
 	}
 	// Output: Request Body contains {"name":"Rob Pike","age":42}
+}
+
+// Create a request whose Body is the XML encoding of a structure
+func ExampleWithXML() {
+	t := mocks.T{Name: "Rob Pike", Age: 42}
+
+	r, err := Prepare(&http.Request{},
+		WithXML(&t))
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	} else {
+		fmt.Printf("Request Body contains %s\n", string(b))
+	}
+	// Output: Request Body contains <?xml version="1.0" encoding="UTF-8"?>
+	// <T><Name>Rob Pike</Name><Age>42</Age></T>
 }
 
 // Create a request from a path with escaped parameters
@@ -445,6 +490,13 @@ func TestAsHead(t *testing.T) {
 	r, _ := Prepare(mocks.NewRequest(), AsHead())
 	if r.Method != "HEAD" {
 		t.Fatal("autorest: AsHead failed to set HTTP method header to HEAD")
+	}
+}
+
+func TestAsMerge(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), AsMerge())
+	if r.Method != "MERGE" {
+		t.Fatal("autorest: AsMerge failed to set HTTP method header to MERGE")
 	}
 }
 
@@ -798,5 +850,28 @@ func TestModifyingRequestWithExistingQueryParameters(t *testing.T) {
 
 	if r.URL.RawQuery != "pq=golang+encoded&q=golang+the+best" {
 		t.Fatalf("autorest: Preparing an existing request failed when setting the query parameters (%s)", r.URL.RawQuery)
+	}
+}
+
+func TestGetPrepareDecorators(t *testing.T) {
+	pd := GetPrepareDecorators(context.Background())
+	if l := len(pd); l != 0 {
+		t.Fatalf("expected zero length but got %d", l)
+	}
+	pd = GetPrepareDecorators(context.Background(), WithNothing(), AsFormURLEncoded())
+	if l := len(pd); l != 2 {
+		t.Fatalf("expected length of two but got %d", l)
+	}
+}
+
+func TestWithPrepareDecorators(t *testing.T) {
+	ctx := WithPrepareDecorators(context.Background(), []PrepareDecorator{WithUserAgent("somestring")})
+	pd := GetPrepareDecorators(ctx)
+	if l := len(pd); l != 1 {
+		t.Fatalf("expected length of one but got %d", l)
+	}
+	pd = GetPrepareDecorators(ctx, WithNothing(), WithNothing())
+	if l := len(pd); l != 1 {
+		t.Fatalf("expected length of one but got %d", l)
 	}
 }

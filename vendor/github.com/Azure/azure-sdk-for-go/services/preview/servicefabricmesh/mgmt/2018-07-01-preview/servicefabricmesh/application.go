@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,6 +50,16 @@ func NewApplicationClientWithBaseURI(baseURI string, subscriptionID string) Appl
 // applicationName - the identity of the application.
 // applicationResourceDescription - description for creating an application resource.
 func (client ApplicationClient) Create(ctx context.Context, resourceGroupName string, applicationName string, applicationResourceDescription ApplicationResourceDescription) (result ApplicationResourceDescription, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationClient.Create")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: applicationResourceDescription,
 			Constraints: []validation.Constraint{{Target: "applicationResourceDescription.ApplicationResourceProperties", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -102,8 +113,8 @@ func (client ApplicationClient) CreatePreparer(ctx context.Context, resourceGrou
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationClient) CreateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -124,6 +135,16 @@ func (client ApplicationClient) CreateResponder(resp *http.Response) (result App
 // resourceGroupName - azure resource group name
 // applicationName - the identity of the application.
 func (client ApplicationClient) Delete(ctx context.Context, resourceGroupName string, applicationName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, applicationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabricmesh.ApplicationClient", "Delete", nil, "Failure preparing request")
@@ -169,8 +190,8 @@ func (client ApplicationClient) DeletePreparer(ctx context.Context, resourceGrou
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -191,6 +212,16 @@ func (client ApplicationClient) DeleteResponder(resp *http.Response) (result aut
 // resourceGroupName - azure resource group name
 // applicationName - the identity of the application.
 func (client ApplicationClient) Get(ctx context.Context, resourceGroupName string, applicationName string) (result ApplicationResourceDescription, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, applicationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabricmesh.ApplicationClient", "Get", nil, "Failure preparing request")
@@ -236,8 +267,8 @@ func (client ApplicationClient) GetPreparer(ctx context.Context, resourceGroupNa
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -258,6 +289,16 @@ func (client ApplicationClient) GetResponder(resp *http.Response) (result Applic
 // Parameters:
 // resourceGroupName - azure resource group name
 func (client ApplicationClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ApplicationResourceDescriptionListPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.ardl.Response.Response != nil {
+				sc = result.ardl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -303,8 +344,8 @@ func (client ApplicationClient) ListByResourceGroupPreparer(ctx context.Context,
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -321,8 +362,8 @@ func (client ApplicationClient) ListByResourceGroupResponder(resp *http.Response
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client ApplicationClient) listByResourceGroupNextResults(lastResults ApplicationResourceDescriptionList) (result ApplicationResourceDescriptionList, err error) {
-	req, err := lastResults.applicationResourceDescriptionListPreparer()
+func (client ApplicationClient) listByResourceGroupNextResults(ctx context.Context, lastResults ApplicationResourceDescriptionList) (result ApplicationResourceDescriptionList, err error) {
+	req, err := lastResults.applicationResourceDescriptionListPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicefabricmesh.ApplicationClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -343,6 +384,16 @@ func (client ApplicationClient) listByResourceGroupNextResults(lastResults Appli
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ApplicationClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result ApplicationResourceDescriptionListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
@@ -350,6 +401,16 @@ func (client ApplicationClient) ListByResourceGroupComplete(ctx context.Context,
 // ListBySubscription gets the information about all application resources in a given subscription. The information
 // includes the information about the application's services and other runtime properties.
 func (client ApplicationClient) ListBySubscription(ctx context.Context) (result ApplicationResourceDescriptionListPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.ardl.Response.Response != nil {
+				sc = result.ardl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listBySubscriptionNextResults
 	req, err := client.ListBySubscriptionPreparer(ctx)
 	if err != nil {
@@ -394,8 +455,8 @@ func (client ApplicationClient) ListBySubscriptionPreparer(ctx context.Context) 
 // ListBySubscriptionSender sends the ListBySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
@@ -412,8 +473,8 @@ func (client ApplicationClient) ListBySubscriptionResponder(resp *http.Response)
 }
 
 // listBySubscriptionNextResults retrieves the next set of results, if any.
-func (client ApplicationClient) listBySubscriptionNextResults(lastResults ApplicationResourceDescriptionList) (result ApplicationResourceDescriptionList, err error) {
-	req, err := lastResults.applicationResourceDescriptionListPreparer()
+func (client ApplicationClient) listBySubscriptionNextResults(ctx context.Context, lastResults ApplicationResourceDescriptionList) (result ApplicationResourceDescriptionList, err error) {
+	req, err := lastResults.applicationResourceDescriptionListPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicefabricmesh.ApplicationClient", "listBySubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -434,6 +495,16 @@ func (client ApplicationClient) listBySubscriptionNextResults(lastResults Applic
 
 // ListBySubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ApplicationClient) ListBySubscriptionComplete(ctx context.Context) (result ApplicationResourceDescriptionListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBySubscription(ctx)
 	return
 }

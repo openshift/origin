@@ -33,7 +33,7 @@ type operationBase struct {
 	typeName string
 }
 
-func (b operationBase) parseFile(path string) (tv typed.TypedValue, err error) {
+func (b operationBase) parseFile(path string) (tv *typed.TypedValue, err error) {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return tv, fmt.Errorf("unable to read file %q: %v", path, err)

@@ -40,14 +40,6 @@ func NewFakeSsh() *FakeSsh {
 	return f
 }
 
-func (f *FakeSsh) ConnectAndExec(host string,
-	commands []string,
-	timeoutMinutes int,
-	useSudo bool) ([]string, error) {
-	return []string{}, nil
-
-}
-
 func (f *FakeSsh) ExecCommands(host string,
 	commands []string,
 	timeoutMinutes int,

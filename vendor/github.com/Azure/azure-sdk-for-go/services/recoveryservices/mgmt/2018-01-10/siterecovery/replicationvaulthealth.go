@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -41,6 +42,16 @@ func NewReplicationVaultHealthClientWithBaseURI(baseURI string, subscriptionID s
 
 // Get gets the health details of the vault.
 func (client ReplicationVaultHealthClient) Get(ctx context.Context) (result VaultHealthDetails, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationVaultHealthClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationVaultHealthClient", "Get", nil, "Failure preparing request")
@@ -86,8 +97,8 @@ func (client ReplicationVaultHealthClient) GetPreparer(ctx context.Context) (*ht
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationVaultHealthClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -105,6 +116,16 @@ func (client ReplicationVaultHealthClient) GetResponder(resp *http.Response) (re
 
 // Refresh sends the refresh request.
 func (client ReplicationVaultHealthClient) Refresh(ctx context.Context) (result ReplicationVaultHealthRefreshFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationVaultHealthClient.Refresh")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.RefreshPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationVaultHealthClient", "Refresh", nil, "Failure preparing request")
@@ -144,13 +165,9 @@ func (client ReplicationVaultHealthClient) RefreshPreparer(ctx context.Context) 
 // RefreshSender sends the Refresh request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationVaultHealthClient) RefreshSender(req *http.Request) (future ReplicationVaultHealthRefreshFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}

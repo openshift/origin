@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -32,12 +33,7 @@ type CustomInstanceClient struct {
 
 // NewCustomInstanceClient creates an instance of the CustomInstanceClient client.
 func NewCustomInstanceClient() CustomInstanceClient {
-	return NewCustomInstanceClientWithBaseURI(DefaultBaseURI)
-}
-
-// NewCustomInstanceClientWithBaseURI creates an instance of the CustomInstanceClient client.
-func NewCustomInstanceClientWithBaseURI(baseURI string) CustomInstanceClient {
-	return CustomInstanceClient{NewWithBaseURI(baseURI)}
+	return CustomInstanceClient{New()}
 }
 
 // Search sends the search request.
@@ -162,6 +158,16 @@ func NewCustomInstanceClientWithBaseURI(baseURI string) CustomInstanceClient {
 // display strings that contain escapable HTML characters such as <, >, and &, if textFormat is set to HTML,
 // Bing escapes the characters as appropriate (for example, < is escaped to &lt;).
 func (client CustomInstanceClient) Search(ctx context.Context, customConfig string, query string, acceptLanguage string, userAgent string, clientID string, clientIP string, location string, countryCode string, count *int32, market string, offset *int32, safeSearch SafeSearch, setLang string, textDecorations *bool, textFormat TextFormat) (result SearchResponse, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/CustomInstanceClient.Search")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.SearchPreparer(ctx, customConfig, query, acceptLanguage, userAgent, clientID, clientIP, location, countryCode, count, market, offset, safeSearch, setLang, textDecorations, textFormat)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customsearch.CustomInstanceClient", "Search", nil, "Failure preparing request")
@@ -185,6 +191,10 @@ func (client CustomInstanceClient) Search(ctx context.Context, customConfig stri
 
 // SearchPreparer prepares the Search request.
 func (client CustomInstanceClient) SearchPreparer(ctx context.Context, customConfig string, query string, acceptLanguage string, userAgent string, clientID string, clientIP string, location string, countryCode string, count *int32, market string, offset *int32, safeSearch SafeSearch, setLang string, textDecorations *bool, textFormat TextFormat) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	queryParameters := map[string]interface{}{
 		"customConfig": autorest.Encode("query", customConfig),
 		"q":            autorest.Encode("query", query),
@@ -218,7 +228,7 @@ func (client CustomInstanceClient) SearchPreparer(ctx context.Context, customCon
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/bingcustomsearch/v7.0", urlParameters),
 		autorest.WithPath("/search"),
 		autorest.WithQueryParameters(queryParameters),
 		autorest.WithHeader("X-BingApis-SDK", "true"))
@@ -248,8 +258,8 @@ func (client CustomInstanceClient) SearchPreparer(ctx context.Context, customCon
 // SearchSender sends the Search request. The method will close the
 // http.Response Body if it receives an error.
 func (client CustomInstanceClient) SearchSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SearchResponder handles the response to the Search request. The method always

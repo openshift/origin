@@ -16,7 +16,7 @@ contribution. See the [DCO](DCO) file for details.
 
 # Email and Chat
 
-The project uses the the cni-dev email list and IRC chat:
+The project uses the cni-dev email list and IRC chat:
 - Email: [cni-dev](https://groups.google.com/forum/#!forum/cni-dev)
 - IRC: #[containernetworking](irc://irc.freenode.org:6667/#containernetworking) channel on freenode.org
 
@@ -38,7 +38,7 @@ This is a rough outline of how to prepare a contribution:
 - Make sure your commit messages are in the proper format (see below).
 - Push your changes to a topic branch in your fork of the repository.
 - If you changed code:
-   - add automated tests to cover your changes, using the [Ginkgo](http://onsi.github.io/ginkgo/) & [Gomega](http://onsi.github.io/gomega/) style
+   - add automated tests to cover your changes, using the [Ginkgo](https://onsi.github.io/ginkgo/) & [Gomega](https://onsi.github.io/gomega/) style
    - if the package did not previously have any test coverage, add it to the list
    of `TESTABLE` packages in the `test.sh` script.
    - run the full test script and ensure it passes

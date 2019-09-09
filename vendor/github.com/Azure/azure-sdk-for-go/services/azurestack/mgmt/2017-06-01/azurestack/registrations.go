@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,6 +47,16 @@ func NewRegistrationsClientWithBaseURI(baseURI string, subscriptionID string) Re
 // registrationName - name of the Azure Stack registration.
 // tokenParameter - registration token
 func (client RegistrationsClient) CreateOrUpdate(ctx context.Context, resourceGroup string, registrationName string, tokenParameter RegistrationParameter) (result Registration, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegistrationsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: tokenParameter,
 			Constraints: []validation.Constraint{{Target: "tokenParameter.RegistrationParameterProperties", Name: validation.Null, Rule: false,
@@ -100,8 +111,8 @@ func (client RegistrationsClient) CreateOrUpdatePreparer(ctx context.Context, re
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client RegistrationsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -122,6 +133,16 @@ func (client RegistrationsClient) CreateOrUpdateResponder(resp *http.Response) (
 // resourceGroup - name of the resource group.
 // registrationName - name of the Azure Stack registration.
 func (client RegistrationsClient) Delete(ctx context.Context, resourceGroup string, registrationName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegistrationsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroup, registrationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "azurestack.RegistrationsClient", "Delete", nil, "Failure preparing request")
@@ -167,8 +188,8 @@ func (client RegistrationsClient) DeletePreparer(ctx context.Context, resourceGr
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client RegistrationsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -188,6 +209,16 @@ func (client RegistrationsClient) DeleteResponder(resp *http.Response) (result a
 // resourceGroup - name of the resource group.
 // registrationName - name of the Azure Stack registration.
 func (client RegistrationsClient) Get(ctx context.Context, resourceGroup string, registrationName string) (result Registration, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegistrationsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroup, registrationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "azurestack.RegistrationsClient", "Get", nil, "Failure preparing request")
@@ -233,8 +264,8 @@ func (client RegistrationsClient) GetPreparer(ctx context.Context, resourceGroup
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client RegistrationsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -255,6 +286,16 @@ func (client RegistrationsClient) GetResponder(resp *http.Response) (result Regi
 // resourceGroup - name of the resource group.
 // registrationName - name of the Azure Stack registration.
 func (client RegistrationsClient) GetActivationKey(ctx context.Context, resourceGroup string, registrationName string) (result ActivationKeyResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegistrationsClient.GetActivationKey")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetActivationKeyPreparer(ctx, resourceGroup, registrationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "azurestack.RegistrationsClient", "GetActivationKey", nil, "Failure preparing request")
@@ -300,8 +341,8 @@ func (client RegistrationsClient) GetActivationKeyPreparer(ctx context.Context, 
 // GetActivationKeySender sends the GetActivationKey request. The method will close the
 // http.Response Body if it receives an error.
 func (client RegistrationsClient) GetActivationKeySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetActivationKeyResponder handles the response to the GetActivationKey request. The method always
@@ -321,6 +362,16 @@ func (client RegistrationsClient) GetActivationKeyResponder(resp *http.Response)
 // Parameters:
 // resourceGroup - name of the resource group.
 func (client RegistrationsClient) List(ctx context.Context, resourceGroup string) (result RegistrationListPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegistrationsClient.List")
+		defer func() {
+			sc := -1
+			if result.rl.Response.Response != nil {
+				sc = result.rl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroup)
 	if err != nil {
@@ -366,8 +417,8 @@ func (client RegistrationsClient) ListPreparer(ctx context.Context, resourceGrou
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client RegistrationsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -384,8 +435,8 @@ func (client RegistrationsClient) ListResponder(resp *http.Response) (result Reg
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client RegistrationsClient) listNextResults(lastResults RegistrationList) (result RegistrationList, err error) {
-	req, err := lastResults.registrationListPreparer()
+func (client RegistrationsClient) listNextResults(ctx context.Context, lastResults RegistrationList) (result RegistrationList, err error) {
+	req, err := lastResults.registrationListPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "azurestack.RegistrationsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -406,6 +457,16 @@ func (client RegistrationsClient) listNextResults(lastResults RegistrationList) 
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RegistrationsClient) ListComplete(ctx context.Context, resourceGroup string) (result RegistrationListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegistrationsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, resourceGroup)
 	return
 }
@@ -416,6 +477,16 @@ func (client RegistrationsClient) ListComplete(ctx context.Context, resourceGrou
 // registrationName - name of the Azure Stack registration.
 // tokenParameter - registration token
 func (client RegistrationsClient) Update(ctx context.Context, resourceGroup string, registrationName string, tokenParameter RegistrationParameter) (result Registration, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegistrationsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroup, registrationName, tokenParameter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "azurestack.RegistrationsClient", "Update", nil, "Failure preparing request")
@@ -463,8 +534,8 @@ func (client RegistrationsClient) UpdatePreparer(ctx context.Context, resourceGr
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client RegistrationsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

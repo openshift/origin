@@ -91,7 +91,7 @@ func RunRestfulCurlyRouterServer() {
 	u := UserResource{map[string]User{}}
 	u.Register(wsContainer)
 
-	log.Printf("start listening on localhost:8090")
+	log.Print("start listening on localhost:8090")
 	server := &http.Server{Addr: ":8090", Handler: wsContainer}
 	log.Fatal(server.ListenAndServe())
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewEventHubsClientWithBaseURI(baseURI string, subscriptionID string) EventH
 // eventHubName - the Event Hub name
 // parameters - parameters supplied to create an Event Hub resource.
 func (client EventHubsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, parameters CreateOrUpdateParameters) (result ResourceType, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -110,8 +121,8 @@ func (client EventHubsClient) CreateOrUpdatePreparer(ctx context.Context, resour
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -135,6 +146,16 @@ func (client EventHubsClient) CreateOrUpdateResponder(resp *http.Response) (resu
 // authorizationRuleName - the authorization rule name.
 // parameters - the shared access AuthorizationRule.
 func (client EventHubsClient) CreateOrUpdateAuthorizationRule(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.CreateOrUpdateAuthorizationRule")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -203,8 +224,8 @@ func (client EventHubsClient) CreateOrUpdateAuthorizationRulePreparer(ctx contex
 // CreateOrUpdateAuthorizationRuleSender sends the CreateOrUpdateAuthorizationRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) CreateOrUpdateAuthorizationRuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateAuthorizationRuleResponder handles the response to the CreateOrUpdateAuthorizationRule request. The method always
@@ -226,6 +247,16 @@ func (client EventHubsClient) CreateOrUpdateAuthorizationRuleResponder(resp *htt
 // namespaceName - the Namespace name
 // eventHubName - the Event Hub name
 func (client EventHubsClient) Delete(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -285,8 +316,8 @@ func (client EventHubsClient) DeletePreparer(ctx context.Context, resourceGroupN
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -308,6 +339,16 @@ func (client EventHubsClient) DeleteResponder(resp *http.Response) (result autor
 // eventHubName - the Event Hub name
 // authorizationRuleName - the authorization rule name.
 func (client EventHubsClient) DeleteAuthorizationRule(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.DeleteAuthorizationRule")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -371,8 +412,8 @@ func (client EventHubsClient) DeleteAuthorizationRulePreparer(ctx context.Contex
 // DeleteAuthorizationRuleSender sends the DeleteAuthorizationRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) DeleteAuthorizationRuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteAuthorizationRuleResponder handles the response to the DeleteAuthorizationRule request. The method always
@@ -393,6 +434,16 @@ func (client EventHubsClient) DeleteAuthorizationRuleResponder(resp *http.Respon
 // namespaceName - the Namespace name
 // eventHubName - the Event Hub name
 func (client EventHubsClient) Get(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string) (result ResourceType, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -452,8 +503,8 @@ func (client EventHubsClient) GetPreparer(ctx context.Context, resourceGroupName
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -476,6 +527,16 @@ func (client EventHubsClient) GetResponder(resp *http.Response) (result Resource
 // eventHubName - the Event Hub name
 // authorizationRuleName - the authorization rule name.
 func (client EventHubsClient) GetAuthorizationRule(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.GetAuthorizationRule")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -539,8 +600,8 @@ func (client EventHubsClient) GetAuthorizationRulePreparer(ctx context.Context, 
 // GetAuthorizationRuleSender sends the GetAuthorizationRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) GetAuthorizationRuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetAuthorizationRuleResponder handles the response to the GetAuthorizationRule request. The method always
@@ -561,6 +622,16 @@ func (client EventHubsClient) GetAuthorizationRuleResponder(resp *http.Response)
 // resourceGroupName - name of the resource group within the azure subscription.
 // namespaceName - the Namespace name
 func (client EventHubsClient) ListAll(ctx context.Context, resourceGroupName string, namespaceName string) (result ListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.ListAll")
+		defer func() {
+			sc := -1
+			if result.lr.Response.Response != nil {
+				sc = result.lr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -617,8 +688,8 @@ func (client EventHubsClient) ListAllPreparer(ctx context.Context, resourceGroup
 // ListAllSender sends the ListAll request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) ListAllSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListAllResponder handles the response to the ListAll request. The method always
@@ -635,8 +706,8 @@ func (client EventHubsClient) ListAllResponder(resp *http.Response) (result List
 }
 
 // listAllNextResults retrieves the next set of results, if any.
-func (client EventHubsClient) listAllNextResults(lastResults ListResult) (result ListResult, err error) {
-	req, err := lastResults.listResultPreparer()
+func (client EventHubsClient) listAllNextResults(ctx context.Context, lastResults ListResult) (result ListResult, err error) {
+	req, err := lastResults.listResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "listAllNextResults", nil, "Failure preparing next results request")
 	}
@@ -657,6 +728,16 @@ func (client EventHubsClient) listAllNextResults(lastResults ListResult) (result
 
 // ListAllComplete enumerates all values, automatically crossing page boundaries as required.
 func (client EventHubsClient) ListAllComplete(ctx context.Context, resourceGroupName string, namespaceName string) (result ListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.ListAll")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListAll(ctx, resourceGroupName, namespaceName)
 	return
 }
@@ -667,6 +748,16 @@ func (client EventHubsClient) ListAllComplete(ctx context.Context, resourceGroup
 // namespaceName - the Namespace name
 // eventHubName - the Event Hub name
 func (client EventHubsClient) ListAuthorizationRules(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string) (result SharedAccessAuthorizationRuleListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.ListAuthorizationRules")
+		defer func() {
+			sc := -1
+			if result.saarlr.Response.Response != nil {
+				sc = result.saarlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -727,8 +818,8 @@ func (client EventHubsClient) ListAuthorizationRulesPreparer(ctx context.Context
 // ListAuthorizationRulesSender sends the ListAuthorizationRules request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) ListAuthorizationRulesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListAuthorizationRulesResponder handles the response to the ListAuthorizationRules request. The method always
@@ -745,8 +836,8 @@ func (client EventHubsClient) ListAuthorizationRulesResponder(resp *http.Respons
 }
 
 // listAuthorizationRulesNextResults retrieves the next set of results, if any.
-func (client EventHubsClient) listAuthorizationRulesNextResults(lastResults SharedAccessAuthorizationRuleListResult) (result SharedAccessAuthorizationRuleListResult, err error) {
-	req, err := lastResults.sharedAccessAuthorizationRuleListResultPreparer()
+func (client EventHubsClient) listAuthorizationRulesNextResults(ctx context.Context, lastResults SharedAccessAuthorizationRuleListResult) (result SharedAccessAuthorizationRuleListResult, err error) {
+	req, err := lastResults.sharedAccessAuthorizationRuleListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "listAuthorizationRulesNextResults", nil, "Failure preparing next results request")
 	}
@@ -767,6 +858,16 @@ func (client EventHubsClient) listAuthorizationRulesNextResults(lastResults Shar
 
 // ListAuthorizationRulesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client EventHubsClient) ListAuthorizationRulesComplete(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string) (result SharedAccessAuthorizationRuleListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.ListAuthorizationRules")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListAuthorizationRules(ctx, resourceGroupName, namespaceName, eventHubName)
 	return
 }
@@ -778,6 +879,16 @@ func (client EventHubsClient) ListAuthorizationRulesComplete(ctx context.Context
 // eventHubName - the Event Hub name
 // authorizationRuleName - the authorization rule name.
 func (client EventHubsClient) ListKeys(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result ResourceListKeys, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.ListKeys")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -841,8 +952,8 @@ func (client EventHubsClient) ListKeysPreparer(ctx context.Context, resourceGrou
 // ListKeysSender sends the ListKeys request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) ListKeysSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListKeysResponder handles the response to the ListKeys request. The method always
@@ -858,13 +969,23 @@ func (client EventHubsClient) ListKeysResponder(resp *http.Response) (result Res
 	return
 }
 
-// PosttAuthorizationRule gets an AuthorizationRule for an Event Hub by rule name.
+// PostAuthorizationRule gets an AuthorizationRule for an Event Hub by rule name.
 // Parameters:
 // resourceGroupName - name of the resource group within the azure subscription.
 // namespaceName - the Namespace name
 // eventHubName - the Event Hub name
 // authorizationRuleName - the authorization rule name.
-func (client EventHubsClient) PosttAuthorizationRule(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
+func (client EventHubsClient) PostAuthorizationRule(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.PostAuthorizationRule")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -878,32 +999,32 @@ func (client EventHubsClient) PosttAuthorizationRule(ctx context.Context, resour
 		{TargetValue: authorizationRuleName,
 			Constraints: []validation.Constraint{{Target: "authorizationRuleName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "authorizationRuleName", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
-		return result, validation.NewError("eventhub.EventHubsClient", "PosttAuthorizationRule", err.Error())
+		return result, validation.NewError("eventhub.EventHubsClient", "PostAuthorizationRule", err.Error())
 	}
 
-	req, err := client.PosttAuthorizationRulePreparer(ctx, resourceGroupName, namespaceName, eventHubName, authorizationRuleName)
+	req, err := client.PostAuthorizationRulePreparer(ctx, resourceGroupName, namespaceName, eventHubName, authorizationRuleName)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "PosttAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "PostAuthorizationRule", nil, "Failure preparing request")
 		return
 	}
 
-	resp, err := client.PosttAuthorizationRuleSender(req)
+	resp, err := client.PostAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "PosttAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "PostAuthorizationRule", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.PosttAuthorizationRuleResponder(resp)
+	result, err = client.PostAuthorizationRuleResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "PosttAuthorizationRule", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "PostAuthorizationRule", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// PosttAuthorizationRulePreparer prepares the PosttAuthorizationRule request.
-func (client EventHubsClient) PosttAuthorizationRulePreparer(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (*http.Request, error) {
+// PostAuthorizationRulePreparer prepares the PostAuthorizationRule request.
+func (client EventHubsClient) PostAuthorizationRulePreparer(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"authorizationRuleName": autorest.Encode("path", authorizationRuleName),
 		"eventHubName":          autorest.Encode("path", eventHubName),
@@ -925,16 +1046,16 @@ func (client EventHubsClient) PosttAuthorizationRulePreparer(ctx context.Context
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
-// PosttAuthorizationRuleSender sends the PosttAuthorizationRule request. The method will close the
+// PostAuthorizationRuleSender sends the PostAuthorizationRule request. The method will close the
 // http.Response Body if it receives an error.
-func (client EventHubsClient) PosttAuthorizationRuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+func (client EventHubsClient) PostAuthorizationRuleSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
-// PosttAuthorizationRuleResponder handles the response to the PosttAuthorizationRule request. The method always
+// PostAuthorizationRuleResponder handles the response to the PostAuthorizationRule request. The method always
 // closes the http.Response Body.
-func (client EventHubsClient) PosttAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRuleResource, err error) {
+func (client EventHubsClient) PostAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRuleResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -953,6 +1074,16 @@ func (client EventHubsClient) PosttAuthorizationRuleResponder(resp *http.Respons
 // authorizationRuleName - the authorization rule name.
 // parameters - parameters supplied to regenerate the AuthorizationRule Keys (PrimaryKey/SecondaryKey).
 func (client EventHubsClient) RegenerateKeys(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string, parameters RegenerateKeysParameters) (result ResourceListKeys, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.RegenerateKeys")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1018,8 +1149,8 @@ func (client EventHubsClient) RegenerateKeysPreparer(ctx context.Context, resour
 // RegenerateKeysSender sends the RegenerateKeys request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) RegenerateKeysSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RegenerateKeysResponder handles the response to the RegenerateKeys request. The method always

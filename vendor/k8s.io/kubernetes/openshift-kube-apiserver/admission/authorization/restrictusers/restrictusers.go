@@ -1,6 +1,7 @@
 package restrictusers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -113,7 +114,7 @@ func subjectsDelta(elementsToIgnore, elements []rbac.Subject) []rbac.Subject {
 // project-scoped role-bindings.  In order for a role binding to be permitted,
 // each subject in the binding must be matched by some rolebinding restriction
 // in the namespace.
-func (q *restrictUsersAdmission) Validate(a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
+func (q *restrictUsersAdmission) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
 
 	// We only care about rolebindings
 	if a.GetResource().GroupResource() != rbac.Resource("rolebindings") {

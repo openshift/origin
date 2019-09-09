@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -72,6 +73,16 @@ func NewWithBaseURI(baseURI string) BaseClient {
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) BackupPartition(ctx context.Context, partitionID uuid.UUID, backupPartitionDescription *BackupPartitionDescription, backupTimeout *int32, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.BackupPartition")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -139,8 +150,8 @@ func (client BaseClient) BackupPartitionPreparer(ctx context.Context, partitionI
 // BackupPartitionSender sends the BackupPartition request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) BackupPartitionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // BackupPartitionResponder handles the response to the BackupPartition request. The method always
@@ -184,6 +195,16 @@ func (client BaseClient) BackupPartitionResponder(resp *http.Response) (result a
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) CancelOperation(ctx context.Context, operationID uuid.UUID, force bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CancelOperation")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -239,8 +260,8 @@ func (client BaseClient) CancelOperationPreparer(ctx context.Context, operationI
 // CancelOperationSender sends the CancelOperation request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CancelOperationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CancelOperationResponder handles the response to the CancelOperation request. The method always
@@ -259,6 +280,16 @@ func (client BaseClient) CancelOperationResponder(resp *http.Response) (result a
 // Parameters:
 // repairTaskCancelDescription - describes the repair task to be cancelled.
 func (client BaseClient) CancelRepairTask(ctx context.Context, repairTaskCancelDescription RepairTaskCancelDescription) (result RepairTaskUpdateInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CancelRepairTask")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: repairTaskCancelDescription,
 			Constraints: []validation.Constraint{{Target: "repairTaskCancelDescription.TaskID", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -306,8 +337,8 @@ func (client BaseClient) CancelRepairTaskPreparer(ctx context.Context, repairTas
 // CancelRepairTaskSender sends the CancelRepairTask request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CancelRepairTaskSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CancelRepairTaskResponder handles the response to the CancelRepairTask request. The method always
@@ -333,6 +364,16 @@ func (client BaseClient) CancelRepairTaskResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) CommitImageStoreUploadSession(ctx context.Context, sessionID uuid.UUID, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CommitImageStoreUploadSession")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -387,8 +428,8 @@ func (client BaseClient) CommitImageStoreUploadSessionPreparer(ctx context.Conte
 // CommitImageStoreUploadSessionSender sends the CommitImageStoreUploadSession request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CommitImageStoreUploadSessionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CommitImageStoreUploadSessionResponder handles the response to the CommitImageStoreUploadSession request. The method always
@@ -411,6 +452,16 @@ func (client BaseClient) CommitImageStoreUploadSessionResponder(resp *http.Respo
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) CopyImageStoreContent(ctx context.Context, imageStoreCopyDescription ImageStoreCopyDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CopyImageStoreContent")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageStoreCopyDescription,
 			Constraints: []validation.Constraint{{Target: "imageStoreCopyDescription.RemoteSource", Name: validation.Null, Rule: true, Chain: nil},
@@ -469,8 +520,8 @@ func (client BaseClient) CopyImageStoreContentPreparer(ctx context.Context, imag
 // CopyImageStoreContentSender sends the CopyImageStoreContent request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CopyImageStoreContentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CopyImageStoreContentResponder handles the response to the CopyImageStoreContent request. The method always
@@ -492,6 +543,16 @@ func (client BaseClient) CopyImageStoreContentResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) CreateApplication(ctx context.Context, applicationDescription ApplicationDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateApplication")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: applicationDescription,
 			Constraints: []validation.Constraint{{Target: "applicationDescription.Name", Name: validation.Null, Rule: true, Chain: nil},
@@ -557,8 +618,8 @@ func (client BaseClient) CreateApplicationPreparer(ctx context.Context, applicat
 // CreateApplicationSender sends the CreateApplication request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateApplicationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateApplicationResponder handles the response to the CreateApplication request. The method always
@@ -581,6 +642,16 @@ func (client BaseClient) CreateApplicationResponder(resp *http.Response) (result
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) CreateBackupPolicy(ctx context.Context, backupPolicyDescription BackupPolicyDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateBackupPolicy")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: backupPolicyDescription,
 			Constraints: []validation.Constraint{{Target: "backupPolicyDescription.Name", Name: validation.Null, Rule: true, Chain: nil},
@@ -645,8 +716,8 @@ func (client BaseClient) CreateBackupPolicyPreparer(ctx context.Context, backupP
 // CreateBackupPolicySender sends the CreateBackupPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateBackupPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateBackupPolicyResponder handles the response to the CreateBackupPolicy request. The method always
@@ -670,6 +741,16 @@ func (client BaseClient) CreateBackupPolicyResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) CreateComposeDeployment(ctx context.Context, createComposeDeploymentDescription CreateComposeDeploymentDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateComposeDeployment")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: createComposeDeploymentDescription,
 			Constraints: []validation.Constraint{{Target: "createComposeDeploymentDescription.DeploymentName", Name: validation.Null, Rule: true, Chain: nil},
@@ -728,8 +809,8 @@ func (client BaseClient) CreateComposeDeploymentPreparer(ctx context.Context, cr
 // CreateComposeDeploymentSender sends the CreateComposeDeployment request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateComposeDeploymentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateComposeDeploymentResponder handles the response to the CreateComposeDeployment request. The method always
@@ -751,6 +832,16 @@ func (client BaseClient) CreateComposeDeploymentResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) CreateName(ctx context.Context, nameDescription NameDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateName")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: nameDescription,
 			Constraints: []validation.Constraint{{Target: "nameDescription.Name", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -808,8 +899,8 @@ func (client BaseClient) CreateNamePreparer(ctx context.Context, nameDescription
 // CreateNameSender sends the CreateName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateNameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateNameResponder handles the response to the CreateName request. The method always
@@ -838,6 +929,16 @@ func (client BaseClient) CreateNameResponder(resp *http.Response) (result autore
 // Parameters:
 // repairTask - describes the repair task to be created or updated.
 func (client BaseClient) CreateRepairTask(ctx context.Context, repairTask RepairTask) (result RepairTaskUpdateInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateRepairTask")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: repairTask,
 			Constraints: []validation.Constraint{{Target: "repairTask.TaskID", Name: validation.Null, Rule: true, Chain: nil},
@@ -886,8 +987,8 @@ func (client BaseClient) CreateRepairTaskPreparer(ctx context.Context, repairTas
 // CreateRepairTaskSender sends the CreateRepairTask request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateRepairTaskSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateRepairTaskResponder handles the response to the CreateRepairTask request. The method always
@@ -917,6 +1018,16 @@ func (client BaseClient) CreateRepairTaskResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) CreateService(ctx context.Context, applicationID string, serviceDescription BasicServiceDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateService")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceDescription,
 			Constraints: []validation.Constraint{{Target: "serviceDescription.ServiceName", Name: validation.Null, Rule: true, Chain: nil},
@@ -980,8 +1091,8 @@ func (client BaseClient) CreateServicePreparer(ctx context.Context, applicationI
 // CreateServiceSender sends the CreateService request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateServiceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateServiceResponder handles the response to the CreateService request. The method always
@@ -1011,6 +1122,16 @@ func (client BaseClient) CreateServiceResponder(resp *http.Response) (result aut
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) CreateServiceFromTemplate(ctx context.Context, applicationID string, serviceFromTemplateDescription ServiceFromTemplateDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateServiceFromTemplate")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceFromTemplateDescription,
 			Constraints: []validation.Constraint{{Target: "serviceFromTemplateDescription.ApplicationName", Name: validation.Null, Rule: true, Chain: nil},
@@ -1074,8 +1195,8 @@ func (client BaseClient) CreateServiceFromTemplatePreparer(ctx context.Context, 
 // CreateServiceFromTemplateSender sends the CreateServiceFromTemplate request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateServiceFromTemplateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateServiceFromTemplateResponder handles the response to the CreateServiceFromTemplate request. The method always
@@ -1109,6 +1230,16 @@ func (client BaseClient) CreateServiceFromTemplateResponder(resp *http.Response)
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DeleteApplication(ctx context.Context, applicationID string, forceRemove *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteApplication")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -1169,8 +1300,8 @@ func (client BaseClient) DeleteApplicationPreparer(ctx context.Context, applicat
 // DeleteApplicationSender sends the DeleteApplication request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteApplicationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteApplicationResponder handles the response to the DeleteApplication request. The method always
@@ -1194,6 +1325,16 @@ func (client BaseClient) DeleteApplicationResponder(resp *http.Response) (result
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DeleteBackupPolicy(ctx context.Context, backupPolicyName string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteBackupPolicy")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -1251,8 +1392,8 @@ func (client BaseClient) DeleteBackupPolicyPreparer(ctx context.Context, backupP
 // DeleteBackupPolicySender sends the DeleteBackupPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteBackupPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteBackupPolicyResponder handles the response to the DeleteBackupPolicy request. The method always
@@ -1275,6 +1416,16 @@ func (client BaseClient) DeleteBackupPolicyResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DeleteImageStoreContent(ctx context.Context, contentPath string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteImageStoreContent")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -1332,8 +1483,8 @@ func (client BaseClient) DeleteImageStoreContentPreparer(ctx context.Context, co
 // DeleteImageStoreContentSender sends the DeleteImageStoreContent request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteImageStoreContentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteImageStoreContentResponder handles the response to the DeleteImageStoreContent request. The method always
@@ -1357,6 +1508,16 @@ func (client BaseClient) DeleteImageStoreContentResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DeleteImageStoreUploadSession(ctx context.Context, sessionID uuid.UUID, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteImageStoreUploadSession")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -1411,8 +1572,8 @@ func (client BaseClient) DeleteImageStoreUploadSessionPreparer(ctx context.Conte
 // DeleteImageStoreUploadSessionSender sends the DeleteImageStoreUploadSession request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteImageStoreUploadSessionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteImageStoreUploadSessionResponder handles the response to the DeleteImageStoreUploadSession request. The method always
@@ -1435,6 +1596,16 @@ func (client BaseClient) DeleteImageStoreUploadSessionResponder(resp *http.Respo
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DeleteName(ctx context.Context, nameID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteName")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -1492,8 +1663,8 @@ func (client BaseClient) DeleteNamePreparer(ctx context.Context, nameID string, 
 // DeleteNameSender sends the DeleteName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteNameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteNameResponder handles the response to the DeleteName request. The method always
@@ -1517,6 +1688,16 @@ func (client BaseClient) DeleteNameResponder(resp *http.Response) (result autore
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DeleteProperty(ctx context.Context, nameID string, propertyName string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteProperty")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -1575,8 +1756,8 @@ func (client BaseClient) DeletePropertyPreparer(ctx context.Context, nameID stri
 // DeletePropertySender sends the DeleteProperty request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeletePropertySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeletePropertyResponder handles the response to the DeleteProperty request. The method always
@@ -1595,6 +1776,16 @@ func (client BaseClient) DeletePropertyResponder(resp *http.Response) (result au
 // Parameters:
 // repairTaskDeleteDescription - describes the repair task to be deleted.
 func (client BaseClient) DeleteRepairTask(ctx context.Context, repairTaskDeleteDescription RepairTaskDeleteDescription) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteRepairTask")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: repairTaskDeleteDescription,
 			Constraints: []validation.Constraint{{Target: "repairTaskDeleteDescription.TaskID", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -1642,8 +1833,8 @@ func (client BaseClient) DeleteRepairTaskPreparer(ctx context.Context, repairTas
 // DeleteRepairTaskSender sends the DeleteRepairTask request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteRepairTaskSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteRepairTaskResponder handles the response to the DeleteRepairTask request. The method always
@@ -1676,6 +1867,16 @@ func (client BaseClient) DeleteRepairTaskResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DeleteService(ctx context.Context, serviceID string, forceRemove *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteService")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -1736,8 +1937,8 @@ func (client BaseClient) DeleteServicePreparer(ctx context.Context, serviceID st
 // DeleteServiceSender sends the DeleteService request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteServiceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteServiceResponder handles the response to the DeleteService request. The method always
@@ -1764,6 +1965,16 @@ func (client BaseClient) DeleteServiceResponder(resp *http.Response) (result aut
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DeployServicePackageToNode(ctx context.Context, nodeName string, deployServicePackageToNodeDescription DeployServicePackageToNodeDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeployServicePackageToNode")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: deployServicePackageToNodeDescription,
 			Constraints: []validation.Constraint{{Target: "deployServicePackageToNodeDescription.ServiceManifestName", Name: validation.Null, Rule: true, Chain: nil},
@@ -1828,8 +2039,8 @@ func (client BaseClient) DeployServicePackageToNodePreparer(ctx context.Context,
 // DeployServicePackageToNodeSender sends the DeployServicePackageToNode request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeployServicePackageToNodeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeployServicePackageToNodeResponder handles the response to the DeployServicePackageToNode request. The method always
@@ -1855,6 +2066,16 @@ func (client BaseClient) DeployServicePackageToNodeResponder(resp *http.Response
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DisableApplicationBackup(ctx context.Context, applicationID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DisableApplicationBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -1912,8 +2133,8 @@ func (client BaseClient) DisableApplicationBackupPreparer(ctx context.Context, a
 // DisableApplicationBackupSender sends the DisableApplicationBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DisableApplicationBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DisableApplicationBackupResponder handles the response to the DisableApplicationBackup request. The method always
@@ -1941,6 +2162,16 @@ func (client BaseClient) DisableApplicationBackupResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DisableNode(ctx context.Context, nodeName string, deactivationIntentDescription DeactivationIntentDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DisableNode")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -2000,8 +2231,8 @@ func (client BaseClient) DisableNodePreparer(ctx context.Context, nodeName strin
 // DisableNodeSender sends the DisableNode request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DisableNodeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DisableNodeResponder handles the response to the DisableNode request. The method always
@@ -2026,6 +2257,16 @@ func (client BaseClient) DisableNodeResponder(resp *http.Response) (result autor
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DisablePartitionBackup(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DisablePartitionBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -2083,8 +2324,8 @@ func (client BaseClient) DisablePartitionBackupPreparer(ctx context.Context, par
 // DisablePartitionBackupSender sends the DisablePartitionBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DisablePartitionBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DisablePartitionBackupResponder handles the response to the DisablePartitionBackup request. The method always
@@ -2113,6 +2354,16 @@ func (client BaseClient) DisablePartitionBackupResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) DisableServiceBackup(ctx context.Context, serviceID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DisableServiceBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -2170,8 +2421,8 @@ func (client BaseClient) DisableServiceBackupPreparer(ctx context.Context, servi
 // DisableServiceBackupSender sends the DisableServiceBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DisableServiceBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DisableServiceBackupResponder handles the response to the DisableServiceBackup request. The method always
@@ -2200,6 +2451,16 @@ func (client BaseClient) DisableServiceBackupResponder(resp *http.Response) (res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) EnableApplicationBackup(ctx context.Context, applicationID string, enableBackupDescription EnableBackupDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.EnableApplicationBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: enableBackupDescription,
 			Constraints: []validation.Constraint{{Target: "enableBackupDescription.BackupPolicyName", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -2261,8 +2522,8 @@ func (client BaseClient) EnableApplicationBackupPreparer(ctx context.Context, ap
 // EnableApplicationBackupSender sends the EnableApplicationBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) EnableApplicationBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // EnableApplicationBackupResponder handles the response to the EnableApplicationBackup request. The method always
@@ -2286,6 +2547,16 @@ func (client BaseClient) EnableApplicationBackupResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) EnableNode(ctx context.Context, nodeName string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.EnableNode")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -2343,8 +2614,8 @@ func (client BaseClient) EnableNodePreparer(ctx context.Context, nodeName string
 // EnableNodeSender sends the EnableNode request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) EnableNodeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // EnableNodeResponder handles the response to the EnableNode request. The method always
@@ -2371,6 +2642,16 @@ func (client BaseClient) EnableNodeResponder(resp *http.Response) (result autore
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) EnablePartitionBackup(ctx context.Context, partitionID uuid.UUID, enableBackupDescription EnableBackupDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.EnablePartitionBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: enableBackupDescription,
 			Constraints: []validation.Constraint{{Target: "enableBackupDescription.BackupPolicyName", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -2432,8 +2713,8 @@ func (client BaseClient) EnablePartitionBackupPreparer(ctx context.Context, part
 // EnablePartitionBackupSender sends the EnablePartitionBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) EnablePartitionBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // EnablePartitionBackupResponder handles the response to the EnablePartitionBackup request. The method always
@@ -2465,6 +2746,16 @@ func (client BaseClient) EnablePartitionBackupResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) EnableServiceBackup(ctx context.Context, serviceID string, enableBackupDescription EnableBackupDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.EnableServiceBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: enableBackupDescription,
 			Constraints: []validation.Constraint{{Target: "enableBackupDescription.BackupPolicyName", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -2526,8 +2817,8 @@ func (client BaseClient) EnableServiceBackupPreparer(ctx context.Context, servic
 // EnableServiceBackupSender sends the EnableServiceBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) EnableServiceBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // EnableServiceBackupResponder handles the response to the EnableServiceBackup request. The method always
@@ -2547,6 +2838,16 @@ func (client BaseClient) EnableServiceBackupResponder(resp *http.Response) (resu
 // Parameters:
 // repairTaskApproveDescription - describes the repair task to be approved.
 func (client BaseClient) ForceApproveRepairTask(ctx context.Context, repairTaskApproveDescription RepairTaskApproveDescription) (result RepairTaskUpdateInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ForceApproveRepairTask")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: repairTaskApproveDescription,
 			Constraints: []validation.Constraint{{Target: "repairTaskApproveDescription.TaskID", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -2594,8 +2895,8 @@ func (client BaseClient) ForceApproveRepairTaskPreparer(ctx context.Context, rep
 // ForceApproveRepairTaskSender sends the ForceApproveRepairTask request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ForceApproveRepairTaskSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ForceApproveRepairTaskResponder handles the response to the ForceApproveRepairTask request. The method always
@@ -2619,6 +2920,16 @@ func (client BaseClient) ForceApproveRepairTaskResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetAadMetadata(ctx context.Context, timeout *int64) (result AadMetadataObject, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetAadMetadata")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -2672,8 +2983,8 @@ func (client BaseClient) GetAadMetadataPreparer(ctx context.Context, timeout *in
 // GetAadMetadataSender sends the GetAadMetadata request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetAadMetadataSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetAadMetadataResponder handles the response to the GetAadMetadata request. The method always
@@ -2707,6 +3018,16 @@ func (client BaseClient) GetAadMetadataResponder(resp *http.Response) (result Aa
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetAllEntitiesBackedUpByPolicy(ctx context.Context, backupPolicyName string, continuationToken string, maxResults *int64, timeout *int64) (result PagedBackupEntityList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetAllEntitiesBackedUpByPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -2775,8 +3096,8 @@ func (client BaseClient) GetAllEntitiesBackedUpByPolicyPreparer(ctx context.Cont
 // GetAllEntitiesBackedUpByPolicySender sends the GetAllEntitiesBackedUpByPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetAllEntitiesBackedUpByPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetAllEntitiesBackedUpByPolicyResponder handles the response to the GetAllEntitiesBackedUpByPolicy request. The method always
@@ -2814,6 +3135,16 @@ func (client BaseClient) GetAllEntitiesBackedUpByPolicyResponder(resp *http.Resp
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationBackupConfigurationInfo(ctx context.Context, applicationID string, continuationToken string, maxResults *int64, timeout *int64) (result PagedBackupConfigurationInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationBackupConfigurationInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -2882,8 +3213,8 @@ func (client BaseClient) GetApplicationBackupConfigurationInfoPreparer(ctx conte
 // GetApplicationBackupConfigurationInfoSender sends the GetApplicationBackupConfigurationInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationBackupConfigurationInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationBackupConfigurationInfoResponder handles the response to the GetApplicationBackupConfigurationInfo request. The method always
@@ -2931,6 +3262,16 @@ func (client BaseClient) GetApplicationBackupConfigurationInfoResponder(resp *ht
 // in the configuration. If this parameter is zero or not specified, the paged queries includes as many results
 // as possible that fit in the return message.
 func (client BaseClient) GetApplicationBackupList(ctx context.Context, applicationID string, timeout *int64, latest *bool, startDateTimeFilter *date.Time, endDateTimeFilter *date.Time, continuationToken string, maxResults *int64) (result PagedBackupInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationBackupList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -3010,8 +3351,8 @@ func (client BaseClient) GetApplicationBackupListPreparer(ctx context.Context, a
 // GetApplicationBackupListSender sends the GetApplicationBackupList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationBackupListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationBackupListResponder handles the response to the GetApplicationBackupList request. The method always
@@ -3046,6 +3387,16 @@ func (client BaseClient) GetApplicationBackupListResponder(resp *http.Response) 
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetApplicationEventList(ctx context.Context, applicationID string, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListApplicationEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -3114,8 +3465,8 @@ func (client BaseClient) GetApplicationEventListPreparer(ctx context.Context, ap
 // GetApplicationEventListSender sends the GetApplicationEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationEventListResponder handles the response to the GetApplicationEventList request. The method always
@@ -3196,6 +3547,16 @@ func (client BaseClient) GetApplicationEventListResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationHealth(ctx context.Context, applicationID string, eventsHealthStateFilter *int32, deployedApplicationsHealthStateFilter *int32, servicesHealthStateFilter *int32, excludeHealthStatistics *bool, timeout *int64) (result ApplicationHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationHealth")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -3273,8 +3634,8 @@ func (client BaseClient) GetApplicationHealthPreparer(ctx context.Context, appli
 // GetApplicationHealthSender sends the GetApplicationHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationHealthResponder handles the response to the GetApplicationHealth request. The method always
@@ -3360,6 +3721,16 @@ func (client BaseClient) GetApplicationHealthResponder(resp *http.Response) (res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationHealthUsingPolicy(ctx context.Context, applicationID string, eventsHealthStateFilter *int32, deployedApplicationsHealthStateFilter *int32, servicesHealthStateFilter *int32, excludeHealthStatistics *bool, applicationHealthPolicy *ApplicationHealthPolicy, timeout *int64) (result ApplicationHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationHealthUsingPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -3442,8 +3813,8 @@ func (client BaseClient) GetApplicationHealthUsingPolicyPreparer(ctx context.Con
 // GetApplicationHealthUsingPolicySender sends the GetApplicationHealthUsingPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationHealthUsingPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationHealthUsingPolicyResponder handles the response to the GetApplicationHealthUsingPolicy request. The method always
@@ -3474,6 +3845,16 @@ func (client BaseClient) GetApplicationHealthUsingPolicyResponder(resp *http.Res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationInfo(ctx context.Context, applicationID string, excludeApplicationParameters *bool, timeout *int64) (result ApplicationInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -3536,8 +3917,8 @@ func (client BaseClient) GetApplicationInfoPreparer(ctx context.Context, applica
 // GetApplicationInfoSender sends the GetApplicationInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationInfoResponder handles the response to the GetApplicationInfo request. The method always
@@ -3584,6 +3965,16 @@ func (client BaseClient) GetApplicationInfoResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationInfoList(ctx context.Context, applicationDefinitionKindFilter *int32, applicationTypeName string, excludeApplicationParameters *bool, continuationToken string, maxResults *int64, timeout *int64) (result PagedApplicationInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -3661,8 +4052,8 @@ func (client BaseClient) GetApplicationInfoListPreparer(ctx context.Context, app
 // GetApplicationInfoListSender sends the GetApplicationInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationInfoListResponder handles the response to the GetApplicationInfoList request. The method always
@@ -3692,6 +4083,16 @@ func (client BaseClient) GetApplicationInfoListResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationLoadInfo(ctx context.Context, applicationID string, timeout *int64) (result ApplicationLoadInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationLoadInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -3749,8 +4150,8 @@ func (client BaseClient) GetApplicationLoadInfoPreparer(ctx context.Context, app
 // GetApplicationLoadInfoSender sends the GetApplicationLoadInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationLoadInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationLoadInfoResponder handles the response to the GetApplicationLoadInfo request. The method always
@@ -3775,6 +4176,16 @@ func (client BaseClient) GetApplicationLoadInfoResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationManifest(ctx context.Context, applicationTypeName string, applicationTypeVersion string, timeout *int64) (result ApplicationTypeManifest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationManifest")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -3833,8 +4244,8 @@ func (client BaseClient) GetApplicationManifestPreparer(ctx context.Context, app
 // GetApplicationManifestSender sends the GetApplicationManifest request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationManifestSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationManifestResponder handles the response to the GetApplicationManifest request. The method always
@@ -3862,6 +4273,16 @@ func (client BaseClient) GetApplicationManifestResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationNameInfo(ctx context.Context, serviceID string, timeout *int64) (result ApplicationNameInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationNameInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -3919,8 +4340,8 @@ func (client BaseClient) GetApplicationNameInfoPreparer(ctx context.Context, ser
 // GetApplicationNameInfoSender sends the GetApplicationNameInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationNameInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationNameInfoResponder handles the response to the GetApplicationNameInfo request. The method always
@@ -3950,6 +4371,16 @@ func (client BaseClient) GetApplicationNameInfoResponder(resp *http.Response) (r
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetApplicationsEventList(ctx context.Context, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListApplicationEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationsEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -4014,8 +4445,8 @@ func (client BaseClient) GetApplicationsEventListPreparer(ctx context.Context, s
 // GetApplicationsEventListSender sends the GetApplicationsEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationsEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationsEventListResponder handles the response to the GetApplicationsEventList request. The method always
@@ -4063,6 +4494,16 @@ func (client BaseClient) GetApplicationsEventListResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationTypeInfoList(ctx context.Context, applicationTypeDefinitionKindFilter *int32, excludeApplicationParameters *bool, continuationToken string, maxResults *int64, timeout *int64) (result PagedApplicationTypeInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationTypeInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -4137,8 +4578,8 @@ func (client BaseClient) GetApplicationTypeInfoListPreparer(ctx context.Context,
 // GetApplicationTypeInfoListSender sends the GetApplicationTypeInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationTypeInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationTypeInfoListResponder handles the response to the GetApplicationTypeInfoList request. The method always
@@ -4183,6 +4624,16 @@ func (client BaseClient) GetApplicationTypeInfoListResponder(resp *http.Response
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationTypeInfoListByName(ctx context.Context, applicationTypeName string, applicationTypeVersion string, excludeApplicationParameters *bool, continuationToken string, maxResults *int64, timeout *int64) (result PagedApplicationTypeInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationTypeInfoListByName")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -4259,8 +4710,8 @@ func (client BaseClient) GetApplicationTypeInfoListByNamePreparer(ctx context.Co
 // GetApplicationTypeInfoListByNameSender sends the GetApplicationTypeInfoListByName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationTypeInfoListByNameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationTypeInfoListByNameResponder handles the response to the GetApplicationTypeInfoListByName request. The method always
@@ -4288,6 +4739,16 @@ func (client BaseClient) GetApplicationTypeInfoListByNameResponder(resp *http.Re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetApplicationUpgrade(ctx context.Context, applicationID string, timeout *int64) (result ApplicationUpgradeProgressInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetApplicationUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -4345,8 +4806,8 @@ func (client BaseClient) GetApplicationUpgradePreparer(ctx context.Context, appl
 // GetApplicationUpgradeSender sends the GetApplicationUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetApplicationUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetApplicationUpgradeResponder handles the response to the GetApplicationUpgrade request. The method always
@@ -4369,6 +4830,16 @@ func (client BaseClient) GetApplicationUpgradeResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetBackupPolicyByName(ctx context.Context, backupPolicyName string, timeout *int64) (result BackupPolicyDescription, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetBackupPolicyByName")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -4426,8 +4897,8 @@ func (client BaseClient) GetBackupPolicyByNamePreparer(ctx context.Context, back
 // GetBackupPolicyByNameSender sends the GetBackupPolicyByName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetBackupPolicyByNameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBackupPolicyByNameResponder handles the response to the GetBackupPolicyByName request. The method always
@@ -4459,6 +4930,16 @@ func (client BaseClient) GetBackupPolicyByNameResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetBackupPolicyList(ctx context.Context, continuationToken string, maxResults *int64, timeout *int64) (result PagedBackupPolicyDescriptionList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetBackupPolicyList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -4523,8 +5004,8 @@ func (client BaseClient) GetBackupPolicyListPreparer(ctx context.Context, contin
 // GetBackupPolicyListSender sends the GetBackupPolicyList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetBackupPolicyListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBackupPolicyListResponder handles the response to the GetBackupPolicyList request. The method always
@@ -4559,6 +5040,16 @@ func (client BaseClient) GetBackupPolicyListResponder(resp *http.Response) (resu
 // in the configuration. If this parameter is zero or not specified, the paged queries includes as many results
 // as possible that fit in the return message.
 func (client BaseClient) GetBackupsFromBackupLocation(ctx context.Context, getBackupByStorageQueryDescription GetBackupByStorageQueryDescription, timeout *int64, continuationToken string, maxResults *int64) (result PagedBackupInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetBackupsFromBackupLocation")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -4628,8 +5119,8 @@ func (client BaseClient) GetBackupsFromBackupLocationPreparer(ctx context.Contex
 // GetBackupsFromBackupLocationSender sends the GetBackupsFromBackupLocation request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetBackupsFromBackupLocationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBackupsFromBackupLocationResponder handles the response to the GetBackupsFromBackupLocation request. The method always
@@ -4652,6 +5143,16 @@ func (client BaseClient) GetBackupsFromBackupLocationResponder(resp *http.Respon
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetChaos(ctx context.Context, timeout *int64) (result Chaos, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetChaos")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -4705,8 +5206,8 @@ func (client BaseClient) GetChaosPreparer(ctx context.Context, timeout *int64) (
 // GetChaosSender sends the GetChaos request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetChaosSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetChaosResponder handles the response to the GetChaos request. The method always
@@ -4750,6 +5251,16 @@ func (client BaseClient) GetChaosResponder(resp *http.Response) (result Chaos, e
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetChaosEvents(ctx context.Context, continuationToken string, startTimeUtc string, endTimeUtc string, maxResults *int64, timeout *int64) (result ChaosEventsSegment, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetChaosEvents")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -4820,8 +5331,8 @@ func (client BaseClient) GetChaosEventsPreparer(ctx context.Context, continuatio
 // GetChaosEventsSender sends the GetChaosEvents request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetChaosEventsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetChaosEventsResponder handles the response to the GetChaosEvents request. The method always
@@ -4840,6 +5351,16 @@ func (client BaseClient) GetChaosEventsResponder(resp *http.Response) (result Ch
 // GetChaosSchedule gets the version of the Chaos Schedule in use and the Chaos Schedule that defines when and how to
 // run Chaos.
 func (client BaseClient) GetChaosSchedule(ctx context.Context) (result ChaosScheduleDescription, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetChaosSchedule")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetChaosSchedulePreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.BaseClient", "GetChaosSchedule", nil, "Failure preparing request")
@@ -4879,8 +5400,8 @@ func (client BaseClient) GetChaosSchedulePreparer(ctx context.Context) (*http.Re
 // GetChaosScheduleSender sends the GetChaosSchedule request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetChaosScheduleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetChaosScheduleResponder handles the response to the GetChaosSchedule request. The method always
@@ -4905,6 +5426,16 @@ func (client BaseClient) GetChaosScheduleResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetClusterConfiguration(ctx context.Context, configurationAPIVersion string, timeout *int64) (result ClusterConfiguration, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetClusterConfiguration")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -4959,8 +5490,8 @@ func (client BaseClient) GetClusterConfigurationPreparer(ctx context.Context, co
 // GetClusterConfigurationSender sends the GetClusterConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetClusterConfigurationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetClusterConfigurationResponder handles the response to the GetClusterConfiguration request. The method always
@@ -4983,6 +5514,16 @@ func (client BaseClient) GetClusterConfigurationResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetClusterConfigurationUpgradeStatus(ctx context.Context, timeout *int64) (result ClusterConfigurationUpgradeStatusInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetClusterConfigurationUpgradeStatus")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -5036,8 +5577,8 @@ func (client BaseClient) GetClusterConfigurationUpgradeStatusPreparer(ctx contex
 // GetClusterConfigurationUpgradeStatusSender sends the GetClusterConfigurationUpgradeStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetClusterConfigurationUpgradeStatusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetClusterConfigurationUpgradeStatusResponder handles the response to the GetClusterConfigurationUpgradeStatus request. The method always
@@ -5067,6 +5608,16 @@ func (client BaseClient) GetClusterConfigurationUpgradeStatusResponder(resp *htt
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetClusterEventList(ctx context.Context, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListClusterEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetClusterEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -5131,8 +5682,8 @@ func (client BaseClient) GetClusterEventListPreparer(ctx context.Context, startT
 // GetClusterEventListSender sends the GetClusterEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetClusterEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetClusterEventListResponder handles the response to the GetClusterEventList request. The method always
@@ -5219,6 +5770,16 @@ func (client BaseClient) GetClusterEventListResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetClusterHealth(ctx context.Context, nodesHealthStateFilter *int32, applicationsHealthStateFilter *int32, eventsHealthStateFilter *int32, excludeHealthStatistics *bool, includeSystemApplicationHealthStatistics *bool, timeout *int64) (result ClusterHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetClusterHealth")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -5297,8 +5858,8 @@ func (client BaseClient) GetClusterHealthPreparer(ctx context.Context, nodesHeal
 // GetClusterHealthSender sends the GetClusterHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetClusterHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetClusterHealthResponder handles the response to the GetClusterHealth request. The method always
@@ -5323,6 +5884,16 @@ func (client BaseClient) GetClusterHealthResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetClusterHealthChunk(ctx context.Context, timeout *int64) (result ClusterHealthChunk, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetClusterHealthChunk")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -5376,8 +5947,8 @@ func (client BaseClient) GetClusterHealthChunkPreparer(ctx context.Context, time
 // GetClusterHealthChunkSender sends the GetClusterHealthChunk request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetClusterHealthChunkSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetClusterHealthChunkResponder handles the response to the GetClusterHealthChunk request. The method always
@@ -5421,6 +5992,16 @@ func (client BaseClient) GetClusterHealthChunkResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetClusterHealthChunkUsingPolicyAndAdvancedFilters(ctx context.Context, clusterHealthChunkQueryDescription *ClusterHealthChunkQueryDescription, timeout *int64) (result ClusterHealthChunk, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetClusterHealthChunkUsingPolicyAndAdvancedFilters")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -5479,8 +6060,8 @@ func (client BaseClient) GetClusterHealthChunkUsingPolicyAndAdvancedFiltersPrepa
 // GetClusterHealthChunkUsingPolicyAndAdvancedFiltersSender sends the GetClusterHealthChunkUsingPolicyAndAdvancedFilters request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetClusterHealthChunkUsingPolicyAndAdvancedFiltersSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetClusterHealthChunkUsingPolicyAndAdvancedFiltersResponder handles the response to the GetClusterHealthChunkUsingPolicyAndAdvancedFilters request. The method always
@@ -5576,6 +6157,16 @@ func (client BaseClient) GetClusterHealthChunkUsingPolicyAndAdvancedFiltersRespo
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetClusterHealthUsingPolicy(ctx context.Context, nodesHealthStateFilter *int32, applicationsHealthStateFilter *int32, eventsHealthStateFilter *int32, excludeHealthStatistics *bool, includeSystemApplicationHealthStatistics *bool, clusterHealthPolicies *ClusterHealthPolicies, timeout *int64) (result ClusterHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetClusterHealthUsingPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -5659,8 +6250,8 @@ func (client BaseClient) GetClusterHealthUsingPolicyPreparer(ctx context.Context
 // GetClusterHealthUsingPolicySender sends the GetClusterHealthUsingPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetClusterHealthUsingPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetClusterHealthUsingPolicyResponder handles the response to the GetClusterHealthUsingPolicy request. The method always
@@ -5692,6 +6283,16 @@ func (client BaseClient) GetClusterHealthUsingPolicyResponder(resp *http.Respons
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetClusterManifest(ctx context.Context, timeout *int64) (result ClusterManifest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetClusterManifest")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -5745,8 +6346,8 @@ func (client BaseClient) GetClusterManifestPreparer(ctx context.Context, timeout
 // GetClusterManifestSender sends the GetClusterManifest request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetClusterManifestSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetClusterManifestResponder handles the response to the GetClusterManifest request. The method always
@@ -5769,6 +6370,16 @@ func (client BaseClient) GetClusterManifestResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetClusterUpgradeProgress(ctx context.Context, timeout *int64) (result ClusterUpgradeProgressObject, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetClusterUpgradeProgress")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -5822,8 +6433,8 @@ func (client BaseClient) GetClusterUpgradeProgressPreparer(ctx context.Context, 
 // GetClusterUpgradeProgressSender sends the GetClusterUpgradeProgress request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetClusterUpgradeProgressSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetClusterUpgradeProgressResponder handles the response to the GetClusterUpgradeProgress request. The method always
@@ -5848,6 +6459,16 @@ func (client BaseClient) GetClusterUpgradeProgressResponder(resp *http.Response)
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetComposeDeploymentStatus(ctx context.Context, deploymentName string, timeout *int64) (result ComposeDeploymentStatusInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetComposeDeploymentStatus")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -5905,8 +6526,8 @@ func (client BaseClient) GetComposeDeploymentStatusPreparer(ctx context.Context,
 // GetComposeDeploymentStatusSender sends the GetComposeDeploymentStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetComposeDeploymentStatusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetComposeDeploymentStatusResponder handles the response to the GetComposeDeploymentStatus request. The method always
@@ -5941,6 +6562,16 @@ func (client BaseClient) GetComposeDeploymentStatusResponder(resp *http.Response
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetComposeDeploymentStatusList(ctx context.Context, continuationToken string, maxResults *int64, timeout *int64) (result PagedComposeDeploymentStatusInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetComposeDeploymentStatusList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -6005,8 +6636,8 @@ func (client BaseClient) GetComposeDeploymentStatusListPreparer(ctx context.Cont
 // GetComposeDeploymentStatusListSender sends the GetComposeDeploymentStatusList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetComposeDeploymentStatusListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetComposeDeploymentStatusListResponder handles the response to the GetComposeDeploymentStatusList request. The method always
@@ -6030,6 +6661,16 @@ func (client BaseClient) GetComposeDeploymentStatusListResponder(resp *http.Resp
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetComposeDeploymentUpgradeProgress(ctx context.Context, deploymentName string, timeout *int64) (result ComposeDeploymentUpgradeProgressInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetComposeDeploymentUpgradeProgress")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -6087,8 +6728,8 @@ func (client BaseClient) GetComposeDeploymentUpgradeProgressPreparer(ctx context
 // GetComposeDeploymentUpgradeProgressSender sends the GetComposeDeploymentUpgradeProgress request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetComposeDeploymentUpgradeProgressSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetComposeDeploymentUpgradeProgressResponder handles the response to the GetComposeDeploymentUpgradeProgress request. The method always
@@ -6123,6 +6764,16 @@ func (client BaseClient) GetComposeDeploymentUpgradeProgressResponder(resp *http
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetContainerLogsDeployedOnNode(ctx context.Context, nodeName string, applicationID string, serviceManifestName string, codePackageName string, tail string, previous *bool, timeout *int64) (result ContainerLogs, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetContainerLogsDeployedOnNode")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -6191,8 +6842,8 @@ func (client BaseClient) GetContainerLogsDeployedOnNodePreparer(ctx context.Cont
 // GetContainerLogsDeployedOnNodeSender sends the GetContainerLogsDeployedOnNode request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetContainerLogsDeployedOnNodeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetContainerLogsDeployedOnNodeResponder handles the response to the GetContainerLogsDeployedOnNode request. The method always
@@ -6222,6 +6873,16 @@ func (client BaseClient) GetContainerLogsDeployedOnNodeResponder(resp *http.Resp
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetContainersEventList(ctx context.Context, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListContainerInstanceEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetContainersEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -6286,8 +6947,8 @@ func (client BaseClient) GetContainersEventListPreparer(ctx context.Context, sta
 // GetContainersEventListSender sends the GetContainersEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetContainersEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetContainersEventListResponder handles the response to the GetContainersEventList request. The method always
@@ -6310,6 +6971,16 @@ func (client BaseClient) GetContainersEventListResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetCorrelatedEventList(ctx context.Context, eventInstanceID string, timeout *int64) (result ListFabricEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetCorrelatedEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -6367,8 +7038,8 @@ func (client BaseClient) GetCorrelatedEventListPreparer(ctx context.Context, eve
 // GetCorrelatedEventListSender sends the GetCorrelatedEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetCorrelatedEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetCorrelatedEventListResponder handles the response to the GetCorrelatedEventList request. The method always
@@ -6398,6 +7069,16 @@ func (client BaseClient) GetCorrelatedEventListResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDataLossProgress(ctx context.Context, serviceID string, partitionID uuid.UUID, operationID uuid.UUID, timeout *int64) (result PartitionDataLossProgress, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDataLossProgress")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -6457,8 +7138,8 @@ func (client BaseClient) GetDataLossProgressPreparer(ctx context.Context, servic
 // GetDataLossProgressSender sends the GetDataLossProgress request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDataLossProgressSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDataLossProgressResponder handles the response to the GetDataLossProgress request. The method always
@@ -6525,6 +7206,16 @@ func (client BaseClient) GetDataLossProgressResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedApplicationHealth(ctx context.Context, nodeName string, applicationID string, eventsHealthStateFilter *int32, deployedServicePackagesHealthStateFilter *int32, excludeHealthStatistics *bool, timeout *int64) (result DeployedApplicationHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedApplicationHealth")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -6598,8 +7289,8 @@ func (client BaseClient) GetDeployedApplicationHealthPreparer(ctx context.Contex
 // GetDeployedApplicationHealthSender sends the GetDeployedApplicationHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedApplicationHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedApplicationHealthResponder handles the response to the GetDeployedApplicationHealth request. The method always
@@ -6673,6 +7364,16 @@ func (client BaseClient) GetDeployedApplicationHealthResponder(resp *http.Respon
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedApplicationHealthUsingPolicy(ctx context.Context, nodeName string, applicationID string, eventsHealthStateFilter *int32, deployedServicePackagesHealthStateFilter *int32, applicationHealthPolicy *ApplicationHealthPolicy, excludeHealthStatistics *bool, timeout *int64) (result DeployedApplicationHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedApplicationHealthUsingPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -6751,8 +7452,8 @@ func (client BaseClient) GetDeployedApplicationHealthUsingPolicyPreparer(ctx con
 // GetDeployedApplicationHealthUsingPolicySender sends the GetDeployedApplicationHealthUsingPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedApplicationHealthUsingPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedApplicationHealthUsingPolicyResponder handles the response to the GetDeployedApplicationHealthUsingPolicy request. The method always
@@ -6789,6 +7490,16 @@ func (client BaseClient) GetDeployedApplicationHealthUsingPolicyResponder(resp *
 // are merged.
 // As a result, the query is more expensive and may take a longer time.
 func (client BaseClient) GetDeployedApplicationInfo(ctx context.Context, nodeName string, applicationID string, timeout *int64, includeHealthState *bool) (result DeployedApplicationInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedApplicationInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -6852,8 +7563,8 @@ func (client BaseClient) GetDeployedApplicationInfoPreparer(ctx context.Context,
 // GetDeployedApplicationInfoSender sends the GetDeployedApplicationInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedApplicationInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedApplicationInfoResponder handles the response to the GetDeployedApplicationInfo request. The method always
@@ -6895,6 +7606,16 @@ func (client BaseClient) GetDeployedApplicationInfoResponder(resp *http.Response
 // in the configuration. If this parameter is zero or not specified, the paged queries includes as many results
 // as possible that fit in the return message.
 func (client BaseClient) GetDeployedApplicationInfoList(ctx context.Context, nodeName string, timeout *int64, includeHealthState *bool, continuationToken string, maxResults *int64) (result PagedDeployedApplicationInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedApplicationInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -6968,8 +7689,8 @@ func (client BaseClient) GetDeployedApplicationInfoListPreparer(ctx context.Cont
 // GetDeployedApplicationInfoListSender sends the GetDeployedApplicationInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedApplicationInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedApplicationInfoListResponder handles the response to the GetDeployedApplicationInfoList request. The method always
@@ -7002,6 +7723,16 @@ func (client BaseClient) GetDeployedApplicationInfoListResponder(resp *http.Resp
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedCodePackageInfoList(ctx context.Context, nodeName string, applicationID string, serviceManifestName string, codePackageName string, timeout *int64) (result ListDeployedCodePackageInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedCodePackageInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7066,8 +7797,8 @@ func (client BaseClient) GetDeployedCodePackageInfoListPreparer(ctx context.Cont
 // GetDeployedCodePackageInfoListSender sends the GetDeployedCodePackageInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedCodePackageInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedCodePackageInfoListResponder handles the response to the GetDeployedCodePackageInfoList request. The method always
@@ -7113,6 +7844,16 @@ func (client BaseClient) GetDeployedCodePackageInfoListResponder(resp *http.Resp
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedServicePackageHealth(ctx context.Context, nodeName string, applicationID string, servicePackageName string, eventsHealthStateFilter *int32, timeout *int64) (result DeployedServicePackageHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedServicePackageHealth")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7177,8 +7918,8 @@ func (client BaseClient) GetDeployedServicePackageHealthPreparer(ctx context.Con
 // GetDeployedServicePackageHealthSender sends the GetDeployedServicePackageHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedServicePackageHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedServicePackageHealthResponder handles the response to the GetDeployedServicePackageHealth request. The method always
@@ -7231,6 +7972,16 @@ func (client BaseClient) GetDeployedServicePackageHealthResponder(resp *http.Res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedServicePackageHealthUsingPolicy(ctx context.Context, nodeName string, applicationID string, servicePackageName string, eventsHealthStateFilter *int32, applicationHealthPolicy *ApplicationHealthPolicy, timeout *int64) (result DeployedServicePackageHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedServicePackageHealthUsingPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7300,8 +8051,8 @@ func (client BaseClient) GetDeployedServicePackageHealthUsingPolicyPreparer(ctx 
 // GetDeployedServicePackageHealthUsingPolicySender sends the GetDeployedServicePackageHealthUsingPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedServicePackageHealthUsingPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedServicePackageHealthUsingPolicyResponder handles the response to the GetDeployedServicePackageHealthUsingPolicy request. The method always
@@ -7330,6 +8081,16 @@ func (client BaseClient) GetDeployedServicePackageHealthUsingPolicyResponder(res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedServicePackageInfoList(ctx context.Context, nodeName string, applicationID string, timeout *int64) (result ListDeployedServicePackageInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedServicePackageInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7388,8 +8149,8 @@ func (client BaseClient) GetDeployedServicePackageInfoListPreparer(ctx context.C
 // GetDeployedServicePackageInfoListSender sends the GetDeployedServicePackageInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedServicePackageInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedServicePackageInfoListResponder handles the response to the GetDeployedServicePackageInfoList request. The method always
@@ -7420,6 +8181,16 @@ func (client BaseClient) GetDeployedServicePackageInfoListResponder(resp *http.R
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedServicePackageInfoListByName(ctx context.Context, nodeName string, applicationID string, servicePackageName string, timeout *int64) (result ListDeployedServicePackageInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedServicePackageInfoListByName")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7479,8 +8250,8 @@ func (client BaseClient) GetDeployedServicePackageInfoListByNamePreparer(ctx con
 // GetDeployedServicePackageInfoListByNameSender sends the GetDeployedServicePackageInfoListByName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedServicePackageInfoListByNameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedServicePackageInfoListByNameResponder handles the response to the GetDeployedServicePackageInfoListByName request. The method always
@@ -7507,6 +8278,16 @@ func (client BaseClient) GetDeployedServicePackageInfoListByNameResponder(resp *
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedServiceReplicaDetailInfo(ctx context.Context, nodeName string, partitionID uuid.UUID, replicaID string, timeout *int64) (result DeployedServiceReplicaDetailInfoModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedServiceReplicaDetailInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7566,8 +8347,8 @@ func (client BaseClient) GetDeployedServiceReplicaDetailInfoPreparer(ctx context
 // GetDeployedServiceReplicaDetailInfoSender sends the GetDeployedServiceReplicaDetailInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedServiceReplicaDetailInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedServiceReplicaDetailInfoResponder handles the response to the GetDeployedServiceReplicaDetailInfo request. The method always
@@ -7593,6 +8374,16 @@ func (client BaseClient) GetDeployedServiceReplicaDetailInfoResponder(resp *http
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedServiceReplicaDetailInfoByPartitionID(ctx context.Context, nodeName string, partitionID uuid.UUID, timeout *int64) (result DeployedServiceReplicaDetailInfoModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedServiceReplicaDetailInfoByPartitionID")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7651,8 +8442,8 @@ func (client BaseClient) GetDeployedServiceReplicaDetailInfoByPartitionIDPrepare
 // GetDeployedServiceReplicaDetailInfoByPartitionIDSender sends the GetDeployedServiceReplicaDetailInfoByPartitionID request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedServiceReplicaDetailInfoByPartitionIDSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedServiceReplicaDetailInfoByPartitionIDResponder handles the response to the GetDeployedServiceReplicaDetailInfoByPartitionID request. The method always
@@ -7686,6 +8477,16 @@ func (client BaseClient) GetDeployedServiceReplicaDetailInfoByPartitionIDRespond
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedServiceReplicaInfoList(ctx context.Context, nodeName string, applicationID string, partitionID *uuid.UUID, serviceManifestName string, timeout *int64) (result ListDeployedServiceReplicaInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedServiceReplicaInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7750,8 +8551,8 @@ func (client BaseClient) GetDeployedServiceReplicaInfoListPreparer(ctx context.C
 // GetDeployedServiceReplicaInfoListSender sends the GetDeployedServiceReplicaInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedServiceReplicaInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedServiceReplicaInfoListResponder handles the response to the GetDeployedServiceReplicaInfoList request. The method always
@@ -7786,6 +8587,16 @@ func (client BaseClient) GetDeployedServiceReplicaInfoListResponder(resp *http.R
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedServiceTypeInfoByName(ctx context.Context, nodeName string, applicationID string, serviceTypeName string, serviceManifestName string, timeout *int64) (result ListDeployedServiceTypeInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedServiceTypeInfoByName")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7848,8 +8659,8 @@ func (client BaseClient) GetDeployedServiceTypeInfoByNamePreparer(ctx context.Co
 // GetDeployedServiceTypeInfoByNameSender sends the GetDeployedServiceTypeInfoByName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedServiceTypeInfoByNameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedServiceTypeInfoByNameResponder handles the response to the GetDeployedServiceTypeInfoByName request. The method always
@@ -7882,6 +8693,16 @@ func (client BaseClient) GetDeployedServiceTypeInfoByNameResponder(resp *http.Re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetDeployedServiceTypeInfoList(ctx context.Context, nodeName string, applicationID string, serviceManifestName string, timeout *int64) (result ListDeployedServiceTypeInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDeployedServiceTypeInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -7943,8 +8764,8 @@ func (client BaseClient) GetDeployedServiceTypeInfoListPreparer(ctx context.Cont
 // GetDeployedServiceTypeInfoListSender sends the GetDeployedServiceTypeInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDeployedServiceTypeInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeployedServiceTypeInfoListResponder handles the response to the GetDeployedServiceTypeInfoList request. The method always
@@ -7980,6 +8801,16 @@ func (client BaseClient) GetDeployedServiceTypeInfoListResponder(resp *http.Resp
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetFaultOperationList(ctx context.Context, typeFilter int32, stateFilter int32, timeout *int64) (result ListOperationStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetFaultOperationList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8035,8 +8866,8 @@ func (client BaseClient) GetFaultOperationListPreparer(ctx context.Context, type
 // GetFaultOperationListSender sends the GetFaultOperationList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetFaultOperationListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetFaultOperationListResponder handles the response to the GetFaultOperationList request. The method always
@@ -8060,6 +8891,16 @@ func (client BaseClient) GetFaultOperationListResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetImageStoreContent(ctx context.Context, contentPath string, timeout *int64) (result ImageStoreContent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetImageStoreContent")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8117,8 +8958,8 @@ func (client BaseClient) GetImageStoreContentPreparer(ctx context.Context, conte
 // GetImageStoreContentSender sends the GetImageStoreContent request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetImageStoreContentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetImageStoreContentResponder handles the response to the GetImageStoreContent request. The method always
@@ -8140,6 +8981,16 @@ func (client BaseClient) GetImageStoreContentResponder(resp *http.Response) (res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetImageStoreRootContent(ctx context.Context, timeout *int64) (result ImageStoreContent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetImageStoreRootContent")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8193,8 +9044,8 @@ func (client BaseClient) GetImageStoreRootContentPreparer(ctx context.Context, t
 // GetImageStoreRootContentSender sends the GetImageStoreRootContent request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetImageStoreRootContentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetImageStoreRootContentResponder handles the response to the GetImageStoreRootContent request. The method always
@@ -8219,6 +9070,16 @@ func (client BaseClient) GetImageStoreRootContentResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetImageStoreUploadSessionByID(ctx context.Context, sessionID uuid.UUID, timeout *int64) (result UploadSession, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetImageStoreUploadSessionByID")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8273,8 +9134,8 @@ func (client BaseClient) GetImageStoreUploadSessionByIDPreparer(ctx context.Cont
 // GetImageStoreUploadSessionByIDSender sends the GetImageStoreUploadSessionByID request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetImageStoreUploadSessionByIDSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetImageStoreUploadSessionByIDResponder handles the response to the GetImageStoreUploadSessionByID request. The method always
@@ -8298,6 +9159,16 @@ func (client BaseClient) GetImageStoreUploadSessionByIDResponder(resp *http.Resp
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetImageStoreUploadSessionByPath(ctx context.Context, contentPath string, timeout *int64) (result UploadSession, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetImageStoreUploadSessionByPath")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8355,8 +9226,8 @@ func (client BaseClient) GetImageStoreUploadSessionByPathPreparer(ctx context.Co
 // GetImageStoreUploadSessionByPathSender sends the GetImageStoreUploadSessionByPath request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetImageStoreUploadSessionByPathSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetImageStoreUploadSessionByPathResponder handles the response to the GetImageStoreUploadSessionByPath request. The method always
@@ -8379,6 +9250,16 @@ func (client BaseClient) GetImageStoreUploadSessionByPathResponder(resp *http.Re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetNameExistsInfo(ctx context.Context, nameID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetNameExistsInfo")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8436,8 +9317,8 @@ func (client BaseClient) GetNameExistsInfoPreparer(ctx context.Context, nameID s
 // GetNameExistsInfoSender sends the GetNameExistsInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetNameExistsInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetNameExistsInfoResponder handles the response to the GetNameExistsInfo request. The method always
@@ -8467,6 +9348,16 @@ func (client BaseClient) GetNameExistsInfoResponder(resp *http.Response) (result
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetNodeEventList(ctx context.Context, nodeName string, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListNodeEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetNodeEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8535,8 +9426,8 @@ func (client BaseClient) GetNodeEventListPreparer(ctx context.Context, nodeName 
 // GetNodeEventListSender sends the GetNodeEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetNodeEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetNodeEventListResponder handles the response to the GetNodeEventList request. The method always
@@ -8576,6 +9467,16 @@ func (client BaseClient) GetNodeEventListResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetNodeHealth(ctx context.Context, nodeName string, eventsHealthStateFilter *int32, timeout *int64) (result NodeHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetNodeHealth")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8638,8 +9539,8 @@ func (client BaseClient) GetNodeHealthPreparer(ctx context.Context, nodeName str
 // GetNodeHealthSender sends the GetNodeHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetNodeHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetNodeHealthResponder handles the response to the GetNodeHealth request. The method always
@@ -8682,6 +9583,16 @@ func (client BaseClient) GetNodeHealthResponder(resp *http.Response) (result Nod
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetNodeHealthUsingPolicy(ctx context.Context, nodeName string, eventsHealthStateFilter *int32, clusterHealthPolicy *ClusterHealthPolicy, timeout *int64) (result NodeHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetNodeHealthUsingPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8749,8 +9660,8 @@ func (client BaseClient) GetNodeHealthUsingPolicyPreparer(ctx context.Context, n
 // GetNodeHealthUsingPolicySender sends the GetNodeHealthUsingPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetNodeHealthUsingPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetNodeHealthUsingPolicyResponder handles the response to the GetNodeHealthUsingPolicy request. The method always
@@ -8774,6 +9685,16 @@ func (client BaseClient) GetNodeHealthUsingPolicyResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetNodeInfo(ctx context.Context, nodeName string, timeout *int64) (result NodeInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetNodeInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8831,8 +9752,8 @@ func (client BaseClient) GetNodeInfoPreparer(ctx context.Context, nodeName strin
 // GetNodeInfoSender sends the GetNodeInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetNodeInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetNodeInfoResponder handles the response to the GetNodeInfo request. The method always
@@ -8862,6 +9783,16 @@ func (client BaseClient) GetNodeInfoResponder(resp *http.Response) (result NodeI
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetNodeInfoList(ctx context.Context, continuationToken string, nodeStatusFilter NodeStatusFilter, timeout *int64) (result PagedNodeInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetNodeInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -8923,8 +9854,8 @@ func (client BaseClient) GetNodeInfoListPreparer(ctx context.Context, continuati
 // GetNodeInfoListSender sends the GetNodeInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetNodeInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetNodeInfoListResponder handles the response to the GetNodeInfoList request. The method always
@@ -8948,6 +9879,16 @@ func (client BaseClient) GetNodeInfoListResponder(resp *http.Response) (result P
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetNodeLoadInfo(ctx context.Context, nodeName string, timeout *int64) (result NodeLoadInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetNodeLoadInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9005,8 +9946,8 @@ func (client BaseClient) GetNodeLoadInfoPreparer(ctx context.Context, nodeName s
 // GetNodeLoadInfoSender sends the GetNodeLoadInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetNodeLoadInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetNodeLoadInfoResponder handles the response to the GetNodeLoadInfo request. The method always
@@ -9036,6 +9977,16 @@ func (client BaseClient) GetNodeLoadInfoResponder(resp *http.Response) (result N
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetNodesEventList(ctx context.Context, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListNodeEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetNodesEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9100,8 +10051,8 @@ func (client BaseClient) GetNodesEventListPreparer(ctx context.Context, startTim
 // GetNodesEventListSender sends the GetNodesEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetNodesEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetNodesEventListResponder handles the response to the GetNodesEventList request. The method always
@@ -9127,6 +10078,16 @@ func (client BaseClient) GetNodesEventListResponder(resp *http.Response) (result
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetNodeTransitionProgress(ctx context.Context, nodeName string, operationID uuid.UUID, timeout *int64) (result NodeTransitionProgress, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetNodeTransitionProgress")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9185,8 +10146,8 @@ func (client BaseClient) GetNodeTransitionProgressPreparer(ctx context.Context, 
 // GetNodeTransitionProgressSender sends the GetNodeTransitionProgress request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetNodeTransitionProgressSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetNodeTransitionProgressResponder handles the response to the GetNodeTransitionProgress request. The method always
@@ -9210,6 +10171,16 @@ func (client BaseClient) GetNodeTransitionProgressResponder(resp *http.Response)
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPartitionBackupConfigurationInfo(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result PartitionBackupConfigurationInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionBackupConfigurationInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9267,8 +10238,8 @@ func (client BaseClient) GetPartitionBackupConfigurationInfoPreparer(ctx context
 // GetPartitionBackupConfigurationInfoSender sends the GetPartitionBackupConfigurationInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionBackupConfigurationInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionBackupConfigurationInfoResponder handles the response to the GetPartitionBackupConfigurationInfo request. The method always
@@ -9301,6 +10272,16 @@ func (client BaseClient) GetPartitionBackupConfigurationInfoResponder(resp *http
 // time must be specified in ISO8601 format. This is an optional parameter. If not specified, enumeration is
 // done till the most recent backup.
 func (client BaseClient) GetPartitionBackupList(ctx context.Context, partitionID uuid.UUID, timeout *int64, latest *bool, startDateTimeFilter *date.Time, endDateTimeFilter *date.Time) (result PagedBackupInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionBackupList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9369,8 +10350,8 @@ func (client BaseClient) GetPartitionBackupListPreparer(ctx context.Context, par
 // GetPartitionBackupListSender sends the GetPartitionBackupList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionBackupListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionBackupListResponder handles the response to the GetPartitionBackupList request. The method always
@@ -9394,6 +10375,16 @@ func (client BaseClient) GetPartitionBackupListResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPartitionBackupProgress(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result BackupProgressInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionBackupProgress")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9451,8 +10442,8 @@ func (client BaseClient) GetPartitionBackupProgressPreparer(ctx context.Context,
 // GetPartitionBackupProgressSender sends the GetPartitionBackupProgress request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionBackupProgressSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionBackupProgressResponder handles the response to the GetPartitionBackupProgress request. The method always
@@ -9483,6 +10474,16 @@ func (client BaseClient) GetPartitionBackupProgressResponder(resp *http.Response
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetPartitionEventList(ctx context.Context, partitionID uuid.UUID, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListPartitionEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9551,8 +10552,8 @@ func (client BaseClient) GetPartitionEventListPreparer(ctx context.Context, part
 // GetPartitionEventListSender sends the GetPartitionEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionEventListResponder handles the response to the GetPartitionEventList request. The method always
@@ -9612,6 +10613,16 @@ func (client BaseClient) GetPartitionEventListResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPartitionHealth(ctx context.Context, partitionID uuid.UUID, eventsHealthStateFilter *int32, replicasHealthStateFilter *int32, excludeHealthStatistics *bool, timeout *int64) (result PartitionHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionHealth")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9684,8 +10695,8 @@ func (client BaseClient) GetPartitionHealthPreparer(ctx context.Context, partiti
 // GetPartitionHealthSender sends the GetPartitionHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionHealthResponder handles the response to the GetPartitionHealth request. The method always
@@ -9753,6 +10764,16 @@ func (client BaseClient) GetPartitionHealthResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPartitionHealthUsingPolicy(ctx context.Context, partitionID uuid.UUID, eventsHealthStateFilter *int32, replicasHealthStateFilter *int32, applicationHealthPolicy *ApplicationHealthPolicy, excludeHealthStatistics *bool, timeout *int64) (result PartitionHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionHealthUsingPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9830,8 +10851,8 @@ func (client BaseClient) GetPartitionHealthUsingPolicyPreparer(ctx context.Conte
 // GetPartitionHealthUsingPolicySender sends the GetPartitionHealthUsingPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionHealthUsingPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionHealthUsingPolicyResponder handles the response to the GetPartitionHealthUsingPolicy request. The method always
@@ -9856,6 +10877,16 @@ func (client BaseClient) GetPartitionHealthUsingPolicyResponder(resp *http.Respo
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPartitionInfo(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result ServicePartitionInfoModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -9913,8 +10944,8 @@ func (client BaseClient) GetPartitionInfoPreparer(ctx context.Context, partition
 // GetPartitionInfoSender sends the GetPartitionInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionInfoResponder handles the response to the GetPartitionInfo request. The method always
@@ -9948,6 +10979,16 @@ func (client BaseClient) GetPartitionInfoResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPartitionInfoList(ctx context.Context, serviceID string, continuationToken string, timeout *int64) (result PagedServicePartitionInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10008,8 +11049,8 @@ func (client BaseClient) GetPartitionInfoListPreparer(ctx context.Context, servi
 // GetPartitionInfoListSender sends the GetPartitionInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionInfoListResponder handles the response to the GetPartitionInfoList request. The method always
@@ -10034,6 +11075,16 @@ func (client BaseClient) GetPartitionInfoListResponder(resp *http.Response) (res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPartitionLoadInformation(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result PartitionLoadInformation, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionLoadInformation")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10091,8 +11142,8 @@ func (client BaseClient) GetPartitionLoadInformationPreparer(ctx context.Context
 // GetPartitionLoadInformationSender sends the GetPartitionLoadInformation request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionLoadInformationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionLoadInformationResponder handles the response to the GetPartitionLoadInformation request. The method always
@@ -10124,6 +11175,16 @@ func (client BaseClient) GetPartitionLoadInformationResponder(resp *http.Respons
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetPartitionReplicaEventList(ctx context.Context, partitionID uuid.UUID, replicaID string, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListReplicaEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionReplicaEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10193,8 +11254,8 @@ func (client BaseClient) GetPartitionReplicaEventListPreparer(ctx context.Contex
 // GetPartitionReplicaEventListSender sends the GetPartitionReplicaEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionReplicaEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionReplicaEventListResponder handles the response to the GetPartitionReplicaEventList request. The method always
@@ -10225,6 +11286,16 @@ func (client BaseClient) GetPartitionReplicaEventListResponder(resp *http.Respon
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetPartitionReplicasEventList(ctx context.Context, partitionID uuid.UUID, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListReplicaEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionReplicasEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10293,8 +11364,8 @@ func (client BaseClient) GetPartitionReplicasEventListPreparer(ctx context.Conte
 // GetPartitionReplicasEventListSender sends the GetPartitionReplicasEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionReplicasEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionReplicasEventListResponder handles the response to the GetPartitionReplicasEventList request. The method always
@@ -10325,6 +11396,16 @@ func (client BaseClient) GetPartitionReplicasEventListResponder(resp *http.Respo
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPartitionRestartProgress(ctx context.Context, serviceID string, partitionID uuid.UUID, operationID uuid.UUID, timeout *int64) (result PartitionRestartProgress, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionRestartProgress")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10384,8 +11465,8 @@ func (client BaseClient) GetPartitionRestartProgressPreparer(ctx context.Context
 // GetPartitionRestartProgressSender sends the GetPartitionRestartProgress request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionRestartProgressSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionRestartProgressResponder handles the response to the GetPartitionRestartProgress request. The method always
@@ -10409,6 +11490,16 @@ func (client BaseClient) GetPartitionRestartProgressResponder(resp *http.Respons
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPartitionRestoreProgress(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result RestoreProgressInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionRestoreProgress")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10466,8 +11557,8 @@ func (client BaseClient) GetPartitionRestoreProgressPreparer(ctx context.Context
 // GetPartitionRestoreProgressSender sends the GetPartitionRestoreProgress request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionRestoreProgressSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionRestoreProgressResponder handles the response to the GetPartitionRestoreProgress request. The method always
@@ -10497,6 +11588,16 @@ func (client BaseClient) GetPartitionRestoreProgressResponder(resp *http.Respons
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetPartitionsEventList(ctx context.Context, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListPartitionEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPartitionsEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10561,8 +11662,8 @@ func (client BaseClient) GetPartitionsEventListPreparer(ctx context.Context, sta
 // GetPartitionsEventListSender sends the GetPartitionsEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPartitionsEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPartitionsEventListResponder handles the response to the GetPartitionsEventList request. The method always
@@ -10587,6 +11688,16 @@ func (client BaseClient) GetPartitionsEventListResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPropertyInfo(ctx context.Context, nameID string, propertyName string, timeout *int64) (result PropertyInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPropertyInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10645,8 +11756,8 @@ func (client BaseClient) GetPropertyInfoPreparer(ctx context.Context, nameID str
 // GetPropertyInfoSender sends the GetPropertyInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPropertyInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPropertyInfoResponder handles the response to the GetPropertyInfo request. The method always
@@ -10678,6 +11789,16 @@ func (client BaseClient) GetPropertyInfoResponder(resp *http.Response) (result P
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetPropertyInfoList(ctx context.Context, nameID string, includeValues *bool, continuationToken string, timeout *int64) (result PagedPropertyInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPropertyInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10743,8 +11864,8 @@ func (client BaseClient) GetPropertyInfoListPreparer(ctx context.Context, nameID
 // GetPropertyInfoListSender sends the GetPropertyInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPropertyInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPropertyInfoListResponder handles the response to the GetPropertyInfoList request. The method always
@@ -10769,6 +11890,16 @@ func (client BaseClient) GetPropertyInfoListResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetProvisionedFabricCodeVersionInfoList(ctx context.Context, codeVersion string, timeout *int64) (result ListFabricCodeVersionInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetProvisionedFabricCodeVersionInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10825,8 +11956,8 @@ func (client BaseClient) GetProvisionedFabricCodeVersionInfoListPreparer(ctx con
 // GetProvisionedFabricCodeVersionInfoListSender sends the GetProvisionedFabricCodeVersionInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetProvisionedFabricCodeVersionInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProvisionedFabricCodeVersionInfoListResponder handles the response to the GetProvisionedFabricCodeVersionInfoList request. The method always
@@ -10851,6 +11982,16 @@ func (client BaseClient) GetProvisionedFabricCodeVersionInfoListResponder(resp *
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetProvisionedFabricConfigVersionInfoList(ctx context.Context, configVersion string, timeout *int64) (result ListFabricConfigVersionInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetProvisionedFabricConfigVersionInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10907,8 +12048,8 @@ func (client BaseClient) GetProvisionedFabricConfigVersionInfoListPreparer(ctx c
 // GetProvisionedFabricConfigVersionInfoListSender sends the GetProvisionedFabricConfigVersionInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetProvisionedFabricConfigVersionInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProvisionedFabricConfigVersionInfoListResponder handles the response to the GetProvisionedFabricConfigVersionInfoList request. The method always
@@ -10939,6 +12080,16 @@ func (client BaseClient) GetProvisionedFabricConfigVersionInfoListResponder(resp
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetQuorumLossProgress(ctx context.Context, serviceID string, partitionID uuid.UUID, operationID uuid.UUID, timeout *int64) (result PartitionQuorumLossProgress, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetQuorumLossProgress")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -10998,8 +12149,8 @@ func (client BaseClient) GetQuorumLossProgressPreparer(ctx context.Context, serv
 // GetQuorumLossProgressSender sends the GetQuorumLossProgress request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetQuorumLossProgressSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetQuorumLossProgressResponder handles the response to the GetQuorumLossProgress request. The method always
@@ -11029,6 +12180,16 @@ func (client BaseClient) GetQuorumLossProgressResponder(resp *http.Response) (re
 // - 64 - Completed
 // executorFilter - the name of the repair executor whose claimed tasks should be included in the list.
 func (client BaseClient) GetRepairTaskList(ctx context.Context, taskIDFilter string, stateFilter *int32, executorFilter string) (result ListRepairTask, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetRepairTaskList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetRepairTaskListPreparer(ctx, taskIDFilter, stateFilter, executorFilter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.BaseClient", "GetRepairTaskList", nil, "Failure preparing request")
@@ -11077,8 +12238,8 @@ func (client BaseClient) GetRepairTaskListPreparer(ctx context.Context, taskIDFi
 // GetRepairTaskListSender sends the GetRepairTaskList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetRepairTaskListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetRepairTaskListResponder handles the response to the GetRepairTaskList request. The method always
@@ -11119,6 +12280,16 @@ func (client BaseClient) GetRepairTaskListResponder(resp *http.Response) (result
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetReplicaHealth(ctx context.Context, partitionID uuid.UUID, replicaID string, eventsHealthStateFilter *int32, timeout *int64) (result ReplicaHealthModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetReplicaHealth")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -11182,8 +12353,8 @@ func (client BaseClient) GetReplicaHealthPreparer(ctx context.Context, partition
 // GetReplicaHealthSender sends the GetReplicaHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetReplicaHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetReplicaHealthResponder handles the response to the GetReplicaHealth request. The method always
@@ -11232,6 +12403,16 @@ func (client BaseClient) GetReplicaHealthResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetReplicaHealthUsingPolicy(ctx context.Context, partitionID uuid.UUID, replicaID string, eventsHealthStateFilter *int32, applicationHealthPolicy *ApplicationHealthPolicy, timeout *int64) (result ReplicaHealthModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetReplicaHealthUsingPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -11300,8 +12481,8 @@ func (client BaseClient) GetReplicaHealthUsingPolicyPreparer(ctx context.Context
 // GetReplicaHealthUsingPolicySender sends the GetReplicaHealthUsingPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetReplicaHealthUsingPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetReplicaHealthUsingPolicyResponder handles the response to the GetReplicaHealthUsingPolicy request. The method always
@@ -11326,6 +12507,16 @@ func (client BaseClient) GetReplicaHealthUsingPolicyResponder(resp *http.Respons
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetReplicaInfo(ctx context.Context, partitionID uuid.UUID, replicaID string, timeout *int64) (result ReplicaInfoModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetReplicaInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -11384,8 +12575,8 @@ func (client BaseClient) GetReplicaInfoPreparer(ctx context.Context, partitionID
 // GetReplicaInfoSender sends the GetReplicaInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetReplicaInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetReplicaInfoResponder handles the response to the GetReplicaInfo request. The method always
@@ -11414,6 +12605,16 @@ func (client BaseClient) GetReplicaInfoResponder(resp *http.Response) (result Re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetReplicaInfoList(ctx context.Context, partitionID uuid.UUID, continuationToken string, timeout *int64) (result PagedReplicaInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetReplicaInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -11474,8 +12675,8 @@ func (client BaseClient) GetReplicaInfoListPreparer(ctx context.Context, partiti
 // GetReplicaInfoListSender sends the GetReplicaInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetReplicaInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetReplicaInfoListResponder handles the response to the GetReplicaInfoList request. The method always
@@ -11513,6 +12714,16 @@ func (client BaseClient) GetReplicaInfoListResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceBackupConfigurationInfo(ctx context.Context, serviceID string, continuationToken string, maxResults *int64, timeout *int64) (result PagedBackupConfigurationInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceBackupConfigurationInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -11581,8 +12792,8 @@ func (client BaseClient) GetServiceBackupConfigurationInfoPreparer(ctx context.C
 // GetServiceBackupConfigurationInfoSender sends the GetServiceBackupConfigurationInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceBackupConfigurationInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceBackupConfigurationInfoResponder handles the response to the GetServiceBackupConfigurationInfo request. The method always
@@ -11630,6 +12841,16 @@ func (client BaseClient) GetServiceBackupConfigurationInfoResponder(resp *http.R
 // in the configuration. If this parameter is zero or not specified, the paged queries includes as many results
 // as possible that fit in the return message.
 func (client BaseClient) GetServiceBackupList(ctx context.Context, serviceID string, timeout *int64, latest *bool, startDateTimeFilter *date.Time, endDateTimeFilter *date.Time, continuationToken string, maxResults *int64) (result PagedBackupInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceBackupList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -11709,8 +12930,8 @@ func (client BaseClient) GetServiceBackupListPreparer(ctx context.Context, servi
 // GetServiceBackupListSender sends the GetServiceBackupList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceBackupListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceBackupListResponder handles the response to the GetServiceBackupList request. The method always
@@ -11738,6 +12959,16 @@ func (client BaseClient) GetServiceBackupListResponder(resp *http.Response) (res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceDescription(ctx context.Context, serviceID string, timeout *int64) (result ServiceDescriptionModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceDescription")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -11795,8 +13026,8 @@ func (client BaseClient) GetServiceDescriptionPreparer(ctx context.Context, serv
 // GetServiceDescriptionSender sends the GetServiceDescription request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceDescriptionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceDescriptionResponder handles the response to the GetServiceDescription request. The method always
@@ -11831,6 +13062,16 @@ func (client BaseClient) GetServiceDescriptionResponder(resp *http.Response) (re
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetServiceEventList(ctx context.Context, serviceID string, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListServiceEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -11899,8 +13140,8 @@ func (client BaseClient) GetServiceEventListPreparer(ctx context.Context, servic
 // GetServiceEventListSender sends the GetServiceEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceEventListResponder handles the response to the GetServiceEventList request. The method always
@@ -11966,6 +13207,16 @@ func (client BaseClient) GetServiceEventListResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceHealth(ctx context.Context, serviceID string, eventsHealthStateFilter *int32, partitionsHealthStateFilter *int32, excludeHealthStatistics *bool, timeout *int64) (result ServiceHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceHealth")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12038,8 +13289,8 @@ func (client BaseClient) GetServiceHealthPreparer(ctx context.Context, serviceID
 // GetServiceHealthSender sends the GetServiceHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceHealthResponder handles the response to the GetServiceHealth request. The method always
@@ -12112,6 +13363,16 @@ func (client BaseClient) GetServiceHealthResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceHealthUsingPolicy(ctx context.Context, serviceID string, eventsHealthStateFilter *int32, partitionsHealthStateFilter *int32, applicationHealthPolicy *ApplicationHealthPolicy, excludeHealthStatistics *bool, timeout *int64) (result ServiceHealth, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceHealthUsingPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12189,8 +13450,8 @@ func (client BaseClient) GetServiceHealthUsingPolicyPreparer(ctx context.Context
 // GetServiceHealthUsingPolicySender sends the GetServiceHealthUsingPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceHealthUsingPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceHealthUsingPolicyResponder handles the response to the GetServiceHealthUsingPolicy request. The method always
@@ -12223,6 +13484,16 @@ func (client BaseClient) GetServiceHealthUsingPolicyResponder(resp *http.Respons
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceInfo(ctx context.Context, applicationID string, serviceID string, timeout *int64) (result ServiceInfoModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12281,8 +13552,8 @@ func (client BaseClient) GetServiceInfoPreparer(ctx context.Context, application
 // GetServiceInfoSender sends the GetServiceInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceInfoResponder handles the response to the GetServiceInfo request. The method always
@@ -12316,6 +13587,16 @@ func (client BaseClient) GetServiceInfoResponder(resp *http.Response) (result Se
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceInfoList(ctx context.Context, applicationID string, serviceTypeName string, continuationToken string, timeout *int64) (result PagedServiceInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12379,8 +13660,8 @@ func (client BaseClient) GetServiceInfoListPreparer(ctx context.Context, applica
 // GetServiceInfoListSender sends the GetServiceInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceInfoListResponder handles the response to the GetServiceInfoList request. The method always
@@ -12407,6 +13688,16 @@ func (client BaseClient) GetServiceInfoListResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceManifest(ctx context.Context, applicationTypeName string, applicationTypeVersion string, serviceManifestName string, timeout *int64) (result ServiceTypeManifest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceManifest")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12466,8 +13757,8 @@ func (client BaseClient) GetServiceManifestPreparer(ctx context.Context, applica
 // GetServiceManifestSender sends the GetServiceManifest request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceManifestSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceManifestResponder handles the response to the GetServiceManifest request. The method always
@@ -12491,6 +13782,16 @@ func (client BaseClient) GetServiceManifestResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceNameInfo(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result ServiceNameInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceNameInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12548,8 +13849,8 @@ func (client BaseClient) GetServiceNameInfoPreparer(ctx context.Context, partiti
 // GetServiceNameInfoSender sends the GetServiceNameInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceNameInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceNameInfoResponder handles the response to the GetServiceNameInfo request. The method always
@@ -12579,6 +13880,16 @@ func (client BaseClient) GetServiceNameInfoResponder(resp *http.Response) (resul
 // otherwise the CorrelationEvents get processed and HasCorrelatedEvents field in every FabricEvent gets
 // populated.
 func (client BaseClient) GetServicesEventList(ctx context.Context, startTimeUtc string, endTimeUtc string, timeout *int64, eventsTypesFilter string, excludeAnalysisEvents *bool, skipCorrelationLookup *bool) (result ListServiceEvent, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServicesEventList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12643,8 +13954,8 @@ func (client BaseClient) GetServicesEventListPreparer(ctx context.Context, start
 // GetServicesEventListSender sends the GetServicesEventList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServicesEventListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServicesEventListResponder handles the response to the GetServicesEventList request. The method always
@@ -12662,7 +13973,7 @@ func (client BaseClient) GetServicesEventListResponder(resp *http.Response) (res
 
 // GetServiceTypeInfoByName gets the information about a specific service type that is supported by a provisioned
 // application type in a Service Fabric cluster. The provided application type must exist. Otherwise, a 404 status is
-// returned. A 204 response is returned if the specificed service type is not found in the cluster.
+// returned. A 204 response is returned if the specified service type is not found in the cluster.
 // Parameters:
 // applicationTypeName - the name of the application type.
 // applicationTypeVersion - the version of the application type.
@@ -12671,6 +13982,16 @@ func (client BaseClient) GetServicesEventListResponder(resp *http.Response) (res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceTypeInfoByName(ctx context.Context, applicationTypeName string, applicationTypeVersion string, serviceTypeName string, timeout *int64) (result ServiceTypeInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceTypeInfoByName")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12730,8 +14051,8 @@ func (client BaseClient) GetServiceTypeInfoByNamePreparer(ctx context.Context, a
 // GetServiceTypeInfoByNameSender sends the GetServiceTypeInfoByName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceTypeInfoByNameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceTypeInfoByNameResponder handles the response to the GetServiceTypeInfoByName request. The method always
@@ -12757,6 +14078,16 @@ func (client BaseClient) GetServiceTypeInfoByNameResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetServiceTypeInfoList(ctx context.Context, applicationTypeName string, applicationTypeVersion string, timeout *int64) (result ListServiceTypeInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetServiceTypeInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12815,8 +14146,8 @@ func (client BaseClient) GetServiceTypeInfoListPreparer(ctx context.Context, app
 // GetServiceTypeInfoListSender sends the GetServiceTypeInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetServiceTypeInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetServiceTypeInfoListResponder handles the response to the GetServiceTypeInfoList request. The method always
@@ -12847,6 +14178,16 @@ func (client BaseClient) GetServiceTypeInfoListResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetSubNameInfoList(ctx context.Context, nameID string, recursive *bool, continuationToken string, timeout *int64) (result PagedSubNameInfoList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetSubNameInfoList")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12912,8 +14253,8 @@ func (client BaseClient) GetSubNameInfoListPreparer(ctx context.Context, nameID 
 // GetSubNameInfoListSender sends the GetSubNameInfoList request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetSubNameInfoListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSubNameInfoListResponder handles the response to the GetSubNameInfoList request. The method always
@@ -12936,6 +14277,16 @@ func (client BaseClient) GetSubNameInfoListResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) GetUpgradeOrchestrationServiceState(ctx context.Context, timeout *int64) (result UpgradeOrchestrationServiceState, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetUpgradeOrchestrationServiceState")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -12989,8 +14340,8 @@ func (client BaseClient) GetUpgradeOrchestrationServiceStatePreparer(ctx context
 // GetUpgradeOrchestrationServiceStateSender sends the GetUpgradeOrchestrationServiceState request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetUpgradeOrchestrationServiceStateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetUpgradeOrchestrationServiceStateResponder handles the response to the GetUpgradeOrchestrationServiceState request. The method always
@@ -13025,6 +14376,16 @@ func (client BaseClient) GetUpgradeOrchestrationServiceStateResponder(resp *http
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) InvokeContainerAPI(ctx context.Context, nodeName string, applicationID string, serviceManifestName string, codePackageName string, codePackageInstanceID string, containerAPIRequestBody ContainerAPIRequestBody, timeout *int64) (result ContainerAPIResponse, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.InvokeContainerAPI")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -13090,8 +14451,8 @@ func (client BaseClient) InvokeContainerAPIPreparer(ctx context.Context, nodeNam
 // InvokeContainerAPISender sends the InvokeContainerAPI request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) InvokeContainerAPISender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // InvokeContainerAPIResponder handles the response to the InvokeContainerAPI request. The method always
@@ -13124,6 +14485,16 @@ func (client BaseClient) InvokeContainerAPIResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) InvokeInfrastructureCommand(ctx context.Context, command string, serviceID string, timeout *int64) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.InvokeInfrastructureCommand")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -13181,8 +14552,8 @@ func (client BaseClient) InvokeInfrastructureCommandPreparer(ctx context.Context
 // InvokeInfrastructureCommandSender sends the InvokeInfrastructureCommand request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) InvokeInfrastructureCommandSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // InvokeInfrastructureCommandResponder handles the response to the InvokeInfrastructureCommand request. The method always
@@ -13215,6 +14586,16 @@ func (client BaseClient) InvokeInfrastructureCommandResponder(resp *http.Respons
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) InvokeInfrastructureQuery(ctx context.Context, command string, serviceID string, timeout *int64) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.InvokeInfrastructureQuery")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -13272,8 +14653,8 @@ func (client BaseClient) InvokeInfrastructureQueryPreparer(ctx context.Context, 
 // InvokeInfrastructureQuerySender sends the InvokeInfrastructureQuery request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) InvokeInfrastructureQuerySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // InvokeInfrastructureQueryResponder handles the response to the InvokeInfrastructureQuery request. The method always
@@ -13299,6 +14680,16 @@ func (client BaseClient) InvokeInfrastructureQueryResponder(resp *http.Response)
 // Parameters:
 // chaosSchedule - describes the schedule used by Chaos.
 func (client BaseClient) PostChaosSchedule(ctx context.Context, chaosSchedule ChaosScheduleDescription) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.PostChaosSchedule")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: chaosSchedule,
 			Constraints: []validation.Constraint{{Target: "chaosSchedule.Version", Name: validation.Null, Rule: false,
@@ -13347,8 +14738,8 @@ func (client BaseClient) PostChaosSchedulePreparer(ctx context.Context, chaosSch
 // PostChaosScheduleSender sends the PostChaosSchedule request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) PostChaosScheduleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // PostChaosScheduleResponder handles the response to the PostChaosSchedule request. The method always
@@ -13374,6 +14765,16 @@ func (client BaseClient) PostChaosScheduleResponder(resp *http.Response) (result
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ProvisionApplicationType(ctx context.Context, provisionApplicationTypeDescriptionBaseRequiredBodyParam BasicProvisionApplicationTypeDescriptionBase, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ProvisionApplicationType")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: provisionApplicationTypeDescriptionBaseRequiredBodyParam,
 			Constraints: []validation.Constraint{{Target: "provisionApplicationTypeDescriptionBaseRequiredBodyParam.Async", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -13431,8 +14832,8 @@ func (client BaseClient) ProvisionApplicationTypePreparer(ctx context.Context, p
 // ProvisionApplicationTypeSender sends the ProvisionApplicationType request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ProvisionApplicationTypeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ProvisionApplicationTypeResponder handles the response to the ProvisionApplicationType request. The method always
@@ -13454,6 +14855,16 @@ func (client BaseClient) ProvisionApplicationTypeResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ProvisionCluster(ctx context.Context, provisionFabricDescription ProvisionFabricDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ProvisionCluster")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -13509,8 +14920,8 @@ func (client BaseClient) ProvisionClusterPreparer(ctx context.Context, provision
 // ProvisionClusterSender sends the ProvisionCluster request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ProvisionClusterSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ProvisionClusterResponder handles the response to the ProvisionCluster request. The method always
@@ -13533,6 +14944,16 @@ func (client BaseClient) ProvisionClusterResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) PutProperty(ctx context.Context, nameID string, propertyDescription PropertyDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.PutProperty")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: propertyDescription,
 			Constraints: []validation.Constraint{{Target: "propertyDescription.PropertyName", Name: validation.Null, Rule: true, Chain: nil},
@@ -13595,8 +15016,8 @@ func (client BaseClient) PutPropertyPreparer(ctx context.Context, nameID string,
 // PutPropertySender sends the PutProperty request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) PutPropertySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // PutPropertyResponder handles the response to the PutProperty request. The method always
@@ -13620,6 +15041,16 @@ func (client BaseClient) PutPropertyResponder(resp *http.Response) (result autor
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RecoverAllPartitions(ctx context.Context, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RecoverAllPartitions")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -13673,8 +15104,8 @@ func (client BaseClient) RecoverAllPartitionsPreparer(ctx context.Context, timeo
 // RecoverAllPartitionsSender sends the RecoverAllPartitions request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RecoverAllPartitionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RecoverAllPartitionsResponder handles the response to the RecoverAllPartitions request. The method always
@@ -13698,6 +15129,16 @@ func (client BaseClient) RecoverAllPartitionsResponder(resp *http.Response) (res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RecoverPartition(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RecoverPartition")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -13755,8 +15196,8 @@ func (client BaseClient) RecoverPartitionPreparer(ctx context.Context, partition
 // RecoverPartitionSender sends the RecoverPartition request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RecoverPartitionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RecoverPartitionResponder handles the response to the RecoverPartition request. The method always
@@ -13784,6 +15225,16 @@ func (client BaseClient) RecoverPartitionResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RecoverServicePartitions(ctx context.Context, serviceID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RecoverServicePartitions")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -13841,8 +15292,8 @@ func (client BaseClient) RecoverServicePartitionsPreparer(ctx context.Context, s
 // RecoverServicePartitionsSender sends the RecoverServicePartitions request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RecoverServicePartitionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RecoverServicePartitionsResponder handles the response to the RecoverServicePartitions request. The method always
@@ -13865,6 +15316,16 @@ func (client BaseClient) RecoverServicePartitionsResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RecoverSystemPartitions(ctx context.Context, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RecoverSystemPartitions")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -13918,8 +15379,8 @@ func (client BaseClient) RecoverSystemPartitionsPreparer(ctx context.Context, ti
 // RecoverSystemPartitionsSender sends the RecoverSystemPartitions request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RecoverSystemPartitionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RecoverSystemPartitionsResponder handles the response to the RecoverSystemPartitions request. The method always
@@ -13941,6 +15402,16 @@ func (client BaseClient) RecoverSystemPartitionsResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RemoveComposeDeployment(ctx context.Context, deploymentName string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RemoveComposeDeployment")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -13998,8 +15469,8 @@ func (client BaseClient) RemoveComposeDeploymentPreparer(ctx context.Context, de
 // RemoveComposeDeploymentSender sends the RemoveComposeDeployment request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RemoveComposeDeploymentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RemoveComposeDeploymentResponder handles the response to the RemoveComposeDeployment request. The method always
@@ -14026,6 +15497,16 @@ func (client BaseClient) RemoveComposeDeploymentResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RemoveNodeState(ctx context.Context, nodeName string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RemoveNodeState")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -14083,8 +15564,8 @@ func (client BaseClient) RemoveNodeStatePreparer(ctx context.Context, nodeName s
 // RemoveNodeStateSender sends the RemoveNodeState request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RemoveNodeStateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RemoveNodeStateResponder handles the response to the RemoveNodeState request. The method always
@@ -14116,6 +15597,16 @@ func (client BaseClient) RemoveNodeStateResponder(resp *http.Response) (result a
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RemoveReplica(ctx context.Context, nodeName string, partitionID uuid.UUID, replicaID string, forceRemove *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RemoveReplica")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -14178,8 +15669,8 @@ func (client BaseClient) RemoveReplicaPreparer(ctx context.Context, nodeName str
 // RemoveReplicaSender sends the RemoveReplica request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RemoveReplicaSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RemoveReplicaResponder handles the response to the RemoveReplica request. The method always
@@ -14225,6 +15716,16 @@ func (client BaseClient) RemoveReplicaResponder(resp *http.Response) (result aut
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ReportApplicationHealth(ctx context.Context, applicationID string, healthInformation HealthInformation, immediate *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ReportApplicationHealth")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: healthInformation,
 			Constraints: []validation.Constraint{{Target: "healthInformation.SourceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -14292,8 +15793,8 @@ func (client BaseClient) ReportApplicationHealthPreparer(ctx context.Context, ap
 // ReportApplicationHealthSender sends the ReportApplicationHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ReportApplicationHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ReportApplicationHealthResponder handles the response to the ReportApplicationHealth request. The method always
@@ -14334,6 +15835,16 @@ func (client BaseClient) ReportApplicationHealthResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ReportClusterHealth(ctx context.Context, healthInformation HealthInformation, immediate *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ReportClusterHealth")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: healthInformation,
 			Constraints: []validation.Constraint{{Target: "healthInformation.SourceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -14397,8 +15908,8 @@ func (client BaseClient) ReportClusterHealthPreparer(ctx context.Context, health
 // ReportClusterHealthSender sends the ReportClusterHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ReportClusterHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ReportClusterHealthResponder handles the response to the ReportClusterHealth request. The method always
@@ -14445,6 +15956,16 @@ func (client BaseClient) ReportClusterHealthResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ReportDeployedApplicationHealth(ctx context.Context, nodeName string, applicationID string, healthInformation HealthInformation, immediate *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ReportDeployedApplicationHealth")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: healthInformation,
 			Constraints: []validation.Constraint{{Target: "healthInformation.SourceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -14513,8 +16034,8 @@ func (client BaseClient) ReportDeployedApplicationHealthPreparer(ctx context.Con
 // ReportDeployedApplicationHealthSender sends the ReportDeployedApplicationHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ReportDeployedApplicationHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ReportDeployedApplicationHealthResponder handles the response to the ReportDeployedApplicationHealth request. The method always
@@ -14563,6 +16084,16 @@ func (client BaseClient) ReportDeployedApplicationHealthResponder(resp *http.Res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ReportDeployedServicePackageHealth(ctx context.Context, nodeName string, applicationID string, servicePackageName string, healthInformation HealthInformation, immediate *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ReportDeployedServicePackageHealth")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: healthInformation,
 			Constraints: []validation.Constraint{{Target: "healthInformation.SourceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -14632,8 +16163,8 @@ func (client BaseClient) ReportDeployedServicePackageHealthPreparer(ctx context.
 // ReportDeployedServicePackageHealthSender sends the ReportDeployedServicePackageHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ReportDeployedServicePackageHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ReportDeployedServicePackageHealthResponder handles the response to the ReportDeployedServicePackageHealth request. The method always
@@ -14675,6 +16206,16 @@ func (client BaseClient) ReportDeployedServicePackageHealthResponder(resp *http.
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ReportNodeHealth(ctx context.Context, nodeName string, healthInformation HealthInformation, immediate *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ReportNodeHealth")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: healthInformation,
 			Constraints: []validation.Constraint{{Target: "healthInformation.SourceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -14742,8 +16283,8 @@ func (client BaseClient) ReportNodeHealthPreparer(ctx context.Context, nodeName 
 // ReportNodeHealthSender sends the ReportNodeHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ReportNodeHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ReportNodeHealthResponder handles the response to the ReportNodeHealth request. The method always
@@ -14785,6 +16326,16 @@ func (client BaseClient) ReportNodeHealthResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ReportPartitionHealth(ctx context.Context, partitionID uuid.UUID, healthInformation HealthInformation, immediate *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ReportPartitionHealth")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: healthInformation,
 			Constraints: []validation.Constraint{{Target: "healthInformation.SourceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -14852,8 +16403,8 @@ func (client BaseClient) ReportPartitionHealthPreparer(ctx context.Context, part
 // ReportPartitionHealthSender sends the ReportPartitionHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ReportPartitionHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ReportPartitionHealthResponder handles the response to the ReportPartitionHealth request. The method always
@@ -14898,6 +16449,16 @@ func (client BaseClient) ReportPartitionHealthResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ReportReplicaHealth(ctx context.Context, partitionID uuid.UUID, replicaID string, replicaHealthReportServiceKind ReplicaHealthReportServiceKind, healthInformation HealthInformation, immediate *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ReportReplicaHealth")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: healthInformation,
 			Constraints: []validation.Constraint{{Target: "healthInformation.SourceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -14967,8 +16528,8 @@ func (client BaseClient) ReportReplicaHealthPreparer(ctx context.Context, partit
 // ReportReplicaHealthSender sends the ReportReplicaHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ReportReplicaHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ReportReplicaHealthResponder handles the response to the ReportReplicaHealth request. The method always
@@ -15014,6 +16575,16 @@ func (client BaseClient) ReportReplicaHealthResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ReportServiceHealth(ctx context.Context, serviceID string, healthInformation HealthInformation, immediate *bool, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ReportServiceHealth")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: healthInformation,
 			Constraints: []validation.Constraint{{Target: "healthInformation.SourceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -15081,8 +16652,8 @@ func (client BaseClient) ReportServiceHealthPreparer(ctx context.Context, servic
 // ReportServiceHealthSender sends the ReportServiceHealth request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ReportServiceHealthSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ReportServiceHealthResponder handles the response to the ReportServiceHealth request. The method always
@@ -15104,6 +16675,16 @@ func (client BaseClient) ReportServiceHealthResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ResetPartitionLoad(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ResetPartitionLoad")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -15161,8 +16742,8 @@ func (client BaseClient) ResetPartitionLoadPreparer(ctx context.Context, partiti
 // ResetPartitionLoadSender sends the ResetPartitionLoad request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ResetPartitionLoadSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResetPartitionLoadResponder handles the response to the ResetPartitionLoad request. The method always
@@ -15200,6 +16781,16 @@ func (client BaseClient) ResetPartitionLoadResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ResolveService(ctx context.Context, serviceID string, partitionKeyType *int32, partitionKeyValue string, previousRspVersion string, timeout *int64) (result ResolvedServicePartition, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ResolveService")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -15266,8 +16857,8 @@ func (client BaseClient) ResolveServicePreparer(ctx context.Context, serviceID s
 // ResolveServiceSender sends the ResolveService request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ResolveServiceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResolveServiceResponder handles the response to the ResolveService request. The method always
@@ -15298,6 +16889,16 @@ func (client BaseClient) ResolveServiceResponder(resp *http.Response) (result Re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RestartDeployedCodePackage(ctx context.Context, nodeName string, applicationID string, restartDeployedCodePackageDescription RestartDeployedCodePackageDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RestartDeployedCodePackage")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: restartDeployedCodePackageDescription,
 			Constraints: []validation.Constraint{{Target: "restartDeployedCodePackageDescription.ServiceManifestName", Name: validation.Null, Rule: true, Chain: nil},
@@ -15362,8 +16963,8 @@ func (client BaseClient) RestartDeployedCodePackagePreparer(ctx context.Context,
 // RestartDeployedCodePackageSender sends the RestartDeployedCodePackage request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RestartDeployedCodePackageSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RestartDeployedCodePackageResponder handles the response to the RestartDeployedCodePackage request. The method always
@@ -15387,6 +16988,16 @@ func (client BaseClient) RestartDeployedCodePackageResponder(resp *http.Response
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RestartNode(ctx context.Context, nodeName string, restartNodeDescription RestartNodeDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RestartNode")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: restartNodeDescription,
 			Constraints: []validation.Constraint{{Target: "restartNodeDescription.NodeInstanceID", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -15448,8 +17059,8 @@ func (client BaseClient) RestartNodePreparer(ctx context.Context, nodeName strin
 // RestartNodeSender sends the RestartNode request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RestartNodeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RestartNodeResponder handles the response to the RestartNode request. The method always
@@ -15475,6 +17086,16 @@ func (client BaseClient) RestartNodeResponder(resp *http.Response) (result autor
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RestartReplica(ctx context.Context, nodeName string, partitionID uuid.UUID, replicaID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RestartReplica")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -15534,8 +17155,8 @@ func (client BaseClient) RestartReplicaPreparer(ctx context.Context, nodeName st
 // RestartReplicaSender sends the RestartReplica request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RestartReplicaSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RestartReplicaResponder handles the response to the RestartReplica request. The method always
@@ -15568,6 +17189,16 @@ func (client BaseClient) RestartReplicaResponder(resp *http.Response) (result au
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RestorePartition(ctx context.Context, partitionID uuid.UUID, restorePartitionDescription RestorePartitionDescription, restoreTimeout *int32, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RestorePartition")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: restorePartitionDescription,
 			Constraints: []validation.Constraint{{Target: "restorePartitionDescription.BackupID", Name: validation.Null, Rule: true, Chain: nil},
@@ -15635,8 +17266,8 @@ func (client BaseClient) RestorePartitionPreparer(ctx context.Context, partition
 // RestorePartitionSender sends the RestorePartition request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RestorePartitionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RestorePartitionResponder handles the response to the RestorePartition request. The method always
@@ -15663,6 +17294,16 @@ func (client BaseClient) RestorePartitionResponder(resp *http.Response) (result 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ResumeApplicationBackup(ctx context.Context, applicationID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ResumeApplicationBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -15720,8 +17361,8 @@ func (client BaseClient) ResumeApplicationBackupPreparer(ctx context.Context, ap
 // ResumeApplicationBackupSender sends the ResumeApplicationBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ResumeApplicationBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResumeApplicationBackupResponder handles the response to the ResumeApplicationBackup request. The method always
@@ -15750,6 +17391,16 @@ func (client BaseClient) ResumeApplicationBackupResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ResumeApplicationUpgrade(ctx context.Context, applicationID string, resumeApplicationUpgradeDescription ResumeApplicationUpgradeDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ResumeApplicationUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resumeApplicationUpgradeDescription,
 			Constraints: []validation.Constraint{{Target: "resumeApplicationUpgradeDescription.UpgradeDomainName", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -15811,8 +17462,8 @@ func (client BaseClient) ResumeApplicationUpgradePreparer(ctx context.Context, a
 // ResumeApplicationUpgradeSender sends the ResumeApplicationUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ResumeApplicationUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResumeApplicationUpgradeResponder handles the response to the ResumeApplicationUpgrade request. The method always
@@ -15835,6 +17486,16 @@ func (client BaseClient) ResumeApplicationUpgradeResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ResumeClusterUpgrade(ctx context.Context, resumeClusterUpgradeDescription ResumeClusterUpgradeDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ResumeClusterUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resumeClusterUpgradeDescription,
 			Constraints: []validation.Constraint{{Target: "resumeClusterUpgradeDescription.UpgradeDomain", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -15892,8 +17553,8 @@ func (client BaseClient) ResumeClusterUpgradePreparer(ctx context.Context, resum
 // ResumeClusterUpgradeSender sends the ResumeClusterUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ResumeClusterUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResumeClusterUpgradeResponder handles the response to the ResumeClusterUpgrade request. The method always
@@ -15916,6 +17577,16 @@ func (client BaseClient) ResumeClusterUpgradeResponder(resp *http.Response) (res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ResumePartitionBackup(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ResumePartitionBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -15973,8 +17644,8 @@ func (client BaseClient) ResumePartitionBackupPreparer(ctx context.Context, part
 // ResumePartitionBackupSender sends the ResumePartitionBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ResumePartitionBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResumePartitionBackupResponder handles the response to the ResumePartitionBackup request. The method always
@@ -16001,6 +17672,16 @@ func (client BaseClient) ResumePartitionBackupResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) ResumeServiceBackup(ctx context.Context, serviceID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ResumeServiceBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -16058,8 +17739,8 @@ func (client BaseClient) ResumeServiceBackupPreparer(ctx context.Context, servic
 // ResumeServiceBackupSender sends the ResumeServiceBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ResumeServiceBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResumeServiceBackupResponder handles the response to the ResumeServiceBackup request. The method always
@@ -16088,6 +17769,16 @@ func (client BaseClient) ResumeServiceBackupResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RollbackApplicationUpgrade(ctx context.Context, applicationID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RollbackApplicationUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -16145,8 +17836,8 @@ func (client BaseClient) RollbackApplicationUpgradePreparer(ctx context.Context,
 // RollbackApplicationUpgradeSender sends the RollbackApplicationUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RollbackApplicationUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RollbackApplicationUpgradeResponder handles the response to the RollbackApplicationUpgrade request. The method always
@@ -16167,6 +17858,16 @@ func (client BaseClient) RollbackApplicationUpgradeResponder(resp *http.Response
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) RollbackClusterUpgrade(ctx context.Context, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.RollbackClusterUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -16220,8 +17921,8 @@ func (client BaseClient) RollbackClusterUpgradePreparer(ctx context.Context, tim
 // RollbackClusterUpgradeSender sends the RollbackClusterUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) RollbackClusterUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RollbackClusterUpgradeResponder handles the response to the RollbackClusterUpgrade request. The method always
@@ -16244,6 +17945,16 @@ func (client BaseClient) RollbackClusterUpgradeResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) SetUpgradeOrchestrationServiceState(ctx context.Context, upgradeOrchestrationServiceState UpgradeOrchestrationServiceState, timeout *int64) (result UpgradeOrchestrationServiceStateSummary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.SetUpgradeOrchestrationServiceState")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -16299,8 +18010,8 @@ func (client BaseClient) SetUpgradeOrchestrationServiceStatePreparer(ctx context
 // SetUpgradeOrchestrationServiceStateSender sends the SetUpgradeOrchestrationServiceState request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) SetUpgradeOrchestrationServiceStateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SetUpgradeOrchestrationServiceStateResponder handles the response to the SetUpgradeOrchestrationServiceState request. The method always
@@ -16329,6 +18040,16 @@ func (client BaseClient) SetUpgradeOrchestrationServiceStateResponder(resp *http
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StartApplicationUpgrade(ctx context.Context, applicationID string, applicationUpgradeDescription ApplicationUpgradeDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StartApplicationUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: applicationUpgradeDescription,
 			Constraints: []validation.Constraint{{Target: "applicationUpgradeDescription.Name", Name: validation.Null, Rule: true, Chain: nil},
@@ -16392,8 +18113,8 @@ func (client BaseClient) StartApplicationUpgradePreparer(ctx context.Context, ap
 // StartApplicationUpgradeSender sends the StartApplicationUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StartApplicationUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartApplicationUpgradeResponder handles the response to the StartApplicationUpgrade request. The method always
@@ -16419,6 +18140,16 @@ func (client BaseClient) StartApplicationUpgradeResponder(resp *http.Response) (
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StartChaos(ctx context.Context, chaosParameters ChaosParameters, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StartChaos")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: chaosParameters,
 			Constraints: []validation.Constraint{{Target: "chaosParameters.MaxClusterStabilizationTimeoutInSeconds", Name: validation.Null, Rule: false,
@@ -16491,8 +18222,8 @@ func (client BaseClient) StartChaosPreparer(ctx context.Context, chaosParameters
 // StartChaosSender sends the StartChaos request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StartChaosSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartChaosResponder handles the response to the StartChaos request. The method always
@@ -16515,6 +18246,16 @@ func (client BaseClient) StartChaosResponder(resp *http.Response) (result autore
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StartClusterConfigurationUpgrade(ctx context.Context, clusterConfigurationUpgradeDescription ClusterConfigurationUpgradeDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StartClusterConfigurationUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: clusterConfigurationUpgradeDescription,
 			Constraints: []validation.Constraint{{Target: "clusterConfigurationUpgradeDescription.ClusterConfig", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -16572,8 +18313,8 @@ func (client BaseClient) StartClusterConfigurationUpgradePreparer(ctx context.Co
 // StartClusterConfigurationUpgradeSender sends the StartClusterConfigurationUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StartClusterConfigurationUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartClusterConfigurationUpgradeResponder handles the response to the StartClusterConfigurationUpgrade request. The method always
@@ -16596,6 +18337,16 @@ func (client BaseClient) StartClusterConfigurationUpgradeResponder(resp *http.Re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StartClusterUpgrade(ctx context.Context, startClusterUpgradeDescription StartClusterUpgradeDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StartClusterUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: startClusterUpgradeDescription,
 			Constraints: []validation.Constraint{{Target: "startClusterUpgradeDescription.ClusterUpgradeHealthPolicy", Name: validation.Null, Rule: false,
@@ -16662,8 +18413,8 @@ func (client BaseClient) StartClusterUpgradePreparer(ctx context.Context, startC
 // StartClusterUpgradeSender sends the StartClusterUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StartClusterUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartClusterUpgradeResponder handles the response to the StartClusterUpgrade request. The method always
@@ -16687,6 +18438,16 @@ func (client BaseClient) StartClusterUpgradeResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StartComposeDeploymentUpgrade(ctx context.Context, deploymentName string, composeDeploymentUpgradeDescription ComposeDeploymentUpgradeDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StartComposeDeploymentUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: composeDeploymentUpgradeDescription,
 			Constraints: []validation.Constraint{{Target: "composeDeploymentUpgradeDescription.DeploymentName", Name: validation.Null, Rule: true, Chain: nil},
@@ -16749,8 +18510,8 @@ func (client BaseClient) StartComposeDeploymentUpgradePreparer(ctx context.Conte
 // StartComposeDeploymentUpgradeSender sends the StartComposeDeploymentUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StartComposeDeploymentUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartComposeDeploymentUpgradeResponder handles the response to the StartComposeDeploymentUpgrade request. The method always
@@ -16796,6 +18557,16 @@ func (client BaseClient) StartComposeDeploymentUpgradeResponder(resp *http.Respo
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StartDataLoss(ctx context.Context, serviceID string, partitionID uuid.UUID, operationID uuid.UUID, dataLossMode DataLossMode, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StartDataLoss")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -16856,8 +18627,8 @@ func (client BaseClient) StartDataLossPreparer(ctx context.Context, serviceID st
 // StartDataLossSender sends the StartDataLoss request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StartDataLossSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartDataLossResponder handles the response to the StartDataLoss request. The method always
@@ -16890,6 +18661,16 @@ func (client BaseClient) StartDataLossResponder(resp *http.Response) (result aut
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StartNodeTransition(ctx context.Context, nodeName string, operationID uuid.UUID, nodeTransitionType NodeTransitionType, nodeInstanceID string, stopDurationInSeconds int32, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StartNodeTransition")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: stopDurationInSeconds,
 			Constraints: []validation.Constraint{{Target: "stopDurationInSeconds", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil}}},
@@ -16953,8 +18734,8 @@ func (client BaseClient) StartNodeTransitionPreparer(ctx context.Context, nodeNa
 // StartNodeTransitionSender sends the StartNodeTransition request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StartNodeTransitionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartNodeTransitionResponder handles the response to the StartNodeTransition request. The method always
@@ -16988,6 +18769,16 @@ func (client BaseClient) StartNodeTransitionResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StartPartitionRestart(ctx context.Context, serviceID string, partitionID uuid.UUID, operationID uuid.UUID, restartPartitionMode RestartPartitionMode, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StartPartitionRestart")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -17048,8 +18839,8 @@ func (client BaseClient) StartPartitionRestartPreparer(ctx context.Context, serv
 // StartPartitionRestartSender sends the StartPartitionRestart request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StartPartitionRestartSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartPartitionRestartResponder handles the response to the StartPartitionRestart request. The method always
@@ -17089,6 +18880,16 @@ func (client BaseClient) StartPartitionRestartResponder(resp *http.Response) (re
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StartQuorumLoss(ctx context.Context, serviceID string, partitionID uuid.UUID, operationID uuid.UUID, quorumLossMode QuorumLossMode, quorumLossDuration int32, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StartQuorumLoss")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -17150,8 +18951,8 @@ func (client BaseClient) StartQuorumLossPreparer(ctx context.Context, serviceID 
 // StartQuorumLossSender sends the StartQuorumLoss request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StartQuorumLossSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartQuorumLossResponder handles the response to the StartQuorumLoss request. The method always
@@ -17175,6 +18976,16 @@ func (client BaseClient) StartQuorumLossResponder(resp *http.Response) (result a
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) StopChaos(ctx context.Context, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.StopChaos")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -17228,8 +19039,8 @@ func (client BaseClient) StopChaosPreparer(ctx context.Context, timeout *int64) 
 // StopChaosSender sends the StopChaos request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) StopChaosSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StopChaosResponder handles the response to the StopChaos request. The method always
@@ -17252,6 +19063,16 @@ func (client BaseClient) StopChaosResponder(resp *http.Response) (result autores
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) SubmitPropertyBatch(ctx context.Context, nameID string, propertyBatchDescriptionList PropertyBatchDescriptionList, timeout *int64) (result PropertyBatchInfoModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.SubmitPropertyBatch")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -17311,8 +19132,8 @@ func (client BaseClient) SubmitPropertyBatchPreparer(ctx context.Context, nameID
 // SubmitPropertyBatchSender sends the SubmitPropertyBatch request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) SubmitPropertyBatchSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SubmitPropertyBatchResponder handles the response to the SubmitPropertyBatch request. The method always
@@ -17341,6 +19162,16 @@ func (client BaseClient) SubmitPropertyBatchResponder(resp *http.Response) (resu
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) SuspendApplicationBackup(ctx context.Context, applicationID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.SuspendApplicationBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -17398,8 +19229,8 @@ func (client BaseClient) SuspendApplicationBackupPreparer(ctx context.Context, a
 // SuspendApplicationBackupSender sends the SuspendApplicationBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) SuspendApplicationBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SuspendApplicationBackupResponder handles the response to the SuspendApplicationBackup request. The method always
@@ -17422,6 +19253,16 @@ func (client BaseClient) SuspendApplicationBackupResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) SuspendPartitionBackup(ctx context.Context, partitionID uuid.UUID, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.SuspendPartitionBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -17479,8 +19320,8 @@ func (client BaseClient) SuspendPartitionBackupPreparer(ctx context.Context, par
 // SuspendPartitionBackupSender sends the SuspendPartitionBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) SuspendPartitionBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SuspendPartitionBackupResponder handles the response to the SuspendPartitionBackup request. The method always
@@ -17508,6 +19349,16 @@ func (client BaseClient) SuspendPartitionBackupResponder(resp *http.Response) (r
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) SuspendServiceBackup(ctx context.Context, serviceID string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.SuspendServiceBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -17565,8 +19416,8 @@ func (client BaseClient) SuspendServiceBackupPreparer(ctx context.Context, servi
 // SuspendServiceBackupSender sends the SuspendServiceBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) SuspendServiceBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SuspendServiceBackupResponder handles the response to the SuspendServiceBackup request. The method always
@@ -17592,6 +19443,16 @@ func (client BaseClient) SuspendServiceBackupResponder(resp *http.Response) (res
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) UnprovisionApplicationType(ctx context.Context, applicationTypeName string, unprovisionApplicationTypeDescriptionInfo UnprovisionApplicationTypeDescriptionInfo, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UnprovisionApplicationType")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: unprovisionApplicationTypeDescriptionInfo,
 			Constraints: []validation.Constraint{{Target: "unprovisionApplicationTypeDescriptionInfo.ApplicationTypeVersion", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -17653,8 +19514,8 @@ func (client BaseClient) UnprovisionApplicationTypePreparer(ctx context.Context,
 // UnprovisionApplicationTypeSender sends the UnprovisionApplicationType request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UnprovisionApplicationTypeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UnprovisionApplicationTypeResponder handles the response to the UnprovisionApplicationType request. The method always
@@ -17677,6 +19538,16 @@ func (client BaseClient) UnprovisionApplicationTypeResponder(resp *http.Response
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) UnprovisionCluster(ctx context.Context, unprovisionFabricDescription UnprovisionFabricDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UnprovisionCluster")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -17732,8 +19603,8 @@ func (client BaseClient) UnprovisionClusterPreparer(ctx context.Context, unprovi
 // UnprovisionClusterSender sends the UnprovisionCluster request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UnprovisionClusterSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UnprovisionClusterResponder handles the response to the UnprovisionCluster request. The method always
@@ -17762,6 +19633,16 @@ func (client BaseClient) UnprovisionClusterResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) UpdateApplicationUpgrade(ctx context.Context, applicationID string, applicationUpgradeUpdateDescription ApplicationUpgradeUpdateDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateApplicationUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: applicationUpgradeUpdateDescription,
 			Constraints: []validation.Constraint{{Target: "applicationUpgradeUpdateDescription.Name", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -17823,8 +19704,8 @@ func (client BaseClient) UpdateApplicationUpgradePreparer(ctx context.Context, a
 // UpdateApplicationUpgradeSender sends the UpdateApplicationUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateApplicationUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateApplicationUpgradeResponder handles the response to the UpdateApplicationUpgrade request. The method always
@@ -17847,6 +19728,16 @@ func (client BaseClient) UpdateApplicationUpgradeResponder(resp *http.Response) 
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) UpdateBackupPolicy(ctx context.Context, backupPolicyDescription BackupPolicyDescription, backupPolicyName string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateBackupPolicy")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: backupPolicyDescription,
 			Constraints: []validation.Constraint{{Target: "backupPolicyDescription.Name", Name: validation.Null, Rule: true, Chain: nil},
@@ -17915,8 +19806,8 @@ func (client BaseClient) UpdateBackupPolicyPreparer(ctx context.Context, backupP
 // UpdateBackupPolicySender sends the UpdateBackupPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateBackupPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateBackupPolicyResponder handles the response to the UpdateBackupPolicy request. The method always
@@ -17938,6 +19829,16 @@ func (client BaseClient) UpdateBackupPolicyResponder(resp *http.Response) (resul
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) UpdateClusterUpgrade(ctx context.Context, updateClusterUpgradeDescription UpdateClusterUpgradeDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateClusterUpgrade")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: updateClusterUpgradeDescription,
 			Constraints: []validation.Constraint{{Target: "updateClusterUpgradeDescription.ClusterUpgradeHealthPolicy", Name: validation.Null, Rule: false,
@@ -18004,8 +19905,8 @@ func (client BaseClient) UpdateClusterUpgradePreparer(ctx context.Context, updat
 // UpdateClusterUpgradeSender sends the UpdateClusterUpgrade request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateClusterUpgradeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateClusterUpgradeResponder handles the response to the UpdateClusterUpgrade request. The method always
@@ -18025,6 +19926,16 @@ func (client BaseClient) UpdateClusterUpgradeResponder(resp *http.Response) (res
 // Parameters:
 // repairTask - describes the repair task to be created or updated.
 func (client BaseClient) UpdateRepairExecutionState(ctx context.Context, repairTask RepairTask) (result RepairTaskUpdateInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateRepairExecutionState")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: repairTask,
 			Constraints: []validation.Constraint{{Target: "repairTask.TaskID", Name: validation.Null, Rule: true, Chain: nil},
@@ -18073,8 +19984,8 @@ func (client BaseClient) UpdateRepairExecutionStatePreparer(ctx context.Context,
 // UpdateRepairExecutionStateSender sends the UpdateRepairExecutionState request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateRepairExecutionStateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateRepairExecutionStateResponder handles the response to the UpdateRepairExecutionState request. The method always
@@ -18095,6 +20006,16 @@ func (client BaseClient) UpdateRepairExecutionStateResponder(resp *http.Response
 // Parameters:
 // repairTaskUpdateHealthPolicyDescription - describes the repair task healthy policy to be updated.
 func (client BaseClient) UpdateRepairTaskHealthPolicy(ctx context.Context, repairTaskUpdateHealthPolicyDescription RepairTaskUpdateHealthPolicyDescription) (result RepairTaskUpdateInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateRepairTaskHealthPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: repairTaskUpdateHealthPolicyDescription,
 			Constraints: []validation.Constraint{{Target: "repairTaskUpdateHealthPolicyDescription.TaskID", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -18142,8 +20063,8 @@ func (client BaseClient) UpdateRepairTaskHealthPolicyPreparer(ctx context.Contex
 // UpdateRepairTaskHealthPolicySender sends the UpdateRepairTaskHealthPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateRepairTaskHealthPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateRepairTaskHealthPolicyResponder handles the response to the UpdateRepairTaskHealthPolicy request. The method always
@@ -18176,6 +20097,16 @@ func (client BaseClient) UpdateRepairTaskHealthPolicyResponder(resp *http.Respon
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) UpdateService(ctx context.Context, serviceID string, serviceUpdateDescription BasicServiceUpdateDescription, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateService")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -18235,8 +20166,8 @@ func (client BaseClient) UpdateServicePreparer(ctx context.Context, serviceID st
 // UpdateServiceSender sends the UpdateService request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateServiceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateServiceResponder handles the response to the UpdateService request. The method always
@@ -18264,6 +20195,16 @@ func (client BaseClient) UpdateServiceResponder(resp *http.Response) (result aut
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) UploadFile(ctx context.Context, contentPath string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UploadFile")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -18321,8 +20262,8 @@ func (client BaseClient) UploadFilePreparer(ctx context.Context, contentPath str
 // UploadFileSender sends the UploadFile request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UploadFileSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UploadFileResponder handles the response to the UploadFile request. The method always
@@ -18356,6 +20297,16 @@ func (client BaseClient) UploadFileResponder(resp *http.Response) (result autore
 // duration that the client is willing to wait for the requested operation to complete. The default value for
 // this parameter is 60 seconds.
 func (client BaseClient) UploadFileChunk(ctx context.Context, contentPath string, sessionID uuid.UUID, contentRange string, timeout *int64) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UploadFileChunk")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
@@ -18415,8 +20366,8 @@ func (client BaseClient) UploadFileChunkPreparer(ctx context.Context, contentPat
 // UploadFileChunkSender sends the UploadFileChunk request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UploadFileChunkSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UploadFileChunkResponder handles the response to the UploadFileChunk request. The method always

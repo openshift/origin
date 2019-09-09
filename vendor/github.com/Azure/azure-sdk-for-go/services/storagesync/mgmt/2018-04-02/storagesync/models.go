@@ -18,12 +18,17 @@ package storagesync
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/to"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
+
+// The package's fully qualified name.
+const fqdn = "github.com/Azure/azure-sdk-for-go/services/storagesync/mgmt/2018-04-02/storagesync"
 
 // CloudTiering enumerates the values for cloud tiering.
 type CloudTiering string
@@ -158,13 +163,13 @@ type APIError struct {
 
 // AzureEntityResource the resource model definition for a Azure Resource Manager resource with an etag.
 type AzureEntityResource struct {
-	// Etag - Resource Etag.
+	// Etag - READ-ONLY; Resource Etag.
 	Etag *string `json:"etag,omitempty"`
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -185,11 +190,11 @@ type CheckNameAvailabilityParameters struct {
 // CheckNameAvailabilityResult the CheckNameAvailability operation response.
 type CheckNameAvailabilityResult struct {
 	autorest.Response `json:"-"`
-	// NameAvailable - Gets a boolean value that indicates whether the name is available for you to use. If true, the name is available. If false, the name has already been taken or invalid and cannot be used.
+	// NameAvailable - READ-ONLY; Gets a boolean value that indicates whether the name is available for you to use. If true, the name is available. If false, the name has already been taken or invalid and cannot be used.
 	NameAvailable *bool `json:"nameAvailable,omitempty"`
-	// Reason - Gets the reason that a Storage Sync Service name could not be used. The Reason element is only returned if NameAvailable is false. Possible values include: 'Invalid', 'AlreadyExists'
+	// Reason - READ-ONLY; Gets the reason that a Storage Sync Service name could not be used. The Reason element is only returned if NameAvailable is false. Possible values include: 'Invalid', 'AlreadyExists'
 	Reason NameAvailabilityReason `json:"reason,omitempty"`
-	// Message - Gets an error message explaining the Reason value in more detail.
+	// Message - READ-ONLY; Gets an error message explaining the Reason value in more detail.
 	Message *string `json:"message,omitempty"`
 }
 
@@ -198,11 +203,11 @@ type CloudEndpoint struct {
 	autorest.Response `json:"-"`
 	// CloudEndpointProperties - Cloud Endpoint properties.
 	*CloudEndpointProperties `json:"properties,omitempty"`
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -211,15 +216,6 @@ func (ce CloudEndpoint) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ce.CloudEndpointProperties != nil {
 		objectMap["properties"] = ce.CloudEndpointProperties
-	}
-	if ce.ID != nil {
-		objectMap["id"] = ce.ID
-	}
-	if ce.Name != nil {
-		objectMap["name"] = ce.Name
-	}
-	if ce.Type != nil {
-		objectMap["type"] = ce.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -371,7 +367,7 @@ type CloudEndpointProperties struct {
 	PartnershipID *string `json:"partnershipId,omitempty"`
 	// FriendlyName - Friendly Name
 	FriendlyName *string `json:"friendlyName,omitempty"`
-	// BackupEnabled - Backup Enabled
+	// BackupEnabled - READ-ONLY; Backup Enabled
 	BackupEnabled *bool `json:"backupEnabled,omitempty"`
 	// ProvisioningState - CloudEndpoint Provisioning State
 	ProvisioningState *string `json:"provisioningState,omitempty"`
@@ -381,150 +377,150 @@ type CloudEndpointProperties struct {
 	LastOperationName *string `json:"lastOperationName,omitempty"`
 }
 
-// CloudEndpointsGroupCreateFuture an abstraction for monitoring and retrieving the results of a long-running
+// CloudEndpointsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type CloudEndpointsGroupCreateFuture struct {
+type CloudEndpointsCreateFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *CloudEndpointsGroupCreateFuture) Result(client CloudEndpointsGroupClient) (ce CloudEndpoint, err error) {
+func (future *CloudEndpointsCreateFuture) Result(client CloudEndpointsClient) (ce CloudEndpoint, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsGroupCreateFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsCreateFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsGroupCreateFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsCreateFuture")
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if ce.Response.Response, err = future.GetResult(sender); err == nil && ce.Response.Response.StatusCode != http.StatusNoContent {
 		ce, err = client.CreateResponder(ce.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsGroupCreateFuture", "Result", ce.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsCreateFuture", "Result", ce.Response.Response, "Failure responding to request")
 		}
 	}
 	return
 }
 
-// CloudEndpointsGroupDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// CloudEndpointsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type CloudEndpointsGroupDeleteFuture struct {
+type CloudEndpointsDeleteFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *CloudEndpointsGroupDeleteFuture) Result(client CloudEndpointsGroupClient) (ar autorest.Response, err error) {
+func (future *CloudEndpointsDeleteFuture) Result(client CloudEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsGroupDeleteFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsGroupDeleteFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsDeleteFuture")
 		return
 	}
 	ar.Response = future.Response()
 	return
 }
 
-// CloudEndpointsGroupPostBackupFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
-type CloudEndpointsGroupPostBackupFuture struct {
+// CloudEndpointsPostBackupFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type CloudEndpointsPostBackupFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *CloudEndpointsGroupPostBackupFuture) Result(client CloudEndpointsGroupClient) (pbr PostBackupResponse, err error) {
+func (future *CloudEndpointsPostBackupFuture) Result(client CloudEndpointsClient) (pbr PostBackupResponse, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsGroupPostBackupFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsPostBackupFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsGroupPostBackupFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsPostBackupFuture")
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if pbr.Response.Response, err = future.GetResult(sender); err == nil && pbr.Response.Response.StatusCode != http.StatusNoContent {
 		pbr, err = client.PostBackupResponder(pbr.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsGroupPostBackupFuture", "Result", pbr.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsPostBackupFuture", "Result", pbr.Response.Response, "Failure responding to request")
 		}
 	}
 	return
 }
 
-// CloudEndpointsGroupPostRestoreFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
-type CloudEndpointsGroupPostRestoreFuture struct {
+// CloudEndpointsPostRestoreFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type CloudEndpointsPostRestoreFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *CloudEndpointsGroupPostRestoreFuture) Result(client CloudEndpointsGroupClient) (ar autorest.Response, err error) {
+func (future *CloudEndpointsPostRestoreFuture) Result(client CloudEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsGroupPostRestoreFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsPostRestoreFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsGroupPostRestoreFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsPostRestoreFuture")
 		return
 	}
 	ar.Response = future.Response()
 	return
 }
 
-// CloudEndpointsGroupPreBackupFuture an abstraction for monitoring and retrieving the results of a long-running
+// CloudEndpointsPreBackupFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type CloudEndpointsGroupPreBackupFuture struct {
+type CloudEndpointsPreBackupFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *CloudEndpointsGroupPreBackupFuture) Result(client CloudEndpointsGroupClient) (ar autorest.Response, err error) {
+func (future *CloudEndpointsPreBackupFuture) Result(client CloudEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsGroupPreBackupFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsPreBackupFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsGroupPreBackupFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsPreBackupFuture")
 		return
 	}
 	ar.Response = future.Response()
 	return
 }
 
-// CloudEndpointsGroupPreRestoreFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
-type CloudEndpointsGroupPreRestoreFuture struct {
+// CloudEndpointsPreRestoreFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type CloudEndpointsPreRestoreFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *CloudEndpointsGroupPreRestoreFuture) Result(client CloudEndpointsGroupClient) (ar autorest.Response, err error) {
+func (future *CloudEndpointsPreRestoreFuture) Result(client CloudEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsGroupPreRestoreFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.CloudEndpointsPreRestoreFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsGroupPreRestoreFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.CloudEndpointsPreRestoreFuture")
 		return
 	}
 	ar.Response = future.Response()
@@ -598,20 +594,37 @@ type OperationEntityListResultIterator struct {
 	page OperationEntityListResultPage
 }
 
-// Next advances to the next value.  If there was an error making
+// NextWithContext advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationEntityListResultIterator) Next() error {
+func (iter *OperationEntityListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/OperationEntityListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err := iter.page.Next()
+	err = iter.page.NextWithContext(ctx)
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *OperationEntityListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -633,6 +646,11 @@ func (iter OperationEntityListResultIterator) Value() OperationEntity {
 	return iter.page.Values()[iter.i]
 }
 
+// Creates a new instance of the OperationEntityListResultIterator type.
+func NewOperationEntityListResultIterator(page OperationEntityListResultPage) OperationEntityListResultIterator {
+	return OperationEntityListResultIterator{page: page}
+}
+
 // IsEmpty returns true if the ListResult contains no values.
 func (oelr OperationEntityListResult) IsEmpty() bool {
 	return oelr.Value == nil || len(*oelr.Value) == 0
@@ -640,11 +658,11 @@ func (oelr OperationEntityListResult) IsEmpty() bool {
 
 // operationEntityListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (oelr OperationEntityListResult) operationEntityListResultPreparer() (*http.Request, error) {
+func (oelr OperationEntityListResult) operationEntityListResultPreparer(ctx context.Context) (*http.Request, error) {
 	if oelr.NextLink == nil || len(to.String(oelr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare(&http.Request{},
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(oelr.NextLink)))
@@ -652,19 +670,36 @@ func (oelr OperationEntityListResult) operationEntityListResultPreparer() (*http
 
 // OperationEntityListResultPage contains a page of OperationEntity values.
 type OperationEntityListResultPage struct {
-	fn   func(OperationEntityListResult) (OperationEntityListResult, error)
+	fn   func(context.Context, OperationEntityListResult) (OperationEntityListResult, error)
 	oelr OperationEntityListResult
 }
 
-// Next advances to the next page of values.  If there was an error making
+// NextWithContext advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationEntityListResultPage) Next() error {
-	next, err := page.fn(page.oelr)
+func (page *OperationEntityListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/OperationEntityListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.oelr)
 	if err != nil {
 		return err
 	}
 	page.oelr = next
 	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *OperationEntityListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -683,6 +718,11 @@ func (page OperationEntityListResultPage) Values() []OperationEntity {
 		return nil
 	}
 	return *page.oelr.Value
+}
+
+// Creates a new instance of the OperationEntityListResultPage type.
+func NewOperationEntityListResultPage(getNextPage func(context.Context, OperationEntityListResult) (OperationEntityListResult, error)) OperationEntityListResultPage {
+	return OperationEntityListResultPage{fn: getNextPage}
 }
 
 // PostBackupResponse post Backup Response
@@ -727,7 +767,7 @@ func (pbr *PostBackupResponse) UnmarshalJSON(body []byte) error {
 
 // PostBackupResponseProperties post Backup Response Properties object.
 type PostBackupResponseProperties struct {
-	// CloudEndpointName - cloud endpoint Name.
+	// CloudEndpointName - READ-ONLY; cloud endpoint Name.
 	CloudEndpointName *string `json:"cloudEndpointName,omitempty"`
 }
 
@@ -776,11 +816,11 @@ type PreRestoreRequest struct {
 // ProxyResource the resource model definition for a ARM proxy resource. It will have everything other than
 // required location and tags
 type ProxyResource struct {
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -797,11 +837,11 @@ type RegisteredServer struct {
 	autorest.Response `json:"-"`
 	// RegisteredServerProperties - RegisteredServer properties.
 	*RegisteredServerProperties `json:"properties,omitempty"`
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -810,15 +850,6 @@ func (rs RegisteredServer) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if rs.RegisteredServerProperties != nil {
 		objectMap["properties"] = rs.RegisteredServerProperties
-	}
-	if rs.ID != nil {
-		objectMap["id"] = rs.ID
-	}
-	if rs.Name != nil {
-		objectMap["name"] = rs.Name
-	}
-	if rs.Type != nil {
-		objectMap["type"] = rs.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1010,52 +1041,52 @@ type RegisteredServerProperties struct {
 	ManagementEndpointURI *string `json:"managementEndpointUri,omitempty"`
 }
 
-// RegisteredServersGroupCreateFuture an abstraction for monitoring and retrieving the results of a long-running
+// RegisteredServersCreateFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type RegisteredServersGroupCreateFuture struct {
+type RegisteredServersCreateFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *RegisteredServersGroupCreateFuture) Result(client RegisteredServersGroupClient) (rs RegisteredServer, err error) {
+func (future *RegisteredServersCreateFuture) Result(client RegisteredServersClient) (rs RegisteredServer, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.RegisteredServersGroupCreateFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.RegisteredServersCreateFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.RegisteredServersGroupCreateFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.RegisteredServersCreateFuture")
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if rs.Response.Response, err = future.GetResult(sender); err == nil && rs.Response.Response.StatusCode != http.StatusNoContent {
 		rs, err = client.CreateResponder(rs.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "storagesync.RegisteredServersGroupCreateFuture", "Result", rs.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "storagesync.RegisteredServersCreateFuture", "Result", rs.Response.Response, "Failure responding to request")
 		}
 	}
 	return
 }
 
-// RegisteredServersGroupDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// RegisteredServersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type RegisteredServersGroupDeleteFuture struct {
+type RegisteredServersDeleteFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *RegisteredServersGroupDeleteFuture) Result(client RegisteredServersGroupClient) (ar autorest.Response, err error) {
+func (future *RegisteredServersDeleteFuture) Result(client RegisteredServersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.RegisteredServersGroupDeleteFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.RegisteredServersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.RegisteredServersGroupDeleteFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.RegisteredServersDeleteFuture")
 		return
 	}
 	ar.Response = future.Response()
@@ -1064,11 +1095,11 @@ func (future *RegisteredServersGroupDeleteFuture) Result(client RegisteredServer
 
 // Resource ...
 type Resource struct {
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1084,7 +1115,7 @@ type ResourcesMoveInfo struct {
 type RestoreFileSpec struct {
 	// Path - Restore file spec path
 	Path *string `json:"path,omitempty"`
-	// Isdir - Restore file spec isdir
+	// Isdir - READ-ONLY; Restore file spec isdir
 	Isdir *bool `json:"isdir,omitempty"`
 }
 
@@ -1093,11 +1124,11 @@ type ServerEndpoint struct {
 	autorest.Response `json:"-"`
 	// ServerEndpointProperties - Server Endpoint properties.
 	*ServerEndpointProperties `json:"properties,omitempty"`
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1106,15 +1137,6 @@ func (se ServerEndpoint) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if se.ServerEndpointProperties != nil {
 		objectMap["properties"] = se.ServerEndpointProperties
-	}
-	if se.ID != nil {
-		objectMap["id"] = se.ID
-	}
-	if se.Name != nil {
-		objectMap["name"] = se.Name
-	}
-	if se.Type != nil {
-		objectMap["type"] = se.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1280,105 +1302,105 @@ type ServerEndpointProperties struct {
 	SyncStatus interface{} `json:"syncStatus,omitempty"`
 }
 
-// ServerEndpointsGroupCreateFuture an abstraction for monitoring and retrieving the results of a long-running
+// ServerEndpointsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type ServerEndpointsGroupCreateFuture struct {
+type ServerEndpointsCreateFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ServerEndpointsGroupCreateFuture) Result(client ServerEndpointsGroupClient) (se ServerEndpoint, err error) {
+func (future *ServerEndpointsCreateFuture) Result(client ServerEndpointsClient) (se ServerEndpoint, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsGroupCreateFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsCreateFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.ServerEndpointsGroupCreateFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.ServerEndpointsCreateFuture")
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if se.Response.Response, err = future.GetResult(sender); err == nil && se.Response.Response.StatusCode != http.StatusNoContent {
 		se, err = client.CreateResponder(se.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsGroupCreateFuture", "Result", se.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsCreateFuture", "Result", se.Response.Response, "Failure responding to request")
 		}
 	}
 	return
 }
 
-// ServerEndpointsGroupDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// ServerEndpointsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type ServerEndpointsGroupDeleteFuture struct {
+type ServerEndpointsDeleteFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ServerEndpointsGroupDeleteFuture) Result(client ServerEndpointsGroupClient) (ar autorest.Response, err error) {
+func (future *ServerEndpointsDeleteFuture) Result(client ServerEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsGroupDeleteFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.ServerEndpointsGroupDeleteFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.ServerEndpointsDeleteFuture")
 		return
 	}
 	ar.Response = future.Response()
 	return
 }
 
-// ServerEndpointsGroupRecallActionFuture an abstraction for monitoring and retrieving the results of a
+// ServerEndpointsRecallActionFuture an abstraction for monitoring and retrieving the results of a
 // long-running operation.
-type ServerEndpointsGroupRecallActionFuture struct {
+type ServerEndpointsRecallActionFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ServerEndpointsGroupRecallActionFuture) Result(client ServerEndpointsGroupClient) (ar autorest.Response, err error) {
+func (future *ServerEndpointsRecallActionFuture) Result(client ServerEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsGroupRecallActionFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsRecallActionFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.ServerEndpointsGroupRecallActionFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.ServerEndpointsRecallActionFuture")
 		return
 	}
 	ar.Response = future.Response()
 	return
 }
 
-// ServerEndpointsGroupUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// ServerEndpointsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type ServerEndpointsGroupUpdateFuture struct {
+type ServerEndpointsUpdateFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ServerEndpointsGroupUpdateFuture) Result(client ServerEndpointsGroupClient) (se ServerEndpoint, err error) {
+func (future *ServerEndpointsUpdateFuture) Result(client ServerEndpointsClient) (se ServerEndpoint, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsGroupUpdateFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("storagesync.ServerEndpointsGroupUpdateFuture")
+		err = azure.NewAsyncOpIncompleteError("storagesync.ServerEndpointsUpdateFuture")
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if se.Response.Response, err = future.GetResult(sender); err == nil && se.Response.Response.StatusCode != http.StatusNoContent {
 		se, err = client.UpdateResponder(se.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsGroupUpdateFuture", "Result", se.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "storagesync.ServerEndpointsUpdateFuture", "Result", se.Response.Response, "Failure responding to request")
 		}
 	}
 	return
@@ -1388,7 +1410,7 @@ func (future *ServerEndpointsGroupUpdateFuture) Result(client ServerEndpointsGro
 type ServerEndpointUpdateParameters struct {
 	// Tags - The user-specified tags associated with the server endpoint.
 	Tags map[string]*string `json:"tags"`
-	// ServerEndpointUpdateProperties - The properties of the serverendpoint.
+	// ServerEndpointUpdateProperties - The properties of the server endpoint.
 	*ServerEndpointUpdateProperties `json:"properties,omitempty"`
 }
 
@@ -1454,11 +1476,11 @@ type Service struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1473,15 +1495,6 @@ func (s Service) MarshalJSON() ([]byte, error) {
 	}
 	if s.Location != nil {
 		objectMap["location"] = s.Location
-	}
-	if s.ID != nil {
-		objectMap["id"] = s.ID
-	}
-	if s.Name != nil {
-		objectMap["name"] = s.Name
-	}
-	if s.Type != nil {
-		objectMap["type"] = s.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1584,9 +1597,9 @@ func (scp ServiceCreateParameters) MarshalJSON() ([]byte, error) {
 
 // ServiceProperties storage Sync Service Properties object.
 type ServiceProperties struct {
-	// StorageSyncServiceStatus - Storage Sync service status.
+	// StorageSyncServiceStatus - READ-ONLY; Storage Sync service status.
 	StorageSyncServiceStatus *int32 `json:"storageSyncServiceStatus,omitempty"`
-	// StorageSyncServiceUID - Storage Sync service Uid
+	// StorageSyncServiceUID - READ-ONLY; Storage Sync service Uid
 	StorageSyncServiceUID *string `json:"storageSyncServiceUid,omitempty"`
 }
 
@@ -1604,7 +1617,9 @@ func (sup ServiceUpdateParameters) MarshalJSON() ([]byte, error) {
 	if sup.Tags != nil {
 		objectMap["tags"] = sup.Tags
 	}
-	objectMap["properties"] = sup.Properties
+	if sup.Properties != nil {
+		objectMap["properties"] = sup.Properties
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1612,7 +1627,7 @@ func (sup ServiceUpdateParameters) MarshalJSON() ([]byte, error) {
 type SubscriptionState struct {
 	// State - State of Azure Subscription. Possible values include: 'Registered', 'Unregistered', 'Warned', 'Suspended', 'Deleted'
 	State Reason `json:"state,omitempty"`
-	// Istransitioning - Is Transitioning
+	// Istransitioning - READ-ONLY; Is Transitioning
 	Istransitioning *bool `json:"istransitioning,omitempty"`
 	// Properties - Subscription state properties.
 	Properties interface{} `json:"properties,omitempty"`
@@ -1623,11 +1638,11 @@ type SyncGroup struct {
 	autorest.Response `json:"-"`
 	// SyncGroupProperties - SyncGroup properties.
 	*SyncGroupProperties `json:"properties,omitempty"`
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1636,15 +1651,6 @@ func (sg SyncGroup) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sg.SyncGroupProperties != nil {
 		objectMap["properties"] = sg.SyncGroupProperties
-	}
-	if sg.ID != nil {
-		objectMap["id"] = sg.ID
-	}
-	if sg.Name != nil {
-		objectMap["name"] = sg.Name
-	}
-	if sg.Type != nil {
-		objectMap["type"] = sg.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1726,7 +1732,9 @@ func (sgcp SyncGroupCreateParameters) MarshalJSON() ([]byte, error) {
 	if sgcp.Tags != nil {
 		objectMap["tags"] = sgcp.Tags
 	}
-	objectMap["properties"] = sgcp.Properties
+	if sgcp.Properties != nil {
+		objectMap["properties"] = sgcp.Properties
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1734,7 +1742,7 @@ func (sgcp SyncGroupCreateParameters) MarshalJSON() ([]byte, error) {
 type SyncGroupProperties struct {
 	// UniqueID - Unique Id
 	UniqueID *string `json:"uniqueId,omitempty"`
-	// SyncGroupStatus - Sync group status
+	// SyncGroupStatus - READ-ONLY; Sync group status
 	SyncGroupStatus *string `json:"syncGroupStatus,omitempty"`
 }
 
@@ -1744,11 +1752,11 @@ type TrackedResource struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1761,15 +1769,6 @@ func (tr TrackedResource) MarshalJSON() ([]byte, error) {
 	if tr.Location != nil {
 		objectMap["location"] = tr.Location
 	}
-	if tr.ID != nil {
-		objectMap["id"] = tr.ID
-	}
-	if tr.Name != nil {
-		objectMap["name"] = tr.Name
-	}
-	if tr.Type != nil {
-		objectMap["type"] = tr.Type
-	}
 	return json.Marshal(objectMap)
 }
 
@@ -1778,11 +1777,11 @@ type Workflow struct {
 	autorest.Response `json:"-"`
 	// WorkflowProperties - Workflow properties.
 	*WorkflowProperties `json:"properties,omitempty"`
-	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - The name of the resource
+	// Name - READ-ONLY; The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1791,15 +1790,6 @@ func (w Workflow) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if w.WorkflowProperties != nil {
 		objectMap["properties"] = w.WorkflowProperties
-	}
-	if w.ID != nil {
-		objectMap["id"] = w.ID
-	}
-	if w.Name != nil {
-		objectMap["name"] = w.Name
-	}
-	if w.Type != nil {
-		objectMap["type"] = w.Type
 	}
 	return json.Marshal(objectMap)
 }

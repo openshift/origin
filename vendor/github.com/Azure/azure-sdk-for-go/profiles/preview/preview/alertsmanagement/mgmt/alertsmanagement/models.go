@@ -19,21 +19,37 @@
 
 package alertsmanagement
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/alertsmanagement/mgmt/2018-05-05-preview/alertsmanagement"
+import (
+	"context"
 
-type AlertsClient = original.AlertsClient
+	original "github.com/Azure/azure-sdk-for-go/services/preview/alertsmanagement/mgmt/2019-05-05/alertsmanagement"
+)
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
-type BaseClient = original.BaseClient
+type ActionRuleStatus = original.ActionRuleStatus
+
+const (
+	Disabled ActionRuleStatus = original.Disabled
+	Enabled  ActionRuleStatus = original.Enabled
+)
+
 type AlertModificationEvent = original.AlertModificationEvent
 
 const (
 	AlertCreated           AlertModificationEvent = original.AlertCreated
 	MonitorConditionChange AlertModificationEvent = original.MonitorConditionChange
 	StateChange            AlertModificationEvent = original.StateChange
+)
+
+type AlertState = original.AlertState
+
+const (
+	AlertStateAcknowledged AlertState = original.AlertStateAcknowledged
+	AlertStateClosed       AlertState = original.AlertStateClosed
+	AlertStateNew          AlertState = original.AlertStateNew
 )
 
 type AlertsSortByFields = original.AlertsSortByFields
@@ -51,19 +67,22 @@ const (
 	AlertsSortByFieldsTargetResourceType   AlertsSortByFields = original.AlertsSortByFieldsTargetResourceType
 )
 
-type AlertState = original.AlertState
+type AlertsSummaryGroupByFields = original.AlertsSummaryGroupByFields
 
 const (
-	AlertStateAcknowledged AlertState = original.AlertStateAcknowledged
-	AlertStateClosed       AlertState = original.AlertStateClosed
-	AlertStateNew          AlertState = original.AlertStateNew
+	AlertsSummaryGroupByFieldsAlertRule        AlertsSummaryGroupByFields = original.AlertsSummaryGroupByFieldsAlertRule
+	AlertsSummaryGroupByFieldsAlertState       AlertsSummaryGroupByFields = original.AlertsSummaryGroupByFieldsAlertState
+	AlertsSummaryGroupByFieldsMonitorCondition AlertsSummaryGroupByFields = original.AlertsSummaryGroupByFieldsMonitorCondition
+	AlertsSummaryGroupByFieldsMonitorService   AlertsSummaryGroupByFields = original.AlertsSummaryGroupByFieldsMonitorService
+	AlertsSummaryGroupByFieldsSeverity         AlertsSummaryGroupByFields = original.AlertsSummaryGroupByFieldsSeverity
+	AlertsSummaryGroupByFieldsSignalType       AlertsSummaryGroupByFields = original.AlertsSummaryGroupByFieldsSignalType
 )
 
-type APIVersion = original.APIVersion
+type MetadataIdentifier = original.MetadataIdentifier
 
 const (
-	TwoZeroOneEightHyphenMinusZeroFiveHyphenMinusZeroFiveHyphenMinuspreview     APIVersion = original.TwoZeroOneEightHyphenMinusZeroFiveHyphenMinusZeroFiveHyphenMinuspreview
-	TwoZeroOneSevenHyphenMinusOneOneHyphenMinusOneFiveHyphenMinusprivatepreview APIVersion = original.TwoZeroOneSevenHyphenMinusOneOneHyphenMinusOneFiveHyphenMinusprivatepreview
+	MetadataIdentifierAlertsMetaDataProperties MetadataIdentifier = original.MetadataIdentifierAlertsMetaDataProperties
+	MetadataIdentifierMonitorServiceList       MetadataIdentifier = original.MetadataIdentifierMonitorServiceList
 )
 
 type MonitorCondition = original.MonitorCondition
@@ -82,14 +101,30 @@ const (
 	ActivityLogRecommendation MonitorService = original.ActivityLogRecommendation
 	ActivityLogSecurity       MonitorService = original.ActivityLogSecurity
 	ApplicationInsights       MonitorService = original.ApplicationInsights
-	InfrastructureInsights    MonitorService = original.InfrastructureInsights
 	LogAnalytics              MonitorService = original.LogAnalytics
 	Nagios                    MonitorService = original.Nagios
 	Platform                  MonitorService = original.Platform
 	SCOM                      MonitorService = original.SCOM
 	ServiceHealth             MonitorService = original.ServiceHealth
 	SmartDetector             MonitorService = original.SmartDetector
+	VMInsights                MonitorService = original.VMInsights
 	Zabbix                    MonitorService = original.Zabbix
+)
+
+type Operator = original.Operator
+
+const (
+	Contains       Operator = original.Contains
+	DoesNotContain Operator = original.DoesNotContain
+	Equals         Operator = original.Equals
+	NotEquals      Operator = original.NotEquals
+)
+
+type ScopeType = original.ScopeType
+
+const (
+	ScopeTypeResource      ScopeType = original.ScopeTypeResource
+	ScopeTypeResourceGroup ScopeType = original.ScopeTypeResourceGroup
 )
 
 type Severity = original.Severity
@@ -137,6 +172,16 @@ const (
 	StateNew          State = original.StateNew
 )
 
+type SuppressionType = original.SuppressionType
+
+const (
+	Always  SuppressionType = original.Always
+	Daily   SuppressionType = original.Daily
+	Monthly SuppressionType = original.Monthly
+	Once    SuppressionType = original.Once
+	Weekly  SuppressionType = original.Weekly
+)
+
 type TimeRange = original.TimeRange
 
 const (
@@ -146,81 +191,156 @@ const (
 	ThreeZerod TimeRange = original.ThreeZerod
 )
 
+type Type = original.Type
+
+const (
+	TypeActionGroup          Type = original.TypeActionGroup
+	TypeActionRuleProperties Type = original.TypeActionRuleProperties
+	TypeDiagnostics          Type = original.TypeDiagnostics
+	TypeSuppression          Type = original.TypeSuppression
+)
+
+type ActionGroup = original.ActionGroup
+type ActionRule = original.ActionRule
+type ActionRuleProperties = original.ActionRuleProperties
+type ActionRulesClient = original.ActionRulesClient
+type ActionRulesList = original.ActionRulesList
+type ActionRulesListIterator = original.ActionRulesListIterator
+type ActionRulesListPage = original.ActionRulesListPage
 type Alert = original.Alert
 type AlertModification = original.AlertModification
 type AlertModificationItem = original.AlertModificationItem
 type AlertModificationProperties = original.AlertModificationProperties
 type AlertProperties = original.AlertProperties
+type AlertsClient = original.AlertsClient
 type AlertsList = original.AlertsList
 type AlertsListIterator = original.AlertsListIterator
 type AlertsListPage = original.AlertsListPage
+type AlertsMetaData = original.AlertsMetaData
+type AlertsMetaDataProperties = original.AlertsMetaDataProperties
 type AlertsSummary = original.AlertsSummary
-type AlertsSummaryByMonitorCondition = original.AlertsSummaryByMonitorCondition
-type AlertsSummaryByMonitorService = original.AlertsSummaryByMonitorService
-type AlertsSummaryBySeverityAndMonitorCondition = original.AlertsSummaryBySeverityAndMonitorCondition
-type AlertsSummaryBySeverityAndMonitorConditionSev0 = original.AlertsSummaryBySeverityAndMonitorConditionSev0
-type AlertsSummaryBySeverityAndMonitorConditionSev1 = original.AlertsSummaryBySeverityAndMonitorConditionSev1
-type AlertsSummaryBySeverityAndMonitorConditionSev2 = original.AlertsSummaryBySeverityAndMonitorConditionSev2
-type AlertsSummaryBySeverityAndMonitorConditionSev3 = original.AlertsSummaryBySeverityAndMonitorConditionSev3
-type AlertsSummaryBySeverityAndMonitorConditionSev4 = original.AlertsSummaryBySeverityAndMonitorConditionSev4
-type AlertsSummaryByState = original.AlertsSummaryByState
-type AlertsSummaryProperties = original.AlertsSummaryProperties
-type AlertsSummaryPropertiesSummaryByMonitorService = original.AlertsSummaryPropertiesSummaryByMonitorService
-type AlertsSummaryPropertiesSummaryBySeverity = original.AlertsSummaryPropertiesSummaryBySeverity
-type AlertsSummaryPropertiesSummaryBySeverityAndMonitorCondition = original.AlertsSummaryPropertiesSummaryBySeverityAndMonitorCondition
-type AlertsSummaryPropertiesSummaryBySeveritySev0 = original.AlertsSummaryPropertiesSummaryBySeveritySev0
-type AlertsSummaryPropertiesSummaryBySeveritySev1 = original.AlertsSummaryPropertiesSummaryBySeveritySev1
-type AlertsSummaryPropertiesSummaryBySeveritySev2 = original.AlertsSummaryPropertiesSummaryBySeveritySev2
-type AlertsSummaryPropertiesSummaryBySeveritySev3 = original.AlertsSummaryPropertiesSummaryBySeveritySev3
-type AlertsSummaryPropertiesSummaryBySeveritySev4 = original.AlertsSummaryPropertiesSummaryBySeveritySev4
-type AlertsSummaryPropertiesSummaryByState = original.AlertsSummaryPropertiesSummaryByState
+type AlertsSummaryGroup = original.AlertsSummaryGroup
+type AlertsSummaryGroupItem = original.AlertsSummaryGroupItem
+type BaseClient = original.BaseClient
+type BasicActionRuleProperties = original.BasicActionRuleProperties
+type BasicAlertsMetaDataProperties = original.BasicAlertsMetaDataProperties
+type Bool = original.Bool
+type Condition = original.Condition
+type Conditions = original.Conditions
+type Diagnostics = original.Diagnostics
 type ErrorResponse = original.ErrorResponse
 type ErrorResponseBody = original.ErrorResponseBody
+type Essentials = original.Essentials
+type ManagedResource = original.ManagedResource
+type MonitorServiceDetails = original.MonitorServiceDetails
+type MonitorServiceList = original.MonitorServiceList
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
+type OperationsClient = original.OperationsClient
 type OperationsList = original.OperationsList
 type OperationsListIterator = original.OperationsListIterator
 type OperationsListPage = original.OperationsListPage
+type PatchObject = original.PatchObject
+type PatchProperties = original.PatchProperties
 type Resource = original.Resource
+type Scope = original.Scope
 type SmartGroup = original.SmartGroup
 type SmartGroupAggregatedProperty = original.SmartGroupAggregatedProperty
 type SmartGroupModification = original.SmartGroupModification
 type SmartGroupModificationItem = original.SmartGroupModificationItem
 type SmartGroupModificationProperties = original.SmartGroupModificationProperties
 type SmartGroupProperties = original.SmartGroupProperties
-type SmartGroupsList = original.SmartGroupsList
-type OperationsClient = original.OperationsClient
 type SmartGroupsClient = original.SmartGroupsClient
+type SmartGroupsList = original.SmartGroupsList
+type SmartGroupsListIterator = original.SmartGroupsListIterator
+type SmartGroupsListPage = original.SmartGroupsListPage
+type Suppression = original.Suppression
+type SuppressionConfig = original.SuppressionConfig
+type SuppressionSchedule = original.SuppressionSchedule
 
-func NewAlertsClient(subscriptionID string, monitorService1 MonitorService) AlertsClient {
-	return original.NewAlertsClient(subscriptionID, monitorService1)
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
 }
-func NewAlertsClientWithBaseURI(baseURI string, subscriptionID string, monitorService1 MonitorService) AlertsClient {
-	return original.NewAlertsClientWithBaseURI(baseURI, subscriptionID, monitorService1)
+func NewActionRulesClient(subscriptionID string) ActionRulesClient {
+	return original.NewActionRulesClient(subscriptionID)
 }
-func New(subscriptionID string, monitorService1 MonitorService) BaseClient {
-	return original.New(subscriptionID, monitorService1)
+func NewActionRulesClientWithBaseURI(baseURI string, subscriptionID string) ActionRulesClient {
+	return original.NewActionRulesClientWithBaseURI(baseURI, subscriptionID)
 }
-func NewWithBaseURI(baseURI string, subscriptionID string, monitorService1 MonitorService) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID, monitorService1)
+func NewActionRulesListIterator(page ActionRulesListPage) ActionRulesListIterator {
+	return original.NewActionRulesListIterator(page)
+}
+func NewActionRulesListPage(getNextPage func(context.Context, ActionRulesList) (ActionRulesList, error)) ActionRulesListPage {
+	return original.NewActionRulesListPage(getNextPage)
+}
+func NewAlertsClient(subscriptionID string) AlertsClient {
+	return original.NewAlertsClient(subscriptionID)
+}
+func NewAlertsClientWithBaseURI(baseURI string, subscriptionID string) AlertsClient {
+	return original.NewAlertsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewAlertsListIterator(page AlertsListPage) AlertsListIterator {
+	return original.NewAlertsListIterator(page)
+}
+func NewAlertsListPage(getNextPage func(context.Context, AlertsList) (AlertsList, error)) AlertsListPage {
+	return original.NewAlertsListPage(getNextPage)
+}
+func NewOperationsClient(subscriptionID string) OperationsClient {
+	return original.NewOperationsClient(subscriptionID)
+}
+func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
+	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewOperationsListIterator(page OperationsListPage) OperationsListIterator {
+	return original.NewOperationsListIterator(page)
+}
+func NewOperationsListPage(getNextPage func(context.Context, OperationsList) (OperationsList, error)) OperationsListPage {
+	return original.NewOperationsListPage(getNextPage)
+}
+func NewSmartGroupsClient(subscriptionID string) SmartGroupsClient {
+	return original.NewSmartGroupsClient(subscriptionID)
+}
+func NewSmartGroupsClientWithBaseURI(baseURI string, subscriptionID string) SmartGroupsClient {
+	return original.NewSmartGroupsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewSmartGroupsListIterator(page SmartGroupsListPage) SmartGroupsListIterator {
+	return original.NewSmartGroupsListIterator(page)
+}
+func NewSmartGroupsListPage(getNextPage func(context.Context, SmartGroupsList) (SmartGroupsList, error)) SmartGroupsListPage {
+	return original.NewSmartGroupsListPage(getNextPage)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleActionRuleStatusValues() []ActionRuleStatus {
+	return original.PossibleActionRuleStatusValues()
 }
 func PossibleAlertModificationEventValues() []AlertModificationEvent {
 	return original.PossibleAlertModificationEventValues()
 }
-func PossibleAlertsSortByFieldsValues() []AlertsSortByFields {
-	return original.PossibleAlertsSortByFieldsValues()
-}
 func PossibleAlertStateValues() []AlertState {
 	return original.PossibleAlertStateValues()
 }
-func PossibleAPIVersionValues() []APIVersion {
-	return original.PossibleAPIVersionValues()
+func PossibleAlertsSortByFieldsValues() []AlertsSortByFields {
+	return original.PossibleAlertsSortByFieldsValues()
+}
+func PossibleAlertsSummaryGroupByFieldsValues() []AlertsSummaryGroupByFields {
+	return original.PossibleAlertsSummaryGroupByFieldsValues()
+}
+func PossibleMetadataIdentifierValues() []MetadataIdentifier {
+	return original.PossibleMetadataIdentifierValues()
 }
 func PossibleMonitorConditionValues() []MonitorCondition {
 	return original.PossibleMonitorConditionValues()
 }
 func PossibleMonitorServiceValues() []MonitorService {
 	return original.PossibleMonitorServiceValues()
+}
+func PossibleOperatorValues() []Operator {
+	return original.PossibleOperatorValues()
+}
+func PossibleScopeTypeValues() []ScopeType {
+	return original.PossibleScopeTypeValues()
 }
 func PossibleSeverityValues() []Severity {
 	return original.PossibleSeverityValues()
@@ -237,20 +357,14 @@ func PossibleSmartGroupsSortByFieldsValues() []SmartGroupsSortByFields {
 func PossibleStateValues() []State {
 	return original.PossibleStateValues()
 }
+func PossibleSuppressionTypeValues() []SuppressionType {
+	return original.PossibleSuppressionTypeValues()
+}
 func PossibleTimeRangeValues() []TimeRange {
 	return original.PossibleTimeRangeValues()
 }
-func NewOperationsClient(subscriptionID string, monitorService1 MonitorService) OperationsClient {
-	return original.NewOperationsClient(subscriptionID, monitorService1)
-}
-func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string, monitorService1 MonitorService) OperationsClient {
-	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID, monitorService1)
-}
-func NewSmartGroupsClient(subscriptionID string, monitorService1 MonitorService) SmartGroupsClient {
-	return original.NewSmartGroupsClient(subscriptionID, monitorService1)
-}
-func NewSmartGroupsClientWithBaseURI(baseURI string, subscriptionID string, monitorService1 MonitorService) SmartGroupsClient {
-	return original.NewSmartGroupsClientWithBaseURI(baseURI, subscriptionID, monitorService1)
+func PossibleTypeValues() []Type {
+	return original.PossibleTypeValues()
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

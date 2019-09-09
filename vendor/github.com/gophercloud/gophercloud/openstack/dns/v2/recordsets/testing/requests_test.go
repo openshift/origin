@@ -110,8 +110,9 @@ func TestUpdate(t *testing.T) {
 	HandleUpdateSuccessfully(t)
 
 	var description = "Updated description"
+	ttl := 0
 	updateOpts := recordsets.UpdateOpts{
-		TTL:         0,
+		TTL:         &ttl,
 		Description: &description,
 		Records:     []string{"10.1.0.2", "10.1.0.3"},
 	}

@@ -14,6 +14,7 @@ import (
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/internal/ordered"
 	"gonum.org/v1/gonum/graph/internal/set"
+	"gonum.org/v1/gonum/graph/iterator"
 )
 
 // DirectedMultiplex is a directed multiplex graph.
@@ -43,7 +44,7 @@ type DirectedMultiplex interface {
 // Note that Q values for multiplex graphs are not scaled by the total layer edge weight.
 func qDirectedMultiplex(g DirectedMultiplex, communities [][]graph.Node, weights, resolutions []float64) []float64 {
 	q := make([]float64, g.Depth())
-	nodes := g.Nodes()
+	nodes := graph.NodesOf(g.Nodes())
 	layerWeight := 1.0
 	layerResolution := 1.0
 	if len(resolutions) == 1 {
@@ -78,14 +79,16 @@ func qDirectedMultiplex(g DirectedMultiplex, communities [][]graph.Node, weights
 			var wOut float64
 			u := n
 			uid := u.ID()
-			for _, v := range layer.From(uid) {
-				wOut += weight(uid, v.ID())
+			to := layer.From(uid)
+			for to.Next() {
+				wOut += weight(uid, to.Node().ID())
 			}
 			var wIn float64
 			v := n
 			vid := v.ID()
-			for _, u := range layer.To(vid) {
-				wIn += weight(u.ID(), vid)
+			from := layer.To(vid)
+			for from.Next() {
+				wIn += weight(from.Node().ID(), vid)
 			}
 			id := n.ID()
 			w := weight(id, id)
@@ -132,13 +135,15 @@ func NewDirectedLayers(layers ...graph.Directed) (DirectedLayers, error) {
 		return nil, nil
 	}
 	base := make(set.Int64s)
-	for _, n := range layers[0].Nodes() {
-		base.Add(n.ID())
+	nodes := layers[0].Nodes()
+	for nodes.Next() {
+		base.Add(nodes.Node().ID())
 	}
 	for i, l := range layers[1:] {
 		next := make(set.Int64s)
-		for _, n := range l.Nodes() {
-			next.Add(n.ID())
+		nodes := l.Nodes()
+		for nodes.Next() {
+			next.Add(nodes.Node().ID())
 		}
 		if !set.Int64sEqual(base, next) {
 			return nil, fmt.Errorf("community: layer ID mismatch between layers: %d", i+1)
@@ -148,7 +153,7 @@ func NewDirectedLayers(layers ...graph.Directed) (DirectedLayers, error) {
 }
 
 // Nodes returns the nodes of the receiver.
-func (g DirectedLayers) Nodes() []graph.Node {
+func (g DirectedLayers) Nodes() graph.Nodes {
 	if len(g) == 0 {
 		return nil
 	}
@@ -219,12 +224,12 @@ var (
 )
 
 // Nodes returns all the nodes in the graph.
-func (g *ReducedDirectedMultiplex) Nodes() []graph.Node {
+func (g *ReducedDirectedMultiplex) Nodes() graph.Nodes {
 	nodes := make([]graph.Node, len(g.nodes))
 	for i := range g.nodes {
 		nodes[i] = node(i)
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // Depth returns the number of layers in the multiplex graph.
@@ -288,7 +293,7 @@ func reduceDirectedMultiplex(g DirectedMultiplex, communities [][]graph.Node, we
 			return r
 		}
 
-		nodes := g.Nodes()
+		nodes := graph.NodesOf(g.Nodes())
 		// TODO(kortschak) This sort is necessary really only
 		// for testing. In practice we would not be using the
 		// community provided by the user for a Q calculation.
@@ -339,8 +344,9 @@ func reduceDirectedMultiplex(g DirectedMultiplex, communities [][]graph.Node, we
 				var out []int
 				u := n
 				uid := u.ID()
-				for _, v := range layer.From(uid) {
-					vid := v.ID()
+				to := layer.From(uid)
+				for to.Next() {
+					vid := to.Node().ID()
 					vcid := communityOf[vid]
 					if vcid != id {
 						out = append(out, vcid)
@@ -352,8 +358,9 @@ func reduceDirectedMultiplex(g DirectedMultiplex, communities [][]graph.Node, we
 				var in []int
 				v := n
 				vid := v.ID()
-				for _, u := range layer.To(vid) {
-					uid := u.ID()
+				from := layer.To(vid)
+				for from.Next() {
+					uid := from.Node().ID()
 					ucid := communityOf[uid]
 					if ucid != id {
 						in = append(in, ucid)
@@ -433,8 +440,9 @@ func reduceDirectedMultiplex(g DirectedMultiplex, communities [][]graph.Node, we
 					r.nodes[id].weights[l] += sign * weight(uid, v.ID())
 				}
 
-				for _, v := range layer.From(uid) {
-					vid := v.ID()
+				to := layer.From(uid)
+				for to.Next() {
+					vid := to.Node().ID()
 					vcid := communityOf[vid]
 					found := false
 					for _, e := range out {
@@ -453,8 +461,9 @@ func reduceDirectedMultiplex(g DirectedMultiplex, communities [][]graph.Node, we
 
 				v := n
 				vid := v.ID()
-				for _, u := range layer.To(vid) {
-					uid := u.ID()
+				from := layer.To(vid)
+				for from.Next() {
+					uid := from.Node().ID()
 					ucid := communityOf[uid]
 					found := false
 					for _, e := range in {
@@ -491,38 +500,47 @@ type directedLayerHandle struct {
 	layer int
 }
 
-// Has returns whether the node exists within the graph.
-func (g directedLayerHandle) Has(id int64) bool {
+// Node returns the node with the given ID if it exists in the graph,
+// and nil otherwise.
+func (g directedLayerHandle) Node(id int64) graph.Node {
+	if g.has(id) {
+		return g.multiplex.nodes[id]
+	}
+	return nil
+}
+
+// has returns whether the node exists within the graph.
+func (g directedLayerHandle) has(id int64) bool {
 	return 0 <= id && id < int64(len(g.multiplex.nodes))
 }
 
 // Nodes returns all the nodes in the graph.
-func (g directedLayerHandle) Nodes() []graph.Node {
+func (g directedLayerHandle) Nodes() graph.Nodes {
 	nodes := make([]graph.Node, len(g.multiplex.nodes))
 	for i := range g.multiplex.nodes {
 		nodes[i] = node(i)
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // From returns all nodes in g that can be reached directly from u.
-func (g directedLayerHandle) From(uid int64) []graph.Node {
+func (g directedLayerHandle) From(uid int64) graph.Nodes {
 	out := g.multiplex.layers[g.layer].edgesFrom[uid]
 	nodes := make([]graph.Node, len(out))
 	for i, vid := range out {
 		nodes[i] = g.multiplex.nodes[vid]
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // To returns all nodes in g that can reach directly to v.
-func (g directedLayerHandle) To(vid int64) []graph.Node {
+func (g directedLayerHandle) To(vid int64) graph.Nodes {
 	in := g.multiplex.layers[g.layer].edgesTo[vid]
 	nodes := make([]graph.Node, len(in))
 	for i, uid := range in {
 		nodes[i] = g.multiplex.nodes[uid]
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // HasEdgeBetween returns whether an edge exists between nodes x and y.
@@ -643,7 +661,7 @@ type directedMultiplexLocalMover struct {
 // node IDs of g must be contiguous in [0,n) where n is the number of nodes.
 // If g has a zero edge weight sum, nil is returned.
 func newDirectedMultiplexLocalMover(g *ReducedDirectedMultiplex, communities [][]graph.Node, weights, resolutions []float64, all bool) *directedMultiplexLocalMover {
-	nodes := g.Nodes()
+	nodes := graph.NodesOf(g.Nodes())
 	l := directedMultiplexLocalMover{
 		g:             g,
 		nodes:         nodes,
@@ -684,15 +702,17 @@ func newDirectedMultiplexLocalMover(g *ReducedDirectedMultiplex, communities [][
 			u := n
 			uid := u.ID()
 			var wOut float64
-			for _, v := range layer.From(uid) {
-				wOut += weight(uid, v.ID())
+			to := layer.From(uid)
+			for to.Next() {
+				wOut += weight(uid, to.Node().ID())
 			}
 
 			v := n
 			vid := v.ID()
 			var wIn float64
-			for _, u := range layer.To(vid) {
-				wIn += weight(u.ID(), vid)
+			from := layer.To(vid)
+			for from.Next() {
+				wIn += weight(from.Node().ID(), vid)
 			}
 
 			id := n.ID()

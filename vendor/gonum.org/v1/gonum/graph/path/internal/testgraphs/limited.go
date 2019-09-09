@@ -9,6 +9,7 @@ import (
 	"math"
 
 	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/iterator"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
@@ -105,7 +106,7 @@ func (l *LimitedVisionGrid) MoveTo(n graph.Node) (new, old []graph.Edge) {
 
 // allPossibleFrom returns all the nodes possibly reachable from u.
 func (l *LimitedVisionGrid) allPossibleFrom(uid int64) []graph.Node {
-	if !l.Has(uid) {
+	if !l.has(uid) {
 		return nil
 	}
 	nr, nc := l.RowCol(uid)
@@ -139,7 +140,7 @@ func (l *LimitedVisionGrid) RowCol(id int64) (r, c int) {
 // XY returns the cartesian coordinates of n. If n is not a node
 // in the grid, (NaN, NaN) is returned.
 func (l *LimitedVisionGrid) XY(id int64) (x, y float64) {
-	if !l.Has(id) {
+	if !l.has(id) {
 		return math.NaN(), math.NaN()
 	}
 	r, c := l.RowCol(id)
@@ -147,12 +148,12 @@ func (l *LimitedVisionGrid) XY(id int64) (x, y float64) {
 }
 
 // Nodes returns all the nodes in the grid.
-func (l *LimitedVisionGrid) Nodes() []graph.Node {
+func (l *LimitedVisionGrid) Nodes() graph.Nodes {
 	nodes := make([]graph.Node, 0, len(l.Grid.open))
 	for id := range l.Grid.open {
 		nodes = append(nodes, simple.Node(id))
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // NodeAt returns the node at (r, c). The returned node may be open or closed.
@@ -160,15 +161,24 @@ func (l *LimitedVisionGrid) NodeAt(r, c int) graph.Node {
 	return l.Grid.NodeAt(r, c)
 }
 
-// Has returns whether n is a node in the grid.
-func (l *LimitedVisionGrid) Has(id int64) bool {
+// Node returns the node with the given ID if it exists in the graph,
+// and nil otherwise.
+func (l *LimitedVisionGrid) Node(id int64) graph.Node {
+	if l.has(id) {
+		return simple.Node(id)
+	}
+	return nil
+}
+
+// has returns whether the node with the given ID is a node in the grid.
+func (l *LimitedVisionGrid) has(id int64) bool {
 	return 0 <= id && id < int64(len(l.Grid.open))
 }
 
 // From returns nodes that are optimistically reachable from u.
-func (l *LimitedVisionGrid) From(uid int64) []graph.Node {
-	if !l.Has(uid) {
-		return nil
+func (l *LimitedVisionGrid) From(uid int64) graph.Nodes {
+	if !l.has(uid) {
+		return graph.Empty
 	}
 
 	nr, nc := l.RowCol(uid)
@@ -180,7 +190,10 @@ func (l *LimitedVisionGrid) From(uid int64) []graph.Node {
 			}
 		}
 	}
-	return to
+	if len(to) == 0 {
+		return graph.Empty
+	}
+	return iterator.NewOrderedNodes(to)
 }
 
 // HasEdgeBetween optimistically returns whether an edge is exists between u and v.
@@ -295,7 +308,7 @@ func (l *LimitedVisionGrid) Render(path []graph.Node) ([]byte, error) {
 	// want to draw as much as possible before failing.
 	for i, n := range path {
 		id := n.ID()
-		if !l.Has(id) || (i != 0 && !l.HasEdgeBetween(path[i-1].ID(), id)) {
+		if !l.has(id) || (i != 0 && !l.HasEdgeBetween(path[i-1].ID(), id)) {
 			if 0 <= id && id < int64(len(l.Grid.open)) {
 				r, c := l.RowCol(id)
 				b[r*(cols+1)+c] = '!'

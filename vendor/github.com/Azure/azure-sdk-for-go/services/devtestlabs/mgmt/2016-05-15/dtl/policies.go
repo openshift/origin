@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewPoliciesClientWithBaseURI(baseURI string, subscriptionID string) Policie
 // name - the name of the policy.
 // policy - a Policy.
 func (client PoliciesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, labName string, policySetName string, name string, policy Policy) (result Policy, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: policy,
 			Constraints: []validation.Constraint{{Target: "policy.PolicyProperties", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -103,8 +114,8 @@ func (client PoliciesClient) CreateOrUpdatePreparer(ctx context.Context, resourc
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoliciesClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -127,6 +138,16 @@ func (client PoliciesClient) CreateOrUpdateResponder(resp *http.Response) (resul
 // policySetName - the name of the policy set.
 // name - the name of the policy.
 func (client PoliciesClient) Delete(ctx context.Context, resourceGroupName string, labName string, policySetName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, labName, policySetName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.PoliciesClient", "Delete", nil, "Failure preparing request")
@@ -174,8 +195,8 @@ func (client PoliciesClient) DeletePreparer(ctx context.Context, resourceGroupNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoliciesClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -198,6 +219,16 @@ func (client PoliciesClient) DeleteResponder(resp *http.Response) (result autore
 // name - the name of the policy.
 // expand - specify the $expand query. Example: 'properties($select=description)'
 func (client PoliciesClient) Get(ctx context.Context, resourceGroupName string, labName string, policySetName string, name string, expand string) (result Policy, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, labName, policySetName, name, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.PoliciesClient", "Get", nil, "Failure preparing request")
@@ -248,8 +279,8 @@ func (client PoliciesClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoliciesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -275,6 +306,16 @@ func (client PoliciesClient) GetResponder(resp *http.Response) (result Policy, e
 // top - the maximum number of resources to return from the operation.
 // orderby - the ordering expression for the results, using OData notation.
 func (client PoliciesClient) List(ctx context.Context, resourceGroupName string, labName string, policySetName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationPolicyPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.List")
+		defer func() {
+			sc := -1
+			if result.rwcp.Response.Response != nil {
+				sc = result.rwcp.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, labName, policySetName, expand, filter, top, orderby)
 	if err != nil {
@@ -334,8 +375,8 @@ func (client PoliciesClient) ListPreparer(ctx context.Context, resourceGroupName
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoliciesClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -352,8 +393,8 @@ func (client PoliciesClient) ListResponder(resp *http.Response) (result Response
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client PoliciesClient) listNextResults(lastResults ResponseWithContinuationPolicy) (result ResponseWithContinuationPolicy, err error) {
-	req, err := lastResults.responseWithContinuationPolicyPreparer()
+func (client PoliciesClient) listNextResults(ctx context.Context, lastResults ResponseWithContinuationPolicy) (result ResponseWithContinuationPolicy, err error) {
+	req, err := lastResults.responseWithContinuationPolicyPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dtl.PoliciesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -374,6 +415,16 @@ func (client PoliciesClient) listNextResults(lastResults ResponseWithContinuatio
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PoliciesClient) ListComplete(ctx context.Context, resourceGroupName string, labName string, policySetName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationPolicyIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, resourceGroupName, labName, policySetName, expand, filter, top, orderby)
 	return
 }
@@ -386,6 +437,16 @@ func (client PoliciesClient) ListComplete(ctx context.Context, resourceGroupName
 // name - the name of the policy.
 // policy - a Policy.
 func (client PoliciesClient) Update(ctx context.Context, resourceGroupName string, labName string, policySetName string, name string, policy PolicyFragment) (result Policy, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, labName, policySetName, name, policy)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.PoliciesClient", "Update", nil, "Failure preparing request")
@@ -435,8 +496,8 @@ func (client PoliciesClient) UpdatePreparer(ctx context.Context, resourceGroupNa
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoliciesClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

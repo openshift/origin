@@ -1,4 +1,5 @@
 language: go
+dist: xenial
 sudo: true
 before_install:
     - sudo apt-get update -qq
@@ -16,13 +17,14 @@ git:
   depth: 9999999
 matrix:
   include:
-  - go: 1.8.2
-    env: COVERAGE="true"
   - go: 1.9.4
-    env: COVERAGE="true"
+    name: Test using Go 1.9
   - go: "1.10"
-    env: COVERAGE="true"
+    name: Test using Go 1.10
+  - go: "1.11"
+    name: Test using Go 1.11
+  - go: "1.11"
+    script: make release
+    name: make release on Go 1.11
 script:
-- make
-- if [[ -z "$COVERAGE" ]]; then make test TESTOPTIONS=-v ; else make test TESTOPTIONS=-vcstdout && bash .travis-coverage; fi
-- make release
+- make all test COVERAGE=true TESTOPTIONS="-vcstdout" && bash .travis-coverage

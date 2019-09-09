@@ -19,7 +19,11 @@
 
 package features
 
-import original "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2015-12-01/features"
+import (
+	"context"
+
+	original "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2015-12-01/features"
+)
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
@@ -41,14 +45,26 @@ type Result = original.Result
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
 }
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
 func NewClient(subscriptionID string) Client {
 	return original.NewClient(subscriptionID)
 }
 func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
 	return original.NewClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
+	return original.NewOperationListResultIterator(page)
+}
+func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
+	return original.NewOperationListResultPage(getNextPage)
+}
+func NewOperationsListResultIterator(page OperationsListResultPage) OperationsListResultIterator {
+	return original.NewOperationsListResultIterator(page)
+}
+func NewOperationsListResultPage(getNextPage func(context.Context, OperationsListResult) (OperationsListResult, error)) OperationsListResultPage {
+	return original.NewOperationsListResultPage(getNextPage)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

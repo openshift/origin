@@ -26,10 +26,10 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 )
 
-var _ = Describe("[sig-node] Downward API", func() {
+var _ = ginkgo.Describe("[sig-node] Downward API", func() {
 	f := framework.NewDefaultFramework("downward-api")
 
 	/*
@@ -72,7 +72,7 @@ var _ = Describe("[sig-node] Downward API", func() {
 		expectations := []string{
 			fmt.Sprintf("POD_NAME=%v", podName),
 			fmt.Sprintf("POD_NAMESPACE=%v", f.Namespace.Name),
-			"POD_IP=(?:\\d+)\\.(?:\\d+)\\.(?:\\d+)\\.(?:\\d+)",
+			fmt.Sprintf("POD_IP=%v|%v", framework.RegexIPv4, framework.RegexIPv6),
 		}
 
 		testDownwardAPI(f, podName, env, expectations)
@@ -98,10 +98,60 @@ var _ = Describe("[sig-node] Downward API", func() {
 		}
 
 		expectations := []string{
-			"HOST_IP=(?:\\d+)\\.(?:\\d+)\\.(?:\\d+)\\.(?:\\d+)",
+			fmt.Sprintf("HOST_IP=%v|%v", framework.RegexIPv4, framework.RegexIPv6),
 		}
 
 		testDownwardAPI(f, podName, env, expectations)
+	})
+
+	ginkgo.It("should provide host IP and pod IP as an env var if pod uses host network [LinuxOnly]", func() {
+		podName := "downward-api-" + string(uuid.NewUUID())
+		env := []v1.EnvVar{
+			{
+				Name: "HOST_IP",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "status.hostIP",
+					},
+				},
+			},
+			{
+				Name: "POD_IP",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "status.podIP",
+					},
+				},
+			},
+		}
+
+		expectations := []string{
+			fmt.Sprintf("OK"),
+		}
+
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   podName,
+				Labels: map[string]string{"name": podName},
+			},
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
+					{
+						Name:    "dapi-container",
+						Image:   imageutils.GetE2EImage(imageutils.BusyBox),
+						Command: []string{"sh", "-c", `[[ "${HOST_IP:?}" == "${POD_IP:?}" ]] && echo 'OK' || echo "HOST_IP: '${HOST_IP}' != POD_IP: '${POD_IP}'"`},
+						Env:     env,
+					},
+				},
+				HostNetwork:   true,
+				RestartPolicy: v1.RestartPolicyNever,
+			},
+		}
+
+		testDownwardAPIUsingPod(f, pod, env, expectations)
+
 	})
 
 	/*
@@ -235,12 +285,12 @@ var _ = Describe("[sig-node] Downward API", func() {
 var _ = framework.KubeDescribe("Downward API [Serial] [Disruptive] [NodeFeature:EphemeralStorage]", func() {
 	f := framework.NewDefaultFramework("downward-api")
 
-	Context("Downward API tests for local ephemeral storage", func() {
-		BeforeEach(func() {
+	ginkgo.Context("Downward API tests for local ephemeral storage", func() {
+		ginkgo.BeforeEach(func() {
 			framework.SkipUnlessLocalEphemeralStorageEnabled()
 		})
 
-		It("should provide container's limits.ephemeral-storage and requests.ephemeral-storage as env vars", func() {
+		ginkgo.It("should provide container's limits.ephemeral-storage and requests.ephemeral-storage as env vars", func() {
 			podName := "downward-api-" + string(uuid.NewUUID())
 			env := []v1.EnvVar{
 				{
@@ -268,7 +318,7 @@ var _ = framework.KubeDescribe("Downward API [Serial] [Disruptive] [NodeFeature:
 			testDownwardAPIForEphemeralStorage(f, podName, env, expectations)
 		})
 
-		It("should provide default limits.ephemeral-storage from node allocatable", func() {
+		ginkgo.It("should provide default limits.ephemeral-storage from node allocatable", func() {
 			podName := "downward-api-" + string(uuid.NewUUID())
 			env := []v1.EnvVar{
 				{

@@ -32,6 +32,11 @@ import (
 	utilstrings "k8s.io/utils/strings"
 )
 
+func getPath(uid types.UID, volName string, host volume.VolumeHost) string {
+	return host.GetPodVolumeDir(uid, utilstrings.EscapeQualifiedName(nfsPluginName), volName)
+}
+
+// ProbeVolumePlugins is the primary entrypoint for volume plugins.
 // This is the primary entrypoint for volume plugins.
 // The volumeConfig arg provides the ability to configure recycler behavior.  It is implemented as a pointer to allow nils.
 // The nfsPlugin is used to store the volumeConfig and give it, when needed, to the func that creates NFS Recyclers.
@@ -226,21 +231,21 @@ type nfsMounter struct {
 
 var _ volume.Mounter = &nfsMounter{}
 
-func (b *nfsMounter) GetAttributes() volume.Attributes {
+func (nfsMounter *nfsMounter) GetAttributes() volume.Attributes {
 	return volume.Attributes{
-		ReadOnly:        b.readOnly,
+		ReadOnly:        nfsMounter.readOnly,
 		Managed:         false,
 		SupportsSELinux: false,
 	}
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (b *nfsMounter) SetUp(fsGroup *int64) error {
-	return b.SetUpAt(b.GetPath(), fsGroup)
+func (nfsMounter *nfsMounter) SetUp(mounterArgs volume.MounterArgs) error {
+	return nfsMounter.SetUpAt(nfsMounter.GetPath(), mounterArgs)
 }
 
-func (b *nfsMounter) SetUpAt(dir string, fsGroup *int64) error {
-	notMnt, err := b.mounter.IsNotMountPoint(dir)
+func (nfsMounter *nfsMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) error {
+	notMnt, err := mount.IsNotMountPoint(nfsMounter.mounter, dir)
 	klog.V(4).Infof("NFS mount set up: %s %v %v", dir, !notMnt, err)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -251,25 +256,25 @@ func (b *nfsMounter) SetUpAt(dir string, fsGroup *int64) error {
 	if err := os.MkdirAll(dir, 0750); err != nil {
 		return err
 	}
-	source := fmt.Sprintf("%s:%s", b.server, b.exportPath)
+	source := fmt.Sprintf("%s:%s", nfsMounter.server, nfsMounter.exportPath)
 	options := []string{}
-	if b.readOnly {
+	if nfsMounter.readOnly {
 		options = append(options, "ro")
 	}
-	mountOptions := util.JoinMountOptions(b.mountOptions, options)
-	err = b.mounter.Mount(source, dir, "nfs", mountOptions)
+	mountOptions := util.JoinMountOptions(nfsMounter.mountOptions, options)
+	err = nfsMounter.mounter.Mount(source, dir, "nfs", mountOptions)
 	if err != nil {
-		notMnt, mntErr := b.mounter.IsNotMountPoint(dir)
+		notMnt, mntErr := mount.IsNotMountPoint(nfsMounter.mounter, dir)
 		if mntErr != nil {
 			klog.Errorf("IsNotMountPoint check failed: %v", mntErr)
 			return err
 		}
 		if !notMnt {
-			if mntErr = b.mounter.Unmount(dir); mntErr != nil {
+			if mntErr = nfsMounter.mounter.Unmount(dir); mntErr != nil {
 				klog.Errorf("Failed to unmount: %v", mntErr)
 				return err
 			}
-			notMnt, mntErr := b.mounter.IsNotMountPoint(dir)
+			notMnt, mntErr := mount.IsNotMountPoint(nfsMounter.mounter, dir)
 			if mntErr != nil {
 				klog.Errorf("IsNotMountPoint check failed: %v", mntErr)
 				return err
@@ -312,8 +317,4 @@ func getVolumeSource(spec *volume.Spec) (*v1.NFSVolumeSource, bool, error) {
 	}
 
 	return nil, false, fmt.Errorf("Spec does not reference a NFS volume type")
-}
-
-func getPath(uid types.UID, volName string, host volume.VolumeHost) string {
-	return host.GetPodVolumeDir(uid, utilstrings.EscapeQualifiedName(nfsPluginName), volName)
 }

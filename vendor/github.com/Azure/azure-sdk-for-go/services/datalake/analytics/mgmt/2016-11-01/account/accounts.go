@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewAccountsClientWithBaseURI(baseURI string, subscriptionID string) Account
 // location - the resource location without whitespace.
 // parameters - parameters supplied to check the Data Lake Analytics account name availability.
 func (client AccountsClient) CheckNameAvailability(ctx context.Context, location string, parameters CheckNameAvailabilityParameters) (result NameAvailabilityInformation, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountsClient.CheckNameAvailability")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Name", Name: validation.Null, Rule: true, Chain: nil},
@@ -98,8 +109,8 @@ func (client AccountsClient) CheckNameAvailabilityPreparer(ctx context.Context, 
 // CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client AccountsClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always
@@ -122,6 +133,16 @@ func (client AccountsClient) CheckNameAvailabilityResponder(resp *http.Response)
 // accountName - the name of the Data Lake Analytics account.
 // parameters - parameters supplied to create a new Data Lake Analytics account.
 func (client AccountsClient) Create(ctx context.Context, resourceGroupName string, accountName string, parameters CreateDataLakeAnalyticsAccountParameters) (result AccountsCreateFutureType, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountsClient.Create")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil},
@@ -185,13 +206,9 @@ func (client AccountsClient) CreatePreparer(ctx context.Context, resourceGroupNa
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client AccountsClient) CreateSender(req *http.Request) (future AccountsCreateFutureType, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -217,6 +234,16 @@ func (client AccountsClient) CreateResponder(resp *http.Response) (result DataLa
 // resourceGroupName - the name of the Azure resource group.
 // accountName - the name of the Data Lake Analytics account.
 func (client AccountsClient) Delete(ctx context.Context, resourceGroupName string, accountName string) (result AccountsDeleteFutureType, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, accountName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.AccountsClient", "Delete", nil, "Failure preparing request")
@@ -256,13 +283,9 @@ func (client AccountsClient) DeletePreparer(ctx context.Context, resourceGroupNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client AccountsClient) DeleteSender(req *http.Request) (future AccountsDeleteFutureType, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -287,6 +310,16 @@ func (client AccountsClient) DeleteResponder(resp *http.Response) (result autore
 // resourceGroupName - the name of the Azure resource group.
 // accountName - the name of the Data Lake Analytics account.
 func (client AccountsClient) Get(ctx context.Context, resourceGroupName string, accountName string) (result DataLakeAnalyticsAccount, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, accountName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.AccountsClient", "Get", nil, "Failure preparing request")
@@ -332,8 +365,8 @@ func (client AccountsClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client AccountsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -363,6 +396,16 @@ func (client AccountsClient) GetResponder(resp *http.Response) (result DataLakeA
 // count - the Boolean value of true or false to request a count of the matching resources included with the
 // resources in the response, e.g. Categories?$count=true. Optional.
 func (client AccountsClient) List(ctx context.Context, filter string, top *int32, skip *int32, selectParameter string, orderby string, count *bool) (result DataLakeAnalyticsAccountListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountsClient.List")
+		defer func() {
+			sc := -1
+			if result.dlaalr.Response.Response != nil {
+				sc = result.dlaalr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -435,8 +478,8 @@ func (client AccountsClient) ListPreparer(ctx context.Context, filter string, to
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client AccountsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -453,8 +496,8 @@ func (client AccountsClient) ListResponder(resp *http.Response) (result DataLake
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client AccountsClient) listNextResults(lastResults DataLakeAnalyticsAccountListResult) (result DataLakeAnalyticsAccountListResult, err error) {
-	req, err := lastResults.dataLakeAnalyticsAccountListResultPreparer()
+func (client AccountsClient) listNextResults(ctx context.Context, lastResults DataLakeAnalyticsAccountListResult) (result DataLakeAnalyticsAccountListResult, err error) {
+	req, err := lastResults.dataLakeAnalyticsAccountListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "account.AccountsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -475,6 +518,16 @@ func (client AccountsClient) listNextResults(lastResults DataLakeAnalyticsAccoun
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AccountsClient) ListComplete(ctx context.Context, filter string, top *int32, skip *int32, selectParameter string, orderby string, count *bool) (result DataLakeAnalyticsAccountListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, filter, top, skip, selectParameter, orderby, count)
 	return
 }
@@ -494,6 +547,16 @@ func (client AccountsClient) ListComplete(ctx context.Context, filter string, to
 // count - the Boolean value of true or false to request a count of the matching resources included with the
 // resources in the response, e.g. Categories?$count=true. Optional.
 func (client AccountsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, filter string, top *int32, skip *int32, selectParameter string, orderby string, count *bool) (result DataLakeAnalyticsAccountListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.dlaalr.Response.Response != nil {
+				sc = result.dlaalr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -567,8 +630,8 @@ func (client AccountsClient) ListByResourceGroupPreparer(ctx context.Context, re
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client AccountsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -585,8 +648,8 @@ func (client AccountsClient) ListByResourceGroupResponder(resp *http.Response) (
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client AccountsClient) listByResourceGroupNextResults(lastResults DataLakeAnalyticsAccountListResult) (result DataLakeAnalyticsAccountListResult, err error) {
-	req, err := lastResults.dataLakeAnalyticsAccountListResultPreparer()
+func (client AccountsClient) listByResourceGroupNextResults(ctx context.Context, lastResults DataLakeAnalyticsAccountListResult) (result DataLakeAnalyticsAccountListResult, err error) {
+	req, err := lastResults.dataLakeAnalyticsAccountListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "account.AccountsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -607,6 +670,16 @@ func (client AccountsClient) listByResourceGroupNextResults(lastResults DataLake
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AccountsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, filter string, top *int32, skip *int32, selectParameter string, orderby string, count *bool) (result DataLakeAnalyticsAccountListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, filter, top, skip, selectParameter, orderby, count)
 	return
 }
@@ -618,6 +691,16 @@ func (client AccountsClient) ListByResourceGroupComplete(ctx context.Context, re
 // accountName - the name of the Data Lake Analytics account.
 // parameters - parameters supplied to the update Data Lake Analytics account operation.
 func (client AccountsClient) Update(ctx context.Context, resourceGroupName string, accountName string, parameters *UpdateDataLakeAnalyticsAccountParameters) (result AccountsUpdateFutureType, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, accountName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.AccountsClient", "Update", nil, "Failure preparing request")
@@ -662,13 +745,9 @@ func (client AccountsClient) UpdatePreparer(ctx context.Context, resourceGroupNa
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client AccountsClient) UpdateSender(req *http.Request) (future AccountsUpdateFutureType, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}

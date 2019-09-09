@@ -15,7 +15,7 @@
   "description": "Manages product items, inventory, and Merchant Center accounts for Google Shopping.",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/shopping-content",
-  "etag": "\"J3WqvAcMk4eQjJXvfSI4Yr8VouA/KNVDmWVa-0q2EHowFmKdbt3xwM8\"",
+  "etag": "\"VPK3KBfpaEgZ16pozGOoMYfKc0U/jbCPNvl4QbL1NbUHBeaCm32fvYA\"",
   "icons": {
     "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
     "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
@@ -233,7 +233,7 @@
           ]
         },
         "link": {
-          "description": "Performs an action on a link between a Merchant Center account and another account.",
+          "description": "Performs an action on a link between two Merchant Center accounts, namely accountId and linkedAccountId.",
           "httpMethod": "POST",
           "id": "content.accounts.link",
           "parameterOrder": [
@@ -342,6 +342,7 @@
     "accountstatuses": {
       "methods": {
         "custombatch": {
+          "description": "Retrieves multiple Merchant Center account statuses in a single request.",
           "httpMethod": "POST",
           "id": "content.accountstatuses.custombatch",
           "path": "accountstatuses/batch",
@@ -356,7 +357,7 @@
           ]
         },
         "get": {
-          "description": "Retrieves the status of a Merchant Center account. Multi-client accounts can only call this method for sub-accounts.",
+          "description": "Retrieves the status of a Merchant Center account. No itemLevelIssues are returned for multi-client accounts.",
           "httpMethod": "GET",
           "id": "content.accountstatuses.get",
           "parameterOrder": [
@@ -560,6 +561,7 @@
     "datafeeds": {
       "methods": {
         "custombatch": {
+          "description": "Deletes, fetches, gets, inserts and updates multiple datafeeds in a single request.",
           "httpMethod": "POST",
           "id": "content.datafeeds.custombatch",
           "path": "datafeeds/batch",
@@ -768,6 +770,7 @@
     "datafeedstatuses": {
       "methods": {
         "custombatch": {
+          "description": "Gets multiple Merchant Center datafeed statuses in a single request.",
           "httpMethod": "POST",
           "id": "content.datafeedstatuses.custombatch",
           "path": "datafeedstatuses/batch",
@@ -1216,7 +1219,7 @@
     "orderinvoices": {
       "methods": {
         "createchargeinvoice": {
-          "description": "Creates a charge invoice for a shipment group, and triggers a charge capture for non-facilitated payment orders.",
+          "description": "Creates a charge invoice for a shipment group, and triggers a charge capture for orderinvoice enabled orders.",
           "httpMethod": "POST",
           "id": "content.orderinvoices.createchargeinvoice",
           "parameterOrder": [
@@ -1250,7 +1253,7 @@
           ]
         },
         "createrefundinvoice": {
-          "description": "Creates a refund invoice for one or more shipment groups, and triggers a refund for non-facilitated payment orders. This can only be used for line items that have previously been charged using createChargeInvoice. All amounts (except for the summary) are incremental with respect to the previous invoice.",
+          "description": "Creates a refund invoice for one or more shipment groups, and triggers a refund for orderinvoice enabled orders. This can only be used for line items that have previously been charged using createChargeInvoice. All amounts (except for the summary) are incremental with respect to the previous invoice.",
           "httpMethod": "POST",
           "id": "content.orderinvoices.createrefundinvoice",
           "parameterOrder": [
@@ -1278,146 +1281,6 @@
           },
           "response": {
             "$ref": "OrderinvoicesCreateRefundInvoiceResponse"
-          },
-          "scopes": [
-            "https://www.googleapis.com/auth/content"
-          ]
-        }
-      }
-    },
-    "orderpayments": {
-      "methods": {
-        "notifyauthapproved": {
-          "description": "Notify about successfully authorizing user's payment method for a given amount.",
-          "httpMethod": "POST",
-          "id": "content.orderpayments.notifyauthapproved",
-          "parameterOrder": [
-            "merchantId",
-            "orderId"
-          ],
-          "parameters": {
-            "merchantId": {
-              "description": "The ID of the account that manages the order. This cannot be a multi-client account.",
-              "format": "uint64",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            },
-            "orderId": {
-              "description": "The ID of the order for for which payment authorization is happening.",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            }
-          },
-          "path": "{merchantId}/orderpayments/{orderId}/notifyAuthApproved",
-          "request": {
-            "$ref": "OrderpaymentsNotifyAuthApprovedRequest"
-          },
-          "response": {
-            "$ref": "OrderpaymentsNotifyAuthApprovedResponse"
-          },
-          "scopes": [
-            "https://www.googleapis.com/auth/content"
-          ]
-        },
-        "notifyauthdeclined": {
-          "description": "Notify about failure to authorize user's payment method.",
-          "httpMethod": "POST",
-          "id": "content.orderpayments.notifyauthdeclined",
-          "parameterOrder": [
-            "merchantId",
-            "orderId"
-          ],
-          "parameters": {
-            "merchantId": {
-              "description": "The ID of the account that manages the order. This cannot be a multi-client account.",
-              "format": "uint64",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            },
-            "orderId": {
-              "description": "The ID of the order for which payment authorization was declined.",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            }
-          },
-          "path": "{merchantId}/orderpayments/{orderId}/notifyAuthDeclined",
-          "request": {
-            "$ref": "OrderpaymentsNotifyAuthDeclinedRequest"
-          },
-          "response": {
-            "$ref": "OrderpaymentsNotifyAuthDeclinedResponse"
-          },
-          "scopes": [
-            "https://www.googleapis.com/auth/content"
-          ]
-        },
-        "notifycharge": {
-          "description": "Notify about charge on user's selected payments method.",
-          "httpMethod": "POST",
-          "id": "content.orderpayments.notifycharge",
-          "parameterOrder": [
-            "merchantId",
-            "orderId"
-          ],
-          "parameters": {
-            "merchantId": {
-              "description": "The ID of the account that manages the order. This cannot be a multi-client account.",
-              "format": "uint64",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            },
-            "orderId": {
-              "description": "The ID of the order for which charge is happening.",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            }
-          },
-          "path": "{merchantId}/orderpayments/{orderId}/notifyCharge",
-          "request": {
-            "$ref": "OrderpaymentsNotifyChargeRequest"
-          },
-          "response": {
-            "$ref": "OrderpaymentsNotifyChargeResponse"
-          },
-          "scopes": [
-            "https://www.googleapis.com/auth/content"
-          ]
-        },
-        "notifyrefund": {
-          "description": "Notify about refund on user's selected payments method.",
-          "httpMethod": "POST",
-          "id": "content.orderpayments.notifyrefund",
-          "parameterOrder": [
-            "merchantId",
-            "orderId"
-          ],
-          "parameters": {
-            "merchantId": {
-              "description": "The ID of the account that manages the order. This cannot be a multi-client account.",
-              "format": "uint64",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            },
-            "orderId": {
-              "description": "The ID of the order for which charge is happening.",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            }
-          },
-          "path": "{merchantId}/orderpayments/{orderId}/notifyRefund",
-          "request": {
-            "$ref": "OrderpaymentsNotifyRefundRequest"
-          },
-          "response": {
-            "$ref": "OrderpaymentsNotifyRefundResponse"
           },
           "scopes": [
             "https://www.googleapis.com/auth/content"
@@ -1885,7 +1748,7 @@
           ]
         },
         "getbymerchantorderid": {
-          "description": "Retrieves an order using merchant order id.",
+          "description": "Retrieves an order using merchant order ID.",
           "httpMethod": "GET",
           "id": "content.orders.getbymerchantorderid",
           "parameterOrder": [
@@ -1901,7 +1764,7 @@
               "type": "string"
             },
             "merchantOrderId": {
-              "description": "The merchant order id to be looked for.",
+              "description": "The merchant order ID to be looked for.",
               "location": "path",
               "required": true,
               "type": "string"
@@ -1964,7 +1827,7 @@
           ]
         },
         "instorerefundlineitem": {
-          "description": "Notifies that item return and refund was handled directly by merchant outside of Google payments processing (e.g. cash refund done in store).",
+          "description": "Notifies that item return and refund was handled directly by merchant outside of Google payments processing (e.g. cash refund done in store).\nNote: We recommend calling the returnrefundlineitem method to refund in-store returns. We will issue the refund directly to the customer. This helps to prevent possible differences arising between merchant and Google transaction records. We also recommend having the point of sale system communicate with Google to ensure that customers do not receive a double refund by first refunding via Google then via an in-store return.",
           "httpMethod": "POST",
           "id": "content.orders.instorerefundlineitem",
           "parameterOrder": [
@@ -2011,7 +1874,7 @@
               "type": "boolean"
             },
             "maxResults": {
-              "description": "The maximum number of orders to return in the response, used for paging. The default value is 25 orders per page, and the maximum allowed value is 250 orders per page.\nKnown issue: All List calls will return all Orders without limit regardless of the value of this field.",
+              "description": "The maximum number of orders to return in the response, used for paging. The default value is 25 orders per page, and the maximum allowed value is 250 orders per page.",
               "format": "uint32",
               "location": "query",
               "type": "integer"
@@ -2024,15 +1887,7 @@
               "type": "string"
             },
             "orderBy": {
-              "description": "The ordering of the returned list. The only supported value are placedDate desc and placedDate asc for now, which returns orders sorted by placement date. \"placedDate desc\" stands for listing orders by placement date, from oldest to most recent. \"placedDate asc\" stands for listing orders by placement date, from most recent to oldest. In future releases we'll support other sorting criteria.",
-              "enum": [
-                "placedDate asc",
-                "placedDate desc"
-              ],
-              "enumDescriptions": [
-                "",
-                ""
-              ],
+              "description": "Order results by placement date in descending or ascending order.\n\nAcceptable values are:\n- placedDateAsc\n- placedDateDesc",
               "location": "query",
               "type": "string"
             },
@@ -2052,7 +1907,7 @@
               "type": "string"
             },
             "statuses": {
-              "description": "Obtains orders that match any of the specified statuses. Multiple values can be specified with comma separation. Additionally, please note that active is a shortcut for pendingShipment and partiallyShipped, and completed is a shortcut for shipped , partiallyDelivered, delivered, partiallyReturned, returned, and canceled.",
+              "description": "Obtains orders that match any of the specified statuses. Multiple values can be specified with comma separation. Additionally, please note that active is a shortcut for pendingShipment and partiallyShipped, and completed is a shortcut for shipped, partiallyDelivered, delivered, partiallyReturned, returned, and canceled.",
               "enum": [
                 "active",
                 "canceled",
@@ -2161,7 +2016,7 @@
           ]
         },
         "setlineitemmetadata": {
-          "description": "Sets (overrides) merchant provided annotations on the line item.",
+          "description": "Sets (or overrides if it already exists) merchant provided annotations in the form of key-value pairs. A common use case would be to supply us with additional structured information about a line item that cannot be provided via other methods. Submitted key-value pairs can be retrieved as part of the orders resource.",
           "httpMethod": "POST",
           "id": "content.orders.setlineitemmetadata",
           "parameterOrder": [
@@ -2597,7 +2452,7 @@
               "type": "string"
             },
             "productId": {
-              "description": "The REST id of the product.",
+              "description": "The REST ID of the product.",
               "location": "path",
               "required": true,
               "type": "string"
@@ -2625,7 +2480,7 @@
               "type": "string"
             },
             "productId": {
-              "description": "The REST id of the product.",
+              "description": "The REST ID of the product.",
               "location": "path",
               "required": true,
               "type": "string"
@@ -2743,7 +2598,7 @@
               "type": "string"
             },
             "productId": {
-              "description": "The REST id of the product.",
+              "description": "The REST ID of the product.",
               "location": "path",
               "required": true,
               "type": "string"
@@ -2793,6 +2648,59 @@
           "path": "{merchantId}/productstatuses",
           "response": {
             "$ref": "ProductstatusesListResponse"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/content"
+          ]
+        }
+      }
+    },
+    "regionalinventory": {
+      "methods": {
+        "custombatch": {
+          "description": "Updates regional inventory for multiple products or regions in a single request.",
+          "httpMethod": "POST",
+          "id": "content.regionalinventory.custombatch",
+          "path": "regionalinventory/batch",
+          "request": {
+            "$ref": "RegionalinventoryCustomBatchRequest"
+          },
+          "response": {
+            "$ref": "RegionalinventoryCustomBatchResponse"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/content"
+          ]
+        },
+        "insert": {
+          "description": "Update the regional inventory of a product in your Merchant Center account. If a regional inventory with the same region ID already exists, this method updates that entry.",
+          "httpMethod": "POST",
+          "id": "content.regionalinventory.insert",
+          "parameterOrder": [
+            "merchantId",
+            "productId"
+          ],
+          "parameters": {
+            "merchantId": {
+              "description": "The ID of the account that contains the product. This account cannot be a multi-client account.",
+              "format": "uint64",
+              "location": "path",
+              "required": true,
+              "type": "string"
+            },
+            "productId": {
+              "description": "The REST ID of the product for which to update the regional inventory.",
+              "location": "path",
+              "required": true,
+              "type": "string"
+            }
+          },
+          "path": "{merchantId}/products/{productId}/regionalinventory",
+          "request": {
+            "$ref": "RegionalInventory"
+          },
+          "response": {
+            "$ref": "RegionalInventory"
           },
           "scopes": [
             "https://www.googleapis.com/auth/content"
@@ -2970,7 +2878,7 @@
       }
     }
   },
-  "revision": "20181212",
+  "revision": "20190531",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "Account": {
@@ -3358,7 +3266,7 @@
               "content.accounttax.update"
             ]
           },
-          "description": "State (or province) is which the tax is applicable, described by its location id (also called criteria id).",
+          "description": "State (or province) is which the tax is applicable, described by its location ID (also called criteria ID).",
           "format": "uint64",
           "type": "string"
         },
@@ -3387,6 +3295,18 @@
         "emailAddress": {
           "description": "User's email address.",
           "type": "string"
+        },
+        "orderManager": {
+          "description": "Whether user is an order manager.",
+          "type": "boolean"
+        },
+        "paymentsAnalyst": {
+          "description": "Whether user can access payment statements.",
+          "type": "boolean"
+        },
+        "paymentsManager": {
+          "description": "Whether user can manage payment settings.",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -3814,11 +3734,11 @@
     "Amount": {
       "id": "Amount",
       "properties": {
-        "pretax": {
+        "priceAmount": {
           "$ref": "Price",
-          "description": "[required] Value before taxes."
+          "description": "[required] The pre-tax or post-tax price depending on the location of the order."
         },
-        "tax": {
+        "taxAmount": {
           "$ref": "Price",
           "description": "[required] Tax value."
         }
@@ -4432,7 +4352,7 @@
           "type": "integer"
         },
         "maxTransitTimeInDays": {
-          "description": "Maximum number of business days that is spent in transit. 0 means same day delivery, 1 means next day delivery. Must be greater than or equal to minTransitTimeInDays. Required.",
+          "description": "Maximum number of business days that is spent in transit. 0 means same day delivery, 1 means next day delivery. Must be greater than or equal to minTransitTimeInDays.",
           "format": "uint32",
           "type": "integer"
         },
@@ -4442,9 +4362,13 @@
           "type": "integer"
         },
         "minTransitTimeInDays": {
-          "description": "Minimum number of business days that is spent in transit. 0 means same day delivery, 1 means next day delivery. Required.",
+          "description": "Minimum number of business days that is spent in transit. 0 means same day delivery, 1 means next day delivery. Either {min,max}transitTimeInDays or transitTimeTable must be set, but not both.",
           "format": "uint32",
           "type": "integer"
+        },
+        "transitTimeTable": {
+          "$ref": "TransitTable",
+          "description": "Transit time table, number of business days spent in transit based on row and column dimensions. Either {min,max}transitTimeInDays or transitTimeTable can be set, but not both."
         }
       },
       "type": "object"
@@ -4533,7 +4457,7 @@
       "type": "object"
     },
     "Headers": {
-      "description": "A non-empty list of row or column headers for a table. Exactly one of prices, weights, numItems, postalCodeGroupNames, or locations must be set.",
+      "description": "A non-empty list of row or column headers for a table. Exactly one of prices, weights, numItems, postalCodeGroupNames, or location must be set.",
       "id": "Headers",
       "properties": {
         "locations": {
@@ -4657,28 +4581,9 @@
           },
           "type": "array"
         },
-        "customerBalance": {
-          "$ref": "Amount",
-          "description": "[required] Customer balance on this invoice. A negative amount means the customer is paying, a positive one means the customer is receiving money. Note: the sum of merchant_balance, customer_balance and google_balance must always be zero.\n\nFurthermore the absolute value of this amount is expected to be equal to the sum of product amount and additional charges, minus promotions."
-        },
-        "googleBalance": {
-          "$ref": "Amount",
-          "description": "[required] Google balance on this invoice. A negative amount means Google is paying, a positive one means Google is receiving money. Note: the sum of merchant_balance, customer_balance and google_balance must always be zero."
-        },
-        "merchantBalance": {
-          "$ref": "Amount",
-          "description": "[required] Merchant balance on this invoice. A negative amount means the merchant is paying, a positive one means the merchant is receiving money. Note: the sum of merchant_balance, customer_balance and google_balance must always be zero."
-        },
         "productTotal": {
           "$ref": "Amount",
           "description": "[required] Total price for the product."
-        },
-        "promotionSummaries": {
-          "description": "Summary for each promotion.",
-          "items": {
-            "$ref": "Promotion"
-          },
-          "type": "array"
         }
       },
       "type": "object"
@@ -5152,20 +5057,16 @@
           "$ref": "OrderAddress",
           "description": "The billing address."
         },
-        "channelType": {
-          "description": "The channel type of the order: \"purchaseOnGoogle\" or \"googleExpress\".",
-          "type": "string"
-        },
         "customer": {
           "$ref": "OrderCustomer",
           "description": "The details of the customer who placed the order."
         },
         "deliveryDetails": {
           "$ref": "OrderDeliveryDetails",
-          "description": "The details for the delivery."
+          "description": "Delivery details for shipments."
         },
         "id": {
-          "description": "The REST id of the order. Globally unique.",
+          "description": "The REST ID of the order. Globally unique.",
           "type": "string"
         },
         "kind": {
@@ -5185,12 +5086,16 @@
           "type": "string"
         },
         "merchantOrderId": {
-          "description": "Merchant-provided id of the order.",
+          "description": "Merchant-provided ID of the order.",
           "type": "string"
         },
-        "netAmount": {
+        "netPriceAmount": {
           "$ref": "Price",
-          "description": "The net amount for the order. For example, if an order was originally for a grand total of $100 and a refund was issued for $20, the net amount will be $80."
+          "description": "The net amount for the order (price part). For example, if an order was originally for $100 and a refund was issued for $20, the net amount will be $80."
+        },
+        "netTaxAmount": {
+          "$ref": "Price",
+          "description": "The net amount for the order (tax part). Note that in certain cases due to taxable base adjustment netTaxAmount might not match to a sum of tax field across all lineItems and refunds."
         },
         "paymentStatus": {
           "description": "The status of the payment.",
@@ -5229,12 +5134,12 @@
           "$ref": "Price",
           "description": "The tax for the total shipping cost."
         },
-        "shippingOption": {
-          "description": "The requested shipping option.",
-          "type": "string"
-        },
         "status": {
           "description": "The status of the order.",
+          "type": "string"
+        },
+        "taxCollector": {
+          "description": "The party responsible for collecting and remitting taxes.",
           "type": "string"
         }
       },
@@ -5314,17 +5219,13 @@
     "OrderCustomer": {
       "id": "OrderCustomer",
       "properties": {
-        "email": {
-          "description": "Deprecated.",
-          "type": "string"
-        },
         "fullName": {
           "description": "Full name of the customer.",
           "type": "string"
         },
         "marketingRightsInfo": {
           "$ref": "OrderCustomerMarketingRightsInfo",
-          "description": "Customer's marketing preferences."
+          "description": "Customer's marketing preferences. Contains the marketing opt-in information that is current at the time that the merchant call. User preference selections can change from one order to the next so preferences must be checked with every order."
         }
       },
       "type": "object"
@@ -5333,7 +5234,7 @@
       "id": "OrderCustomerMarketingRightsInfo",
       "properties": {
         "explicitMarketingPreference": {
-          "description": "Last known user selection regarding marketing preferences. In certain cases this selection might not be known, so this field would be empty.",
+          "description": "Last known customer selection regarding marketing preferences. In certain cases this selection might not be known, so this field would be empty. If a customer selected granted in their most recent order, they can be subscribed to marketing emails. Customers who have chosen denied must not be subscribed, or must be unsubscribed if already opted-in.",
           "type": "string"
         },
         "lastUpdatedTimestamp": {
@@ -5341,7 +5242,7 @@
           "type": "string"
         },
         "marketingEmailAddress": {
-          "description": "Email address that can be used for marketing purposes. This field is only filled when explicitMarketingPreference is equal to 'granted'.",
+          "description": "Email address that can be used for marketing purposes. The field may be empty even if explicitMarketingPreference is 'granted'. This happens when retrieving an old order from the customer who deleted their account.",
           "type": "string"
         }
       },
@@ -5379,7 +5280,7 @@
           "type": "array"
         },
         "id": {
-          "description": "The id of the line item.",
+          "description": "The ID of the line item.",
           "type": "string"
         },
         "price": {
@@ -5449,10 +5350,6 @@
           "description": "Brand of the item.",
           "type": "string"
         },
-        "channel": {
-          "description": "The item's channel (online or local).",
-          "type": "string"
-        },
         "condition": {
           "description": "Condition or state of the item.",
           "type": "string"
@@ -5473,7 +5370,7 @@
           "type": "string"
         },
         "id": {
-          "description": "The REST id of the product.",
+          "description": "The REST ID of the product.",
           "type": "string"
         },
         "imageLink": {
@@ -5701,9 +5598,9 @@
           "description": "This field is used to identify promotions within merchants' own systems.",
           "type": "string"
         },
-        "pretaxValue": {
+        "priceValue": {
           "$ref": "Price",
-          "description": "Estimated discount applied to pre-tax amount."
+          "description": "Estimated discount applied to price. Amount is pre-tax or post-tax depending on location of order."
         },
         "shortTitle": {
           "description": "A short title of the promotion to be shown on the checkout page.",
@@ -5844,15 +5741,15 @@
           "type": "string"
         },
         "merchantOrderId": {
-          "description": "Merchant-provided id of the order.",
+          "description": "Merchant-provided ID of the order.",
           "type": "string"
         },
         "orderId": {
-          "description": "The id of the order.",
+          "description": "The ID of the order.",
           "type": "string"
         },
         "productAmount": {
-          "$ref": "Amount",
+          "$ref": "ProductAmount",
           "description": "Total amount for the items."
         },
         "transactionDate": {
@@ -5905,7 +5802,7 @@
           "type": "string"
         },
         "id": {
-          "description": "The id of the shipment.",
+          "description": "The ID of the shipment.",
           "type": "string"
         },
         "lineItems": {
@@ -5920,7 +5817,7 @@
           "type": "string"
         },
         "trackingId": {
-          "description": "The tracking id for the shipment.",
+          "description": "The tracking ID for the shipment.",
           "type": "string"
         }
       },
@@ -5930,7 +5827,7 @@
       "id": "OrderShipmentLineItemShipment",
       "properties": {
         "lineItemId": {
-          "description": "The id of the line item that is shipped. Either lineItemId or productId is required.",
+          "description": "The ID of the line item that is shipped. Either lineItemId or productId is required.",
           "type": "string"
         },
         "productId": {
@@ -5968,7 +5865,7 @@
           "type": "string"
         },
         "shipmentGroupId": {
-          "description": "[required] ID of the shipment group.",
+          "description": "[required] ID of the shipment group. It is assigned by the merchant in the shipLineItems method and is used to group multiple line items that have the same kind of shipping charges.",
           "type": "string"
         }
       },
@@ -6056,122 +5953,6 @@
         },
         "reason": {
           "description": "[required] Reason for the return.",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "OrderpaymentsNotifyAuthApprovedRequest": {
-      "id": "OrderpaymentsNotifyAuthApprovedRequest",
-      "properties": {
-        "authAmountPretax": {
-          "$ref": "Price"
-        },
-        "authAmountTax": {
-          "$ref": "Price"
-        }
-      },
-      "type": "object"
-    },
-    "OrderpaymentsNotifyAuthApprovedResponse": {
-      "id": "OrderpaymentsNotifyAuthApprovedResponse",
-      "properties": {
-        "executionStatus": {
-          "description": "The status of the execution.",
-          "type": "string"
-        },
-        "kind": {
-          "default": "content#orderpaymentsNotifyAuthApprovedResponse",
-          "description": "Identifies what kind of resource this is. Value: the fixed string \"content#orderpaymentsNotifyAuthApprovedResponse\".",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "OrderpaymentsNotifyAuthDeclinedRequest": {
-      "id": "OrderpaymentsNotifyAuthDeclinedRequest",
-      "properties": {
-        "declineReason": {
-          "description": "Reason why payment authorization was declined.",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "OrderpaymentsNotifyAuthDeclinedResponse": {
-      "id": "OrderpaymentsNotifyAuthDeclinedResponse",
-      "properties": {
-        "executionStatus": {
-          "description": "The status of the execution.",
-          "type": "string"
-        },
-        "kind": {
-          "default": "content#orderpaymentsNotifyAuthDeclinedResponse",
-          "description": "Identifies what kind of resource this is. Value: the fixed string \"content#orderpaymentsNotifyAuthDeclinedResponse\".",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "OrderpaymentsNotifyChargeRequest": {
-      "id": "OrderpaymentsNotifyChargeRequest",
-      "properties": {
-        "chargeState": {
-          "description": "Whether charge was successful.",
-          "type": "string"
-        },
-        "invoiceIds": {
-          "description": "Invoice IDs from the orderinvoices service that correspond to the charge.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "type": "object"
-    },
-    "OrderpaymentsNotifyChargeResponse": {
-      "id": "OrderpaymentsNotifyChargeResponse",
-      "properties": {
-        "executionStatus": {
-          "description": "The status of the execution.",
-          "type": "string"
-        },
-        "kind": {
-          "default": "content#orderpaymentsNotifyChargeResponse",
-          "description": "Identifies what kind of resource this is. Value: the fixed string \"content#orderpaymentsNotifyChargeResponse\".",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "OrderpaymentsNotifyRefundRequest": {
-      "id": "OrderpaymentsNotifyRefundRequest",
-      "properties": {
-        "invoiceIds": {
-          "description": "Invoice IDs from the orderinvoices service that correspond to the refund.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "refundState": {
-          "description": "Whether refund was successful.",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "OrderpaymentsNotifyRefundResponse": {
-      "id": "OrderpaymentsNotifyRefundResponse",
-      "properties": {
-        "executionStatus": {
-          "description": "The status of the execution.",
-          "type": "string"
-        },
-        "kind": {
-          "default": "content#orderpaymentsNotifyRefundResponse",
-          "description": "Identifies what kind of resource this is. Value: the fixed string \"content#orderpaymentsNotifyRefundResponse\".",
           "type": "string"
         }
       },
@@ -6467,11 +6248,11 @@
               "content.orders.shiplineitems"
             ]
           },
-          "description": "The ID of the shipment.",
+          "description": "The ID of the shipment. This is assigned by the merchant and is unique to each shipment.",
           "type": "string"
         },
         "trackingId": {
-          "description": "The tracking id for the shipment.",
+          "description": "The tracking ID for the shipment.",
           "type": "string"
         }
       },
@@ -6641,7 +6422,7 @@
         },
         "priceAmount": {
           "$ref": "Price",
-          "description": "The amount to be refunded. This may be pre-tax or post-tax depending on the location of the order. If omitted, refundless return is assumed. Optional, but if filled then both priceAmount and taxAmount must be set."
+          "description": "The amount to be refunded. This may be pre-tax or post-tax depending on the location of the order. If omitted, refundless return is assumed."
         },
         "productId": {
           "description": "The ID of the product to return. This is the REST ID used in the products service. Either lineItemId or productId is required.",
@@ -6662,7 +6443,7 @@
         },
         "taxAmount": {
           "$ref": "Price",
-          "description": "The amount of tax to be refunded."
+          "description": "The amount of tax to be refunded. Optional, but if filled, then priceAmount must be set. Calculated automatically if not provided."
         }
       },
       "type": "object"
@@ -6768,7 +6549,7 @@
       "id": "OrdersUpdateLineItemShippingDetailsRequest",
       "properties": {
         "deliverByDate": {
-          "description": "Updated delivery by date, in ISO 8601 format. If not specified only ship by date is updated.",
+          "description": "Updated delivery by date, in ISO 8601 format. If not specified only ship by date is updated.\n\nProvided date should be within 1 year timeframe and can not be a date in the past.",
           "type": "string"
         },
         "lineItemId": {
@@ -6784,7 +6565,7 @@
           "type": "string"
         },
         "shipByDate": {
-          "description": "Updated ship by date, in ISO 8601 format. If not specified only deliver by date is updated.",
+          "description": "Updated ship by date, in ISO 8601 format. If not specified only deliver by date is updated.\n\nProvided date should be within 1 year timeframe and can not be a date in the past.",
           "type": "string"
         }
       },
@@ -6858,7 +6639,7 @@
           "type": "string"
         },
         "trackingId": {
-          "description": "The tracking id for the shipment. Not updated if missing.",
+          "description": "The tracking ID for the shipment. Not updated if missing.",
           "type": "string"
         }
       },
@@ -7669,7 +7450,7 @@
           "description": "Cost of goods sold. Used for gross profit reporting."
         },
         "customAttributes": {
-          "description": "A list of custom (merchant-provided) attributes. It can also be used for submitting any attribute of the feed specification in its generic form (e.g., { \"name\": \"size type\", \"type\": \"text\", \"value\": \"regular\" }). This is useful for submitting attributes not explicitly exposed by the API.",
+          "description": "A list of custom (merchant-provided) attributes. It can also be used for submitting any attribute of the feed specification in its generic form (e.g., { \"name\": \"size type\", \"value\": \"regular\" }). This is useful for submitting attributes not explicitly exposed by the API.",
           "items": {
             "$ref": "CustomAttribute"
           },
@@ -7751,7 +7532,7 @@
           "type": "string"
         },
         "id": {
-          "description": "The REST id of the product. Content API methods that operate on products take this as their productId parameter.\nThe REST id for a product is of the form channel:contentLanguage:targetCountry:offerId.",
+          "description": "The REST ID of the product. Content API methods that operate on products take this as their productId parameter.\nThe REST ID for a product is of the form channel:contentLanguage:targetCountry:offerId.",
           "type": "string"
         },
         "identifierExists": {
@@ -7835,7 +7616,7 @@
               "content.products.insert"
             ]
           },
-          "description": "A unique identifier for the item. Leading and trailing whitespaces are stripped and multiple whitespaces are replaced by a single whitespace upon submission. Only valid unicode characters are accepted. See the products feed specification for details.\nNote: Content API methods that operate on products take the REST id of the product, not this identifier.",
+          "description": "A unique identifier for the item. Leading and trailing whitespaces are stripped and multiple whitespaces are replaced by a single whitespace upon submission. Only valid unicode characters are accepted. See the products feed specification for details.\nNote: Content API methods that operate on products take the REST ID of the product, not this identifier.",
           "type": "string"
         },
         "pattern": {
@@ -7847,7 +7628,7 @@
           "description": "Price of the item."
         },
         "productTypes": {
-          "description": "Categories of the item (formatted as in products feed specification).",
+          "description": "Categories of the item (formatted as in products data specification).",
           "items": {
             "type": "string"
           },
@@ -7865,7 +7646,7 @@
           "description": "Advertised sale price of the item."
         },
         "salePriceEffectiveDate": {
-          "description": "Date range during which the item is on sale (see products feed specification).",
+          "description": "Date range during which the item is on sale (see products data specification).",
           "type": "string"
         },
         "sellOnGoogleQuantity": {
@@ -7928,6 +7709,10 @@
           "description": "The CLDR territory code for the item.",
           "type": "string"
         },
+        "taxCategory": {
+          "description": "The tax category of the product, used to configure detailed tax nexus in account-level tax settings.",
+          "type": "string"
+        },
         "taxes": {
           "description": "Tax information.",
           "items": {
@@ -7939,6 +7724,10 @@
           "description": "Title of the item.",
           "type": "string"
         },
+        "transitTimeLabel": {
+          "description": "The transit time label of the product, used to group product in account-level transit time tables.",
+          "type": "string"
+        },
         "unitPricingBaseMeasure": {
           "$ref": "ProductUnitPricingBaseMeasure",
           "description": "The preference of the denominator of the unit price."
@@ -7946,6 +7735,24 @@
         "unitPricingMeasure": {
           "$ref": "ProductUnitPricingMeasure",
           "description": "The measure and dimension of an item."
+        }
+      },
+      "type": "object"
+    },
+    "ProductAmount": {
+      "id": "ProductAmount",
+      "properties": {
+        "priceAmount": {
+          "$ref": "Price",
+          "description": "The pre-tax or post-tax price depending on the location of the order."
+        },
+        "remittedTaxAmount": {
+          "$ref": "Price",
+          "description": "Remitted tax value."
+        },
+        "taxAmount": {
+          "$ref": "Price",
+          "description": "Tax value."
         }
       },
       "type": "object"
@@ -7962,7 +7769,7 @@
           "type": "string"
         },
         "locationId": {
-          "description": "The numeric id of a location that the shipping rate applies to as defined in the AdWords API.",
+          "description": "The numeric ID of a location that the shipping rate applies to as defined in the AdWords API.",
           "format": "int64",
           "type": "string"
         },
@@ -8016,7 +7823,7 @@
       "type": "object"
     },
     "ProductStatus": {
-      "description": "The status of a product, i.e., information about a product computed asynchronously by the data quality analysis.",
+      "description": "The status of a product, i.e., information about a product computed asynchronously.",
       "id": "ProductStatus",
       "properties": {
         "creationDate": {
@@ -8055,7 +7862,7 @@
           "type": "string"
         },
         "productId": {
-          "description": "The id of the product for which status is reported.",
+          "description": "The ID of the product for which status is reported.",
           "type": "string"
         },
         "title": {
@@ -8124,7 +7931,7 @@
           "type": "string"
         },
         "locationId": {
-          "description": "The numeric id of a location that the tax rate applies to as defined in the AdWords API.",
+          "description": "The numeric ID of a location that the tax rate applies to as defined in the AdWords API.",
           "format": "int64",
           "type": "string"
         },
@@ -8394,20 +8201,6 @@
       },
       "type": "object"
     },
-    "Promotion": {
-      "id": "Promotion",
-      "properties": {
-        "promotionAmount": {
-          "$ref": "Amount",
-          "description": "[required] Amount of the promotion. The values here are the promotion applied to the unit price pretax and to the total of the tax amounts."
-        },
-        "promotionId": {
-          "description": "[required] ID of the promotion.",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
     "RateGroup": {
       "id": "RateGroup",
       "properties": {
@@ -8459,10 +8252,136 @@
       },
       "type": "object"
     },
+    "RegionalInventory": {
+      "description": "Regional inventory resource. contains the regional name and all attributes which are overridden for the specified region.",
+      "id": "RegionalInventory",
+      "properties": {
+        "availability": {
+          "description": "The availability of the product.",
+          "type": "string"
+        },
+        "customAttributes": {
+          "description": "A list of custom (merchant-provided) attributes. It can also be used for submitting any attribute of the feed specification in its generic form.",
+          "items": {
+            "$ref": "CustomAttribute"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "default": "content#regionalInventory",
+          "description": "Identifies what kind of resource this is. Value: the fixed string \"content#regionalInventory\".",
+          "type": "string"
+        },
+        "price": {
+          "$ref": "Price",
+          "description": "The price of the product."
+        },
+        "regionId": {
+          "description": "The ID (name) of the region.",
+          "type": "string"
+        },
+        "salePrice": {
+          "$ref": "Price",
+          "description": "The sale price of the product. Mandatory if sale_price_effective_date is defined."
+        },
+        "salePriceEffectiveDate": {
+          "description": "A date range represented by a pair of ISO 8601 dates separated by a space, comma, or slash. Both dates might be specified as 'null' if undecided.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "RegionalinventoryCustomBatchRequest": {
+      "id": "RegionalinventoryCustomBatchRequest",
+      "properties": {
+        "entries": {
+          "description": "The request entries to be processed in the batch.",
+          "items": {
+            "$ref": "RegionalinventoryCustomBatchRequestEntry"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "RegionalinventoryCustomBatchRequestEntry": {
+      "description": "A batch entry encoding a single non-batch regional inventory request.",
+      "id": "RegionalinventoryCustomBatchRequestEntry",
+      "properties": {
+        "batchId": {
+          "description": "An entry ID, unique within the batch request.",
+          "format": "uint32",
+          "type": "integer"
+        },
+        "merchantId": {
+          "description": "The ID of the managing account.",
+          "format": "uint64",
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "productId": {
+          "description": "The ID of the product for which to update price and availability.",
+          "type": "string"
+        },
+        "regionalInventory": {
+          "$ref": "RegionalInventory",
+          "description": "Price and availability of the product."
+        }
+      },
+      "type": "object"
+    },
+    "RegionalinventoryCustomBatchResponse": {
+      "id": "RegionalinventoryCustomBatchResponse",
+      "properties": {
+        "entries": {
+          "description": "The result of the execution of the batch requests.",
+          "items": {
+            "$ref": "RegionalinventoryCustomBatchResponseEntry"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "default": "content#regionalinventoryCustomBatchResponse",
+          "description": "Identifies what kind of resource this is. Value: the fixed string \"content#regionalinventoryCustomBatchResponse\".",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "RegionalinventoryCustomBatchResponseEntry": {
+      "description": "A batch entry encoding a single non-batch regional inventory response.",
+      "id": "RegionalinventoryCustomBatchResponseEntry",
+      "properties": {
+        "batchId": {
+          "description": "The ID of the request entry this entry responds to.",
+          "format": "uint32",
+          "type": "integer"
+        },
+        "errors": {
+          "$ref": "Errors",
+          "description": "A list of errors defined if and only if the request failed."
+        },
+        "kind": {
+          "default": "content#regionalinventoryCustomBatchResponseEntry",
+          "description": "Identifies what kind of resource this is. Value: the fixed string \"content#regionalinventoryCustomBatchResponseEntry\".",
+          "type": "string"
+        },
+        "regionalInventory": {
+          "$ref": "RegionalInventory",
+          "description": "Price and availability of the product."
+        }
+      },
+      "type": "object"
+    },
     "ReturnShipment": {
       "id": "ReturnShipment",
       "properties": {
         "creationDate": {
+          "type": "string"
+        },
+        "deliveryDate": {
           "type": "string"
         },
         "returnMethodType": {
@@ -8476,6 +8395,12 @@
             "$ref": "ShipmentTrackingInfo"
           },
           "type": "array"
+        },
+        "shippingDate": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
         }
       },
       "type": "object"
@@ -8549,7 +8474,7 @@
           "type": "array"
         },
         "shipmentGroupId": {
-          "description": "[required] ID of the shipment group.",
+          "description": "[required] ID of the shipment group. It is assigned by the merchant in the shipLineItems method and is used to group multiple line items that have the same kind of shipping charges.",
           "type": "string"
         }
       },
@@ -8567,7 +8492,7 @@
           "type": "string"
         },
         "shipmentUnitIds": {
-          "description": "[required] Unit IDs to define specific units within the line item.",
+          "description": "[required] The shipment unit ID is assigned by the merchant and defines individual quantities within a line item. The same ID can be assigned to units that are the same while units that differ must be assigned a different ID (for example: free or promotional units).",
           "items": {
             "type": "string"
           },
@@ -8788,15 +8713,6 @@
     "TestOrder": {
       "id": "TestOrder",
       "properties": {
-        "customer": {
-          "$ref": "TestOrderCustomer",
-          "annotations": {
-            "required": [
-              "content.orders.createtestorder"
-            ]
-          },
-          "description": "The details of the customer who placed the order."
-        },
         "enableOrderinvoices": {
           "description": "Whether the orderinvoices service should support this order.",
           "type": "boolean"
@@ -8840,6 +8756,15 @@
           "description": "Identifier of one of the predefined delivery addresses for the delivery.",
           "type": "string"
         },
+        "predefinedEmail": {
+          "annotations": {
+            "required": [
+              "content.orders.createtestorder"
+            ]
+          },
+          "description": "Email address of the customer.",
+          "type": "string"
+        },
         "promotions": {
           "description": "Promotions associated with the order.",
           "items": {
@@ -8854,16 +8779,7 @@
               "content.orders.createtestorder"
             ]
           },
-          "description": "The total cost of shipping for all items."
-        },
-        "shippingCostTax": {
-          "$ref": "Price",
-          "annotations": {
-            "required": [
-              "content.orders.createtestorder"
-            ]
-          },
-          "description": "The tax for the total shipping cost."
+          "description": "The price of shipping for all items. Shipping tax is automatically calculated for MFL orders. For non-MFL orders, tax settings from Merchant Center are applied. Note that shipping is not taxed in certain states."
         },
         "shippingOption": {
           "annotations": {
@@ -8872,38 +8788,6 @@
             ]
           },
           "description": "The requested shipping option.",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "TestOrderCustomer": {
-      "id": "TestOrderCustomer",
-      "properties": {
-        "email": {
-          "description": "Deprecated.",
-          "type": "string"
-        },
-        "fullName": {
-          "description": "Full name of the customer.",
-          "type": "string"
-        },
-        "marketingRightsInfo": {
-          "$ref": "TestOrderCustomerMarketingRightsInfo",
-          "description": "Customer's marketing preferences."
-        }
-      },
-      "type": "object"
-    },
-    "TestOrderCustomerMarketingRightsInfo": {
-      "id": "TestOrderCustomerMarketingRightsInfo",
-      "properties": {
-        "explicitMarketingPreference": {
-          "description": "Last know user use selection regards marketing preferences. In certain cases selection might not be known, so this field would be empty.",
-          "type": "string"
-        },
-        "lastUpdatedTimestamp": {
-          "description": "Timestamp when last time marketing preference was updated. Could be empty, if user wasn't offered a selection yet.",
           "type": "string"
         }
       },
@@ -8943,15 +8827,6 @@
             ]
           },
           "description": "Details of the requested shipping for the line item."
-        },
-        "unitTax": {
-          "$ref": "Price",
-          "annotations": {
-            "required": [
-              "content.orders.createtestorder"
-            ]
-          },
-          "description": "Unit tax for the line item."
         }
       },
       "type": "object"
@@ -8966,15 +8841,6 @@
             ]
           },
           "description": "Brand of the item.",
-          "type": "string"
-        },
-        "channel": {
-          "annotations": {
-            "required": [
-              "content.orders.createtestorder"
-            ]
-          },
-          "description": "The item's channel.",
           "type": "string"
         },
         "condition": {
@@ -8994,6 +8860,13 @@
           },
           "description": "The two-letter ISO 639-1 language code for the item.",
           "type": "string"
+        },
+        "fees": {
+          "description": "Fees for the item. Optional.",
+          "items": {
+            "$ref": "OrderLineItemProductFee"
+          },
+          "type": "array"
         },
         "gtin": {
           "description": "Global Trade Item Number (GTIN) of the item. Optional.",
@@ -9032,7 +8905,7 @@
               "content.orders.createtestorder"
             ]
           },
-          "description": "The price for the product."
+          "description": "The price for the product. Tax is automatically calculated for MFL orders. For non-MFL orders, tax settings from Merchant Center are applied."
         },
         "targetCountry": {
           "annotations": {
@@ -9062,6 +8935,60 @@
       },
       "type": "object"
     },
+    "TransitTable": {
+      "id": "TransitTable",
+      "properties": {
+        "postalCodeGroupNames": {
+          "description": "A list of postal group names. The last value can be \"all other locations\". Example: [\"zone 1\", \"zone 2\", \"all other locations\"]. The referred postal code groups must match the delivery country of the service.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "rows": {
+          "items": {
+            "$ref": "TransitTableTransitTimeRow"
+          },
+          "type": "array"
+        },
+        "transitTimeLabels": {
+          "description": "A list of transit time labels. The last value can be \"all other labels\". Example: [\"food\", \"electronics\", \"all other labels\"].",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "TransitTableTransitTimeRow": {
+      "id": "TransitTableTransitTimeRow",
+      "properties": {
+        "values": {
+          "items": {
+            "$ref": "TransitTableTransitTimeRowTransitTimeValue"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "TransitTableTransitTimeRowTransitTimeValue": {
+      "id": "TransitTableTransitTimeRowTransitTimeValue",
+      "properties": {
+        "maxTransitTimeInDays": {
+          "description": "Must be greater than or equal to minTransitTimeInDays.",
+          "format": "uint32",
+          "type": "integer"
+        },
+        "minTransitTimeInDays": {
+          "description": "Transit time range (min-max) in business days. 0 means same day delivery, 1 means next day delivery.",
+          "format": "uint32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "UnitInvoice": {
       "id": "UnitInvoice",
       "properties": {
@@ -9072,16 +8999,9 @@
           },
           "type": "array"
         },
-        "promotions": {
-          "description": "Promotions applied to a unit.",
-          "items": {
-            "$ref": "Promotion"
-          },
-          "type": "array"
-        },
-        "unitPricePretax": {
+        "unitPrice": {
           "$ref": "Price",
-          "description": "[required] Price of the unit, before applying taxes."
+          "description": "[required] Pre-tax or post-tax price of the unit depending on the locality of the order."
         },
         "unitPriceTaxes": {
           "description": "Tax amounts to apply to the unit price.",
@@ -9099,13 +9019,6 @@
         "additionalChargeAmount": {
           "$ref": "Amount",
           "description": "[required] Amount of the additional charge."
-        },
-        "additionalChargePromotions": {
-          "description": "Promotions applied to the additional charge.",
-          "items": {
-            "$ref": "Promotion"
-          },
-          "type": "array"
         },
         "type": {
           "description": "[required] Type of the additional charge.",

@@ -246,7 +246,7 @@ func TestClusterDeviceSourceAlloc(t *testing.T) {
 
 		sort.Strings(dtest)
 		sort.Strings(dtest2)
-		for i, _ := range dtest {
+		for i := range dtest {
 			tests.Assert(t, dtest[i] == dtest2[i],
 				"expected dtest[i] == dtest2[i], got",
 				dtest[i], dtest2[i], "@", i)

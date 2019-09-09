@@ -39,6 +39,17 @@ func TestRemoteSubnetSupport(t *testing.T) {
 	}
 }
 
+func TestHostRouteSupport(t *testing.T) {
+	supportedFeatures := GetSupportedFeatures()
+	err := HostRouteSupported()
+	if supportedFeatures.HostRoute && err != nil {
+		t.Fatal(err)
+	}
+	if !supportedFeatures.HostRoute && err == nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDSRSupport(t *testing.T) {
 	supportedFeatures := GetSupportedFeatures()
 	err := DSRSupported()

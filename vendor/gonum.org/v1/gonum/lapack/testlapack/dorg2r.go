@@ -5,7 +5,6 @@
 package testlapack
 
 import (
-	"fmt"
 	"testing"
 
 	"golang.org/x/exp/rand"
@@ -20,7 +19,7 @@ type Dorg2rer interface {
 
 func Dorg2rTest(t *testing.T, impl Dorg2rer) {
 	rnd := rand.New(rand.NewSource(1))
-	for _, test := range []struct {
+	for ti, test := range []struct {
 		m, n, k, lda int
 	}{
 		{3, 3, 0, 0},
@@ -39,42 +38,42 @@ func Dorg2rTest(t *testing.T, impl Dorg2rer) {
 		if lda == 0 {
 			lda = test.n
 		}
+		// Allocate m×n matrix A and fill it with random numbers.
 		a := make([]float64, m*lda)
 		for i := range a {
 			a[i] = rnd.NormFloat64()
 		}
-		k := min(m, n)
-		tau := make([]float64, k)
+
+		// Compute the QR decomposition of A.
+		tau := make([]float64, min(m, n))
 		work := make([]float64, 1)
 		impl.Dgeqrf(m, n, a, lda, tau, work, -1)
 		work = make([]float64, int(work[0]))
 		impl.Dgeqrf(m, n, a, lda, tau, work, len(work))
 
-		k = test.k
+		// Compute the matrix Q explicitly using the first k elementary reflectors.
+		k := test.k
 		if k == 0 {
 			k = n
 		}
 		q := constructQK("QR", m, n, k, a, lda, tau)
 
+		// Compute the matrix Q using Dorg2r.
 		impl.Dorg2r(m, n, k, a, lda, tau, work)
 
-		// Check that the first n columns match.
+		// Check that the first n columns of both results match.
 		same := true
+	loop:
 		for i := 0; i < m; i++ {
 			for j := 0; j < n; j++ {
 				if !floats.EqualWithinAbsOrRel(q.Data[i*q.Stride+j], a[i*lda+j], 1e-12, 1e-12) {
 					same = false
-					break
+					break loop
 				}
 			}
 		}
 		if !same {
-			fmt.Println()
-			fmt.Println("a =")
-			printRowise(a, m, n, lda, false)
-			fmt.Println("q =")
-			printRowise(q.Data, q.Rows, q.Cols, q.Stride, false)
-			t.Errorf("Q mismatch")
+			t.Errorf("Case %v: Q mismatch", ti)
 		}
 	}
 }

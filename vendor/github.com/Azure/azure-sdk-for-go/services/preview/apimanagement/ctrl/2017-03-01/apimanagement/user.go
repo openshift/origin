@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -42,6 +43,16 @@ func NewUserClient() UserClient {
 // UID - user identifier. Must be unique in the current API Management service instance.
 // parameters - create or update parameters.
 func (client UserClient) CreateOrUpdate(ctx context.Context, apimBaseURL string, UID string, parameters UserCreateParameters) (result UserContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: UID,
 			Constraints: []validation.Constraint{{Target: "UID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -112,8 +123,8 @@ func (client UserClient) CreateOrUpdatePreparer(ctx context.Context, apimBaseURL
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -139,6 +150,16 @@ func (client UserClient) CreateOrUpdateResponder(resp *http.Response) (result Us
 // deleteSubscriptions - whether to delete user's subscription or not.
 // notify - send an Account Closed Email notification to the User.
 func (client UserClient) Delete(ctx context.Context, apimBaseURL string, UID string, ifMatch string, deleteSubscriptions string, notify string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: UID,
 			Constraints: []validation.Constraint{{Target: "UID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -205,8 +226,8 @@ func (client UserClient) DeletePreparer(ctx context.Context, apimBaseURL string,
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -228,6 +249,16 @@ func (client UserClient) DeleteResponder(resp *http.Response) (result autorest.R
 // https://myapimservice.management.azure-api.net.
 // UID - user identifier. Must be unique in the current API Management service instance.
 func (client UserClient) GenerateSsoURL(ctx context.Context, apimBaseURL string, UID string) (result GenerateSsoURLResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserClient.GenerateSsoURL")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: UID,
 			Constraints: []validation.Constraint{{Target: "UID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -283,8 +314,8 @@ func (client UserClient) GenerateSsoURLPreparer(ctx context.Context, apimBaseURL
 // GenerateSsoURLSender sends the GenerateSsoURL request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserClient) GenerateSsoURLSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GenerateSsoURLResponder handles the response to the GenerateSsoURL request. The method always
@@ -306,6 +337,16 @@ func (client UserClient) GenerateSsoURLResponder(resp *http.Response) (result Ge
 // https://myapimservice.management.azure-api.net.
 // UID - user identifier. Must be unique in the current API Management service instance.
 func (client UserClient) Get(ctx context.Context, apimBaseURL string, UID string) (result UserContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: UID,
 			Constraints: []validation.Constraint{{Target: "UID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -361,8 +402,8 @@ func (client UserClient) GetPreparer(ctx context.Context, apimBaseURL string, UI
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -385,6 +426,16 @@ func (client UserClient) GetResponder(resp *http.Response) (result UserContract,
 // UID - user identifier. Must be unique in the current API Management service instance.
 // parameters - create Authorization Token parameters.
 func (client UserClient) GetSharedAccessToken(ctx context.Context, apimBaseURL string, UID string, parameters UserTokenParameters) (result UserTokenResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserClient.GetSharedAccessToken")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: UID,
 			Constraints: []validation.Constraint{{Target: "UID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -444,8 +495,8 @@ func (client UserClient) GetSharedAccessTokenPreparer(ctx context.Context, apimB
 // GetSharedAccessTokenSender sends the GetSharedAccessToken request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserClient) GetSharedAccessTokenSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSharedAccessTokenResponder handles the response to the GetSharedAccessToken request. The method always
@@ -477,6 +528,16 @@ func (client UserClient) GetSharedAccessTokenResponder(resp *http.Response) (res
 // top - number of records to return.
 // skip - number of records to skip.
 func (client UserClient) List(ctx context.Context, apimBaseURL string, filter string, top *int32, skip *int32) (result UserCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserClient.List")
+		defer func() {
+			sc := -1
+			if result.uc.Response.Response != nil {
+				sc = result.uc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -540,8 +601,8 @@ func (client UserClient) ListPreparer(ctx context.Context, apimBaseURL string, f
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -558,8 +619,8 @@ func (client UserClient) ListResponder(resp *http.Response) (result UserCollecti
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client UserClient) listNextResults(lastResults UserCollection) (result UserCollection, err error) {
-	req, err := lastResults.userCollectionPreparer()
+func (client UserClient) listNextResults(ctx context.Context, lastResults UserCollection) (result UserCollection, err error) {
+	req, err := lastResults.userCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.UserClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -580,6 +641,16 @@ func (client UserClient) listNextResults(lastResults UserCollection) (result Use
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client UserClient) ListComplete(ctx context.Context, apimBaseURL string, filter string, top *int32, skip *int32) (result UserCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, apimBaseURL, filter, top, skip)
 	return
 }
@@ -593,6 +664,16 @@ func (client UserClient) ListComplete(ctx context.Context, apimBaseURL string, f
 // ifMatch - the entity state (Etag) version of the user to update. A value of "*" can be used for If-Match to
 // unconditionally apply the operation.
 func (client UserClient) Update(ctx context.Context, apimBaseURL string, UID string, parameters UserUpdateParameters, ifMatch string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: UID,
 			Constraints: []validation.Constraint{{Target: "UID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -651,8 +732,8 @@ func (client UserClient) UpdatePreparer(ctx context.Context, apimBaseURL string,
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

@@ -116,7 +116,7 @@ func (cc *CertificateController) Run(workers int, stopCh <-chan struct{}) {
 
 	csrsuicider.DieOnCertChange(stopCh)
 
-	if !controller.WaitForCacheSync("certificate", stopCh, cc.csrsSynced) {
+	if !cache.WaitForNamedCacheSync("certificate", stopCh, cc.csrsSynced) {
 		return
 	}
 

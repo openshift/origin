@@ -24,8 +24,8 @@ type Categorical struct {
 	//
 	// Each element holds the sum of weights for
 	// the corresponding index, plus the sum of
-	// of its children's weights; the children
-	// of an element i can be found at positions
+	// its children's weights; the children of
+	// an element i can be found at positions
 	// 2*(i+1)-1 and 2*(i+1). The root of the
 	// weight heap is at element 0.
 	//

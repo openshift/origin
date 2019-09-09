@@ -6,7 +6,10 @@ package distuv
 
 import (
 	"math"
+	"sort"
 	"testing"
+
+	"golang.org/x/exp/rand"
 )
 
 func TestHalfKStandardWeibullProb(t *testing.T) {
@@ -206,4 +209,36 @@ func TestWeibullScore(t *testing.T) {
 	} {
 		testDerivParam(t, test)
 	}
+}
+
+func TestWeibull(t *testing.T) {
+	src := rand.New(rand.NewSource(1))
+	for i, dist := range []Weibull{
+		{K: 1, Lambda: 1, Src: src},
+		{K: 2, Lambda: 3.6, Src: src},
+		{K: 3.4, Lambda: 8, Src: src},
+	} {
+		testWeibull(t, dist, i)
+	}
+}
+
+func testWeibull(t *testing.T, dist Weibull, i int) {
+	const (
+		tol  = 1e-2
+		n    = 3e6
+		bins = 50
+	)
+	x := make([]float64, n)
+	generateSamples(x, dist)
+	sort.Float64s(x)
+
+	checkMean(t, i, x, dist, tol)
+	checkVarAndStd(t, i, x, dist, tol)
+	checkEntropy(t, i, x, dist, tol)
+	checkExKurtosis(t, i, x, dist, tol)
+	checkSkewness(t, i, x, dist, tol)
+	checkMedian(t, i, x, dist, tol)
+	checkQuantileCDFSurvival(t, i, x, dist, tol)
+	checkProbContinuous(t, i, x, dist, 1e-10)
+	checkProbQuantContinuous(t, i, x, dist, tol)
 }

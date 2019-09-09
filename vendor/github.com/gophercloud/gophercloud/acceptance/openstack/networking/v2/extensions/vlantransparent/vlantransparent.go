@@ -81,7 +81,7 @@ func CreateVLANTransparentNetwork(t *testing.T, client *gophercloud.ServiceClien
 func UpdateVLANTransparentNetwork(t *testing.T, client *gophercloud.ServiceClient, networkID string) (*VLANTransparentNetwork, error) {
 	networkName := tools.RandomString("TESTACC-NEW-", 6)
 	networkUpdateOpts := networks.UpdateOpts{
-		Name: networkName,
+		Name: &networkName,
 	}
 
 	iFalse := false

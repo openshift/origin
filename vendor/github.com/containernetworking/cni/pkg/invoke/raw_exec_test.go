@@ -16,6 +16,7 @@ package invoke_test
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"os"
 
@@ -34,6 +35,7 @@ var _ = Describe("RawExec", func() {
 		environ       []string
 		stdin         []byte
 		execer        *invoke.RawExec
+		ctx           context.Context
 	)
 
 	const reportResult = `{ "some": "result" }`
@@ -58,8 +60,9 @@ var _ = Describe("RawExec", func() {
 			"CNI_PATH=/some/bin/path",
 			"CNI_IFNAME=some-eth0",
 		}
-		stdin = []byte(`{"some":"stdin-json", "cniVersion": "0.3.1"}`)
+		stdin = []byte(`{"name": "raw-exec-test", "some":"stdin-json", "cniVersion": "0.3.1"}`)
 		execer = &invoke.RawExec{}
+		ctx = context.TODO()
 	})
 
 	AfterEach(func() {
@@ -67,7 +70,7 @@ var _ = Describe("RawExec", func() {
 	})
 
 	It("runs the plugin with the given stdin and environment", func() {
-		_, err := execer.ExecPlugin(pathToPlugin, stdin, environ)
+		_, err := execer.ExecPlugin(ctx, pathToPlugin, stdin, environ)
 		Expect(err).NotTo(HaveOccurred())
 
 		debug, err := noop_debug.ReadDebug(debugFileName)
@@ -78,7 +81,7 @@ var _ = Describe("RawExec", func() {
 	})
 
 	It("returns the resulting stdout as bytes", func() {
-		resultBytes, err := execer.ExecPlugin(pathToPlugin, stdin, environ)
+		resultBytes, err := execer.ExecPlugin(ctx, pathToPlugin, stdin, environ)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(resultBytes).To(BeEquivalentTo(reportResult))
@@ -93,7 +96,7 @@ var _ = Describe("RawExec", func() {
 		})
 
 		It("forwards any stderr bytes to the Stderr writer", func() {
-			_, err := execer.ExecPlugin(pathToPlugin, stdin, environ)
+			_, err := execer.ExecPlugin(ctx, pathToPlugin, stdin, environ)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(stderrBuffer.String()).To(Equal("some stderr message"))
@@ -107,7 +110,7 @@ var _ = Describe("RawExec", func() {
 		})
 
 		It("wraps and returns the error", func() {
-			_, err := execer.ExecPlugin(pathToPlugin, stdin, environ)
+			_, err := execer.ExecPlugin(ctx, pathToPlugin, stdin, environ)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError("banana"))
 		})
@@ -115,7 +118,7 @@ var _ = Describe("RawExec", func() {
 
 	Context("when the system is unable to execute the plugin", func() {
 		It("returns the error", func() {
-			_, err := execer.ExecPlugin("/tmp/some/invalid/plugin/path", stdin, environ)
+			_, err := execer.ExecPlugin(ctx, "/tmp/some/invalid/plugin/path", stdin, environ)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(ContainSubstring("/tmp/some/invalid/plugin/path")))
 		})

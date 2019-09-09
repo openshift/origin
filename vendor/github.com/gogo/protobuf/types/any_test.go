@@ -59,7 +59,12 @@ func TestIs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if Is(a, &pb.DescriptorProto{}) {
+		// No spurious match for message names of different length.
 		t.Error("FileDescriptorProto is not a DescriptorProto, but Is says it is")
+	}
+	if Is(a, &pb.EnumDescriptorProto{}) {
+		// No spurious match for message names of equal length.
+		t.Error("FileDescriptorProto is not an EnumDescriptorProto, but Is says it is")
 	}
 	if !Is(a, &pb.FileDescriptorProto{}) {
 		t.Error("FileDescriptorProto is indeed a FileDescriptorProto, but Is says it is not")
@@ -71,6 +76,21 @@ func TestIsDifferentUrlPrefixes(t *testing.T) {
 	a := &Any{TypeUrl: "foo/bar/" + proto.MessageName(m)}
 	if !Is(a, m) {
 		t.Errorf("message with type url %q didn't satisfy Is for type %q", a.TypeUrl, proto.MessageName(m))
+	}
+}
+
+func TestIsCornerCases(t *testing.T) {
+	m := &pb.FileDescriptorProto{}
+	if Is(nil, m) {
+		t.Errorf("message with nil type url incorrectly claimed to be %q", proto.MessageName(m))
+	}
+	noPrefix := &Any{TypeUrl: proto.MessageName(m)}
+	if Is(noPrefix, m) {
+		t.Errorf("message with type url %q incorrectly claimed to be %q", noPrefix.TypeUrl, proto.MessageName(m))
+	}
+	shortPrefix := &Any{TypeUrl: "/" + proto.MessageName(m)}
+	if !Is(shortPrefix, m) {
+		t.Errorf("message with type url %q didn't satisfy Is for type %q", shortPrefix.TypeUrl, proto.MessageName(m))
 	}
 }
 
@@ -108,5 +128,26 @@ func TestEmpty(t *testing.T) {
 	a.TypeUrl = "type.googleapis.com/google.protobuf.TestAny"
 	if _, err := EmptyAny(a); err == nil {
 		t.Errorf("got no error for an attempt to create a message of type %q, which shouldn't be linked in", a.TypeUrl)
+	}
+}
+
+func TestEmptyCornerCases(t *testing.T) {
+	_, err := EmptyAny(nil)
+	if err == nil {
+		t.Error("expected Empty for nil to fail")
+	}
+	want := &pb.FileDescriptorProto{}
+	noPrefix := &Any{TypeUrl: proto.MessageName(want)}
+	_, err = EmptyAny(noPrefix)
+	if err == nil {
+		t.Errorf("expected Empty for any type %q to fail", noPrefix.TypeUrl)
+	}
+	shortPrefix := &Any{TypeUrl: "/" + proto.MessageName(want)}
+	got, err := EmptyAny(shortPrefix)
+	if err != nil {
+		t.Errorf("Empty for any type %q failed: %s", shortPrefix.TypeUrl, err)
+	}
+	if !proto.Equal(got, want) {
+		t.Errorf("Empty for any type %q differs, got %q, want %q", shortPrefix.TypeUrl, got, want)
 	}
 }

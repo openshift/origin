@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -60,10 +61,10 @@ func TestAdmissionPlugin_Validate(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.tcName, func(t *testing.T) {
-			err := newAdmissionPlugin().Validate(admission.NewAttributesRecord(
+			err := newAdmissionPlugin().Validate(context.TODO(), admission.NewAttributesRecord(
 				nil, nil, schema.GroupVersionKind{}, "",
 				tc.name, schema.GroupVersionResource{Group: tc.group, Resource: tc.resource},
-				"", admission.Delete, false, nil), nil)
+				"", admission.Delete, nil, false, nil), nil)
 			if tc.denyDelete != (err != nil) {
 				t.Error(tc.denyDelete, err)
 			}

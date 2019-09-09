@@ -102,12 +102,23 @@ func (lrt *LogRoundTripper) logResponse(original io.ReadCloser, contentType stri
 // formatJSON will try to pretty-format a JSON body.
 // It will also mask known fields which contain sensitive information.
 func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
-	var data map[string]interface{}
+	var rawData interface{}
 
-	err := json.Unmarshal(raw, &data)
+	err := json.Unmarshal(raw, &rawData)
 	if err != nil {
 		log.Printf("[DEBUG] Unable to parse OpenStack JSON: %s", err)
 		return string(raw)
+	}
+
+	data, ok := rawData.(map[string]interface{})
+	if !ok {
+		pretty, err := json.MarshalIndent(rawData, "", "  ")
+		if err != nil {
+			log.Printf("[DEBUG] Unable to re-marshal OpenStack JSON: %s", err)
+			return string(raw)
+		}
+
+		return string(pretty)
 	}
 
 	// Mask known password fields
@@ -117,6 +128,12 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 				if v, ok := v["user"].(map[string]interface{}); ok {
 					v["password"] = "***"
 				}
+			}
+			if v, ok := v["application_credential"].(map[string]interface{}); ok {
+				v["secret"] = "***"
+			}
+			if v, ok := v["token"].(map[string]interface{}); ok {
+				v["id"] = "***"
 			}
 		}
 	}

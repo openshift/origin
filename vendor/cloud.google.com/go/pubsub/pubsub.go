@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,15 +15,17 @@
 package pubsub // import "cloud.google.com/go/pubsub"
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 	"os"
+	"runtime"
+	"time"
 
+	"cloud.google.com/go/internal/version"
+	vkit "cloud.google.com/go/pubsub/apiv1"
 	"google.golang.org/api/option"
-	raw "google.golang.org/api/pubsub/v1"
-	"google.golang.org/api/transport"
-
-	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 const (
@@ -34,103 +36,74 @@ const (
 	// ScopeCloudPlatform grants permissions to view and manage your data
 	// across Google Cloud Platform services.
 	ScopeCloudPlatform = "https://www.googleapis.com/auth/cloud-platform"
+
+	maxAckDeadline = 10 * time.Minute
 )
 
-const prodAddr = "https://pubsub.googleapis.com/"
-const userAgent = "gcloud-golang-pubsub/20151008"
-
-// Client is a Google Pub/Sub client, which may be used to perform Pub/Sub operations with a project.
-// It must be constructed via NewClient.
+// Client is a Google Pub/Sub client scoped to a single project.
+//
+// Clients should be reused rather than being created as needed.
+// A Client may be shared by multiple goroutines.
 type Client struct {
 	projectID string
-	s         service
+	pubc      *vkit.PublisherClient
+	subc      *vkit.SubscriberClient
 }
 
 // NewClient creates a new PubSub client.
-func NewClient(ctx context.Context, projectID string, opts ...option.ClientOption) (*Client, error) {
+func NewClient(ctx context.Context, projectID string, opts ...option.ClientOption) (c *Client, err error) {
 	var o []option.ClientOption
 	// Environment variables for gcloud emulator:
-	// https://option.google.com/sdk/gcloud/reference/beta/emulators/pubsub/
+	// https://cloud.google.com/sdk/gcloud/reference/beta/emulators/pubsub/
 	if addr := os.Getenv("PUBSUB_EMULATOR_HOST"); addr != "" {
-		o = []option.ClientOption{
-			option.WithEndpoint("http://" + addr + "/"),
-			option.WithHTTPClient(http.DefaultClient),
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			return nil, fmt.Errorf("grpc.Dial: %v", err)
 		}
+		o = []option.ClientOption{option.WithGRPCConn(conn)}
 	} else {
 		o = []option.ClientOption{
-			option.WithEndpoint(prodAddr),
-			option.WithScopes(raw.PubsubScope, raw.CloudPlatformScope),
-			option.WithUserAgent(userAgent),
+			// Create multiple connections to increase throughput.
+			option.WithGRPCConnectionPool(runtime.GOMAXPROCS(0)),
+			option.WithGRPCDialOption(grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time: 5 * time.Minute,
+			})),
 		}
+		o = append(o, openCensusOptions()...)
 	}
 	o = append(o, opts...)
-	httpClient, endpoint, err := transport.NewHTTPClient(ctx, o...)
+	pubc, err := vkit.NewPublisherClient(ctx, o...)
 	if err != nil {
-		return nil, fmt.Errorf("dialing: %v", err)
+		return nil, fmt.Errorf("pubsub: %v", err)
 	}
-
-	s, err := newPubSubService(httpClient, endpoint)
+	subc, err := vkit.NewSubscriberClient(ctx, option.WithGRPCConn(pubc.Connection()))
 	if err != nil {
-		return nil, fmt.Errorf("constructing pubsub client: %v", err)
+		// Should never happen, since we are passing in the connection.
+		// If it does, we cannot close, because the user may have passed in their
+		// own connection originally.
+		return nil, fmt.Errorf("pubsub: %v", err)
 	}
-
-	c := &Client{
+	pubc.SetGoogleClientInfo("gccl", version.Repo)
+	subc.SetGoogleClientInfo("gccl", version.Repo)
+	return &Client{
 		projectID: projectID,
-		s:         s,
-	}
+		pubc:      pubc,
+		subc:      subc,
+	}, nil
+}
 
-	return c, nil
+// Close releases any resources held by the client,
+// such as memory and goroutines.
+//
+// If the client is available for the lifetime of the program, then Close need not be
+// called at exit.
+func (c *Client) Close() error {
+	// Return the first error, because the first call closes the connection.
+	err := c.pubc.Close()
+	_ = c.subc.Close()
+	return err
 }
 
 func (c *Client) fullyQualifiedProjectName() string {
 	return fmt.Sprintf("projects/%s", c.projectID)
-}
-
-// pageToken stores the next page token for a server response which is split over multiple pages.
-type pageToken struct {
-	tok      string
-	explicit bool
-}
-
-func (pt *pageToken) set(tok string) {
-	pt.tok = tok
-	pt.explicit = true
-}
-
-func (pt *pageToken) get() string {
-	return pt.tok
-}
-
-// more returns whether further pages should be fetched from the server.
-func (pt *pageToken) more() bool {
-	return pt.tok != "" || !pt.explicit
-}
-
-// stringsIterator provides an iterator API for a sequence of API page fetches that return lists of strings.
-type stringsIterator struct {
-	ctx     context.Context
-	strings []string
-	token   pageToken
-	fetch   func(ctx context.Context, tok string) (*stringsPage, error)
-}
-
-// Next returns the next string. If there are no more strings, Done will be returned.
-func (si *stringsIterator) Next() (string, error) {
-	for len(si.strings) == 0 && si.token.more() {
-		page, err := si.fetch(si.ctx, si.token.get())
-		if err != nil {
-			return "", err
-		}
-		si.token.set(page.tok)
-		si.strings = page.strings
-	}
-
-	if len(si.strings) == 0 {
-		return "", Done
-	}
-
-	s := si.strings[0]
-	si.strings = si.strings[1:]
-
-	return s, nil
 }

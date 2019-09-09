@@ -6,7 +6,11 @@ package distuv
 
 import (
 	"math"
+	"sort"
 	"testing"
+
+	"golang.org/x/exp/rand"
+	"gonum.org/v1/gonum/floats"
 )
 
 func TestLaplaceProb(t *testing.T) {
@@ -55,4 +59,97 @@ func TestLaplaceProb(t *testing.T) {
 		},
 	}
 	testDistributionProbs(t, Laplace{Mu: 0, Scale: 1}, "Laplace", pts)
+}
+
+func TestLaplace(t *testing.T) {
+	src := rand.New(rand.NewSource(1))
+	for i, dist := range []Laplace{
+		{Mu: 0, Scale: 3, Src: src},
+		{Mu: 1, Scale: 1.5, Src: src},
+		{Mu: -1, Scale: 0.9, Src: src},
+	} {
+		testLaplace(t, dist, i)
+	}
+}
+
+func testLaplace(t *testing.T, dist Laplace, i int) {
+	const (
+		tol  = 1e-2
+		n    = 3e6
+		bins = 50
+	)
+	x := make([]float64, n)
+	generateSamples(x, dist)
+	sort.Float64s(x)
+
+	checkMean(t, i, x, dist, tol)
+	checkVarAndStd(t, i, x, dist, tol)
+	checkEntropy(t, i, x, dist, tol)
+	checkExKurtosis(t, i, x, dist, tol)
+	checkSkewness(t, i, x, dist, tol)
+	checkMedian(t, i, x, dist, tol)
+	checkQuantileCDFSurvival(t, i, x, dist, tol)
+	checkProbContinuous(t, i, x, dist, 1e-10)
+	checkProbQuantContinuous(t, i, x, dist, tol)
+}
+
+func TestLaplaceFit(t *testing.T) {
+	cases := []struct {
+		samples   []float64
+		weights   []float64
+		wantMu    float64
+		wantScale float64
+	}{
+		{
+			samples:   []float64{10, 1, 1},
+			weights:   nil,
+			wantMu:    1,
+			wantScale: 3,
+		},
+		{
+			samples:   []float64{10, 1, 1},
+			weights:   []float64{10, 10, 10},
+			wantMu:    1,
+			wantScale: 3,
+		},
+		{
+			samples:   []float64{10, 1, 1},
+			weights:   []float64{0, 1, 1},
+			wantMu:    1,
+			wantScale: 0,
+		},
+	}
+	for i, test := range cases {
+		d := Laplace{}
+		d.Fit(test.samples, test.weights)
+		if !floats.EqualWithinAbsOrRel(d.Mu, test.wantMu, 1e-10, 1e-10) {
+			t.Errorf("unexpected location result for test %d: got:%f, want:%f", i, d.Mu, test.wantMu)
+		}
+		if !floats.EqualWithinAbsOrRel(d.Scale, test.wantScale, 1e-10, 1e-10) {
+			t.Errorf("unexpected scale result for test %d: got:%f, want:%f", i, d.Scale, test.wantScale)
+		}
+	}
+}
+
+func TestLaplaceFitRandomSamples(t *testing.T) {
+
+	nSamples := 100000
+	src := rand.New(rand.NewSource(1))
+	l := Laplace{
+		Mu:    3,
+		Scale: 5,
+		Src:   src,
+	}
+	samples := make([]float64, nSamples)
+	for i := range samples {
+		samples[i] = l.Rand()
+	}
+	le := Laplace{}
+	le.Fit(samples, nil)
+	if !floats.EqualWithinAbsOrRel(le.Mu, l.Mu, 1e-2, 1e-2) {
+		t.Errorf("unexpected location result for random test got:%f, want:%f", le.Mu, l.Mu)
+	}
+	if !floats.EqualWithinAbsOrRel(le.Scale, l.Scale, 1e-2, 1e-2) {
+		t.Errorf("unexpected scale result for random test got:%f, want:%f", le.Scale, l.Scale)
+	}
 }

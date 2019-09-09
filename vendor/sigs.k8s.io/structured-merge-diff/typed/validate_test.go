@@ -37,14 +37,24 @@ var validationCases = []validationTestCase{{
 	rootTypeName: "stringPair",
 	schema: `types:
 - name: stringPair
-  struct:
+  map:
     fields:
     - name: key
       type:
         scalar: string
     - name: value
       type:
-        untyped: {}
+        namedType: __untyped_atomic_
+- name: __untyped_atomic_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 `,
 	validObjects: []typed.YAMLObject{
 		`{"key":"foo","value":1}`,
@@ -67,7 +77,7 @@ var validationCases = []validationTestCase{{
 	rootTypeName: "myStruct",
 	schema: `types:
 - name: myStruct
-  struct:
+  map:
     fields:
     - name: numeric
       type:
@@ -153,7 +163,7 @@ var validationCases = []validationTestCase{{
 	rootTypeName: "myRoot",
 	schema: `types:
 - name: myRoot
-  struct:
+  map:
     fields:
     - name: list
       type:
@@ -175,7 +185,7 @@ var validationCases = []validationTestCase{{
       scalar: string
     elementRelationship: atomic
 - name: myElement
-  struct:
+  map:
     fields:
     - name: key
       type:

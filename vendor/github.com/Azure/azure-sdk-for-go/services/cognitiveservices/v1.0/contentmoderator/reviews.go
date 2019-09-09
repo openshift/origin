@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"io"
 	"net/http"
 )
@@ -73,6 +74,16 @@ func NewReviewsClient(endpoint string) ReviewsClient {
 // reviewID - id of the review.
 // timescale - timescale of the video you are adding frames to.
 func (client ReviewsClient) AddVideoFrame(ctx context.Context, teamName string, reviewID string, timescale *int32) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.AddVideoFrame")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.AddVideoFramePreparer(ctx, teamName, reviewID, timescale)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ReviewsClient", "AddVideoFrame", nil, "Failure preparing request")
@@ -121,8 +132,8 @@ func (client ReviewsClient) AddVideoFramePreparer(ctx context.Context, teamName 
 // AddVideoFrameSender sends the AddVideoFrame request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) AddVideoFrameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AddVideoFrameResponder handles the response to the AddVideoFrame request. The method always
@@ -149,6 +160,16 @@ func (client ReviewsClient) AddVideoFrameResponder(resp *http.Response) (result 
 // frameMetadata - metadata of the frame.
 // timescale - timescale of the video .
 func (client ReviewsClient) AddVideoFrameStream(ctx context.Context, contentType string, teamName string, reviewID string, frameImageZip io.ReadCloser, frameMetadata string, timescale *int32) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.AddVideoFrameStream")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.AddVideoFrameStreamPreparer(ctx, contentType, teamName, reviewID, frameImageZip, frameMetadata, timescale)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ReviewsClient", "AddVideoFrameStream", nil, "Failure preparing request")
@@ -204,8 +225,8 @@ func (client ReviewsClient) AddVideoFrameStreamPreparer(ctx context.Context, con
 // AddVideoFrameStreamSender sends the AddVideoFrameStream request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) AddVideoFrameStreamSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AddVideoFrameStreamResponder handles the response to the AddVideoFrameStream request. The method always
@@ -231,6 +252,16 @@ func (client ReviewsClient) AddVideoFrameStreamResponder(resp *http.Response) (r
 // videoFrameBody - body for add video frames API
 // timescale - timescale of the video.
 func (client ReviewsClient) AddVideoFrameURL(ctx context.Context, contentType string, teamName string, reviewID string, videoFrameBody []VideoFrameBodyItem, timescale *int32) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.AddVideoFrameURL")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: videoFrameBody,
 			Constraints: []validation.Constraint{{Target: "videoFrameBody", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -288,8 +319,8 @@ func (client ReviewsClient) AddVideoFrameURLPreparer(ctx context.Context, conten
 // AddVideoFrameURLSender sends the AddVideoFrameURL request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) AddVideoFrameURLSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AddVideoFrameURLResponder handles the response to the AddVideoFrameURL request. The method always
@@ -311,6 +342,16 @@ func (client ReviewsClient) AddVideoFrameURLResponder(resp *http.Response) (resu
 // reviewID - id of the review.
 // vttfile - transcript file of the video.
 func (client ReviewsClient) AddVideoTranscript(ctx context.Context, teamName string, reviewID string, vttfile io.ReadCloser) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.AddVideoTranscript")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.AddVideoTranscriptPreparer(ctx, teamName, reviewID, vttfile)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ReviewsClient", "AddVideoTranscript", nil, "Failure preparing request")
@@ -356,8 +397,8 @@ func (client ReviewsClient) AddVideoTranscriptPreparer(ctx context.Context, team
 // AddVideoTranscriptSender sends the AddVideoTranscript request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) AddVideoTranscriptSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AddVideoTranscriptResponder handles the response to the AddVideoTranscript request. The method always
@@ -381,6 +422,16 @@ func (client ReviewsClient) AddVideoTranscriptResponder(resp *http.Response) (re
 // reviewID - id of the review.
 // transcriptModerationBody - body for add video transcript moderation result API
 func (client ReviewsClient) AddVideoTranscriptModerationResult(ctx context.Context, contentType string, teamName string, reviewID string, transcriptModerationBody []TranscriptModerationBodyItem) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.AddVideoTranscriptModerationResult")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: transcriptModerationBody,
 			Constraints: []validation.Constraint{{Target: "transcriptModerationBody", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -432,8 +483,8 @@ func (client ReviewsClient) AddVideoTranscriptModerationResultPreparer(ctx conte
 // AddVideoTranscriptModerationResultSender sends the AddVideoTranscriptModerationResult request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) AddVideoTranscriptModerationResultSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AddVideoTranscriptModerationResultResponder handles the response to the AddVideoTranscriptModerationResult request. The method always
@@ -506,6 +557,16 @@ func (client ReviewsClient) AddVideoTranscriptModerationResultResponder(resp *ht
 // content - content to evaluate.
 // callBackEndpoint - callback endpoint for posting the create job result.
 func (client ReviewsClient) CreateJob(ctx context.Context, teamName string, contentType string, contentID string, workflowName string, jobContentType string, content Content, callBackEndpoint string) (result JobID, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.CreateJob")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: content,
 			Constraints: []validation.Constraint{{Target: "content.ContentValue", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -566,8 +627,8 @@ func (client ReviewsClient) CreateJobPreparer(ctx context.Context, teamName stri
 // CreateJobSender sends the CreateJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) CreateJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateJobResponder handles the response to the CreateJob request. The method always
@@ -614,6 +675,16 @@ func (client ReviewsClient) CreateJobResponder(resp *http.Response) (result JobI
 // createReviewBody - body for create reviews API
 // subTeam - subTeam of your team, you want to assign the created review to.
 func (client ReviewsClient) CreateReviews(ctx context.Context, URLContentType string, teamName string, createReviewBody []CreateReviewBodyItem, subTeam string) (result ListString, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.CreateReviews")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: createReviewBody,
 			Constraints: []validation.Constraint{{Target: "createReviewBody", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -670,8 +741,8 @@ func (client ReviewsClient) CreateReviewsPreparer(ctx context.Context, URLConten
 // CreateReviewsSender sends the CreateReviews request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) CreateReviewsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateReviewsResponder handles the response to the CreateReviews request. The method always
@@ -718,6 +789,16 @@ func (client ReviewsClient) CreateReviewsResponder(resp *http.Response) (result 
 // createVideoReviewsBody - body for create reviews API
 // subTeam - subTeam of your team, you want to assign the created review to.
 func (client ReviewsClient) CreateVideoReviews(ctx context.Context, contentType string, teamName string, createVideoReviewsBody []CreateVideoReviewsBodyItem, subTeam string) (result ListString, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.CreateVideoReviews")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: createVideoReviewsBody,
 			Constraints: []validation.Constraint{{Target: "createVideoReviewsBody", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -774,8 +855,8 @@ func (client ReviewsClient) CreateVideoReviewsPreparer(ctx context.Context, cont
 // CreateVideoReviewsSender sends the CreateVideoReviews request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) CreateVideoReviewsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateVideoReviewsResponder handles the response to the CreateVideoReviews request. The method always
@@ -796,6 +877,16 @@ func (client ReviewsClient) CreateVideoReviewsResponder(resp *http.Response) (re
 // teamName - your Team Name.
 // jobID - id of the job.
 func (client ReviewsClient) GetJobDetails(ctx context.Context, teamName string, jobID string) (result Job, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.GetJobDetails")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetJobDetailsPreparer(ctx, teamName, jobID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ReviewsClient", "GetJobDetails", nil, "Failure preparing request")
@@ -838,8 +929,8 @@ func (client ReviewsClient) GetJobDetailsPreparer(ctx context.Context, teamName 
 // GetJobDetailsSender sends the GetJobDetails request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) GetJobDetailsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetJobDetailsResponder handles the response to the GetJobDetails request. The method always
@@ -860,6 +951,16 @@ func (client ReviewsClient) GetJobDetailsResponder(resp *http.Response) (result 
 // teamName - your Team Name.
 // reviewID - id of the review.
 func (client ReviewsClient) GetReview(ctx context.Context, teamName string, reviewID string) (result Review, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.GetReview")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetReviewPreparer(ctx, teamName, reviewID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ReviewsClient", "GetReview", nil, "Failure preparing request")
@@ -902,8 +1003,8 @@ func (client ReviewsClient) GetReviewPreparer(ctx context.Context, teamName stri
 // GetReviewSender sends the GetReview request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) GetReviewSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetReviewResponder handles the response to the GetReview request. The method always
@@ -951,6 +1052,16 @@ func (client ReviewsClient) GetReviewResponder(resp *http.Response) (result Revi
 // noOfRecords - number of frames to fetch.
 // filter - get frames filtered by tags.
 func (client ReviewsClient) GetVideoFrames(ctx context.Context, teamName string, reviewID string, startSeed *int32, noOfRecords *int32, filter string) (result Frames, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.GetVideoFrames")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetVideoFramesPreparer(ctx, teamName, reviewID, startSeed, noOfRecords, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ReviewsClient", "GetVideoFrames", nil, "Failure preparing request")
@@ -1005,8 +1116,8 @@ func (client ReviewsClient) GetVideoFramesPreparer(ctx context.Context, teamName
 // GetVideoFramesSender sends the GetVideoFrames request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) GetVideoFramesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetVideoFramesResponder handles the response to the GetVideoFrames request. The method always
@@ -1027,6 +1138,16 @@ func (client ReviewsClient) GetVideoFramesResponder(resp *http.Response) (result
 // teamName - your team name.
 // reviewID - id of the review.
 func (client ReviewsClient) PublishVideoReview(ctx context.Context, teamName string, reviewID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReviewsClient.PublishVideoReview")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.PublishVideoReviewPreparer(ctx, teamName, reviewID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ReviewsClient", "PublishVideoReview", nil, "Failure preparing request")
@@ -1069,8 +1190,8 @@ func (client ReviewsClient) PublishVideoReviewPreparer(ctx context.Context, team
 // PublishVideoReviewSender sends the PublishVideoReview request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReviewsClient) PublishVideoReviewSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // PublishVideoReviewResponder handles the response to the PublishVideoReview request. The method always

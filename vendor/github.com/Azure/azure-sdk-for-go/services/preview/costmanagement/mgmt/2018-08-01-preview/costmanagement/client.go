@@ -25,6 +25,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -59,6 +60,16 @@ func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 // billingAccountID - billingAccount ID
 // parameters - parameters supplied to the CreateOrUpdate Report operation.
 func (client BaseClient) QueryBillingAccount(ctx context.Context, billingAccountID string, parameters ReportDefinition) (result QueryResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.QueryBillingAccount")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Type", Name: validation.Null, Rule: true, Chain: nil},
@@ -137,8 +148,8 @@ func (client BaseClient) QueryBillingAccountPreparer(ctx context.Context, billin
 // QueryBillingAccountSender sends the QueryBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) QueryBillingAccountSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // QueryBillingAccountResponder handles the response to the QueryBillingAccount request. The method always
@@ -159,6 +170,16 @@ func (client BaseClient) QueryBillingAccountResponder(resp *http.Response) (resu
 // resourceGroupName - azure Resource Group Name.
 // parameters - parameters supplied to the CreateOrUpdate Report operation.
 func (client BaseClient) QueryResourceGroup(ctx context.Context, resourceGroupName string, parameters ReportDefinition) (result QueryResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.QueryResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Type", Name: validation.Null, Rule: true, Chain: nil},
@@ -238,8 +259,8 @@ func (client BaseClient) QueryResourceGroupPreparer(ctx context.Context, resourc
 // QueryResourceGroupSender sends the QueryResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) QueryResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // QueryResourceGroupResponder handles the response to the QueryResourceGroup request. The method always
@@ -259,6 +280,16 @@ func (client BaseClient) QueryResourceGroupResponder(resp *http.Response) (resul
 // Parameters:
 // parameters - parameters supplied to the CreateOrUpdate Report operation.
 func (client BaseClient) QuerySubscription(ctx context.Context, parameters ReportDefinition) (result QueryResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.QuerySubscription")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Type", Name: validation.Null, Rule: true, Chain: nil},
@@ -337,8 +368,8 @@ func (client BaseClient) QuerySubscriptionPreparer(ctx context.Context, paramete
 // QuerySubscriptionSender sends the QuerySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) QuerySubscriptionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // QuerySubscriptionResponder handles the response to the QuerySubscription request. The method always
