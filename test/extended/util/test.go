@@ -362,6 +362,7 @@ var (
 			`\[Feature:DynamicAudit\]`,     // off by default.  sig-master
 
 			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
+			`\[Feature:IPv6DualStack.*\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -376,6 +377,9 @@ var (
 			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
 			`\[Feature:CustomResourceWebhookConversion\]`, // webhook conversion is off by default.  sig-master/@sttts
 
+			`NetworkPolicy.*egress`,     // not supported
+			`NetworkPolicy.*named port`, // not yet implemented
+			`enforce egress policy`,     // not support
 			`should proxy to cadvisor`, // we don't expose cAdvisor port directly for security reasons
 		},
 		// tests that rely on special configuration that we do not yet support
