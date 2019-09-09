@@ -158,10 +158,12 @@ func SSH(cmd, host, provider string) (Result, error) {
 	// defaulting here as well for logging clarity.
 	result.User = os.Getenv("KUBE_SSH_USER")
 	if result.User == "" {
+		fmt.Println("getting user from USER env")
 		result.User = os.Getenv("USER")
 	}
 
 	if bastion := os.Getenv("KUBE_SSH_BASTION"); len(bastion) > 0 {
+		fmt.Printf("SSH about to call RunSSHCommandViaBastion, bastion %v, user %v, host %v", bastion, result.User, host)
 		stdout, stderr, code, err := RunSSHCommandViaBastion(cmd, result.User, bastion, host, signer)
 		result.Stdout = stdout
 		result.Stderr = stderr
@@ -169,6 +171,7 @@ func SSH(cmd, host, provider string) (Result, error) {
 		return result, err
 	}
 
+	fmt.Printf("SSH about to call RunSSHCommand, user %v, host %v", result.User, host)
 	stdout, stderr, code, err := sshutil.RunSSHCommand(cmd, result.User, host, signer)
 	result.Stdout = stdout
 	result.Stderr = stderr

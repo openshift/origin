@@ -650,6 +650,7 @@ func ListPodVolumePluginDirectory(c clientset.Interface, pod *v1.Pod) (mounts []
 	}
 	nodeIP = nodeIP + ":22"
 
+	fmt.Printf("ListPodVolumePluginDirectory about to call listPodDirectory, nodeIP %v", nodeIP)
 	mounts, err = listPodDirectory(nodeIP, mountPath)
 	if err != nil {
 		return nil, nil, err
