@@ -133,9 +133,9 @@ const (
 )
 
 type UpdateOpts struct {
-	Op    UpdateOp `json:"op" required:"true"`
-	Path  string   `json:"path" required:"true"`
-	Value string   `json:"value,omitempty"`
+	Op    UpdateOp    `json:"op" required:"true"`
+	Path  string      `json:"path" required:"true"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 // UpdateOptsBuilder allows extensions to add additional parameters to the

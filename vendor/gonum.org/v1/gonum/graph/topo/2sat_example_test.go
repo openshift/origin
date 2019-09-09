@@ -123,7 +123,7 @@ func twoSat(r io.Reader) (state map[string]bool, ok bool) {
 		// Check for tautology.
 		if variables[0].negated().ID() == variables[1].ID() {
 			for _, v := range variables {
-				if !g.Has(v.ID()) {
+				if g.Node(v.ID()) == nil {
 					g.AddNode(v)
 				}
 			}
@@ -131,8 +131,8 @@ func twoSat(r io.Reader) (state map[string]bool, ok bool) {
 		}
 
 		// Add implications to the graph.
-		g.SetEdge(simple.Edge{variables[0].negated(), variables[1]})
-		g.SetEdge(simple.Edge{variables[1].negated(), variables[0]})
+		g.SetEdge(simple.Edge{F: variables[0].negated(), T: variables[1]})
+		g.SetEdge(simple.Edge{F: variables[1].negated(), T: variables[0]})
 	}
 
 	// Find implication inconsistencies.

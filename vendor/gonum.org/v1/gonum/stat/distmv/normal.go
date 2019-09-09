@@ -71,7 +71,7 @@ func NewNormal(mu []float64, sigma mat.Symmetric, src rand.Source) (*Normal, boo
 // panics if len(mu) is not equal to chol.Size().
 func NewNormalChol(mu []float64, chol *mat.Cholesky, src rand.Source) *Normal {
 	dim := len(mu)
-	if dim != chol.Size() {
+	if dim != chol.Symmetric() {
 		panic(badSizeMismatch)
 	}
 	n := &Normal{
@@ -198,7 +198,7 @@ func NormalLogProb(x, mu []float64, chol *mat.Cholesky) float64 {
 	if len(x) != dim {
 		panic(badSizeMismatch)
 	}
-	if chol.Size() != dim {
+	if chol.Symmetric() != dim {
 		panic(badSizeMismatch)
 	}
 	logSqrtDet := 0.5 * chol.LogDet()
@@ -302,7 +302,7 @@ func (n *Normal) Rand(x []float64) []float64 {
 // available. Otherwise, the NewNormal function should be used.
 func NormalRand(x, mean []float64, chol *mat.Cholesky, src rand.Source) []float64 {
 	x = reuseAs(x, len(mean))
-	if len(mean) != chol.Size() {
+	if len(mean) != chol.Symmetric() {
 		panic(badInputLength)
 	}
 	if src == nil {
@@ -343,7 +343,7 @@ func (n *Normal) ScoreInput(score, x []float64) []float64 {
 	copy(tmp, x)
 	floats.Sub(tmp, n.mu)
 
-	n.chol.SolveVec(mat.NewVecDense(len(score), score), mat.NewVecDense(len(tmp), tmp))
+	n.chol.SolveVecTo(mat.NewVecDense(len(score), score), mat.NewVecDense(len(tmp), tmp))
 	floats.Scale(-1, score)
 	return score
 }

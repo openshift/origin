@@ -7,6 +7,9 @@
 // Ensure changes made to blas/cgo are reflected in blas/native where relevant.
 
 /*
+This repository is no longer maintained.
+Development has moved to https://github.com/gonum/gonum.
+
 Package cgo provides bindings to a C BLAS library. This wrapper interface
 panics when the input arguments are invalid as per the standard, for example
 if a vector increment is zero. Please note that the treatment of NaN values

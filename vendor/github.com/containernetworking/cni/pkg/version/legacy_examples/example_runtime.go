@@ -139,7 +139,7 @@ func (c *ExampleNetConf) Cleanup() {
 }
 
 // V010_Runtime creates a simple noop network configuration, then
-// executes libcni against the the noop test plugin.
+// executes libcni against the noop test plugin.
 var V010_Runtime = ExampleRuntime{
 	NetConfs: []string{"unversioned", "0.1.0"},
 	Example: Example{
@@ -150,10 +150,8 @@ var V010_Runtime = ExampleRuntime{
 import (
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 
-	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/containernetworking/cni/libcni"
 )
 
@@ -181,19 +179,10 @@ func exec() int {
 		return 1
 	}
 
-	targetNs, err := ns.NewNS()
-	if err !=  nil {
-		fmt.Printf("Could not create ns: %+v", err)
-		return 1
-	}
-	defer targetNs.Close()
-
-	ifName := "eth0"
-
 	runtimeConf := &libcni.RuntimeConf{
 		ContainerID: "some-container-id",
-		NetNS:       targetNs.Path(),
-		IfName:      ifName,
+		NetNS:       "/some/netns/path",
+		IfName:      "eth0",
 	}
 
 	cniConfig := &libcni.CNIConfig{Path: os.Args[1:]}
@@ -221,18 +210,6 @@ func exec() int {
 	if err != nil {
 		fmt.Printf("DelNetwork failed: %v", err)
 		return 5
-	}
-
-	err = targetNs.Do(func(ns.NetNS) error {
-		_, err := net.InterfaceByName(ifName)
-		if err == nil {
-			return fmt.Errorf("interface was not deleted")
-		}
-		return nil
-	})
-	if err != nil {
-		fmt.Println(err)
-		return 6
 	}
 
 	return 0

@@ -30,6 +30,9 @@
   "_backup_db_to_kube_secret": "Backup the heketi database to a Kubernetes secret when running in Kubernetes. Default is off.",
   "backup_db_to_kube_secret": false,
 
+  "_profiling": "Enable go/pprof profiling on the /debug/pprof endpoints.",
+  "profiling": false,
+
   "_glusterfs_comment": "GlusterFS Configuration",
   "glusterfs": {
     "_executor_comment": [
@@ -49,7 +52,15 @@
       "user": "sshuser",
       "port": "Optional: ssh port.  Default is 22",
       "fstab": "Optional: Specify fstab file on node.  Default is /etc/fstab",
-      "backup_lvm_metadata": false
+      "pv_data_alignment": "Optional: Specify PV data alignment size. Default is 256K",
+      "vg_physicalextentsize": "Optional: Specify VG physical extent size. Default is 4MB",
+      "lv_chunksize": "Optional: Specify LV chunksize. Default is 256K",
+      "xfs_sw": "Optional: Specify number of data disks in the underlying RAID device",
+      "xfs_su": "Optional: Specifies a stripe unit or RAID chunk size.",
+      "backup_lvm_metadata": false,
+      "gluster_cli_timeout": "Optional: Timeout, in seconds, passed to the gluster cli invocations",
+      "_debug_umount_failures": "Optional: boolean to capture more details in case brick unmounting fails",
+      "debug_umount_failures": true
     },
 
     "_kubeexec_comment": "Kubernetes configuration",
@@ -61,7 +72,15 @@
       "password": "password for kubernetes user",
       "namespace": "OpenShift project or Kubernetes namespace",
       "fstab": "Optional: Specify fstab file on node.  Default is /etc/fstab",
-      "backup_lvm_metadata": false
+      "pv_data_alignment": "Optional: Specify PV data alignment size. Default is 256K",
+      "vg_physicalextentsize": "Optional: Specify VG physical extent size. Default is 4MB",
+      "lv_chunksize": "Optional: Specify LV chunksize. Default is 256K",
+      "xfs_sw": "Optional: Specify number of data disks in the underlying RAID device.",
+      "xfs_su": "Optional: Specifies a stripe unit or RAID chunk size.",
+      "backup_lvm_metadata": false,
+      "gluster_cli_timeout": "Optional: Timeout, in seconds, passed to the gluster cli invocations",
+      "_debug_umount_failures": "Optional: boolean to capture more details in case brick unmounting fails",
+      "debug_umount_failures": true
     },
 
     "_db_comment": "Database file name",

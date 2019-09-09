@@ -18,6 +18,20 @@ func TestQueryParameter(t *testing.T) {
 	}
 }
 
+func TestQueryParameters(t *testing.T) {
+	hreq := http.Request{Method: "GET"}
+	hreq.URL, _ = url.Parse("http://www.google.com/search?q=foo&q=bar")
+	rreq := Request{Request: &hreq}
+	parameters := rreq.QueryParameters("q")
+	if len(parameters) != 2 {
+		t.Fatalf("len(q)!=2 %#v", rreq)
+	} else {
+		if parameters[0] != "foo" || parameters[1] != "bar" {
+			t.Fatalf("invalid content: required [\"foo\" \"bar\", got: %#v", parameters)
+		}
+	}
+}
+
 type Anything map[string]interface{}
 
 type Number struct {

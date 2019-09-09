@@ -113,7 +113,7 @@ func (w *Wishart) LogProbSym(x mat.Symmetric) float64 {
 // LogProbSymChol returns the log of the probability of the input symmetric matrix
 // given its Cholesky decomposition.
 func (w *Wishart) LogProbSymChol(cholX *mat.Cholesky) float64 {
-	dim := cholX.Size()
+	dim := cholX.Symmetric()
 	if dim != w.dim {
 		panic(badDim)
 	}
@@ -132,7 +132,7 @@ func (w *Wishart) logProbSymChol(cholX *mat.Cholesky) float64 {
 	cholX.UTo(&u)
 
 	var vinvx mat.Dense
-	err := w.cholv.Solve(&vinvx, u.T())
+	err := w.cholv.SolveTo(&vinvx, u.T())
 	if err != nil {
 		return math.Inf(-1)
 	}

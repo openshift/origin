@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,13 +8,35 @@
 //
 // This package is DEPRECATED. Use package cloud.google.com/go/texttospeech/apiv1 instead.
 //
-// See https://cloud.google.com/text-to-speech/
+// For product documentation, see: https://cloud.google.com/text-to-speech/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/texttospeech/v1"
 //   ...
-//   texttospeechService, err := texttospeech.New(oauthHttpClient)
+//   ctx := context.Background()
+//   texttospeechService, err := texttospeech.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   texttospeechService, err := texttospeech.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   texttospeechService, err := texttospeech.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package texttospeech // import "google.golang.org/api/texttospeech/v1"
 
 import (
@@ -31,6 +53,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -58,6 +82,32 @@ const (
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -114,7 +164,7 @@ type AudioConfig struct {
 	//   "LINEAR16" - Uncompressed 16-bit signed little-endian samples
 	// (Linear PCM).
 	// Audio content returned as LINEAR16 also contains a WAV header.
-	//   "MP3" - MP3 audio.
+	//   "MP3" - MP3 audio at 32kbps.
 	//   "OGG_OPUS" - Opus encoded audio wrapped in an ogg container. The
 	// result will be a
 	// file which can be played natively on Android, and in browsers (at
@@ -123,6 +173,19 @@ type AudioConfig struct {
 	// higher
 	// than MP3 while using approximately the same bitrate.
 	AudioEncoding string `json:"audioEncoding,omitempty"`
+
+	// EffectsProfileId: An identifier which selects 'audio effects'
+	// profiles that are applied on
+	// (post synthesized) text to speech.
+	// Effects are applied on top of each other in the order they are
+	// given.
+	// See
+	//
+	// [audio-profiles](https:
+	// //cloud.google.com/text-to-speech/
+	// docs/audio-profiles)
+	// for current supported profile ids.
+	EffectsProfileId []string `json:"effectsProfileId,omitempty"`
 
 	// Pitch: Optional speaking pitch, in the range [-20.0, 20.0]. 20 means
 	// increase 20

@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,6 +47,16 @@ func NewJobCancellationsClientWithBaseURI(baseURI string, subscriptionID string)
 // resourceGroupName - the name of the resource group associated with the Recovery Services vault.
 // jobName - name of the job to cancel.
 func (client JobCancellationsClient) Trigger(ctx context.Context, vaultName string, resourceGroupName string, jobName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/JobCancellationsClient.Trigger")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.TriggerPreparer(ctx, vaultName, resourceGroupName, jobName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "backup.JobCancellationsClient", "Trigger", nil, "Failure preparing request")
@@ -92,8 +103,8 @@ func (client JobCancellationsClient) TriggerPreparer(ctx context.Context, vaultN
 // TriggerSender sends the Trigger request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobCancellationsClient) TriggerSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // TriggerResponder handles the response to the Trigger request. The method always

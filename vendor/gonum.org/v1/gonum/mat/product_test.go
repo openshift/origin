@@ -115,7 +115,7 @@ func TestProduct(t *testing.T) {
 
 		want := &Dense{}
 		if !test.panics {
-			a := &Dense{}
+			var a *Dense
 			for i, b := range factors {
 				if i == 0 {
 					want.Clone(b)
@@ -126,7 +126,10 @@ func TestProduct(t *testing.T) {
 			}
 		}
 
-		got := NewDense(test.product.r, test.product.c, nil)
+		got := &Dense{}
+		if test.product.r != 0 && test.product.c != 0 {
+			got = NewDense(test.product.r, test.product.c, nil)
+		}
 		panicked, message := panics(func() {
 			got.Product(factors...)
 		})

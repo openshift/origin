@@ -57,7 +57,6 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 						},
 						Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-							Max:                   utilpointer.Int32Ptr(2),
 							MaxPerCore:            utilpointer.Int32Ptr(1),
 							Min:                   utilpointer.Int32Ptr(1),
 							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
@@ -90,7 +89,6 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 						},
 						Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-							Max:                   utilpointer.Int32Ptr(2),
 							MaxPerCore:            utilpointer.Int32Ptr(1),
 							Min:                   utilpointer.Int32Ptr(1),
 							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
@@ -124,7 +122,6 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 						},
 						Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-							Max:                   utilpointer.Int32Ptr(2),
 							MaxPerCore:            utilpointer.Int32Ptr(1),
 							Min:                   utilpointer.Int32Ptr(1),
 							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
@@ -158,7 +155,6 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 						},
 						Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-							Max:                   utilpointer.Int32Ptr(2),
 							MaxPerCore:            utilpointer.Int32Ptr(1),
 							Min:                   utilpointer.Int32Ptr(1),
 							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
@@ -192,7 +188,6 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 						},
 						Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-							Max:                   utilpointer.Int32Ptr(2),
 							MaxPerCore:            utilpointer.Int32Ptr(1),
 							Min:                   utilpointer.Int32Ptr(1),
 							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
@@ -201,7 +196,7 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 					},
 				},
 			},
-			msg:       "must be a valid CIDR block (e.g. 10.100.0.0/16)",
+			msg:       "must be a valid CIDR block (e.g. 10.100.0.0/16 or FD02::0:0:0/96)",
 			expectErr: true,
 		},
 		{
@@ -226,7 +221,6 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 						},
 						Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-							Max:                   utilpointer.Int32Ptr(2),
 							MaxPerCore:            utilpointer.Int32Ptr(1),
 							Min:                   utilpointer.Int32Ptr(1),
 							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
@@ -260,7 +254,6 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 							MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 						},
 						Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-							Max:                   utilpointer.Int32Ptr(2),
 							MaxPerCore:            utilpointer.Int32Ptr(1),
 							Min:                   utilpointer.Int32Ptr(1),
 							TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
@@ -299,6 +292,8 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 					Kubelet: &kubeletconfig.KubeletConfiguration{
 						CgroupsPerQOS:               true,
 						EnforceNodeAllocatable:      []string{"pods", "system-reserved", "kube-reserved"},
+						SystemReservedCgroup:        "/system.slice",
+						KubeReservedCgroup:          "/kubelet.service",
 						SystemCgroups:               "",
 						CgroupRoot:                  "",
 						EventBurst:                  10,
@@ -320,6 +315,7 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 						RegistryPullQPS:             5,
 						HairpinMode:                 "promiscuous-bridge",
 						NodeLeaseDurationSeconds:    40,
+						TopologyManagerPolicy:       "none",
 					},
 				},
 			},
@@ -351,6 +347,7 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 						ReadOnlyPort:                -10,
 						RegistryBurst:               -10,
 						RegistryPullQPS:             -10,
+						TopologyManagerPolicy:       "",
 					},
 				},
 			},

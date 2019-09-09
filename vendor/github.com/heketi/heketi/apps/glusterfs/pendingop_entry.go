@@ -12,10 +12,12 @@ package glusterfs
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"time"
 
 	"github.com/boltdb/bolt"
 	wdb "github.com/heketi/heketi/pkg/db"
+	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/idgen"
 	"github.com/lpabon/godbc"
 )
@@ -30,8 +32,9 @@ const (
 
 // define constants for OperationStatus
 const (
-	NewOperation   OperationStatus = ""
-	StaleOperation OperationStatus = "stale"
+	NewOperation    OperationStatus = ""
+	StaleOperation  OperationStatus = "stale"
+	FailedOperation OperationStatus = "failed"
 )
 
 var (
@@ -288,6 +291,15 @@ func (p *PendingOperationEntry) RecordRemoveDevice(d *DeviceEntry) {
 	p.Type = OperationRemoveDevice
 }
 
+func (p *PendingOperationEntry) ToInfo() api.PendingOperationInfo {
+	return api.PendingOperationInfo{
+		Id:       p.Id,
+		TypeName: p.Type.Name(),
+		Status:   string(p.Status),
+		// label and substatus must be filled in later
+	}
+}
+
 // PendingOperationUpgrade updates the heketi db with metadata needed to
 // support pending operation entries.
 func PendingOperationUpgrade(tx *bolt.Tx) error {
@@ -345,4 +357,52 @@ func PendingOperationStateCount(tx *bolt.Tx) (map[OperationStatus]int, error) {
 		count[pop.Status] += 1
 	}
 	return count, nil
+}
+
+// PendingOperationEntrySelection returns all pending operation entries in
+// the database that match the selection function `sel`.
+func PendingOperationEntrySelection(
+	tx *bolt.Tx,
+	sel func(*PendingOperationEntry) bool) ([]*PendingOperationEntry, error) {
+
+	selection := []*PendingOperationEntry{}
+	pops, err := PendingOperationList(tx)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range pops {
+		pop, err := NewPendingOperationEntryFromId(tx, id)
+		if err != nil {
+			return nil, err
+		}
+		if sel(pop) {
+			selection = append(selection, pop)
+		}
+	}
+	return selection, nil
+}
+
+func (p *PendingOperationEntry) consistencyCheck(db Db) (response DbEntryCheckResponse) {
+
+	for _, action := range p.Actions {
+		switch action.Change {
+		case OpAddBrick, OpDeleteBrick:
+			if p.Id != db.Bricks[action.Id].Pending.Id {
+				response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("pending op %v id in change missing %v not found in bricks", p.Id, action.Id))
+			}
+		case OpAddVolume, OpDeleteVolume, OpExpandVolume, OpCloneVolume, OpSnapshotVolume, OpAddVolumeClone:
+			if p.Id != db.Volumes[action.Id].Pending.Id {
+				response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("pending op %v id in change missing %v not found in volumes", p.Id, action.Id))
+			}
+		case OpAddBlockVolume, OpDeleteBlockVolume:
+			if p.Id != db.BlockVolumes[action.Id].Pending.Id {
+				response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("pending op %v id in change missing %v not found in blockvolumes", p.Id, action.Id))
+			}
+		case OpRemoveDevice:
+			// This is a noop
+		default:
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Pending Op %v unexpected change type %v", p.Id, action.Change))
+		}
+	}
+	return
 }

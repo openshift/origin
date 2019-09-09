@@ -1,17 +1,30 @@
 # Azure SDK for Go
 
 [![godoc](https://godoc.org/github.com/Azure/azure-sdk-for-go?status.svg)](https://godoc.org/github.com/Azure/azure-sdk-for-go)
+
 [![Build Status](https://travis-ci.org/Azure/azure-sdk-for-go.svg?branch=master)](https://travis-ci.org/Azure/azure-sdk-for-go)
+
+[![Build Status](https://dev.azure.com/azure-sdk/public/_apis/build/status/go/Azure.azure-sdk-for-go?branchName=latest)](https://dev.azure.com/azure-sdk/public/_build/latest?definitionId=640&branchName=latest)
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/Azure/azure-sdk-for-go)](https://goreportcard.com/report/github.com/Azure/azure-sdk-for-go)
 
 azure-sdk-for-go provides Go packages for managing and using Azure services.
-It is continuously tested with Go 1.8, 1.9, 1.10, 1.11 and master.
+It officially supports the last two major releases of Go.  Older versions of
+Go will be kept running in CI until they no longer work due to changes in any
+of the SDK's external dependencies.  The CHANGELOG will be updated when a
+version of Go is removed from CI.
 
 To be notified about updates and changes, subscribe to the [Azure update
 feed](https://azure.microsoft.com/updates/).
 
 Users may prefer to jump right in to our samples repo at
 [github.com/Azure-Samples/azure-sdk-for-go-samples][samples_repo].
+
+Questions and feedback? Chat with us in the **[#Azure SDK
+channel](https://gophers.slack.com/messages/CA7HK8EEP)** on the [Gophers
+Slack](https://gophers.slack.com/). Sign up
+[here](https://invite.slack.golangbridge.org) first if necessary.
+
 
 ## Package Updates
 
@@ -34,7 +47,7 @@ To more reliably manage dependencies like the Azure SDK in your applications we
 recommend [golang/dep](https://github.com/golang/dep).
 
 Packages that are still in public preview can be found under the ./services/preview
-directory.  Please be aware that since these packages are in preview they are subject
+directory. Please be aware that since these packages are in preview they are subject
 to change, including breaking changes outside of a major semver bump.
 
 ## Other Azure Go Packages
@@ -226,41 +239,40 @@ below.
   credentials from an auth file created by the [Azure CLI][]. Follow these
   steps to utilize:
 
-    1. Create a service principal and output an auth file using `az ad sp
-       create-for-rbac --sdk-auth > client_credentials.json`.
-    2. Set environment variable `AZURE_AUTH_LOCATION` to the path of the saved
-       output file.
-    3. Use the authorizer returned by `auth.NewAuthorizerFromFile()` in your
-       client as described above.
-	  
-* The `auth.NewAuthorizerFromCLI()` method creates an authorizer which
+  1. Create a service principal and output an auth file using `az ad sp create-for-rbac --sdk-auth > client_credentials.json`.
+  2. Set environment variable `AZURE_AUTH_LOCATION` to the path of the saved
+     output file.
+  3. Use the authorizer returned by `auth.NewAuthorizerFromFile()` in your
+     client as described above.
+
+- The `auth.NewAuthorizerFromCLI()` method creates an authorizer which
   uses [Azure CLI][] to obtain its credentials. To use this method follow
   these steps:
-  
-    1. Install [Azure CLI v2.0.12](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) or later. Upgrade earlier versions.
-    2. Use `az login` to sign in to Azure.
-  
+
+  1. Install [Azure CLI v2.0.12](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) or later. Upgrade earlier versions.
+  2. Use `az login` to sign in to Azure.
+
   If you receive an error, use `az account get-access-token` to verify access.
-  
-  If Azure CLI is not installed to the default directory, you may receive an error 
+
+  If Azure CLI is not installed to the default directory, you may receive an error
   reporting that `az` cannot be found.  
   Use the `AzureCLIPath` environment variable to define the Azure CLI installation folder.
-  
-  If you are signed in to Azure CLI using multiple accounts or your account has 
-  access to multiple subscriptions, you need to specify the specific subscription 
-  to be used.  To do so, use:
-  
+
+  If you are signed in to Azure CLI using multiple accounts or your account has
+  access to multiple subscriptions, you need to specify the specific subscription
+  to be used. To do so, use:
+
   ```
   az account set --subscription <subscription-id>
   ```
-  
+
   To verify the current account settings, use:
-  
+
   ```
   az account list
   ```
-  
-[Azure CLI]: https://github.com/Azure/azure-cli
+
+[azure cli]: https://github.com/Azure/azure-cli
 
 - Finally, you can use OAuth's [Device Flow][] by calling
   `auth.NewDeviceFlowConfig()` and extracting the Authorizer as follows:
@@ -296,11 +308,11 @@ import (
 ```
 
 Occasionally service-side changes require major changes to existing versions.
-These cases are noted in the changelog.
+These cases are noted in the changelog, and for this reason `Service API versions`
+cannot be used alone to ensure backwards compatibility.
 
 All available services and versions are listed under the `services/` path in
-this repo and in [GoDoc][services_godoc].  Run `find ./services -type d
--mindepth 3` to list all available service packages.
+this repo and in [GoDoc][services_godoc]. Run `find ./services -type d -mindepth 3` to list all available service packages.
 
 [services_godoc]: https://godoc.org/github.com/Azure/azure-sdk-for-go/services
 
@@ -321,13 +333,14 @@ import "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/network/mgmt/netwo
 import "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
 ```
 
-The 2017-03-09 profile is the only one currently available and is for use in
-hybrid Azure and Azure Stack environments. More profiles are under development.
+The following profiles are available for hybrid Azure and Azure Stack environments.
+- 2017-03-09
+- 2018-03-01
 
 In addition to versioned profiles, we also provide two special profiles
-`latest` and `preview`. These _always_ include the most recent respective stable or
-preview API versions for each service, even when updating them to do so causes
-breaking changes. That is, these do _not_ adhere to semantic versioning rules.
+`latest` and `preview`. The `latest` profile contains the latest API version
+of each service, excluding any preview versions and/or content.  The `preview`
+profile is similar to the `latest` profile but includes preview API versions.
 
 The `latest` and `preview` profiles can help you stay up to date with API
 updates as you build applications. Since they are by definition not stable,
@@ -343,7 +356,52 @@ import "github.com/Azure/azure-sdk-for-go/profiles/latest/compute/mgmt/compute"
 import "github.com/Azure/azure-sdk-for-go/profiles/preview/compute/mgmt/compute"
 ```
 
+### Avoiding Breaking Changes
+
+To avoid breaking changes, when specifying imports you should specify a `Service API Version` or `Profile`, as well as lock (using [dep](https://github.com/golang/dep) and soon with [Go Modules](https://github.com/golang/go/wiki/Modules)) to a specific SDK version.
+
+For example, in your source code imports, use a `Service API Version` (`2017-12-01`):
+
+```go
+import "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2017-12-01/compute"
+```
+
+or `Profile` version (`2017-03-09`):
+
+```go
+import "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/compute/mgmt/compute"
+```
+
+As well as, for dep, a `Gopkg.toml` file with:
+
+```toml
+[[constraint]]
+  name = "github.com/Azure/azure-sdk-for-go"
+  version = "21.0.0"
+```
+
+Combined, these techniques will ensure that breaking changes should not occur. If you are extra sensitive to changes, adding an additional [version pin](https://golang.github.io/dep/docs/Gopkg.toml.html#version-rules) in your SDK Version should satisfy your needs:
+
+```toml
+[[constraint]]
+  name = "github.com/Azure/azure-sdk-for-go"
+  version = "=21.3.0"
+```
+
 ## Inspecting and Debugging
+
+### Built-in Basic Request/Response Logging
+
+Starting with `go-autorest v10.15.0` you can enable basic logging of requests and responses through setting environment variables.
+Setting `AZURE_GO_SDK_LOG_LEVEL` to `INFO` will log request/response without their bodies. To include the bodies set the log level to `DEBUG`.
+
+By default the logger writes to strerr, however it can also write to stdout or a file
+if specified in `AZURE_GO_SDK_LOG_FILE`. Note that if the specified file already exists it will be truncated.
+
+**IMPORTANT:** by default the logger will redact the Authorization and Ocp-Apim-Subscription-Key
+headers. Any other secrets will _not_ be redacted.
+
+### Writing Custom Request/Response Inspectors
 
 All clients implement some handy hooks to help inspect the underlying requests being made to Azure.
 
@@ -387,6 +445,80 @@ func LogResponse() autorest.RespondDecorator {
 	}
 }
 ```
+
+## Tracing and Metrics
+
+All packages and the runtime are instrumented using [OpenCensus](https://opencensus.io/).
+
+### Enable
+
+As of now, tracing is disabled by default. There are 2 ways to enable tracing:
+
+- set the environment variable `AZURE_SDK_TRACING_ENABLED` (_Recommended_)
+- alternatively, import the `github.com/Azure/go-autorest/tracing` package and call the `tracing.Enable()` function or `tracing.EnableWithAIForwarding()` if using the [App Insights Forwarder](https://docs.microsoft.com/en-us/azure/application-insights/opencensus-local-forwarder).
+
+**Note**: In future major releases of the SDK, tracing may become enabled by default.
+
+### Usage
+
+Once enabled, all SDK calls will emit traces and metrics and the traces will correlate the SDK calls with the raw http calls made to Azure API's. To consume those traces, if are not doing it yet, you need to register an exporter of your choice such as [Azure App Insights](https://docs.microsoft.com/en-us/azure/application-insights/opencensus-local-forwarder) or [Zipkin](https://opencensus.io/quickstart/go/tracing/#exporting-traces).
+
+To correlate the SDK calls between them and with the rest of your code, pass in a context that has a span initiated using the [opencensus-go library](https://github.com/census-instrumentation/opencensus-go) using the `trace.Startspan(ctx context.Context, name string, o ...StartOption)` function. Here is an example:
+
+```go
+func doAzureCalls() {
+    // The resulting context will be initialized with a root span as the context passed to
+    // trace.StartSpan() has no existing span.
+    ctx, span := trace.StartSpan(context.Background(),"doAzureCalls", trace.WithSampler(trace.AlwaysSample()))
+    defer span.End()
+
+    // The traces from the SDK calls will be correlated under the span inside the context that is passed in.
+    zone, _ := zonesClient.CreateOrUpdate(ctx, rg, zoneName, dns.Zone{Location: to.StringPtr("global")}, "", "")
+    zone, _ = zonesClient.Get(ctx, rg, *zone.Name)
+    for i := 0; i < rrCount; i++ {
+        rr, _ := recordsClient.CreateOrUpdate(ctx, rg, zoneName, fmt.Sprintf("rr%d", i), dns.CNAME, rdSet{
+            RecordSetProperties: &dns.RecordSetProperties{
+                TTL: to.Int64Ptr(3600),
+                CnameRecord: &dns.CnameRecord{
+                    Cname: to.StringPtr("vladdbCname"),
+                },
+            },
+        },
+            "",
+            "",
+        )
+    }
+}
+```
+
+## Request Retry Policy
+
+The SDK provides a baked in retry policy for failed requests with default values that can be configured.
+Each [client](https://godoc.org/github.com/Azure/go-autorest/autorest#Client) object contains the follow fields.
+- `RetryAttempts` - the number of times to retry a failed request
+- `RetryDuration` - the duration to wait between retries
+
+For async operations the follow values are also used.
+- `PollingDelay` - the duration to wait between polling requests
+- `PollingDuration` - the total time to poll an async request before timing out
+
+Please see the [documentation](https://godoc.org/github.com/Azure/go-autorest/autorest#pkg-constants) for the default values used.
+
+Changing one or more values will affect all subsequet API calls.
+
+The default policy is to call `autorest.DoRetryForStatusCodes()` from an API's `Sender` method.  Example:
+```go
+func (client OperationsClient) ListSender(req *http.Request) (*http.Response, error) {
+    return autorest.SendWithSender(client, req,
+        autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+```
+
+Details on how `autorest.DoRetryforStatusCodes()` works can be found in the [documentation](https://godoc.org/github.com/Azure/go-autorest/autorest#DoRetryForStatusCodes).
+
+It is not possible to change the invoked retry policy without writing a custom `Sender` and its calling code.
+
+The `PollingDelay` and `PollingDuration` values are used exclusively by [WaitForCompletionRef()](https://godoc.org/github.com/Azure/go-autorest/autorest/azure#Future.WaitForCompletionRef) when blocking on an async call until it completes.
 
 # Resources
 

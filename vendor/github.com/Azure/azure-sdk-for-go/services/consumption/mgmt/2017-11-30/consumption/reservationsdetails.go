@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewReservationsDetailsClientWithBaseURI(baseURI string, subscriptionID stri
 // filter - filter reservation details by date range. The properties/UsageDate for start date and end date. The
 // filter supports 'le' and  'ge'
 func (client ReservationsDetailsClient) List(ctx context.Context, scope string, filter string) (result ReservationDetailsListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReservationsDetailsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListPreparer(ctx, scope, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.ReservationsDetailsClient", "List", nil, "Failure preparing request")
@@ -92,8 +103,8 @@ func (client ReservationsDetailsClient) ListPreparer(ctx context.Context, scope 
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReservationsDetailsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always

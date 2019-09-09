@@ -100,6 +100,23 @@ func TestCreateServer(t *testing.T) {
 	th.CheckDeepEquals(t, ServerDerp, *actual)
 }
 
+func TestCreateServers(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleServersCreationSuccessfully(t, SingleServerBody)
+
+	actual, err := servers.Create(client.ServiceClient(), servers.CreateOpts{
+		Name:      "derp",
+		ImageRef:  "f90f6034-2570-4974-8351-6b49732ef2eb",
+		FlavorRef: "1",
+		Min:       3,
+		Max:       3,
+	}).Extract()
+	th.AssertNoErr(t, err)
+
+	th.CheckDeepEquals(t, ServerDerp, *actual)
+}
+
 func TestCreateServerWithCustomField(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -549,4 +566,30 @@ func TestMarshalPersonality(t *testing.T) {
 	if actual[0]["contents"] != base64.StdEncoding.EncodeToString(contents) {
 		t.Fatal("file contents incorrect")
 	}
+}
+
+func TestCreateServerWithTags(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleServerWithTagsCreationSuccessfully(t)
+
+	c := client.ServiceClient()
+	c.Microversion = "2.52"
+
+	tags := []string{"foo", "bar"}
+	createOpts := servers.CreateOpts{
+		Name:      "derp",
+		ImageRef:  "f90f6034-2570-4974-8351-6b49732ef2eb",
+		FlavorRef: "1",
+		Tags:      tags,
+	}
+	res := servers.Create(c, createOpts)
+	th.AssertNoErr(t, res.Err)
+	actualServer, err := res.Extract()
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, ServerDerp, *actualServer)
+
+	actualTags, err := res.ExtractTags()
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, tags, actualTags)
 }

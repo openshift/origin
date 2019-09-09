@@ -43,7 +43,7 @@ func (in *Group) DeepCopyObject() runtime.Object {
 func (in *GroupList) DeepCopyInto(out *GroupList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Group, len(*in))
@@ -110,7 +110,7 @@ func (in *Identity) DeepCopyObject() runtime.Object {
 func (in *IdentityList) DeepCopyInto(out *IdentityList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Identity, len(*in))
@@ -227,7 +227,7 @@ func (in *UserIdentityMapping) DeepCopyObject() runtime.Object {
 func (in *UserList) DeepCopyInto(out *UserList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]User, len(*in))

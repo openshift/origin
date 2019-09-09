@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,19 +49,21 @@ func NewAssetFiltersClientWithBaseURI(baseURI string, subscriptionID string) Ass
 // filterName - the Asset Filter name
 // parameters - the request parameters
 func (client AssetFiltersClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, accountName string, assetName string, filterName string, parameters AssetFilter) (result AssetFilter, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetFiltersClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.FilterProperties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.FilterProperties.PresentationTimeRange", Name: validation.Null, Rule: false,
-					Chain: []validation.Constraint{{Target: "parameters.FilterProperties.PresentationTimeRange.StartTimestamp", Name: validation.Null, Rule: true, Chain: nil},
-						{Target: "parameters.FilterProperties.PresentationTimeRange.EndTimestamp", Name: validation.Null, Rule: true, Chain: nil},
-						{Target: "parameters.FilterProperties.PresentationTimeRange.PresentationWindowDuration", Name: validation.Null, Rule: true, Chain: nil},
-						{Target: "parameters.FilterProperties.PresentationTimeRange.LiveBackoffDuration", Name: validation.Null, Rule: true, Chain: nil},
-						{Target: "parameters.FilterProperties.PresentationTimeRange.Timescale", Name: validation.Null, Rule: true, Chain: nil},
-						{Target: "parameters.FilterProperties.PresentationTimeRange.ForceEndTimestamp", Name: validation.Null, Rule: true, Chain: nil},
-					}},
-					{Target: "parameters.FilterProperties.FirstQuality", Name: validation.Null, Rule: false,
-						Chain: []validation.Constraint{{Target: "parameters.FilterProperties.FirstQuality.Bitrate", Name: validation.Null, Rule: true, Chain: nil}}},
+				Chain: []validation.Constraint{{Target: "parameters.FilterProperties.FirstQuality", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.FilterProperties.FirstQuality.Bitrate", Name: validation.Null, Rule: true, Chain: nil}}},
 				}}}}}); err != nil {
 		return result, validation.NewError("media.AssetFiltersClient", "CreateOrUpdate", err.Error())
 	}
@@ -114,8 +117,8 @@ func (client AssetFiltersClient) CreateOrUpdatePreparer(ctx context.Context, res
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetFiltersClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -138,6 +141,16 @@ func (client AssetFiltersClient) CreateOrUpdateResponder(resp *http.Response) (r
 // assetName - the Asset name.
 // filterName - the Asset Filter name
 func (client AssetFiltersClient) Delete(ctx context.Context, resourceGroupName string, accountName string, assetName string, filterName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetFiltersClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, accountName, assetName, filterName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.AssetFiltersClient", "Delete", nil, "Failure preparing request")
@@ -185,8 +198,8 @@ func (client AssetFiltersClient) DeletePreparer(ctx context.Context, resourceGro
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetFiltersClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -208,6 +221,16 @@ func (client AssetFiltersClient) DeleteResponder(resp *http.Response) (result au
 // assetName - the Asset name.
 // filterName - the Asset Filter name
 func (client AssetFiltersClient) Get(ctx context.Context, resourceGroupName string, accountName string, assetName string, filterName string) (result AssetFilter, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetFiltersClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, accountName, assetName, filterName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.AssetFiltersClient", "Get", nil, "Failure preparing request")
@@ -255,8 +278,8 @@ func (client AssetFiltersClient) GetPreparer(ctx context.Context, resourceGroupN
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetFiltersClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -278,6 +301,16 @@ func (client AssetFiltersClient) GetResponder(resp *http.Response) (result Asset
 // accountName - the Media Services account name.
 // assetName - the Asset name.
 func (client AssetFiltersClient) List(ctx context.Context, resourceGroupName string, accountName string, assetName string) (result AssetFilterCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetFiltersClient.List")
+		defer func() {
+			sc := -1
+			if result.afc.Response.Response != nil {
+				sc = result.afc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, accountName, assetName)
 	if err != nil {
@@ -325,8 +358,8 @@ func (client AssetFiltersClient) ListPreparer(ctx context.Context, resourceGroup
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetFiltersClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -343,8 +376,8 @@ func (client AssetFiltersClient) ListResponder(resp *http.Response) (result Asse
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client AssetFiltersClient) listNextResults(lastResults AssetFilterCollection) (result AssetFilterCollection, err error) {
-	req, err := lastResults.assetFilterCollectionPreparer()
+func (client AssetFiltersClient) listNextResults(ctx context.Context, lastResults AssetFilterCollection) (result AssetFilterCollection, err error) {
+	req, err := lastResults.assetFilterCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "media.AssetFiltersClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -365,6 +398,16 @@ func (client AssetFiltersClient) listNextResults(lastResults AssetFilterCollecti
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AssetFiltersClient) ListComplete(ctx context.Context, resourceGroupName string, accountName string, assetName string) (result AssetFilterCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetFiltersClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, resourceGroupName, accountName, assetName)
 	return
 }
@@ -377,6 +420,16 @@ func (client AssetFiltersClient) ListComplete(ctx context.Context, resourceGroup
 // filterName - the Asset Filter name
 // parameters - the request parameters
 func (client AssetFiltersClient) Update(ctx context.Context, resourceGroupName string, accountName string, assetName string, filterName string, parameters AssetFilter) (result AssetFilter, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetFiltersClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, accountName, assetName, filterName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.AssetFiltersClient", "Update", nil, "Failure preparing request")
@@ -426,8 +479,8 @@ func (client AssetFiltersClient) UpdatePreparer(ctx context.Context, resourceGro
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetFiltersClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

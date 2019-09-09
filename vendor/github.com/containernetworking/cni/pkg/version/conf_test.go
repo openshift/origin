@@ -32,7 +32,7 @@ var _ = Describe("Decoding the version of network config", func() {
 		configBytes = []byte(`{ "cniVersion": "4.3.2" }`)
 	})
 
-	Context("when the version is explict", func() {
+	Context("when the version is explicit", func() {
 		It("returns the version", func() {
 			version, err := decoder.Decode(configBytes)
 			Expect(err).NotTo(HaveOccurred())

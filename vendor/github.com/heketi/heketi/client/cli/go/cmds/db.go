@@ -19,6 +19,8 @@ func init() {
 	RootCmd.AddCommand(dbCommand)
 	dbCommand.AddCommand(dumpDbCommand)
 	dumpDbCommand.SilenceUsage = true
+	dbCommand.AddCommand(checkDbCommand)
+	checkDbCommand.SilenceUsage = true
 }
 
 var dbCommand = &cobra.Command{
@@ -44,6 +46,28 @@ var dumpDbCommand = &cobra.Command{
 		}
 
 		fmt.Fprintf(stdout, dump)
+
+		return nil
+	},
+}
+
+var checkDbCommand = &cobra.Command{
+	Use:     "check",
+	Short:   "checks the db and provides a summary in json format",
+	Long:    "checks the db and provides a summary in json format",
+	Example: "  $ heketi-cli db check",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
+
+		checkResponse, err := heketi.DbCheck()
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintf(stdout, checkResponse)
 
 		return nil
 	},

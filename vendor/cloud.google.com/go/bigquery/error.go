@@ -1,4 +1,4 @@
-// Copyright 2015 Google Inc. All Rights Reserved.
+// Copyright 2015 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 )
 
 // An Error contains detailed information about a failed bigquery operation.
+// Detailed description of possible Reasons can be found here: https://cloud.google.com/bigquery/troubleshooting-errors.
 type Error struct {
 	// Mirrors bq.ErrorProto, but drops DebugInfo
 	Location, Message, Reason string
@@ -30,7 +31,7 @@ func (e Error) Error() string {
 	return fmt.Sprintf("{Location: %q; Message: %q; Reason: %q}", e.Location, e.Message, e.Reason)
 }
 
-func errorFromErrorProto(ep *bq.ErrorProto) *Error {
+func bqToError(ep *bq.ErrorProto) *Error {
 	if ep == nil {
 		return nil
 	}

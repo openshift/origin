@@ -16,6 +16,19 @@ import (
 	"gonum.org/v1/gonum/optimize/functions"
 )
 
+type functionThresholdConverger struct {
+	Threshold float64
+}
+
+func (functionThresholdConverger) Init(dim int) {}
+
+func (f functionThresholdConverger) Converged(loc *Location) Status {
+	if loc.F < f.Threshold {
+		return FunctionThreshold
+	}
+	return NotTerminated
+}
+
 type cmaTestCase struct {
 	dim      int
 	problem  Problem
@@ -41,7 +54,7 @@ func cmaTestCases() []cmaTestCase {
 				StopLogDet: math.NaN(),
 			},
 			settings: &Settings{
-				FunctionThreshold: 0.01,
+				Converger: functionThresholdConverger{0.01},
 			},
 			good: func(result *Result, err error, concurrent int) error {
 				if result.Status != FunctionThreshold {
@@ -62,7 +75,7 @@ func cmaTestCases() []cmaTestCase {
 			},
 			method: &CmaEsChol{},
 			settings: &Settings{
-				FunctionThreshold: math.Inf(-1),
+				Converger: NeverTerminate{},
 			},
 			good: func(result *Result, err error, concurrent int) error {
 				if result.Status != MethodConverge {
@@ -86,8 +99,8 @@ func cmaTestCases() []cmaTestCase {
 				ForgetBest: true, // Otherwise may get an update at the end.
 			},
 			settings: &Settings{
-				FunctionThreshold: math.Inf(-1),
-				MajorIterations:   10,
+				MajorIterations: 10,
+				Converger:       NeverTerminate{},
 			},
 			good: func(result *Result, err error, concurrent int) error {
 				if result.Status != IterationLimit {
@@ -115,8 +128,8 @@ func cmaTestCases() []cmaTestCase {
 				Population: 100,
 			},
 			settings: &Settings{
-				FunctionThreshold: math.Inf(-1),
-				FuncEvaluations:   250, // Somewhere in the middle of an iteration.
+				FuncEvaluations: 250, // Somewhere in the middle of an iteration.
+				Converger:       NeverTerminate{},
 			},
 			good: func(result *Result, err error, concurrent int) error {
 				if result.Status != FunctionEvaluationLimit {
@@ -146,7 +159,7 @@ func cmaTestCases() []cmaTestCase {
 				Population: 100, // Increase the population size to reduce noise.
 			},
 			settings: &Settings{
-				FunctionThreshold: math.Inf(-1),
+				Converger: NeverTerminate{},
 			},
 			good: func(result *Result, err error, concurrent int) error {
 				if result.Status != MethodConverge {
@@ -171,7 +184,7 @@ func cmaTestCases() []cmaTestCase {
 				ForgetBest:   true, // So that if it accidentally finds a better place we still converge to the minimum.
 			},
 			settings: &Settings{
-				FunctionThreshold: math.Inf(-1),
+				Converger: NeverTerminate{},
 			},
 			good: func(result *Result, err error, concurrent int) error {
 				if result.Status != MethodConverge {

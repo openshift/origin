@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
 // resourceProviderNamespace - the resource provider namespace for the feature.
 // featureName - the name of the feature to get.
 func (client Client) Get(ctx context.Context, resourceProviderNamespace string, featureName string) (result Result, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceProviderNamespace, featureName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "features.Client", "Get", nil, "Failure preparing request")
@@ -92,8 +103,8 @@ func (client Client) GetPreparer(ctx context.Context, resourceProviderNamespace 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -113,6 +124,16 @@ func (client Client) GetResponder(resp *http.Response) (result Result, err error
 // Parameters:
 // resourceProviderNamespace - the namespace of the resource provider for getting features.
 func (client Client) List(ctx context.Context, resourceProviderNamespace string) (result OperationsListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.List")
+		defer func() {
+			sc := -1
+			if result.olr.Response.Response != nil {
+				sc = result.olr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceProviderNamespace)
 	if err != nil {
@@ -158,8 +179,8 @@ func (client Client) ListPreparer(ctx context.Context, resourceProviderNamespace
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -176,8 +197,8 @@ func (client Client) ListResponder(resp *http.Response) (result OperationsListRe
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client Client) listNextResults(lastResults OperationsListResult) (result OperationsListResult, err error) {
-	req, err := lastResults.operationsListResultPreparer()
+func (client Client) listNextResults(ctx context.Context, lastResults OperationsListResult) (result OperationsListResult, err error) {
+	req, err := lastResults.operationsListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "features.Client", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -198,12 +219,32 @@ func (client Client) listNextResults(lastResults OperationsListResult) (result O
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client Client) ListComplete(ctx context.Context, resourceProviderNamespace string) (result OperationsListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, resourceProviderNamespace)
 	return
 }
 
 // ListAll gets all the preview features that are available through AFEC for the subscription.
 func (client Client) ListAll(ctx context.Context) (result OperationsListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.ListAll")
+		defer func() {
+			sc := -1
+			if result.olr.Response.Response != nil {
+				sc = result.olr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listAllNextResults
 	req, err := client.ListAllPreparer(ctx)
 	if err != nil {
@@ -248,8 +289,8 @@ func (client Client) ListAllPreparer(ctx context.Context) (*http.Request, error)
 // ListAllSender sends the ListAll request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) ListAllSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListAllResponder handles the response to the ListAll request. The method always
@@ -266,8 +307,8 @@ func (client Client) ListAllResponder(resp *http.Response) (result OperationsLis
 }
 
 // listAllNextResults retrieves the next set of results, if any.
-func (client Client) listAllNextResults(lastResults OperationsListResult) (result OperationsListResult, err error) {
-	req, err := lastResults.operationsListResultPreparer()
+func (client Client) listAllNextResults(ctx context.Context, lastResults OperationsListResult) (result OperationsListResult, err error) {
+	req, err := lastResults.operationsListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "features.Client", "listAllNextResults", nil, "Failure preparing next results request")
 	}
@@ -288,6 +329,16 @@ func (client Client) listAllNextResults(lastResults OperationsListResult) (resul
 
 // ListAllComplete enumerates all values, automatically crossing page boundaries as required.
 func (client Client) ListAllComplete(ctx context.Context) (result OperationsListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.ListAll")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListAll(ctx)
 	return
 }
@@ -297,6 +348,16 @@ func (client Client) ListAllComplete(ctx context.Context) (result OperationsList
 // resourceProviderNamespace - the namespace of the resource provider.
 // featureName - the name of the feature to register.
 func (client Client) Register(ctx context.Context, resourceProviderNamespace string, featureName string) (result Result, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Register")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.RegisterPreparer(ctx, resourceProviderNamespace, featureName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "features.Client", "Register", nil, "Failure preparing request")
@@ -342,8 +403,8 @@ func (client Client) RegisterPreparer(ctx context.Context, resourceProviderNames
 // RegisterSender sends the Register request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) RegisterSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RegisterResponder handles the response to the Register request. The method always

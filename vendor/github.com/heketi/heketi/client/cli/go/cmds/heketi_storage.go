@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	client "github.com/heketi/heketi/client/api/go-client"
 	"github.com/heketi/heketi/pkg/db"
@@ -45,6 +46,7 @@ var (
 	heketiStorageListFilename string
 	heketiStorageDurability   string
 	heketiStorageReplicaCount int
+	heketiStorageOptions      string
 )
 
 func init() {
@@ -68,6 +70,11 @@ func init() {
 		3,
 		"\n\tOptional: Replica value for durability type 'replicate'."+
 			"\n\tDefault is 3")
+	setupHeketiStorageCommand.Flags().StringVar(&heketiStorageOptions,
+		"gluster-volume-options",
+		"",
+		"\n\tOptional: Comma separated list of volume options."+
+			"\n\tSee volume create --help for details.")
 	setupHeketiStorageCommand.SilenceUsage = true
 }
 
@@ -129,6 +136,10 @@ func createHeketiStorageVolume(c *client.Client, dt api.DurabilityType, replicaC
 	req.Size = HeketiStorageVolumeSize
 	req.Name = db.HeketiStorageVolumeName
 	req.Durability.Type = dt
+	// Check volume options
+	if heketiStorageOptions != "" {
+		req.GlusterVolumeOptions = strings.Split(heketiStorageOptions, ",")
+	}
 
 	switch dt {
 	case api.DurabilityReplicate:
@@ -178,7 +189,7 @@ func createHeketiEndpointService() *kubeapi.Service {
 	service.APIVersion = "v1"
 	service.ObjectMeta.Name = HeketiStorageEndpointName
 	service.Spec.Ports = []kubeapi.ServicePort{
-		kubeapi.ServicePort{
+		{
 			Port: 1,
 		},
 	}
@@ -203,14 +214,14 @@ func createHeketiStorageEndpoints(c *client.Client,
 
 		// Set Hostname/IP
 		endpoint.Subsets[n].Addresses = []kubeapi.EndpointAddress{
-			kubeapi.EndpointAddress{
+			{
 				IP: host,
 			},
 		}
 
 		// Set to port 1
 		endpoint.Subsets[n].Ports = []kubeapi.EndpointPort{
-			kubeapi.EndpointPort{
+			{
 				Port: 1,
 			},
 		}
@@ -236,7 +247,7 @@ func createHeketiCopyJob(volume *api.VolumeInfoResponse) *batch.Job {
 	job.Spec.Completions = &c
 	job.Spec.Template.ObjectMeta.Name = HeketiStorageJobName
 	job.Spec.Template.Spec.Volumes = []kubeapi.Volume{
-		kubeapi.Volume{
+		{
 			Name: HeketiStorageVolTagName,
 			VolumeSource: kubeapi.VolumeSource{
 				Glusterfs: &kubeapi.GlusterfsVolumeSource{
@@ -245,7 +256,7 @@ func createHeketiCopyJob(volume *api.VolumeInfoResponse) *batch.Job {
 				},
 			},
 		},
-		kubeapi.Volume{
+		{
 			Name: HeketiStorageSecretName,
 			VolumeSource: kubeapi.VolumeSource{
 				Secret: &kubeapi.SecretVolumeSource{
@@ -256,7 +267,7 @@ func createHeketiCopyJob(volume *api.VolumeInfoResponse) *batch.Job {
 	}
 
 	job.Spec.Template.Spec.Containers = []kubeapi.Container{
-		kubeapi.Container{
+		{
 			Name:  "heketi",
 			Image: HeketiStorageJobContainer,
 			Command: []string{
@@ -265,11 +276,11 @@ func createHeketiCopyJob(volume *api.VolumeInfoResponse) *batch.Job {
 				"/heketi",
 			},
 			VolumeMounts: []kubeapi.VolumeMount{
-				kubeapi.VolumeMount{
+				{
 					Name:      HeketiStorageVolTagName,
 					MountPath: "/heketi",
 				},
-				kubeapi.VolumeMount{
+				{
 					Name:      HeketiStorageSecretName,
 					MountPath: "/db",
 				},

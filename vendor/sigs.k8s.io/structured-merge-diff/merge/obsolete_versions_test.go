@@ -32,7 +32,7 @@ type specificVersionConverter struct {
 	AcceptedVersions []fieldpath.APIVersion
 }
 
-func (d *specificVersionConverter) Convert(object typed.TypedValue, version fieldpath.APIVersion) (typed.TypedValue, error) {
+func (d *specificVersionConverter) Convert(object *typed.TypedValue, version fieldpath.APIVersion) (*typed.TypedValue, error) {
 	for _, v := range d.AcceptedVersions {
 		if v == version {
 			return object, nil
@@ -53,7 +53,7 @@ func TestObsoleteVersions(t *testing.T) {
 	}
 	state := fixture.State{
 		Updater: &merge.Updater{Converter: converter},
-		Parser:  typed.DeducedParseableType{},
+		Parser:  typed.DeducedParseableType,
 	}
 
 	if err := state.Update(typed.YAMLObject(`{"v1": 0}`), fieldpath.APIVersion("v1"), "v1"); err != nil {
@@ -70,18 +70,20 @@ func TestObsoleteVersions(t *testing.T) {
 	}
 
 	managers := fieldpath.ManagedFields{
-		"v2": &fieldpath.VersionedSet{
-			Set: _NS(
+		"v2": fieldpath.NewVersionedSet(
+			_NS(
 				_P("v2"),
 			),
-			APIVersion: "v2",
-		},
-		"v3": &fieldpath.VersionedSet{
-			Set: _NS(
+			"v2",
+			false,
+		),
+		"v3": fieldpath.NewVersionedSet(
+			_NS(
 				_P("v3"),
 			),
-			APIVersion: "v3",
-		},
+			"v3",
+			false,
+		),
 	}
 	if diff := state.Managers.Difference(managers); len(diff) != 0 {
 		t.Fatalf("expected Managers to be %v, got %v", managers, state.Managers)
@@ -94,7 +96,7 @@ func TestApplyObsoleteVersion(t *testing.T) {
 	}
 	parser, err := typed.NewParser(`types:
 - name: sets
-  struct:
+  map:
     fields:
     - name: list
       type:

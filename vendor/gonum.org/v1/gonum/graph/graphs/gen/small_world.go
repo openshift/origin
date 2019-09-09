@@ -12,16 +12,15 @@ import (
 	"golang.org/x/exp/rand"
 
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/stat/sampleuv"
 )
 
 // NavigableSmallWorld constructs an N-dimensional grid with guaranteed local connectivity
-// and random long-range connectivity in the destination, dst. The dims parameters specifies
-// the length of each of the N dimensions, p defines the Manhattan distance between local
-// nodes, and q defines the number of out-going long-range connections from each node. Long-
-// range connections are made with a probability proportional to |d(u,v)|^-r where d is the
-// Manhattan distance between non-local nodes.
+// and random long-range connectivity as a subgraph in the destination, dst.
+// The dims parameters specifies the length of each of the N dimensions, p defines the
+// Manhattan distance between local nodes, and q defines the number of out-going long-range
+// connections from each node. Long-range connections are made with a probability
+// proportional to |d(u,v)|^-r where d is the Manhattan distance between non-local nodes.
 //
 // The algorithm is essentially as described on p4 of http://www.cs.cornell.edu/home/kleinber/swn.pdf.
 func NavigableSmallWorld(dst GraphBuilder, dims []int, p, q int, r float64, src rand.Source) (err error) {
@@ -39,10 +38,11 @@ func NavigableSmallWorld(dst GraphBuilder, dims []int, p, q int, r float64, src 
 	for _, d := range dims {
 		n *= d
 	}
-	for i := 0; i < n; i++ {
-		if !dst.Has(int64(i)) {
-			dst.AddNode(simple.Node(i))
-		}
+	nodes := make([]graph.Node, n)
+	for i := range nodes {
+		u := dst.NewNode()
+		dst.AddNode(u)
+		nodes[i] = u
 	}
 
 	hasEdge := dst.HasEdgeBetween
@@ -56,26 +56,25 @@ func NavigableSmallWorld(dst GraphBuilder, dims []int, p, q int, r float64, src 
 		locality[i] = p*2 + 1
 	}
 	iterateOver(dims, func(u []int) {
-		uid := idFrom(u, dims)
+		un := nodes[idxFrom(u, dims)]
 		iterateOver(locality, func(delta []int) {
 			d := manhattanDelta(u, delta, dims, -p)
 			if d == 0 || d > p {
 				return
 			}
-			vid := idFromDelta(u, delta, dims, -p)
-			e := simple.Edge{F: simple.Node(uid), T: simple.Node(vid)}
-			if uid > vid {
-				e.F, e.T = e.T, e.F
+			vn := nodes[idxFromDelta(u, delta, dims, -p)]
+			if un.ID() > vn.ID() {
+				un, vn = vn, un
 			}
-			if !hasEdge(e.From().ID(), e.To().ID()) {
-				dst.SetEdge(e)
+			if !hasEdge(un.ID(), vn.ID()) {
+				dst.SetEdge(dst.NewEdge(un, vn))
 			}
 			if !isDirected {
 				return
 			}
-			e.F, e.T = e.T, e.F
-			if !hasEdge(e.From().ID(), e.To().ID()) {
-				dst.SetEdge(e)
+			un, vn = vn, un
+			if !hasEdge(un.ID(), vn.ID()) {
+				dst.SetEdge(dst.NewEdge(un, vn))
 			}
 		})
 	})
@@ -92,26 +91,26 @@ func NavigableSmallWorld(dst GraphBuilder, dims []int, p, q int, r float64, src 
 	w := make([]float64, n)
 	ws := sampleuv.NewWeighted(w, src)
 	iterateOver(dims, func(u []int) {
-		uid := idFrom(u, dims)
+		un := nodes[idxFrom(u, dims)]
 		iterateOver(dims, func(v []int) {
 			d := manhattanBetween(u, v)
 			if d <= p {
 				return
 			}
-			w[idFrom(v, dims)] = math.Pow(float64(d), -r)
+			w[idxFrom(v, dims)] = math.Pow(float64(d), -r)
 		})
 		ws.ReweightAll(w)
 		for i := 0; i < q; i++ {
-			vid, ok := ws.Take()
+			vidx, ok := ws.Take()
 			if !ok {
 				panic("depleted distribution")
 			}
-			e := simple.Edge{F: simple.Node(uid), T: simple.Node(vid)}
-			if !isDirected && uid > vid {
-				e.F, e.T = e.T, e.F
+			vn := nodes[vidx]
+			if !isDirected && un.ID() > vn.ID() {
+				un, vn = vn, un
 			}
-			if !hasEdge(e.From().ID(), e.To().ID()) {
-				dst.SetEdge(e)
+			if !hasEdge(un.ID(), vn.ID()) {
+				dst.SetEdge(dst.NewEdge(un, vn))
 			}
 		}
 		for i := range w {
@@ -173,8 +172,8 @@ func manhattanDelta(a, delta, dims []int, translate int) int {
 	return d
 }
 
-// idFrom returns a node id for the slice n over the given dimensions.
-func idFrom(n, dims []int) int {
+// idxFrom returns a node index for the slice n over the given dimensions.
+func idxFrom(n, dims []int) int {
 	s := 1
 	var id int
 	for d, m := range dims {
@@ -188,9 +187,9 @@ func idFrom(n, dims []int) int {
 	return id
 }
 
-// idFromDelta returns a node id for the slice base plus the delta over the given
+// idxFromDelta returns a node index for the slice base plus the delta over the given
 // dimensions and applying the translation.
-func idFromDelta(base, delta, dims []int, translate int) int {
+func idxFromDelta(base, delta, dims []int, translate int) int {
 	s := 1
 	var id int
 	for d, m := range dims {

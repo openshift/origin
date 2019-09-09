@@ -52,6 +52,11 @@ var createScratchCommand = cli.Command{
 			}
 		} else {
 			opts := uvm.NewDefaultOptionsLCOW("createscratch-uvm", context.GlobalString("owner"))
+
+			// 256MB with boot from vhd supported.
+			opts.MemorySizeInMB = 256
+			opts.VPMemDeviceCount = 1
+
 			convertUVM, err := uvm.CreateLCOW(opts)
 			if err != nil {
 				return errors.Wrapf(err, "failed to create '%s'", opts.ID)

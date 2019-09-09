@@ -126,7 +126,7 @@ func (in *DeploymentConfig) DeepCopyObject() runtime.Object {
 func (in *DeploymentConfigList) DeepCopyInto(out *DeploymentConfigList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DeploymentConfig, len(*in))

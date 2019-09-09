@@ -65,7 +65,7 @@ func (Hellinger) DistBeta(l, r Beta) float64 {
 	return math.Sqrt(1 - bc)
 }
 
-// DistHellinger computes the Hellinger distance between Normal distributions l and r.
+// DistNormal computes the Hellinger distance between Normal distributions l and r.
 // See the documentation of Bhattacharyya.DistNormal for the distance formula.
 func (Hellinger) DistNormal(l, r Normal) float64 {
 	db := Bhattacharyya{}.DistNormal(l, r)

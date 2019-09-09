@@ -262,8 +262,8 @@ func TestCopyWeighted(t *testing.T) {
 }
 
 func same(a, b graph.Graph) bool {
-	aNodes := a.Nodes()
-	bNodes := b.Nodes()
+	aNodes := graph.NodesOf(a.Nodes())
+	bNodes := graph.NodesOf(b.Nodes())
 	sort.Sort(ordered.ByID(aNodes))
 	sort.Sort(ordered.ByID(bNodes))
 	for i, na := range aNodes {
@@ -272,9 +272,9 @@ func same(a, b graph.Graph) bool {
 			return false
 		}
 	}
-	for _, u := range a.Nodes() {
-		aFromU := a.From(u.ID())
-		bFromU := b.From(u.ID())
+	for _, u := range graph.NodesOf(a.Nodes()) {
+		aFromU := graph.NodesOf(a.From(u.ID()))
+		bFromU := graph.NodesOf(b.From(u.ID()))
 		if len(aFromU) != len(bFromU) {
 			return false
 		}
@@ -294,5 +294,24 @@ func same(a, b graph.Graph) bool {
 			}
 		}
 	}
-	return true
+	type edger interface {
+		Edges() graph.Edges
+	}
+	type weightedEdger interface {
+		WeightedEdges() graph.WeightedEdges
+	}
+	var sizeA, sizeB int
+	switch a := a.(type) {
+	case edger:
+		sizeA = len(graph.EdgesOf(a.Edges()))
+	case weightedEdger:
+		sizeA = len(graph.WeightedEdgesOf(a.WeightedEdges()))
+	}
+	switch b := b.(type) {
+	case edger:
+		sizeB = len(graph.EdgesOf(b.Edges()))
+	case weightedEdger:
+		sizeB = len(graph.WeightedEdgesOf(b.WeightedEdges()))
+	}
+	return sizeA == sizeB
 }

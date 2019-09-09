@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewServiceClientWithBaseURI(baseURI string, subscriptionID string) ServiceC
 // location - the location of the resource
 // availableSkuRequest - filters for showing the available skus.
 func (client ServiceClient) ListAvailableSkus(ctx context.Context, location string, availableSkuRequest AvailableSkuRequest) (result AvailableSkusResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceClient.ListAvailableSkus")
+		defer func() {
+			sc := -1
+			if result.asr.Response.Response != nil {
+				sc = result.asr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: availableSkuRequest,
 			Constraints: []validation.Constraint{{Target: "availableSkuRequest.TransferType", Name: validation.Null, Rule: true, Chain: nil},
@@ -100,8 +111,8 @@ func (client ServiceClient) ListAvailableSkusPreparer(ctx context.Context, locat
 // ListAvailableSkusSender sends the ListAvailableSkus request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceClient) ListAvailableSkusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListAvailableSkusResponder handles the response to the ListAvailableSkus request. The method always
@@ -118,8 +129,8 @@ func (client ServiceClient) ListAvailableSkusResponder(resp *http.Response) (res
 }
 
 // listAvailableSkusNextResults retrieves the next set of results, if any.
-func (client ServiceClient) listAvailableSkusNextResults(lastResults AvailableSkusResult) (result AvailableSkusResult, err error) {
-	req, err := lastResults.availableSkusResultPreparer()
+func (client ServiceClient) listAvailableSkusNextResults(ctx context.Context, lastResults AvailableSkusResult) (result AvailableSkusResult, err error) {
+	req, err := lastResults.availableSkusResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "databox.ServiceClient", "listAvailableSkusNextResults", nil, "Failure preparing next results request")
 	}
@@ -140,6 +151,16 @@ func (client ServiceClient) listAvailableSkusNextResults(lastResults AvailableSk
 
 // ListAvailableSkusComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ServiceClient) ListAvailableSkusComplete(ctx context.Context, location string, availableSkuRequest AvailableSkuRequest) (result AvailableSkusResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceClient.ListAvailableSkus")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListAvailableSkus(ctx, location, availableSkuRequest)
 	return
 }
@@ -149,6 +170,16 @@ func (client ServiceClient) ListAvailableSkusComplete(ctx context.Context, locat
 // location - the location of the resource
 // validateAddress - shipping address of the customer.
 func (client ServiceClient) ValidateAddressMethod(ctx context.Context, location string, validateAddress ValidateAddress) (result AddressValidationOutput, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceClient.ValidateAddressMethod")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: validateAddress,
 			Constraints: []validation.Constraint{{Target: "validateAddress.ShippingAddress", Name: validation.Null, Rule: true,
@@ -205,8 +236,8 @@ func (client ServiceClient) ValidateAddressMethodPreparer(ctx context.Context, l
 // ValidateAddressMethodSender sends the ValidateAddressMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceClient) ValidateAddressMethodSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ValidateAddressMethodResponder handles the response to the ValidateAddressMethod request. The method always

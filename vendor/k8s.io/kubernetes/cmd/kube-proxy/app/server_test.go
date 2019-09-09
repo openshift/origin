@@ -33,61 +33,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	componentbaseconfig "k8s.io/component-base/config"
-	api "k8s.io/kubernetes/pkg/apis/core"
 	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 	"k8s.io/kubernetes/pkg/util/configz"
 	utilpointer "k8s.io/utils/pointer"
 )
-
-type fakeNodeInterface struct {
-	node api.Node
-}
-
-func (fake *fakeNodeInterface) Get(hostname string, options metav1.GetOptions) (*api.Node, error) {
-	return &fake.node, nil
-}
-
-type fakeIPTablesVersioner struct {
-	version string // what to return
-	err     error  // what to return
-}
-
-func (fake *fakeIPTablesVersioner) GetVersion() (string, error) {
-	return fake.version, fake.err
-}
-
-func (fake *fakeIPTablesVersioner) IsCompatible() error {
-	return fake.err
-}
-
-type fakeIPSetVersioner struct {
-	version string // what to return
-	err     error  // what to return
-}
-
-func (fake *fakeIPSetVersioner) GetVersion() (string, error) {
-	return fake.version, fake.err
-}
-
-type fakeKernelCompatTester struct {
-	ok bool
-}
-
-func (fake *fakeKernelCompatTester) IsCompatible() error {
-	if !fake.ok {
-		return fmt.Errorf("error")
-	}
-	return nil
-}
-
-// fakeKernelHandler implements KernelHandler.
-type fakeKernelHandler struct {
-	modules []string
-}
-
-func (fake *fakeKernelHandler) GetModules() ([]string, error) {
-	return fake.modules, nil
-}
 
 // This test verifies that NewProxyServer does not crash when CleanupAndExit is true.
 func TestProxyServerWithCleanupAndExit(t *testing.T) {
@@ -119,23 +68,12 @@ func TestGetConntrackMax(t *testing.T) {
 	ncores := runtime.NumCPU()
 	testCases := []struct {
 		min        int32
-		max        int32
 		maxPerCore int32
 		expected   int
 		err        string
 	}{
 		{
 			expected: 0,
-		},
-		{
-			max:      12345,
-			expected: 12345,
-		},
-		{
-			max:        12345,
-			maxPerCore: 67890,
-			expected:   -1,
-			err:        "mutually exclusive",
 		},
 		{
 			maxPerCore: 67890, // use this if Max is 0
@@ -157,7 +95,6 @@ func TestGetConntrackMax(t *testing.T) {
 	for i, tc := range testCases {
 		cfg := kubeproxyconfig.KubeProxyConntrackConfiguration{
 			Min:        utilpointer.Int32Ptr(tc.min),
-			Max:        utilpointer.Int32Ptr(tc.max),
 			MaxPerCore: utilpointer.Int32Ptr(tc.maxPerCore),
 		}
 		x, e := getConntrackMax(cfg)
@@ -187,7 +124,6 @@ clientConnection:
 clusterCIDR: "%s"
 configSyncPeriod: 15s
 conntrack:
-  max: 4
   maxPerCore: 2
   min: 1
   tcpCloseWaitTimeout: 10s
@@ -210,7 +146,6 @@ metricsBindAddress: "%s"
 mode: "%s"
 oomScoreAdj: 17
 portRange: "2-7"
-resourceContainer: /foo
 udpIdleTimeout: 123ms
 nodePortAddresses:
   - "10.20.30.40/16"
@@ -302,7 +237,6 @@ nodePortAddresses:
 			ClusterCIDR:      tc.clusterCIDR,
 			ConfigSyncPeriod: metav1.Duration{Duration: 15 * time.Second},
 			Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-				Max:                   utilpointer.Int32Ptr(4),
 				MaxPerCore:            utilpointer.Int32Ptr(2),
 				Min:                   utilpointer.Int32Ptr(1),
 				TCPCloseWaitTimeout:   &metav1.Duration{Duration: 10 * time.Second},
@@ -326,7 +260,6 @@ nodePortAddresses:
 			Mode:               kubeproxyconfig.ProxyMode(tc.mode),
 			OOMScoreAdj:        utilpointer.Int32Ptr(17),
 			PortRange:          "2-7",
-			ResourceContainer:  "/foo",
 			UDPIdleTimeout:     metav1.Duration{Duration: 123 * time.Millisecond},
 			NodePortAddresses:  []string{"10.20.30.40/16", "fd00:1::0/64"},
 		}
@@ -384,16 +317,24 @@ func TestProcessHostnameOverrideFlag(t *testing.T) {
 		name                 string
 		hostnameOverrideFlag string
 		expectedHostname     string
+		expectError          bool
 	}{
 		{
 			name:                 "Hostname from config file",
 			hostnameOverrideFlag: "",
 			expectedHostname:     "foo",
+			expectError:          false,
 		},
 		{
 			name:                 "Hostname from flag",
 			hostnameOverrideFlag: "  bar ",
 			expectedHostname:     "bar",
+			expectError:          false,
+		},
+		{
+			name:                 "Hostname is space",
+			hostnameOverrideFlag: "   ",
+			expectError:          true,
 		},
 	}
 	for _, tc := range testCases {
@@ -406,9 +347,15 @@ func TestProcessHostnameOverrideFlag(t *testing.T) {
 			options.hostnameOverride = tc.hostnameOverrideFlag
 
 			err := options.processHostnameOverrideFlag()
-			assert.NoError(t, err, "unexpected error %v", err)
-			if tc.expectedHostname != options.config.HostnameOverride {
-				t.Fatalf("expected hostname: %s, but got: %s", tc.expectedHostname, options.config.HostnameOverride)
+			if tc.expectError {
+				if err == nil {
+					t.Fatalf("should error for this case %s", tc.name)
+				}
+			} else {
+				assert.NoError(t, err, "unexpected error %v", err)
+				if tc.expectedHostname != options.config.HostnameOverride {
+					t.Fatalf("expected hostname: %s, but got: %s", tc.expectedHostname, options.config.HostnameOverride)
+				}
 			}
 		})
 	}
@@ -418,7 +365,7 @@ func TestConfigChange(t *testing.T) {
 	setUp := func() (*os.File, string, error) {
 		tempDir, err := ioutil.TempDir("", "kubeproxy-config-change")
 		if err != nil {
-			return nil, "", fmt.Errorf("Unable to create temporary directory: %v", err)
+			return nil, "", fmt.Errorf("unable to create temporary directory: %v", err)
 		}
 		fullPath := filepath.Join(tempDir, "kube-proxy-config")
 		file, err := os.Create(fullPath)
@@ -437,7 +384,6 @@ clientConnection:
 clusterCIDR: 10.244.0.0/16
 configSyncPeriod: 15m0s
 conntrack:
-  max: null
   maxPerCore: 32768
   min: 131072
   tcpCloseWaitTimeout: 1h0m0s
@@ -461,7 +407,6 @@ mode: ""
 nodePortAddresses: null
 oomScoreAdj: -999
 portRange: ""
-resourceContainer: /kube-proxy
 udpIdleTimeout: 250ms`)
 		if err != nil {
 			return nil, "", fmt.Errorf("unexpected error when writing content to temp kube-proxy config file: %v", err)
@@ -558,4 +503,80 @@ func (s *fakeProxyServerError) Run() error {
 // CleanupAndExit runs in the specified ProxyServer.
 func (s *fakeProxyServerError) CleanupAndExit() error {
 	return errors.New("mocking error from ProxyServer.CleanupAndExit()")
+}
+
+func TestAddressFromDeprecatedFlags(t *testing.T) {
+	testCases := []struct {
+		name               string
+		healthzPort        int32
+		healthzBindAddress string
+		metricsPort        int32
+		metricsBindAddress string
+		expHealthz         string
+		expMetrics         string
+	}{
+		{
+			name:               "IPv4 bind address",
+			healthzBindAddress: "1.2.3.4",
+			healthzPort:        12345,
+			metricsBindAddress: "2.3.4.5",
+			metricsPort:        23456,
+			expHealthz:         "1.2.3.4:12345",
+			expMetrics:         "2.3.4.5:23456",
+		},
+		{
+			name:               "IPv4 bind address has port",
+			healthzBindAddress: "1.2.3.4:12345",
+			healthzPort:        23456,
+			metricsBindAddress: "2.3.4.5:12345",
+			metricsPort:        23456,
+			expHealthz:         "1.2.3.4:12345",
+			expMetrics:         "2.3.4.5:12345",
+		},
+		{
+			name:               "IPv6 bind address",
+			healthzBindAddress: "fd00:1::5",
+			healthzPort:        12345,
+			metricsBindAddress: "fd00:1::6",
+			metricsPort:        23456,
+			expHealthz:         "[fd00:1::5]:12345",
+			expMetrics:         "[fd00:1::6]:23456",
+		},
+		{
+			name:               "IPv6 bind address has port",
+			healthzBindAddress: "[fd00:1::5]:12345",
+			healthzPort:        56789,
+			metricsBindAddress: "[fd00:1::6]:56789",
+			metricsPort:        12345,
+			expHealthz:         "[fd00:1::5]:12345",
+			expMetrics:         "[fd00:1::6]:56789",
+		},
+		{
+			name:               "Invalid IPv6 Config",
+			healthzBindAddress: "[fd00:1::5]",
+			healthzPort:        12345,
+			metricsBindAddress: "[fd00:1::6]",
+			metricsPort:        56789,
+			expHealthz:         "[fd00:1::5]",
+			expMetrics:         "[fd00:1::6]",
+		},
+	}
+
+	for i := range testCases {
+		gotHealthz := addressFromDeprecatedFlags(testCases[i].healthzBindAddress, testCases[i].healthzPort)
+		gotMetrics := addressFromDeprecatedFlags(testCases[i].metricsBindAddress, testCases[i].metricsPort)
+
+		errFn := func(name, except, got string) {
+			t.Errorf("case %s: expected %v, got %v", name, except, got)
+		}
+
+		if gotHealthz != testCases[i].expHealthz {
+			errFn(testCases[i].name, testCases[i].expHealthz, gotHealthz)
+		}
+
+		if gotMetrics != testCases[i].expMetrics {
+			errFn(testCases[i].name, testCases[i].expMetrics, gotMetrics)
+		}
+
+	}
 }

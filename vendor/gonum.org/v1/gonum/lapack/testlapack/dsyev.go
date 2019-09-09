@@ -55,9 +55,9 @@ func DsyevTest(t *testing.T, impl Dsyever) {
 				}
 
 				work := make([]float64, 1)
-				impl.Dsyev(lapack.ComputeEV, uplo, n, a, lda, w, work, -1)
+				impl.Dsyev(lapack.EVCompute, uplo, n, a, lda, w, work, -1)
 				work = make([]float64, int(work[0]))
-				impl.Dsyev(lapack.ComputeEV, uplo, n, a, lda, w, work, len(work))
+				impl.Dsyev(lapack.EVCompute, uplo, n, a, lda, w, work, len(work))
 
 				// Check that the decomposition is correct
 				orig := blas64.General{
@@ -106,7 +106,7 @@ func DsyevTest(t *testing.T, impl Dsyever) {
 				for i := range work {
 					work[i] = rnd.Float64()
 				}
-				impl.Dsyev(lapack.None, uplo, n, a, lda, w, work, len(work))
+				impl.Dsyev(lapack.EVNone, uplo, n, a, lda, w, work, len(work))
 				if !floats.EqualApprox(w, wAns, 1e-8) {
 					t.Errorf("Eigenvalue mismatch when vectors not computed")
 				}

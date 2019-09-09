@@ -29,14 +29,17 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"sort"
+	"strings"
 )
 
-func bench(folder, rgx string, outFileName string) {
+func bench(folder, rgx, outFileName string) {
 	var test = exec.Command("go", "test", "-test.timeout=20m", "-test.v", "-test.run=XXX", "-test.bench="+rgx, folder)
-	fmt.Printf("benching\n")
+	fmt.Printf("benching %v - %v - %v\n", folder, rgx, outFileName)
 	out, err := test.CombinedOutput()
 	fmt.Printf("bench output: %v\n", string(out))
 	if err != nil {
@@ -48,11 +51,46 @@ func bench(folder, rgx string, outFileName string) {
 }
 
 func main() {
-	bench("./test/combos/both/", "ProtoMarshal", "./test/mixbench/marshaler.txt")
-	bench("./test/", "ProtoMarshal", "./test/mixbench/marshal.txt")
-	bench("./test/combos/both/", "ProtoUnmarshal", "./test/mixbench/unmarshaler.txt")
-	bench("./test/", "ProtoUnmarshal", "./test/mixbench/unmarshal.txt")
-	fmt.Println("Running benchcmp will show the performance difference between using reflect and generated code for marshalling and unmarshalling of protocol buffers")
-	fmt.Println("benchcmp ./test/mixbench/marshal.txt ./test/mixbench/marshaler.txt")
-	fmt.Println("benchcmp ./test/mixbench/unmarshal.txt ./test/mixbench/unmarshaler.txt")
+	flag.Parse()
+	fmt.Printf("Running benches: %v\n", benchList)
+	for _, bench := range strings.Split(benchList, " ") {
+		b, ok := benches[bench]
+		if !ok {
+			fmt.Printf("No benchmark with name: %v\n", bench)
+			continue
+		}
+		b()
+	}
+	if strings.Contains(benchList, "all") {
+		fmt.Println("Running benchcmp will show the performance difference between using reflect and generated code for marshalling and unmarshalling of protocol buffers")
+		fmt.Println("benchcmp ./test/mixbench/marshal.txt ./test/mixbench/marshaler.txt")
+		fmt.Println("benchcmp ./test/mixbench/unmarshal.txt ./test/mixbench/unmarshaler.txt")
+	}
+}
+
+var benches = make(map[string]func())
+
+var benchList string
+
+func init() {
+	benches["marshaler"] = func() { bench("./test/combos/both/", "ProtoMarshal", "./test/mixbench/marshaler.txt") }
+	benches["marshal"] = func() { bench("./test/", "ProtoMarshal", "./test/mixbench/marshal.txt") }
+	benches["unmarshaler"] = func() { bench("./test/combos/both/", "ProtoUnmarshal", "./test/mixbench/unmarshaler.txt") }
+	benches["unmarshal"] = func() { bench("./test/", "ProtoUnmarshal", "./test/mixbench/unmarshal.txt") }
+	var ops []string
+	for k := range benches {
+		ops = append(ops, k)
+	}
+	sort.Strings(ops)
+	benches["all"] = benchall(ops)
+	ops = append(ops, "all")
+	flag.StringVar(&benchList, "benchlist", "all", fmt.Sprintf("List of benchmarks to run. Options: %v", ops))
+}
+
+func benchall(ops []string) func() {
+	return func() {
+		for _, o := range ops {
+			benches[o]()
+		}
+	}
 }

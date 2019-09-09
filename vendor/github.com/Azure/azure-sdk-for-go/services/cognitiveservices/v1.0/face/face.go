@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"io"
 	"net/http"
 )
@@ -36,8 +37,51 @@ func NewClient(endpoint string) Client {
 	return Client{New(endpoint)}
 }
 
-// DetectWithStream detect human faces in an image and returns face locations, and optionally with faceIds, landmarks,
-// and attributes.
+// DetectWithStream detect human faces in an image, return face rectangles, and optionally with faceIds, landmarks, and
+// attributes.<br />
+// * No image will be stored. Only the extracted face feature will be stored on server. The faceId is an identifier of
+// the face feature and will be used in [Face -
+// Identify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395239), [Face -
+// Verify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f3039523a), and [Face - Find
+// Similar](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395237). The stored face feature(s)
+// will expire and be deleted 24 hours after the original detection call.
+// * Optional parameters include faceId, landmarks, and attributes. Attributes include age, gender, headPose, smile,
+// facialHair, glasses, emotion, hair, makeup, occlusion, accessories, blur, exposure and noise. Some of the results
+// returned for specific attributes may not be highly accurate.
+// * JPEG, PNG, GIF (the first frame), and BMP format are supported. The allowed image file size is from 1KB to 6MB.
+// * Up to 100 faces can be returned for an image. Faces are ranked by face rectangle size from large to small.
+// * For optimal results when querying [Face -
+// Identify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395239), [Face -
+// Verify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f3039523a), and [Face - Find
+// Similar](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395237) ('returnFaceId' is true),
+// please use faces that are: frontal, clear, and with a minimum size of 200x200 pixels (100 pixels between eyes).
+// * The minimum detectable face size is 36x36 pixels in an image no larger than 1920x1080 pixels. Images with
+// dimensions higher than 1920x1080 pixels will need a proportionally larger minimum face size.
+// * Different 'detectionModel' values can be provided. To use and compare different detection models, please refer to
+// [How to specify a detection
+// model](https://docs.microsoft.com/en-us/azure/cognitive-services/face/face-api-how-to-topics/specify-detection-model)
+// | Model | Recommended use-case(s) |
+// | ---------- | -------- |
+// | 'detection_01': | The default detection model for [Face -
+// Detect](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395236). Recommend for near frontal
+// face detection. For scenarios with exceptionally large angle (head-pose) faces, occluded faces or wrong image
+// orientation, the faces in such cases may not be detected. |
+// | 'detection_02': | Detection model released in 2019 May with improved accuracy especially on small, side and blurry
+// faces. |
+//
+// * Different 'recognitionModel' values are provided. If follow-up operations like Verify, Identify, Find Similar are
+// needed, please specify the recognition model with 'recognitionModel' parameter. The default value for
+// 'recognitionModel' is 'recognition_01', if latest model needed, please explicitly specify the model you need in this
+// parameter. Once specified, the detected faceIds will be associated with the specified recognition model. More
+// details, please refer to [How to specify a recognition
+// model](https://docs.microsoft.com/en-us/azure/cognitive-services/face/face-api-how-to-topics/specify-recognition-model)
+// | Model | Recommended use-case(s) |
+// | ---------- | -------- |
+// | 'recognition_01': | The default recognition model for [Face -
+// Detect](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395236). All those faceIds created
+// before 2019 March are bonded with this recognition model. |
+// | 'recognition_02': | Recognition model released in 2019 March. 'recognition_02' is recommended since its overall
+// accuracy is improved compared with 'recognition_01'. |
 // Parameters:
 // imageParameter - an image stream.
 // returnFaceID - a value indicating whether the operation should return faceIds of detected faces.
@@ -47,8 +91,28 @@ func NewClient(endpoint string) Client {
 // string like "returnFaceAttributes=age,gender". Supported face attributes include age, gender, headPose,
 // smile, facialHair, glasses and emotion. Note that each face attribute analysis has additional computational
 // and time cost.
-func (client Client) DetectWithStream(ctx context.Context, imageParameter io.ReadCloser, returnFaceID *bool, returnFaceLandmarks *bool, returnFaceAttributes []AttributeType) (result ListDetectedFace, err error) {
-	req, err := client.DetectWithStreamPreparer(ctx, imageParameter, returnFaceID, returnFaceLandmarks, returnFaceAttributes)
+// recognitionModel - name of recognition model. Recognition model is used when the face features are extracted
+// and associated with detected faceIds, (Large)FaceList or (Large)PersonGroup. A recognition model name can be
+// provided when performing Face - Detect or (Large)FaceList - Create or (Large)PersonGroup - Create. The
+// default value is 'recognition_01', if latest model needed, please explicitly specify the model you need.
+// returnRecognitionModel - a value indicating whether the operation should return 'recognitionModel' in
+// response.
+// detectionModel - name of detection model. Detection model is used to detect faces in the submitted image. A
+// detection model name can be provided when performing Face - Detect or (Large)FaceList - Add Face or
+// (Large)PersonGroup - Add Face. The default value is 'detection_01', if another model is needed, please
+// explicitly specify it.
+func (client Client) DetectWithStream(ctx context.Context, imageParameter io.ReadCloser, returnFaceID *bool, returnFaceLandmarks *bool, returnFaceAttributes []AttributeType, recognitionModel RecognitionModel, returnRecognitionModel *bool, detectionModel DetectionModel) (result ListDetectedFace, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.DetectWithStream")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	req, err := client.DetectWithStreamPreparer(ctx, imageParameter, returnFaceID, returnFaceLandmarks, returnFaceAttributes, recognitionModel, returnRecognitionModel, detectionModel)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "face.Client", "DetectWithStream", nil, "Failure preparing request")
 		return
@@ -70,7 +134,7 @@ func (client Client) DetectWithStream(ctx context.Context, imageParameter io.Rea
 }
 
 // DetectWithStreamPreparer prepares the DetectWithStream request.
-func (client Client) DetectWithStreamPreparer(ctx context.Context, imageParameter io.ReadCloser, returnFaceID *bool, returnFaceLandmarks *bool, returnFaceAttributes []AttributeType) (*http.Request, error) {
+func (client Client) DetectWithStreamPreparer(ctx context.Context, imageParameter io.ReadCloser, returnFaceID *bool, returnFaceLandmarks *bool, returnFaceAttributes []AttributeType, recognitionModel RecognitionModel, returnRecognitionModel *bool, detectionModel DetectionModel) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -89,6 +153,21 @@ func (client Client) DetectWithStreamPreparer(ctx context.Context, imageParamete
 	if returnFaceAttributes != nil && len(returnFaceAttributes) > 0 {
 		queryParameters["returnFaceAttributes"] = autorest.Encode("query", returnFaceAttributes, ",")
 	}
+	if len(string(recognitionModel)) > 0 {
+		queryParameters["recognitionModel"] = autorest.Encode("query", recognitionModel)
+	} else {
+		queryParameters["recognitionModel"] = autorest.Encode("query", "recognition_01")
+	}
+	if returnRecognitionModel != nil {
+		queryParameters["returnRecognitionModel"] = autorest.Encode("query", *returnRecognitionModel)
+	} else {
+		queryParameters["returnRecognitionModel"] = autorest.Encode("query", false)
+	}
+	if len(string(detectionModel)) > 0 {
+		queryParameters["detectionModel"] = autorest.Encode("query", detectionModel)
+	} else {
+		queryParameters["detectionModel"] = autorest.Encode("query", "detection_01")
+	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/octet-stream"),
@@ -103,8 +182,8 @@ func (client Client) DetectWithStreamPreparer(ctx context.Context, imageParamete
 // DetectWithStreamSender sends the DetectWithStream request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) DetectWithStreamSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DetectWithStreamResponder handles the response to the DetectWithStream request. The method always
@@ -120,8 +199,51 @@ func (client Client) DetectWithStreamResponder(resp *http.Response) (result List
 	return
 }
 
-// DetectWithURL detect human faces in an image and returns face locations, and optionally with faceIds, landmarks, and
-// attributes.
+// DetectWithURL detect human faces in an image, return face rectangles, and optionally with faceIds, landmarks, and
+// attributes.<br />
+// * No image will be stored. Only the extracted face feature will be stored on server. The faceId is an identifier of
+// the face feature and will be used in [Face -
+// Identify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395239), [Face -
+// Verify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f3039523a), and [Face - Find
+// Similar](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395237). The stored face feature(s)
+// will expire and be deleted 24 hours after the original detection call.
+// * Optional parameters include faceId, landmarks, and attributes. Attributes include age, gender, headPose, smile,
+// facialHair, glasses, emotion, hair, makeup, occlusion, accessories, blur, exposure and noise. Some of the results
+// returned for specific attributes may not be highly accurate.
+// * JPEG, PNG, GIF (the first frame), and BMP format are supported. The allowed image file size is from 1KB to 6MB.
+// * Up to 100 faces can be returned for an image. Faces are ranked by face rectangle size from large to small.
+// * For optimal results when querying [Face -
+// Identify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395239), [Face -
+// Verify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f3039523a), and [Face - Find
+// Similar](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395237) ('returnFaceId' is true),
+// please use faces that are: frontal, clear, and with a minimum size of 200x200 pixels (100 pixels between eyes).
+// * The minimum detectable face size is 36x36 pixels in an image no larger than 1920x1080 pixels. Images with
+// dimensions higher than 1920x1080 pixels will need a proportionally larger minimum face size.
+// * Different 'detectionModel' values can be provided. To use and compare different detection models, please refer to
+// [How to specify a detection
+// model](https://docs.microsoft.com/en-us/azure/cognitive-services/face/face-api-how-to-topics/specify-detection-model)
+// | Model | Recommended use-case(s) |
+// | ---------- | -------- |
+// | 'detection_01': | The default detection model for [Face -
+// Detect](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395236). Recommend for near frontal
+// face detection. For scenarios with exceptionally large angle (head-pose) faces, occluded faces or wrong image
+// orientation, the faces in such cases may not be detected. |
+// | 'detection_02': | Detection model released in 2019 May with improved accuracy especially on small, side and blurry
+// faces. |
+//
+// * Different 'recognitionModel' values are provided. If follow-up operations like Verify, Identify, Find Similar are
+// needed, please specify the recognition model with 'recognitionModel' parameter. The default value for
+// 'recognitionModel' is 'recognition_01', if latest model needed, please explicitly specify the model you need in this
+// parameter. Once specified, the detected faceIds will be associated with the specified recognition model. More
+// details, please refer to [How to specify a recognition
+// model](https://docs.microsoft.com/en-us/azure/cognitive-services/face/face-api-how-to-topics/specify-recognition-model)
+// | Model | Recommended use-case(s) |
+// | ---------- | -------- |
+// | 'recognition_01': | The default recognition model for [Face -
+// Detect](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395236). All those faceIds created
+// before 2019 March are bonded with this recognition model. |
+// | 'recognition_02': | Recognition model released in 2019 March. 'recognition_02' is recommended since its overall
+// accuracy is improved compared with 'recognition_01'. |
 // Parameters:
 // imageURL - a JSON document with a URL pointing to the image that is to be analyzed.
 // returnFaceID - a value indicating whether the operation should return faceIds of detected faces.
@@ -131,14 +253,34 @@ func (client Client) DetectWithStreamResponder(resp *http.Response) (result List
 // string like "returnFaceAttributes=age,gender". Supported face attributes include age, gender, headPose,
 // smile, facialHair, glasses and emotion. Note that each face attribute analysis has additional computational
 // and time cost.
-func (client Client) DetectWithURL(ctx context.Context, imageURL ImageURL, returnFaceID *bool, returnFaceLandmarks *bool, returnFaceAttributes []AttributeType) (result ListDetectedFace, err error) {
+// recognitionModel - name of recognition model. Recognition model is used when the face features are extracted
+// and associated with detected faceIds, (Large)FaceList or (Large)PersonGroup. A recognition model name can be
+// provided when performing Face - Detect or (Large)FaceList - Create or (Large)PersonGroup - Create. The
+// default value is 'recognition_01', if latest model needed, please explicitly specify the model you need.
+// returnRecognitionModel - a value indicating whether the operation should return 'recognitionModel' in
+// response.
+// detectionModel - name of detection model. Detection model is used to detect faces in the submitted image. A
+// detection model name can be provided when performing Face - Detect or (Large)FaceList - Add Face or
+// (Large)PersonGroup - Add Face. The default value is 'detection_01', if another model is needed, please
+// explicitly specify it.
+func (client Client) DetectWithURL(ctx context.Context, imageURL ImageURL, returnFaceID *bool, returnFaceLandmarks *bool, returnFaceAttributes []AttributeType, recognitionModel RecognitionModel, returnRecognitionModel *bool, detectionModel DetectionModel) (result ListDetectedFace, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.DetectWithURL")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageURL,
 			Constraints: []validation.Constraint{{Target: "imageURL.URL", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("face.Client", "DetectWithURL", err.Error())
 	}
 
-	req, err := client.DetectWithURLPreparer(ctx, imageURL, returnFaceID, returnFaceLandmarks, returnFaceAttributes)
+	req, err := client.DetectWithURLPreparer(ctx, imageURL, returnFaceID, returnFaceLandmarks, returnFaceAttributes, recognitionModel, returnRecognitionModel, detectionModel)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "face.Client", "DetectWithURL", nil, "Failure preparing request")
 		return
@@ -160,7 +302,7 @@ func (client Client) DetectWithURL(ctx context.Context, imageURL ImageURL, retur
 }
 
 // DetectWithURLPreparer prepares the DetectWithURL request.
-func (client Client) DetectWithURLPreparer(ctx context.Context, imageURL ImageURL, returnFaceID *bool, returnFaceLandmarks *bool, returnFaceAttributes []AttributeType) (*http.Request, error) {
+func (client Client) DetectWithURLPreparer(ctx context.Context, imageURL ImageURL, returnFaceID *bool, returnFaceLandmarks *bool, returnFaceAttributes []AttributeType, recognitionModel RecognitionModel, returnRecognitionModel *bool, detectionModel DetectionModel) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -179,6 +321,21 @@ func (client Client) DetectWithURLPreparer(ctx context.Context, imageURL ImageUR
 	if returnFaceAttributes != nil && len(returnFaceAttributes) > 0 {
 		queryParameters["returnFaceAttributes"] = autorest.Encode("query", returnFaceAttributes, ",")
 	}
+	if len(string(recognitionModel)) > 0 {
+		queryParameters["recognitionModel"] = autorest.Encode("query", recognitionModel)
+	} else {
+		queryParameters["recognitionModel"] = autorest.Encode("query", "recognition_01")
+	}
+	if returnRecognitionModel != nil {
+		queryParameters["returnRecognitionModel"] = autorest.Encode("query", *returnRecognitionModel)
+	} else {
+		queryParameters["returnRecognitionModel"] = autorest.Encode("query", false)
+	}
+	if len(string(detectionModel)) > 0 {
+		queryParameters["detectionModel"] = autorest.Encode("query", detectionModel)
+	} else {
+		queryParameters["detectionModel"] = autorest.Encode("query", "detection_01")
+	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
@@ -193,8 +350,8 @@ func (client Client) DetectWithURLPreparer(ctx context.Context, imageURL ImageUR
 // DetectWithURLSender sends the DetectWithURL request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) DetectWithURLSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DetectWithURLResponder handles the response to the DetectWithURL request. The method always
@@ -210,11 +367,35 @@ func (client Client) DetectWithURLResponder(resp *http.Response) (result ListDet
 	return
 }
 
-// FindSimilar given query face's faceId, find the similar-looking faces from a faceId array, a face list or a large
-// face list.
+// FindSimilar given query face's faceId, to search the similar-looking faces from a faceId array, a face list or a
+// large face list. faceId array contains the faces created by [Face -
+// Detect](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395236), which will expire 24 hours
+// after creation. A "faceListId" is created by [FaceList -
+// Create](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f3039524b) containing persistedFaceIds
+// that will not expire. And a "largeFaceListId" is created by [LargeFaceList -
+// Create](/docs/services/563879b61984550e40cbbe8d/operations/5a157b68d2de3616c086f2cc) containing persistedFaceIds
+// that will also not expire. Depending on the input the returned similar faces list contains faceIds or
+// persistedFaceIds ranked by similarity.
+// <br/>Find similar has two working modes, "matchPerson" and "matchFace". "matchPerson" is the default mode that it
+// tries to find faces of the same person as possible by using internal same-person thresholds. It is useful to find a
+// known person's other photos. Note that an empty list will be returned if no faces pass the internal thresholds.
+// "matchFace" mode ignores same-person thresholds and returns ranked similar faces anyway, even the similarity is low.
+// It can be used in the cases like searching celebrity-looking faces.
+// <br/>The 'recognitionModel' associated with the query face's faceId should be the same as the 'recognitionModel'
+// used by the target faceId array, face list or large face list.
 // Parameters:
 // body - request body for Find Similar.
 func (client Client) FindSimilar(ctx context.Context, body FindSimilarRequest) (result ListSimilarFace, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.FindSimilar")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: body,
 			Constraints: []validation.Constraint{{Target: "body.FaceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -274,8 +455,8 @@ func (client Client) FindSimilarPreparer(ctx context.Context, body FindSimilarRe
 // FindSimilarSender sends the FindSimilar request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) FindSimilarSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // FindSimilarResponder handles the response to the FindSimilar request. The method always
@@ -291,10 +472,29 @@ func (client Client) FindSimilarResponder(resp *http.Response) (result ListSimil
 	return
 }
 
-// Group divide candidate faces into groups based on face similarity.
+// Group divide candidate faces into groups based on face similarity.<br />
+// * The output is one or more disjointed face groups and a messyGroup. A face group contains faces that have similar
+// looking, often of the same person. Face groups are ranked by group size, i.e. number of faces. Notice that faces
+// belonging to a same person might be split into several groups in the result.
+// * MessyGroup is a special face group containing faces that cannot find any similar counterpart face from original
+// faces. The messyGroup will not appear in the result if all faces found their counterparts.
+// * Group API needs at least 2 candidate faces and 1000 at most. We suggest to try [Face -
+// Verify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f3039523a) when you only have 2 candidate
+// faces.
+// * The 'recognitionModel' associated with the query faces' faceIds should be the same.
 // Parameters:
 // body - request body for grouping.
 func (client Client) Group(ctx context.Context, body GroupRequest) (result GroupResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Group")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: body,
 			Constraints: []validation.Constraint{{Target: "body.FaceIds", Name: validation.Null, Rule: true,
@@ -341,8 +541,8 @@ func (client Client) GroupPreparer(ctx context.Context, body GroupRequest) (*htt
 // GroupSender sends the Group request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) GroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GroupResponder handles the response to the Group request. The method always
@@ -360,9 +560,39 @@ func (client Client) GroupResponder(resp *http.Response) (result GroupResult, er
 
 // Identify 1-to-many identification to find the closest matches of the specific query person face from a person group
 // or large person group.
+// <br/> For each face in the faceIds array, Face Identify will compute similarities between the query face and all the
+// faces in the person group (given by personGroupId) or large person group (given by largePersonGroupId), and return
+// candidate person(s) for that face ranked by similarity confidence. The person group/large person group should be
+// trained to make it ready for identification. See more in [PersonGroup -
+// Train](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395249) and [LargePersonGroup -
+// Train](/docs/services/563879b61984550e40cbbe8d/operations/599ae2d16ac60f11b48b5aa4).
+// <br/>
+//
+// Remarks:<br />
+// * The algorithm allows more than one face to be identified independently at the same request, but no more than 10
+// faces.
+// * Each person in the person group/large person group could have more than one face, but no more than 248 faces.
+// * Higher face image quality means better identification precision. Please consider high-quality faces: frontal,
+// clear, and face size is 200x200 pixels (100 pixels between eyes) or bigger.
+// * Number of candidates returned is restricted by maxNumOfCandidatesReturned and confidenceThreshold. If no person is
+// identified, the returned candidates will be an empty array.
+// * Try [Face - Find Similar](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395237) when you
+// need to find similar faces from a face list/large face list instead of a person group/large person group.
+// * The 'recognitionModel' associated with the query faces' faceIds should be the same as the 'recognitionModel' used
+// by the target person group or large person group.
 // Parameters:
 // body - request body for identify operation.
 func (client Client) Identify(ctx context.Context, body IdentifyRequest) (result ListIdentifyResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Identify")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: body,
 			Constraints: []validation.Constraint{{Target: "body.FaceIds", Name: validation.Null, Rule: true,
@@ -421,8 +651,8 @@ func (client Client) IdentifyPreparer(ctx context.Context, body IdentifyRequest)
 // IdentifySender sends the Identify request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) IdentifySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // IdentifyResponder handles the response to the Identify request. The method always
@@ -439,9 +669,26 @@ func (client Client) IdentifyResponder(resp *http.Response) (result ListIdentify
 }
 
 // VerifyFaceToFace verify whether two faces belong to a same person or whether one face belongs to a person.
+// <br/>
+// Remarks:<br />
+// * Higher face image quality means better identification precision. Please consider high-quality faces: frontal,
+// clear, and face size is 200x200 pixels (100 pixels between eyes) or bigger.
+// * For the scenarios that are sensitive to accuracy please make your own judgment.
+// * The 'recognitionModel' associated with the query faces' faceIds should be the same as the 'recognitionModel' used
+// by the target face, person group or large person group.
 // Parameters:
 // body - request body for face to face verification.
 func (client Client) VerifyFaceToFace(ctx context.Context, body VerifyFaceToFaceRequest) (result VerifyResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.VerifyFaceToFace")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: body,
 			Constraints: []validation.Constraint{{Target: "body.FaceID1", Name: validation.Null, Rule: true, Chain: nil},
@@ -488,8 +735,8 @@ func (client Client) VerifyFaceToFacePreparer(ctx context.Context, body VerifyFa
 // VerifyFaceToFaceSender sends the VerifyFaceToFace request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) VerifyFaceToFaceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // VerifyFaceToFaceResponder handles the response to the VerifyFaceToFace request. The method always
@@ -509,6 +756,16 @@ func (client Client) VerifyFaceToFaceResponder(resp *http.Response) (result Veri
 // Parameters:
 // body - request body for face to person verification.
 func (client Client) VerifyFaceToPerson(ctx context.Context, body VerifyFaceToPersonRequest) (result VerifyResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.VerifyFaceToPerson")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: body,
 			Constraints: []validation.Constraint{{Target: "body.FaceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -563,8 +820,8 @@ func (client Client) VerifyFaceToPersonPreparer(ctx context.Context, body Verify
 // VerifyFaceToPersonSender sends the VerifyFaceToPerson request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) VerifyFaceToPersonSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // VerifyFaceToPersonResponder handles the response to the VerifyFaceToPerson request. The method always

@@ -88,7 +88,7 @@ func TestDirectedCyclesIn(t *testing.T) {
 		g.AddNode(simple.Node(-10)) // Make sure we test graphs with sparse IDs.
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {

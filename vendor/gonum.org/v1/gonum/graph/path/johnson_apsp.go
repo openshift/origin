@@ -14,7 +14,8 @@ import (
 )
 
 // JohnsonAllPaths returns a shortest-path tree for shortest paths in the graph g.
-// If the graph does not implement Weighted, UniformCost is used.
+// If the graph does not implement Weighted, UniformCost is used. If a negative cycle
+// exists in g, ok will be returned false and paths will not contain valid data.
 //
 // The time complexity of JohnsonAllPaths is O(|V|.|E|+|V|^2.log|V|).
 func JohnsonAllPaths(g graph.Graph) (paths AllShortest, ok bool) {
@@ -29,7 +30,7 @@ func JohnsonAllPaths(g graph.Graph) (paths AllShortest, ok bool) {
 		jg.weight = UniformCost(g)
 	}
 
-	paths = newAllShortest(g.Nodes(), false)
+	paths = newAllShortest(graph.NodesOf(g.Nodes()), false)
 
 	sign := int64(-1)
 	for {
@@ -69,7 +70,7 @@ type johnsonWeightAdjuster struct {
 	q int64
 	g graph.Graph
 
-	from   func(id int64) []graph.Node
+	from   func(id int64) graph.Nodes
 	edgeTo func(uid, vid int64) graph.Edge
 	weight Weighting
 
@@ -86,21 +87,21 @@ var (
 	_ graph.Weighted = johnsonWeightAdjuster{}
 )
 
-func (g johnsonWeightAdjuster) Has(id int64) bool {
+func (g johnsonWeightAdjuster) Node(id int64) graph.Node {
 	if g.bellmanFord && id == g.q {
-		return true
+		return simple.Node(id)
 	}
 	panic("path: unintended use of johnsonWeightAdjuster")
 }
 
-func (g johnsonWeightAdjuster) Nodes() []graph.Node {
+func (g johnsonWeightAdjuster) Nodes() graph.Nodes {
 	if g.bellmanFord {
-		return append(g.g.Nodes(), johnsonGraphNode(g.q))
+		return newJohnsonNodeIterator(g.q, g.g.Nodes())
 	}
 	return g.g.Nodes()
 }
 
-func (g johnsonWeightAdjuster) From(id int64) []graph.Node {
+func (g johnsonWeightAdjuster) From(id int64) graph.Nodes {
 	if g.bellmanFord && id == g.q {
 		return g.g.Nodes()
 	}
@@ -112,7 +113,7 @@ func (g johnsonWeightAdjuster) WeightedEdge(_, _ int64) graph.WeightedEdge {
 }
 
 func (g johnsonWeightAdjuster) Edge(uid, vid int64) graph.Edge {
-	if g.bellmanFord && uid == g.q && g.g.Has(vid) {
+	if g.bellmanFord && uid == g.q && g.g.Node(vid) != nil {
 		return simple.Edge{F: johnsonGraphNode(g.q), T: simple.Node(vid)}
 	}
 	return g.edgeTo(uid, vid)
@@ -140,3 +141,59 @@ func (johnsonWeightAdjuster) HasEdgeBetween(_, _ int64) bool {
 type johnsonGraphNode int64
 
 func (n johnsonGraphNode) ID() int64 { return int64(n) }
+
+func newJohnsonNodeIterator(q int64, nodes graph.Nodes) *johnsonNodeIterator {
+	return &johnsonNodeIterator{q: q, nodes: nodes}
+}
+
+type johnsonNodeIterator struct {
+	q          int64
+	nodes      graph.Nodes
+	qUsed, qOK bool
+}
+
+func (it *johnsonNodeIterator) Len() int {
+	var len int
+	if it.nodes != nil {
+		len = it.nodes.Len()
+	}
+	if !it.qUsed {
+		len++
+	}
+	return len
+}
+
+func (it *johnsonNodeIterator) Next() bool {
+	if it.nodes != nil {
+		ok := it.nodes.Next()
+		if ok {
+			return true
+		}
+	}
+	if !it.qUsed {
+		it.qOK = true
+		it.qUsed = true
+		return true
+	}
+	it.qOK = false
+	return false
+}
+
+func (it *johnsonNodeIterator) Node() graph.Node {
+	if it.qOK {
+		return johnsonGraphNode(it.q)
+	}
+	if it.nodes == nil {
+		return nil
+	}
+	return it.nodes.Node()
+}
+
+func (it *johnsonNodeIterator) Reset() {
+	it.qOK = false
+	it.qUsed = false
+	if it.nodes == nil {
+		return
+	}
+	it.nodes.Reset()
+}

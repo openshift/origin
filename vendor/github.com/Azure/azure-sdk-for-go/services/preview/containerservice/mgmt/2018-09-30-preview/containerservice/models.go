@@ -18,12 +18,17 @@ package containerservice
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/to"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
+
+// The package's fully qualified name.
+const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/containerservice/mgmt/2018-09-30-preview/containerservice"
 
 // Kind enumerates the values for kind.
 type Kind string
@@ -87,15 +92,77 @@ func PossibleOpenShiftAgentPoolProfileRoleValues() []OpenShiftAgentPoolProfileRo
 type OpenShiftContainerServiceVMSize string
 
 const (
+	// StandardD16sV3 ...
+	StandardD16sV3 OpenShiftContainerServiceVMSize = "Standard_D16s_v3"
 	// StandardD2sV3 ...
 	StandardD2sV3 OpenShiftContainerServiceVMSize = "Standard_D2s_v3"
+	// StandardD32sV3 ...
+	StandardD32sV3 OpenShiftContainerServiceVMSize = "Standard_D32s_v3"
 	// StandardD4sV3 ...
 	StandardD4sV3 OpenShiftContainerServiceVMSize = "Standard_D4s_v3"
+	// StandardD64sV3 ...
+	StandardD64sV3 OpenShiftContainerServiceVMSize = "Standard_D64s_v3"
+	// StandardD8sV3 ...
+	StandardD8sV3 OpenShiftContainerServiceVMSize = "Standard_D8s_v3"
+	// StandardDS12V2 ...
+	StandardDS12V2 OpenShiftContainerServiceVMSize = "Standard_DS12_v2"
+	// StandardDS13V2 ...
+	StandardDS13V2 OpenShiftContainerServiceVMSize = "Standard_DS13_v2"
+	// StandardDS14V2 ...
+	StandardDS14V2 OpenShiftContainerServiceVMSize = "Standard_DS14_v2"
+	// StandardDS15V2 ...
+	StandardDS15V2 OpenShiftContainerServiceVMSize = "Standard_DS15_v2"
+	// StandardDS4V2 ...
+	StandardDS4V2 OpenShiftContainerServiceVMSize = "Standard_DS4_v2"
+	// StandardDS5V2 ...
+	StandardDS5V2 OpenShiftContainerServiceVMSize = "Standard_DS5_v2"
+	// StandardE16sV3 ...
+	StandardE16sV3 OpenShiftContainerServiceVMSize = "Standard_E16s_v3"
+	// StandardE20sV3 ...
+	StandardE20sV3 OpenShiftContainerServiceVMSize = "Standard_E20s_v3"
+	// StandardE32sV3 ...
+	StandardE32sV3 OpenShiftContainerServiceVMSize = "Standard_E32s_v3"
+	// StandardE4sV3 ...
+	StandardE4sV3 OpenShiftContainerServiceVMSize = "Standard_E4s_v3"
+	// StandardE64sV3 ...
+	StandardE64sV3 OpenShiftContainerServiceVMSize = "Standard_E64s_v3"
+	// StandardE8sV3 ...
+	StandardE8sV3 OpenShiftContainerServiceVMSize = "Standard_E8s_v3"
+	// StandardF16s ...
+	StandardF16s OpenShiftContainerServiceVMSize = "Standard_F16s"
+	// StandardF16sV2 ...
+	StandardF16sV2 OpenShiftContainerServiceVMSize = "Standard_F16s_v2"
+	// StandardF32sV2 ...
+	StandardF32sV2 OpenShiftContainerServiceVMSize = "Standard_F32s_v2"
+	// StandardF64sV2 ...
+	StandardF64sV2 OpenShiftContainerServiceVMSize = "Standard_F64s_v2"
+	// StandardF72sV2 ...
+	StandardF72sV2 OpenShiftContainerServiceVMSize = "Standard_F72s_v2"
+	// StandardF8s ...
+	StandardF8s OpenShiftContainerServiceVMSize = "Standard_F8s"
+	// StandardF8sV2 ...
+	StandardF8sV2 OpenShiftContainerServiceVMSize = "Standard_F8s_v2"
+	// StandardGS2 ...
+	StandardGS2 OpenShiftContainerServiceVMSize = "Standard_GS2"
+	// StandardGS3 ...
+	StandardGS3 OpenShiftContainerServiceVMSize = "Standard_GS3"
+	// StandardGS4 ...
+	StandardGS4 OpenShiftContainerServiceVMSize = "Standard_GS4"
+	// StandardGS5 ...
+	StandardGS5 OpenShiftContainerServiceVMSize = "Standard_GS5"
+	// StandardL16s ...
+	StandardL16s OpenShiftContainerServiceVMSize = "Standard_L16s"
+	// StandardL32s ...
+	StandardL32s OpenShiftContainerServiceVMSize = "Standard_L32s"
+	// StandardL4s ...
+	StandardL4s OpenShiftContainerServiceVMSize = "Standard_L4s"
+	// StandardL8s ...
+	StandardL8s OpenShiftContainerServiceVMSize = "Standard_L8s"
 )
 
 // PossibleOpenShiftContainerServiceVMSizeValues returns an array of possible values for the OpenShiftContainerServiceVMSize const type.
 func PossibleOpenShiftContainerServiceVMSizeValues() []OpenShiftContainerServiceVMSize {
-	return []OpenShiftContainerServiceVMSize{StandardD2sV3, StandardD4sV3}
+	return []OpenShiftContainerServiceVMSize{StandardD16sV3, StandardD2sV3, StandardD32sV3, StandardD4sV3, StandardD64sV3, StandardD8sV3, StandardDS12V2, StandardDS13V2, StandardDS14V2, StandardDS15V2, StandardDS4V2, StandardDS5V2, StandardE16sV3, StandardE20sV3, StandardE32sV3, StandardE4sV3, StandardE64sV3, StandardE8sV3, StandardF16s, StandardF16sV2, StandardF32sV2, StandardF64sV2, StandardF72sV2, StandardF8s, StandardF8sV2, StandardGS2, StandardGS3, StandardGS4, StandardGS5, StandardL16s, StandardL32s, StandardL4s, StandardL8s}
 }
 
 // OrchestratorTypes enumerates the values for orchestrator types.
@@ -526,13 +593,13 @@ type AgentPoolProfile struct {
 	OsDiskSizeGB *int32 `json:"osDiskSizeGB,omitempty"`
 	// DNSPrefix - DNS prefix to be used to create the FQDN for the agent pool.
 	DNSPrefix *string `json:"dnsPrefix,omitempty"`
-	// Fqdn - FDQN for the agent pool.
+	// Fqdn - READ-ONLY; FQDN for the agent pool.
 	Fqdn *string `json:"fqdn,omitempty"`
 	// Ports - Ports number array used to expose on this agent pool. The default opened ports are different based on your choice of orchestrator.
 	Ports *[]int32 `json:"ports,omitempty"`
 	// StorageProfile - Storage profile specifies what kind of storage used. Choose from StorageAccount and ManagedDisks. Leave it empty, we will choose for you based on the orchestrator choice. Possible values include: 'StorageAccount', 'ManagedDisks'
 	StorageProfile StorageProfileTypes `json:"storageProfile,omitempty"`
-	// VnetSubnetID - VNet SubnetID specifies the vnet's subnet identifier.
+	// VnetSubnetID - VNet SubnetID specifies the VNet's subnet identifier.
 	VnetSubnetID *string `json:"vnetSubnetID,omitempty"`
 	// OsType - OsType to be used to specify os type. Choose from Linux and Windows. Default to Linux. Possible values include: 'Linux', 'Windows'
 	OsType OSType `json:"osType,omitempty"`
@@ -540,6 +607,7 @@ type AgentPoolProfile struct {
 
 // CloudError an error response from the Container service.
 type CloudError struct {
+	// Error - Details about the error.
 	Error *CloudErrorBody `json:"error,omitempty"`
 }
 
@@ -560,11 +628,11 @@ type ContainerService struct {
 	autorest.Response `json:"-"`
 	// Properties - Properties of the container service.
 	*Properties `json:"properties,omitempty"`
-	// ID - Resource Id
+	// ID - READ-ONLY; Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - Resource name
+	// Name - READ-ONLY; Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type
+	// Type - READ-ONLY; Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location
 	Location *string `json:"location,omitempty"`
@@ -577,15 +645,6 @@ func (cs ContainerService) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if cs.Properties != nil {
 		objectMap["properties"] = cs.Properties
-	}
-	if cs.ID != nil {
-		objectMap["id"] = cs.ID
-	}
-	if cs.Name != nil {
-		objectMap["name"] = cs.Name
-	}
-	if cs.Type != nil {
-		objectMap["type"] = cs.Type
 	}
 	if cs.Location != nil {
 		objectMap["location"] = cs.Location
@@ -675,7 +734,7 @@ type ContainerServicesCreateOrUpdateFutureType struct {
 // If the operation has not completed it will return an error.
 func (future *ContainerServicesCreateOrUpdateFutureType) Result(client ContainerServicesClient) (cs ContainerService, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesCreateOrUpdateFutureType", "Result", future.Response(), "Polling failure")
 		return
@@ -694,8 +753,8 @@ func (future *ContainerServicesCreateOrUpdateFutureType) Result(client Container
 	return
 }
 
-// ContainerServicesDeleteFutureType an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ContainerServicesDeleteFutureType an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type ContainerServicesDeleteFutureType struct {
 	azure.Future
 }
@@ -704,7 +763,7 @@ type ContainerServicesDeleteFutureType struct {
 // If the operation has not completed it will return an error.
 func (future *ContainerServicesDeleteFutureType) Result(client ContainerServicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesDeleteFutureType", "Result", future.Response(), "Polling failure")
 		return
@@ -719,16 +778,17 @@ func (future *ContainerServicesDeleteFutureType) Result(client ContainerServices
 
 // CredentialResult the credential result response.
 type CredentialResult struct {
-	// Name - The name of the credential.
+	// Name - READ-ONLY; The name of the credential.
 	Name *string `json:"name,omitempty"`
-	// Value - Base64-encoded Kubernetes configuration file.
+	// Value - READ-ONLY; Base64-encoded Kubernetes configuration file.
 	Value *[]byte `json:"value,omitempty"`
 }
 
 // CredentialResults the list of credential result response.
 type CredentialResults struct {
 	autorest.Response `json:"-"`
-	Kubeconfigs       *[]CredentialResult `json:"kubeconfigs,omitempty"`
+	// Kubeconfigs - READ-ONLY; Base64-encoded Kubernetes configuration file.
+	Kubeconfigs *[]CredentialResult `json:"kubeconfigs,omitempty"`
 }
 
 // CustomProfile properties to configure a custom container service cluster.
@@ -766,7 +826,7 @@ type ListResult struct {
 	autorest.Response `json:"-"`
 	// Value - The list of container services.
 	Value *[]ContainerService `json:"value,omitempty"`
-	// NextLink - The URL to get the next set of container service results.
+	// NextLink - READ-ONLY; The URL to get the next set of container service results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -776,20 +836,37 @@ type ListResultIterator struct {
 	page ListResultPage
 }
 
-// Next advances to the next value.  If there was an error making
+// NextWithContext advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ListResultIterator) Next() error {
+func (iter *ListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err := iter.page.Next()
+	err = iter.page.NextWithContext(ctx)
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *ListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -811,6 +888,11 @@ func (iter ListResultIterator) Value() ContainerService {
 	return iter.page.Values()[iter.i]
 }
 
+// Creates a new instance of the ListResultIterator type.
+func NewListResultIterator(page ListResultPage) ListResultIterator {
+	return ListResultIterator{page: page}
+}
+
 // IsEmpty returns true if the ListResult contains no values.
 func (lr ListResult) IsEmpty() bool {
 	return lr.Value == nil || len(*lr.Value) == 0
@@ -818,11 +900,11 @@ func (lr ListResult) IsEmpty() bool {
 
 // listResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (lr ListResult) listResultPreparer() (*http.Request, error) {
+func (lr ListResult) listResultPreparer(ctx context.Context) (*http.Request, error) {
 	if lr.NextLink == nil || len(to.String(lr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare(&http.Request{},
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(lr.NextLink)))
@@ -830,19 +912,36 @@ func (lr ListResult) listResultPreparer() (*http.Request, error) {
 
 // ListResultPage contains a page of ContainerService values.
 type ListResultPage struct {
-	fn func(ListResult) (ListResult, error)
+	fn func(context.Context, ListResult) (ListResult, error)
 	lr ListResult
 }
 
-// Next advances to the next page of values.  If there was an error making
+// NextWithContext advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ListResultPage) Next() error {
-	next, err := page.fn(page.lr)
+func (page *ListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.lr)
 	if err != nil {
 		return err
 	}
 	page.lr = next
 	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *ListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -863,16 +962,21 @@ func (page ListResultPage) Values() []ContainerService {
 	return *page.lr.Value
 }
 
+// Creates a new instance of the ListResultPage type.
+func NewListResultPage(getNextPage func(context.Context, ListResult) (ListResult, error)) ListResultPage {
+	return ListResultPage{fn: getNextPage}
+}
+
 // ManagedCluster managed cluster.
 type ManagedCluster struct {
 	autorest.Response `json:"-"`
 	// ManagedClusterProperties - Properties of a managed cluster.
 	*ManagedClusterProperties `json:"properties,omitempty"`
-	// ID - Resource Id
+	// ID - READ-ONLY; Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - Resource name
+	// Name - READ-ONLY; Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type
+	// Type - READ-ONLY; Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location
 	Location *string `json:"location,omitempty"`
@@ -885,15 +989,6 @@ func (mc ManagedCluster) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if mc.ManagedClusterProperties != nil {
 		objectMap["properties"] = mc.ManagedClusterProperties
-	}
-	if mc.ID != nil {
-		objectMap["id"] = mc.ID
-	}
-	if mc.Name != nil {
-		objectMap["name"] = mc.Name
-	}
-	if mc.Type != nil {
-		objectMap["type"] = mc.Type
 	}
 	if mc.Location != nil {
 		objectMap["location"] = mc.Location
@@ -990,11 +1085,11 @@ type ManagedClusterAccessProfile struct {
 	autorest.Response `json:"-"`
 	// AccessProfile - AccessProfile of a managed cluster.
 	*AccessProfile `json:"properties,omitempty"`
-	// ID - Resource Id
+	// ID - READ-ONLY; Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - Resource name
+	// Name - READ-ONLY; Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type
+	// Type - READ-ONLY; Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location
 	Location *string `json:"location,omitempty"`
@@ -1007,15 +1102,6 @@ func (mcap ManagedClusterAccessProfile) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if mcap.AccessProfile != nil {
 		objectMap["properties"] = mcap.AccessProfile
-	}
-	if mcap.ID != nil {
-		objectMap["id"] = mcap.ID
-	}
-	if mcap.Name != nil {
-		objectMap["name"] = mcap.Name
-	}
-	if mcap.Type != nil {
-		objectMap["type"] = mcap.Type
 	}
 	if mcap.Location != nil {
 		objectMap["location"] = mcap.Location
@@ -1125,9 +1211,9 @@ type ManagedClusterAgentPoolProfile struct {
 	VMSize VMSizeTypes `json:"vmSize,omitempty"`
 	// OsDiskSizeGB - OS Disk Size in GB to be used to specify the disk size for every machine in this master/agent pool. If you specify 0, it will apply the default osDisk size according to the vmSize specified.
 	OsDiskSizeGB *int32 `json:"osDiskSizeGB,omitempty"`
-	// StorageProfile - Storage profile specifies what kind of storage used. Defaults to ManagedDisks. Possible values include: 'StorageAccount', 'ManagedDisks'
+	// StorageProfile - READ-ONLY; Storage profile specifies what kind of storage used. Defaults to ManagedDisks. Possible values include: 'StorageAccount', 'ManagedDisks'
 	StorageProfile StorageProfileTypes `json:"storageProfile,omitempty"`
-	// VnetSubnetID - VNet SubnetID specifies the vnet's subnet identifier.
+	// VnetSubnetID - VNet SubnetID specifies the VNet's subnet identifier.
 	VnetSubnetID *string `json:"vnetSubnetID,omitempty"`
 	// MaxPods - Maximum number of pods that can run on a node.
 	MaxPods *int32 `json:"maxPods,omitempty"`
@@ -1140,7 +1226,7 @@ type ManagedClusterListResult struct {
 	autorest.Response `json:"-"`
 	// Value - The list of managed clusters.
 	Value *[]ManagedCluster `json:"value,omitempty"`
-	// NextLink - The URL to get the next set of managed cluster results.
+	// NextLink - READ-ONLY; The URL to get the next set of managed cluster results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1150,20 +1236,37 @@ type ManagedClusterListResultIterator struct {
 	page ManagedClusterListResultPage
 }
 
-// Next advances to the next value.  If there was an error making
+// NextWithContext advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ManagedClusterListResultIterator) Next() error {
+func (iter *ManagedClusterListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedClusterListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err := iter.page.Next()
+	err = iter.page.NextWithContext(ctx)
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *ManagedClusterListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1185,6 +1288,11 @@ func (iter ManagedClusterListResultIterator) Value() ManagedCluster {
 	return iter.page.Values()[iter.i]
 }
 
+// Creates a new instance of the ManagedClusterListResultIterator type.
+func NewManagedClusterListResultIterator(page ManagedClusterListResultPage) ManagedClusterListResultIterator {
+	return ManagedClusterListResultIterator{page: page}
+}
+
 // IsEmpty returns true if the ListResult contains no values.
 func (mclr ManagedClusterListResult) IsEmpty() bool {
 	return mclr.Value == nil || len(*mclr.Value) == 0
@@ -1192,11 +1300,11 @@ func (mclr ManagedClusterListResult) IsEmpty() bool {
 
 // managedClusterListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (mclr ManagedClusterListResult) managedClusterListResultPreparer() (*http.Request, error) {
+func (mclr ManagedClusterListResult) managedClusterListResultPreparer(ctx context.Context) (*http.Request, error) {
 	if mclr.NextLink == nil || len(to.String(mclr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare(&http.Request{},
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(mclr.NextLink)))
@@ -1204,19 +1312,36 @@ func (mclr ManagedClusterListResult) managedClusterListResultPreparer() (*http.R
 
 // ManagedClusterListResultPage contains a page of ManagedCluster values.
 type ManagedClusterListResultPage struct {
-	fn   func(ManagedClusterListResult) (ManagedClusterListResult, error)
+	fn   func(context.Context, ManagedClusterListResult) (ManagedClusterListResult, error)
 	mclr ManagedClusterListResult
 }
 
-// Next advances to the next page of values.  If there was an error making
+// NextWithContext advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ManagedClusterListResultPage) Next() error {
-	next, err := page.fn(page.mclr)
+func (page *ManagedClusterListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedClusterListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.mclr)
 	if err != nil {
 		return err
 	}
 	page.mclr = next
 	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *ManagedClusterListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1237,6 +1362,11 @@ func (page ManagedClusterListResultPage) Values() []ManagedCluster {
 	return *page.mclr.Value
 }
 
+// Creates a new instance of the ManagedClusterListResultPage type.
+func NewManagedClusterListResultPage(getNextPage func(context.Context, ManagedClusterListResult) (ManagedClusterListResult, error)) ManagedClusterListResultPage {
+	return ManagedClusterListResultPage{fn: getNextPage}
+}
+
 // ManagedClusterPoolUpgradeProfile the list of available upgrade versions.
 type ManagedClusterPoolUpgradeProfile struct {
 	// KubernetesVersion - Kubernetes version (major, minor, patch).
@@ -1251,13 +1381,13 @@ type ManagedClusterPoolUpgradeProfile struct {
 
 // ManagedClusterProperties properties of the managed cluster.
 type ManagedClusterProperties struct {
-	// ProvisioningState - The current deployment or provisioning state, which only appears in the response.
+	// ProvisioningState - READ-ONLY; The current deployment or provisioning state, which only appears in the response.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
 	// KubernetesVersion - Version of Kubernetes specified when creating the managed cluster.
 	KubernetesVersion *string `json:"kubernetesVersion,omitempty"`
 	// DNSPrefix - DNS prefix specified when creating the managed cluster.
 	DNSPrefix *string `json:"dnsPrefix,omitempty"`
-	// Fqdn - FDQN for the master pool.
+	// Fqdn - READ-ONLY; FQDN for the master pool.
 	Fqdn *string `json:"fqdn,omitempty"`
 	// AgentPoolProfiles - Properties of the agent pool. Currently only one agent pool can exist.
 	AgentPoolProfiles *[]ManagedClusterAgentPoolProfile `json:"agentPoolProfiles,omitempty"`
@@ -1267,7 +1397,7 @@ type ManagedClusterProperties struct {
 	ServicePrincipalProfile *ManagedClusterServicePrincipalProfile `json:"servicePrincipalProfile,omitempty"`
 	// AddonProfiles - Profile of managed cluster add-on.
 	AddonProfiles map[string]*ManagedClusterAddonProfile `json:"addonProfiles"`
-	// NodeResourceGroup - Name of the resource group containing agent pool nodes.
+	// NodeResourceGroup - READ-ONLY; Name of the resource group containing agent pool nodes.
 	NodeResourceGroup *string `json:"nodeResourceGroup,omitempty"`
 	// EnableRBAC - Whether to enable Kubernetes Role-Based Access Control.
 	EnableRBAC *bool `json:"enableRBAC,omitempty"`
@@ -1280,17 +1410,11 @@ type ManagedClusterProperties struct {
 // MarshalJSON is the custom marshaler for ManagedClusterProperties.
 func (mcp ManagedClusterProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if mcp.ProvisioningState != nil {
-		objectMap["provisioningState"] = mcp.ProvisioningState
-	}
 	if mcp.KubernetesVersion != nil {
 		objectMap["kubernetesVersion"] = mcp.KubernetesVersion
 	}
 	if mcp.DNSPrefix != nil {
 		objectMap["dnsPrefix"] = mcp.DNSPrefix
-	}
-	if mcp.Fqdn != nil {
-		objectMap["fqdn"] = mcp.Fqdn
 	}
 	if mcp.AgentPoolProfiles != nil {
 		objectMap["agentPoolProfiles"] = mcp.AgentPoolProfiles
@@ -1304,9 +1428,6 @@ func (mcp ManagedClusterProperties) MarshalJSON() ([]byte, error) {
 	if mcp.AddonProfiles != nil {
 		objectMap["addonProfiles"] = mcp.AddonProfiles
 	}
-	if mcp.NodeResourceGroup != nil {
-		objectMap["nodeResourceGroup"] = mcp.NodeResourceGroup
-	}
 	if mcp.EnableRBAC != nil {
 		objectMap["enableRBAC"] = mcp.EnableRBAC
 	}
@@ -1319,8 +1440,8 @@ func (mcp ManagedClusterProperties) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// ManagedClustersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ManagedClustersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type ManagedClustersCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -1329,7 +1450,7 @@ type ManagedClustersCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedClustersCreateOrUpdateFuture) Result(client ManagedClustersClient) (mc ManagedCluster, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "containerservice.ManagedClustersCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1358,7 +1479,7 @@ type ManagedClustersDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedClustersDeleteFuture) Result(client ManagedClustersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "containerservice.ManagedClustersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1371,8 +1492,8 @@ func (future *ManagedClustersDeleteFuture) Result(client ManagedClustersClient) 
 	return
 }
 
-// ManagedClusterServicePrincipalProfile information about a service principal identity for the cluster to use for
-// manipulating Azure APIs.
+// ManagedClusterServicePrincipalProfile information about a service principal identity for the cluster to
+// use for manipulating Azure APIs.
 type ManagedClusterServicePrincipalProfile struct {
 	// ClientID - The ID for the service principal.
 	ClientID *string `json:"clientId,omitempty"`
@@ -1380,8 +1501,54 @@ type ManagedClusterServicePrincipalProfile struct {
 	Secret *string `json:"secret,omitempty"`
 }
 
-// ManagedClustersUpdateTagsFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ManagedClustersResetAADProfileFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type ManagedClustersResetAADProfileFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ManagedClustersResetAADProfileFuture) Result(client ManagedClustersClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerservice.ManagedClustersResetAADProfileFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("containerservice.ManagedClustersResetAADProfileFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// ManagedClustersResetServicePrincipalProfileFuture an abstraction for monitoring and retrieving the
+// results of a long-running operation.
+type ManagedClustersResetServicePrincipalProfileFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ManagedClustersResetServicePrincipalProfileFuture) Result(client ManagedClustersClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerservice.ManagedClustersResetServicePrincipalProfileFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("containerservice.ManagedClustersResetServicePrincipalProfileFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// ManagedClustersUpdateTagsFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type ManagedClustersUpdateTagsFuture struct {
 	azure.Future
 }
@@ -1390,7 +1557,7 @@ type ManagedClustersUpdateTagsFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedClustersUpdateTagsFuture) Result(client ManagedClustersClient) (mc ManagedCluster, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "containerservice.ManagedClustersUpdateTagsFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1412,11 +1579,11 @@ func (future *ManagedClustersUpdateTagsFuture) Result(client ManagedClustersClie
 // ManagedClusterUpgradeProfile the list of available upgrades for compute pools.
 type ManagedClusterUpgradeProfile struct {
 	autorest.Response `json:"-"`
-	// ID - Id of upgrade profile.
+	// ID - READ-ONLY; Id of upgrade profile.
 	ID *string `json:"id,omitempty"`
-	// Name - Name of upgrade profile.
+	// Name - READ-ONLY; Name of upgrade profile.
 	Name *string `json:"name,omitempty"`
-	// Type - Type of upgrade profile.
+	// Type - READ-ONLY; Type of upgrade profile.
 	Type *string `json:"type,omitempty"`
 	// ManagedClusterUpgradeProfileProperties - Properties of upgrade profile.
 	*ManagedClusterUpgradeProfileProperties `json:"properties,omitempty"`
@@ -1425,15 +1592,6 @@ type ManagedClusterUpgradeProfile struct {
 // MarshalJSON is the custom marshaler for ManagedClusterUpgradeProfile.
 func (mcup ManagedClusterUpgradeProfile) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if mcup.ID != nil {
-		objectMap["id"] = mcup.ID
-	}
-	if mcup.Name != nil {
-		objectMap["name"] = mcup.Name
-	}
-	if mcup.Type != nil {
-		objectMap["type"] = mcup.Type
-	}
 	if mcup.ManagedClusterUpgradeProfileProperties != nil {
 		objectMap["properties"] = mcup.ManagedClusterUpgradeProfileProperties
 	}
@@ -1509,13 +1667,13 @@ type MasterProfile struct {
 	VMSize VMSizeTypes `json:"vmSize,omitempty"`
 	// OsDiskSizeGB - OS Disk Size in GB to be used to specify the disk size for every machine in this master/agent pool. If you specify 0, it will apply the default osDisk size according to the vmSize specified.
 	OsDiskSizeGB *int32 `json:"osDiskSizeGB,omitempty"`
-	// VnetSubnetID - VNet SubnetID specifies the vnet's subnet identifier.
+	// VnetSubnetID - VNet SubnetID specifies the VNet's subnet identifier.
 	VnetSubnetID *string `json:"vnetSubnetID,omitempty"`
 	// FirstConsecutiveStaticIP - FirstConsecutiveStaticIP used to specify the first static ip of masters.
 	FirstConsecutiveStaticIP *string `json:"firstConsecutiveStaticIP,omitempty"`
 	// StorageProfile - Storage profile specifies what kind of storage used. Choose from StorageAccount and ManagedDisks. Leave it empty, we will choose for you based on the orchestrator choice. Possible values include: 'StorageAccount', 'ManagedDisks'
 	StorageProfile StorageProfileTypes `json:"storageProfile,omitempty"`
-	// Fqdn - FDQN for the master pool.
+	// Fqdn - READ-ONLY; FQDN for the master pool.
 	Fqdn *string `json:"fqdn,omitempty"`
 }
 
@@ -1548,13 +1706,13 @@ type OpenShiftManagedCluster struct {
 	autorest.Response `json:"-"`
 	// Plan - Define the resource plan as required by ARM for billing purposes
 	Plan *PurchasePlan `json:"plan,omitempty"`
-	// OpenShiftManagedClusterProperties - Properties of a openshift managed cluster.
+	// OpenShiftManagedClusterProperties - Properties of a OpenShift managed cluster.
 	*OpenShiftManagedClusterProperties `json:"properties,omitempty"`
-	// ID - Resource Id
+	// ID - READ-ONLY; Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - Resource name
+	// Name - READ-ONLY; Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type
+	// Type - READ-ONLY; Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location
 	Location *string `json:"location,omitempty"`
@@ -1570,15 +1728,6 @@ func (osmc OpenShiftManagedCluster) MarshalJSON() ([]byte, error) {
 	}
 	if osmc.OpenShiftManagedClusterProperties != nil {
 		objectMap["properties"] = osmc.OpenShiftManagedClusterProperties
-	}
-	if osmc.ID != nil {
-		objectMap["id"] = osmc.ID
-	}
-	if osmc.Name != nil {
-		objectMap["name"] = osmc.Name
-	}
-	if osmc.Type != nil {
-		objectMap["type"] = osmc.Type
 	}
 	if osmc.Location != nil {
 		objectMap["location"] = osmc.Location
@@ -1675,6 +1824,8 @@ type OpenShiftManagedClusterAADIdentityProvider struct {
 	Secret *string `json:"secret,omitempty"`
 	// TenantID - The tenantId associated with the provider.
 	TenantID *string `json:"tenantId,omitempty"`
+	// CustomerAdminGroupID - The groupId to be granted cluster admin role.
+	CustomerAdminGroupID *string `json:"customerAdminGroupId,omitempty"`
 	// Kind - Possible values include: 'KindOpenShiftManagedClusterBaseIdentityProvider', 'KindAADIdentityProvider'
 	Kind Kind `json:"kind,omitempty"`
 }
@@ -1691,6 +1842,9 @@ func (osmcaip OpenShiftManagedClusterAADIdentityProvider) MarshalJSON() ([]byte,
 	}
 	if osmcaip.TenantID != nil {
 		objectMap["tenantId"] = osmcaip.TenantID
+	}
+	if osmcaip.CustomerAdminGroupID != nil {
+		objectMap["customerAdminGroupId"] = osmcaip.CustomerAdminGroupID
 	}
 	if osmcaip.Kind != "" {
 		objectMap["kind"] = osmcaip.Kind
@@ -1717,9 +1871,9 @@ func (osmcaip OpenShiftManagedClusterAADIdentityProvider) AsBasicOpenShiftManage
 type OpenShiftManagedClusterAgentPoolProfile struct {
 	// Name - Unique name of the pool profile in the context of the subscription and resource group.
 	Name *string `json:"name,omitempty"`
-	// Count - Number of agents (VMs) to host docker containers. Allowed values must be in the range of 1 to 5 (inclusive). The default value is 2.
+	// Count - Number of agents (VMs) to host docker containers.
 	Count *int32 `json:"count,omitempty"`
-	// VMSize - Size of agent VMs. Possible values include: 'StandardD2sV3', 'StandardD4sV3'
+	// VMSize - Size of agent VMs. Possible values include: 'StandardD2sV3', 'StandardD4sV3', 'StandardD8sV3', 'StandardD16sV3', 'StandardD32sV3', 'StandardD64sV3', 'StandardDS4V2', 'StandardDS5V2', 'StandardF8sV2', 'StandardF16sV2', 'StandardF32sV2', 'StandardF64sV2', 'StandardF72sV2', 'StandardF8s', 'StandardF16s', 'StandardE4sV3', 'StandardE8sV3', 'StandardE16sV3', 'StandardE20sV3', 'StandardE32sV3', 'StandardE64sV3', 'StandardGS2', 'StandardGS3', 'StandardGS4', 'StandardGS5', 'StandardDS12V2', 'StandardDS13V2', 'StandardDS14V2', 'StandardDS15V2', 'StandardL4s', 'StandardL8s', 'StandardL16s', 'StandardL32s'
 	VMSize OpenShiftContainerServiceVMSize `json:"vmSize,omitempty"`
 	// SubnetCidr - Subnet CIDR for the peering.
 	SubnetCidr *string `json:"subnetCidr,omitempty"`
@@ -1729,7 +1883,8 @@ type OpenShiftManagedClusterAgentPoolProfile struct {
 	Role OpenShiftAgentPoolProfileRole `json:"role,omitempty"`
 }
 
-// OpenShiftManagedClusterAuthProfile defines all possible authentication profiles for the OpenShift cluster.
+// OpenShiftManagedClusterAuthProfile defines all possible authentication profiles for the OpenShift
+// cluster.
 type OpenShiftManagedClusterAuthProfile struct {
 	// IdentityProviders - Type of authentication profile to use.
 	IdentityProviders *[]OpenShiftManagedClusterIdentityProvider `json:"identityProviders,omitempty"`
@@ -1809,8 +1964,8 @@ func (osmcbip OpenShiftManagedClusterBaseIdentityProvider) AsBasicOpenShiftManag
 	return &osmcbip, true
 }
 
-// OpenShiftManagedClusterIdentityProvider defines the configuration of the identity providers to be used in the
-// OpenShift cluster.
+// OpenShiftManagedClusterIdentityProvider defines the configuration of the identity providers to be used
+// in the OpenShift cluster.
 type OpenShiftManagedClusterIdentityProvider struct {
 	// Name - Name of the provider.
 	Name *string `json:"name,omitempty"`
@@ -1850,14 +2005,161 @@ func (osmcip *OpenShiftManagedClusterIdentityProvider) UnmarshalJSON(body []byte
 	return nil
 }
 
-// OpenShiftManagedClusterMasterPoolProfile openShiftManagedClusterMaterPoolProfile contains configuration for
-// OpenShift master VMs.
+// OpenShiftManagedClusterListResult the response from the List OpenShift Managed Clusters operation.
+type OpenShiftManagedClusterListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of OpenShift managed clusters.
+	Value *[]OpenShiftManagedCluster `json:"value,omitempty"`
+	// NextLink - READ-ONLY; The URL to get the next set of OpenShift managed cluster results.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// OpenShiftManagedClusterListResultIterator provides access to a complete listing of
+// OpenShiftManagedCluster values.
+type OpenShiftManagedClusterListResultIterator struct {
+	i    int
+	page OpenShiftManagedClusterListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *OpenShiftManagedClusterListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/OpenShiftManagedClusterListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *OpenShiftManagedClusterListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter OpenShiftManagedClusterListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter OpenShiftManagedClusterListResultIterator) Response() OpenShiftManagedClusterListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter OpenShiftManagedClusterListResultIterator) Value() OpenShiftManagedCluster {
+	if !iter.page.NotDone() {
+		return OpenShiftManagedCluster{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the OpenShiftManagedClusterListResultIterator type.
+func NewOpenShiftManagedClusterListResultIterator(page OpenShiftManagedClusterListResultPage) OpenShiftManagedClusterListResultIterator {
+	return OpenShiftManagedClusterListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (osmclr OpenShiftManagedClusterListResult) IsEmpty() bool {
+	return osmclr.Value == nil || len(*osmclr.Value) == 0
+}
+
+// openShiftManagedClusterListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (osmclr OpenShiftManagedClusterListResult) openShiftManagedClusterListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if osmclr.NextLink == nil || len(to.String(osmclr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(osmclr.NextLink)))
+}
+
+// OpenShiftManagedClusterListResultPage contains a page of OpenShiftManagedCluster values.
+type OpenShiftManagedClusterListResultPage struct {
+	fn     func(context.Context, OpenShiftManagedClusterListResult) (OpenShiftManagedClusterListResult, error)
+	osmclr OpenShiftManagedClusterListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *OpenShiftManagedClusterListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/OpenShiftManagedClusterListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.osmclr)
+	if err != nil {
+		return err
+	}
+	page.osmclr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *OpenShiftManagedClusterListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page OpenShiftManagedClusterListResultPage) NotDone() bool {
+	return !page.osmclr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page OpenShiftManagedClusterListResultPage) Response() OpenShiftManagedClusterListResult {
+	return page.osmclr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page OpenShiftManagedClusterListResultPage) Values() []OpenShiftManagedCluster {
+	if page.osmclr.IsEmpty() {
+		return nil
+	}
+	return *page.osmclr.Value
+}
+
+// Creates a new instance of the OpenShiftManagedClusterListResultPage type.
+func NewOpenShiftManagedClusterListResultPage(getNextPage func(context.Context, OpenShiftManagedClusterListResult) (OpenShiftManagedClusterListResult, error)) OpenShiftManagedClusterListResultPage {
+	return OpenShiftManagedClusterListResultPage{fn: getNextPage}
+}
+
+// OpenShiftManagedClusterMasterPoolProfile openShiftManagedClusterMaterPoolProfile contains configuration
+// for OpenShift master VMs.
 type OpenShiftManagedClusterMasterPoolProfile struct {
 	// Name - Unique name of the master pool profile in the context of the subscription and resource group.
 	Name *string `json:"name,omitempty"`
 	// Count - Number of masters (VMs) to host docker containers. The default value is 3.
 	Count *int32 `json:"count,omitempty"`
-	// VMSize - Size of agent VMs. Possible values include: 'StandardD2sV3', 'StandardD4sV3'
+	// VMSize - Size of agent VMs. Possible values include: 'StandardD2sV3', 'StandardD4sV3', 'StandardD8sV3', 'StandardD16sV3', 'StandardD32sV3', 'StandardD64sV3', 'StandardDS4V2', 'StandardDS5V2', 'StandardF8sV2', 'StandardF16sV2', 'StandardF32sV2', 'StandardF64sV2', 'StandardF72sV2', 'StandardF8s', 'StandardF16s', 'StandardE4sV3', 'StandardE8sV3', 'StandardE16sV3', 'StandardE20sV3', 'StandardE32sV3', 'StandardE64sV3', 'StandardGS2', 'StandardGS3', 'StandardGS4', 'StandardGS5', 'StandardDS12V2', 'StandardDS13V2', 'StandardDS14V2', 'StandardDS15V2', 'StandardL4s', 'StandardL8s', 'StandardL16s', 'StandardL32s'
 	VMSize OpenShiftContainerServiceVMSize `json:"vmSize,omitempty"`
 	// SubnetCidr - Subnet CIDR for the peering.
 	SubnetCidr *string `json:"subnetCidr,omitempty"`
@@ -1865,9 +2167,9 @@ type OpenShiftManagedClusterMasterPoolProfile struct {
 	OsType OSType `json:"osType,omitempty"`
 }
 
-// OpenShiftManagedClusterProperties properties of the openshift managed cluster.
+// OpenShiftManagedClusterProperties properties of the OpenShift managed cluster.
 type OpenShiftManagedClusterProperties struct {
-	// ProvisioningState - The current deployment or provisioning state, which only appears in the response.
+	// ProvisioningState - READ-ONLY; The current deployment or provisioning state, which only appears in the response.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
 	// OpenShiftVersion - Version of OpenShift specified when creating the cluster.
 	OpenShiftVersion *string `json:"openShiftVersion,omitempty"`
@@ -1887,8 +2189,8 @@ type OpenShiftManagedClusterProperties struct {
 	AuthProfile *OpenShiftManagedClusterAuthProfile `json:"authProfile,omitempty"`
 }
 
-// OpenShiftManagedClustersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// OpenShiftManagedClustersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of
+// a long-running operation.
 type OpenShiftManagedClustersCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -1897,7 +2199,7 @@ type OpenShiftManagedClustersCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *OpenShiftManagedClustersCreateOrUpdateFuture) Result(client OpenShiftManagedClustersClient) (osmc OpenShiftManagedCluster, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "containerservice.OpenShiftManagedClustersCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1916,8 +2218,8 @@ func (future *OpenShiftManagedClustersCreateOrUpdateFuture) Result(client OpenSh
 	return
 }
 
-// OpenShiftManagedClustersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// OpenShiftManagedClustersDeleteFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type OpenShiftManagedClustersDeleteFuture struct {
 	azure.Future
 }
@@ -1926,7 +2228,7 @@ type OpenShiftManagedClustersDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *OpenShiftManagedClustersDeleteFuture) Result(client OpenShiftManagedClustersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "containerservice.OpenShiftManagedClustersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1949,7 +2251,7 @@ type OpenShiftManagedClustersUpdateTagsFuture struct {
 // If the operation has not completed it will return an error.
 func (future *OpenShiftManagedClustersUpdateTagsFuture) Result(client OpenShiftManagedClustersClient) (osmc OpenShiftManagedCluster, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "containerservice.OpenShiftManagedClustersUpdateTagsFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1972,24 +2274,24 @@ func (future *OpenShiftManagedClustersUpdateTagsFuture) Result(client OpenShiftM
 type OpenShiftRouterProfile struct {
 	// Name - Name of the router profile.
 	Name *string `json:"name,omitempty"`
-	// PublicSubdomain - DNS subdomain for openshift router.
+	// PublicSubdomain - DNS subdomain for OpenShift router.
 	PublicSubdomain *string `json:"publicSubdomain,omitempty"`
-	// Fqdn - Auto-allocated FQDN for the OpenShift router.
+	// Fqdn - READ-ONLY; Auto-allocated FQDN for the OpenShift router.
 	Fqdn *string `json:"fqdn,omitempty"`
 }
 
 // OperationListResult the List Compute Operation operation response.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - The list of compute operations
+	// Value - READ-ONLY; The list of compute operations
 	Value *[]OperationValue `json:"value,omitempty"`
 }
 
 // OperationValue describes the properties of a Compute Operation value.
 type OperationValue struct {
-	// Origin - The origin of the compute operation.
+	// Origin - READ-ONLY; The origin of the compute operation.
 	Origin *string `json:"origin,omitempty"`
-	// Name - The name of the compute operation.
+	// Name - READ-ONLY; The name of the compute operation.
 	Name *string `json:"name,omitempty"`
 	// OperationValueDisplay - Describes the properties of a Compute Operation Value Display.
 	*OperationValueDisplay `json:"display,omitempty"`
@@ -1998,12 +2300,6 @@ type OperationValue struct {
 // MarshalJSON is the custom marshaler for OperationValue.
 func (ov OperationValue) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if ov.Origin != nil {
-		objectMap["origin"] = ov.Origin
-	}
-	if ov.Name != nil {
-		objectMap["name"] = ov.Name
-	}
 	if ov.OperationValueDisplay != nil {
 		objectMap["display"] = ov.OperationValueDisplay
 	}
@@ -2054,13 +2350,13 @@ func (ov *OperationValue) UnmarshalJSON(body []byte) error {
 
 // OperationValueDisplay describes the properties of a Compute Operation Value Display.
 type OperationValueDisplay struct {
-	// Operation - The display name of the compute operation.
+	// Operation - READ-ONLY; The display name of the compute operation.
 	Operation *string `json:"operation,omitempty"`
-	// Resource - The display name of the resource the operation applies to.
+	// Resource - READ-ONLY; The display name of the resource the operation applies to.
 	Resource *string `json:"resource,omitempty"`
-	// Description - The description of the operation.
+	// Description - READ-ONLY; The description of the operation.
 	Description *string `json:"description,omitempty"`
-	// Provider - The resource provider for the operation.
+	// Provider - READ-ONLY; The resource provider for the operation.
 	Provider *string `json:"provider,omitempty"`
 }
 
@@ -2095,11 +2391,11 @@ type OrchestratorVersionProfile struct {
 // OrchestratorVersionProfileListResult the list of versions for supported orchestrators.
 type OrchestratorVersionProfileListResult struct {
 	autorest.Response `json:"-"`
-	// ID - Id of the orchestrator version profile list result.
+	// ID - READ-ONLY; Id of the orchestrator version profile list result.
 	ID *string `json:"id,omitempty"`
-	// Name - Name of the orchestrator version profile list result.
+	// Name - READ-ONLY; Name of the orchestrator version profile list result.
 	Name *string `json:"name,omitempty"`
-	// Type - Type of the orchestrator version profile list result.
+	// Type - READ-ONLY; Type of the orchestrator version profile list result.
 	Type *string `json:"type,omitempty"`
 	// OrchestratorVersionProfileProperties - The properties of an orchestrator version profile.
 	*OrchestratorVersionProfileProperties `json:"properties,omitempty"`
@@ -2108,15 +2404,6 @@ type OrchestratorVersionProfileListResult struct {
 // MarshalJSON is the custom marshaler for OrchestratorVersionProfileListResult.
 func (ovplr OrchestratorVersionProfileListResult) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if ovplr.ID != nil {
-		objectMap["id"] = ovplr.ID
-	}
-	if ovplr.Name != nil {
-		objectMap["name"] = ovplr.Name
-	}
-	if ovplr.Type != nil {
-		objectMap["type"] = ovplr.Type
-	}
 	if ovplr.OrchestratorVersionProfileProperties != nil {
 		objectMap["properties"] = ovplr.OrchestratorVersionProfileProperties
 	}
@@ -2182,7 +2469,7 @@ type OrchestratorVersionProfileProperties struct {
 
 // Properties properties of the container service.
 type Properties struct {
-	// ProvisioningState - The current deployment or provisioning state, which only appears in the response.
+	// ProvisioningState - READ-ONLY; The current deployment or provisioning state, which only appears in the response.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
 	// OrchestratorProfile - Profile for the container service orchestrator.
 	OrchestratorProfile *OrchestratorProfileType `json:"orchestratorProfile,omitempty"`
@@ -2216,11 +2503,11 @@ type PurchasePlan struct {
 
 // Resource the Resource model definition.
 type Resource struct {
-	// ID - Resource Id
+	// ID - READ-ONLY; Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - Resource name
+	// Name - READ-ONLY; Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type
+	// Type - READ-ONLY; Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location
 	Location *string `json:"location,omitempty"`
@@ -2231,15 +2518,6 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if r.ID != nil {
-		objectMap["id"] = r.ID
-	}
-	if r.Name != nil {
-		objectMap["name"] = r.Name
-	}
-	if r.Type != nil {
-		objectMap["type"] = r.Type
-	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}
@@ -2249,8 +2527,8 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// ServicePrincipalProfile information about a service principal identity for the cluster to use for manipulating
-// Azure APIs. Either secret or keyVaultSecretRef must be specified.
+// ServicePrincipalProfile information about a service principal identity for the cluster to use for
+// manipulating Azure APIs. Either secret or keyVaultSecretRef must be specified.
 type ServicePrincipalProfile struct {
 	// ClientID - The ID for the service principal.
 	ClientID *string `json:"clientId,omitempty"`
@@ -2291,7 +2569,7 @@ func (toVar TagsObject) MarshalJSON() ([]byte, error) {
 type VMDiagnostics struct {
 	// Enabled - Whether the VM diagnostic agent is provisioned on the VM.
 	Enabled *bool `json:"enabled,omitempty"`
-	// StorageURI - The URI of the storage account where diagnostics are stored.
+	// StorageURI - READ-ONLY; The URI of the storage account where diagnostics are stored.
 	StorageURI *string `json:"storageUri,omitempty"`
 }
 

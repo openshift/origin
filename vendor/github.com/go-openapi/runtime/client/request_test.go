@@ -18,9 +18,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
+	"io"
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,6 +34,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testProducers = map[string]runtime.Producer{
@@ -508,4 +514,82 @@ func TestBuildRequest_BuildHTTP_EscapedPath(t *testing.T) {
 		assert.Equal(t, req.URL.RawPath, req.URL.EscapedPath())
 		assert.Equal(t, runtime.JSONMime, req.Header.Get(runtime.HeaderContentType))
 	}
+}
+
+type testReqFn func(*testing.T, *http.Request)
+
+type testRoundTripper struct {
+	tr          http.RoundTripper
+	testFn      testReqFn
+	testHarness *testing.T
+}
+
+func (t *testRoundTripper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	t.testFn(t.testHarness, req)
+	return t.tr.RoundTrip(req)
+}
+
+func TestGetBodyCallsBeforeRoundTrip(t *testing.T) {
+
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusCreated)
+		_, err := rw.Write([]byte("test result"))
+		require.NoError(t, err)
+	}))
+	defer server.Close()
+	hu, _ := url.Parse(server.URL)
+
+	client := http.DefaultClient
+	transport := http.DefaultTransport
+
+	client.Transport = &testRoundTripper{
+		tr:          transport,
+		testHarness: t,
+		testFn: func(t *testing.T, req *http.Request) {
+			// Read the body once before sending the request
+			body, err := req.GetBody()
+			require.NoError(t, err)
+			bodyContent, err := ioutil.ReadAll(io.Reader(body))
+			require.EqualValues(t, req.ContentLength, len(bodyContent))
+			require.NoError(t, err)
+			require.EqualValues(t, "\"test body\"\n", string(bodyContent))
+
+			// Read the body a second time before sending the request
+			body, err = req.GetBody()
+			require.NoError(t, err)
+			bodyContent, err = ioutil.ReadAll(io.Reader(body))
+			require.NoError(t, err)
+			require.EqualValues(t, req.ContentLength, len(bodyContent))
+			require.EqualValues(t, "\"test body\"\n", string(bodyContent))
+		},
+	}
+
+	rwrtr := runtime.ClientRequestWriterFunc(func(req runtime.ClientRequest, _ strfmt.Registry) error {
+		return req.SetBodyParam("test body")
+	})
+
+	operation := &runtime.ClientOperation{
+		ID:          "getSites",
+		Method:      "POST",
+		PathPattern: "/",
+		Params:      rwrtr,
+		Client:      client,
+		Reader: runtime.ClientResponseReaderFunc(func(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+			if response.Code() == http.StatusCreated {
+				var result string
+				if err := consumer.Consume(response.Body(), &result); err != nil {
+					return nil, err
+				}
+				return result, nil
+			}
+			return nil, errors.New("Unexpected error code")
+		}),
+	}
+
+	openAPIClient := New(hu.Host, "/", []string{"http"})
+	res, err := openAPIClient.Submit(operation)
+
+	require.NoError(t, err)
+	actual := res.(string)
+	require.EqualValues(t, "test result", actual)
 }

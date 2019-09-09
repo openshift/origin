@@ -13,6 +13,7 @@ import (
 
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -159,7 +160,7 @@ func studentsTConditional(observed []int, values []float64, nu float64, mu []flo
 	// Compute mu_1 + sigma_{2,1}^T * sigma_{2,2}^-1 (v - mu_2).
 	v := mat.NewVecDense(ob, mu2)
 	var tmp, tmp2 mat.VecDense
-	err := chol.SolveVec(&tmp, v)
+	err := chol.SolveVecTo(&tmp, v)
 	if err != nil {
 		return math.NaN(), nil, nil
 	}
@@ -172,7 +173,7 @@ func studentsTConditional(observed []int, values []float64, nu float64, mu []flo
 	// Compute tmp4 = sigma_{2,1}^T * sigma_{2,2}^-1 * sigma_{2,1}.
 	// TODO(btracey): Should this be a method of SymDense?
 	var tmp3, tmp4 mat.Dense
-	err = chol.Solve(&tmp3, sigma21)
+	err = chol.SolveTo(&tmp3, sigma21)
 	if err != nil {
 		return math.NaN(), nil, nil
 	}
@@ -257,18 +258,9 @@ func (s *StudentsT) LogProb(y []float64) float64 {
 
 	t1 := lg1 - lg2 - n/2*math.Log(nu*math.Pi) - s.logSqrtDet
 
-	shift := make([]float64, len(y))
-	copy(shift, y)
-	floats.Sub(shift, s.mu)
-
-	x := mat.NewVecDense(s.dim, shift)
-
-	var tmp mat.VecDense
-	s.chol.SolveVec(&tmp, x)
-
-	dot := mat.Dot(&tmp, x)
-
-	return t1 - ((nu+n)/2)*math.Log(1+dot/nu)
+	mahal := stat.Mahalanobis(mat.NewVecDense(len(y), y), mat.NewVecDense(len(s.mu), s.mu), &s.chol)
+	mahal *= mahal
+	return t1 - ((nu+n)/2)*math.Log(1+mahal/nu)
 }
 
 // MarginalStudentsT returns the marginal distribution of the given input variables,
@@ -293,8 +285,8 @@ func (s *StudentsT) MarginalStudentsT(vars []int, src rand.Source) (dist *Studen
 	return NewStudentsT(newMean, &newSigma, s.nu, src)
 }
 
-// MarginalStudentsT returns the marginal distribution of the given input variable.
-// That is, MarginalStudentsT returns
+// MarginalStudentsTSingle returns the marginal distribution of the given input variable.
+// That is, MarginalStudentsTSingle returns
 //  p(x_i) = \int_{x_o} p(x_i | x_o) p(x_o) dx_o
 // where i is the input index, and x_o are the remaining dimensions.
 // See https://en.wikipedia.org/wiki/Marginal_distribution for more information.

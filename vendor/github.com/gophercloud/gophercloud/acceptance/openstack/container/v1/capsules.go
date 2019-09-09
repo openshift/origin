@@ -10,20 +10,36 @@ import (
 
 // WaitForCapsuleStatus will poll a capsule's status until it either matches
 // the specified status or the status becomes Failed.
-func WaitForCapsuleStatus(client *gophercloud.ServiceClient, capsule *capsules.Capsule, status string) error {
+func WaitForCapsuleStatus(client *gophercloud.ServiceClient, uuid, status string) error {
 	return tools.WaitFor(func() (bool, error) {
-		latest, err := capsules.Get(client, capsule.UUID).Extract()
+		v, err := capsules.Get(client, uuid).Extract()
 		if err != nil {
 			return false, err
 		}
 
-		if latest.Status == status {
+		var newStatus string
+		if capsule, ok := v.(*capsules.Capsule); ok {
+			newStatus = capsule.Status
+		}
+
+		if capsule, ok := v.(*capsules.CapsuleV132); ok {
+			newStatus = capsule.Status
+		}
+
+		fmt.Println(status)
+		fmt.Println(newStatus)
+
+		if newStatus == status {
 			// Success!
 			return true, nil
 		}
 
-		if latest.Status == "Failed" {
+		if newStatus == "Failed" {
 			return false, fmt.Errorf("Capsule in FAILED state")
+		}
+
+		if newStatus == "Error" {
+			return false, fmt.Errorf("Capsule in ERROR state")
 		}
 
 		return false, nil

@@ -6,7 +6,6 @@ package testlapack
 
 import (
 	"fmt"
-	"math"
 	"testing"
 
 	"gonum.org/v1/gonum/blas"
@@ -70,18 +69,10 @@ func DlaqpsTest(t *testing.T, impl Dlaqpser) {
 
 			mo := m - test.offset
 			q := constructQ("QR", mo, kb, a.Data[test.offset*a.Stride:], a.Stride, tau)
-			// Check that q is orthonormal
-			for i := 0; i < mo; i++ {
-				nrm := blas64.Nrm2(mo, blas64.Vector{Inc: 1, Data: q.Data[i*mo:]})
-				if math.Abs(nrm-1) > 1e-13 {
-					t.Errorf("Case %v, q not normal", ti)
-				}
-				for j := 0; j < i; j++ {
-					dot := blas64.Dot(mo, blas64.Vector{Inc: 1, Data: q.Data[i*mo:]}, blas64.Vector{Inc: 1, Data: q.Data[j*mo:]})
-					if math.Abs(dot) > 1e-14 {
-						t.Errorf("Case %v, q not orthogonal", ti)
-					}
-				}
+
+			// Check that Q is orthogonal.
+			if !isOrthogonal(q) {
+				t.Errorf("Case %v, Q not orthogonal", ti)
 			}
 
 			// Check that A * P = Q * R
