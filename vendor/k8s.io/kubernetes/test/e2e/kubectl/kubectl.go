@@ -702,7 +702,6 @@ metadata:
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err).To(gomega.ContainSubstring("Using in-cluster namespace"))
 			gomega.Expect(err).To(gomega.ContainSubstring("Using in-cluster configuration"))
-			gomega.Expect(err).To(gomega.ContainSubstring("Authorization: Bearer invalid"))
 			gomega.Expect(err).To(gomega.ContainSubstring("Response Status: 401 Unauthorized"))
 
 			ginkgo.By("trying to use kubectl with invalid server")
