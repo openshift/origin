@@ -32,3 +32,7 @@ func listURL(client *gophercloud.ServiceClient) string {
 func deleteURL(client *gophercloud.ServiceClient, id string) string {
 	return idURL(client, id)
 }
+
+func notifyURL(client *gophercloud.ServiceClient, id string) string {
+	return client.ServiceURL(apiVersion, apiName, id, "notify")
+}

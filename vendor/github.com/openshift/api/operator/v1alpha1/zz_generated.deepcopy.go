@@ -116,7 +116,7 @@ func (in *ImageContentSourcePolicy) DeepCopyObject() runtime.Object {
 func (in *ImageContentSourcePolicyList) DeepCopyInto(out *ImageContentSourcePolicyList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ImageContentSourcePolicy, len(*in))

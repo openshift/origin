@@ -22,10 +22,10 @@ import (
 func DijkstraFrom(u graph.Node, g traverse.Graph) Shortest {
 	var path Shortest
 	if h, ok := g.(graph.Graph); ok {
-		if !h.Has(u.ID()) {
+		if h.Node(u.ID()) == nil {
 			return Shortest{from: u}
 		}
-		path = newShortestFrom(u, h.Nodes())
+		path = newShortestFrom(u, graph.NodesOf(h.Nodes()))
 	} else {
 		if g.From(u.ID()) == nil {
 			return Shortest{from: u}
@@ -58,7 +58,7 @@ func DijkstraFrom(u graph.Node, g traverse.Graph) Shortest {
 			continue
 		}
 		mnid := mid.node.ID()
-		for _, v := range g.From(mnid) {
+		for _, v := range graph.NodesOf(g.From(mnid)) {
 			vid := v.ID()
 			j, ok := path.indexOf[vid]
 			if !ok {
@@ -88,7 +88,7 @@ func DijkstraFrom(u graph.Node, g traverse.Graph) Shortest {
 //
 // The time complexity of DijkstrAllPaths is O(|V|.|E|+|V|^2.log|V|).
 func DijkstraAllPaths(g graph.Graph) (paths AllShortest) {
-	paths = newAllShortest(g.Nodes(), false)
+	paths = newAllShortest(graph.NodesOf(g.Nodes()), false)
 	dijkstraAllPaths(g, paths)
 	return paths
 }
@@ -123,7 +123,7 @@ func dijkstraAllPaths(g graph.Graph, paths AllShortest) {
 				paths.dist.Set(i, k, mid.dist)
 			}
 			mnid := mid.node.ID()
-			for _, v := range g.From(mnid) {
+			for _, v := range graph.NodesOf(g.From(mnid)) {
 				vid := v.ID()
 				j := paths.indexOf[vid]
 				w, ok := weight(mnid, vid)

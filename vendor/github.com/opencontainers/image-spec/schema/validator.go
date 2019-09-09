@@ -125,11 +125,6 @@ func validateManifest(r io.Reader) error {
 	return nil
 }
 
-var (
-	sha256EncodedRegexp = regexp.MustCompile(`^[a-f0-9]{64}$`)
-	sha512EncodedRegexp = regexp.MustCompile(`^[a-f0-9]{128}$`)
-)
-
 func validateDescriptor(r io.Reader) error {
 	header := v1.Descriptor{}
 
@@ -143,22 +138,13 @@ func validateDescriptor(r io.Reader) error {
 		return errors.Wrap(err, "descriptor format mismatch")
 	}
 
-	if header.Digest.Validate() != nil {
+	err = header.Digest.Validate()
+	if err == digest.ErrDigestUnsupported {
 		// we ignore unsupported algorithms
 		fmt.Printf("warning: unsupported digest: %q: %v\n", header.Digest, err)
 		return nil
 	}
-	switch header.Digest.Algorithm() {
-	case digest.SHA256:
-		if !sha256EncodedRegexp.MatchString(header.Digest.Hex()) {
-			return errors.Errorf("unexpected sha256 digest: %q", header.Digest)
-		}
-	case digest.SHA512:
-		if !sha512EncodedRegexp.MatchString(header.Digest.Hex()) {
-			return errors.Errorf("unexpected sha512 digest: %q", header.Digest)
-		}
-	}
-	return nil
+	return err
 }
 
 func validateIndex(r io.Reader) error {
@@ -171,12 +157,15 @@ func validateIndex(r io.Reader) error {
 
 	err = json.Unmarshal(buf, &header)
 	if err != nil {
-		return errors.Wrap(err, "manifestlist format mismatch")
+		return errors.Wrap(err, "index format mismatch")
 	}
 
 	for _, manifest := range header.Manifests {
 		if manifest.MediaType != string(v1.MediaTypeImageManifest) {
 			fmt.Printf("warning: manifest %s has an unknown media type: %s\n", manifest.Digest, manifest.MediaType)
+		}
+		if manifest.Platform != nil {
+			checkPlatform(manifest.Platform.OS, manifest.Platform.Architecture)
 		}
 
 	}
@@ -198,6 +187,13 @@ func validateConfig(r io.Reader) error {
 	}
 
 	checkPlatform(header.OS, header.Architecture)
+
+	envRegexp := regexp.MustCompile(`^[^=]+=.*$`)
+	for _, e := range header.Config.Env {
+		if !envRegexp.MatchString(e) {
+			return errors.Errorf("unexpected env: %q", e)
+		}
+	}
 
 	return nil
 }

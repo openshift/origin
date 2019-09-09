@@ -2,6 +2,7 @@ package securitycontextconstraints
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -44,7 +45,7 @@ func NewDefaulter() admission.Interface {
 }
 
 // Admit defaults an SCC by going unstructured > external > internal > external > unstructured
-func (a *defaultSCC) Admit(attributes admission.Attributes, o admission.ObjectInterfaces) error {
+func (a *defaultSCC) Admit(ctx context.Context, attributes admission.Attributes, o admission.ObjectInterfaces) error {
 	if a.shouldIgnore(attributes) {
 		return nil
 	}

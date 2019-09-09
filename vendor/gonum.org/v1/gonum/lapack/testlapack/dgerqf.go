@@ -5,7 +5,6 @@
 package testlapack
 
 import (
-	"math"
 	"testing"
 
 	"golang.org/x/exp/rand"
@@ -95,18 +94,9 @@ func DgerqfTest(t *testing.T, impl Dgerqfer) {
 			// Q based on the vectors.
 			q := constructQ("RQ", m, n, a, lda, tau)
 
-			// Check that q is orthonormal
-			for i := 0; i < q.Rows; i++ {
-				nrm := blas64.Nrm2(q.Cols, blas64.Vector{Inc: 1, Data: q.Data[i*q.Stride:]})
-				if math.IsNaN(nrm) || math.Abs(nrm-1) > 1e-14 {
-					t.Errorf("Case %v, q not normal", c)
-				}
-				for j := 0; j < i; j++ {
-					dot := blas64.Dot(q.Cols, blas64.Vector{Inc: 1, Data: q.Data[i*q.Stride:]}, blas64.Vector{Inc: 1, Data: q.Data[j*q.Stride:]})
-					if math.IsNaN(dot) || math.Abs(dot) > 1e-14 {
-						t.Errorf("Case %v, q not orthogonal", c)
-					}
-				}
+			// Check that Q is orthogonal.
+			if !isOrthogonal(q) {
+				t.Errorf("Case %v, Q not orthogonal", c)
 			}
 			// Check that A = R * Q
 			r := blas64.General{

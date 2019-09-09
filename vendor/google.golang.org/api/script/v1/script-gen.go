@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package script provides access to the Apps Script API.
 //
-// See https://developers.google.com/apps-script/api/
+// For product documentation, see: https://developers.google.com/apps-script/api/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/script/v1"
 //   ...
-//   scriptService, err := script.New(oauthHttpClient)
+//   ctx := context.Background()
+//   scriptService, err := script.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   scriptService, err := script.NewService(ctx, option.WithScopes(script.UserinfoEmailScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   scriptService, err := script.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   scriptService, err := script.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package script // import "google.golang.org/api/script/v1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -108,6 +136,49 @@ const (
 	UserinfoEmailScope = "https://www.googleapis.com/auth/userinfo.email"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://mail.google.com/",
+		"https://www.google.com/calendar/feeds",
+		"https://www.google.com/m8/feeds",
+		"https://www.googleapis.com/auth/admin.directory.group",
+		"https://www.googleapis.com/auth/admin.directory.user",
+		"https://www.googleapis.com/auth/documents",
+		"https://www.googleapis.com/auth/drive",
+		"https://www.googleapis.com/auth/forms",
+		"https://www.googleapis.com/auth/forms.currentonly",
+		"https://www.googleapis.com/auth/groups",
+		"https://www.googleapis.com/auth/script.deployments",
+		"https://www.googleapis.com/auth/script.deployments.readonly",
+		"https://www.googleapis.com/auth/script.metrics",
+		"https://www.googleapis.com/auth/script.processes",
+		"https://www.googleapis.com/auth/script.projects",
+		"https://www.googleapis.com/auth/script.projects.readonly",
+		"https://www.googleapis.com/auth/spreadsheets",
+		"https://www.googleapis.com/auth/userinfo.email",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -408,6 +479,36 @@ func (s *EntryPoint) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// ExecuteStreamResponse: The response for executing or debugging a
+// function in an Apps Script project.
+type ExecuteStreamResponse struct {
+	// Result: The result of the execution.
+	// TODO (johnlattin): Add debugging and logging.
+	Result *ScriptExecutionResult `json:"result,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Result") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Result") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ExecuteStreamResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ExecuteStreamResponse
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // ExecutionError: An object that provides information about the nature
 // of an error resulting
 // from an attempted execution of a script function using the Apps
@@ -474,7 +575,9 @@ type ExecutionRequest struct {
 
 	// Function: The name of the function to execute in the given script.
 	// The name does not
-	// include parentheses or parameters.
+	// include parentheses or parameters. It can reference a function in
+	// an
+	// included library such as `Library.libFunction1`.
 	Function string `json:"function,omitempty"`
 
 	// Parameters: The parameters to be passed to the function being
@@ -488,10 +591,11 @@ type ExecutionRequest struct {
 	// `string`, `number`, `array`, `object`, or `boolean`. Optional.
 	Parameters []interface{} `json:"parameters,omitempty"`
 
-	// SessionState: For Android add-ons only. An ID that represents the
-	// user's current session
-	// in the Android app for Google Docs or Sheets, included as extra data
-	// in
+	// SessionState: <b>Deprecated</b>. For use with Android add-ons only.
+	// An ID that represents
+	// the user's current session in the Android app for Google Docs or
+	// Sheets,
+	// included as extra data in
 	// the
 	// [Intent](https://developer.android.com/guide/components/intents-fi
 	// lters.html)
@@ -838,9 +942,6 @@ type GoogleAppsScriptTypeProcess struct {
 	// Duration: Duration the execution spent executing.
 	Duration string `json:"duration,omitempty"`
 
-	// ExecutingUser: User-facing name for the user executing the script.
-	ExecutingUser string `json:"executingUser,omitempty"`
-
 	// FunctionName: Name of the function the started the execution.
 	FunctionName string `json:"functionName,omitempty"`
 
@@ -1148,6 +1249,38 @@ func (s *ListUserProcessesResponse) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// ListValue: `ListValue` is a wrapper around a repeated field of
+// values.
+// Based on LustValue
+// at:
+// google3/apps/maestro/api/struct.proto?q=message%5c%20ListValue
+type ListValue struct {
+	// Values: Repeated field of dynamically typed values.
+	Values []*Value `json:"values,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Values") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Values") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ListValue) MarshalJSON() ([]byte, error) {
+	type NoMethod ListValue
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // ListVersionsResponse: Response with the list of the versions for the
 // specified script project.
 type ListVersionsResponse struct {
@@ -1390,6 +1523,41 @@ func (s *Project) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// ScriptExecutionResult: The result of an execution
+// Based on ScriptExecutionResult
+// at:
+// google3/apps/maestro/api/frontend_execution_common.proto?q=message
+// %5c%20ScriptExecutionResult
+type ScriptExecutionResult struct {
+	// ReturnValue: The returned value of the execution.
+	// TODO (johnlattin): Add HtmlResponse
+	// TODO (johnlattin): Add ExceptionResponse
+	// TODO (johlnattin): Add TextResponse
+	ReturnValue *Value `json:"returnValue,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ReturnValue") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ReturnValue") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ScriptExecutionResult) MarshalJSON() ([]byte, error) {
+	type NoMethod ScriptExecutionResult
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // ScriptStackTraceElement: A stack trace through the script that shows
 // where the execution failed.
 type ScriptStackTraceElement struct {
@@ -1464,6 +1632,39 @@ func (s *Status) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// Struct: `Struct` represents a structured data value, consisting of
+// fields which map
+// to dynamically typed values.
+// Based on Struct
+// at:
+// google3/apps/maestro/api/struct.proto?q=message%5c%20Struct
+type Struct struct {
+	// Fields: Unordered map of dynamically typed values.
+	Fields map[string]Value `json:"fields,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Fields") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Fields") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Struct) MarshalJSON() ([]byte, error) {
+	type NoMethod Struct
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // UpdateDeploymentRequest: Request with deployment information to
 // update an existing deployment.
 type UpdateDeploymentRequest struct {
@@ -1492,6 +1693,80 @@ func (s *UpdateDeploymentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateDeploymentRequest
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// Value: `Value` represents a dynamically typed value which is the
+// outcome of an
+// executed script
+// Based on Value
+// at:
+// google3/apps/maestro/api/struct.proto?q=message%5c%20Value
+type Value struct {
+	// BoolValue: Represents a boolean value.
+	BoolValue bool `json:"boolValue,omitempty"`
+
+	// BytesValue: Represents raw byte values.
+	BytesValue string `json:"bytesValue,omitempty"`
+
+	// DateValue: Represents a date in ms since the epoch.
+	DateValue int64 `json:"dateValue,omitempty,string"`
+
+	// ListValue: Represents a repeated `Value`.
+	ListValue *ListValue `json:"listValue,omitempty"`
+
+	// NullValue: Represents a null value.
+	//
+	// Possible values:
+	//   "NULL_VALUE" - Null value.
+	NullValue string `json:"nullValue,omitempty"`
+
+	// NumberValue: Represents a double value.
+	NumberValue float64 `json:"numberValue,omitempty"`
+
+	// ProtoValue: Represents a structured proto value.
+	ProtoValue googleapi.RawMessage `json:"protoValue,omitempty"`
+
+	// StringValue: Represents a string value.
+	StringValue string `json:"stringValue,omitempty"`
+
+	// StructValue: Represents a structured value.
+	StructValue *Struct `json:"structValue,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "BoolValue") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "BoolValue") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Value) MarshalJSON() ([]byte, error) {
+	type NoMethod Value
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+func (s *Value) UnmarshalJSON(data []byte) error {
+	type NoMethod Value
+	var s1 struct {
+		NumberValue gensupport.JSONFloat64 `json:"numberValue"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.NumberValue = float64(s1.NumberValue)
+	return nil
 }
 
 // Version: A resource representing a script project version. A version

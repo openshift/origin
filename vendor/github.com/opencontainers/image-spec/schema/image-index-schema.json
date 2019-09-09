@@ -68,7 +68,6 @@
               "variant": {
                 "type": "string"
               }
-              }
             }
           },
           "annotations": {

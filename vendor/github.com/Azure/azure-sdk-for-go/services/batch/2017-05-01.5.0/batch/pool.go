@@ -23,6 +23,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -54,6 +55,16 @@ func NewPoolClientWithBaseURI(baseURI string) PoolClient {
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client PoolClient) Add(ctx context.Context, pool PoolAddParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.Add")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: pool,
 			Constraints: []validation.Constraint{{Target: "pool.ID", Name: validation.Null, Rule: true, Chain: nil},
@@ -136,8 +147,8 @@ func (client PoolClient) AddPreparer(ctx context.Context, pool PoolAddParameter,
 // AddSender sends the Add request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) AddSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AddResponder handles the response to the Add request. The method always
@@ -181,6 +192,16 @@ func (client PoolClient) AddResponder(resp *http.Response) (result autorest.Resp
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client PoolClient) Delete(ctx context.Context, poolID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, poolID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.PoolClient", "Delete", nil, "Failure preparing request")
@@ -260,8 +281,8 @@ func (client PoolClient) DeletePreparer(ctx context.Context, poolID string, time
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -287,6 +308,16 @@ func (client PoolClient) DeleteResponder(resp *http.Response) (result autorest.R
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client PoolClient) DisableAutoScale(ctx context.Context, poolID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.DisableAutoScale")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DisableAutoScalePreparer(ctx, poolID, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.PoolClient", "DisableAutoScale", nil, "Failure preparing request")
@@ -350,8 +381,8 @@ func (client PoolClient) DisableAutoScalePreparer(ctx context.Context, poolID st
 // DisableAutoScaleSender sends the DisableAutoScale request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) DisableAutoScaleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DisableAutoScaleResponder handles the response to the DisableAutoScale request. The method always
@@ -392,6 +423,16 @@ func (client PoolClient) DisableAutoScaleResponder(resp *http.Response) (result 
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client PoolClient) EnableAutoScale(ctx context.Context, poolID string, poolEnableAutoScaleParameter PoolEnableAutoScaleParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.EnableAutoScale")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.EnableAutoScalePreparer(ctx, poolID, poolEnableAutoScaleParameter, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.PoolClient", "EnableAutoScale", nil, "Failure preparing request")
@@ -473,8 +514,8 @@ func (client PoolClient) EnableAutoScalePreparer(ctx context.Context, poolID str
 // EnableAutoScaleSender sends the EnableAutoScale request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) EnableAutoScaleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // EnableAutoScaleResponder handles the response to the EnableAutoScale request. The method always
@@ -502,6 +543,16 @@ func (client PoolClient) EnableAutoScaleResponder(resp *http.Response) (result a
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client PoolClient) EvaluateAutoScale(ctx context.Context, poolID string, poolEvaluateAutoScaleParameter PoolEvaluateAutoScaleParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result AutoScaleRun, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.EvaluateAutoScale")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: poolEvaluateAutoScaleParameter,
 			Constraints: []validation.Constraint{{Target: "poolEvaluateAutoScaleParameter.AutoScaleFormula", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -573,8 +624,8 @@ func (client PoolClient) EvaluateAutoScalePreparer(ctx context.Context, poolID s
 // EvaluateAutoScaleSender sends the EvaluateAutoScale request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) EvaluateAutoScaleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // EvaluateAutoScaleResponder handles the response to the EvaluateAutoScale request. The method always
@@ -612,6 +663,16 @@ func (client PoolClient) EvaluateAutoScaleResponder(resp *http.Response) (result
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client PoolClient) Exists(ctx context.Context, poolID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.Exists")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ExistsPreparer(ctx, poolID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.PoolClient", "Exists", nil, "Failure preparing request")
@@ -691,8 +752,8 @@ func (client PoolClient) ExistsPreparer(ctx context.Context, poolID string, time
 // ExistsSender sends the Exists request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) ExistsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ExistsResponder handles the response to the Exists request. The method always
@@ -731,6 +792,16 @@ func (client PoolClient) ExistsResponder(resp *http.Response) (result autorest.R
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client PoolClient) Get(ctx context.Context, poolID string, selectParameter string, expand string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result CloudPool, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, poolID, selectParameter, expand, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.PoolClient", "Get", nil, "Failure preparing request")
@@ -816,8 +887,8 @@ func (client PoolClient) GetPreparer(ctx context.Context, poolID string, selectP
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -844,6 +915,16 @@ func (client PoolClient) GetResponder(resp *http.Response) (result CloudPool, er
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client PoolClient) GetAllLifetimeStatistics(ctx context.Context, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result PoolStatistics, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.GetAllLifetimeStatistics")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetAllLifetimeStatisticsPreparer(ctx, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.PoolClient", "GetAllLifetimeStatistics", nil, "Failure preparing request")
@@ -903,8 +984,8 @@ func (client PoolClient) GetAllLifetimeStatisticsPreparer(ctx context.Context, t
 // GetAllLifetimeStatisticsSender sends the GetAllLifetimeStatistics request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) GetAllLifetimeStatisticsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetAllLifetimeStatisticsResponder handles the response to the GetAllLifetimeStatistics request. The method always
@@ -934,6 +1015,16 @@ func (client PoolClient) GetAllLifetimeStatisticsResponder(resp *http.Response) 
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client PoolClient) List(ctx context.Context, filter string, selectParameter string, expand string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudPoolListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.List")
+		defer func() {
+			sc := -1
+			if result.cplr.Response.Response != nil {
+				sc = result.cplr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -1017,8 +1108,8 @@ func (client PoolClient) ListPreparer(ctx context.Context, filter string, select
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -1035,8 +1126,8 @@ func (client PoolClient) ListResponder(resp *http.Response) (result CloudPoolLis
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client PoolClient) listNextResults(lastResults CloudPoolListResult) (result CloudPoolListResult, err error) {
-	req, err := lastResults.cloudPoolListResultPreparer()
+func (client PoolClient) listNextResults(ctx context.Context, lastResults CloudPoolListResult) (result CloudPoolListResult, err error) {
+	req, err := lastResults.cloudPoolListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.PoolClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -1057,6 +1148,16 @@ func (client PoolClient) listNextResults(lastResults CloudPoolListResult) (resul
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PoolClient) ListComplete(ctx context.Context, filter string, selectParameter string, expand string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudPoolListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, filter, selectParameter, expand, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }
@@ -1081,6 +1182,16 @@ func (client PoolClient) ListComplete(ctx context.Context, filter string, select
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client PoolClient) ListUsageMetrics(ctx context.Context, startTime *date.Time, endTime *date.Time, filter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result PoolListUsageMetricsResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.ListUsageMetrics")
+		defer func() {
+			sc := -1
+			if result.plumr.Response.Response != nil {
+				sc = result.plumr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -1164,8 +1275,8 @@ func (client PoolClient) ListUsageMetricsPreparer(ctx context.Context, startTime
 // ListUsageMetricsSender sends the ListUsageMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) ListUsageMetricsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListUsageMetricsResponder handles the response to the ListUsageMetrics request. The method always
@@ -1182,8 +1293,8 @@ func (client PoolClient) ListUsageMetricsResponder(resp *http.Response) (result 
 }
 
 // listUsageMetricsNextResults retrieves the next set of results, if any.
-func (client PoolClient) listUsageMetricsNextResults(lastResults PoolListUsageMetricsResult) (result PoolListUsageMetricsResult, err error) {
-	req, err := lastResults.poolListUsageMetricsResultPreparer()
+func (client PoolClient) listUsageMetricsNextResults(ctx context.Context, lastResults PoolListUsageMetricsResult) (result PoolListUsageMetricsResult, err error) {
+	req, err := lastResults.poolListUsageMetricsResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.PoolClient", "listUsageMetricsNextResults", nil, "Failure preparing next results request")
 	}
@@ -1204,6 +1315,16 @@ func (client PoolClient) listUsageMetricsNextResults(lastResults PoolListUsageMe
 
 // ListUsageMetricsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PoolClient) ListUsageMetricsComplete(ctx context.Context, startTime *date.Time, endTime *date.Time, filter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result PoolListUsageMetricsResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.ListUsageMetrics")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListUsageMetrics(ctx, startTime, endTime, filter, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }
@@ -1233,6 +1354,16 @@ func (client PoolClient) ListUsageMetricsComplete(ctx context.Context, startTime
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client PoolClient) Patch(ctx context.Context, poolID string, poolPatchParameter PoolPatchParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.Patch")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.PatchPreparer(ctx, poolID, poolPatchParameter, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.PoolClient", "Patch", nil, "Failure preparing request")
@@ -1314,8 +1445,8 @@ func (client PoolClient) PatchPreparer(ctx context.Context, poolID string, poolP
 // PatchSender sends the Patch request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) PatchSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // PatchResponder handles the response to the Patch request. The method always
@@ -1354,6 +1485,16 @@ func (client PoolClient) PatchResponder(resp *http.Response) (result autorest.Re
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client PoolClient) RemoveNodes(ctx context.Context, poolID string, nodeRemoveParameter NodeRemoveParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.RemoveNodes")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: nodeRemoveParameter,
 			Constraints: []validation.Constraint{{Target: "nodeRemoveParameter.NodeList", Name: validation.Null, Rule: true,
@@ -1442,8 +1583,8 @@ func (client PoolClient) RemoveNodesPreparer(ctx context.Context, poolID string,
 // RemoveNodesSender sends the RemoveNodes request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) RemoveNodesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RemoveNodesResponder handles the response to the RemoveNodes request. The method always
@@ -1485,6 +1626,16 @@ func (client PoolClient) RemoveNodesResponder(resp *http.Response) (result autor
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client PoolClient) Resize(ctx context.Context, poolID string, poolResizeParameter PoolResizeParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.Resize")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ResizePreparer(ctx, poolID, poolResizeParameter, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.PoolClient", "Resize", nil, "Failure preparing request")
@@ -1566,8 +1717,8 @@ func (client PoolClient) ResizePreparer(ctx context.Context, poolID string, pool
 // ResizeSender sends the Resize request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) ResizeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResizeResponder handles the response to the Resize request. The method always
@@ -1606,6 +1757,16 @@ func (client PoolClient) ResizeResponder(resp *http.Response) (result autorest.R
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client PoolClient) StopResize(ctx context.Context, poolID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.StopResize")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.StopResizePreparer(ctx, poolID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.PoolClient", "StopResize", nil, "Failure preparing request")
@@ -1685,8 +1846,8 @@ func (client PoolClient) StopResizePreparer(ctx context.Context, poolID string, 
 // StopResizeSender sends the StopResize request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) StopResizeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StopResizeResponder handles the response to the StopResize request. The method always
@@ -1701,7 +1862,7 @@ func (client PoolClient) StopResizeResponder(resp *http.Response) (result autore
 	return
 }
 
-// UpdateProperties this fully replaces all the updateable properties of the pool. For example, if the pool has a start
+// UpdateProperties this fully replaces all the updatable properties of the pool. For example, if the pool has a start
 // task associated with it and if start task is not specified with this request, then the Batch service will remove the
 // existing start task.
 // Parameters:
@@ -1715,6 +1876,16 @@ func (client PoolClient) StopResizeResponder(resp *http.Response) (result autore
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client PoolClient) UpdateProperties(ctx context.Context, poolID string, poolUpdatePropertiesParameter PoolUpdatePropertiesParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.UpdateProperties")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: poolUpdatePropertiesParameter,
 			Constraints: []validation.Constraint{{Target: "poolUpdatePropertiesParameter.StartTask", Name: validation.Null, Rule: false,
@@ -1790,8 +1961,8 @@ func (client PoolClient) UpdatePropertiesPreparer(ctx context.Context, poolID st
 // UpdatePropertiesSender sends the UpdateProperties request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) UpdatePropertiesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdatePropertiesResponder handles the response to the UpdateProperties request. The method always
@@ -1835,6 +2006,16 @@ func (client PoolClient) UpdatePropertiesResponder(resp *http.Response) (result 
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client PoolClient) UpgradeOS(ctx context.Context, poolID string, poolUpgradeOSParameter PoolUpgradeOSParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PoolClient.UpgradeOS")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: poolUpgradeOSParameter,
 			Constraints: []validation.Constraint{{Target: "poolUpgradeOSParameter.TargetOSVersion", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -1922,8 +2103,8 @@ func (client PoolClient) UpgradeOSPreparer(ctx context.Context, poolID string, p
 // UpgradeOSSender sends the UpgradeOS request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) UpgradeOSSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpgradeOSResponder handles the response to the UpgradeOS request. The method always

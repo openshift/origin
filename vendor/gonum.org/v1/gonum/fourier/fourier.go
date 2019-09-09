@@ -230,11 +230,11 @@ func (t *CmplxFFT) Freq(i int) float64 {
 	return step * float64(i-t.Len())
 }
 
-// ShiftIdx returns returns a shifted index into a slice of
-// coefficients returned by the CmplxFFT so that indexing
-// into the coefficients places the zero frequency component
-// at the center of the spectrum. ShiftIdx will panic if i is
-// negative or greater than or equal to t.Len().
+// ShiftIdx returns a shifted index into a slice of coefficients
+// returned by the CmplxFFT so that indexing into the coefficients
+// places the zero frequency component at the center of the spectrum.
+// ShiftIdx will panic if i is negative or greater than or equal to
+// t.Len().
 func (t *CmplxFFT) ShiftIdx(i int) int {
 	if i < 0 || t.Len() <= i {
 		panic("fourier: index out of range")

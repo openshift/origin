@@ -27,6 +27,19 @@ func TestStackResources(t *testing.T) {
 	th.AssertNoErr(t, err)
 	tools.PrintResource(t, metadata)
 
+	markUnhealthyOpts := &stackresources.MarkUnhealthyOpts{
+		MarkUnhealthy:        true,
+		ResourceStatusReason: "Wrong security policy is detected.",
+	}
+
+	err = stackresources.MarkUnhealthy(client, stack.Name, stack.ID, basicTemplateResourceName, markUnhealthyOpts).ExtractErr()
+	th.AssertNoErr(t, err)
+
+	unhealthyResource, err := stackresources.Get(client, stack.Name, stack.ID, basicTemplateResourceName).Extract()
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, "CHECK_FAILED", unhealthyResource.Status)
+	tools.PrintResource(t, unhealthyResource)
+
 	allPages, err := stackresources.List(client, stack.Name, stack.ID, nil).AllPages()
 	th.AssertNoErr(t, err)
 	allResources, err := stackresources.ExtractResources(allPages)

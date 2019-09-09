@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package datastore
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,9 +25,11 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/internal/testutil"
 	"github.com/golang/protobuf/proto"
-	"golang.org/x/net/context"
+	"github.com/google/go-cmp/cmp"
 	pb "google.golang.org/genproto/googleapis/datastore/v1"
+	"google.golang.org/grpc"
 )
 
 type (
@@ -60,12 +63,7 @@ func makeUint8Slice(n int) []uint8 {
 }
 
 func newKey(stringID string, parent *Key) *Key {
-	return &Key{
-		kind:   "kind",
-		name:   stringID,
-		id:     0,
-		parent: parent,
-	}
+	return NameKey("kind", stringID, parent)
 }
 
 var (
@@ -77,6 +75,8 @@ var (
 	testGeoPt0   = GeoPoint{Lat: 1.2, Lng: 3.4}
 	testGeoPt1   = GeoPoint{Lat: 5, Lng: 10}
 	testBadGeoPt = GeoPoint{Lat: 1000, Lng: 34}
+
+	ts = time.Unix(1e9, 0).UTC()
 )
 
 type B0 struct {
@@ -138,6 +138,39 @@ type K0 struct {
 
 type K1 struct {
 	K []*Key
+}
+
+type S struct {
+	St string
+}
+
+type NoOmit struct {
+	A string
+	B int  `datastore:"Bb"`
+	C bool `datastore:",noindex"`
+}
+
+type OmitAll struct {
+	A string    `datastore:",omitempty"`
+	B int       `datastore:"Bb,omitempty"`
+	C bool      `datastore:",omitempty,noindex"`
+	D time.Time `datastore:",omitempty"`
+	F []int     `datastore:",omitempty"`
+}
+
+type Omit struct {
+	A string    `datastore:",omitempty"`
+	B int       `datastore:"Bb,omitempty"`
+	C bool      `datastore:",omitempty,noindex"`
+	D time.Time `datastore:",omitempty"`
+	F []int     `datastore:",omitempty"`
+	S `datastore:",omitempty"`
+}
+
+type NoOmits struct {
+	No []NoOmit `datastore:",omitempty"`
+	S  `datastore:",omitempty"`
+	Ss S `datastore:",omitempty"`
 }
 
 type N0 struct {
@@ -207,7 +240,6 @@ type X1 struct {
 
 type X2 struct {
 	Z string
-	i int
 }
 
 type X3 struct {
@@ -231,6 +263,43 @@ type Y2 struct {
 	F []int64
 }
 
+type Pointers struct {
+	Pi *int
+	Ps *string
+	Pb *bool
+	Pf *float64
+	Pg *GeoPoint
+	Pt *time.Time
+}
+
+type PointersOmitEmpty struct {
+	Pi *int       `datastore:",omitempty"`
+	Ps *string    `datastore:",omitempty"`
+	Pb *bool      `datastore:",omitempty"`
+	Pf *float64   `datastore:",omitempty"`
+	Pg *GeoPoint  `datastore:",omitempty"`
+	Pt *time.Time `datastore:",omitempty"`
+}
+
+func populatedPointers() *Pointers {
+	var (
+		i int
+		s string
+		b bool
+		f float64
+		g GeoPoint
+		t time.Time
+	)
+	return &Pointers{
+		Pi: &i,
+		Ps: &s,
+		Pb: &b,
+		Pf: &f,
+		Pg: &g,
+		Pt: &t,
+	}
+}
+
 type Tagged struct {
 	A int   `datastore:"a,noindex"`
 	B []int `datastore:"b"`
@@ -241,7 +310,7 @@ type Tagged struct {
 	J int `datastore:",noindex" json:"j"`
 
 	Y0 `datastore:"-"`
-	Z  chan int `datastore:"-,"`
+	Z  chan int `datastore:"-"`
 }
 
 type InvalidTagged1 struct {
@@ -251,6 +320,14 @@ type InvalidTagged1 struct {
 type InvalidTagged2 struct {
 	I int
 	J int `datastore:"I"`
+}
+
+type InvalidTagged3 struct {
+	X string `datastore:"-,noindex"`
+}
+
+type InvalidTagged4 struct {
+	X string `datastore:",garbage"`
 }
 
 type Inner1 struct {
@@ -266,11 +343,28 @@ type Inner3 struct {
 	Z bool
 }
 
+type Inner5 struct {
+	WW int
+}
+
+type Inner4 struct {
+	X Inner5
+}
+
 type Outer struct {
 	A int16
 	I []Inner1
 	J Inner2
 	Inner3
+}
+
+type OuterFlatten struct {
+	A      int16
+	I      []Inner1 `datastore:",flatten"`
+	J      Inner2   `datastore:",flatten,noindex"`
+	Inner3 `datastore:",flatten"`
+	K      Inner4  `datastore:",flatten"`
+	L      *Inner2 `datastore:",flatten"`
 }
 
 type OuterEquivalent struct {
@@ -298,7 +392,7 @@ type SliceOfSlices struct {
 	S []struct {
 		J int
 		F []float64
-	}
+	} `datastore:",flatten"`
 }
 
 type Recursive struct {
@@ -316,10 +410,57 @@ type MutuallyRecursive1 struct {
 	R []MutuallyRecursive0
 }
 
+type EntityWithKey struct {
+	I int
+	S string
+	K *Key `datastore:"__key__"`
+}
+
+type WithNestedEntityWithKey struct {
+	N EntityWithKey
+}
+
+type WithNonKeyField struct {
+	I int
+	K string `datastore:"__key__"`
+}
+
+type NestedWithNonKeyField struct {
+	N WithNonKeyField
+}
+
+type Basic struct {
+	A string
+}
+
+type PtrToStructField struct {
+	B *Basic
+	C *Basic `datastore:"c,noindex"`
+	*Basic
+	D []*Basic
+}
+
+type EmbeddedTime struct {
+	time.Time
+}
+
+type SpecialTime struct {
+	MyTime EmbeddedTime
+}
+
 type Doubler struct {
 	S string
 	I int64
 	B bool
+}
+
+type Repeat struct {
+	Key   string
+	Value []byte
+}
+
+type Repeated struct {
+	Repeats []Repeat
 }
 
 func (d *Doubler) Load(props []Property) error {
@@ -488,6 +629,88 @@ var testCases = []testCase{
 		"",
 	},
 	{
+		"omit empty, all",
+		&OmitAll{},
+		new(PropertyList),
+		"",
+		"",
+	},
+	{
+		"omit empty",
+		&Omit{},
+		&PropertyList{
+			Property{Name: "St", Value: "", NoIndex: false},
+		},
+		"",
+		"",
+	},
+	{
+		"omit empty, fields populated",
+		&Omit{
+			A: "a",
+			B: 10,
+			C: true,
+			F: []int{11},
+		},
+		&PropertyList{
+			Property{Name: "A", Value: "a", NoIndex: false},
+			Property{Name: "Bb", Value: int64(10), NoIndex: false},
+			Property{Name: "C", Value: true, NoIndex: true},
+			Property{Name: "F", Value: []interface{}{int64(11)}, NoIndex: false},
+			Property{Name: "St", Value: "", NoIndex: false},
+		},
+		"",
+		"",
+	},
+	{
+		"omit empty, fields populated",
+		&Omit{
+			A: "a",
+			B: 10,
+			C: true,
+			F: []int{11},
+			S: S{St: "string"},
+		},
+		&PropertyList{
+			Property{Name: "A", Value: "a", NoIndex: false},
+			Property{Name: "Bb", Value: int64(10), NoIndex: false},
+			Property{Name: "C", Value: true, NoIndex: true},
+			Property{Name: "F", Value: []interface{}{int64(11)}, NoIndex: false},
+			Property{Name: "St", Value: "string", NoIndex: false},
+		},
+		"",
+		"",
+	},
+	{
+		"omit empty does not propagate",
+		&NoOmits{
+			No: []NoOmit{
+				{},
+			},
+			S:  S{},
+			Ss: S{},
+		},
+		&PropertyList{
+			Property{Name: "No", Value: []interface{}{
+				&Entity{
+					Properties: []Property{
+						{Name: "A", Value: "", NoIndex: false},
+						{Name: "Bb", Value: int64(0), NoIndex: false},
+						{Name: "C", Value: false, NoIndex: true},
+					},
+				},
+			}, NoIndex: false},
+			Property{Name: "Ss", Value: &Entity{
+				Properties: []Property{
+					{Name: "St", Value: "", NoIndex: false},
+				},
+			}, NoIndex: false},
+			Property{Name: "St", Value: "", NoIndex: false},
+		},
+		"",
+		"",
+	},
+	{
 		"key",
 		&K0{K: testKey1a},
 		&K0{K: testKey1b},
@@ -637,6 +860,35 @@ var testCases = []testCase{
 		"",
 	},
 	{
+		"slice of slices of bytes",
+		&Repeated{
+			Repeats: []Repeat{
+				{
+					Key:   "key 1",
+					Value: []byte("value 1"),
+				},
+				{
+					Key:   "key 2",
+					Value: []byte("value 2"),
+				},
+			},
+		},
+		&Repeated{
+			Repeats: []Repeat{
+				{
+					Key:   "key 1",
+					Value: []byte("value 1"),
+				},
+				{
+					Key:   "key 2",
+					Value: []byte("value 2"),
+				},
+			},
+		},
+		"",
+		"",
+	},
+	{
 		"long blob",
 		&B0{B: makeUint8Slice(maxIndexedProperties + 1)},
 		&B0{B: makeUint8Slice(maxIndexedProperties + 1)},
@@ -766,16 +1018,6 @@ var testCases = []testCase{
 		"",
 	},
 	{
-		"save props load tagged",
-		&PropertyList{
-			Property{Name: "A", Value: int64(11), NoIndex: true},
-			Property{Name: "a", Value: int64(12), NoIndex: true},
-		},
-		&Tagged{A: 12},
-		"",
-		`cannot load field "A"`,
-	},
-	{
 		"invalid tagged1",
 		&InvalidTagged1{I: 1},
 		&InvalidTagged1{},
@@ -785,8 +1027,22 @@ var testCases = []testCase{
 	{
 		"invalid tagged2",
 		&InvalidTagged2{I: 1, J: 2},
-		&InvalidTagged2{},
-		"struct tag has repeated property name",
+		&InvalidTagged2{J: 2},
+		"",
+		"",
+	},
+	{
+		"invalid tagged3",
+		&InvalidTagged3{X: "hello"},
+		&InvalidTagged3{},
+		"struct tag has invalid property name: \"-\"",
+		"",
+	},
+	{
+		"invalid tagged4",
+		&InvalidTagged4{X: "hello"},
+		&InvalidTagged4{},
+		"struct tag has invalid option: \"garbage\"",
 		"",
 	},
 	{
@@ -842,6 +1098,72 @@ var testCases = []testCase{
 		"",
 	},
 	{
+		"save outer load props flatten",
+		&OuterFlatten{
+			A: 1,
+			I: []Inner1{
+				{10, "ten"},
+				{20, "twenty"},
+				{30, "thirty"},
+			},
+			J: Inner2{
+				Y: 3.14,
+			},
+			Inner3: Inner3{
+				Z: true,
+			},
+			K: Inner4{
+				X: Inner5{
+					WW: 12,
+				},
+			},
+			L: &Inner2{
+				Y: 2.71,
+			},
+		},
+		&PropertyList{
+			Property{Name: "A", Value: int64(1), NoIndex: false},
+			Property{Name: "I.W", Value: []interface{}{int64(10), int64(20), int64(30)}, NoIndex: false},
+			Property{Name: "I.X", Value: []interface{}{"ten", "twenty", "thirty"}, NoIndex: false},
+			Property{Name: "J.Y", Value: float64(3.14), NoIndex: true},
+			Property{Name: "K.X.WW", Value: int64(12), NoIndex: false},
+			Property{Name: "L.Y", Value: float64(2.71), NoIndex: false},
+			Property{Name: "Z", Value: true, NoIndex: false},
+		},
+		"",
+		"",
+	},
+	{
+		"load outer props flatten",
+		&PropertyList{
+			Property{Name: "A", Value: int64(1), NoIndex: false},
+			Property{Name: "I.W", Value: []interface{}{int64(10), int64(20), int64(30)}, NoIndex: false},
+			Property{Name: "I.X", Value: []interface{}{"ten", "twenty", "thirty"}, NoIndex: false},
+			Property{Name: "J.Y", Value: float64(3.14), NoIndex: true},
+			Property{Name: "L.Y", Value: float64(2.71), NoIndex: false},
+			Property{Name: "Z", Value: true, NoIndex: false},
+		},
+		&OuterFlatten{
+			A: 1,
+			I: []Inner1{
+				{10, "ten"},
+				{20, "twenty"},
+				{30, "thirty"},
+			},
+			J: Inner2{
+				Y: 3.14,
+			},
+			Inner3: Inner3{
+				Z: true,
+			},
+			L: &Inner2{
+				Y: 2.71,
+			},
+		},
+		"",
+		"",
+	},
+	{
 		"save outer load props",
 		&Outer{
 			A: 1,
@@ -859,9 +1181,31 @@ var testCases = []testCase{
 		},
 		&PropertyList{
 			Property{Name: "A", Value: int64(1), NoIndex: false},
-			Property{Name: "I.W", Value: []interface{}{int64(10), int64(20), int64(30)}, NoIndex: false},
-			Property{Name: "I.X", Value: []interface{}{"ten", "twenty", "thirty"}, NoIndex: false},
-			Property{Name: "J.Y", Value: float64(3.14), NoIndex: false},
+			Property{Name: "I", Value: []interface{}{
+				&Entity{
+					Properties: []Property{
+						{Name: "W", Value: int64(10), NoIndex: false},
+						{Name: "X", Value: "ten", NoIndex: false},
+					},
+				},
+				&Entity{
+					Properties: []Property{
+						{Name: "W", Value: int64(20), NoIndex: false},
+						{Name: "X", Value: "twenty", NoIndex: false},
+					},
+				},
+				&Entity{
+					Properties: []Property{
+						{Name: "W", Value: int64(30), NoIndex: false},
+						{Name: "X", Value: "thirty", NoIndex: false},
+					},
+				},
+			}, NoIndex: false},
+			Property{Name: "J", Value: &Entity{
+				Properties: []Property{
+					{Name: "Y", Value: float64(3.14), NoIndex: false},
+				},
+			}, NoIndex: false},
 			Property{Name: "Z", Value: true, NoIndex: false},
 		},
 		"",
@@ -887,36 +1231,18 @@ var testCases = []testCase{
 		"",
 	},
 	{
-		"save outer-equivalent load outer",
-		&OuterEquivalent{
-			A:     1,
-			IDotW: []int32{10, 20, 30},
-			IDotX: []string{"ten", "twenty", "thirty"},
-			JDotY: 3.14,
-			Z:     true,
-		},
-		&Outer{
-			A: 1,
-			I: []Inner1{
-				{10, "ten"},
-				{20, "twenty"},
-				{30, "thirty"},
-			},
-			J: Inner2{
-				Y: 3.14,
-			},
-			Inner3: Inner3{
-				Z: true,
-			},
-		},
-		"",
-		"",
-	},
-	{
 		"dotted names save",
 		&Dotted{A: DottedA{B: DottedB{C: 88}}},
 		&PropertyList{
-			Property{Name: "A0.A1.A2.B3.C4.C5", Value: int64(88), NoIndex: false},
+			Property{Name: "A0.A1.A2", Value: &Entity{
+				Properties: []Property{
+					{Name: "B3", Value: &Entity{
+						Properties: []Property{
+							{Name: "C4.C5", Value: int64(88), NoIndex: false},
+						},
+					}, NoIndex: false},
+				},
+			}, NoIndex: false},
 		},
 		"",
 		"",
@@ -924,7 +1250,15 @@ var testCases = []testCase{
 	{
 		"dotted names load",
 		&PropertyList{
-			Property{Name: "A0.A1.A2.B3.C4.C5", Value: int64(99), NoIndex: false},
+			Property{Name: "A0.A1.A2", Value: &Entity{
+				Properties: []Property{
+					{Name: "B3", Value: &Entity{
+						Properties: []Property{
+							{Name: "C4.C5", Value: 99, NoIndex: false},
+						},
+					}, NoIndex: false},
+				},
+			}, NoIndex: false},
 		},
 		&Dotted{A: DottedA{B: DottedB{C: 99}}},
 		"",
@@ -1107,21 +1441,300 @@ var testCases = []testCase{
 			},
 		},
 		&PropertyList{
-			Property{Name: "Blue.I", Value: int64(0), NoIndex: false},
-			Property{Name: "Blue.Nonymous.I", Value: []interface{}{int64(0), int64(0), int64(0), int64(0)}, NoIndex: false},
-			Property{Name: "Blue.Nonymous.S", Value: []interface{}{"blu0", "blu1", "blu2", "blu3"}, NoIndex: false},
-			Property{Name: "Blue.Other", Value: "", NoIndex: false},
-			Property{Name: "Blue.S", Value: "bleu", NoIndex: false},
-			Property{Name: "green.I", Value: int64(0), NoIndex: false},
-			Property{Name: "green.Nonymous.I", Value: []interface{}{int64(0), int64(0), int64(0)}, NoIndex: false},
-			Property{Name: "green.Nonymous.S", Value: []interface{}{"verde0", "verde1", "verde2"}, NoIndex: false},
-			Property{Name: "green.Other", Value: "", NoIndex: false},
-			Property{Name: "green.S", Value: "vert", NoIndex: false},
-			Property{Name: "red.I", Value: int64(0), NoIndex: false},
-			Property{Name: "red.Nonymous.I", Value: []interface{}{int64(0), int64(0)}, NoIndex: false},
-			Property{Name: "red.Nonymous.S", Value: []interface{}{"rosso0", "rosso1"}, NoIndex: false},
-			Property{Name: "red.Other", Value: "", NoIndex: false},
-			Property{Name: "red.S", Value: "rouge", NoIndex: false},
+			Property{Name: "Blue", Value: &Entity{
+				Properties: []Property{
+					{Name: "I", Value: int64(0), NoIndex: false},
+					{Name: "Nonymous", Value: []interface{}{
+						&Entity{
+							Properties: []Property{
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "blu0", NoIndex: false},
+							},
+						},
+						&Entity{
+							Properties: []Property{
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "blu1", NoIndex: false},
+							},
+						},
+						&Entity{
+							Properties: []Property{
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "blu2", NoIndex: false},
+							},
+						},
+						&Entity{
+							Properties: []Property{
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "blu3", NoIndex: false},
+							},
+						},
+					}, NoIndex: false},
+					{Name: "Other", Value: "", NoIndex: false},
+					{Name: "S", Value: "bleu", NoIndex: false},
+				},
+			}, NoIndex: false},
+			Property{Name: "green", Value: &Entity{
+				Properties: []Property{
+					{Name: "I", Value: int64(0), NoIndex: false},
+					{Name: "Nonymous", Value: []interface{}{
+						&Entity{
+							Properties: []Property{
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "verde0", NoIndex: false},
+							},
+						},
+						&Entity{
+							Properties: []Property{
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "verde1", NoIndex: false},
+							},
+						},
+						&Entity{
+							Properties: []Property{
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "verde2", NoIndex: false},
+							},
+						},
+					}, NoIndex: false},
+					{Name: "Other", Value: "", NoIndex: false},
+					{Name: "S", Value: "vert", NoIndex: false},
+				},
+			}, NoIndex: false},
+			Property{Name: "red", Value: &Entity{
+				Properties: []Property{
+					{Name: "I", Value: int64(0), NoIndex: false},
+					{Name: "Nonymous", Value: []interface{}{
+						&Entity{
+							Properties: []Property{
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "rosso0", NoIndex: false},
+							},
+						},
+						&Entity{
+							Properties: []Property{
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "rosso1", NoIndex: false},
+							},
+						},
+					}, NoIndex: false},
+					{Name: "Other", Value: "", NoIndex: false},
+					{Name: "S", Value: "rouge", NoIndex: false},
+				},
+			}, NoIndex: false},
+		},
+		"",
+		"",
+	},
+	{
+		"nested entity with key",
+		&WithNestedEntityWithKey{
+			N: EntityWithKey{
+				I: 12,
+				S: "abcd",
+				K: testKey0,
+			},
+		},
+		&WithNestedEntityWithKey{
+			N: EntityWithKey{
+				I: 12,
+				S: "abcd",
+				K: testKey0,
+			},
+		},
+		"",
+		"",
+	},
+	{
+		"entity with key at top level",
+		&EntityWithKey{
+			I: 12,
+			S: "abc",
+			K: testKey0,
+		},
+		&EntityWithKey{
+			I: 12,
+			S: "abc",
+			K: testKey0,
+		},
+		"",
+		"",
+	},
+	{
+		"entity with key at top level (key is populated on load)",
+		&EntityWithKey{
+			I: 12,
+			S: "abc",
+		},
+		&EntityWithKey{
+			I: 12,
+			S: "abc",
+			K: testKey0,
+		},
+		"",
+		"",
+	},
+	{
+		"__key__ field not a *Key",
+		&NestedWithNonKeyField{
+			N: WithNonKeyField{
+				I: 12,
+				K: "abcd",
+			},
+		},
+		&NestedWithNonKeyField{
+			N: WithNonKeyField{
+				I: 12,
+				K: "abcd",
+			},
+		},
+		"datastore: __key__ field on struct datastore.WithNonKeyField is not a *datastore.Key",
+		"",
+	},
+	{
+		"save struct with ptr to struct fields",
+		&PtrToStructField{
+			&Basic{
+				A: "b",
+			},
+			&Basic{
+				A: "c",
+			},
+			&Basic{
+				A: "anon",
+			},
+			[]*Basic{
+				{
+					A: "slice0",
+				},
+				{
+					A: "slice1",
+				},
+			},
+		},
+		&PropertyList{
+			Property{Name: "A", Value: "anon", NoIndex: false},
+			Property{Name: "B", Value: &Entity{
+				Properties: []Property{
+					{Name: "A", Value: "b", NoIndex: false},
+				},
+			}},
+			Property{Name: "D", Value: []interface{}{
+				&Entity{
+					Properties: []Property{
+						{Name: "A", Value: "slice0", NoIndex: false},
+					},
+				},
+				&Entity{
+					Properties: []Property{
+						{Name: "A", Value: "slice1", NoIndex: false},
+					},
+				},
+			}, NoIndex: false},
+			Property{Name: "c", Value: &Entity{
+				Properties: []Property{
+					{Name: "A", Value: "c", NoIndex: true},
+				},
+			}, NoIndex: true},
+		},
+		"",
+		"",
+	},
+	{
+		"save and load struct with ptr to struct fields",
+		&PtrToStructField{
+			&Basic{
+				A: "b",
+			},
+			&Basic{
+				A: "c",
+			},
+			&Basic{
+				A: "anon",
+			},
+			[]*Basic{
+				{
+					A: "slice0",
+				},
+				{
+					A: "slice1",
+				},
+			},
+		},
+		&PtrToStructField{
+			&Basic{
+				A: "b",
+			},
+			&Basic{
+				A: "c",
+			},
+			&Basic{
+				A: "anon",
+			},
+			[]*Basic{
+				{
+					A: "slice0",
+				},
+				{
+					A: "slice1",
+				},
+			},
+		},
+		"",
+		"",
+	},
+	{
+		"struct with nil ptr to struct fields",
+		&PtrToStructField{
+			nil,
+			nil,
+			nil,
+			nil,
+		},
+		new(PropertyList),
+		"",
+		"",
+	},
+	{
+		"nested load entity with key",
+		&WithNestedEntityWithKey{
+			N: EntityWithKey{
+				I: 12,
+				S: "abcd",
+				K: testKey0,
+			},
+		},
+		&PropertyList{
+			Property{Name: "N", Value: &Entity{
+				Key: testKey0,
+				Properties: []Property{
+					{Name: "I", Value: int64(12), NoIndex: false},
+					{Name: "S", Value: "abcd", NoIndex: false},
+				},
+			},
+				NoIndex: false},
+		},
+		"",
+		"",
+	},
+	{
+		"nested save entity with key",
+		&PropertyList{
+			Property{Name: "N", Value: &Entity{
+				Key: testKey0,
+				Properties: []Property{
+					{Name: "I", Value: int64(12), NoIndex: false},
+					{Name: "S", Value: "abcd", NoIndex: false},
+				},
+			}, NoIndex: false},
+		},
+
+		&WithNestedEntityWithKey{
+			N: EntityWithKey{
+				I: 12,
+				S: "abcd",
+				K: testKey0,
+			},
 		},
 		"",
 		"",
@@ -1132,7 +1745,11 @@ var testCases = []testCase{
 			C3: C3{C: "s"},
 		},
 		&PropertyList{
-			Property{Name: "red.C", Value: "s", NoIndex: false},
+			Property{Name: "red", Value: &Entity{
+				Properties: []Property{
+					{Name: "C", Value: "s", NoIndex: false},
+				},
+			}, NoIndex: false},
 		},
 		"",
 		"",
@@ -1142,7 +1759,9 @@ var testCases = []testCase{
 		&N4{
 			c4: c4{C: "s"},
 		},
-		new(PropertyList),
+		&PropertyList{
+			Property{Name: "C", Value: "s", NoIndex: false},
+		},
 		"",
 		"",
 	},
@@ -1199,10 +1818,18 @@ var testCases = []testCase{
 			}
 		}{},
 		&PropertyList{
-			Property{Name: "A.X", Value: "", NoIndex: true},
-			Property{Name: "A.Y", Value: "", NoIndex: true},
-			Property{Name: "B.X", Value: "", NoIndex: true},
-			Property{Name: "B.Y", Value: "", NoIndex: false},
+			Property{Name: "A", Value: &Entity{
+				Properties: []Property{
+					{Name: "X", Value: "", NoIndex: true},
+					{Name: "Y", Value: "", NoIndex: true},
+				},
+			}, NoIndex: true},
+			Property{Name: "B", Value: &Entity{
+				Properties: []Property{
+					{Name: "X", Value: "", NoIndex: true},
+					{Name: "Y", Value: "", NoIndex: false},
+				},
+			}, NoIndex: false},
 		},
 		"",
 		"",
@@ -1213,8 +1840,12 @@ var testCases = []testCase{
 			Inner1 `datastore:"foo"`
 		}{},
 		&PropertyList{
-			Property{Name: "foo.W", Value: int64(0), NoIndex: false},
-			Property{Name: "foo.X", Value: "", NoIndex: false},
+			Property{Name: "foo", Value: &Entity{
+				Properties: []Property{
+					{Name: "W", Value: int64(0), NoIndex: false},
+					{Name: "X", Value: "", NoIndex: false},
+				},
+			}, NoIndex: false},
 		},
 		"",
 		"",
@@ -1229,15 +1860,15 @@ var testCases = []testCase{
 	{
 		"recursive struct",
 		&Recursive{},
-		nil,
-		"recursive struct",
+		&Recursive{},
+		"",
 		"",
 	},
 	{
 		"mutually recursive struct",
 		&MutuallyRecursive0{},
-		nil,
-		"recursive struct",
+		&MutuallyRecursive0{},
+		"",
 		"",
 	},
 	{
@@ -1285,6 +1916,36 @@ var testCases = []testCase{
 		"duplicate Property",
 		"",
 	},
+	{
+		"embedded time field",
+		&SpecialTime{MyTime: EmbeddedTime{ts}},
+		&SpecialTime{MyTime: EmbeddedTime{ts}},
+		"",
+		"",
+	},
+	{
+		"embedded time load",
+		&PropertyList{
+			Property{Name: "MyTime.Time", Value: ts},
+		},
+		&SpecialTime{MyTime: EmbeddedTime{ts}},
+		"",
+		"",
+	},
+	{
+		"pointer fields: nil",
+		&Pointers{},
+		&Pointers{},
+		"",
+		"",
+	},
+	{
+		"pointer fields: populated with zeroes",
+		populatedPointers(),
+		populatedPointers(),
+		"",
+		"",
+	},
 }
 
 // checkErr returns the empty string if either both want and err are zero,
@@ -1292,7 +1953,7 @@ var testCases = []testCase{
 func checkErr(want string, err error) string {
 	if err != nil {
 		got := err.Error()
-		if want == "" || strings.Index(got, want) == -1 {
+		if want == "" || !strings.Contains(got, want) {
 			return got
 		}
 	} else if want != "" {
@@ -1317,27 +1978,804 @@ func TestRoundTrip(t *testing.T) {
 		} else {
 			got = reflect.New(reflect.TypeOf(tc.want).Elem()).Interface()
 		}
-		err = loadEntity(got, p)
+		err = loadEntityProto(got, p)
 		if s := checkErr(tc.getErr, err); s != "" {
 			t.Errorf("%s: load: %s", tc.desc, s)
 			continue
 		}
 		if pl, ok := got.(*PropertyList); ok {
 			// Sort by name to make sure we have a deterministic order.
-			sort.Stable(byName(*pl))
+			sortPL(*pl)
 		}
-		equal := false
-		if gotT, ok := got.(*T); ok {
-			// Round tripping a time.Time can result in a different time.Location: Local instead of UTC.
-			// We therefore test equality explicitly, instead of relying on reflect.DeepEqual.
-			equal = gotT.T.Equal(tc.want.(*T).T)
-		} else {
-			equal = reflect.DeepEqual(got, tc.want)
-		}
-		if !equal {
-			t.Errorf("%s: compare:\ngot:  %#v\nwant: %#v", tc.desc, got, tc.want)
-			t.Logf("intermediate proto (%s):\n%s", tc.desc, proto.MarshalTextString(p))
+
+		if !testutil.Equal(got, tc.want, cmp.AllowUnexported(X0{}, X2{})) {
+			t.Errorf("%s: compare:\ngot:  %+#v\nwant: %+#v", tc.desc, got, tc.want)
 			continue
+		}
+	}
+}
+
+type aPtrPLS struct {
+	Count int
+}
+
+func (pls *aPtrPLS) Load([]Property) error {
+	pls.Count++
+	return nil
+}
+
+func (pls *aPtrPLS) Save() ([]Property, error) {
+	return []Property{{Name: "Count", Value: 4}}, nil
+}
+
+type aValuePLS struct {
+	Count int
+}
+
+func (pls aValuePLS) Load([]Property) error {
+	pls.Count += 2
+	return nil
+}
+
+func (pls aValuePLS) Save() ([]Property, error) {
+	return []Property{{Name: "Count", Value: 8}}, nil
+}
+
+type aValuePtrPLS struct {
+	Count int
+}
+
+func (pls *aValuePtrPLS) Load([]Property) error {
+	pls.Count = 11
+	return nil
+}
+
+func (pls *aValuePtrPLS) Save() ([]Property, error) {
+	return []Property{{Name: "Count", Value: 12}}, nil
+}
+
+type aNotPLS struct {
+	Count int
+}
+
+type plsString string
+
+func (s *plsString) Load([]Property) error {
+	*s = "LOADED"
+	return nil
+}
+
+func (s *plsString) Save() ([]Property, error) {
+	return []Property{{Name: "SS", Value: "SAVED"}}, nil
+}
+
+func ptrToplsString(s string) *plsString {
+	plsStr := plsString(s)
+	return &plsStr
+}
+
+type aSubPLS struct {
+	Foo string
+	Bar *aPtrPLS
+	Baz aValuePtrPLS
+	S   plsString
+}
+
+type aSubNotPLS struct {
+	Foo string
+	Bar *aNotPLS
+}
+
+type aSubPLSErr struct {
+	Foo string
+	Bar aValuePLS
+}
+
+type aSubPLSNoErr struct {
+	Foo string
+	Bar aPtrPLS
+}
+
+type GrandparentFlatten struct {
+	Parent Parent `datastore:",flatten"`
+}
+
+type GrandparentOfPtrFlatten struct {
+	Parent ParentOfPtr `datastore:",flatten"`
+}
+
+type GrandparentOfSlice struct {
+	Parent ParentOfSlice
+}
+
+type GrandparentOfSlicePtrs struct {
+	Parent ParentOfSlicePtrs
+}
+
+type GrandparentOfSliceFlatten struct {
+	Parent ParentOfSlice `datastore:",flatten"`
+}
+
+type GrandparentOfSlicePtrsFlatten struct {
+	Parent ParentOfSlicePtrs `datastore:",flatten"`
+}
+
+type Grandparent struct {
+	Parent Parent
+}
+
+type Parent struct {
+	Child  Child
+	String plsString
+}
+
+type ParentOfPtr struct {
+	Child  *Child
+	String *plsString
+}
+
+type ParentOfSlice struct {
+	Children []Child
+	Strings  []plsString
+}
+
+type ParentOfSlicePtrs struct {
+	Children []*Child
+	Strings  []*plsString
+}
+
+type Child struct {
+	I          int
+	Grandchild Grandchild
+}
+
+type Grandchild struct {
+	S string
+}
+
+func (c *Child) Load(props []Property) error {
+	for _, p := range props {
+		if p.Name == "I" {
+			c.I++
+		} else if p.Name == "Grandchild.S" {
+			c.Grandchild.S = "grandchild loaded"
+		}
+	}
+
+	return nil
+}
+
+func (c *Child) Save() ([]Property, error) {
+	v := c.I + 1
+	return []Property{
+		{Name: "I", Value: v},
+		{Name: "Grandchild.S", Value: fmt.Sprintf("grandchild saved %d", v)},
+	}, nil
+}
+
+func TestLoadSavePLS(t *testing.T) {
+	type testCase struct {
+		desc     string
+		src      interface{}
+		wantSave *pb.Entity
+		wantLoad interface{}
+		saveErr  string
+		loadErr  string
+	}
+
+	testCases := []testCase{
+		{
+			desc: "non-struct implements PLS (top-level)",
+			src:  ptrToplsString("hello"),
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"SS": {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+				},
+			},
+			wantLoad: ptrToplsString("LOADED"),
+		},
+		{
+			desc: "substructs do implement PLS",
+			src:  &aSubPLS{Foo: "foo", Bar: &aPtrPLS{Count: 2}, Baz: aValuePtrPLS{Count: 15}, S: "something"},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Foo": {ValueType: &pb.Value_StringValue{StringValue: "foo"}},
+					"Bar": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"Count": {ValueType: &pb.Value_IntegerValue{IntegerValue: 4}},
+							},
+						},
+					}},
+					"Baz": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"Count": {ValueType: &pb.Value_IntegerValue{IntegerValue: 12}},
+							},
+						},
+					}},
+					"S": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"SS": {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+							},
+						},
+					}},
+				},
+			},
+			wantLoad: &aSubPLS{Foo: "foo", Bar: &aPtrPLS{Count: 1}, Baz: aValuePtrPLS{Count: 11}, S: "LOADED"},
+		},
+		{
+			desc: "substruct (ptr) does implement PLS, nil valued substruct",
+			src:  &aSubPLS{Foo: "foo", S: "something"},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Foo": {ValueType: &pb.Value_StringValue{StringValue: "foo"}},
+					"Baz": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"Count": {ValueType: &pb.Value_IntegerValue{IntegerValue: 12}},
+							},
+						},
+					}},
+					"S": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"SS": {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+							},
+						},
+					}},
+				},
+			},
+			wantLoad: &aSubPLS{Foo: "foo", Baz: aValuePtrPLS{Count: 11}, S: "LOADED"},
+		},
+		{
+			desc: "substruct (ptr) does not implement PLS",
+			src:  &aSubNotPLS{Foo: "foo", Bar: &aNotPLS{Count: 2}},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Foo": {ValueType: &pb.Value_StringValue{StringValue: "foo"}},
+					"Bar": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"Count": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+							},
+						},
+					}},
+				},
+			},
+			wantLoad: &aSubNotPLS{Foo: "foo", Bar: &aNotPLS{Count: 2}},
+		},
+		{
+			desc:     "substruct (value) does implement PLS, error on save",
+			src:      &aSubPLSErr{Foo: "foo", Bar: aValuePLS{Count: 2}},
+			wantSave: (*pb.Entity)(nil),
+			wantLoad: &aSubPLSErr{},
+			saveErr:  "PropertyLoadSaver methods must be implemented on a pointer",
+		},
+		{
+			desc: "substruct (value) does implement PLS, error on load",
+			src:  &aSubPLSNoErr{Foo: "foo", Bar: aPtrPLS{Count: 2}},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Foo": {ValueType: &pb.Value_StringValue{StringValue: "foo"}},
+					"Bar": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"Count": {ValueType: &pb.Value_IntegerValue{IntegerValue: 4}},
+							},
+						},
+					}},
+				},
+			},
+			wantLoad: &aSubPLSErr{},
+			loadErr:  "PropertyLoadSaver methods must be implemented on a pointer",
+		},
+
+		{
+			desc: "parent does not have flatten option, child impl PLS",
+			src: &Grandparent{
+				Parent: Parent{
+					Child: Child{
+						I: 9,
+						Grandchild: Grandchild{
+							S: "BAD",
+						},
+					},
+					String: plsString("something"),
+				},
+			},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Parent": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"Child": {ValueType: &pb.Value_EntityValue{
+									EntityValue: &pb.Entity{
+										Properties: map[string]*pb.Value{
+											"I":            {ValueType: &pb.Value_IntegerValue{IntegerValue: 10}},
+											"Grandchild.S": {ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 10"}},
+										},
+									},
+								}},
+								"String": {ValueType: &pb.Value_EntityValue{
+									EntityValue: &pb.Entity{
+										Properties: map[string]*pb.Value{
+											"SS": {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+										},
+									},
+								}},
+							},
+						},
+					}},
+				},
+			},
+			wantLoad: &Grandparent{
+				Parent: Parent{
+					Child: Child{
+						I: 1,
+						Grandchild: Grandchild{
+							S: "grandchild loaded",
+						},
+					},
+					String: "LOADED",
+				},
+			},
+		},
+		{
+			desc: "parent has flatten option enabled, child impl PLS",
+			src: &GrandparentFlatten{
+				Parent: Parent{
+					Child: Child{
+						I: 7,
+						Grandchild: Grandchild{
+							S: "BAD",
+						},
+					},
+					String: plsString("something"),
+				},
+			},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Parent.Child.I":            {ValueType: &pb.Value_IntegerValue{IntegerValue: 8}},
+					"Parent.Child.Grandchild.S": {ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 8"}},
+					"Parent.String.SS":          {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+				},
+			},
+			wantLoad: &GrandparentFlatten{
+				Parent: Parent{
+					Child: Child{
+						I: 1,
+						Grandchild: Grandchild{
+							S: "grandchild loaded",
+						},
+					},
+					String: "LOADED",
+				},
+			},
+		},
+
+		{
+			desc: "parent has flatten option enabled, child (ptr to) impl PLS",
+			src: &GrandparentOfPtrFlatten{
+				Parent: ParentOfPtr{
+					Child: &Child{
+						I: 7,
+						Grandchild: Grandchild{
+							S: "BAD",
+						},
+					},
+					String: ptrToplsString("something"),
+				},
+			},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Parent.Child.I":            {ValueType: &pb.Value_IntegerValue{IntegerValue: 8}},
+					"Parent.Child.Grandchild.S": {ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 8"}},
+					"Parent.String.SS":          {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+				},
+			},
+			wantLoad: &GrandparentOfPtrFlatten{
+				Parent: ParentOfPtr{
+					Child: &Child{
+						I: 1,
+						Grandchild: Grandchild{
+							S: "grandchild loaded",
+						},
+					},
+					String: ptrToplsString("LOADED"),
+				},
+			},
+		},
+		{
+			desc: "children (slice of) impl PLS",
+			src: &GrandparentOfSlice{
+				Parent: ParentOfSlice{
+					Children: []Child{
+						{
+							I: 7,
+							Grandchild: Grandchild{
+								S: "BAD",
+							},
+						},
+						{
+							I: 9,
+							Grandchild: Grandchild{
+								S: "BAD2",
+							},
+						},
+					},
+					Strings: []plsString{
+						"something1",
+						"something2",
+					},
+				},
+			},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Parent": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"Children": {ValueType: &pb.Value_ArrayValue{
+									ArrayValue: &pb.ArrayValue{Values: []*pb.Value{
+										{ValueType: &pb.Value_EntityValue{
+											EntityValue: &pb.Entity{
+												Properties: map[string]*pb.Value{
+													"I":            {ValueType: &pb.Value_IntegerValue{IntegerValue: 8}},
+													"Grandchild.S": {ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 8"}},
+												},
+											},
+										}},
+										{ValueType: &pb.Value_EntityValue{
+											EntityValue: &pb.Entity{
+												Properties: map[string]*pb.Value{
+													"I":            {ValueType: &pb.Value_IntegerValue{IntegerValue: 10}},
+													"Grandchild.S": {ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 10"}},
+												},
+											},
+										}},
+									}},
+								}},
+								"Strings": {ValueType: &pb.Value_ArrayValue{
+									ArrayValue: &pb.ArrayValue{Values: []*pb.Value{
+										{ValueType: &pb.Value_EntityValue{
+											EntityValue: &pb.Entity{
+												Properties: map[string]*pb.Value{
+													"SS": {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+												},
+											},
+										}},
+										{ValueType: &pb.Value_EntityValue{
+											EntityValue: &pb.Entity{
+												Properties: map[string]*pb.Value{
+													"SS": {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+												},
+											},
+										}},
+									}},
+								}},
+							},
+						},
+					}},
+				},
+			},
+			wantLoad: &GrandparentOfSlice{
+				Parent: ParentOfSlice{
+					Children: []Child{
+						{
+							I: 1,
+							Grandchild: Grandchild{
+								S: "grandchild loaded",
+							},
+						},
+						{
+							I: 1,
+							Grandchild: Grandchild{
+								S: "grandchild loaded",
+							},
+						},
+					},
+					Strings: []plsString{
+						"LOADED",
+						"LOADED",
+					},
+				},
+			},
+		},
+		{
+			desc: "children (slice of ptrs) impl PLS",
+			src: &GrandparentOfSlicePtrs{
+				Parent: ParentOfSlicePtrs{
+					Children: []*Child{
+						{
+							I: 7,
+							Grandchild: Grandchild{
+								S: "BAD",
+							},
+						},
+						{
+							I: 9,
+							Grandchild: Grandchild{
+								S: "BAD2",
+							},
+						},
+					},
+					Strings: []*plsString{
+						ptrToplsString("something1"),
+						ptrToplsString("something2"),
+					},
+				},
+			},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Parent": {ValueType: &pb.Value_EntityValue{
+						EntityValue: &pb.Entity{
+							Properties: map[string]*pb.Value{
+								"Children": {ValueType: &pb.Value_ArrayValue{
+									ArrayValue: &pb.ArrayValue{Values: []*pb.Value{
+										{ValueType: &pb.Value_EntityValue{
+											EntityValue: &pb.Entity{
+												Properties: map[string]*pb.Value{
+													"I":            {ValueType: &pb.Value_IntegerValue{IntegerValue: 8}},
+													"Grandchild.S": {ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 8"}},
+												},
+											},
+										}},
+										{ValueType: &pb.Value_EntityValue{
+											EntityValue: &pb.Entity{
+												Properties: map[string]*pb.Value{
+													"I":            {ValueType: &pb.Value_IntegerValue{IntegerValue: 10}},
+													"Grandchild.S": {ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 10"}},
+												},
+											},
+										}},
+									}},
+								}},
+								"Strings": {ValueType: &pb.Value_ArrayValue{
+									ArrayValue: &pb.ArrayValue{Values: []*pb.Value{
+										{ValueType: &pb.Value_EntityValue{
+											EntityValue: &pb.Entity{
+												Properties: map[string]*pb.Value{
+													"SS": {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+												},
+											},
+										}},
+										{ValueType: &pb.Value_EntityValue{
+											EntityValue: &pb.Entity{
+												Properties: map[string]*pb.Value{
+													"SS": {ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+												},
+											},
+										}},
+									}},
+								}},
+							},
+						},
+					}},
+				},
+			},
+			wantLoad: &GrandparentOfSlicePtrs{
+				Parent: ParentOfSlicePtrs{
+					Children: []*Child{
+						{
+							I: 1,
+							Grandchild: Grandchild{
+								S: "grandchild loaded",
+							},
+						},
+						{
+							I: 1,
+							Grandchild: Grandchild{
+								S: "grandchild loaded",
+							},
+						},
+					},
+					Strings: []*plsString{
+						ptrToplsString("LOADED"),
+						ptrToplsString("LOADED"),
+					},
+				},
+			},
+		},
+		{
+			desc: "parent has flatten option, children (slice of) impl PLS",
+			src: &GrandparentOfSliceFlatten{
+				Parent: ParentOfSlice{
+					Children: []Child{
+						{
+							I: 7,
+							Grandchild: Grandchild{
+								S: "BAD",
+							},
+						},
+						{
+							I: 9,
+							Grandchild: Grandchild{
+								S: "BAD2",
+							},
+						},
+					},
+					Strings: []plsString{
+						"something1",
+						"something2",
+					},
+				},
+			},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Parent.Children.I": {ValueType: &pb.Value_ArrayValue{ArrayValue: &pb.ArrayValue{
+						Values: []*pb.Value{
+							{ValueType: &pb.Value_IntegerValue{IntegerValue: 8}},
+							{ValueType: &pb.Value_IntegerValue{IntegerValue: 10}},
+						},
+					},
+					}},
+					"Parent.Children.Grandchild.S": {ValueType: &pb.Value_ArrayValue{ArrayValue: &pb.ArrayValue{
+						Values: []*pb.Value{
+							{ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 8"}},
+							{ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 10"}},
+						},
+					},
+					}},
+					"Parent.Strings.SS": {ValueType: &pb.Value_ArrayValue{ArrayValue: &pb.ArrayValue{
+						Values: []*pb.Value{
+							{ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+							{ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+						},
+					},
+					}},
+				},
+			},
+			wantLoad: &GrandparentOfSliceFlatten{
+				Parent: ParentOfSlice{
+					Children: []Child{
+						{
+							I: 1,
+							Grandchild: Grandchild{
+								S: "grandchild loaded",
+							},
+						},
+						{
+							I: 1,
+							Grandchild: Grandchild{
+								S: "grandchild loaded",
+							},
+						},
+					},
+					Strings: []plsString{
+						"LOADED",
+						"LOADED",
+					},
+				},
+			},
+		},
+		{
+			desc: "parent has flatten option, children (slice of ptrs) impl PLS",
+			src: &GrandparentOfSlicePtrsFlatten{
+				Parent: ParentOfSlicePtrs{
+					Children: []*Child{
+						{
+							I: 7,
+							Grandchild: Grandchild{
+								S: "BAD",
+							},
+						},
+						{
+							I: 9,
+							Grandchild: Grandchild{
+								S: "BAD2",
+							},
+						},
+					},
+					Strings: []*plsString{
+						ptrToplsString("something1"),
+						ptrToplsString("something1"),
+					},
+				},
+			},
+			wantSave: &pb.Entity{
+				Key: keyToProto(testKey0),
+				Properties: map[string]*pb.Value{
+					"Parent.Children.I": {ValueType: &pb.Value_ArrayValue{ArrayValue: &pb.ArrayValue{
+						Values: []*pb.Value{
+							{ValueType: &pb.Value_IntegerValue{IntegerValue: 8}},
+							{ValueType: &pb.Value_IntegerValue{IntegerValue: 10}},
+						},
+					},
+					}},
+					"Parent.Children.Grandchild.S": {ValueType: &pb.Value_ArrayValue{ArrayValue: &pb.ArrayValue{
+						Values: []*pb.Value{
+							{ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 8"}},
+							{ValueType: &pb.Value_StringValue{StringValue: "grandchild saved 10"}},
+						},
+					},
+					}},
+					"Parent.Strings.SS": {ValueType: &pb.Value_ArrayValue{ArrayValue: &pb.ArrayValue{
+						Values: []*pb.Value{
+							{ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+							{ValueType: &pb.Value_StringValue{StringValue: "SAVED"}},
+						},
+					},
+					}},
+				},
+			},
+			wantLoad: &GrandparentOfSlicePtrsFlatten{
+				Parent: ParentOfSlicePtrs{
+					Children: []*Child{
+						{
+							I: 1,
+							Grandchild: Grandchild{
+								S: "grandchild loaded",
+							},
+						},
+						{
+							I: 1,
+							Grandchild: Grandchild{
+								S: "grandchild loaded",
+							},
+						},
+					},
+					Strings: []*plsString{
+						ptrToplsString("LOADED"),
+						ptrToplsString("LOADED"),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		e, err := saveEntity(testKey0, tc.src)
+		if tc.saveErr == "" { // Want no error.
+			if err != nil {
+				t.Errorf("%s: save: %v", tc.desc, err)
+				continue
+			}
+			if !testutil.Equal(e, tc.wantSave) {
+				t.Errorf("%s: save: \ngot:  %+v\nwant: %+v", tc.desc, e, tc.wantSave)
+				continue
+			}
+		} else { // Want error.
+			if err == nil {
+				t.Errorf("%s: save: want err", tc.desc)
+				continue
+			}
+			if !strings.Contains(err.Error(), tc.saveErr) {
+				t.Errorf("%s: save: \ngot err  '%s'\nwant err '%s'", tc.desc, err.Error(), tc.saveErr)
+			}
+			continue
+		}
+
+		gota := reflect.New(reflect.TypeOf(tc.wantLoad).Elem()).Interface()
+		err = loadEntityProto(gota, e)
+		if tc.loadErr == "" { // Want no error.
+			if err != nil {
+				t.Errorf("%s: load: %v", tc.desc, err)
+				continue
+			}
+			if !testutil.Equal(gota, tc.wantLoad) {
+				t.Errorf("%s: load: \ngot:  %+v\nwant: %+v", tc.desc, gota, tc.wantLoad)
+				continue
+			}
+		} else { // Want error.
+			if err == nil {
+				t.Errorf("%s: load: want err", tc.desc)
+				continue
+			}
+			if !strings.Contains(err.Error(), tc.loadErr) {
+				t.Errorf("%s: load: \ngot err  '%s'\nwant err '%s'", tc.desc, err.Error(), tc.loadErr)
+			}
 		}
 	}
 }
@@ -1461,7 +2899,7 @@ func TestQueryConstruction(t *testing.T) {
 			}
 			continue
 		}
-		if !reflect.DeepEqual(test.q, test.exp) {
+		if !testutil.Equal(test.q, test.exp, cmp.AllowUnexported(Query{})) {
 			t.Errorf("%d: mismatch: got %v want %v", i, test.q, test.exp)
 		}
 	}
@@ -1550,24 +2988,26 @@ func TestPutMultiTypes(t *testing.T) {
 
 	// Use the same keys and expected entities for all tests.
 	keys := []*Key{
-		NewKey(ctx, "testKind", "first", 0, nil),
-		NewKey(ctx, "testKind", "second", 0, nil),
+		NameKey("testKind", "first", nil),
+		NameKey("testKind", "second", nil),
 	}
 	want := []*pb.Mutation{
-		{Operation: &pb.Mutation_Upsert{&pb.Entity{
-			Key: keyToProto(keys[0]),
-			Properties: map[string]*pb.Value{
-				"A": {ValueType: &pb.Value_IntegerValue{1}},
-				"B": {ValueType: &pb.Value_StringValue{"one"}},
-			},
-		}}},
-		{Operation: &pb.Mutation_Upsert{&pb.Entity{
-			Key: keyToProto(keys[1]),
-			Properties: map[string]*pb.Value{
-				"A": {ValueType: &pb.Value_IntegerValue{2}},
-				"B": {ValueType: &pb.Value_StringValue{"two"}},
-			},
-		}}},
+		{Operation: &pb.Mutation_Upsert{
+			Upsert: &pb.Entity{
+				Key: keyToProto(keys[0]),
+				Properties: map[string]*pb.Value{
+					"A": {ValueType: &pb.Value_IntegerValue{IntegerValue: 1}},
+					"B": {ValueType: &pb.Value_StringValue{StringValue: "one"}},
+				},
+			}}},
+		{Operation: &pb.Mutation_Upsert{
+			Upsert: &pb.Entity{
+				Key: keyToProto(keys[1]),
+				Properties: map[string]*pb.Value{
+					"A": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+					"B": {ValueType: &pb.Value_StringValue{StringValue: "two"}},
+				},
+			}}},
 	}
 
 	for _, tt := range testCases {
@@ -1608,7 +3048,6 @@ func TestPutMultiTypes(t *testing.T) {
 func TestNoIndexOnSliceProperties(t *testing.T) {
 	// Check that ExcludeFromIndexes is set on the inner elements,
 	// rather than the top-level ArrayValue value.
-	ctx := context.Background()
 	pl := PropertyList{
 		Property{
 			Name: "repeated",
@@ -1621,7 +3060,7 @@ func TestNoIndexOnSliceProperties(t *testing.T) {
 			NoIndex: true,
 		},
 	}
-	key := NewKey(ctx, "dummy", "dummy", 0, nil)
+	key := NameKey("dummy", "dummy", nil)
 
 	entity, err := saveEntity(key, &pl)
 	if err != nil {
@@ -1629,11 +3068,11 @@ func TestNoIndexOnSliceProperties(t *testing.T) {
 	}
 
 	want := &pb.Value{
-		ValueType: &pb.Value_ArrayValue{&pb.ArrayValue{[]*pb.Value{
-			{ValueType: &pb.Value_IntegerValue{123}, ExcludeFromIndexes: true},
-			{ValueType: &pb.Value_BooleanValue{false}, ExcludeFromIndexes: true},
-			{ValueType: &pb.Value_StringValue{"short"}, ExcludeFromIndexes: true},
-			{ValueType: &pb.Value_StringValue{strings.Repeat("a", 1503)}, ExcludeFromIndexes: true},
+		ValueType: &pb.Value_ArrayValue{ArrayValue: &pb.ArrayValue{Values: []*pb.Value{
+			{ValueType: &pb.Value_IntegerValue{IntegerValue: 123}, ExcludeFromIndexes: true},
+			{ValueType: &pb.Value_BooleanValue{BooleanValue: false}, ExcludeFromIndexes: true},
+			{ValueType: &pb.Value_StringValue{StringValue: "short"}, ExcludeFromIndexes: true},
+			{ValueType: &pb.Value_StringValue{StringValue: strings.Repeat("a", 1503)}, ExcludeFromIndexes: true},
 		}}},
 	}
 	if got := entity.Properties["repeated"]; !proto.Equal(got, want) {
@@ -1646,6 +3085,25 @@ type byName PropertyList
 func (s byName) Len() int           { return len(s) }
 func (s byName) Less(i, j int) bool { return s[i].Name < s[j].Name }
 func (s byName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+// sortPL sorts the property list by property name, and
+// recursively sorts any nested property lists, or nested slices of
+// property lists.
+func sortPL(pl PropertyList) {
+	sort.Stable(byName(pl))
+	for _, p := range pl {
+		switch p.Value.(type) {
+		case *Entity:
+			sortPL(p.Value.(*Entity).Properties)
+		case []interface{}:
+			for _, p2 := range p.Value.([]interface{}) {
+				if nent, ok := p2.(*Entity); ok {
+					sortPL(nent.Properties)
+				}
+			}
+		}
+	}
+}
 
 func TestValidGeoPoint(t *testing.T) {
 	testCases := []struct {
@@ -1685,4 +3143,430 @@ func TestValidGeoPoint(t *testing.T) {
 			t.Errorf("%s: got %v, want %v", tc.desc, got, tc.want)
 		}
 	}
+}
+
+func TestPutInvalidEntity(t *testing.T) {
+	// Test that trying to put an invalid entity always returns the correct error
+	// type.
+
+	// Fake client that can pretend to start a transaction.
+	fakeClient := &fakeDatastoreClient{
+		beginTransaction: func(*pb.BeginTransactionRequest) (*pb.BeginTransactionResponse, error) {
+			return &pb.BeginTransactionResponse{
+				Transaction: []byte("deadbeef"),
+			}, nil
+		},
+	}
+	client := &Client{
+		client: fakeClient,
+	}
+
+	ctx := context.Background()
+	key := IncompleteKey("kind", nil)
+
+	_, err := client.Put(ctx, key, "invalid entity")
+	if err != ErrInvalidEntityType {
+		t.Errorf("client.Put returned err %v, want %v", err, ErrInvalidEntityType)
+	}
+
+	_, err = client.PutMulti(ctx, []*Key{key}, []interface{}{"invalid entity"})
+	if me, ok := err.(MultiError); !ok {
+		t.Errorf("client.PutMulti returned err %v, want MultiError type", err)
+	} else if len(me) != 1 || me[0] != ErrInvalidEntityType {
+		t.Errorf("client.PutMulti returned err %v, want MulitError{ErrInvalidEntityType}", err)
+	}
+
+	client.RunInTransaction(ctx, func(tx *Transaction) error {
+		_, err := tx.Put(key, "invalid entity")
+		if err != ErrInvalidEntityType {
+			t.Errorf("tx.Put returned err %v, want %v", err, ErrInvalidEntityType)
+		}
+
+		_, err = tx.PutMulti([]*Key{key}, []interface{}{"invalid entity"})
+		if me, ok := err.(MultiError); !ok {
+			t.Errorf("tx.PutMulti returned err %v, want MultiError type", err)
+		} else if len(me) != 1 || me[0] != ErrInvalidEntityType {
+			t.Errorf("tx.PutMulti returned err %v, want MulitError{ErrInvalidEntityType}", err)
+		}
+
+		return errors.New("bang") // Return error: we don't actually want to commit.
+	})
+}
+
+func TestDeferred(t *testing.T) {
+	type Ent struct {
+		A int
+		B string
+	}
+
+	keys := []*Key{
+		NameKey("testKind", "first", nil),
+		NameKey("testKind", "second", nil),
+	}
+
+	entity1 := &pb.Entity{
+		Key: keyToProto(keys[0]),
+		Properties: map[string]*pb.Value{
+			"A": {ValueType: &pb.Value_IntegerValue{IntegerValue: 1}},
+			"B": {ValueType: &pb.Value_StringValue{StringValue: "one"}},
+		},
+	}
+	entity2 := &pb.Entity{
+		Key: keyToProto(keys[1]),
+		Properties: map[string]*pb.Value{
+			"A": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+			"B": {ValueType: &pb.Value_StringValue{StringValue: "two"}},
+		},
+	}
+
+	// count keeps track of the number of times fakeClient.lookup has been
+	// called.
+	var count int
+	// Fake client that will return Deferred keys in resp on the first call.
+	fakeClient := &fakeDatastoreClient{
+		lookup: func(*pb.LookupRequest) (*pb.LookupResponse, error) {
+			count++
+			// On the first call, we return deferred keys.
+			if count == 1 {
+				return &pb.LookupResponse{
+					Found: []*pb.EntityResult{
+						{
+							Entity:  entity1,
+							Version: 1,
+						},
+					},
+					Deferred: []*pb.Key{
+						keyToProto(keys[1]),
+					},
+				}, nil
+			}
+
+			// On the second call, we do not return any more deferred keys.
+			return &pb.LookupResponse{
+				Found: []*pb.EntityResult{
+					{
+						Entity:  entity2,
+						Version: 1,
+					},
+				},
+			}, nil
+		},
+	}
+	client := &Client{
+		client: fakeClient,
+	}
+
+	ctx := context.Background()
+
+	dst := make([]Ent, len(keys))
+	err := client.GetMulti(ctx, keys, dst)
+	if err != nil {
+		t.Fatalf("client.Get: %v", err)
+	}
+
+	if count != 2 {
+		t.Fatalf("expected client.lookup to be called 2 times. Got %d", count)
+	}
+
+	if len(dst) != 2 {
+		t.Fatalf("expected 2 entities returned, got %d", len(dst))
+	}
+
+	for _, e := range dst {
+		if e.A == 1 {
+			if e.B != "one" {
+				t.Fatalf("unexpected entity %+v", e)
+			}
+		} else if e.A == 2 {
+			if e.B != "two" {
+				t.Fatalf("unexpected entity %+v", e)
+			}
+		} else {
+			t.Fatalf("unexpected entity %+v", e)
+		}
+	}
+
+}
+
+type KeyLoaderEnt struct {
+	A int
+	K *Key
+}
+
+func (e *KeyLoaderEnt) Load(p []Property) error {
+	e.A = 2
+	return nil
+}
+
+func (e *KeyLoaderEnt) LoadKey(k *Key) error {
+	e.K = k
+	return nil
+}
+
+func (e *KeyLoaderEnt) Save() ([]Property, error) {
+	return []Property{{Name: "A", Value: int64(3)}}, nil
+}
+
+func TestKeyLoaderEndToEnd(t *testing.T) {
+	keys := []*Key{
+		NameKey("testKind", "first", nil),
+		NameKey("testKind", "second", nil),
+	}
+
+	entity1 := &pb.Entity{
+		Key: keyToProto(keys[0]),
+		Properties: map[string]*pb.Value{
+			"A": {ValueType: &pb.Value_IntegerValue{IntegerValue: 1}},
+			"B": {ValueType: &pb.Value_StringValue{StringValue: "one"}},
+		},
+	}
+	entity2 := &pb.Entity{
+		Key: keyToProto(keys[1]),
+		Properties: map[string]*pb.Value{
+			"A": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+			"B": {ValueType: &pb.Value_StringValue{StringValue: "two"}},
+		},
+	}
+
+	fakeClient := &fakeDatastoreClient{
+		lookup: func(*pb.LookupRequest) (*pb.LookupResponse, error) {
+			return &pb.LookupResponse{
+				Found: []*pb.EntityResult{
+					{
+						Entity:  entity1,
+						Version: 1,
+					},
+					{
+						Entity:  entity2,
+						Version: 1,
+					},
+				},
+			}, nil
+		},
+	}
+	client := &Client{
+		client: fakeClient,
+	}
+
+	ctx := context.Background()
+
+	dst := make([]*KeyLoaderEnt, len(keys))
+	err := client.GetMulti(ctx, keys, dst)
+	if err != nil {
+		t.Fatalf("client.Get: %v", err)
+	}
+
+	for i := range dst {
+		if !testutil.Equal(dst[i].K, keys[i]) {
+			t.Fatalf("unexpected entity %d to have key %+v, got %+v", i, keys[i], dst[i].K)
+		}
+	}
+}
+
+func TestDeferredMissing(t *testing.T) {
+	type Ent struct {
+		A int
+		B string
+	}
+
+	keys := []*Key{
+		NameKey("testKind", "first", nil),
+		NameKey("testKind", "second", nil),
+	}
+
+	entity1 := &pb.Entity{
+		Key: keyToProto(keys[0]),
+	}
+	entity2 := &pb.Entity{
+		Key: keyToProto(keys[1]),
+	}
+
+	var count int
+	fakeClient := &fakeDatastoreClient{
+		lookup: func(*pb.LookupRequest) (*pb.LookupResponse, error) {
+			count++
+
+			if count == 1 {
+				return &pb.LookupResponse{
+					Missing: []*pb.EntityResult{
+						{
+							Entity:  entity1,
+							Version: 1,
+						},
+					},
+					Deferred: []*pb.Key{
+						keyToProto(keys[1]),
+					},
+				}, nil
+			}
+
+			return &pb.LookupResponse{
+				Missing: []*pb.EntityResult{
+					{
+						Entity:  entity2,
+						Version: 1,
+					},
+				},
+			}, nil
+		},
+	}
+	client := &Client{
+		client: fakeClient,
+	}
+
+	ctx := context.Background()
+
+	dst := make([]Ent, len(keys))
+	err := client.GetMulti(ctx, keys, dst)
+	errs, ok := err.(MultiError)
+	if !ok {
+		t.Fatalf("expected error returns to be MultiError; got %v", err)
+	}
+	if len(errs) != 2 {
+		t.Fatalf("expected 2 errors returns, got %d", len(errs))
+	}
+	if errs[0] != ErrNoSuchEntity {
+		t.Fatalf("expected error to be ErrNoSuchEntity; got %v", errs[0])
+	}
+	if errs[1] != ErrNoSuchEntity {
+		t.Fatalf("expected error to be ErrNoSuchEntity; got %v", errs[1])
+	}
+
+	if count != 2 {
+		t.Fatalf("expected client.lookup to be called 2 times. Got %d", count)
+	}
+
+	if len(dst) != 2 {
+		t.Fatalf("expected 2 entities returned, got %d", len(dst))
+	}
+
+	for _, e := range dst {
+		if e.A != 0 || e.B != "" {
+			t.Fatalf("unexpected entity %+v", e)
+		}
+	}
+}
+
+func TestGetWithNilKey(t *testing.T) {
+	client := &Client{}
+	err := client.Get(context.Background(), nil, []Property{})
+	if err != ErrInvalidKey {
+		t.Fatalf("want ErrInvalidKey, got %v", err)
+	}
+}
+
+func TestGetMultiWithNilKey(t *testing.T) {
+	client := &Client{}
+	dest := make([]PropertyList, 1)
+	err := client.GetMulti(context.Background(), []*Key{nil}, dest)
+	if me, ok := err.(MultiError); !ok {
+		t.Fatalf("want MultiError, got %v", err)
+	} else if len(me) != 1 || me[0] != ErrInvalidKey {
+		t.Fatalf("want MultiError{ErrInvalidKey}, got %v", me)
+	}
+}
+
+func TestGetWithIncompleteKey(t *testing.T) {
+	client := &Client{}
+	err := client.Get(context.Background(), &Key{Kind: "testKind"}, []Property{})
+	if err == nil {
+		t.Fatalf("want err, got nil")
+	}
+}
+
+func TestGetMultiWithIncompleteKey(t *testing.T) {
+	client := &Client{}
+	dest := make([]PropertyList, 1)
+	err := client.GetMulti(context.Background(), []*Key{{Kind: "testKind"}}, dest)
+	if me, ok := err.(MultiError); !ok {
+		t.Fatalf("want MultiError, got %v", err)
+	} else if len(me) != 1 || me[0] == nil {
+		t.Fatalf("want MultiError{err}, got %v", me)
+	}
+}
+
+func TestDeleteWithNilKey(t *testing.T) {
+	client := &Client{}
+	err := client.Delete(context.Background(), nil)
+	if err != ErrInvalidKey {
+		t.Fatalf("want ErrInvalidKey, got %v", err)
+	}
+}
+
+func TestDeleteMultiWithNilKey(t *testing.T) {
+	client := &Client{}
+	err := client.DeleteMulti(context.Background(), []*Key{nil})
+	if me, ok := err.(MultiError); !ok {
+		t.Fatalf("want MultiError, got %v", err)
+	} else if len(me) != 1 || me[0] != ErrInvalidKey {
+		t.Fatalf("want MultiError{ErrInvalidKey}, got %v", me)
+	}
+}
+
+func TestDeleteWithIncompleteKey(t *testing.T) {
+	client := &Client{}
+	err := client.Delete(context.Background(), &Key{Kind: "testKind"})
+	if err == nil {
+		t.Fatalf("want err, got nil")
+	}
+}
+
+func TestDeleteMultiWithIncompleteKey(t *testing.T) {
+	client := &Client{}
+	err := client.DeleteMulti(context.Background(), []*Key{{Kind: "testKind"}})
+	if me, ok := err.(MultiError); !ok {
+		t.Fatalf("want MultiError, got %v", err)
+	} else if len(me) != 1 || me[0] == nil {
+		t.Fatalf("want MultiError{err}, got %v", me)
+	}
+}
+
+type fakeDatastoreClient struct {
+	pb.DatastoreClient
+
+	// Optional handlers for the datastore methods.
+	// Any handlers left undefined will return an error.
+	lookup           func(*pb.LookupRequest) (*pb.LookupResponse, error)
+	runQuery         func(*pb.RunQueryRequest) (*pb.RunQueryResponse, error)
+	beginTransaction func(*pb.BeginTransactionRequest) (*pb.BeginTransactionResponse, error)
+	commit           func(*pb.CommitRequest) (*pb.CommitResponse, error)
+	rollback         func(*pb.RollbackRequest) (*pb.RollbackResponse, error)
+	allocateIds      func(*pb.AllocateIdsRequest) (*pb.AllocateIdsResponse, error)
+}
+
+func (c *fakeDatastoreClient) Lookup(ctx context.Context, in *pb.LookupRequest, opts ...grpc.CallOption) (*pb.LookupResponse, error) {
+	if c.lookup == nil {
+		return nil, errors.New("no lookup handler defined")
+	}
+	return c.lookup(in)
+}
+func (c *fakeDatastoreClient) RunQuery(ctx context.Context, in *pb.RunQueryRequest, opts ...grpc.CallOption) (*pb.RunQueryResponse, error) {
+	if c.runQuery == nil {
+		return nil, errors.New("no runQuery handler defined")
+	}
+	return c.runQuery(in)
+}
+func (c *fakeDatastoreClient) BeginTransaction(ctx context.Context, in *pb.BeginTransactionRequest, opts ...grpc.CallOption) (*pb.BeginTransactionResponse, error) {
+	if c.beginTransaction == nil {
+		return nil, errors.New("no beginTransaction handler defined")
+	}
+	return c.beginTransaction(in)
+}
+func (c *fakeDatastoreClient) Commit(ctx context.Context, in *pb.CommitRequest, opts ...grpc.CallOption) (*pb.CommitResponse, error) {
+	if c.commit == nil {
+		return nil, errors.New("no commit handler defined")
+	}
+	return c.commit(in)
+}
+func (c *fakeDatastoreClient) Rollback(ctx context.Context, in *pb.RollbackRequest, opts ...grpc.CallOption) (*pb.RollbackResponse, error) {
+	if c.rollback == nil {
+		return nil, errors.New("no rollback handler defined")
+	}
+	return c.rollback(in)
+}
+func (c *fakeDatastoreClient) AllocateIds(ctx context.Context, in *pb.AllocateIdsRequest, opts ...grpc.CallOption) (*pb.AllocateIdsResponse, error) {
+	if c.allocateIds == nil {
+		return nil, errors.New("no allocateIds handler defined")
+	}
+	return c.allocateIds(in)
 }

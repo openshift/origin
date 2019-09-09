@@ -24,14 +24,18 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2ekubelet "k8s.io/kubernetes/test/e2e/framework/kubelet"
+	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 	testutils "k8s.io/kubernetes/test/utils"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 )
 
 // This test checks if node-problem-detector (NPD) runs fine without error on
@@ -43,18 +47,20 @@ var _ = SIGDescribe("NodeProblemDetector [DisabledForLargeClusters]", func() {
 	)
 	f := framework.NewDefaultFramework("node-problem-detector")
 
-	BeforeEach(func() {
+	ginkgo.BeforeEach(func() {
 		framework.SkipUnlessSSHKeyPresent()
 		framework.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
 		framework.SkipUnlessProviderIs("gce", "gke")
 		framework.SkipUnlessNodeOSDistroIs("gci", "ubuntu")
-		framework.WaitForAllNodesHealthy(f.ClientSet, time.Minute)
+		e2enode.WaitForTotalHealthy(f.ClientSet, time.Minute)
 	})
 
-	It("should run without error", func() {
-		By("Getting all nodes and their SSH-able IP addresses")
+	ginkgo.It("should run without error", func() {
+		framework.SkipUnlessSSHKeyPresent()
+
+		ginkgo.By("Getting all nodes and their SSH-able IP addresses")
 		nodes := framework.GetReadySchedulableNodesOrDie(f.ClientSet)
-		Expect(len(nodes.Items)).NotTo(BeZero())
+		framework.ExpectNotEqual(len(nodes.Items), 0)
 		hosts := []string{}
 		for _, node := range nodes.Items {
 			for _, addr := range node.Status.Addresses {
@@ -64,7 +70,7 @@ var _ = SIGDescribe("NodeProblemDetector [DisabledForLargeClusters]", func() {
 				}
 			}
 		}
-		Expect(len(hosts)).To(Equal(len(nodes.Items)))
+		framework.ExpectEqual(len(hosts), len(nodes.Items))
 
 		isStandaloneMode := make(map[string]bool)
 		cpuUsageStats := make(map[string][]float64)
@@ -79,55 +85,63 @@ var _ = SIGDescribe("NodeProblemDetector [DisabledForLargeClusters]", func() {
 			workingSetStats[host] = []float64{}
 
 			cmd := "systemctl status node-problem-detector.service"
-			result, err := framework.SSH(cmd, host, framework.TestContext.Provider)
+			result, err := e2essh.SSH(cmd, host, framework.TestContext.Provider)
 			isStandaloneMode[host] = (err == nil && result.Code == 0)
 
-			By(fmt.Sprintf("Check node %q has node-problem-detector process", host))
+			ginkgo.By(fmt.Sprintf("Check node %q has node-problem-detector process", host))
 			// Using brackets "[n]" is a trick to prevent grep command itself from
 			// showing up, because string text "[n]ode-problem-detector" does not
 			// match regular expression "[n]ode-problem-detector".
 			psCmd := "ps aux | grep [n]ode-problem-detector"
-			result, err = framework.SSH(psCmd, host, framework.TestContext.Provider)
+			result, err = e2essh.SSH(psCmd, host, framework.TestContext.Provider)
 			framework.ExpectNoError(err)
-			Expect(result.Code).To(BeZero())
-			Expect(result.Stdout).To(ContainSubstring("node-problem-detector"))
+			framework.ExpectEqual(result.Code, 0)
+			gomega.Expect(result.Stdout).To(gomega.ContainSubstring("node-problem-detector"))
 
-			By(fmt.Sprintf("Check node-problem-detector is running fine on node %q", host))
+			ginkgo.By(fmt.Sprintf("Check node-problem-detector is running fine on node %q", host))
 			journalctlCmd := "sudo journalctl -u node-problem-detector"
-			result, err = framework.SSH(journalctlCmd, host, framework.TestContext.Provider)
+			result, err = e2essh.SSH(journalctlCmd, host, framework.TestContext.Provider)
 			framework.ExpectNoError(err)
-			Expect(result.Code).To(BeZero())
-			Expect(result.Stdout).NotTo(ContainSubstring("node-problem-detector.service: Failed"))
+			framework.ExpectEqual(result.Code, 0)
+			gomega.Expect(result.Stdout).NotTo(gomega.ContainSubstring("node-problem-detector.service: Failed"))
 
 			if isStandaloneMode[host] {
-				cpuUsage, uptime := getCpuStat(f, host)
+				cpuUsage, uptime := getCPUStat(f, host)
 				cpuUsageStats[host] = append(cpuUsageStats[host], cpuUsage)
 				uptimeStats[host] = append(uptimeStats[host], uptime)
 			}
 
-			By(fmt.Sprintf("Inject log to trigger AUFSUmountHung on node %q", host))
+			ginkgo.By(fmt.Sprintf("Inject log to trigger AUFSUmountHung on node %q", host))
 			log := "INFO: task umount.aufs:21568 blocked for more than 120 seconds."
 			injectLogCmd := "sudo sh -c \"echo 'kernel: " + log + "' >> /dev/kmsg\""
-			_, err = framework.SSH(injectLogCmd, host, framework.TestContext.Provider)
+			_, err = e2essh.SSH(injectLogCmd, host, framework.TestContext.Provider)
 			framework.ExpectNoError(err)
-			Expect(result.Code).To(BeZero())
+			framework.ExpectEqual(result.Code, 0)
 		}
 
-		By("Check node-problem-detector can post conditions and events to API server")
+		ginkgo.By("Check node-problem-detector can post conditions and events to API server")
 		for _, node := range nodes.Items {
-			By(fmt.Sprintf("Check node-problem-detector posted KernelDeadlock condition on node %q", node.Name))
-			Eventually(func() error {
+			ginkgo.By(fmt.Sprintf("Check node-problem-detector posted KernelDeadlock condition on node %q", node.Name))
+			gomega.Eventually(func() error {
 				return verifyNodeCondition(f, "KernelDeadlock", v1.ConditionTrue, "AUFSUmountHung", node.Name)
-			}, pollTimeout, pollInterval).Should(Succeed())
+			}, pollTimeout, pollInterval).Should(gomega.Succeed())
 
-			By(fmt.Sprintf("Check node-problem-detector posted AUFSUmountHung event on node %q", node.Name))
+			ginkgo.By(fmt.Sprintf("Check node-problem-detector posted AUFSUmountHung event on node %q", node.Name))
 			eventListOptions := metav1.ListOptions{FieldSelector: fields.Set{"involvedObject.kind": "Node"}.AsSelector().String()}
-			Eventually(func() error {
+			gomega.Eventually(func() error {
 				return verifyEvents(f, eventListOptions, 1, "AUFSUmountHung", node.Name)
-			}, pollTimeout, pollInterval).Should(Succeed())
+			}, pollTimeout, pollInterval).Should(gomega.Succeed())
+
+			// Node problem detector reports kubelet start events automatically starting from NPD v0.7.0+.
+			// Since Kubelet may be restarted for a few times after node is booted. We just check the event
+			// is detected, but do not check how many times Kubelet is started.
+			ginkgo.By(fmt.Sprintf("Check node-problem-detector posted KubeletStart event on node %q", node.Name))
+			gomega.Eventually(func() error {
+				return verifyEventExists(f, eventListOptions, "KubeletStart", node.Name)
+			}, pollTimeout, pollInterval).Should(gomega.Succeed())
 		}
 
-		By("Gather node-problem-detector cpu and memory stats")
+		ginkgo.By("Gather node-problem-detector cpu and memory stats")
 		numIterations := 60
 		for i := 1; i <= numIterations; i++ {
 			for j, host := range hosts {
@@ -136,7 +150,7 @@ var _ = SIGDescribe("NodeProblemDetector [DisabledForLargeClusters]", func() {
 					rssStats[host] = append(rssStats[host], rss)
 					workingSetStats[host] = append(workingSetStats[host], workingSet)
 					if i == numIterations {
-						cpuUsage, uptime := getCpuStat(f, host)
+						cpuUsage, uptime := getCPUStat(f, host)
 						cpuUsageStats[host] = append(cpuUsageStats[host], cpuUsage)
 						uptimeStats[host] = append(uptimeStats[host], uptime)
 					}
@@ -174,7 +188,7 @@ var _ = SIGDescribe("NodeProblemDetector [DisabledForLargeClusters]", func() {
 			workingSetStatsMsg += fmt.Sprintf(" %s[%.1f|%.1f|%.1f];", nodes.Items[i].Name,
 				workingSetStats[host][0], workingSetStats[host][len(workingSetStats[host])/2], workingSetStats[host][len(workingSetStats[host])-1])
 		}
-		framework.Logf("Node-Problem-Detector CPU and Memory Stats:\n\t%s\n\t%s\n\t%s", cpuStatsMsg, rssStatsMsg, workingSetStatsMsg)
+		e2elog.Logf("Node-Problem-Detector CPU and Memory Stats:\n\t%s\n\t%s\n\t%s", cpuStatsMsg, rssStatsMsg, workingSetStatsMsg)
 	})
 })
 
@@ -196,6 +210,19 @@ func verifyEvents(f *framework.Framework, options metav1.ListOptions, num int, r
 	return nil
 }
 
+func verifyEventExists(f *framework.Framework, options metav1.ListOptions, reason, nodeName string) error {
+	events, err := f.ClientSet.CoreV1().Events(metav1.NamespaceDefault).List(options)
+	if err != nil {
+		return err
+	}
+	for _, event := range events.Items {
+		if event.Reason == reason && event.Source.Host == nodeName && event.Count > 0 {
+			return nil
+		}
+	}
+	return fmt.Errorf("Event %s does not exist: %v", reason, events.Items)
+}
+
 func verifyNodeCondition(f *framework.Framework, condition v1.NodeConditionType, status v1.ConditionStatus, reason, nodeName string) error {
 	node, err := f.ClientSet.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
 	if err != nil {
@@ -213,24 +240,24 @@ func verifyNodeCondition(f *framework.Framework, condition v1.NodeConditionType,
 
 func getMemoryStat(f *framework.Framework, host string) (rss, workingSet float64) {
 	memCmd := "cat /sys/fs/cgroup/memory/system.slice/node-problem-detector.service/memory.usage_in_bytes && cat /sys/fs/cgroup/memory/system.slice/node-problem-detector.service/memory.stat"
-	result, err := framework.SSH(memCmd, host, framework.TestContext.Provider)
+	result, err := e2essh.SSH(memCmd, host, framework.TestContext.Provider)
 	framework.ExpectNoError(err)
-	Expect(result.Code).To(BeZero())
+	framework.ExpectEqual(result.Code, 0)
 	lines := strings.Split(result.Stdout, "\n")
 
 	memoryUsage, err := strconv.ParseFloat(lines[0], 64)
-	Expect(err).To(BeNil())
+	framework.ExpectNoError(err)
 
 	var totalInactiveFile float64
 	for _, line := range lines[1:] {
 		tokens := strings.Split(line, " ")
 		if tokens[0] == "total_rss" {
 			rss, err = strconv.ParseFloat(tokens[1], 64)
-			Expect(err).To(BeNil())
+			framework.ExpectNoError(err)
 		}
 		if tokens[0] == "total_inactive_file" {
 			totalInactiveFile, err = strconv.ParseFloat(tokens[1], 64)
-			Expect(err).To(BeNil())
+			framework.ExpectNoError(err)
 		}
 	}
 
@@ -247,11 +274,11 @@ func getMemoryStat(f *framework.Framework, host string) (rss, workingSet float64
 	return
 }
 
-func getCpuStat(f *framework.Framework, host string) (usage, uptime float64) {
+func getCPUStat(f *framework.Framework, host string) (usage, uptime float64) {
 	cpuCmd := "cat /sys/fs/cgroup/cpu/system.slice/node-problem-detector.service/cpuacct.usage && cat /proc/uptime | awk '{print $1}'"
-	result, err := framework.SSH(cpuCmd, host, framework.TestContext.Provider)
+	result, err := e2essh.SSH(cpuCmd, host, framework.TestContext.Provider)
 	framework.ExpectNoError(err)
-	Expect(result.Code).To(BeZero())
+	framework.ExpectEqual(result.Code, 0)
 	lines := strings.Split(result.Stdout, "\n")
 
 	usage, err = strconv.ParseFloat(lines[0], 64)
@@ -263,7 +290,7 @@ func getCpuStat(f *framework.Framework, host string) (usage, uptime float64) {
 }
 
 func getNpdPodStat(f *framework.Framework, nodeName string) (cpuUsage, rss, workingSet float64) {
-	summary, err := framework.GetStatsSummary(f.ClientSet, nodeName)
+	summary, err := e2ekubelet.GetStatsSummary(f.ClientSet, nodeName)
 	framework.ExpectNoError(err)
 
 	hasNpdPod := false
@@ -277,6 +304,6 @@ func getNpdPodStat(f *framework.Framework, nodeName string) (cpuUsage, rss, work
 		hasNpdPod = true
 		break
 	}
-	Expect(hasNpdPod).To(BeTrue())
+	framework.ExpectEqual(hasNpdPod, true)
 	return
 }

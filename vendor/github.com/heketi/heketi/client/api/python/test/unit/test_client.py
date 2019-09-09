@@ -19,6 +19,7 @@ from heketi import HeketiClient
 
 TEST_ADMIN_KEY = "My Secret"
 TEST_SERVER = "http://localhost:8080"
+TEST_POLL_DELAY = 0.2
 
 
 class test_heketi(unittest.TestCase):
@@ -72,7 +73,8 @@ class test_heketi(unittest.TestCase):
     def test_node(self):
         node_req = {}
 
-        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY)
+        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY,
+                         poll_delay=TEST_POLL_DELAY)
         self.assertNotEqual(c, '')
 
         # Create cluster
@@ -145,7 +147,8 @@ class test_heketi(unittest.TestCase):
 
     def test_device(self):
         # Create app
-        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY)
+        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY,
+                         poll_delay=TEST_POLL_DELAY)
 
         # Create cluster
         cluster_req = {}
@@ -241,7 +244,8 @@ class test_heketi(unittest.TestCase):
 
     def test_volume(self):
         # Create cluster
-        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY)
+        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY,
+                         poll_delay=TEST_POLL_DELAY)
         self.assertEqual(True, c != '')
 
         cluster_req = {}
@@ -343,7 +347,8 @@ class test_heketi(unittest.TestCase):
 
     def test_node_tags(self):
         # Create app
-        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY)
+        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY,
+                         poll_delay=TEST_POLL_DELAY)
 
         # Create cluster
         cluster_req = {}
@@ -448,7 +453,8 @@ class test_heketi(unittest.TestCase):
 
     def test_device_tags(self):
         # Create app
-        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY)
+        c = HeketiClient(TEST_SERVER, "admin", TEST_ADMIN_KEY,
+                         poll_delay=TEST_POLL_DELAY)
 
         # Create cluster
         cluster_req = {}

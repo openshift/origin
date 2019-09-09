@@ -21,13 +21,10 @@ package maps
 
 import original "github.com/Azure/azure-sdk-for-go/services/maps/mgmt/2018-05-01/maps"
 
-type AccountsClient = original.AccountsClient
-
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
-type BaseClient = original.BaseClient
 type KeyType = original.KeyType
 
 const (
@@ -38,9 +35,12 @@ const (
 type Account = original.Account
 type AccountCreateParameters = original.AccountCreateParameters
 type AccountKeys = original.AccountKeys
-type Accounts = original.Accounts
-type AccountsMoveRequest = original.AccountsMoveRequest
+type AccountProperties = original.AccountProperties
 type AccountUpdateParameters = original.AccountUpdateParameters
+type Accounts = original.Accounts
+type AccountsClient = original.AccountsClient
+type AccountsMoveRequest = original.AccountsMoveRequest
+type BaseClient = original.BaseClient
 type Error = original.Error
 type ErrorDetailsItem = original.ErrorDetailsItem
 type KeySpecification = original.KeySpecification
@@ -50,14 +50,14 @@ type OperationsValueItemDisplay = original.OperationsValueItemDisplay
 type Resource = original.Resource
 type Sku = original.Sku
 
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
 func NewAccountsClient(subscriptionID string) AccountsClient {
 	return original.NewAccountsClient(subscriptionID)
 }
 func NewAccountsClientWithBaseURI(baseURI string, subscriptionID string) AccountsClient {
 	return original.NewAccountsClientWithBaseURI(baseURI, subscriptionID)
-}
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
 }
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)

@@ -21,6 +21,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/heketi/heketi/executors"
+	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/sortedstrings"
 	"github.com/heketi/heketi/pkg/utils"
@@ -42,6 +43,18 @@ func setupSampleDbWithTopology(app *App,
 	clusters, nodes_per_cluster, devices_per_node int,
 	disksize uint64) error {
 
+	return setupSampleDbWithTopologyWithZones(app,
+		clusters,
+		nodes_per_cluster,
+		nodes_per_cluster,
+		devices_per_node,
+		disksize)
+}
+
+func setupSampleDbWithTopologyWithZones(app *App,
+	clusters, zones_per_cluster, nodes_per_cluster, devices_per_node int,
+	disksize uint64) error {
+
 	err := app.db.Update(func(tx *bolt.Tx) error {
 		for c := 0; c < clusters; c++ {
 			cluster := createSampleClusterEntry()
@@ -49,7 +62,7 @@ func setupSampleDbWithTopology(app *App,
 			for n := 0; n < nodes_per_cluster; n++ {
 				node := createSampleNodeEntry()
 				node.Info.ClusterId = cluster.Info.Id
-				node.Info.Zone = n % 2
+				node.Info.Zone = n % zones_per_cluster
 
 				cluster.NodeAdd(node.Info.Id)
 
@@ -81,6 +94,61 @@ func setupSampleDbWithTopology(app *App,
 
 		return nil
 	})
+	if err != nil {
+		return nil
+	}
+
+	return nil
+}
+
+// This creates and unbalanced topology in the sense that the zones
+// do not contain the same number of nodes, but zone #i contains #i
+// nodes. Each node contains zone-number many devices.
+func setupSampleDbWithUnbalancedTopology(app *App,
+	zones int, disksize uint64) error {
+
+	err := app.db.Update(func(tx *bolt.Tx) error {
+		cluster := createSampleClusterEntry()
+
+		for z := 1; z <= zones; z++ {
+			// create zone number nodes in the zone
+			for n := 1; n <= z; n++ {
+				node := createSampleNodeEntry()
+				node.Info.ClusterId = cluster.Info.Id
+				node.Info.Zone = z
+
+				cluster.NodeAdd(node.Info.Id)
+
+				for d := 1; d <= z; d++ {
+					device := createSampleDeviceEntry(
+						node.Info.Id, disksize)
+					node.DeviceAdd(device.Id())
+
+					if err := device.Save(tx); err != nil {
+						return err
+					}
+				}
+
+				if err := node.Save(tx); err != nil {
+					return err
+				}
+
+			}
+		}
+
+		if err := cluster.Save(tx); err != nil {
+			return err
+		}
+
+		var err error
+		_, err = ClusterList(tx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil
 	}
@@ -488,8 +556,9 @@ func TestVolumeEntryCreateMissingCluster(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	err = v.Create(app.db, app.executor)
-	tests.Assert(t, err == ErrNoSpace)
-
+	tests.Assert(t, err != nil, "expected err != nil")
+	tests.Assert(t, strings.Contains(err.Error(), "No clusters"),
+		`expected strings.Contains(err.Error(), "No clusters"), got:`, err)
 }
 
 func TestVolumeEntryCreateRunOutOfSpaceMinBrickSizeLimit(t *testing.T) {
@@ -1706,6 +1775,41 @@ func TestNewVolumeEntryWithVolumeOptions(t *testing.T) {
 	tests.Assert(t, strings.Contains(strings.Join(entry.GlusterVolumeOptions, ","), "test-option"))
 
 }
+
+func TestNewVolumeSetsIdInVolumeOptions(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	// Create a cluster in the database
+	err := setupSampleDbWithTopology(app,
+		1,      // clusters
+		3,      // nodes_per_cluster
+		1,      // devices_per_node,
+		500*GB, // disksize)
+	)
+	tests.Assert(t, err == nil)
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+
+	v := NewVolumeEntryFromRequest(req)
+
+	var glusterVolumeOptions []string
+	app.xo.MockVolumeCreate = func(host string, volume *executors.VolumeRequest) (*executors.Volume, error) {
+		glusterVolumeOptions = volume.GlusterVolumeOptions
+		return &executors.Volume{}, nil
+	}
+
+	err = v.Create(app.db, app.executor)
+	logger.Info("%v", v.Info.Cluster)
+	tests.Assert(t, err == nil, err)
+
+	heketiIDOption := fmt.Sprintf("%s %s", HEKETI_ID_KEY, v.Info.Id)
+	tests.Assert(t, glusterVolumeOptions[len(glusterVolumeOptions)-1] == heketiIDOption)
+}
+
 func TestNewVolumeEntryWithTSPForMountHosts(t *testing.T) {
 	tmpfile := tests.Tempfile()
 	defer os.Remove(tmpfile)
@@ -2093,8 +2197,10 @@ func TestVolumeEntryNoMatchingFlags(t *testing.T) {
 	// request block volume
 	v.Info.Block = true
 	err = v.Create(app.db, app.executor)
-	// expect no space error due to no clusters able to satisfy block volume
-	tests.Assert(t, err == ErrNoSpace)
+	// expect error due to no clusters able to satisfy block volume
+	tests.Assert(t, err != nil, "expected err != nil")
+	_, ok := err.(*MultiClusterError)
+	tests.Assert(t, ok, "expected err to be MultiClusterError, got:", err)
 }
 
 func TestVolumeEntryMissingFlags(t *testing.T) {
@@ -2134,8 +2240,10 @@ func TestVolumeEntryMissingFlags(t *testing.T) {
 	// Create volume
 	v := createSampleReplicaVolumeEntry(1024, 2)
 	err = v.Create(app.db, app.executor)
-	// expect no space error due to no clusters able to satisfy block volume
-	tests.Assert(t, err == ErrNoSpace)
+	// expect error due to no clusters able to satisfy block volume
+	tests.Assert(t, err != nil, "expected err != nil")
+	_, ok := err.(*MultiClusterError)
+	tests.Assert(t, ok, "expected err to be MultiClusterError, got:", err)
 }
 
 func TestVolumeCreateBrickAlloc(t *testing.T) {
@@ -2753,5 +2861,455 @@ func TestVolumeEntryBlockCapacityLimits(t *testing.T) {
 		v.SetRawCapacity(100)
 		err = v.ModifyReservedSize(2)
 		tests.Assert(t, err != nil, "expected err != nil, got", err)
+	})
+}
+
+func TestVolumeCreateTooFewZones(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	origZoneChecking := ZoneChecking
+	defer func() {
+		ZoneChecking = origZoneChecking
+	}()
+
+	err := setupSampleDbWithTopologyWithZones(app,
+		1,    // clusters
+		2,    // zones_per_cluster
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		2*TB, // disksize)
+	)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	t.Run("ZoneChecking none replica 3", func(t *testing.T) {
+		// Without strict zone checking, a replica-3 volume fits into
+		// two zones.
+		ZoneChecking = ZONE_CHECKING_NONE
+		req := &api.VolumeCreateRequest{}
+		req.Size = 10
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 2
+		v := NewVolumeEntryFromRequest(req)
+
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	})
+
+	t.Run("ZoneChecking invalid replica 3", func(t *testing.T) {
+		// Specifying an invalid string for ZoneChecking behaves
+		// like "none". A replica-3 volume can fit into two zones.
+		ZoneChecking = "invalid"
+		req := &api.VolumeCreateRequest{}
+		req.Size = 10
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 3
+		v := NewVolumeEntryFromRequest(req)
+
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	})
+
+	t.Run("ZoneChecking strict replica 3", func(t *testing.T) {
+		// With strict zone checking, a replica-3 volume does not fit
+		// into two zones.
+		ZoneChecking = ZONE_CHECKING_STRICT
+		req := &api.VolumeCreateRequest{}
+		req.Size = 10
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 3
+		v := NewVolumeEntryFromRequest(req)
+
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == ErrNoSpace, "expected err == ErrNoSpace, got:", err)
+	})
+
+	t.Run("ZoneChecking strict replica 2", func(t *testing.T) {
+		// But a replica-2 fits into the two zones.
+		ZoneChecking = ZONE_CHECKING_STRICT
+		req := &api.VolumeCreateRequest{}
+		req.Size = 10
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 2
+		v := NewVolumeEntryFromRequest(req)
+
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	})
+
+	t.Run("VolOpt ZoneChecking none replica 3", func(t *testing.T) {
+		// the server defaults to strict checking but the volume wants
+		// non-strict checking. Volume wins and volume is created w/ two zones
+		ZoneChecking = ZONE_CHECKING_STRICT
+		req := &api.VolumeCreateRequest{}
+		req.Size = 10
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 2
+		req.GlusterVolumeOptions = []string{"user.heketi.zone-checking none"}
+		v := NewVolumeEntryFromRequest(req)
+
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	})
+
+	t.Run("VolOpt ZoneChecking invalid replica 3", func(t *testing.T) {
+		// volume requests an invalid checking value. the server
+		// will treat this as equivalent to "none"
+		ZoneChecking = ZONE_CHECKING_NONE
+		req := &api.VolumeCreateRequest{}
+		req.Size = 10
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 3
+		req.GlusterVolumeOptions = []string{"user.heketi.zone-checking foobar"}
+		v := NewVolumeEntryFromRequest(req)
+
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	})
+
+	t.Run("VolOpt ZoneChecking strict replica 3", func(t *testing.T) {
+		// server defaults to none but volume requests strict checking
+		// replica-3 volume fails to be placed with only two zones
+		ZoneChecking = ZONE_CHECKING_NONE
+		req := &api.VolumeCreateRequest{}
+		req.Size = 10
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 3
+		req.GlusterVolumeOptions = []string{"user.heketi.zone-checking strict"}
+		v := NewVolumeEntryFromRequest(req)
+
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == ErrNoSpace, "expected err == ErrNoSpace, got:", err)
+	})
+
+	t.Run("VolOpt ZoneChecking strict replica 2", func(t *testing.T) {
+		// server defaults to none but volume requests strict checking
+		// replica-2 volume is placed with only two zones
+		ZoneChecking = ZONE_CHECKING_NONE
+		req := &api.VolumeCreateRequest{}
+		req.Size = 10
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 2
+		req.GlusterVolumeOptions = []string{"user.heketi.zone-checking strict"}
+		v := NewVolumeEntryFromRequest(req)
+
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	})
+
+	t.Run("VolOpt ZoneChecking overwrite", func(t *testing.T) {
+		// server defaults to none but volume requests strict checking
+		// after setting none checking (test of option precedence).
+		ZoneChecking = ZONE_CHECKING_NONE
+		req := &api.VolumeCreateRequest{}
+		req.Size = 10
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 3
+		req.GlusterVolumeOptions = []string{
+			"user.heketi.zone-checking none",
+			"user.phony.option 100",
+			"user.heketi.zone-checking strict",
+		}
+		v := NewVolumeEntryFromRequest(req)
+
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == ErrNoSpace, "expected err == ErrNoSpace, got:", err)
+	})
+}
+
+//
+// Test the result of brick placement on an unbalanced node/device distribution.
+// This is to prove that without strict zone mode, we will end up with
+// some bricks in the same zone.
+//
+func TestVolumeCreateUnbalanced(t *testing.T) {
+
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	origZoneChecking := ZoneChecking
+	defer func() {
+		ZoneChecking = origZoneChecking
+	}()
+
+	err := setupSampleDbWithUnbalancedTopology(app, 3, 500*GB)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	t.Run("ZoneChecking strict", func(t *testing.T) {
+		ZoneChecking = ZONE_CHECKING_STRICT
+		ok := testVolumeCreateUnbalanced(t, app)
+		tests.Assert(t, ok)
+	})
+
+	// Verify that, without strict zone checking, this topology produces
+	// some volumes that have bricksets that don't span three zones.
+	t.Run("ZoneChecking none", func(t *testing.T) {
+		ZoneChecking = ZONE_CHECKING_NONE
+		ok := testVolumeCreateUnbalanced(t, app)
+		tests.Assert(t, !ok, "Expected to find volume with too few zones")
+	})
+}
+
+func testVolumeCreateUnbalanced(t *testing.T, app *App) bool {
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+
+	for i := 0; i < 100; i++ {
+		v := NewVolumeEntryFromRequest(req)
+		err := v.Create(app.db, app.executor)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+		zones := map[int]bool{}
+		err = app.db.View(func(tx *bolt.Tx) error {
+			for _, brickId := range v.Bricks {
+				be, err := NewBrickEntryFromId(tx, brickId)
+				if err != nil {
+					return err
+				}
+				ne, err := NewNodeEntryFromId(tx, be.Info.NodeId)
+				if err != nil {
+					return err
+				}
+
+				zones[ne.Info.Zone] = true
+			}
+
+			return nil
+		})
+		tests.Assert(t, err == nil, err)
+
+		// Usually, we would have to check each brick-set of three
+		// bricks separately to span three zones. But we can't rely on
+		// the order of bricks as they come from the DB. However in our
+		// special case of 1 GB volumes, we will only ever have one
+		// brick-set. So it is ok, to just check whether we have the
+		// correct number of zones across all bricks in the volume.
+		if len(zones) != 3 {
+			logger.Info("Unbalanced volume created in attempt #%v.", i)
+			return false
+		}
+	}
+
+	return true
+}
+
+func TestVolumeExpandStrictZones(t *testing.T) {
+
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopologyWithZones(app, 1, 3, 4, 3, 500*GB)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	var singleZoneNode string
+	app.db.View(func(tx *bolt.Tx) error {
+		zc := map[int]int{}
+		zn := map[int]string{}
+		nids, err := NodeList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		for _, nid := range nids {
+			node, err := NewNodeEntryFromId(tx, nid)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			zc[node.Info.Zone] += 1
+			zn[node.Info.Zone] = nid
+		}
+		tests.Assert(t, len(zc) == 3, "expected 3 zones, got:", len(zc))
+		for z, count := range zc {
+			if count == 1 {
+				singleZoneNode = zn[z]
+				break
+			}
+		}
+		return nil
+	})
+	tests.Assert(t, singleZoneNode != "", "failed to find single zone node")
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+	req.GlusterVolumeOptions = []string{"user.heketi.zone-checking strict"}
+
+	v := NewVolumeEntryFromRequest(req)
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	vexpand := v.Info.Id
+
+	t.Run("nodeDown", func(t *testing.T) {
+		// disable the node leaving only three nodes and two zones
+		// online
+		var v2x *VolumeEntry
+		app.db.Update(func(tx *bolt.Tx) error {
+			var err error
+			v2x, err = NewVolumeEntryFromId(tx, vexpand)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			node, err := NewNodeEntryFromId(tx, singleZoneNode)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			err = node.SetState(
+				wdb.WrapTx(tx),
+				app.executor,
+				api.EntryStateOffline)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			return nil
+		})
+		err = v2x.Expand(app.db, app.executor, 50)
+		tests.Assert(t, err != nil, "expected err != nil, got:", err)
+	})
+
+	t.Run("nodeUp", func(t *testing.T) {
+		// ensure that the single node in a zone is online
+		var v2x *VolumeEntry
+		app.db.Update(func(tx *bolt.Tx) error {
+			var err error
+			v2x, err = NewVolumeEntryFromId(tx, vexpand)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			node, err := NewNodeEntryFromId(tx, singleZoneNode)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			err = node.SetState(
+				wdb.WrapTx(tx),
+				app.executor,
+				api.EntryStateOnline)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			return nil
+		})
+		err = v2x.Expand(app.db, app.executor, 50)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	})
+}
+
+func TestVolumeReplaceBrickZoneChecking(t *testing.T) {
+	t.Run("NonStrict", func(t *testing.T) {
+		testVolumeReplaceBrickZoneChecking(t,
+			[]string{},
+			false)
+	})
+	t.Run("Strict", func(t *testing.T) {
+		testVolumeReplaceBrickZoneChecking(t,
+			[]string{"user.heketi.zone-checking strict"},
+			true)
+	})
+}
+
+func testVolumeReplaceBrickZoneChecking(
+	t *testing.T, volOpts []string, expectFail bool) {
+
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopologyWithZones(app, 1, 3, 4, 1, 500*GB)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	var singleZoneNode string
+	app.db.View(func(tx *bolt.Tx) error {
+		zc := map[int]int{}
+		zn := map[int]string{}
+		nids, err := NodeList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		for _, nid := range nids {
+			node, err := NewNodeEntryFromId(tx, nid)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			zc[node.Info.Zone] += 1
+			zn[node.Info.Zone] = nid
+		}
+		tests.Assert(t, len(zc) == 3, "expected 3 zones, got:", len(zc))
+		for z, count := range zc {
+			if count == 1 {
+				singleZoneNode = zn[z]
+				break
+			}
+		}
+		return nil
+	})
+	tests.Assert(t, singleZoneNode != "", "failed to find single zone node")
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+	req.GlusterVolumeOptions = volOpts
+
+	v := NewVolumeEntryFromRequest(req)
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	var brickNames []string
+	err = app.db.View(func(tx *bolt.Tx) error {
+		for _, brick := range v.Bricks {
+			be, err := NewBrickEntryFromId(tx, brick)
+			if err != nil {
+				return err
+			}
+			ne, err := NewNodeEntryFromId(tx, be.Info.NodeId)
+			if err != nil {
+				return err
+			}
+			brickName := fmt.Sprintf("%v:%v",
+				ne.Info.Hostnames.Storage[0], be.Info.Path)
+			brickNames = append(brickNames, brickName)
+		}
+		return nil
+	})
+	app.xo.MockVolumeInfo = func(host string, volume string) (*executors.Volume, error) {
+		var bricks []executors.Brick
+		for _, b := range brickNames {
+			bricks = append(bricks, executors.Brick{Name: b})
+		}
+		v := &executors.Volume{
+			Bricks: executors.Bricks{
+				BrickList: bricks,
+			},
+		}
+		return v, nil
+	}
+	app.xo.MockHealInfo = func(host string, volume string) (*executors.HealInfo, error) {
+		var bricks executors.HealInfoBricks
+		for _, b := range brickNames {
+			bricks.BrickList = append(bricks.BrickList,
+				executors.BrickHealStatus{Name: b, NumberOfEntries: "0"})
+		}
+		h := &executors.HealInfo{
+			Bricks: bricks,
+		}
+		return h, nil
+	}
+
+	app.db.Update(func(tx *bolt.Tx) error {
+		var err error
+		node, err := NewNodeEntryFromId(tx, singleZoneNode)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		err = node.SetState(
+			wdb.WrapTx(tx),
+			app.executor,
+			api.EntryStateOffline)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		err = node.SetState(
+			wdb.WrapTx(tx),
+			app.executor,
+			api.EntryStateFailed)
+		if expectFail {
+			tests.Assert(t, err != nil, "expected err != nil, got:", err)
+		} else {
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		}
+		return nil
 	})
 }

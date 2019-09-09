@@ -52,6 +52,9 @@ func TestInvalidBasicAuth(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, ok)
 	assert.Equal(t, "", usr)
+
+	assert.NotEmpty(t, FailedBasicAuth(req))
+	assert.Equal(t, DefaultRealmName, FailedBasicAuth(req))
 }
 
 func TestMissingbasicAuth(t *testing.T) {
@@ -63,6 +66,9 @@ func TestMissingbasicAuth(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, ok)
 	assert.Equal(t, nil, usr)
+
+	assert.NotEmpty(t, FailedBasicAuth(req))
+	assert.Equal(t, DefaultRealmName, FailedBasicAuth(req))
 }
 
 func TestNoRequestBasicAuth(t *testing.T) {

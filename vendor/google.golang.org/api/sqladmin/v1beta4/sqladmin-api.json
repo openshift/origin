@@ -18,7 +18,7 @@
   "description": "Creates and manages Cloud SQL instances, which provide fully managed MySQL or PostgreSQL databases.",
   "discoveryVersion": "v1",
   "documentationLink": "https://cloud.google.com/sql/docs/reference/latest",
-  "etag": "\"J3WqvAcMk4eQjJXvfSI4Yr8VouA/82ylYoGkWdOR9dmpZge6l1weils\"",
+  "etag": "\"VPK3KBfpaEgZ16pozGOoMYfKc0U/kwai7B3cC4eEEbSxYFHS0BuBYIc\"",
   "icons": {
     "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
     "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
@@ -1617,7 +1617,7 @@
       }
     }
   },
-  "revision": "20181031",
+  "revision": "20190510",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "AclEntry": {
@@ -1677,6 +1677,10 @@
           "description": "This is always sql#backupConfiguration.",
           "type": "string"
         },
+        "location": {
+          "description": "The location of the backup.",
+          "type": "string"
+        },
         "replicationLogArchivingEnabled": {
           "description": "Reserved for future use.",
           "type": "boolean"
@@ -1722,6 +1726,10 @@
         "kind": {
           "default": "sql#backupRun",
           "description": "This is always sql#backupRun.",
+          "type": "string"
+        },
+        "location": {
+          "description": "The location of the backup.",
           "type": "string"
         },
         "selfLink": {
@@ -1906,8 +1914,16 @@
           "type": "string"
         },
         "databaseVersion": {
-          "description": "The database engine type and version. The databaseVersion field can not be changed after instance creation. MySQL Second Generation instances: MYSQL_5_7 (default) or MYSQL_5_6. PostgreSQL instances: POSTGRES_9_6 MySQL First Generation instances: MYSQL_5_6 (default) or MYSQL_5_5",
+          "description": "The database engine type and version. The databaseVersion field can not be changed after instance creation. MySQL Second Generation instances: MYSQL_5_7 (default) or MYSQL_5_6. PostgreSQL instances: POSTGRES_9_6 (default) or POSTGRES_11 Beta. MySQL First Generation instances: MYSQL_5_6 (default) or MYSQL_5_5",
           "type": "string"
+        },
+        "diskEncryptionConfiguration": {
+          "$ref": "DiskEncryptionConfiguration",
+          "description": "Disk encryption configuration specific to an instance. Applies only to Second Generation instances."
+        },
+        "diskEncryptionStatus": {
+          "$ref": "DiskEncryptionStatus",
+          "description": "Disk encryption status specific to an instance. Applies only to Second Generation instances."
         },
         "etag": {
           "description": "This field is deprecated and will be removed from a future version of the API. Use the settings.settingsVersion field instead.",
@@ -1991,6 +2007,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "rootPassword": {
+          "description": "Initial root password. Use only on creation.",
+          "type": "string"
         },
         "selfLink": {
           "description": "The URI of this resource.",
@@ -2119,12 +2139,44 @@
       },
       "type": "object"
     },
+    "DiskEncryptionConfiguration": {
+      "description": "Disk encryption configuration.",
+      "id": "DiskEncryptionConfiguration",
+      "properties": {
+        "kind": {
+          "default": "sql#diskEncryptionConfiguration",
+          "description": "This is always sql#diskEncryptionConfiguration.",
+          "type": "string"
+        },
+        "kmsKeyName": {
+          "description": "KMS key resource name",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "DiskEncryptionStatus": {
+      "description": "Disk encryption status.",
+      "id": "DiskEncryptionStatus",
+      "properties": {
+        "kind": {
+          "default": "sql#diskEncryptionStatus",
+          "description": "This is always sql#diskEncryptionStatus.",
+          "type": "string"
+        },
+        "kmsKeyVersionName": {
+          "description": "KMS key version used to encrypt the Cloud SQL instance disk",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "ExportContext": {
       "description": "Database instance export context.",
       "id": "ExportContext",
       "properties": {
         "csvExportOptions": {
-          "description": "Options for exporting data as CSV.\nExporting in CSV format using the Cloud SQL Admin API is not supported for PostgreSQL instances.",
+          "description": "Options for exporting data as CSV.",
           "properties": {
             "selectQuery": {
               "description": "The select query used to extract the data.",
@@ -2134,14 +2186,14 @@
           "type": "object"
         },
         "databases": {
-          "description": "Databases to be exported.\nMySQL instances: If fileType is SQL and no database is specified, all databases are exported, except for the mysql system database. If fileType is CSV, you can specify one database, either by using this property or by using the csvExportOptions.selectQuery property, which takes precedence over this property.\nPostgreSQL instances: If fileType is SQL, you must specify one database to be exported. A fileType of CSV is not supported for PostgreSQL instances.",
+          "description": "Databases to be exported.\nMySQL instances: If fileType is SQL and no database is specified, all databases are exported, except for the mysql system database. If fileType is CSV, you can specify one database, either by using this property or by using the csvExportOptions.selectQuery property, which takes precedence over this property.\nPostgreSQL instances: Specify exactly one database to be exported. If fileType is CSV, this database must match the database used in the csvExportOptions.selectQuery property.",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "fileType": {
-          "description": "The file type for the specified uri.\nSQL: The file contains SQL statements.\nCSV: The file contains CSV data.\nCSV is not supported for PostgreSQL instances.",
+          "description": "The file type for the specified uri.\nSQL: The file contains SQL statements.\nCSV: The file contains CSV data.",
           "type": "string"
         },
         "kind": {
@@ -2219,6 +2271,10 @@
           },
           "type": "array"
         },
+        "inBeta": {
+          "description": "True if the flag is only released in Beta.",
+          "type": "boolean"
+        },
         "kind": {
           "default": "sql#flag",
           "description": "This is always sql#flag.",
@@ -2273,7 +2329,7 @@
       "id": "ImportContext",
       "properties": {
         "csvImportOptions": {
-          "description": "Options for importing data as CSV.\nImporting CSV data using the Cloud SQL Admin API is not supported for PostgreSQL instances.",
+          "description": "Options for importing data as CSV.",
           "properties": {
             "columns": {
               "description": "The columns to which CSV data is imported. If not specified, all columns of the database table are loaded with CSV data.",
@@ -2294,11 +2350,11 @@
           "type": "string"
         },
         "fileType": {
-          "description": "The file type for the specified uri.\nSQL: The file contains SQL statements.\nCSV: The file contains CSV data.\nImporting CSV data using the Cloud SQL Admin API is not supported for PostgreSQL instances.",
+          "description": "The file type for the specified uri.\nSQL: The file contains SQL statements.\nCSV: The file contains CSV data.",
           "type": "string"
         },
         "importUser": {
-          "description": "The PostgreSQL user for this import operation. Defaults to cloudsqlsuperuser. PostgreSQL instances only.",
+          "description": "The PostgreSQL user for this import operation. PostgreSQL instances only.",
           "type": "string"
         },
         "kind": {

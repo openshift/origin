@@ -10,9 +10,9 @@ import (
 )
 
 func TestScan(t *testing.T) {
-	var stringTest string = "f47ac10b-58cc-0372-8567-0e02b2c3d479"
-	var badTypeTest int = 6
-	var invalidTest string = "f47ac10b-58cc-0372-8567-0e02b2c3d4"
+	stringTest := "f47ac10b-58cc-0372-8567-0e02b2c3d479"
+	badTypeTest := 6
+	invalidTest := "f47ac10b-58cc-0372-8567-0e02b2c3d4"
 
 	byteTest := make([]byte, 16)
 	byteTestUUID := Must(Parse(stringTest))

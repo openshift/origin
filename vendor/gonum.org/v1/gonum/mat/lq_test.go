@@ -46,7 +46,7 @@ func TestLQ(t *testing.T) {
 	}
 }
 
-func TestSolveLQ(t *testing.T) {
+func TestLQSolveTo(t *testing.T) {
 	for _, trans := range []bool{false, true} {
 		for _, test := range []struct {
 			m, n, bc int
@@ -78,7 +78,7 @@ func TestSolveLQ(t *testing.T) {
 			var x Dense
 			lq := &LQ{}
 			lq.Factorize(a)
-			lq.Solve(&x, trans, b)
+			lq.SolveTo(&x, trans, b)
 
 			// Test that the normal equations hold.
 			// A^T * A * x = A^T * b if !trans
@@ -104,7 +104,7 @@ func TestSolveLQ(t *testing.T) {
 	// TODO(btracey): Add in testOneInput when it exists.
 }
 
-func TestSolveLQVec(t *testing.T) {
+func TestLQSolveToVec(t *testing.T) {
 	for _, trans := range []bool{false, true} {
 		for _, test := range []struct {
 			m, n int
@@ -131,7 +131,7 @@ func TestSolveLQVec(t *testing.T) {
 			var x VecDense
 			lq := &LQ{}
 			lq.Factorize(a)
-			lq.SolveVec(&x, trans, b)
+			lq.SolveVecTo(&x, trans, b)
 
 			// Test that the normal equations hold.
 			// A^T * A * x = A^T * b if !trans
@@ -157,7 +157,7 @@ func TestSolveLQVec(t *testing.T) {
 	// TODO(btracey): Add in testOneInput when it exists.
 }
 
-func TestSolveLQCond(t *testing.T) {
+func TestLQSolveToCond(t *testing.T) {
 	for _, test := range []*Dense{
 		NewDense(2, 2, []float64{1, 0, 0, 1e-20}),
 		NewDense(2, 3, []float64{1, 0, 0, 0, 1e-20, 0}),
@@ -167,13 +167,13 @@ func TestSolveLQCond(t *testing.T) {
 		lq.Factorize(test)
 		b := NewDense(m, 2, nil)
 		var x Dense
-		if err := lq.Solve(&x, false, b); err == nil {
+		if err := lq.SolveTo(&x, false, b); err == nil {
 			t.Error("No error for near-singular matrix in matrix solve.")
 		}
 
 		bvec := NewVecDense(m, nil)
 		var xvec VecDense
-		if err := lq.SolveVec(&xvec, false, bvec); err == nil {
+		if err := lq.SolveVecTo(&xvec, false, bvec); err == nil {
 			t.Error("No error for near-singular matrix in matrix solve.")
 		}
 	}

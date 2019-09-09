@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/dims/klog"
+	"k8s.io/klog"
 )
 
 func main() {

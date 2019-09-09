@@ -1,6 +1,7 @@
 package runonceduration
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -71,7 +72,7 @@ type runOnceDuration struct {
 
 var _ = initializer.WantsExternalKubeInformerFactory(&runOnceDuration{})
 
-func (a *runOnceDuration) Admit(attributes admission.Attributes, _ admission.ObjectInterfaces) error {
+func (a *runOnceDuration) Admit(ctx context.Context, attributes admission.Attributes, _ admission.ObjectInterfaces) error {
 	switch {
 	case a.config == nil,
 		attributes.GetResource().GroupResource() != kapi.Resource("pods"),

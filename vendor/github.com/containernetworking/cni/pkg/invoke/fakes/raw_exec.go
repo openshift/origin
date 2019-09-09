@@ -14,6 +14,8 @@
 
 package fakes
 
+import "context"
+
 type RawExec struct {
 	ExecPluginCall struct {
 		Received struct {
@@ -26,11 +28,27 @@ type RawExec struct {
 			Error       error
 		}
 	}
+	FindInPathCall struct {
+		Received struct {
+			Plugin string
+			Paths  []string
+		}
+		Returns struct {
+			Path  string
+			Error error
+		}
+	}
 }
 
-func (e *RawExec) ExecPlugin(pluginPath string, stdinData []byte, environ []string) ([]byte, error) {
+func (e *RawExec) ExecPlugin(ctx context.Context, pluginPath string, stdinData []byte, environ []string) ([]byte, error) {
 	e.ExecPluginCall.Received.PluginPath = pluginPath
 	e.ExecPluginCall.Received.StdinData = stdinData
 	e.ExecPluginCall.Received.Environ = environ
 	return e.ExecPluginCall.Returns.ResultBytes, e.ExecPluginCall.Returns.Error
+}
+
+func (e *RawExec) FindInPath(plugin string, paths []string) (string, error) {
+	e.FindInPathCall.Received.Plugin = plugin
+	e.FindInPathCall.Received.Paths = paths
+	return e.FindInPathCall.Returns.Path, e.FindInPathCall.Returns.Error
 }

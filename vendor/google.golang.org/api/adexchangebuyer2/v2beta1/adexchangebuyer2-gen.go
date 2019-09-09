@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package adexchangebuyer2 provides access to the Ad Exchange Buyer API II.
 //
-// See https://developers.google.com/authorized-buyers/apis/reference/rest/
+// For product documentation, see: https://developers.google.com/authorized-buyers/apis/reference/rest/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/adexchangebuyer2/v2beta1"
 //   ...
-//   adexchangebuyer2Service, err := adexchangebuyer2.New(oauthHttpClient)
+//   ctx := context.Background()
+//   adexchangebuyer2Service, err := adexchangebuyer2.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   adexchangebuyer2Service, err := adexchangebuyer2.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   adexchangebuyer2Service, err := adexchangebuyer2.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package adexchangebuyer2 // import "google.golang.org/api/adexchangebuyer2/v2beta1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -56,6 +80,32 @@ const (
 	AdexchangeBuyerScope = "https://www.googleapis.com/auth/adexchange.buyer"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/adexchange.buyer",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -217,7 +267,6 @@ type BiddersService struct {
 
 func NewBiddersAccountsService(s *Service) *BiddersAccountsService {
 	rs := &BiddersAccountsService{s: s}
-	rs.Creatives = NewBiddersAccountsCreativesService(s)
 	rs.FilterSets = NewBiddersAccountsFilterSetsService(s)
 	return rs
 }
@@ -225,18 +274,7 @@ func NewBiddersAccountsService(s *Service) *BiddersAccountsService {
 type BiddersAccountsService struct {
 	s *Service
 
-	Creatives *BiddersAccountsCreativesService
-
 	FilterSets *BiddersAccountsFilterSetsService
-}
-
-func NewBiddersAccountsCreativesService(s *Service) *BiddersAccountsCreativesService {
-	rs := &BiddersAccountsCreativesService{s: s}
-	return rs
-}
-
-type BiddersAccountsCreativesService struct {
-	s *Service
 }
 
 func NewBiddersAccountsFilterSetsService(s *Service) *BiddersAccountsFilterSetsService {
@@ -618,6 +656,72 @@ func (s *AdSize) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// AdTechnologyProviders: Detected ad technology provider information.
+type AdTechnologyProviders struct {
+	// DetectedProviderIds: The detected ad technology provider IDs for this
+	// creative.
+	// See https://storage.googleapis.com/adx-rtb-dictionaries/providers.csv
+	// for
+	// mapping of provider ID to provided name, a privacy policy URL, and a
+	// list
+	// of domains which can be attributed to the provider.
+	//
+	// If the creative contains provider IDs that are outside of those
+	// listed in
+	// the
+	// `BidRequest.adslot.consented_providers_settings.consented_providers`
+	// f
+	// ield on the (Google
+	// bid
+	// protocol)[https://developers.google.com/authorized-buyers/rtb/down
+	// loads/realtime-bidding-proto]
+	// and
+	// the
+	// `BidRequest.user.ext.consented_providers_settings.consented_provid
+	// ers`
+	// field on the
+	// (OpenRTB
+	// protocol)[https://developers.google.com/authorized-buyers/rtb
+	// /downloads/openrtb-adx-proto],
+	// and a bid is submitted with that creative for an impression that
+	// will
+	// serve to an EEA user, the bid will be filtered before the auction.
+	DetectedProviderIds googleapi.Int64s `json:"detectedProviderIds,omitempty"`
+
+	// HasUnidentifiedProvider: Whether the creative contains an
+	// unidentified ad technology provider.
+	//
+	// If true for a given creative, any bid submitted with that creative
+	// for an
+	// impression that will serve to an EEA user will be filtered before
+	// the
+	// auction.
+	HasUnidentifiedProvider bool `json:"hasUnidentifiedProvider,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DetectedProviderIds")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DetectedProviderIds") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *AdTechnologyProviders) MarshalJSON() ([]byte, error) {
+	type NoMethod AdTechnologyProviders
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // AddDealAssociationRequest: A request for associating a deal and a
 // creative.
 type AddDealAssociationRequest struct {
@@ -677,7 +781,7 @@ func (s *AddNoteRequest) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// AppContext: @OutputOnly The app type the restriction applies to for
+// AppContext: Output only. The app type the restriction applies to for
 // mobile device.
 type AppContext struct {
 	// AppTypes: The app types this restriction applies to.
@@ -710,7 +814,7 @@ func (s *AppContext) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// AuctionContext: @OutputOnly The auction type the restriction applies
+// AuctionContext: Output only. The auction type the restriction applies
 // to.
 type AuctionContext struct {
 	// AuctionTypes: The auction types this restriction applies to.
@@ -891,10 +995,11 @@ func (s *Buyer) MarshalJSON() ([]byte, error) {
 // described by
 // the specified callout status.
 type CalloutStatusRow struct {
-	// CalloutStatusId: The ID of the callout status.
+	// CalloutStatusId: The ID of the callout
+	// status.
 	// See
-	// [callout-status-codes](https://developers.google.com/authorized-buyers
-	// /rtb/downloads/callout-status-codes).
+	// [callout-status-codes](https://developers.google.com/autho
+	// rized-buyers/rtb/downloads/callout-status-codes).
 	CalloutStatusId int64 `json:"calloutStatusId,omitempty"`
 
 	// ImpressionCount: The number of impressions for which there was a bid
@@ -995,6 +1100,9 @@ type Client struct {
 	//   "ADVERTISER" - An advertiser.
 	//   "BRAND" - A brand.
 	//   "AGENCY" - An advertising agency.
+	//   "ENTITY_TYPE_UNCLASSIFIED" - An explicit value for a client that
+	// was not yet classified
+	// as any particular entity.
 	EntityType string `json:"entityType,omitempty"`
 
 	// PartnerClientId: Optional arbitrary unique identifier of this client
@@ -1236,7 +1344,7 @@ func (s *ContactInformation) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// Correction: @OutputOnly Shows any corrections that were applied to
+// Correction: Output only. Shows any corrections that were applied to
 // this creative.
 type Correction struct {
 	// Contexts: The contexts for the correction.
@@ -1306,8 +1414,6 @@ func (s *Correction) MarshalJSON() ([]byte, error) {
 }
 
 // Creative: A creative and its classification data.
-//
-// Next ID: 39
 type Creative struct {
 	// AccountId: The account that this creative belongs to.
 	// Can be used to filter the response of the
@@ -1318,6 +1424,10 @@ type Creative struct {
 	// AdChoicesDestinationUrl: The link to AdChoices destination page.
 	AdChoicesDestinationUrl string `json:"adChoicesDestinationUrl,omitempty"`
 
+	// AdTechnologyProviders: Output only. The detected ad technology
+	// providers.
+	AdTechnologyProviders *AdTechnologyProviders `json:"adTechnologyProviders,omitempty"`
+
 	// AdvertiserName: The name of the company being advertised in the
 	// creative.
 	AdvertiserName string `json:"advertiserName,omitempty"`
@@ -1325,7 +1435,7 @@ type Creative struct {
 	// AgencyId: The agency ID for this creative.
 	AgencyId int64 `json:"agencyId,omitempty,string"`
 
-	// ApiUpdateTime: @OutputOnly The last update timestamp of the creative
+	// ApiUpdateTime: Output only. The last update timestamp of the creative
 	// via API.
 	ApiUpdateTime string `json:"apiUpdateTime,omitempty"`
 
@@ -1338,6 +1448,10 @@ type Creative struct {
 	// Possible values:
 	//   "ATTRIBUTE_UNSPECIFIED" - Do not use. This is a placeholder value
 	// only.
+	//   "IMAGE_RICH_MEDIA" - The creative is of type image/rich media. For
+	// pretargeting.
+	//   "ADOBE_FLASH_FLV" - The creative is of video type Adobe Flash FLV.
+	// For pretargeting.
 	//   "IS_TAGGED" - The creative is tagged.
 	//   "IS_COOKIE_TARGETED" - The creative is cookie targeted.
 	//   "IS_USER_INTEREST_TARGETED" - The creative is user interest
@@ -1367,14 +1481,29 @@ type Creative struct {
 	//   "RICH_MEDIA_CAPABILITY_TYPE_MRAID" - The creative is MRAID.
 	//   "RICH_MEDIA_CAPABILITY_TYPE_FLASH" - The creative is Flash.
 	//   "RICH_MEDIA_CAPABILITY_TYPE_HTML5" - The creative is HTML5.
+	//   "SKIPPABLE_INSTREAM_VIDEO" - The creative has an instream VAST
+	// video type of skippable instream video.
+	// For pretargeting.
 	//   "RICH_MEDIA_CAPABILITY_TYPE_SSL" - The creative is SSL.
 	//   "RICH_MEDIA_CAPABILITY_TYPE_NON_SSL" - The creative is non-SSL.
 	//   "RICH_MEDIA_CAPABILITY_TYPE_INTERSTITIAL" - The creative is an
 	// interstitial.
+	//   "NON_SKIPPABLE_INSTREAM_VIDEO" - The creative has an instream VAST
+	// video type of non-skippable instream
+	// video. For pretargeting.
 	//   "NATIVE_ELIGIBILITY_ELIGIBLE" - The creative is eligible for
 	// native.
+	//   "NON_VPAID" - The creative has an instream VAST video type of
+	// non-VPAID. For
+	// pretargeting.
 	//   "NATIVE_ELIGIBILITY_NOT_ELIGIBLE" - The creative is not eligible
 	// for native.
+	//   "ANY_INTERSTITIAL" - The creative has an interstitial size of any
+	// interstitial. For
+	// pretargeting.
+	//   "NON_INTERSTITIAL" - The creative has an interstitial size of non
+	// interstitial. For
+	// pretargeting.
 	//   "IN_BANNER_VIDEO" - The video type is in-banner video.
 	//   "RENDERING_SIZELESS_ADX" - The creative can dynamically resize to
 	// fill a variety of slot sizes.
@@ -1384,7 +1513,7 @@ type Creative struct {
 	// ClickThroughUrls: The set of destination URLs for the creative.
 	ClickThroughUrls []string `json:"clickThroughUrls,omitempty"`
 
-	// Corrections: @OutputOnly Shows any corrections that were applied to
+	// Corrections: Output only. Shows any corrections that were applied to
 	// this creative.
 	Corrections []*Correction `json:"corrections,omitempty"`
 
@@ -1394,7 +1523,7 @@ type Creative struct {
 	// method.
 	CreativeId string `json:"creativeId,omitempty"`
 
-	// DealsStatus: @OutputOnly The top-level deals status of this
+	// DealsStatus: Output only. The top-level deals status of this
 	// creative.
 	// If disapproved, an entry for 'auctionType=DIRECT_DEALS' (or 'ALL')
 	// in
@@ -1420,30 +1549,28 @@ type Creative struct {
 	// the creative.
 	DeclaredClickThroughUrls []string `json:"declaredClickThroughUrls,omitempty"`
 
-	// DetectedAdvertiserIds: @OutputOnly Detected advertiser IDs, if any.
+	// DetectedAdvertiserIds: Output only. Detected advertiser IDs, if any.
 	DetectedAdvertiserIds googleapi.Int64s `json:"detectedAdvertiserIds,omitempty"`
 
-	// DetectedDomains: @OutputOnly
-	// The detected domains for this creative.
+	// DetectedDomains: Output only. The detected domains for this creative.
 	DetectedDomains []string `json:"detectedDomains,omitempty"`
 
-	// DetectedLanguages: @OutputOnly
-	// The detected languages for this creative. The order is arbitrary. The
-	// codes
-	// are 2 or 5 characters and are documented
+	// DetectedLanguages: Output only. The detected languages for this
+	// creative. The order is
+	// arbitrary. The codes are 2 or 5 characters and are documented
 	// at
 	// https://developers.google.com/adwords/api/docs/appendix/languagecod
 	// es.
 	DetectedLanguages []string `json:"detectedLanguages,omitempty"`
 
-	// DetectedProductCategories: @OutputOnly Detected product categories,
+	// DetectedProductCategories: Output only. Detected product categories,
 	// if any.
 	// See the ad-product-categories.txt file in the technical
 	// documentation
 	// for a list of IDs.
 	DetectedProductCategories []int64 `json:"detectedProductCategories,omitempty"`
 
-	// DetectedSensitiveCategories: @OutputOnly Detected sensitive
+	// DetectedSensitiveCategories: Output only. Detected sensitive
 	// categories, if any.
 	// See the ad-sensitive-categories.txt file in the technical
 	// documentation for
@@ -1452,9 +1579,6 @@ type Creative struct {
 	// excluded-sensitive-category field in the bid request to filter your
 	// bids.
 	DetectedSensitiveCategories []int64 `json:"detectedSensitiveCategories,omitempty"`
-
-	// FilteringStats: @OutputOnly The filtering stats for this creative.
-	FilteringStats *FilteringStats `json:"filteringStats,omitempty"`
 
 	// Html: An HTML creative.
 	Html *HtmlContent `json:"html,omitempty"`
@@ -1466,7 +1590,7 @@ type Creative struct {
 	// Native: A native creative.
 	Native *NativeContent `json:"native,omitempty"`
 
-	// OpenAuctionStatus: @OutputOnly The top-level open auction status of
+	// OpenAuctionStatus: Output only. The top-level open auction status of
 	// this creative.
 	// If disapproved, an entry for 'auctionType = OPEN_AUCTION' (or 'ALL')
 	// in
@@ -1496,7 +1620,7 @@ type Creative struct {
 	//   "ALCOHOL" - The alcohol restricted category.
 	RestrictedCategories []string `json:"restrictedCategories,omitempty"`
 
-	// ServingRestrictions: @OutputOnly The granular status of this ad in
+	// ServingRestrictions: Output only. The granular status of this ad in
 	// specific contexts.
 	// A context here relates to where something ultimately serves (for
 	// example,
@@ -1512,7 +1636,7 @@ type Creative struct {
 	// for possible values.
 	VendorIds []int64 `json:"vendorIds,omitempty"`
 
-	// Version: @OutputOnly The version of this creative.
+	// Version: Output only. The version of this creative.
 	Version int64 `json:"version,omitempty"`
 
 	// Video: A video creative.
@@ -1669,10 +1793,9 @@ type CreativeSize struct {
 	//   "NATIVE" - The creative is a native (mobile) creative.
 	CreativeSizeType string `json:"creativeSizeType,omitempty"`
 
-	// NativeTemplate: The native template for this creative. It will have a
-	// value only if
-	// creative_size_type = CreativeSizeType.NATIVE.
-	// @OutputOnly
+	// NativeTemplate: Output only. The native template for this creative.
+	// It will have a value
+	// only if creative_size_type = CreativeSizeType.NATIVE.
 	//
 	// Possible values:
 	//   "UNKNOWN_NATIVE_TEMPLATE" - A placeholder for an undefined native
@@ -1775,10 +1898,11 @@ type CreativeStatusRow struct {
 	// BidCount: The number of bids with the specified status.
 	BidCount *MetricValue `json:"bidCount,omitempty"`
 
-	// CreativeStatusId: The ID of the creative status.
+	// CreativeStatusId: The ID of the creative
+	// status.
 	// See
-	// [creative-status-codes](https://developers.google.com/authorized-buyer
-	// s/rtb/downloads/creative-status-codes).
+	// [creative-status-codes](https://developers.google.com/auth
+	// orized-buyers/rtb/downloads/creative-status-codes).
 	CreativeStatusId int64 `json:"creativeStatusId,omitempty"`
 
 	// RowDimensions: The values of all dimensions associated with metric
@@ -1917,10 +2041,11 @@ type DayPart struct {
 	//   "SUNDAY" - Sunday
 	DayOfWeek string `json:"dayOfWeek,omitempty"`
 
-	// EndTime: The ending time of the day for the ad to show (minute level
-	// granularity).
-	// The end time is exclusive.
-	// This field is not available for filtering in PQL queries.
+	// EndTime: The ending time of the day for the ad to show (minute
+	// level
+	// granularity). The end time is exclusive. This field is not
+	// available
+	// for filtering in PQL queries.
 	EndTime *TimeOfDay `json:"endTime,omitempty"`
 
 	// StartTime: The starting time of day for the ad to show (minute level
@@ -1992,9 +2117,9 @@ func (s *DayPartTargeting) MarshalJSON() ([]byte, error) {
 
 // Deal: A deal represents a segment of inventory for displaying ads
 // on.
-// A proposal can contain multiple deals. A deal contains the terms and
-// targeting information that
-// is used for serving.
+// A proposal can contain multiple deals. A deal contains the terms
+// and
+// targeting information that is used for serving.
 type Deal struct {
 	// AvailableEndTime: Proposed flight end time of the deal.
 	// This will generally be stored in a granularity of a second.
@@ -2004,11 +2129,12 @@ type Deal struct {
 	// AvailableStartTime: Optional proposed flight start time of the
 	// deal.
 	// This will generally be stored in the granularity of one second since
-	// deal serving
-	// starts at seconds boundary. Any time specified with more
-	// granularity
-	// (e.g., in milliseconds) will be truncated towards the start of time
-	// in seconds.
+	// deal
+	// serving starts at seconds boundary. Any time specified with
+	// more
+	// granularity (e.g., in milliseconds) will be truncated towards the
+	// start of
+	// time in seconds.
 	AvailableStartTime string `json:"availableStartTime,omitempty"`
 
 	// BuyerPrivateData: Buyer private data (hidden from seller).
@@ -2035,13 +2161,11 @@ type Deal struct {
 	// this field while updating the resource will result in an error.
 	CreateProductRevision int64 `json:"createProductRevision,omitempty,string"`
 
-	// CreateTime: The time of the deal creation.
-	// @OutputOnly
+	// CreateTime: Output only. The time of the deal creation.
 	CreateTime string `json:"createTime,omitempty"`
 
-	// CreativePreApprovalPolicy: Specifies the creative pre-approval
-	// policy.
-	// @OutputOnly
+	// CreativePreApprovalPolicy: Output only. Specifies the creative
+	// pre-approval policy.
 	//
 	// Possible values:
 	//   "CREATIVE_PRE_APPROVAL_POLICY_UNSPECIFIED" - A placeholder for an
@@ -2052,16 +2176,15 @@ type Deal struct {
 	// approve each creative before it can serve.
 	CreativePreApprovalPolicy string `json:"creativePreApprovalPolicy,omitempty"`
 
-	// CreativeRestrictions: Restricitions about the creatives associated
-	// with the deal (i.e., size)
-	// This is available for Programmatic Guaranteed/Preferred Deals in Ad
-	// Manager.
-	// @OutputOnly
+	// CreativeRestrictions: Output only. Restricitions about the creatives
+	// associated with the deal
+	// (i.e., size) This is available for Programmatic Guaranteed/Preferred
+	// Deals
+	// in Ad Manager.
 	CreativeRestrictions *CreativeRestrictions `json:"creativeRestrictions,omitempty"`
 
-	// CreativeSafeFrameCompatibility: Specifies whether the creative is
-	// safeFrame compatible.
-	// @OutputOnly
+	// CreativeSafeFrameCompatibility: Output only. Specifies whether the
+	// creative is safeFrame compatible.
 	//
 	// Possible values:
 	//   "CREATIVE_SAFE_FRAME_COMPATIBILITY_UNSPECIFIED" - A placeholder for
@@ -2072,13 +2195,11 @@ type Deal struct {
 	// frame option.
 	CreativeSafeFrameCompatibility string `json:"creativeSafeFrameCompatibility,omitempty"`
 
-	// DealId: A unique deal ID for the deal (server-assigned).
-	// @OutputOnly
+	// DealId: Output only. A unique deal ID for the deal (server-assigned).
 	DealId string `json:"dealId,omitempty"`
 
-	// DealServingMetadata: Metadata about the serving status of this
-	// deal.
-	// @OutputOnly
+	// DealServingMetadata: Output only. Metadata about the serving status
+	// of this deal.
 	DealServingMetadata *DealServingMetadata `json:"dealServingMetadata,omitempty"`
 
 	// DealTerms: The negotiable terms of the deal.
@@ -2095,24 +2216,22 @@ type Deal struct {
 	// DisplayName: The name of the deal.
 	DisplayName string `json:"displayName,omitempty"`
 
-	// ExternalDealId: The external deal ID assigned to this deal once the
-	// deal is finalized.
-	// This is the deal ID that shows up in serving/reporting
+	// ExternalDealId: Output only. The external deal ID assigned to this
+	// deal once the deal is
+	// finalized. This is the deal ID that shows up in serving/reporting
 	// etc.
-	// @OutputOnly
 	ExternalDealId string `json:"externalDealId,omitempty"`
 
-	// IsSetupComplete: True, if the buyside inventory setup is complete for
-	// this deal.
-	// @OutputOnly
+	// IsSetupComplete: Output only. True, if the buyside inventory setup is
+	// complete for this
+	// deal.
 	IsSetupComplete bool `json:"isSetupComplete,omitempty"`
 
-	// ProgrammaticCreativeSource: Specifies the creative source for
-	// programmatic deals. PUBLISHER means
-	// creative is provided by seller and ADVERTISER means creative
-	// is
-	// provided by buyer.
-	// @OutputOnly
+	// ProgrammaticCreativeSource: Output only. Specifies the creative
+	// source for programmatic deals.
+	// PUBLISHER means creative is provided by seller and ADVERTISER
+	// means
+	// creative is provided by buyer.
 	//
 	// Possible values:
 	//   "PROGRAMMATIC_CREATIVE_SOURCE_UNSPECIFIED" - A placeholder for an
@@ -2121,12 +2240,11 @@ type Deal struct {
 	//   "PUBLISHER" - The publisher provides the creatives to be served.
 	ProgrammaticCreativeSource string `json:"programmaticCreativeSource,omitempty"`
 
-	// ProposalId: ID of the proposal that this deal is part of.
-	// @OutputOnly
+	// ProposalId: Output only. ID of the proposal that this deal is part
+	// of.
 	ProposalId string `json:"proposalId,omitempty"`
 
-	// SellerContacts: Seller contact information for the deal.
-	// @OutputOnly
+	// SellerContacts: Output only. Seller contact information for the deal.
 	SellerContacts []*ContactInformation `json:"sellerContacts,omitempty"`
 
 	// SyndicationProduct: The syndication product associated with the
@@ -2145,9 +2263,8 @@ type Deal struct {
 	//   "GAMES" - This represents ads shown within games.
 	SyndicationProduct string `json:"syndicationProduct,omitempty"`
 
-	// Targeting: Specifies the subset of inventory targeted by the
-	// deal.
-	// @OutputOnly
+	// Targeting: Output only. Specifies the subset of inventory targeted by
+	// the deal.
 	Targeting *MarketplaceTargeting `json:"targeting,omitempty"`
 
 	// TargetingCriterion: The shared targeting visible to buyers and
@@ -2155,8 +2272,7 @@ type Deal struct {
 	// targeting entity is AND'd together.
 	TargetingCriterion []*TargetingCriteria `json:"targetingCriterion,omitempty"`
 
-	// UpdateTime: The time when the deal was last updated.
-	// @OutputOnly
+	// UpdateTime: Output only. The time when the deal was last updated.
 	UpdateTime string `json:"updateTime,omitempty"`
 
 	// WebPropertyCode: The web property code for the seller copied over
@@ -2244,9 +2360,8 @@ func (s *DealPauseStatus) MarshalJSON() ([]byte, error) {
 // DealServingMetadata: Message captures metadata about the serving
 // status of a deal.
 type DealServingMetadata struct {
-	// DealPauseStatus: Tracks which parties (if any) have paused a
-	// deal.
-	// @OutputOnly
+	// DealPauseStatus: Output only. Tracks which parties (if any) have
+	// paused a deal.
 	DealPauseStatus *DealPauseStatus `json:"dealPauseStatus,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "DealPauseStatus") to
@@ -2350,9 +2465,8 @@ func (s *DealTerms) MarshalJSON() ([]byte, error) {
 // DeliveryControl: Message contains details about how the deals will be
 // paced.
 type DeliveryControl struct {
-	// CreativeBlockingLevel: Specified the creative blocking levels to be
-	// applied.
-	// @OutputOnly
+	// CreativeBlockingLevel: Output only. Specified the creative blocking
+	// levels to be applied.
 	//
 	// Possible values:
 	//   "CREATIVE_BLOCKING_LEVEL_UNSPECIFIED" - A placeholder for an
@@ -2363,9 +2477,8 @@ type DeliveryControl struct {
 	// will be applied.
 	CreativeBlockingLevel string `json:"creativeBlockingLevel,omitempty"`
 
-	// DeliveryRateType: Specifies how the impression delivery will be
-	// paced.
-	// @OutputOnly
+	// DeliveryRateType: Output only. Specifies how the impression delivery
+	// will be paced.
 	//
 	// Possible values:
 	//   "DELIVERY_RATE_TYPE_UNSPECIFIED" - A placeholder for an undefined
@@ -2376,8 +2489,7 @@ type DeliveryControl struct {
 	//   "AS_FAST_AS_POSSIBLE" - Impressions are served as fast as possible.
 	DeliveryRateType string `json:"deliveryRateType,omitempty"`
 
-	// FrequencyCaps: Specifies any frequency caps.
-	// @OutputOnly
+	// FrequencyCaps: Output only. Specifies any frequency caps.
 	FrequencyCaps []*FrequencyCap `json:"frequencyCaps,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g.
@@ -2405,7 +2517,7 @@ func (s *DeliveryControl) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// Disapproval: @OutputOnly The reason and details for a disapproval.
+// Disapproval: Output only. The reason and details for a disapproval.
 type Disapproval struct {
 	// Details: Additional details about the reason for disapproval.
 	Details []string `json:"details,omitempty"`
@@ -2878,42 +2990,6 @@ type FilteredBidDetailRow struct {
 
 func (s *FilteredBidDetailRow) MarshalJSON() ([]byte, error) {
 	type NoMethod FilteredBidDetailRow
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// FilteringStats: @OutputOnly Filtering reasons for this creative
-// during a period of a single
-// day (from midnight to midnight Pacific).
-type FilteringStats struct {
-	// Date: The day during which the data was collected.
-	// The data is collected from 00:00:00 to 23:59:59 PT.
-	// During switches from PST to PDT and back, the day may
-	// contain 23 or 25 hours of data instead of the usual 24.
-	Date *Date `json:"date,omitempty"`
-
-	// Reasons: The set of filtering reasons for this date.
-	Reasons []*Reason `json:"reasons,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Date") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Date") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *FilteringStats) MarshalJSON() ([]byte, error) {
-	type NoMethod FilteringStats
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -3552,9 +3628,10 @@ type ListCreativeStatusBreakdownByDetailResponse struct {
 	// uyers/rtb/downloads/ad-product-categories).
 	//   "DISAPPROVAL_REASON" - Indicates that the detail ID refers to a
 	// disapproval reason; see
-	// DisapprovalReason enum in
-	// [snippet-status-report-proto](https://developers.google.com/authorized
-	// -buyers/rtb/downloads/snippet-status-report-proto).
+	// DisapprovalReason enum
+	// in
+	// [snippet-status-report-proto](https://developers.google.com/authori
+	// zed-buyers/rtb/downloads/snippet-status-report-proto).
 	DetailType string `json:"detailType,omitempty"`
 
 	// FilteredBidDetailRows: List of rows, with counts of bids with a given
@@ -4046,8 +4123,8 @@ func (s *ListPublisherProfilesResponse) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// LocationContext: @OutputOnly The Geo criteria the restriction applies
-// to.
+// LocationContext: Output only. The Geo criteria the restriction
+// applies to.
 type LocationContext struct {
 	// GeoCriteriaIds: IDs representing the geo location for this
 	// context.
@@ -4449,13 +4526,12 @@ func (s *NonGuaranteedFixedPriceTerms) MarshalJSON() ([]byte, error) {
 
 // Note: A proposal may be associated to several notes.
 type Note struct {
-	// CreateTime: The timestamp for when this note was created.
-	// @OutputOnly
+	// CreateTime: Output only. The timestamp for when this note was
+	// created.
 	CreateTime string `json:"createTime,omitempty"`
 
-	// CreatorRole: The role of the person (buyer/seller) creating the
-	// note.
-	// @OutputOnly
+	// CreatorRole: Output only. The role of the person (buyer/seller)
+	// creating the note.
 	//
 	// Possible values:
 	//   "BUYER_SELLER_ROLE_UNSPECIFIED" - A placeholder for an undefined
@@ -4472,13 +4548,11 @@ type Note struct {
 	// this field while updating the resource will result in an error.
 	Note string `json:"note,omitempty"`
 
-	// NoteId: The unique ID for the note.
-	// @OutputOnly
+	// NoteId: Output only. The unique ID for the note.
 	NoteId string `json:"noteId,omitempty"`
 
-	// ProposalRevision: The revision number of the proposal when the note
-	// is created.
-	// @OutputOnly
+	// ProposalRevision: Output only. The revision number of the proposal
+	// when the note is created.
 	ProposalRevision int64 `json:"proposalRevision,omitempty,string"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -4550,7 +4624,7 @@ type PauseProposalRequest struct {
 	// Reason: The reason why the proposal is being paused.
 	// This human readable message will be displayed in the seller's
 	// UI.
-	// (Max length: 100 unicode code units.)
+	// (Max length: 1000 unicode code units.)
 	Reason string `json:"reason,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Reason") to
@@ -4614,7 +4688,7 @@ func (s *PlacementTargeting) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// PlatformContext: @OutputOnly The type of platform the restriction
+// PlatformContext: Output only. The type of platform the restriction
 // applies to.
 type PlatformContext struct {
 	// Platforms: The platforms this restriction applies to.
@@ -4778,15 +4852,15 @@ func (s *PrivateData) MarshalJSON() ([]byte, error) {
 // know more about the inventory.
 type Product struct {
 	// AvailableEndTime: The proposed end time for the deal. The field will
-	// be truncated to the order of
-	// seconds during serving.
+	// be truncated to the
+	// order of seconds during serving.
 	AvailableEndTime string `json:"availableEndTime,omitempty"`
 
 	// AvailableStartTime: Inventory availability dates. The start time will
-	// be truncated to seconds during serving.
-	// Thus, a field specified as 3:23:34.456 (HH:mm:ss.SSS) will be
-	// truncated to 3:23:34
-	// when serving.
+	// be truncated to seconds
+	// during serving. Thus, a field specified as 3:23:34.456 (HH:mm:ss.SSS)
+	// will
+	// be truncated to 3:23:34 when serving.
 	AvailableStartTime string `json:"availableStartTime,omitempty"`
 
 	// CreateTime: Creation time.
@@ -4894,9 +4968,8 @@ func (s *Product) MarshalJSON() ([]byte, error) {
 //
 // Fields are updatable unless noted otherwise.
 type Proposal struct {
-	// BilledBuyer: Reference to the buyer that will get billed for this
-	// proposal.
-	// @OutputOnly
+	// BilledBuyer: Output only. Reference to the buyer that will get billed
+	// for this proposal.
 	BilledBuyer *Buyer `json:"billedBuyer,omitempty"`
 
 	// Buyer: Reference to the buyer on the proposal.
@@ -4913,27 +4986,26 @@ type Proposal struct {
 	BuyerPrivateData *PrivateData `json:"buyerPrivateData,omitempty"`
 
 	// Deals: The deals associated with this proposal. For Private Auction
-	// proposals (whose deals have
-	// NonGuaranteedAuctionTerms), there will only be one deal.
+	// proposals
+	// (whose deals have NonGuaranteedAuctionTerms), there will only be one
+	// deal.
 	Deals []*Deal `json:"deals,omitempty"`
 
 	// DisplayName: The name for the proposal.
 	DisplayName string `json:"displayName,omitempty"`
 
-	// IsRenegotiating: True if the proposal is being
+	// IsRenegotiating: Output only. True if the proposal is being
 	// renegotiated.
-	// @OutputOnly
 	IsRenegotiating bool `json:"isRenegotiating,omitempty"`
 
-	// IsSetupComplete: True, if the buyside inventory setup is complete for
-	// this proposal.
-	// @OutputOnly
+	// IsSetupComplete: Output only. True, if the buyside inventory setup is
+	// complete for this
+	// proposal.
 	IsSetupComplete bool `json:"isSetupComplete,omitempty"`
 
-	// LastUpdaterOrCommentorRole: The role of the last user that either
-	// updated the proposal or left a
-	// comment.
-	// @OutputOnly
+	// LastUpdaterOrCommentorRole: Output only. The role of the last user
+	// that either updated the proposal or
+	// left a comment.
 	//
 	// Possible values:
 	//   "BUYER_SELLER_ROLE_UNSPECIFIED" - A placeholder for an undefined
@@ -4942,13 +5014,11 @@ type Proposal struct {
 	//   "SELLER" - Specifies the role as seller.
 	LastUpdaterOrCommentorRole string `json:"lastUpdaterOrCommentorRole,omitempty"`
 
-	// Notes: The notes associated with this proposal.
-	// @OutputOnly
+	// Notes: Output only. The notes associated with this proposal.
 	Notes []*Note `json:"notes,omitempty"`
 
-	// OriginatorRole: Indicates whether the buyer/seller created the
-	// proposal.
-	// @OutputOnly
+	// OriginatorRole: Output only. Indicates whether the buyer/seller
+	// created the proposal.
 	//
 	// Possible values:
 	//   "BUYER_SELLER_ROLE_UNSPECIFIED" - A placeholder for an undefined
@@ -4957,16 +5027,16 @@ type Proposal struct {
 	//   "SELLER" - Specifies the role as seller.
 	OriginatorRole string `json:"originatorRole,omitempty"`
 
-	// PrivateAuctionId: Private auction ID if this proposal is a private
-	// auction proposal.
-	// @OutputOnly
+	// PrivateAuctionId: Output only. Private auction ID if this proposal is
+	// a private auction
+	// proposal.
 	PrivateAuctionId string `json:"privateAuctionId,omitempty"`
 
-	// ProposalId: The unique ID of the proposal.
-	// @OutputOnly
+	// ProposalId: Output only. The unique ID of the proposal.
 	ProposalId string `json:"proposalId,omitempty"`
 
-	// ProposalRevision: The revision number for the proposal.
+	// ProposalRevision: Output only. The revision number for the
+	// proposal.
 	// Each update to the proposal or the deal causes the proposal revision
 	// number
 	// to auto-increment. The buyer keeps track of the last revision number
@@ -4978,11 +5048,9 @@ type Proposal struct {
 	// during the update operation to let the buyer know that a subsequent
 	// update
 	// was made.
-	// @OutputOnly
 	ProposalRevision int64 `json:"proposalRevision,omitempty,string"`
 
-	// ProposalState: The current state of the proposal.
-	// @OutputOnly
+	// ProposalState: Output only. The current state of the proposal.
 	//
 	// Possible values:
 	//   "PROPOSAL_STATE_UNSPECIFIED" - A placeholder for an undefined
@@ -5005,12 +5073,10 @@ type Proposal struct {
 	// this field while updating the resource will result in an error.
 	Seller *Seller `json:"seller,omitempty"`
 
-	// SellerContacts: Contact information for the seller.
-	// @OutputOnly
+	// SellerContacts: Output only. Contact information for the seller.
 	SellerContacts []*ContactInformation `json:"sellerContacts,omitempty"`
 
-	// UpdateTime: The time when the proposal was last revised.
-	// @OutputOnly
+	// UpdateTime: Output only. The time when the proposal was last revised.
 	UpdateTime string `json:"updateTime,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -5047,39 +5113,42 @@ func (s *Proposal) MarshalJSON() ([]byte, error) {
 // Represents a publisher profile in Marketplace.
 //
 // All fields are read only. All string fields are free-form text
-// entered by the publisher
-// unless noted otherwise.
+// entered by the
+// publisher unless noted otherwise.
 type PublisherProfile struct {
 	// AudienceDescription: Description on the publisher's audience.
 	AudienceDescription string `json:"audienceDescription,omitempty"`
 
 	// BuyerPitchStatement: Statement explaining what's unique about
-	// publisher's business, and why buyers should
-	// partner with the publisher.
+	// publisher's business, and why
+	// buyers should partner with the publisher.
 	BuyerPitchStatement string `json:"buyerPitchStatement,omitempty"`
 
 	// DirectDealsContact: Contact information for direct reservation deals.
-	// This is free text entered by the publisher
-	// and may include information like names, phone numbers and email
-	// addresses.
+	// This is free text entered
+	// by the publisher and may include information like names, phone
+	// numbers and
+	// email addresses.
 	DirectDealsContact string `json:"directDealsContact,omitempty"`
 
 	// DisplayName: Name of the publisher profile.
 	DisplayName string `json:"displayName,omitempty"`
 
 	// Domains: The list of domains represented in this publisher profile.
-	// Empty if this is a parent profile.
-	// These are top private domains, meaning that these will not contain a
-	// string like
-	// "photos.google.co.uk/123", but will instead contain "google.co.uk".
+	// Empty if this is
+	// a parent profile. These are top private domains, meaning that these
+	// will
+	// not contain a string like "photos.google.co.uk/123", but will
+	// instead
+	// contain "google.co.uk".
 	Domains []string `json:"domains,omitempty"`
 
 	// GooglePlusUrl: URL to publisher's Google+ page.
 	GooglePlusUrl string `json:"googlePlusUrl,omitempty"`
 
 	// LogoUrl: A Google public URL to the logo for this publisher profile.
-	// The logo is stored as
-	// a PNG, JPG, or GIF image.
+	// The logo is
+	// stored as a PNG, JPG, or GIF image.
 	LogoUrl string `json:"logoUrl,omitempty"`
 
 	// MediaKitUrl: URL to additional marketing and sales materials.
@@ -5089,9 +5158,10 @@ type PublisherProfile struct {
 	Overview string `json:"overview,omitempty"`
 
 	// ProgrammaticDealsContact: Contact information for programmatic deals.
-	// This is free text entered by the publisher
-	// and may include information like names, phone numbers and email
-	// addresses.
+	// This is free text entered by
+	// the publisher and may include information like names, phone numbers
+	// and
+	// email addresses.
 	ProgrammaticDealsContact string `json:"programmaticDealsContact,omitempty"`
 
 	// PublisherProfileId: Unique ID for publisher profile.
@@ -5169,43 +5239,6 @@ type RealtimeTimeRange struct {
 
 func (s *RealtimeTimeRange) MarshalJSON() ([]byte, error) {
 	type NoMethod RealtimeTimeRange
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// Reason: A specific filtering status and how many times it occurred.
-type Reason struct {
-	// Count: The number of times the creative was filtered for the status.
-	// The
-	// count is aggregated across all publishers on the exchange.
-	Count int64 `json:"count,omitempty,string"`
-
-	// Status: The filtering status code. Please refer to
-	// the
-	// [creative-status-codes.txt](https://storage.googleapis.com/adx-rtb
-	// -dictionaries/creative-status-codes.txt)
-	// file for different statuses.
-	Status int64 `json:"status,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Count") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Count") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *Reason) MarshalJSON() ([]byte, error) {
-	type NoMethod Reason
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -5328,7 +5361,7 @@ func (s *RowDimensions) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// SecurityContext: @OutputOnly A security context.
+// SecurityContext: Output only. A security context.
 type SecurityContext struct {
 	// Securities: The security types in this context.
 	//
@@ -5444,7 +5477,7 @@ func (s *ServingContext) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// ServingRestriction: @OutputOnly A representation of the status of an
+// ServingRestriction: Output only. A representation of the status of an
 // ad in a
 // specific context. A context here relates to where something
 // ultimately serves
@@ -7292,8 +7325,10 @@ func (c *AccountsClientsUsersListCall) PageSize(pageSize int64) *AccountsClients
 // Typically, this is the value
 // of
 // ListClientUsersResponse.nextPageToken
-// returned from the previous call to the
-// accounts.clients.users.list method.
+// returned from the previous call to
+// the
+// accounts.clients.users.list
+// method.
 func (c *AccountsClientsUsersListCall) PageToken(pageToken string) *AccountsClientsUsersListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -7427,7 +7462,7 @@ func (c *AccountsClientsUsersListCall) Do(opts ...googleapi.CallOption) (*ListCl
 	//       "type": "integer"
 	//     },
 	//     "pageToken": {
-	//       "description": "A token identifying a page of results the server should return.\nTypically, this is the value of\nListClientUsersResponse.nextPageToken\nreturned from the previous call to the\naccounts.clients.users.list method.",
+	//       "description": "A token identifying a page of results the server should return.\nTypically, this is the value of\nListClientUsersResponse.nextPageToken\nreturned from the previous call to the\naccounts.clients.users.list\nmethod.",
 	//       "location": "query",
 	//       "type": "string"
 	//     }
@@ -11713,151 +11748,6 @@ func (c *AccountsPublisherProfilesListCall) Pages(ctx context.Context, f func(*L
 		}
 		c.PageToken(x.NextPageToken)
 	}
-}
-
-// method id "adexchangebuyer2.bidders.accounts.creatives.delete":
-
-type BiddersAccountsCreativesDeleteCall struct {
-	s          *Service
-	ownerName  string
-	creativeId string
-	urlParams_ gensupport.URLParams
-	ctx_       context.Context
-	header_    http.Header
-}
-
-// Delete: Deletes a single creative.
-//
-// A creative is deactivated upon deletion and does not count against
-// active
-// snippet quota. A deleted creative should not be used in bidding (all
-// bids
-// with that creative will be rejected).
-func (r *BiddersAccountsCreativesService) Delete(ownerName string, creativeId string) *BiddersAccountsCreativesDeleteCall {
-	c := &BiddersAccountsCreativesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.ownerName = ownerName
-	c.creativeId = creativeId
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *BiddersAccountsCreativesDeleteCall) Fields(s ...googleapi.Field) *BiddersAccountsCreativesDeleteCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *BiddersAccountsCreativesDeleteCall) Context(ctx context.Context) *BiddersAccountsCreativesDeleteCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *BiddersAccountsCreativesDeleteCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *BiddersAccountsCreativesDeleteCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+ownerName}/creatives/{creativeId}")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"ownerName":  c.ownerName,
-		"creativeId": c.creativeId,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "adexchangebuyer2.bidders.accounts.creatives.delete" call.
-// Exactly one of *Empty or error will be non-nil. Any non-2xx status
-// code is an error. Response headers are in either
-// *Empty.ServerResponse.Header or (if a response was returned at all)
-// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
-// check whether the returned error was because http.StatusNotModified
-// was returned.
-func (c *BiddersAccountsCreativesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &Empty{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Deletes a single creative.\n\nA creative is deactivated upon deletion and does not count against active\nsnippet quota. A deleted creative should not be used in bidding (all bids\nwith that creative will be rejected).",
-	//   "flatPath": "v2beta1/bidders/{biddersId}/accounts/{accountsId}/creatives/{creativeId}",
-	//   "httpMethod": "DELETE",
-	//   "id": "adexchangebuyer2.bidders.accounts.creatives.delete",
-	//   "parameterOrder": [
-	//     "ownerName",
-	//     "creativeId"
-	//   ],
-	//   "parameters": {
-	//     "creativeId": {
-	//       "description": "The ID of the creative to delete.",
-	//       "location": "path",
-	//       "required": true,
-	//       "type": "string"
-	//     },
-	//     "ownerName": {
-	//       "description": "Name of the owner (bidder or account) of the creative to be deleted.\nFor example:\n\n- For an account-level creative for the buyer account representing bidder\n  123: `bidders/123/accounts/123`\n\n- For an account-level creative for the child seat buyer account 456\n  whose bidder is 123: `bidders/123/accounts/456`",
-	//       "location": "path",
-	//       "pattern": "^bidders/[^/]+/accounts/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v2beta1/{+ownerName}/creatives/{creativeId}",
-	//   "response": {
-	//     "$ref": "Empty"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/adexchange.buyer"
-	//   ]
-	// }
-
 }
 
 // method id "adexchangebuyer2.bidders.accounts.filterSets.create":

@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package plus provides access to the Google+ API.
 //
-// See https://developers.google.com/+/api/
+// For product documentation, see: https://developers.google.com/+/api/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/plus/v1"
 //   ...
-//   plusService, err := plus.New(oauthHttpClient)
+//   ctx := context.Background()
+//   plusService, err := plus.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   plusService, err := plus.NewService(ctx, option.WithScopes(plus.UserinfoProfileScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   plusService, err := plus.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   plusService, err := plus.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package plus // import "google.golang.org/api/plus/v1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -52,19 +80,49 @@ const basePath = "https://www.googleapis.com/plus/v1/"
 
 // OAuth2 scopes used by this API.
 const (
-	// Know the list of people in your circles, your age range, and language
+	// View your basic profile info, including your age range and language
 	PlusLoginScope = "https://www.googleapis.com/auth/plus.login"
 
-	// Know who you are on Google
+	// Associate you with your personal info on Google
 	PlusMeScope = "https://www.googleapis.com/auth/plus.me"
 
 	// View your email address
 	UserinfoEmailScope = "https://www.googleapis.com/auth/userinfo.email"
 
-	// View your basic profile info
+	// See your personal info, including any personal info you've made
+	// publicly available
 	UserinfoProfileScope = "https://www.googleapis.com/auth/userinfo.profile"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/plus.login",
+		"https://www.googleapis.com/auth/plus.me",
+		"https://www.googleapis.com/auth/userinfo.email",
+		"https://www.googleapis.com/auth/userinfo.profile",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -2239,7 +2297,8 @@ type ActivitiesGetCall struct {
 	header_      http.Header
 }
 
-// Get: Get an activity.
+// Get: Shut down. See https://developers.google.com/+/api-shutdown for
+// more details.
 func (r *ActivitiesService) Get(activityId string) *ActivitiesGetCall {
 	c := &ActivitiesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.activityId = activityId
@@ -2344,7 +2403,7 @@ func (c *ActivitiesGetCall) Do(opts ...googleapi.CallOption) (*Activity, error) 
 	}
 	return ret, nil
 	// {
-	//   "description": "Get an activity.",
+	//   "description": "Shut down. See https://developers.google.com/+/api-shutdown for more details.",
 	//   "httpMethod": "GET",
 	//   "id": "plus.activities.get",
 	//   "parameterOrder": [
@@ -2382,8 +2441,8 @@ type ActivitiesListCall struct {
 	header_      http.Header
 }
 
-// List: List all of the activities in the specified collection for a
-// particular user.
+// List: Shut down. See https://developers.google.com/+/api-shutdown for
+// more details.
 func (r *ActivitiesService) List(userId string, collection string) *ActivitiesListCall {
 	c := &ActivitiesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.userId = userId
@@ -2508,7 +2567,7 @@ func (c *ActivitiesListCall) Do(opts ...googleapi.CallOption) (*ActivityFeed, er
 	}
 	return ret, nil
 	// {
-	//   "description": "List all of the activities in the specified collection for a particular user.",
+	//   "description": "Shut down. See https://developers.google.com/+/api-shutdown for more details.",
 	//   "httpMethod": "GET",
 	//   "id": "plus.activities.list",
 	//   "parameterOrder": [
@@ -2592,7 +2651,8 @@ type ActivitiesSearchCall struct {
 	header_      http.Header
 }
 
-// Search: Search public activities.
+// Search: Shut down. See https://developers.google.com/+/api-shutdown
+// for more details.
 func (r *ActivitiesService) Search(query string) *ActivitiesSearchCall {
 	c := &ActivitiesSearchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.urlParams_.Set("query", query)
@@ -2734,7 +2794,7 @@ func (c *ActivitiesSearchCall) Do(opts ...googleapi.CallOption) (*ActivityFeed, 
 	}
 	return ret, nil
 	// {
-	//   "description": "Search public activities.",
+	//   "description": "Shut down. See https://developers.google.com/+/api-shutdown for more details.",
 	//   "httpMethod": "GET",
 	//   "id": "plus.activities.search",
 	//   "parameterOrder": [
@@ -2826,7 +2886,8 @@ type CommentsGetCall struct {
 	header_      http.Header
 }
 
-// Get: Get a comment.
+// Get: Shut down. See https://developers.google.com/+/api-shutdown for
+// more details.
 func (r *CommentsService) Get(commentId string) *CommentsGetCall {
 	c := &CommentsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.commentId = commentId
@@ -2931,7 +2992,7 @@ func (c *CommentsGetCall) Do(opts ...googleapi.CallOption) (*Comment, error) {
 	}
 	return ret, nil
 	// {
-	//   "description": "Get a comment.",
+	//   "description": "Shut down. See https://developers.google.com/+/api-shutdown for more details.",
 	//   "httpMethod": "GET",
 	//   "id": "plus.comments.get",
 	//   "parameterOrder": [
@@ -2968,7 +3029,8 @@ type CommentsListCall struct {
 	header_      http.Header
 }
 
-// List: List all of the comments for an activity.
+// List: Shut down. See https://developers.google.com/+/api-shutdown for
+// more details.
 func (r *CommentsService) List(activityId string) *CommentsListCall {
 	c := &CommentsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.activityId = activityId
@@ -3102,7 +3164,7 @@ func (c *CommentsListCall) Do(opts ...googleapi.CallOption) (*CommentFeed, error
 	}
 	return ret, nil
 	// {
-	//   "description": "List all of the comments for an activity.",
+	//   "description": "Shut down. See https://developers.google.com/+/api-shutdown for more details.",
 	//   "httpMethod": "GET",
 	//   "id": "plus.comments.list",
 	//   "parameterOrder": [
@@ -3572,8 +3634,8 @@ type PeopleListByActivityCall struct {
 	header_      http.Header
 }
 
-// ListByActivity: List all of the people in the specified collection
-// for a particular activity.
+// ListByActivity: Shut down. See
+// https://developers.google.com/+/api-shutdown for more details.
 func (r *PeopleService) ListByActivity(activityId string, collection string) *PeopleListByActivityCall {
 	c := &PeopleListByActivityCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.activityId = activityId
@@ -3698,7 +3760,7 @@ func (c *PeopleListByActivityCall) Do(opts ...googleapi.CallOption) (*PeopleFeed
 	}
 	return ret, nil
 	// {
-	//   "description": "List all of the people in the specified collection for a particular activity.",
+	//   "description": "Shut down. See https://developers.google.com/+/api-shutdown for more details.",
 	//   "httpMethod": "GET",
 	//   "id": "plus.people.listByActivity",
 	//   "parameterOrder": [
@@ -3784,7 +3846,8 @@ type PeopleSearchCall struct {
 	header_      http.Header
 }
 
-// Search: Search all public profiles.
+// Search: Shut down. See https://developers.google.com/+/api-shutdown
+// for more details.
 func (r *PeopleService) Search(query string) *PeopleSearchCall {
 	c := &PeopleSearchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.urlParams_.Set("query", query)
@@ -3913,7 +3976,7 @@ func (c *PeopleSearchCall) Do(opts ...googleapi.CallOption) (*PeopleFeed, error)
 	}
 	return ret, nil
 	// {
-	//   "description": "Search all public profiles.",
+	//   "description": "Shut down. See https://developers.google.com/+/api-shutdown for more details.",
 	//   "httpMethod": "GET",
 	//   "id": "plus.people.search",
 	//   "parameterOrder": [

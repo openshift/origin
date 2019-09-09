@@ -1,6 +1,7 @@
 package podnodeconstraints
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -93,7 +94,7 @@ func readConfig(reader io.Reader) (*podnodeconstraints.PodNodeConstraintsConfig,
 	return config, nil
 }
 
-func (o *podNodeConstraints) Validate(attr admission.Attributes, _ admission.ObjectInterfaces) error {
+func (o *podNodeConstraints) Validate(ctx context.Context, attr admission.Attributes, _ admission.ObjectInterfaces) error {
 	switch {
 	case o.config == nil,
 		attr.GetSubresource() != "":

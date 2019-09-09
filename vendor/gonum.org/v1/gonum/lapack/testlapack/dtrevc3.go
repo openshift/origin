@@ -17,13 +17,13 @@ import (
 )
 
 type Dtrevc3er interface {
-	Dtrevc3(side lapack.EVSide, howmny lapack.HowMany, selected []bool, n int, t []float64, ldt int, vl []float64, ldvl int, vr []float64, ldvr int, mm int, work []float64, lwork int) int
+	Dtrevc3(side lapack.EVSide, howmny lapack.EVHowMany, selected []bool, n int, t []float64, ldt int, vl []float64, ldvl int, vr []float64, ldvr int, mm int, work []float64, lwork int) int
 }
 
 func Dtrevc3Test(t *testing.T, impl Dtrevc3er) {
 	rnd := rand.New(rand.NewSource(1))
-	for _, side := range []lapack.EVSide{lapack.RightEV, lapack.LeftEV, lapack.RightLeftEV} {
-		for _, howmny := range []lapack.HowMany{lapack.AllEV, lapack.AllEVMulQ, lapack.SelectedEV} {
+	for _, side := range []lapack.EVSide{lapack.EVRight, lapack.EVLeft, lapack.EVBoth} {
+		for _, howmny := range []lapack.EVHowMany{lapack.EVAll, lapack.EVAllMulQ, lapack.EVSelected} {
 			for _, n := range []int{0, 1, 2, 3, 4, 5, 10, 34, 100} {
 				for _, extra := range []int{0, 11} {
 					for _, optwork := range []bool{true, false} {
@@ -38,17 +38,17 @@ func Dtrevc3Test(t *testing.T, impl Dtrevc3er) {
 	}
 }
 
-func testDtrevc3(t *testing.T, impl Dtrevc3er, side lapack.EVSide, howmny lapack.HowMany, tmat blas64.General, optwork bool, rnd *rand.Rand) {
+func testDtrevc3(t *testing.T, impl Dtrevc3er, side lapack.EVSide, howmny lapack.EVHowMany, tmat blas64.General, optwork bool, rnd *rand.Rand) {
 	const tol = 1e-14
 
 	n := tmat.Rows
 	extra := tmat.Stride - tmat.Cols
-	right := side != lapack.LeftEV
-	left := side != lapack.RightEV
+	right := side != lapack.EVLeft
+	left := side != lapack.EVRight
 
 	var selected, selectedWant []bool
 	var mWant int // How many columns will the eigenvectors occupy.
-	if howmny == lapack.SelectedEV {
+	if howmny == lapack.EVSelected {
 		selected = make([]bool, n)
 		selectedWant = make([]bool, n)
 		// Dtrevc3 will compute only selected eigenvectors. Pick them
@@ -88,7 +88,7 @@ func testDtrevc3(t *testing.T, impl Dtrevc3er, side lapack.EVSide, howmny lapack
 
 	var vr blas64.General
 	if right {
-		if howmny == lapack.AllEVMulQ {
+		if howmny == lapack.EVAllMulQ {
 			vr = eye(n, n+extra)
 		} else {
 			// VR will be overwritten.
@@ -98,7 +98,7 @@ func testDtrevc3(t *testing.T, impl Dtrevc3er, side lapack.EVSide, howmny lapack
 
 	var vl blas64.General
 	if left {
-		if howmny == lapack.AllEVMulQ {
+		if howmny == lapack.EVAllMulQ {
 			vl = eye(n, n+extra)
 		} else {
 			// VL will be overwritten.
@@ -108,12 +108,13 @@ func testDtrevc3(t *testing.T, impl Dtrevc3er, side lapack.EVSide, howmny lapack
 
 	work := make([]float64, max(1, 3*n))
 	if optwork {
-		impl.Dtrevc3(side, howmny, nil, n, nil, 1, nil, 1, nil, 1, mWant, work, -1)
+		impl.Dtrevc3(side, howmny, selected, n, tmat.Data, tmat.Stride,
+			vl.Data, max(1, vl.Stride), vr.Data, max(1, vr.Stride), mWant, work, -1)
 		work = make([]float64, int(work[0]))
 	}
 
 	m := impl.Dtrevc3(side, howmny, selected, n, tmat.Data, tmat.Stride,
-		vl.Data, vl.Stride, vr.Data, vr.Stride, mWant, work, len(work))
+		vl.Data, max(1, vl.Stride), vr.Data, max(1, vr.Stride), mWant, work, len(work))
 
 	prefix := fmt.Sprintf("Case side=%v, howmny=%v, n=%v, extra=%v, optwk=%v",
 		side, howmny, n, extra, optwork)
@@ -132,7 +133,7 @@ func testDtrevc3(t *testing.T, impl Dtrevc3er, side lapack.EVSide, howmny lapack
 		t.Errorf("%v: unexpected value of m. Want %v, got %v", prefix, mWant, m)
 	}
 
-	if howmny == lapack.SelectedEV {
+	if howmny == lapack.EVSelected {
 		for i := range selected {
 			if selected[i] != selectedWant[i] {
 				t.Errorf("%v: unexpected selected[%v]", prefix, i)
@@ -146,7 +147,7 @@ func testDtrevc3(t *testing.T, impl Dtrevc3er, side lapack.EVSide, howmny lapack
 	for j := 0; j < n; {
 		re := tmat.Data[j*tmat.Stride+j]
 		if j == n-1 || tmat.Data[(j+1)*tmat.Stride+j] == 0 {
-			if howmny == lapack.SelectedEV && !selected[j] {
+			if howmny == lapack.EVSelected && !selected[j] {
 				j++
 				continue
 			}
@@ -174,7 +175,7 @@ func testDtrevc3(t *testing.T, impl Dtrevc3er, side lapack.EVSide, howmny lapack
 			j++
 			continue
 		}
-		if howmny == lapack.SelectedEV && !selected[j] {
+		if howmny == lapack.EVSelected && !selected[j] {
 			j += 2
 			continue
 		}

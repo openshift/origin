@@ -206,16 +206,6 @@ func TestSilenceValidate(t *testing.T) {
 			},
 			err: "creator information missing",
 		},
-		{
-			sil: &Silence{
-				Matchers:  []*Matcher{},
-				StartsAt:  ts,
-				EndsAt:    ts,
-				CreatedAt: ts,
-				Comment:   "comment",
-			},
-			err: "at least one matcher required",
-		},
 	}
 
 	for i, c := range cases {

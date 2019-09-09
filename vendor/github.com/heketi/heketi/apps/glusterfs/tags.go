@@ -54,7 +54,7 @@ func ApplyTags(t Taggable, req api.TagsChangeRequest) {
 		if newTags == nil {
 			newTags = map[string]string{}
 		}
-		for k, _ := range req.Tags {
+		for k := range req.Tags {
 			delete(newTags, k)
 		}
 		t.SetTags(newTags)

@@ -34,14 +34,14 @@ var _ = Describe("Watch", func() {
 		err = os.MkdirAll(pathC, 0700)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		copyIn(filepath.Join("watch_fixtures", "A"), pathA)
-		copyIn(filepath.Join("watch_fixtures", "B"), pathB)
-		copyIn(filepath.Join("watch_fixtures", "C"), pathC)
+		copyIn(fixturePath(filepath.Join("watch_fixtures", "A")), pathA, false)
+		copyIn(fixturePath(filepath.Join("watch_fixtures", "B")), pathB, false)
+		copyIn(fixturePath(filepath.Join("watch_fixtures", "C")), pathC, false)
 	})
 
 	startGinkgoWithGopath := func(args ...string) *gexec.Session {
 		cmd := ginkgoCommand(rootPath, args...)
-		cmd.Env = append([]string{"GOPATH=" + rootPath + ":" + os.Getenv("GOPATH")}, os.Environ()...)
+		os.Setenv("GOPATH", rootPath+":"+os.Getenv("GOPATH"))
 		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 		return session
@@ -58,6 +58,10 @@ var _ = Describe("Watch", func() {
 
 	modifyCode := func(pkgToModify string) {
 		modifyFile(filepath.Join(rootPath, "src", "github.com", "onsi", pkgToModify, pkgToModify+".go"))
+	}
+
+	modifyJSON := func(pkgToModify string) {
+		modifyFile(filepath.Join(rootPath, "src", "github.com", "onsi", pkgToModify, pkgToModify+".json"))
 	}
 
 	modifyTest := func(pkgToModify string) {
@@ -207,6 +211,38 @@ var _ = Describe("Watch", func() {
 		})
 	})
 
+	Describe("adjusting the watch regular expression", func() {
+		Describe("the default regular expression", func() {
+			It("should only trigger when go files are changed", func() {
+				session = startGinkgoWithGopath("watch", "-succinct", "-r", "-depth=2")
+				Eventually(session).Should(gbytes.Say("Identified 3 test suites"))
+				Eventually(session).Should(gbytes.Say(`A \[2 dependencies\]`))
+				Eventually(session).Should(gbytes.Say(`B \[1 dependency\]`))
+				Eventually(session).Should(gbytes.Say(`C \[0 dependencies\]`))
+
+				modifyJSON("C")
+				Consistently(session).ShouldNot(gbytes.Say("Detected changes in"))
+				Consistently(session).ShouldNot(gbytes.Say("A Suite|B Suite|C Suite"))
+			})
+		})
+
+		Describe("modifying the regular expression", func() {
+			It("should trigger if the regexp matches", func() {
+				session = startGinkgoWithGopath("watch", "-succinct", "-r", "-depth=2", `-watchRegExp=\.json$`)
+				Eventually(session).Should(gbytes.Say("Identified 3 test suites"))
+				Eventually(session).Should(gbytes.Say(`A \[2 dependencies\]`))
+				Eventually(session).Should(gbytes.Say(`B \[1 dependency\]`))
+				Eventually(session).Should(gbytes.Say(`C \[0 dependencies\]`))
+
+				modifyJSON("C")
+				Eventually(session).Should(gbytes.Say("Detected changes in"))
+				Eventually(session).Should(gbytes.Say("C Suite"))
+				Eventually(session).Should(gbytes.Say("B Suite"))
+				Eventually(session).Should(gbytes.Say("A Suite"))
+			})
+		})
+	})
+
 	Describe("when new test suite is added", func() {
 		It("should start monitoring that test suite", func() {
 			session = startGinkgoWithGopath("watch", "-succinct", "-r")
@@ -218,7 +254,7 @@ var _ = Describe("Watch", func() {
 			err := os.MkdirAll(pathD, 0700)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			copyIn(filepath.Join("watch_fixtures", "D"), pathD)
+			copyIn(fixturePath(filepath.Join("watch_fixtures", "D")), pathD, false)
 
 			Eventually(session).Should(gbytes.Say("Detected 1 new suite"))
 			Eventually(session).Should(gbytes.Say(`D \[1 dependency\]`))

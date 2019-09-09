@@ -35,7 +35,7 @@ func (g Gamma) CDF(x float64) float64 {
 	if x < 0 {
 		return 0
 	}
-	return mathext.GammaInc(g.Alpha, g.Beta*x)
+	return mathext.GammaIncReg(g.Alpha, g.Beta*x)
 }
 
 // ExKurtosis returns the excess kurtosis of the distribution.
@@ -86,7 +86,7 @@ func (g Gamma) Quantile(p float64) float64 {
 	if p < 0 || p > 1 {
 		panic(badPercentile)
 	}
-	return mathext.GammaIncInv(g.Alpha, p) / g.Beta
+	return mathext.GammaIncRegInv(g.Alpha, p) / g.Beta
 }
 
 // Rand returns a random sample drawn from the distribution.
@@ -232,7 +232,7 @@ func (g Gamma) Survival(x float64) float64 {
 	if x < 0 {
 		return 1
 	}
-	return mathext.GammaIncComp(g.Alpha, g.Beta*x)
+	return mathext.GammaIncRegComp(g.Alpha, g.Beta*x)
 }
 
 // StdDev returns the standard deviation of the probability distribution.

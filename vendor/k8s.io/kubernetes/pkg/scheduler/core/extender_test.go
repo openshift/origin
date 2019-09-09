@@ -23,13 +23,16 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm/priorities"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
-	schedulerinternalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
+	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
+	internalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/internal/queue"
 	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	schedulertesting "k8s.io/kubernetes/pkg/scheduler/testing"
@@ -197,7 +200,7 @@ func (f *FakeExtender) selectVictimsOnNodeByExtender(
 	// and get cached node info by given node name.
 	nodeInfoCopy := f.cachedNodeNameToInfo[node.GetName()].Clone()
 
-	potentialVictims := util.SortableList{CompFunc: util.HigherPriorityPod}
+	potentialVictims := util.SortableList{CompFunc: util.MoreImportantPod}
 
 	removePod := func(rp *v1.Pod) {
 		nodeInfoCopy.RemovePod(rp)
@@ -530,11 +533,11 @@ func TestGenericSchedulerWithExtenders(t *testing.T) {
 			for ii := range test.extenders {
 				extenders = append(extenders, &test.extenders[ii])
 			}
-			cache := schedulerinternalcache.New(time.Duration(0), wait.NeverStop)
+			cache := internalcache.New(time.Duration(0), wait.NeverStop)
 			for _, name := range test.nodes {
 				cache.AddNode(createNode(name))
 			}
-			queue := internalqueue.NewSchedulingQueue(nil)
+			queue := internalqueue.NewSchedulingQueue(nil, nil)
 			scheduler := NewGenericScheduler(
 				cache,
 				queue,
@@ -542,16 +545,17 @@ func TestGenericSchedulerWithExtenders(t *testing.T) {
 				predicates.EmptyPredicateMetadataProducer,
 				test.prioritizers,
 				priorities.EmptyPriorityMetadataProducer,
-				emptyPluginSet,
+				emptyFramework,
 				extenders,
 				nil,
 				schedulertesting.FakePersistentVolumeClaimLister{},
 				schedulertesting.FakePDBLister{},
 				false,
 				false,
-				schedulerapi.DefaultPercentageOfNodesToScore)
+				schedulerapi.DefaultPercentageOfNodesToScore,
+				false)
 			podIgnored := &v1.Pod{}
-			result, err := scheduler.Schedule(podIgnored, schedulertesting.FakeNodeLister(makeNodeList(test.nodes)))
+			result, err := scheduler.Schedule(podIgnored, framework.NewPluginContext())
 			if test.expectsErr {
 				if err == nil {
 					t.Errorf("Unexpected non-error, result %+v", result)
@@ -572,4 +576,88 @@ func TestGenericSchedulerWithExtenders(t *testing.T) {
 
 func createNode(name string) *v1.Node {
 	return &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: name}}
+}
+
+func TestIsInterested(t *testing.T) {
+	mem := &HTTPExtender{
+		managedResources: sets.NewString(),
+	}
+	mem.managedResources.Insert("memory")
+
+	for _, tc := range []struct {
+		label    string
+		extender *HTTPExtender
+		pod      *v1.Pod
+		want     bool
+	}{
+		{
+			label: "Empty managed resources",
+			extender: &HTTPExtender{
+				managedResources: sets.NewString(),
+			},
+			pod:  &v1.Pod{},
+			want: true,
+		},
+		{
+			label:    "Managed memory, empty resources",
+			extender: mem,
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Name: "app",
+						},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			label:    "Managed memory, container memory",
+			extender: mem,
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Name: "app",
+							Resources: v1.ResourceRequirements{
+								Requests: v1.ResourceList{"memory": resource.Quantity{}},
+								Limits:   v1.ResourceList{"memory": resource.Quantity{}},
+							},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			label:    "Managed memory, init container memory",
+			extender: mem,
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Name: "app",
+						},
+					},
+					InitContainers: []v1.Container{
+						{
+							Name: "init",
+							Resources: v1.ResourceRequirements{
+								Requests: v1.ResourceList{"memory": resource.Quantity{}},
+								Limits:   v1.ResourceList{"memory": resource.Quantity{}},
+							},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+	} {
+		t.Run(tc.label, func(t *testing.T) {
+			if got := tc.extender.IsInterested(tc.pod); got != tc.want {
+				t.Fatalf("IsInterested(%v) = %v, wanted %v", tc.pod, got, tc.want)
+			}
+		})
+	}
 }

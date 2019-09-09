@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -36,12 +37,22 @@ func NewVersionsClient(endpoint string) VersionsClient {
 	return VersionsClient{New(endpoint)}
 }
 
-// Clone creates a new version using the current snapshot of the selected application version.
+// Clone creates a new version from the selected version.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // versionCloneObject - a model containing the new version ID.
-func (client VersionsClient) Clone(ctx context.Context, appID uuid.UUID, versionID string, versionCloneObject *TaskUpdateObject) (result String, err error) {
+func (client VersionsClient) Clone(ctx context.Context, appID uuid.UUID, versionID string, versionCloneObject TaskUpdateObject) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VersionsClient.Clone")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ClonePreparer(ctx, appID, versionID, versionCloneObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.VersionsClient", "Clone", nil, "Failure preparing request")
@@ -64,7 +75,7 @@ func (client VersionsClient) Clone(ctx context.Context, appID uuid.UUID, version
 }
 
 // ClonePreparer prepares the Clone request.
-func (client VersionsClient) ClonePreparer(ctx context.Context, appID uuid.UUID, versionID string, versionCloneObject *TaskUpdateObject) (*http.Request, error) {
+func (client VersionsClient) ClonePreparer(ctx context.Context, appID uuid.UUID, versionID string, versionCloneObject TaskUpdateObject) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -78,19 +89,16 @@ func (client VersionsClient) ClonePreparer(ctx context.Context, appID uuid.UUID,
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/clone", pathParameters))
-	if versionCloneObject != nil {
-		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithJSON(versionCloneObject))
-	}
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/clone", pathParameters),
+		autorest.WithJSON(versionCloneObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // CloneSender sends the Clone request. The method will close the
 // http.Response Body if it receives an error.
 func (client VersionsClient) CloneSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CloneResponder handles the response to the Clone request. The method always
@@ -111,6 +119,16 @@ func (client VersionsClient) CloneResponder(resp *http.Response) (result String,
 // appID - the application ID.
 // versionID - the version ID.
 func (client VersionsClient) Delete(ctx context.Context, appID uuid.UUID, versionID string) (result OperationStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VersionsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, appID, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.VersionsClient", "Delete", nil, "Failure preparing request")
@@ -153,8 +171,8 @@ func (client VersionsClient) DeletePreparer(ctx context.Context, appID uuid.UUID
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client VersionsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -170,12 +188,22 @@ func (client VersionsClient) DeleteResponder(resp *http.Response) (result Operat
 	return
 }
 
-// DeleteUnlabelledUtterance deleted an unlabelled utterance.
+// DeleteUnlabelledUtterance deleted an unlabelled utterance in a version of the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // utterance - the utterance text to delete.
 func (client VersionsClient) DeleteUnlabelledUtterance(ctx context.Context, appID uuid.UUID, versionID string, utterance string) (result OperationStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VersionsClient.DeleteUnlabelledUtterance")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeleteUnlabelledUtterancePreparer(ctx, appID, versionID, utterance)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.VersionsClient", "DeleteUnlabelledUtterance", nil, "Failure preparing request")
@@ -220,8 +248,8 @@ func (client VersionsClient) DeleteUnlabelledUtterancePreparer(ctx context.Conte
 // DeleteUnlabelledUtteranceSender sends the DeleteUnlabelledUtterance request. The method will close the
 // http.Response Body if it receives an error.
 func (client VersionsClient) DeleteUnlabelledUtteranceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteUnlabelledUtteranceResponder handles the response to the DeleteUnlabelledUtterance request. The method always
@@ -242,6 +270,16 @@ func (client VersionsClient) DeleteUnlabelledUtteranceResponder(resp *http.Respo
 // appID - the application ID.
 // versionID - the version ID.
 func (client VersionsClient) Export(ctx context.Context, appID uuid.UUID, versionID string) (result LuisApp, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VersionsClient.Export")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ExportPreparer(ctx, appID, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.VersionsClient", "Export", nil, "Failure preparing request")
@@ -284,8 +322,8 @@ func (client VersionsClient) ExportPreparer(ctx context.Context, appID uuid.UUID
 // ExportSender sends the Export request. The method will close the
 // http.Response Body if it receives an error.
 func (client VersionsClient) ExportSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ExportResponder handles the response to the Export request. The method always
@@ -301,11 +339,22 @@ func (client VersionsClient) ExportResponder(resp *http.Response) (result LuisAp
 	return
 }
 
-// Get gets the version info.
+// Get gets the version information such as date created, last modified date, endpoint URL, count of intents and
+// entities, training and publishing status.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 func (client VersionsClient) Get(ctx context.Context, appID uuid.UUID, versionID string) (result VersionInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VersionsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, appID, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.VersionsClient", "Get", nil, "Failure preparing request")
@@ -348,8 +397,8 @@ func (client VersionsClient) GetPreparer(ctx context.Context, appID uuid.UUID, v
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client VersionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -372,6 +421,16 @@ func (client VersionsClient) GetResponder(resp *http.Response) (result VersionIn
 // versionID - the new versionId to import. If not specified, the versionId will be read from the imported
 // object.
 func (client VersionsClient) Import(ctx context.Context, appID uuid.UUID, luisApp LuisApp, versionID string) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VersionsClient.Import")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ImportPreparer(ctx, appID, luisApp, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.VersionsClient", "Import", nil, "Failure preparing request")
@@ -421,8 +480,8 @@ func (client VersionsClient) ImportPreparer(ctx context.Context, appID uuid.UUID
 // ImportSender sends the Import request. The method will close the
 // http.Response Body if it receives an error.
 func (client VersionsClient) ImportSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ImportResponder handles the response to the Import request. The method always
@@ -438,12 +497,22 @@ func (client VersionsClient) ImportResponder(resp *http.Response) (result String
 	return
 }
 
-// List gets the application versions info.
+// List gets a list of versions for this application ID.
 // Parameters:
 // appID - the application ID.
 // skip - the number of entries to skip. Default value is 0.
 // take - the number of entries to return. Maximum page size is 500. Default is 100.
 func (client VersionsClient) List(ctx context.Context, appID uuid.UUID, skip *int32, take *int32) (result ListVersionInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VersionsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: skip,
 			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
@@ -510,8 +579,8 @@ func (client VersionsClient) ListPreparer(ctx context.Context, appID uuid.UUID, 
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client VersionsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -533,6 +602,16 @@ func (client VersionsClient) ListResponder(resp *http.Response) (result ListVers
 // versionID - the version ID.
 // versionUpdateObject - a model containing Name and Description of the application.
 func (client VersionsClient) Update(ctx context.Context, appID uuid.UUID, versionID string, versionUpdateObject TaskUpdateObject) (result OperationStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VersionsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, appID, versionID, versionUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.VersionsClient", "Update", nil, "Failure preparing request")
@@ -577,8 +656,8 @@ func (client VersionsClient) UpdatePreparer(ctx context.Context, appID uuid.UUID
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client VersionsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

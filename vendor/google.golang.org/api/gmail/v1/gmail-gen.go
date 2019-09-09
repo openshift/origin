@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package gmail provides access to the Gmail API.
 //
-// See https://developers.google.com/gmail/api/
+// For product documentation, see: https://developers.google.com/gmail/api/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/gmail/v1"
 //   ...
-//   gmailService, err := gmail.New(oauthHttpClient)
+//   ctx := context.Background()
+//   gmailService, err := gmail.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   gmailService, err := gmail.NewService(ctx, option.WithScopes(gmail.GmailSettingsSharingScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   gmailService, err := gmail.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   gmailService, err := gmail.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package gmail // import "google.golang.org/api/gmail/v1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -85,6 +113,41 @@ const (
 	GmailSettingsSharingScope = "https://www.googleapis.com/auth/gmail.settings.sharing"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://mail.google.com/",
+		"https://www.googleapis.com/auth/gmail.compose",
+		"https://www.googleapis.com/auth/gmail.insert",
+		"https://www.googleapis.com/auth/gmail.labels",
+		"https://www.googleapis.com/auth/gmail.metadata",
+		"https://www.googleapis.com/auth/gmail.modify",
+		"https://www.googleapis.com/auth/gmail.readonly",
+		"https://www.googleapis.com/auth/gmail.send",
+		"https://www.googleapis.com/auth/gmail.settings.basic",
+		"https://www.googleapis.com/auth/gmail.settings.sharing",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -947,7 +1010,12 @@ type LabelColor struct {
 	// #f2c960, #149e60, #3dc789, #3c78d8, #8e63ce, #e07798, #ac2b16,
 	// #cf8933, #d5ae49, #0b804b, #2a9c68, #285bac, #653e9b, #b65775,
 	// #822111, #a46a21, #aa8831, #076239, #1a764d, #1c4587, #41236d,
-	// #83334c
+	// #83334c #464646, #e7e7e7, #0d3472, #b6cff5, #0d3b44, #98d7e4,
+	// #3d188e, #e3d7ff, #711a36, #fbd3e0, #8a1c0a, #f2b2a8, #7a2e0b,
+	// #ffc8af, #7a4706, #ffdeb5, #594c05, #fbe983, #684e07, #fdedc1,
+	// #0b4f30, #b3efd3, #04502e, #a2dcc1, #c2c2c2, #4986e7, #2da2bb,
+	// #b99aff, #994a64, #f691b2, #ff7537, #ffad46, #662e37, #ebdbde,
+	// #cca6ac, #094228, #42d692, #16a765
 	BackgroundColor string `json:"backgroundColor,omitempty"`
 
 	// TextColor: The text color of the label, represented as hex string.
@@ -962,7 +1030,12 @@ type LabelColor struct {
 	// #f2c960, #149e60, #3dc789, #3c78d8, #8e63ce, #e07798, #ac2b16,
 	// #cf8933, #d5ae49, #0b804b, #2a9c68, #285bac, #653e9b, #b65775,
 	// #822111, #a46a21, #aa8831, #076239, #1a764d, #1c4587, #41236d,
-	// #83334c
+	// #83334c #464646, #e7e7e7, #0d3472, #b6cff5, #0d3b44, #98d7e4,
+	// #3d188e, #e3d7ff, #711a36, #fbd3e0, #8a1c0a, #f2b2a8, #7a2e0b,
+	// #ffc8af, #7a4706, #ffdeb5, #594c05, #fbe983, #684e07, #fdedc1,
+	// #0b4f30, #b3efd3, #04502e, #a2dcc1, #c2c2c2, #4986e7, #2da2bb,
+	// #b99aff, #994a64, #f691b2, #ff7537, #ffad46, #662e37, #ebdbde,
+	// #cca6ac, #094228, #42d692, #16a765
 	TextColor string `json:"textColor,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "BackgroundColor") to
@@ -985,6 +1058,53 @@ type LabelColor struct {
 
 func (s *LabelColor) MarshalJSON() ([]byte, error) {
 	type NoMethod LabelColor
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// LanguageSettings: Language settings for an account. These settings
+// correspond to the "Language settings" feature in the web interface.
+type LanguageSettings struct {
+	// DisplayLanguage: The language to display Gmail in, formatted as an
+	// RFC 3066 Language Tag (for example en-GB, fr or ja for British
+	// English, French, or Japanese respectively).
+	//
+	// The set of languages supported by Gmail evolves over time, so please
+	// refer to the "Language" dropdown in the Gmail settings  for all
+	// available options, as described in the language settings help
+	// article. A table of sample values is also provided in the Managing
+	// Language Settings guide
+	//
+	// Not all Gmail clients can display the same set of languages. In the
+	// case that a user's display language is not available for use on a
+	// particular client, said client automatically chooses to display in
+	// the closest supported variant (or a reasonable default).
+	DisplayLanguage string `json:"displayLanguage,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "DisplayLanguage") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DisplayLanguage") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *LanguageSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod LanguageSettings
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1198,7 +1318,9 @@ func (s *ListLabelsResponse) MarshalJSON() ([]byte, error) {
 }
 
 type ListMessagesResponse struct {
-	// Messages: List of messages.
+	// Messages: List of messages. Note that each message resource contains
+	// only an id and a threadId. Additional message details can be fetched
+	// using the messages.get method.
 	Messages []*Message `json:"messages,omitempty"`
 
 	// NextPageToken: Token to retrieve the next page of results in the
@@ -1306,7 +1428,9 @@ type ListThreadsResponse struct {
 	// ResultSizeEstimate: Estimated total number of results.
 	ResultSizeEstimate int64 `json:"resultSizeEstimate,omitempty"`
 
-	// Threads: List of threads.
+	// Threads: List of threads. Note that each thread resource does not
+	// contain a list of messages. The list of messages for a given thread
+	// can be fetched using the threads.get method.
 	Threads []*Thread `json:"threads,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -2592,7 +2716,7 @@ func (c *UsersDraftsCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": c.userId,
 	})
@@ -3336,7 +3460,7 @@ func (c *UsersDraftsSendCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": c.userId,
 	})
@@ -3563,7 +3687,7 @@ func (c *UsersDraftsUpdateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
@@ -5481,7 +5605,7 @@ func (c *UsersMessagesImportCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": c.userId,
 	})
@@ -5759,7 +5883,7 @@ func (c *UsersMessagesInsertCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": c.userId,
 	})
@@ -6387,7 +6511,7 @@ func (c *UsersMessagesSendCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": c.userId,
 	})
@@ -7231,6 +7355,151 @@ func (c *UsersSettingsGetImapCall) Do(opts ...googleapi.CallOption) (*ImapSettin
 
 }
 
+// method id "gmail.users.settings.getLanguage":
+
+type UsersSettingsGetLanguageCall struct {
+	s            *Service
+	userId       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetLanguage: Gets language settings.
+func (r *UsersSettingsService) GetLanguage(userId string) *UsersSettingsGetLanguageCall {
+	c := &UsersSettingsGetLanguageCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.userId = userId
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *UsersSettingsGetLanguageCall) Fields(s ...googleapi.Field) *UsersSettingsGetLanguageCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *UsersSettingsGetLanguageCall) IfNoneMatch(entityTag string) *UsersSettingsGetLanguageCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *UsersSettingsGetLanguageCall) Context(ctx context.Context) *UsersSettingsGetLanguageCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *UsersSettingsGetLanguageCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *UsersSettingsGetLanguageCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/settings/language")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"userId": c.userId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "gmail.users.settings.getLanguage" call.
+// Exactly one of *LanguageSettings or error will be non-nil. Any
+// non-2xx status code is an error. Response headers are in either
+// *LanguageSettings.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *UsersSettingsGetLanguageCall) Do(opts ...googleapi.CallOption) (*LanguageSettings, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &LanguageSettings{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Gets language settings.",
+	//   "httpMethod": "GET",
+	//   "id": "gmail.users.settings.getLanguage",
+	//   "parameterOrder": [
+	//     "userId"
+	//   ],
+	//   "parameters": {
+	//     "userId": {
+	//       "default": "me",
+	//       "description": "User's email address. The special value \"me\" can be used to indicate the authenticated user.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "{userId}/settings/language",
+	//   "response": {
+	//     "$ref": "LanguageSettings"
+	//   },
+	//   "scopes": [
+	//     "https://mail.google.com/",
+	//     "https://www.googleapis.com/auth/gmail.modify",
+	//     "https://www.googleapis.com/auth/gmail.readonly",
+	//     "https://www.googleapis.com/auth/gmail.settings.basic"
+	//   ]
+	// }
+
+}
+
 // method id "gmail.users.settings.getPop":
 
 type UsersSettingsGetPopCall struct {
@@ -7794,6 +8063,150 @@ func (c *UsersSettingsUpdateImapCall) Do(opts ...googleapi.CallOption) (*ImapSet
 	//   },
 	//   "response": {
 	//     "$ref": "ImapSettings"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/gmail.settings.basic"
+	//   ]
+	// }
+
+}
+
+// method id "gmail.users.settings.updateLanguage":
+
+type UsersSettingsUpdateLanguageCall struct {
+	s                *Service
+	userId           string
+	languagesettings *LanguageSettings
+	urlParams_       gensupport.URLParams
+	ctx_             context.Context
+	header_          http.Header
+}
+
+// UpdateLanguage: Updates language settings.
+//
+// If successful, the return object contains the displayLanguage that
+// was saved for the user, which may differ from the value passed into
+// the request. This is because the requested displayLanguage may not be
+// directly supported by Gmail but have a close variant that is, and so
+// the variant may be chosen and saved instead.
+func (r *UsersSettingsService) UpdateLanguage(userId string, languagesettings *LanguageSettings) *UsersSettingsUpdateLanguageCall {
+	c := &UsersSettingsUpdateLanguageCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.userId = userId
+	c.languagesettings = languagesettings
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *UsersSettingsUpdateLanguageCall) Fields(s ...googleapi.Field) *UsersSettingsUpdateLanguageCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *UsersSettingsUpdateLanguageCall) Context(ctx context.Context) *UsersSettingsUpdateLanguageCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *UsersSettingsUpdateLanguageCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *UsersSettingsUpdateLanguageCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.languagesettings)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/settings/language")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PUT", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"userId": c.userId,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "gmail.users.settings.updateLanguage" call.
+// Exactly one of *LanguageSettings or error will be non-nil. Any
+// non-2xx status code is an error. Response headers are in either
+// *LanguageSettings.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *UsersSettingsUpdateLanguageCall) Do(opts ...googleapi.CallOption) (*LanguageSettings, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &LanguageSettings{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Updates language settings.\n\nIf successful, the return object contains the displayLanguage that was saved for the user, which may differ from the value passed into the request. This is because the requested displayLanguage may not be directly supported by Gmail but have a close variant that is, and so the variant may be chosen and saved instead.",
+	//   "httpMethod": "PUT",
+	//   "id": "gmail.users.settings.updateLanguage",
+	//   "parameterOrder": [
+	//     "userId"
+	//   ],
+	//   "parameters": {
+	//     "userId": {
+	//       "default": "me",
+	//       "description": "User's email address. The special value \"me\" can be used to indicate the authenticated user.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "{userId}/settings/language",
+	//   "request": {
+	//     "$ref": "LanguageSettings"
+	//   },
+	//   "response": {
+	//     "$ref": "LanguageSettings"
 	//   },
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/gmail.settings.basic"

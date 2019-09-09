@@ -32,5 +32,5 @@ regenerate:
 	cp header.proto theproto3.proto
 	cat maps.proto >> theproto3.proto
 	cat footer.proto >> theproto3.proto
-	protoc-gen-combo --version="3.0.0" --gogo_out=. --proto_path=../../../../../:../../protobuf/:. theproto3.proto
+	protoc-gen-combo --version="3.0.0" --gogo_out=. --proto_path=../../protobuf/:../../../../../:. theproto3.proto
 	find combos -type d -not -name combos -exec cp proto3_test.go.in {}/proto3_test.go \;

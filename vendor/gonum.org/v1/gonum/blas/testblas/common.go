@@ -9,7 +9,9 @@ import (
 	"math/cmplx"
 	"testing"
 
+	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/blas"
+	"gonum.org/v1/gonum/floats"
 )
 
 // throwPanic will throw unexpected panics if true, or will just report them as errors if false
@@ -522,4 +524,205 @@ func zPackTriBand(k, ldab int, uplo blas.Uplo, n int, a []complex128, lda int) [
 		}
 	}
 	return ab
+}
+
+// zEqualApprox returns whether the slices a and b are approximately equal.
+func zEqualApprox(a, b []complex128, tol float64) bool {
+	if len(a) != len(b) {
+		panic("mismatched slice length")
+	}
+	for i, ai := range a {
+		if !floats.EqualWithinAbs(cmplx.Abs(ai), cmplx.Abs(b[i]), tol) {
+			return false
+		}
+	}
+	return true
+}
+
+// rndComplex128 returns a complex128 with random components.
+func rndComplex128(rnd *rand.Rand) complex128 {
+	return complex(rnd.NormFloat64(), rnd.NormFloat64())
+}
+
+// zmm returns the result of one of the matrix-matrix operations
+//  alpha * op(A) * op(B) + beta * C
+// where op(X) is one of
+//  op(X) = X  or  op(X) = X^T  or  op(X) = X^H,
+// alpha and beta are scalars, and A, B and C are matrices, with op(A) an m×k matrix,
+// op(B) a k×n matrix and C an m×n matrix.
+//
+// The returned slice is newly allocated, has the same length as c and the
+// matrix it represents has the stride ldc. Out-of-range elements are equal to
+// those of C to ease comparison of results from BLAS Level 3 functions.
+func zmm(tA, tB blas.Transpose, m, n, k int, alpha complex128, a []complex128, lda int, b []complex128, ldb int, beta complex128, c []complex128, ldc int) []complex128 {
+	r := make([]complex128, len(c))
+	copy(r, c)
+	for i := 0; i < m; i++ {
+		for j := 0; j < n; j++ {
+			r[i*ldc+j] = 0
+		}
+	}
+	switch tA {
+	case blas.NoTrans:
+		switch tB {
+		case blas.NoTrans:
+			for i := 0; i < m; i++ {
+				for j := 0; j < n; j++ {
+					for l := 0; l < k; l++ {
+						r[i*ldc+j] += a[i*lda+l] * b[l*ldb+j]
+					}
+				}
+			}
+		case blas.Trans:
+			for i := 0; i < m; i++ {
+				for j := 0; j < n; j++ {
+					for l := 0; l < k; l++ {
+						r[i*ldc+j] += a[i*lda+l] * b[j*ldb+l]
+					}
+				}
+			}
+		case blas.ConjTrans:
+			for i := 0; i < m; i++ {
+				for j := 0; j < n; j++ {
+					for l := 0; l < k; l++ {
+						r[i*ldc+j] += a[i*lda+l] * cmplx.Conj(b[j*ldb+l])
+					}
+				}
+			}
+		}
+	case blas.Trans:
+		switch tB {
+		case blas.NoTrans:
+			for i := 0; i < m; i++ {
+				for j := 0; j < n; j++ {
+					for l := 0; l < k; l++ {
+						r[i*ldc+j] += a[l*lda+i] * b[l*ldb+j]
+					}
+				}
+			}
+		case blas.Trans:
+			for i := 0; i < m; i++ {
+				for j := 0; j < n; j++ {
+					for l := 0; l < k; l++ {
+						r[i*ldc+j] += a[l*lda+i] * b[j*ldb+l]
+					}
+				}
+			}
+		case blas.ConjTrans:
+			for i := 0; i < m; i++ {
+				for j := 0; j < n; j++ {
+					for l := 0; l < k; l++ {
+						r[i*ldc+j] += a[l*lda+i] * cmplx.Conj(b[j*ldb+l])
+					}
+				}
+			}
+		}
+	case blas.ConjTrans:
+		switch tB {
+		case blas.NoTrans:
+			for i := 0; i < m; i++ {
+				for j := 0; j < n; j++ {
+					for l := 0; l < k; l++ {
+						r[i*ldc+j] += cmplx.Conj(a[l*lda+i]) * b[l*ldb+j]
+					}
+				}
+			}
+		case blas.Trans:
+			for i := 0; i < m; i++ {
+				for j := 0; j < n; j++ {
+					for l := 0; l < k; l++ {
+						r[i*ldc+j] += cmplx.Conj(a[l*lda+i]) * b[j*ldb+l]
+					}
+				}
+			}
+		case blas.ConjTrans:
+			for i := 0; i < m; i++ {
+				for j := 0; j < n; j++ {
+					for l := 0; l < k; l++ {
+						r[i*ldc+j] += cmplx.Conj(a[l*lda+i]) * cmplx.Conj(b[j*ldb+l])
+					}
+				}
+			}
+		}
+	}
+	for i := 0; i < m; i++ {
+		for j := 0; j < n; j++ {
+			r[i*ldc+j] = alpha*r[i*ldc+j] + beta*c[i*ldc+j]
+		}
+	}
+	return r
+}
+
+// transString returns a string representation of blas.Transpose.
+func transString(t blas.Transpose) string {
+	switch t {
+	case blas.NoTrans:
+		return "NoTrans"
+	case blas.Trans:
+		return "Trans"
+	case blas.ConjTrans:
+		return "ConjTrans"
+	}
+	return "unknown trans"
+}
+
+// uploString returns a string representation of blas.Uplo.
+func uploString(uplo blas.Uplo) string {
+	switch uplo {
+	case blas.Lower:
+		return "Lower"
+	case blas.Upper:
+		return "Upper"
+	}
+	return "unknown uplo"
+}
+
+// sideString returns a string representation of blas.Side.
+func sideString(side blas.Side) string {
+	switch side {
+	case blas.Left:
+		return "Left"
+	case blas.Right:
+		return "Right"
+	}
+	return "unknown side"
+}
+
+// diagString returns a string representation of blas.Diag.
+func diagString(diag blas.Diag) string {
+	switch diag {
+	case blas.Unit:
+		return "Unit"
+	case blas.NonUnit:
+		return "NonUnit"
+	}
+	return "unknown diag"
+}
+
+// zSameLowerTri returns whether n×n matrices A and B are same under the diagonal.
+func zSameLowerTri(n int, a []complex128, lda int, b []complex128, ldb int) bool {
+	for i := 1; i < n; i++ {
+		for j := 0; j < i; j++ {
+			aij := a[i*lda+j]
+			bij := b[i*ldb+j]
+			if !sameComplex128(aij, bij) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// zSameUpperTri returns whether n×n matrices A and B are same above the diagonal.
+func zSameUpperTri(n int, a []complex128, lda int, b []complex128, ldb int) bool {
+	for i := 0; i < n-1; i++ {
+		for j := i + 1; j < n; j++ {
+			aij := a[i*lda+j]
+			bij := b[i*ldb+j]
+			if !sameComplex128(aij, bij) {
+				return false
+			}
+		}
+	}
+	return true
 }

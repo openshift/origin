@@ -14,6 +14,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/controller:go_default_library",
+        "//pkg/controller/certificates/csrsuicider:go_default_library",
         "//staging/src/k8s.io/api/certificates/v1beta1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/api/errors:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
@@ -43,6 +44,7 @@ filegroup(
         ":package-srcs",
         "//pkg/controller/certificates/approver:all-srcs",
         "//pkg/controller/certificates/cleaner:all-srcs",
+        "//pkg/controller/certificates/csrsuicider:all-srcs",
         "//pkg/controller/certificates/rootcacertpublisher:all-srcs",
         "//pkg/controller/certificates/signer:all-srcs",
     ],

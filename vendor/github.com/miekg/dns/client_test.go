@@ -1,19 +1,44 @@
 package dns
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestDialUDP(t *testing.T) {
+	HandleFunc("miek.nl.", HelloServer)
+	defer HandleRemove("miek.nl.")
+
+	s, addrstr, err := RunLocalUDPServer(":0")
+	if err != nil {
+		t.Fatalf("unable to run test server: %v", err)
+	}
+	defer s.Shutdown()
+
+	m := new(Msg)
+	m.SetQuestion("miek.nl.", TypeSOA)
+
+	c := new(Client)
+	conn, err := c.Dial(addrstr)
+	if err != nil {
+		t.Fatalf("failed to dial: %v", err)
+	}
+	if conn == nil {
+		t.Fatalf("conn is nil")
+	}
+}
 
 func TestClientSync(t *testing.T) {
 	HandleFunc("miek.nl.", HelloServer)
 	defer HandleRemove("miek.nl.")
 
-	s, addrstr, err := RunLocalUDPServer("127.0.0.1:0")
+	s, addrstr, err := RunLocalUDPServer(":0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
@@ -25,9 +50,12 @@ func TestClientSync(t *testing.T) {
 	c := new(Client)
 	r, _, err := c.Exchange(m, addrstr)
 	if err != nil {
-		t.Errorf("failed to exchange: %v", err)
+		t.Fatalf("failed to exchange: %v", err)
 	}
-	if r != nil && r.Rcode != RcodeSuccess {
+	if r == nil {
+		t.Fatal("response is nil")
+	}
+	if r.Rcode != RcodeSuccess {
 		t.Errorf("failed to get an valid answer\n%v", r)
 	}
 	// And now with plain Exchange().
@@ -40,7 +68,42 @@ func TestClientSync(t *testing.T) {
 	}
 }
 
-func TestClientTLSSync(t *testing.T) {
+func TestClientLocalAddress(t *testing.T) {
+	HandleFunc("miek.nl.", HelloServerEchoAddrPort)
+	defer HandleRemove("miek.nl.")
+
+	s, addrstr, err := RunLocalUDPServer(":0")
+	if err != nil {
+		t.Fatalf("unable to run test server: %v", err)
+	}
+	defer s.Shutdown()
+
+	m := new(Msg)
+	m.SetQuestion("miek.nl.", TypeSOA)
+
+	c := new(Client)
+	laddr := net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: 12345, Zone: ""}
+	c.Dialer = &net.Dialer{LocalAddr: &laddr}
+	r, _, err := c.Exchange(m, addrstr)
+	if err != nil {
+		t.Fatalf("failed to exchange: %v", err)
+	}
+	if r != nil && r.Rcode != RcodeSuccess {
+		t.Errorf("failed to get an valid answer\n%v", r)
+	}
+	if len(r.Extra) != 1 {
+		t.Fatalf("failed to get additional answers\n%v", r)
+	}
+	txt := r.Extra[0].(*TXT)
+	if txt == nil {
+		t.Errorf("invalid TXT response\n%v", txt)
+	}
+	if len(txt.Txt) != 1 || !strings.Contains(txt.Txt[0], ":12345") {
+		t.Errorf("invalid TXT response\n%v", txt.Txt)
+	}
+}
+
+func TestClientTLSSyncV4(t *testing.T) {
 	HandleFunc("miek.nl.", HelloServer)
 	defer HandleRemove("miek.nl.")
 
@@ -53,7 +116,7 @@ func TestClientTLSSync(t *testing.T) {
 		Certificates: []tls.Certificate{cert},
 	}
 
-	s, addrstr, err := RunLocalTLSServer("127.0.0.1:0", &config)
+	s, addrstr, err := RunLocalTLSServer(":0", &config)
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
@@ -63,6 +126,8 @@ func TestClientTLSSync(t *testing.T) {
 	m.SetQuestion("miek.nl.", TypeSOA)
 
 	c := new(Client)
+
+	// test tcp-tls
 	c.Net = "tcp-tls"
 	c.TLSConfig = &tls.Config{
 		InsecureSkipVerify: true,
@@ -70,18 +135,38 @@ func TestClientTLSSync(t *testing.T) {
 
 	r, _, err := c.Exchange(m, addrstr)
 	if err != nil {
-		t.Errorf("failed to exchange: %v", err)
+		t.Fatalf("failed to exchange: %v", err)
 	}
-	if r != nil && r.Rcode != RcodeSuccess {
+	if r == nil {
+		t.Fatal("response is nil")
+	}
+	if r.Rcode != RcodeSuccess {
+		t.Errorf("failed to get an valid answer\n%v", r)
+	}
+
+	// test tcp4-tls
+	c.Net = "tcp4-tls"
+	c.TLSConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	r, _, err = c.Exchange(m, addrstr)
+	if err != nil {
+		t.Fatalf("failed to exchange: %v", err)
+	}
+	if r == nil {
+		t.Fatal("response is nil")
+	}
+	if r.Rcode != RcodeSuccess {
 		t.Errorf("failed to get an valid answer\n%v", r)
 	}
 }
 
-func TestClientSyncBadId(t *testing.T) {
-	HandleFunc("miek.nl.", HelloServerBadId)
+func TestClientSyncBadID(t *testing.T) {
+	HandleFunc("miek.nl.", HelloServerBadID)
 	defer HandleRemove("miek.nl.")
 
-	s, addrstr, err := RunLocalUDPServer("127.0.0.1:0")
+	s, addrstr, err := RunLocalUDPServer(":0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
@@ -104,7 +189,7 @@ func TestClientEDNS0(t *testing.T) {
 	HandleFunc("miek.nl.", HelloServer)
 	defer HandleRemove("miek.nl.")
 
-	s, addrstr, err := RunLocalUDPServer("127.0.0.1:0")
+	s, addrstr, err := RunLocalUDPServer(":0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
@@ -118,11 +203,11 @@ func TestClientEDNS0(t *testing.T) {
 	c := new(Client)
 	r, _, err := c.Exchange(m, addrstr)
 	if err != nil {
-		t.Errorf("failed to exchange: %v", err)
+		t.Fatalf("failed to exchange: %v", err)
 	}
 
 	if r != nil && r.Rcode != RcodeSuccess {
-		t.Errorf("failed to get an valid answer\n%v", r)
+		t.Errorf("failed to get a valid answer\n%v", r)
 	}
 }
 
@@ -151,7 +236,7 @@ func TestClientEDNS0Local(t *testing.T) {
 	HandleFunc("miek.nl.", handler)
 	defer HandleRemove("miek.nl.")
 
-	s, addrstr, err := RunLocalUDPServer("127.0.0.1:0")
+	s, addrstr, err := RunLocalUDPServer(":0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %s", err)
 	}
@@ -169,12 +254,14 @@ func TestClientEDNS0Local(t *testing.T) {
 	c := new(Client)
 	r, _, err := c.Exchange(m, addrstr)
 	if err != nil {
-		t.Errorf("failed to exchange: %s", err)
+		t.Fatalf("failed to exchange: %s", err)
 	}
 
-	if r != nil && r.Rcode != RcodeSuccess {
-		t.Error("failed to get a valid answer")
-		t.Logf("%v\n", r)
+	if r == nil {
+		t.Fatal("response is nil")
+	}
+	if r.Rcode != RcodeSuccess {
+		t.Fatal("failed to get a valid answer")
 	}
 
 	txt := r.Extra[0].(*TXT).Txt[0]
@@ -186,41 +273,11 @@ func TestClientEDNS0Local(t *testing.T) {
 	got := r.Extra[1].(*OPT).Option[0].(*EDNS0_LOCAL).String()
 	if got != optStr1 {
 		t.Errorf("failed to get local edns0 answer; got %s, expected %s", got, optStr1)
-		t.Logf("%v\n", r)
 	}
 
 	got = r.Extra[1].(*OPT).Option[1].(*EDNS0_LOCAL).String()
 	if got != optStr2 {
 		t.Errorf("failed to get local edns0 answer; got %s, expected %s", got, optStr2)
-		t.Logf("%v\n", r)
-	}
-}
-
-// ExampleTsigSecret_updateLeaseTSIG shows how to update a lease signed with TSIG
-func ExampleTsigSecret_updateLeaseTSIG() {
-	m := new(Msg)
-	m.SetUpdate("t.local.ip6.io.")
-	rr, _ := NewRR("t.local.ip6.io. 30 A 127.0.0.1")
-	rrs := make([]RR, 1)
-	rrs[0] = rr
-	m.Insert(rrs)
-
-	leaseRr := new(OPT)
-	leaseRr.Hdr.Name = "."
-	leaseRr.Hdr.Rrtype = TypeOPT
-	e := new(EDNS0_UL)
-	e.Code = EDNS0UL
-	e.Lease = 120
-	leaseRr.Option = append(leaseRr.Option, e)
-	m.Extra = append(m.Extra, leaseRr)
-
-	c := new(Client)
-	m.SetTsig("polvi.", HmacMD5, 300, time.Now().Unix())
-	c.TsigSecret = map[string]string{"polvi.": "pRZgBrBvI4NAHZYhxmhs/Q=="}
-
-	_, _, err := c.Exchange(m, "127.0.0.1:53")
-	if err != nil {
-		panic(err)
 	}
 }
 
@@ -229,7 +286,7 @@ func TestClientConn(t *testing.T) {
 	defer HandleRemove("miek.nl.")
 
 	// This uses TCP just to make it slightly different than TestClientSync
-	s, addrstr, err := RunLocalTCPServer("127.0.0.1:0")
+	s, addrstr, err := RunLocalTCPServer(":0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
@@ -248,6 +305,9 @@ func TestClientConn(t *testing.T) {
 		t.Errorf("failed to exchange: %v", err)
 	}
 	r, err := cn.ReadMsg()
+	if err != nil {
+		t.Errorf("failed to get a valid answer: %v", err)
+	}
 	if r == nil || r.Rcode != RcodeSuccess {
 		t.Errorf("failed to get an valid answer\n%v", r)
 	}
@@ -260,6 +320,9 @@ func TestClientConn(t *testing.T) {
 	buf, err := cn.ReadMsgHeader(h)
 	if buf == nil {
 		t.Errorf("failed to get an valid answer\n%v", r)
+	}
+	if err != nil {
+		t.Errorf("failed to get a valid answer: %v", err)
 	}
 	if int(h.Bits&0xF) != RcodeSuccess {
 		t.Errorf("failed to get an valid answer in ReadMsgHeader\n%v", r)
@@ -309,12 +372,12 @@ func TestTruncatedMsg(t *testing.T) {
 	m.Truncated = true
 	buf, err = m.Pack()
 	if err != nil {
-		t.Errorf("failed to pack truncated: %v", err)
+		t.Errorf("failed to pack truncated message: %v", err)
 	}
 
 	r = new(Msg)
-	if err = r.Unpack(buf); err != nil && err != ErrTruncated {
-		t.Errorf("unable to unpack truncated message: %v", err)
+	if err = r.Unpack(buf); err != nil {
+		t.Errorf("failed to unpack truncated message: %v", err)
 	}
 	if !r.Truncated {
 		t.Errorf("truncated message wasn't unpacked as truncated")
@@ -343,9 +406,10 @@ func TestTruncatedMsg(t *testing.T) {
 	buf1 = buf[:len(buf)-off]
 
 	r = new(Msg)
-	if err = r.Unpack(buf1); err != nil && err != ErrTruncated {
-		t.Errorf("unable to unpack cutoff message: %v", err)
+	if err = r.Unpack(buf1); err == nil {
+		t.Error("cutoff message should have failed to unpack")
 	}
+	// r's header might be still usable.
 	if !r.Truncated {
 		t.Error("truncated cutoff message wasn't unpacked as truncated")
 	}
@@ -374,8 +438,8 @@ func TestTruncatedMsg(t *testing.T) {
 	buf1 = buf[:len(buf)-off]
 
 	r = new(Msg)
-	if err = r.Unpack(buf1); err != nil && err != ErrTruncated {
-		t.Errorf("unable to unpack cutoff message: %v", err)
+	if err = r.Unpack(buf1); err == nil {
+		t.Error("cutoff message should have failed to unpack")
 	}
 	if !r.Truncated {
 		t.Error("truncated cutoff message wasn't unpacked as truncated")
@@ -390,22 +454,22 @@ func TestTruncatedMsg(t *testing.T) {
 
 	r = new(Msg)
 	err = r.Unpack(buf1)
-	if err == nil || err == ErrTruncated {
-		t.Errorf("error should not be ErrTruncated from question cutoff unpack: %v", err)
+	if err == nil {
+		t.Errorf("error should be nil after question cutoff unpack: %v", err)
 	}
 
-	// Finally, if we only have the header, we should still return an error
+	// Finally, if we only have the header, we don't return an error.
 	buf1 = buf[:12]
 
 	r = new(Msg)
-	if err = r.Unpack(buf1); err == nil || err != ErrTruncated {
-		t.Errorf("error not ErrTruncated from header-only unpack: %v", err)
+	if err = r.Unpack(buf1); err != nil {
+		t.Errorf("from header-only unpack should not return an error: %v", err)
 	}
 }
 
 func TestTimeout(t *testing.T) {
 	// Set up a dummy UDP server that won't respond
-	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	addr, err := net.ResolveUDPAddr("udp", ":0")
 	if err != nil {
 		t.Fatalf("unable to resolve local udp address: %v", err)
 	}
@@ -420,33 +484,84 @@ func TestTimeout(t *testing.T) {
 	m := new(Msg)
 	m.SetQuestion("miek.nl.", TypeTXT)
 
-	// Use a channel + timeout to ensure we don't get stuck if the
-	// Client Timeout is not working properly
-	done := make(chan struct{})
+	runTest := func(name string, exchange func(m *Msg, addr string, timeout time.Duration) (*Msg, time.Duration, error)) {
+		t.Run(name, func(t *testing.T) {
+			start := time.Now()
 
-	timeout := time.Millisecond
-	allowable := timeout + (10 * time.Millisecond)
-	abortAfter := timeout + (100 * time.Millisecond)
+			timeout := time.Millisecond
+			allowable := timeout + 10*time.Millisecond
 
-	start := time.Now()
+			_, _, err := exchange(m, addrstr, timeout)
+			if err == nil {
+				t.Errorf("no timeout using Client.%s", name)
+			}
 
-	go func() {
-		c := &Client{Timeout: timeout}
-		_, _, err := c.Exchange(m, addrstr)
-		if err == nil {
-			t.Error("no timeout using Client")
-		}
-		done <- struct{}{}
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(abortAfter):
+			length := time.Since(start)
+			if length > allowable {
+				t.Errorf("exchange took longer %v than specified Timeout %v", length, allowable)
+			}
+		})
 	}
+	runTest("Exchange", func(m *Msg, addr string, timeout time.Duration) (*Msg, time.Duration, error) {
+		c := &Client{Timeout: timeout}
+		return c.Exchange(m, addr)
+	})
+	runTest("ExchangeContext", func(m *Msg, addr string, timeout time.Duration) (*Msg, time.Duration, error) {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
 
-	length := time.Since(start)
+		return new(Client).ExchangeContext(ctx, m, addrstr)
+	})
+}
 
-	if length > allowable {
-		t.Errorf("exchange took longer (%v) than specified Timeout (%v)", length, timeout)
+// Check that responses from deduplicated requests aren't shared between callers
+func TestConcurrentExchanges(t *testing.T) {
+	cases := make([]*Msg, 2)
+	cases[0] = new(Msg)
+	cases[1] = new(Msg)
+	cases[1].Truncated = true
+
+	for _, m := range cases {
+		mm := m // redeclare m so as not to trip the race detector
+		handler := func(w ResponseWriter, req *Msg) {
+			r := mm.Copy()
+			r.SetReply(req)
+
+			w.WriteMsg(r)
+		}
+
+		HandleFunc("miek.nl.", handler)
+		defer HandleRemove("miek.nl.")
+
+		s, addrstr, err := RunLocalUDPServer(":0")
+		if err != nil {
+			t.Fatalf("unable to run test server: %s", err)
+		}
+		defer s.Shutdown()
+
+		m := new(Msg)
+		m.SetQuestion("miek.nl.", TypeSRV)
+
+		c := &Client{
+			SingleInflight: true,
+		}
+		// Force this client to always return the same request,
+		// even though we're querying sequentially. Running the
+		// Exchange calls below concurrently can fail due to
+		// goroutine scheduling, but this simulates the same
+		// outcome.
+		c.group.dontDeleteForTesting = true
+
+		r := make([]*Msg, 2)
+		for i := range r {
+			r[i], _, _ = c.Exchange(m.Copy(), addrstr)
+			if r[i] == nil {
+				t.Errorf("response %d is nil", i)
+			}
+		}
+
+		if r[0] == r[1] {
+			t.Errorf("got same response, expected non-shared responses")
+		}
 	}
 }

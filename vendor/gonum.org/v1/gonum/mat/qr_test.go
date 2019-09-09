@@ -56,10 +56,8 @@ func isOrthonormal(q *Dense, tol float64) bool {
 	}
 	for i := 0; i < m; i++ {
 		for j := i; j < m; j++ {
-			dot := blas64.Dot(m,
-				blas64.Vector{Inc: 1, Data: q.mat.Data[i*q.mat.Stride:]},
-				blas64.Vector{Inc: 1, Data: q.mat.Data[j*q.mat.Stride:]},
-			)
+			dot := blas64.Dot(blas64.Vector{N: m, Inc: 1, Data: q.mat.Data[i*q.mat.Stride:]},
+				blas64.Vector{N: m, Inc: 1, Data: q.mat.Data[j*q.mat.Stride:]})
 			// Dot product should be 1 if i == j and 0 otherwise.
 			if i == j && math.Abs(dot-1) > tol {
 				return false
@@ -72,7 +70,7 @@ func isOrthonormal(q *Dense, tol float64) bool {
 	return true
 }
 
-func TestSolveQR(t *testing.T) {
+func TestQRSolveTo(t *testing.T) {
 	for _, trans := range []bool{false, true} {
 		for _, test := range []struct {
 			m, n, bc int
@@ -104,7 +102,7 @@ func TestSolveQR(t *testing.T) {
 			var x Dense
 			var qr QR
 			qr.Factorize(a)
-			qr.Solve(&x, trans, b)
+			qr.SolveTo(&x, trans, b)
 
 			// Test that the normal equations hold.
 			// A^T * A * x = A^T * b if !trans
@@ -130,7 +128,7 @@ func TestSolveQR(t *testing.T) {
 	// TODO(btracey): Add in testOneInput when it exists.
 }
 
-func TestSolveQRVec(t *testing.T) {
+func TestQRSolveVecTo(t *testing.T) {
 	for _, trans := range []bool{false, true} {
 		for _, test := range []struct {
 			m, n int
@@ -157,7 +155,7 @@ func TestSolveQRVec(t *testing.T) {
 			var x VecDense
 			var qr QR
 			qr.Factorize(a)
-			qr.SolveVec(&x, trans, b)
+			qr.SolveVecTo(&x, trans, b)
 
 			// Test that the normal equations hold.
 			// A^T * A * x = A^T * b if !trans
@@ -183,7 +181,7 @@ func TestSolveQRVec(t *testing.T) {
 	// TODO(btracey): Add in testOneInput when it exists.
 }
 
-func TestSolveQRCond(t *testing.T) {
+func TestQRSolveCondTo(t *testing.T) {
 	for _, test := range []*Dense{
 		NewDense(2, 2, []float64{1, 0, 0, 1e-20}),
 		NewDense(3, 2, []float64{1, 0, 0, 1e-20, 0, 0}),
@@ -193,13 +191,13 @@ func TestSolveQRCond(t *testing.T) {
 		qr.Factorize(test)
 		b := NewDense(m, 2, nil)
 		var x Dense
-		if err := qr.Solve(&x, false, b); err == nil {
+		if err := qr.SolveTo(&x, false, b); err == nil {
 			t.Error("No error for near-singular matrix in matrix solve.")
 		}
 
 		bvec := NewVecDense(m, nil)
 		var xvec VecDense
-		if err := qr.SolveVec(&xvec, false, bvec); err == nil {
+		if err := qr.SolveVecTo(&xvec, false, bvec); err == nil {
 			t.Error("No error for near-singular matrix in matrix solve.")
 		}
 	}

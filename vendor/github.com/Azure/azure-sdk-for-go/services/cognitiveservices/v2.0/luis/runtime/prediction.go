@@ -22,6 +22,8 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
+	"github.com/satori/go.uuid"
 	"net/http"
 )
 
@@ -44,9 +46,19 @@ func NewPredictionClient(endpoint string) PredictionClient {
 // verbose - if true, return all intents instead of just the top scoring intent.
 // staging - use the staging endpoint slot.
 // spellCheck - enable spell checking.
-// bingSpellCheckSubscriptionKey - the subscription key to use when enabling bing spell check
+// bingSpellCheckSubscriptionKey - the subscription key to use when enabling Bing spell check
 // logParameter - log query (default is true)
-func (client PredictionClient) Resolve(ctx context.Context, appID string, query string, timezoneOffset *float64, verbose *bool, staging *bool, spellCheck *bool, bingSpellCheckSubscriptionKey string, logParameter *bool) (result LuisResult, err error) {
+func (client PredictionClient) Resolve(ctx context.Context, appID uuid.UUID, query string, timezoneOffset *float64, verbose *bool, staging *bool, spellCheck *bool, bingSpellCheckSubscriptionKey string, logParameter *bool) (result LuisResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PredictionClient.Resolve")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: query,
 			Constraints: []validation.Constraint{{Target: "query", Name: validation.MaxLength, Rule: 500, Chain: nil}}}}); err != nil {
@@ -75,7 +87,7 @@ func (client PredictionClient) Resolve(ctx context.Context, appID string, query 
 }
 
 // ResolvePreparer prepares the Resolve request.
-func (client PredictionClient) ResolvePreparer(ctx context.Context, appID string, query string, timezoneOffset *float64, verbose *bool, staging *bool, spellCheck *bool, bingSpellCheckSubscriptionKey string, logParameter *bool) (*http.Request, error) {
+func (client PredictionClient) ResolvePreparer(ctx context.Context, appID uuid.UUID, query string, timezoneOffset *float64, verbose *bool, staging *bool, spellCheck *bool, bingSpellCheckSubscriptionKey string, logParameter *bool) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -117,8 +129,8 @@ func (client PredictionClient) ResolvePreparer(ctx context.Context, appID string
 // ResolveSender sends the Resolve request. The method will close the
 // http.Response Body if it receives an error.
 func (client PredictionClient) ResolveSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResolveResponder handles the response to the Resolve request. The method always

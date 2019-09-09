@@ -1,4 +1,4 @@
-// Copyright 2015 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,383 +12,620 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logging
+// TODO(jba): test that OnError is getting called appropriately.
+
+package logging_test
 
 import (
-	"errors"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
+	"context"
+	"flag"
+	"fmt"
+	"log"
+	"math/rand"
+	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
-
+	cinternal "cloud.google.com/go/internal"
 	"cloud.google.com/go/internal/testutil"
+	"cloud.google.com/go/internal/uid"
+	"cloud.google.com/go/logging"
+	ltesting "cloud.google.com/go/logging/internal/testing"
+	"cloud.google.com/go/logging/logadmin"
+	gax "github.com/googleapis/gax-go/v2"
+	"golang.org/x/oauth2"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func TestLogPayload(t *testing.T) {
-	lt := newLogTest(t)
-	defer lt.ts.Close()
+const testLogIDPrefix = "GO-LOGGING-CLIENT/TEST-LOG"
 
-	tests := []struct {
-		name  string
-		entry Entry
-		want  string
-	}{
-		{
-			name: "string",
-			entry: Entry{
-				Time:    time.Unix(0, 0),
-				Payload: "some log string",
-			},
-			want: `{"entries":[{"metadata":{"serviceName":"custom.googleapis.com","timestamp":"1970-01-01T00:00:00Z"},"textPayload":"some log string"}]}`,
-		},
-		{
-			name: "[]byte",
-			entry: Entry{
-				Time:    time.Unix(0, 0),
-				Payload: []byte("some log bytes"),
-			},
-			want: `{"entries":[{"metadata":{"serviceName":"custom.googleapis.com","timestamp":"1970-01-01T00:00:00Z"},"textPayload":"some log bytes"}]}`,
-		},
-		{
-			name: "struct",
-			entry: Entry{
-				Time: time.Unix(0, 0),
-				Payload: struct {
-					Foo string `json:"foo"`
-					Bar int    `json:"bar,omitempty"`
-				}{
-					Foo: "foovalue",
-				},
-			},
-			want: `{"entries":[{"metadata":{"serviceName":"custom.googleapis.com","timestamp":"1970-01-01T00:00:00Z"},"structPayload":{"foo":"foovalue"}}]}`,
-		},
-		{
-			name: "map[string]interface{}",
-			entry: Entry{
-				Time: time.Unix(0, 0),
-				Payload: map[string]interface{}{
-					"string": "foo",
-					"int":    42,
-				},
-			},
-			want: `{"entries":[{"metadata":{"serviceName":"custom.googleapis.com","timestamp":"1970-01-01T00:00:00Z"},"structPayload":{"int":42,"string":"foo"}}]}`,
-		},
-		{
-			name: "map[string]interface{}",
-			entry: Entry{
-				Time:    time.Unix(0, 0),
-				Payload: customJSONObject{},
-			},
-			want: `{"entries":[{"metadata":{"serviceName":"custom.googleapis.com","timestamp":"1970-01-01T00:00:00Z"},"structPayload":{"custom":"json"}}]}`,
-		},
-	}
-	for _, tt := range tests {
-		lt.startGetRequest()
-		if err := lt.c.LogSync(tt.entry); err != nil {
-			t.Errorf("%s: LogSync = %v", tt.name, err)
-			continue
+var (
+	client        *logging.Client
+	aclient       *logadmin.Client
+	testProjectID string
+	testLogID     string
+	testFilter    string
+	errorc        chan error
+	ctx           context.Context
+
+	// Adjust the fields of a FullEntry received from the production service
+	// before comparing it with the expected result. We can't correctly
+	// compare certain fields, like times or server-generated IDs.
+	clean func(*logging.Entry)
+
+	// Create a new client with the given project ID.
+	newClients func(ctx context.Context, projectID string) (*logging.Client, *logadmin.Client)
+
+	uids = uid.NewSpace(testLogIDPrefix, nil)
+
+	// If true, this test is using the production service, not a fake.
+	integrationTest bool
+)
+
+func testNow() time.Time {
+	return time.Unix(1000, 0)
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse() // needed for testing.Short()
+	ctx = context.Background()
+	testProjectID = testutil.ProjID()
+	errorc = make(chan error, 100)
+	if testProjectID == "" || testing.Short() {
+		integrationTest = false
+		if testProjectID != "" {
+			log.Print("Integration tests skipped in short mode (using fake instead)")
 		}
-		got := lt.getRequest()
-		if got != tt.want {
-			t.Errorf("%s: mismatch\n got: %s\nwant: %s\n", tt.name, got, tt.want)
+		testProjectID = ltesting.ValidProjectID
+		clean = func(e *logging.Entry) {
+			// Remove the insert ID for consistency with the integration test.
+			e.InsertID = ""
 		}
-	}
-}
 
-func TestBufferInterval(t *testing.T) {
-	lt := newLogTest(t)
-	defer lt.ts.Close()
-
-	lt.c.CommonLabels = map[string]string{
-		"common1": "one",
-		"common2": "two",
-	}
-	lt.c.BufferInterval = 1 * time.Millisecond // immediately, basically.
-	lt.c.FlushAfter = 100                      // but we'll only send 1
-
-	lt.startGetRequest()
-	lt.c.Logger(Debug).Printf("log line 1")
-	got := lt.getRequest()
-	want := `{"commonLabels":{"common1":"one","common2":"two"},"entries":[{"metadata":{"serviceName":"custom.googleapis.com","severity":"DEBUG","timestamp":"1970-01-01T00:00:01Z"},"textPayload":"log line 1\n"}]}`
-	if got != want {
-		t.Errorf(" got: %s\nwant: %s\n", got, want)
-	}
-}
-
-func TestFlushAfter(t *testing.T) {
-	lt := newLogTest(t)
-	defer lt.ts.Close()
-
-	lt.c.CommonLabels = map[string]string{
-		"common1": "one",
-		"common2": "two",
-	}
-	lt.c.BufferInterval = getRequestTimeout * 2
-	lt.c.FlushAfter = 2
-
-	lt.c.Logger(Debug).Printf("log line 1")
-	lt.startGetRequest()
-	lt.c.Logger(Debug).Printf("log line 2")
-	got := lt.getRequest()
-	want := `{"commonLabels":{"common1":"one","common2":"two"},"entries":[{"metadata":{"serviceName":"custom.googleapis.com","severity":"DEBUG","timestamp":"1970-01-01T00:00:01Z"},"textPayload":"log line 1\n"},{"metadata":{"serviceName":"custom.googleapis.com","severity":"DEBUG","timestamp":"1970-01-01T00:00:02Z"},"textPayload":"log line 2\n"}]}`
-	if got != want {
-		t.Errorf(" got: %s\nwant: %s\n", got, want)
-	}
-}
-
-func TestFlush(t *testing.T) {
-	lt := newLogTest(t)
-	defer lt.ts.Close()
-	lt.c.BufferInterval = getRequestTimeout * 2
-	lt.c.FlushAfter = 100 // but we'll only send 1, requiring a Flush
-
-	lt.c.Logger(Debug).Printf("log line 1")
-	lt.startGetRequest()
-	if err := lt.c.Flush(); err != nil {
-		t.Fatal(err)
-	}
-	got := lt.getRequest()
-	want := `{"entries":[{"metadata":{"serviceName":"custom.googleapis.com","severity":"DEBUG","timestamp":"1970-01-01T00:00:01Z"},"textPayload":"log line 1\n"}]}`
-	if got != want {
-		t.Errorf(" got: %s\nwant: %s\n", got, want)
-	}
-}
-
-func TestOverflow(t *testing.T) {
-	lt := newLogTest(t)
-	defer lt.ts.Close()
-
-	lt.c.FlushAfter = 1
-	lt.c.BufferLimit = 5
-	lt.c.BufferInterval = 1 * time.Millisecond // immediately, basically.
-
-	someErr := errors.New("some specific error value")
-	lt.c.Overflow = func(c *Client, e Entry) error {
-		return someErr
-	}
-
-	unblock := make(chan bool, 1)
-	inHandler := make(chan bool, 1)
-	lt.handlerc <- http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		inHandler <- true
-		<-unblock
-		ioutil.ReadAll(r.Body)
-		io.WriteString(w, "{}") // WriteLogEntriesResponse
-	})
-
-	lt.c.Logger(Debug).Printf("log line 1")
-	<-inHandler
-	lt.c.Logger(Debug).Printf("log line 2")
-	lt.c.Logger(Debug).Printf("log line 3")
-	lt.c.Logger(Debug).Printf("log line 4")
-	lt.c.Logger(Debug).Printf("log line 5")
-
-	queued, inFlight := lt.c.stats()
-	if want := 4; queued != want {
-		t.Errorf("queued = %d; want %d", queued, want)
-	}
-	if want := 1; inFlight != want {
-		t.Errorf("inFlight = %d; want %d", inFlight, want)
-	}
-
-	if err := lt.c.Log(Entry{Payload: "to overflow"}); err != someErr {
-		t.Errorf("Log(overflow Log entry) = %v; want someErr", err)
-	}
-	lt.startGetRequest()
-	unblock <- true
-	got := lt.getRequest()
-	want := `{"entries":[{"metadata":{"serviceName":"custom.googleapis.com","severity":"DEBUG","timestamp":"1970-01-01T00:00:02Z"},"textPayload":"log line 2\n"},{"metadata":{"serviceName":"custom.googleapis.com","severity":"DEBUG","timestamp":"1970-01-01T00:00:03Z"},"textPayload":"log line 3\n"},{"metadata":{"serviceName":"custom.googleapis.com","severity":"DEBUG","timestamp":"1970-01-01T00:00:04Z"},"textPayload":"log line 4\n"},{"metadata":{"serviceName":"custom.googleapis.com","severity":"DEBUG","timestamp":"1970-01-01T00:00:05Z"},"textPayload":"log line 5\n"}]}`
-	if got != want {
-		t.Errorf(" got: %s\nwant: %s\n", got, want)
-	}
-	if err := lt.c.Flush(); err != nil {
-		t.Fatal(err)
-	}
-	queued, inFlight = lt.c.stats()
-	if want := 0; queued != want {
-		t.Errorf("queued = %d; want %d", queued, want)
-	}
-	if want := 0; inFlight != want {
-		t.Errorf("inFlight = %d; want %d", inFlight, want)
-	}
-}
-
-func TestIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
-
-	ctx := context.Background()
-	ts := testutil.TokenSource(ctx, Scope)
-	if ts == nil {
-		t.Skip("Integration tests skipped. See CONTRIBUTING.md for details")
-	}
-
-	projID := testutil.ProjID()
-
-	c, err := NewClient(ctx, projID, "logging-integration-test", option.WithTokenSource(ts))
-	if err != nil {
-		t.Fatalf("error creating client: %v", err)
-	}
-
-	if err := c.Ping(); err != nil {
-		t.Fatalf("error pinging logging api: %v", err)
-	}
-	// Ping twice, to verify that deduping doesn't change the result.
-	if err := c.Ping(); err != nil {
-		t.Fatalf("error pinging logging api: %v", err)
-	}
-
-	if err := c.LogSync(Entry{Payload: customJSONObject{}}); err != nil {
-		t.Fatalf("error writing log: %v", err)
-	}
-
-	if err := c.Log(Entry{Payload: customJSONObject{}}); err != nil {
-		t.Fatalf("error writing log: %v", err)
-	}
-
-	if _, err := c.Writer(Default).Write([]byte("test log with io.Writer")); err != nil {
-		t.Fatalf("error writing log using io.Writer: %v", err)
-	}
-
-	c.Logger(Default).Println("test log with log.Logger")
-
-	if err := c.Flush(); err != nil {
-		t.Fatalf("error flushing logs: %v", err)
-	}
-}
-
-func TestIntegrationPingBadProject(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
-
-	ctx := context.Background()
-	ts := testutil.TokenSource(ctx, Scope)
-	if ts == nil {
-		t.Skip("Integration tests skipped. See CONTRIBUTING.md for details")
-	}
-
-	for _, projID := range []string{
-		testutil.ProjID() + "-BAD", // nonexistent project
-		"amazing-height-519",       // exists, but wrong creds
-	} {
-		c, err := NewClient(ctx, projID, "logging-integration-test", option.WithTokenSource(ts))
+		addr, err := ltesting.NewServer()
 		if err != nil {
-			t.Fatalf("project %s: error creating client: %v", projID, err)
+			log.Fatalf("creating fake server: %v", err)
 		}
-		if err := c.Ping(); err == nil {
-			t.Errorf("project %s: want error pinging logging api, got nil", projID)
+		logging.SetNow(testNow)
+
+		newClients = func(ctx context.Context, parent string) (*logging.Client, *logadmin.Client) {
+			conn, err := grpc.Dial(addr, grpc.WithInsecure())
+			if err != nil {
+				log.Fatalf("dialing %q: %v", addr, err)
+			}
+			c, err := logging.NewClient(ctx, parent, option.WithGRPCConn(conn))
+			if err != nil {
+				log.Fatalf("creating client for fake at %q: %v", addr, err)
+			}
+			ac, err := logadmin.NewClient(ctx, parent, option.WithGRPCConn(conn))
+			if err != nil {
+				log.Fatalf("creating client for fake at %q: %v", addr, err)
+			}
+			return c, ac
 		}
-		// Ping twice, just to make sure the deduping doesn't mess with the result.
-		if err := c.Ping(); err == nil {
-			t.Errorf("project %s: want error pinging logging api, got nil", projID)
+
+	} else {
+		integrationTest = true
+		clean = func(e *logging.Entry) {
+			// We cannot compare timestamps, so set them to the test time.
+			// Also, remove the insert ID added by the service.
+			e.Timestamp = testNow().UTC()
+			e.InsertID = ""
 		}
+		ts := testutil.TokenSource(ctx, logging.AdminScope)
+		if ts == nil {
+			log.Fatal("The project key must be set. See CONTRIBUTING.md for details")
+		}
+		log.Printf("running integration tests with project %s", testProjectID)
+		newClients = func(ctx context.Context, parent string) (*logging.Client, *logadmin.Client) {
+			c, err := logging.NewClient(ctx, parent, option.WithTokenSource(ts))
+			if err != nil {
+				log.Fatalf("creating prod client: %v", err)
+			}
+			ac, err := logadmin.NewClient(ctx, parent, option.WithTokenSource(ts))
+			if err != nil {
+				log.Fatalf("creating prod client: %v", err)
+			}
+			return c, ac
+		}
+
+	}
+	client, aclient = newClients(ctx, testProjectID)
+	client.OnError = func(e error) { errorc <- e }
+
+	exit := m.Run()
+	os.Exit(exit)
+}
+
+func initLogs() {
+	testLogID = uids.New()
+	hourAgo := time.Now().Add(-1 * time.Hour).UTC()
+	testFilter = fmt.Sprintf(`logName = "projects/%s/logs/%s" AND
+timestamp >= "%s"`,
+		testProjectID, strings.Replace(testLogID, "/", "%2F", -1), hourAgo.Format(time.RFC3339))
+}
+
+func TestLogSync(t *testing.T) {
+	// TODO(deklerk) Un-flake and re-enable
+	t.Skip("Inherently flaky")
+
+	initLogs() // Generate new testLogID
+	ctx := context.Background()
+	lg := client.Logger(testLogID)
+	err := lg.LogSync(ctx, logging.Entry{Payload: "hello"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = lg.LogSync(ctx, logging.Entry{Payload: "goodbye"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Allow overriding the MonitoredResource.
+	err = lg.LogSync(ctx, logging.Entry{Payload: "mr", Resource: &mrpb.MonitoredResource{Type: "global"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []*logging.Entry{
+		entryForTesting("hello"),
+		entryForTesting("goodbye"),
+		entryForTesting("mr"),
+	}
+	var got []*logging.Entry
+	ok := waitFor(func() bool {
+		got, err = allTestLogEntries(ctx)
+		if err != nil {
+			t.Log("fetching log entries: ", err)
+			return false
+		}
+		return len(got) == len(want)
+	})
+	if !ok {
+		t.Fatalf("timed out; got: %d, want: %d\n", len(got), len(want))
+	}
+	if msg, ok := compareEntries(got, want); !ok {
+		t.Error(msg)
 	}
 }
 
-func (c *Client) stats() (queued, inFlight int) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return len(c.queued), c.inFlight
-}
+func TestLogAndEntries(t *testing.T) {
+	// TODO(deklerk) Un-flake and re-enable
+	t.Skip("Inherently flaky")
 
-type customJSONObject struct{}
-
-func (customJSONObject) MarshalJSON() ([]byte, error) {
-	return []byte(`{"custom":"json"}`), nil
-}
-
-type logTest struct {
-	t        *testing.T
-	ts       *httptest.Server
-	c        *Client
-	handlerc chan<- http.Handler
-
-	bodyc chan string
-}
-
-func newLogTest(t *testing.T) *logTest {
-	handlerc := make(chan http.Handler, 1)
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case h := <-handlerc:
-			h.ServeHTTP(w, r)
-		default:
-			slurp, _ := ioutil.ReadAll(r.Body)
-			t.Errorf("Unexpected HTTP request received: %s", slurp)
-			w.WriteHeader(500)
-			io.WriteString(w, "unexpected HTTP request")
+	initLogs() // Generate new testLogID
+	ctx := context.Background()
+	payloads := []string{"p1", "p2", "p3", "p4", "p5"}
+	lg := client.Logger(testLogID)
+	for _, p := range payloads {
+		// Use the insert ID to guarantee iteration order.
+		lg.Log(logging.Entry{Payload: p, InsertID: p})
+	}
+	if err := lg.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	var want []*logging.Entry
+	for _, p := range payloads {
+		want = append(want, entryForTesting(p))
+	}
+	var got []*logging.Entry
+	ok := waitFor(func() bool {
+		var err error
+		got, err = allTestLogEntries(ctx)
+		if err != nil {
+			t.Log("fetching log entries: ", err)
+			return false
 		}
+		return len(got) == len(want)
+	})
+	if !ok {
+		t.Fatalf("timed out; got: %d, want: %d\n", len(got), len(want))
+	}
+	if msg, ok := compareEntries(got, want); !ok {
+		t.Error(msg)
+	}
+}
+
+func TestContextFunc(t *testing.T) {
+	initLogs()
+	var contextFuncCalls, cleanupCalls int32 //atomic
+
+	lg := client.Logger(testLogID, logging.ContextFunc(func() (context.Context, func()) {
+		atomic.AddInt32(&contextFuncCalls, 1)
+		return context.Background(), func() { atomic.AddInt32(&cleanupCalls, 1) }
 	}))
-	c, err := NewClient(context.Background(), "PROJ-ID", "LOG-NAME",
-		option.WithEndpoint(ts.URL),
-		option.WithTokenSource(dummyTokenSource{}), // prevent DefaultTokenSource
-	)
+	lg.Log(logging.Entry{Payload: "p"})
+	if err := lg.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	got1 := atomic.LoadInt32(&contextFuncCalls)
+	got2 := atomic.LoadInt32(&cleanupCalls)
+	if got1 != 1 || got1 != got2 {
+		t.Errorf("got %d calls to context func, %d calls to cleanup func; want 1, 1", got1, got2)
+	}
+}
+
+// compareEntries compares most fields list of Entries against expected. compareEntries does not compare:
+//   - HTTPRequest
+//   - Operation
+//   - Resource
+//   - SourceLocation
+func compareEntries(got, want []*logging.Entry) (string, bool) {
+	if len(got) != len(want) {
+		return fmt.Sprintf("got %d entries, want %d", len(got), len(want)), false
+	}
+	for i := range got {
+		if !compareEntry(got[i], want[i]) {
+			return fmt.Sprintf("#%d:\ngot  %+v\nwant %+v", i, got[i], want[i]), false
+		}
+	}
+	return "", true
+}
+
+func compareEntry(got, want *logging.Entry) bool {
+	if got.Timestamp.Unix() != want.Timestamp.Unix() {
+		return false
+	}
+
+	if got.Severity != want.Severity {
+		return false
+	}
+
+	if !ltesting.PayloadEqual(got.Payload, want.Payload) {
+		return false
+	}
+	if !testutil.Equal(got.Labels, want.Labels) {
+		return false
+	}
+
+	if got.InsertID != want.InsertID {
+		return false
+	}
+
+	if got.LogName != want.LogName {
+		return false
+	}
+
+	return true
+}
+
+func entryForTesting(payload interface{}) *logging.Entry {
+	return &logging.Entry{
+		Timestamp: testNow().UTC(),
+		Payload:   payload,
+		LogName:   "projects/" + testProjectID + "/logs/" + testLogID,
+		Resource:  &mrpb.MonitoredResource{Type: "global", Labels: map[string]string{"project_id": testProjectID}},
+	}
+}
+
+func allTestLogEntries(ctx context.Context) ([]*logging.Entry, error) {
+	return allEntries(ctx, aclient, testFilter)
+}
+
+func allEntries(ctx context.Context, aclient *logadmin.Client, filter string) ([]*logging.Entry, error) {
+	var es []*logging.Entry
+	it := aclient.Entries(ctx, logadmin.Filter(filter))
+	for {
+		e, err := cleanNext(it)
+		switch err {
+		case nil:
+			es = append(es, e)
+		case iterator.Done:
+			return es, nil
+		default:
+			return nil, err
+		}
+	}
+}
+
+func cleanNext(it *logadmin.EntryIterator) (*logging.Entry, error) {
+	e, err := it.Next()
+	if err != nil {
+		return nil, err
+	}
+	clean(e)
+	return e, nil
+}
+
+func TestStandardLogger(t *testing.T) {
+	// TODO(deklerk) Un-flake and re-enable
+	t.Skip("Inherently flaky")
+
+	initLogs() // Generate new testLogID
+	ctx := context.Background()
+	lg := client.Logger(testLogID)
+	slg := lg.StandardLogger(logging.Info)
+
+	if slg != lg.StandardLogger(logging.Info) {
+		t.Error("There should be only one standard logger at each severity.")
+	}
+	if slg == lg.StandardLogger(logging.Debug) {
+		t.Error("There should be a different standard logger for each severity.")
+	}
+
+	slg.Print("info")
+	if err := lg.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	var got []*logging.Entry
+	ok := waitFor(func() bool {
+		var err error
+		got, err = allTestLogEntries(ctx)
+		if err != nil {
+			t.Log("fetching log entries: ", err)
+			return false
+		}
+		return len(got) == 1
+	})
+	if !ok {
+		t.Fatalf("timed out; got: %d, want: %d\n", len(got), 1)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected non-nil request with one entry; got:\n%+v", got)
+	}
+	if got, want := got[0].Payload.(string), "info\n"; got != want {
+		t.Errorf("payload: got %q, want %q", got, want)
+	}
+	if got, want := logging.Severity(got[0].Severity), logging.Info; got != want {
+		t.Errorf("severity: got %s, want %s", got, want)
+	}
+}
+
+func TestSeverity(t *testing.T) {
+	if got, want := logging.Info.String(), "Info"; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+	if got, want := logging.Severity(-99).String(), "-99"; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestParseSeverity(t *testing.T) {
+	for _, test := range []struct {
+		in   string
+		want logging.Severity
+	}{
+		{"", logging.Default},
+		{"whatever", logging.Default},
+		{"Default", logging.Default},
+		{"ERROR", logging.Error},
+		{"Error", logging.Error},
+		{"error", logging.Error},
+	} {
+		got := logging.ParseSeverity(test.in)
+		if got != test.want {
+			t.Errorf("%q: got %s, want %s\n", test.in, got, test.want)
+		}
+	}
+}
+
+func TestErrors(t *testing.T) {
+	initLogs() // Generate new testLogID
+	// Drain errors already seen.
+loop:
+	for {
+		select {
+		case <-errorc:
+		default:
+			break loop
+		}
+	}
+	// Try to log something that can't be JSON-marshalled.
+	lg := client.Logger(testLogID)
+	lg.Log(logging.Entry{Payload: func() {}})
+	// Expect an error from Flush.
+	err := lg.Flush()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+type badTokenSource struct{}
+
+func (badTokenSource) Token() (*oauth2.Token, error) {
+	return &oauth2.Token{}, nil
+}
+
+func TestPing(t *testing.T) {
+	// Ping twice, in case the service's InsertID logic messes with the error code.
+	ctx := context.Background()
+	// The global client should be valid.
+	if err := client.Ping(ctx); err != nil {
+		t.Errorf("project %s: got %v, expected nil", testProjectID, err)
+	}
+	if err := client.Ping(ctx); err != nil {
+		t.Errorf("project %s, #2: got %v, expected nil", testProjectID, err)
+	}
+	// nonexistent project
+	c, a := newClients(ctx, testProjectID+"-BAD")
+	defer c.Close()
+	defer a.Close()
+	if err := c.Ping(ctx); err == nil {
+		t.Errorf("nonexistent project: want error pinging logging api, got nil")
+	}
+	if err := c.Ping(ctx); err == nil {
+		t.Errorf("nonexistent project, #2: want error pinging logging api, got nil")
+	}
+
+	// Bad creds. We cannot test this with the fake, since it doesn't do auth.
+	if integrationTest {
+		c, err := logging.NewClient(ctx, testProjectID, option.WithTokenSource(badTokenSource{}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := c.Ping(ctx); err == nil {
+			t.Errorf("bad creds: want error pinging logging api, got nil")
+		}
+		if err := c.Ping(ctx); err == nil {
+			t.Errorf("bad creds, #2: want error pinging logging api, got nil")
+		}
+		if err := c.Close(); err != nil {
+			t.Fatalf("error closing client: %v", err)
+		}
+	}
+}
+
+func TestLogsAndDelete(t *testing.T) {
+	// This function tests both the Logs and DeleteLog methods. We only try to
+	// delete those logs that we can observe and that were generated by this
+	// test. This may not include the logs generated from the current test run,
+	// because the logging service is only eventually consistent. It's
+	// therefore possible that on some runs, this test will do nothing.
+	ctx := context.Background()
+	it := aclient.Logs(ctx)
+	nDeleted := 0
+	for {
+		logID, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.HasPrefix(logID, testLogIDPrefix) {
+			if err := aclient.DeleteLog(ctx, logID); err != nil {
+				// Ignore NotFound. Sometimes, amazingly, DeleteLog cannot find
+				// a log that is returned by Logs.
+				if status.Code(err) != codes.NotFound {
+					t.Fatalf("deleting %q: %v", logID, err)
+				}
+			} else {
+				nDeleted++
+			}
+		}
+	}
+	t.Logf("deleted %d logs", nDeleted)
+}
+
+func TestNonProjectParent(t *testing.T) {
+	ctx := context.Background()
+	initLogs()
+	parent := "organizations/" + ltesting.ValidOrgID
+	c, a := newClients(ctx, parent)
+	defer c.Close()
+	defer a.Close()
+	lg := c.Logger(testLogID)
+	err := lg.LogSync(ctx, logging.Entry{Payload: "hello"})
+	if integrationTest {
+		// We don't have permission to log to the organization.
+		if got, want := status.Code(err), codes.PermissionDenied; got != want {
+			t.Errorf("got code %s, want %s", got, want)
+		}
+		return
+	}
+	// Continue test against fake.
 	if err != nil {
 		t.Fatal(err)
 	}
-	var clock struct {
-		sync.Mutex
-		now time.Time
-	}
-	c.timeNow = func() time.Time {
-		clock.Lock()
-		defer clock.Unlock()
-		if clock.now.IsZero() {
-			clock.now = time.Unix(0, 0)
-		}
-		clock.now = clock.now.Add(1 * time.Second)
-		return clock.now
-	}
-	return &logTest{
-		t:        t,
-		ts:       ts,
-		c:        c,
-		handlerc: handlerc,
-	}
-}
-
-func (lt *logTest) startGetRequest() {
-	bodyc := make(chan string, 1)
-	lt.bodyc = bodyc
-	lt.handlerc <- http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		slurp, err := ioutil.ReadAll(r.Body)
+	want := []*logging.Entry{{
+		Timestamp: testNow().UTC(),
+		Payload:   "hello",
+		LogName:   parent + "/logs/" + testLogID,
+		Resource: &mrpb.MonitoredResource{
+			Type:   "organization",
+			Labels: map[string]string{"organization_id": ltesting.ValidOrgID},
+		},
+	}}
+	var got []*logging.Entry
+	ok := waitFor(func() bool {
+		got, err = allEntries(ctx, a, fmt.Sprintf(`logName = "%s/logs/%s"`, parent,
+			strings.Replace(testLogID, "/", "%2F", -1)))
 		if err != nil {
-			bodyc <- "ERROR: " + err.Error()
-		} else {
-			bodyc <- string(slurp)
+			t.Log("fetching log entries: ", err)
+			return false
 		}
-		io.WriteString(w, "{}") // a complete WriteLogEntriesResponse JSON struct
+		return len(got) == len(want)
 	})
-}
-
-const getRequestTimeout = 5 * time.Second
-
-func (lt *logTest) getRequest() string {
-	if lt.bodyc == nil {
-		lt.t.Fatalf("getRequest called without previous startGetRequest")
+	if !ok {
+		t.Fatalf("timed out; got: %d, want: %d\n", len(got), len(want))
 	}
-	select {
-	case v := <-lt.bodyc:
-		return strings.TrimSpace(v)
-	case <-time.After(getRequestTimeout):
-		lt.t.Fatalf("timeout waiting for request")
-		panic("unreachable")
+	if msg, ok := compareEntries(got, want); !ok {
+		t.Error(msg)
 	}
 }
 
-// dummyTokenSource returns fake oauth2 tokens for local testing.
-type dummyTokenSource struct{}
+// waitFor calls f repeatedly with exponential backoff, blocking until it returns true.
+// It returns false after a while (if it times out).
+func waitFor(f func() bool) bool {
+	// TODO(shadams): Find a better way to deflake these tests.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	err := cinternal.Retry(ctx,
+		gax.Backoff{Initial: time.Second, Multiplier: 2, Max: 30 * time.Second},
+		func() (bool, error) { return f(), nil })
+	return err == nil
+}
 
-func (dummyTokenSource) Token() (*oauth2.Token, error) {
-	return new(oauth2.Token), nil
+// Interleave a lot of Log and Flush calls, to induce race conditions.
+// Run this test with:
+//   go test -run LogFlushRace -race -count 100
+func TestLogFlushRace(t *testing.T) {
+	initLogs() // Generate new testLogID
+	lg := client.Logger(testLogID,
+		logging.ConcurrentWriteLimit(5),  // up to 5 concurrent log writes
+		logging.EntryCountThreshold(100)) // small bundle size to increase interleaving
+	var wgf, wgl sync.WaitGroup
+	donec := make(chan struct{})
+	for i := 0; i < 10; i++ {
+		wgl.Add(1)
+		go func() {
+			defer wgl.Done()
+			for j := 0; j < 1e4; j++ {
+				lg.Log(logging.Entry{Payload: "the payload"})
+			}
+		}()
+	}
+	for i := 0; i < 5; i++ {
+		wgf.Add(1)
+		go func() {
+			defer wgf.Done()
+			for {
+				select {
+				case <-donec:
+					return
+				case <-time.After(time.Duration(rand.Intn(5)) * time.Millisecond):
+					if err := lg.Flush(); err != nil {
+						t.Error(err)
+					}
+				}
+			}
+		}()
+	}
+	wgl.Wait()
+	close(donec)
+	wgf.Wait()
+}
+
+// Test the throughput of concurrent writers.
+func BenchmarkConcurrentWrites(b *testing.B) {
+	if !integrationTest {
+		b.Skip("only makes sense when running against production service")
+	}
+	for n := 1; n <= 32; n *= 2 {
+		b.Run(fmt.Sprint(n), func(b *testing.B) {
+			b.StopTimer()
+			lg := client.Logger(testLogID, logging.ConcurrentWriteLimit(n), logging.EntryCountThreshold(1000))
+			const (
+				nEntries = 1e5
+				payload  = "the quick brown fox jumps over the lazy dog"
+			)
+			b.SetBytes(int64(nEntries * len(payload)))
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				for j := 0; j < nEntries; j++ {
+					lg.Log(logging.Entry{Payload: payload})
+				}
+				if err := lg.Flush(); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }

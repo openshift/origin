@@ -14,7 +14,7 @@ import (
 	"gonum.org/v1/gonum/graph/encoding"
 )
 
-// Unmarshal parses the the JSON-encoded data and stores the result in dst.
+// Unmarshal parses the JSON-encoded data and stores the result in dst.
 // Node IDs are obtained from the JSON fields identified by the uid parameter.
 // UIDs obtained from the JSON encoding must map to unique node ID values
 // consistently across the JSON-encoded spanning tree.

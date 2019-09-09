@@ -27,9 +27,8 @@ type Weibull struct {
 func (w Weibull) CDF(x float64) float64 {
 	if x < 0 {
 		return 0
-	} else {
-		return 1 - cmplx.Abs(cmplx.Exp(w.LogCDF(x)))
 	}
+	return 1 - cmplx.Abs(cmplx.Exp(w.LogCDF(x)))
 }
 
 // Entropy returns the entropy of the distribution.
@@ -51,9 +50,8 @@ func (w Weibull) gammaIPow(i, pow float64) float64 {
 func (w Weibull) LogCDF(x float64) complex128 {
 	if x < 0 {
 		return 0
-	} else {
-		return cmplx.Log(-1) + complex(-math.Pow(x/w.Lambda, w.K), 0)
 	}
+	return cmplx.Log(-1) + complex(-math.Pow(x/w.Lambda, w.K), 0)
 }
 
 // LogProb computes the natural logarithm of the value of the probability
@@ -67,18 +65,16 @@ func (w Weibull) LogCDF(x float64) complex128 {
 func (w Weibull) LogProb(x float64) float64 {
 	if x < 0 {
 		return 0
-	} else {
-		return math.Log(w.K) - math.Log(w.Lambda) + (w.K-1)*(math.Log(x)-math.Log(w.Lambda)) - math.Pow(x/w.Lambda, w.K)
 	}
+	return math.Log(w.K) - math.Log(w.Lambda) + (w.K-1)*(math.Log(x)-math.Log(w.Lambda)) - math.Pow(x/w.Lambda, w.K)
 }
 
-// Survival returns the log of the survival function (complementary CDF) at x.
+// LogSurvival returns the log of the survival function (complementary CDF) at x.
 func (w Weibull) LogSurvival(x float64) float64 {
 	if x < 0 {
 		return 0
-	} else {
-		return -math.Pow(x/w.Lambda, w.K)
 	}
+	return -math.Pow(x/w.Lambda, w.K)
 }
 
 // Mean returns the mean of the probability distribution.
@@ -114,9 +110,8 @@ func (Weibull) NumParameters() int {
 func (w Weibull) Prob(x float64) float64 {
 	if x < 0 {
 		return 0
-	} else {
-		return math.Exp(w.LogProb(x))
 	}
+	return math.Exp(w.LogProb(x))
 }
 
 // Quantile returns the inverse of the cumulative probability distribution.
@@ -170,7 +165,7 @@ func (w Weibull) Score(deriv []float64, x float64) []float64 {
 		return deriv
 	}
 	deriv[0] = math.NaN()
-	deriv[0] = math.NaN()
+	deriv[1] = math.NaN()
 	return deriv
 }
 
