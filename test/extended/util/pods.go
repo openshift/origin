@@ -4,10 +4,13 @@ import (
 	"strings"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 // WaitForNoPodsAvailable waits until there are no pods in the
@@ -46,4 +49,18 @@ func RemovePodsWithPrefixes(oc *CLI, prefixes ...string) error {
 		return kutilerrors.NewAggregate(errs)
 	}
 	return nil
+}
+
+// CreateCentosExecPodOrFail creates a centos:7 pause pod used as a vessel for kubectl exec commands.
+// Pod name is uniquely generated.
+func CreateCentosExecPodOrFail(client kubernetes.Interface, ns, generateName string, tweak func(*v1.Pod)) *v1.Pod {
+	return pod.CreateExecPodOrFail(client, ns, generateName, func(pod *v1.Pod) {
+		pod.Spec.Containers[0].Image = "centos:7"
+		pod.Spec.Containers[0].Command = []string{"sh", "-c", "trap exit TERM; while true; do sleep 5; done"}
+		pod.Spec.Containers[0].Args = nil
+
+		if tweak != nil {
+			tweak(pod)
+		}
+	})
 }
