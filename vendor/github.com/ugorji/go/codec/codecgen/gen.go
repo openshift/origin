@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2018 Ugorji Nwoke. All rights reserved.
+// Copyright (c) 2012-2015 Ugorji Nwoke. All rights reserved.
 // Use of this source code is governed by a MIT license found in the LICENSE file.
 
 // codecgen generates codec.Selfer implementations for a set of types.
@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/parser"
 	"go/token"
 	"math/rand"
@@ -28,8 +29,6 @@ const genCodecPkg = "codec1978" // keep this in sync with codec.genCodecPkg
 
 const genFrunMainTmpl = `//+build ignore
 
-// Code generated - temporary main package for codecgen - DO NOT EDIT.
-
 package main
 {{ if .Types }}import "{{ .ImportPath }}"{{ end }}
 func main() {
@@ -39,9 +38,6 @@ func main() {
 
 // const genFrunPkgTmpl = `//+build codecgen
 const genFrunPkgTmpl = `
-
-// Code generated - temporary package for codecgen - DO NOT EDIT.
-
 package {{ $.PackageName }}
 
 import (
@@ -54,33 +50,20 @@ import (
 )
 
 func CodecGenTempWrite{{ .RandString }}() {
-	os.Remove("{{ .OutFile }}")
 	fout, err := os.Create("{{ .OutFile }}")
 	if err != nil {
 		panic(err)
 	}
 	defer fout.Close()
+	var out bytes.Buffer
 	
-	var typs []reflect.Type
-	var typ reflect.Type
-	var numfields int
+	var typs []reflect.Type 
 {{ range $index, $element := .Types }}
 	var t{{ $index }} {{ . }}
-typ = reflect.TypeOf(t{{ $index }})
-	typs = append(typs, typ)
-	if typ.Kind() == reflect.Struct { numfields += typ.NumField() } else { numfields += 1 }
+	typs = append(typs, reflect.TypeOf(t{{ $index }}))
 {{ end }}
-
-	// println("initializing {{ .OutFile }}, buf size: {{ .AllFilesSize }}*16",
-	// 	{{ .AllFilesSize }}*16, "num fields: ", numfields)
-	var out = bytes.NewBuffer(make([]byte, 0, numfields*1024)) // {{ .AllFilesSize }}*16
-	{{ if not .CodecPkgFiles }}{{ .CodecPkgName }}.{{ end }}Gen(out,
-		"{{ .BuildTag }}", "{{ .PackageName }}", "{{ .RandString }}", {{ .NoExtensions }},
-		{{ if not .CodecPkgFiles }}{{ .CodecPkgName }}.{{ end }}NewTypeInfos(strings.Split("{{ .StructTags }}", ",")),
-		 typs...)
-
+	{{ if not .CodecPkgFiles }}{{ .CodecPkgName }}.{{ end }}Gen(&out, "{{ .BuildTag }}", "{{ .PackageName }}", "{{ .RandString }}", {{ .NoExtensions }}, {{ if not .CodecPkgFiles }}{{ .CodecPkgName }}.{{ end }}NewTypeInfos(strings.Split("{{ .StructTags }}", ",")), typs...)
 	bout, err := format.Source(out.Bytes())
-	// println("... lengths: before formatting: ", len(out.Bytes()), ", after formatting", len(bout))
 	if err != nil {
 		fout.Write(out.Bytes())
 		panic(err)
@@ -115,7 +98,8 @@ func Generate(outfile, buildTag, codecPkgPath string,
 	}
 	if uid < 0 {
 		uid = -uid
-	} else if uid == 0 {
+	}
+	if uid == 0 {
 		rr := rand.New(rand.NewSource(time.Now().UnixNano()))
 		uid = 101 + rr.Int63n(9777)
 	}
@@ -126,7 +110,7 @@ func Generate(outfile, buildTag, codecPkgPath string,
 	if err != nil {
 		return
 	}
-	importPath, err := pkgPath(absdir)
+	pkg, err := build.Default.ImportDir(absdir, build.AllowBinary)
 	if err != nil {
 		return
 	}
@@ -140,7 +124,6 @@ func Generate(outfile, buildTag, codecPkgPath string,
 		BuildTag        string
 		StructTags      string
 		Types           []string
-		AllFilesSize    int64
 		CodecPkgFiles   bool
 		NoExtensions    bool
 	}
@@ -153,7 +136,7 @@ func Generate(outfile, buildTag, codecPkgPath string,
 		StructTags:      st,
 		NoExtensions:    noExtensions,
 	}
-	tv.ImportPath = importPath
+	tv.ImportPath = pkg.ImportPath
 	if tv.ImportPath == tv.CodecImportPath {
 		tv.CodecPkgFiles = true
 		tv.CodecPkgName = "codec"
@@ -162,17 +145,11 @@ func Generate(outfile, buildTag, codecPkgPath string,
 		tv.ImportPath = stripVendor(tv.ImportPath)
 	}
 	astfiles := make([]*ast.File, len(infiles))
-	var fi os.FileInfo
 	for i, infile := range infiles {
 		if filepath.Dir(infile) != lastdir {
 			err = errors.New("in files must all be in same directory as outfile")
 			return
 		}
-		if fi, err = os.Stat(infile); err != nil {
-			return
-		}
-		tv.AllFilesSize += fi.Size()
-
 		fset := token.NewFileSet()
 		astfiles[i], err = parser.ParseFile(fset, infile, nil, 0)
 		if err != nil {
@@ -234,10 +211,6 @@ func Generate(outfile, buildTag, codecPkgPath string,
 						//   chan: ChanType
 						// do not generate:
 						//   FuncType, InterfaceType, StarExpr (ptr), etc
-						//
-						// We generate for all these types (not just structs), because they may be a field
-						// in another struct which doesn't have codecgen run on it, and it will be nice
-						// to take advantage of the fact that the type is a Selfer.
 						switch td.Type.(type) {
 						case *ast.StructType, *ast.Ident, *ast.MapType, *ast.ArrayType, *ast.ChanType:
 							// only add to tv.Types iff
@@ -313,7 +286,6 @@ func gen1(frunName, tmplStr string, tv interface{}) (frun *os.File, err error) {
 	}
 	bw := bufio.NewWriter(frun)
 	if err = t.Execute(bw, tv); err != nil {
-		bw.Flush()
 		return
 	}
 	if err = bw.Flush(); err != nil {
@@ -345,14 +317,14 @@ func main() {
 	rt := flag.String("rt", "", "tags for go run")
 	st := flag.String("st", "codec,json", "struct tag keys to introspect")
 	x := flag.Bool("x", false, "keep temp file")
-	_ = flag.Bool("u", false, "Allow unsafe use. ***IGNORED*** - kept for backwards compatibility: ")
+	_ = flag.Bool("u", false, "*IGNORED - kept for backwards compatibility*: Allow unsafe use")
 	d := flag.Int64("d", 0, "random identifier for use in generated code")
-	nx := flag.Bool("nx", false, "do not support extensions - support of extensions may cause extra allocation")
+	nx := flag.Bool("nx", false, "no extensions")
 
 	flag.Parse()
-	err := Generate(*o, *t, *c, *d, *rt, *st,
-		regexp.MustCompile(*r), regexp.MustCompile(*nr), !*x, *nx, flag.Args()...)
-	if err != nil {
+	if err := Generate(*o, *t, *c, *d, *rt, *st,
+		regexp.MustCompile(*r), regexp.MustCompile(*nr), !*x, *nx,
+		flag.Args()...); err != nil {
 		fmt.Fprintf(os.Stderr, "codecgen error: %v\n", err)
 		os.Exit(1)
 	}
