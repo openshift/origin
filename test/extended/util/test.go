@@ -422,6 +422,9 @@ var (
 			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
 			"when the NodeLease feature is enabled",
 			"RuntimeClass should reject",
+
+			// TODO(sdn): reenable when openshift/sdn is rebased to 1.16
+			`Services should implement service.kubernetes.io/headless`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
