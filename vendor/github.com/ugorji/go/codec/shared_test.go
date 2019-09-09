@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2018 Ugorji Nwoke. All rights reserved.
+// Copyright (c) 2012-2015 Ugorji Nwoke. All rights reserved.
 // Use of this source code is governed by a MIT license found in the LICENSE file.
 
 package codec
@@ -43,12 +43,8 @@ package codec
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"sync"
-	"testing"
 )
 
 // DO NOT REMOVE - replacement line for go-codec-bench import declaration tag //
@@ -112,8 +108,6 @@ var (
 	testMaxInitLen int
 
 	testNumRepeatString int
-
-	testRpcBufsize int
 )
 
 // variables that are not flags, but which can configure the handles
@@ -135,18 +129,11 @@ var (
 )
 
 func init() {
-	log.SetOutput(ioutil.Discard) // don't allow things log to standard out/err
 	testHEDs = make([]testHED, 0, 32)
 	testHandles = append(testHandles,
 		// testNoopH,
-		testMsgpackH, testBincH, testSimpleH, testCborH, testJsonH)
-	// set DoNotClose on each handle
-	testMsgpackH.DoNotClose = true
-	testBincH.DoNotClose = true
-	testSimpleH.DoNotClose = true
-	testCborH.DoNotClose = true
-	testJsonH.DoNotClose = true
-
+		testMsgpackH, testBincH, testSimpleH,
+		testCborH, testJsonH)
 	testInitFlags()
 	benchInitFlags()
 }
@@ -154,7 +141,7 @@ func init() {
 func testInitFlags() {
 	// delete(testDecOpts.ExtFuncs, timeTyp)
 	flag.IntVar(&testDepth, "tsd", 0, "Test Struc Depth")
-	flag.BoolVar(&testVerbose, "tv", false, "Test Verbose (no longer used - here for compatibility)")
+	flag.BoolVar(&testVerbose, "tv", false, "Test Verbose")
 	flag.BoolVar(&testInitDebug, "tg", false, "Test Init Debug")
 	flag.IntVar(&testUseIoEncDec, "ti", -1, "Use IO Reader/Writer for Marshal/Unmarshal ie >= 0")
 	flag.BoolVar(&testUseIoWrapper, "tiw", false, "Wrap the IO Reader/Writer with a base pass-through reader/writer")
@@ -207,8 +194,8 @@ func testInitAll() {
 	}
 }
 
-func sTestCodecEncode(ts interface{}, bsIn []byte, fn func([]byte) *bytes.Buffer,
-	h Handle, bh *BasicHandle) (bs []byte, err error) {
+func testCodecEncode(ts interface{}, bsIn []byte,
+	fn func([]byte) *bytes.Buffer, h Handle) (bs []byte, err error) {
 	// bs = make([]byte, 0, approxSize)
 	var e *Encoder
 	var buf *bytes.Buffer
@@ -217,6 +204,7 @@ func sTestCodecEncode(ts interface{}, bsIn []byte, fn func([]byte) *bytes.Buffer
 	} else {
 		e = NewEncoder(nil, h)
 	}
+	bh := BasicHandleDoNotUse(h)
 	var oldWriteBufferSize int
 	if testUseIoEncDec >= 0 {
 		buf = fn(bsIn)
@@ -241,13 +229,10 @@ func sTestCodecEncode(ts interface{}, bsIn []byte, fn func([]byte) *bytes.Buffer
 		bs = buf.Bytes()
 		bh.WriterBufferSize = oldWriteBufferSize
 	}
-	if !testUseReset {
-		e.Close()
-	}
 	return
 }
 
-func sTestCodecDecode(bs []byte, ts interface{}, h Handle, bh *BasicHandle) (err error) {
+func testCodecDecode(bs []byte, ts interface{}, h Handle) (err error) {
 	var d *Decoder
 	// var buf *bytes.Reader
 	if testUseReset {
@@ -255,6 +240,7 @@ func sTestCodecDecode(bs []byte, ts interface{}, h Handle, bh *BasicHandle) (err
 	} else {
 		d = NewDecoder(nil, h)
 	}
+	bh := BasicHandleDoNotUse(h)
 	var oldReadBufferSize int
 	if testUseIoEncDec >= 0 {
 		buf := bytes.NewReader(bs)
@@ -276,28 +262,10 @@ func sTestCodecDecode(bs []byte, ts interface{}, h Handle, bh *BasicHandle) (err
 	if testUseIoEncDec >= 0 {
 		bh.ReaderBufferSize = oldReadBufferSize
 	}
-	if !testUseReset {
-		d.Close()
-	}
 	return
 }
 
-// --- functions below are used by both benchmarks and tests
-
-func logT(x interface{}, format string, args ...interface{}) {
-	if t, ok := x.(*testing.T); ok && t != nil {
-		t.Logf(format, args...)
-	} else if b, ok := x.(*testing.B); ok && b != nil {
-		b.Logf(format, args...)
-	} else { // if testing.Verbose() { // if testVerbose {
-		if len(format) == 0 || format[len(format)-1] != '\n' {
-			format = format + "\n"
-		}
-		fmt.Printf(format, args...)
-	}
-}
-
-// --- functions below are used only by benchmarks alone
+// ----- functions below are used only by benchmarks alone
 
 func fnBenchmarkByteBuf(bsIn []byte) (buf *bytes.Buffer) {
 	// var buf bytes.Buffer
@@ -307,10 +275,10 @@ func fnBenchmarkByteBuf(bsIn []byte) (buf *bytes.Buffer) {
 	return
 }
 
-// func benchFnCodecEncode(ts interface{}, bsIn []byte, h Handle) (bs []byte, err error) {
-// 	return testCodecEncode(ts, bsIn, fnBenchmarkByteBuf, h)
-// }
+func benchFnCodecEncode(ts interface{}, bsIn []byte, h Handle) (bs []byte, err error) {
+	return testCodecEncode(ts, bsIn, fnBenchmarkByteBuf, h)
+}
 
-// func benchFnCodecDecode(bs []byte, ts interface{}, h Handle) (err error) {
-// 	return testCodecDecode(bs, ts, h)
-// }
+func benchFnCodecDecode(bs []byte, ts interface{}, h Handle) (err error) {
+	return testCodecDecode(bs, ts, h)
+}
