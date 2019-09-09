@@ -87,27 +87,23 @@ func TestNamespaceCondition(t *testing.T) {
 			return false, err
 		}
 
-		conditionsFound := 0
+		foundContentCondition := false
+		foundFinalizerCondition := false
+
 		for _, condition := range curr.Status.Conditions {
 			if condition.Type == corev1.NamespaceDeletionGVParsingFailure && condition.Message == `All legacy kube types successfully parsed` {
-				conditionsFound++
+				foundContentCondition = true
 			}
 			if condition.Type == corev1.NamespaceDeletionDiscoveryFailure && condition.Message == `All resources successfully discovered` {
-				conditionsFound++
+				foundFinalizerCondition = true
 			}
-			if condition.Type == corev1.NamespaceDeletionContentFailure && condition.Message == `All content successfully deleted, may be waiting on finalization` {
-				conditionsFound++
-			}
-			if condition.Type == corev1.NamespaceContentRemaining && condition.Message == `Some resources are remaining: deployments.apps has 1 resource instances` {
-				conditionsFound++
-			}
-			if condition.Type == corev1.NamespaceFinalizersRemaining && condition.Message == `Some content in the namespace has finalizers remaining: custom.io/finalizer in 1 resource instances` {
-				conditionsFound++
+			if condition.Type == corev1.NamespaceDeletionContentFailure && condition.Message == `All content successfully deleted` {
+				foundFinalizerCondition = true
 			}
 		}
 
 		t.Log(spew.Sdump(curr))
-		return conditionsFound == 5, nil
+		return foundContentCondition && foundFinalizerCondition, nil
 	})
 	if err != nil {
 		t.Fatal(err)

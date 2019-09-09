@@ -45,7 +45,7 @@ import (
 	"strconv"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -426,7 +426,7 @@ func TestCleanup(f *framework.Framework, config TestConfig) {
 	}
 }
 
-func runVolumeTesterPod(client clientset.Interface, config TestConfig, podSuffix string, fsGroup *int64, privileged bool, tests []Test) (*v1.Pod, error) {
+func runVolumeTesterPod(client clientset.Interface, config TestConfig, podSuffix string, fsGroup *int64, tests []Test) (*v1.Pod, error) {
 	ginkgo.By(fmt.Sprint("starting ", config.Prefix, "-", podSuffix))
 	var gracePeriod int64 = 1
 	var command string
@@ -457,9 +457,8 @@ func runVolumeTesterPod(client clientset.Interface, config TestConfig, podSuffix
 					// An imperative and easily debuggable container which reads/writes vol contents for
 					// us to scan in the tests or by eye.
 					// We expect that /opt is empty in the minimal containers which we use in this test.
-					Command:         GenerateScriptCmd(command),
-					VolumeMounts:    []v1.VolumeMount{},
-					SecurityContext: GenerateSecurityContext(privileged),
+					Command:      GenerateScriptCmd(command),
+					VolumeMounts: []v1.VolumeMount{},
 				},
 			},
 			TerminationGracePeriodSeconds: &gracePeriod,
@@ -548,7 +547,7 @@ func testVolumeContent(client clientset.Interface, pod *v1.Pod, fsGroup *int64, 
 // Multiple Tests can be specified to mount multiple volumes to a single
 // pod.
 func TestVolumeClient(client clientset.Interface, config TestConfig, fsGroup *int64, fsType string, tests []Test) {
-	clientPod, err := runVolumeTesterPod(client, config, "client", fsGroup, false, tests)
+	clientPod, err := runVolumeTesterPod(client, config, "client", fsGroup, tests)
 	if err != nil {
 		framework.Failf("Failed to create client pod: %v", err)
 
@@ -561,7 +560,7 @@ func TestVolumeClient(client clientset.Interface, config TestConfig, fsGroup *in
 // starting and auxiliary pod which writes the file there.
 // The volume must be writable.
 func InjectContent(client clientset.Interface, config TestConfig, fsGroup *int64, fsType string, tests []Test) {
-	injectorPod, err := runVolumeTesterPod(client, config, "injector", fsGroup, true, tests)
+	injectorPod, err := runVolumeTesterPod(client, config, "injector", fsGroup, tests)
 	if err != nil {
 		framework.Failf("Failed to create injector pod: %v", err)
 		return

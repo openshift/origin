@@ -124,15 +124,14 @@ func newETCD3Client(c storagebackend.TransportConfig) (*clientv3.Client, error) 
 		grpc.WithStreamInterceptor(grpcprom.StreamClientInterceptor),
 	}
 	if egressDialer != nil {
-		dialer := func(addr string, timeout time.Duration) (net.Conn, error) {
+		dialer := func(ctx context.Context, addr string) (net.Conn, error) {
 			u, err := url.Parse(addr)
 			if err != nil {
 				return nil, err
 			}
-			ctx, _ := context.WithTimeout(context.TODO(), timeout)
 			return egressDialer(ctx, "tcp", u.Host)
 		}
-		dialOptions = append(dialOptions, grpc.WithDialer(dialer))
+		dialOptions = append(dialOptions, grpc.WithContextDialer(dialer))
 	}
 	cfg := clientv3.Config{
 		DialTimeout:          dialTimeout,

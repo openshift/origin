@@ -549,8 +549,8 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	ret.EnableResources(
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("ingresses"),
 	)
-	// enable deprecated beta resources in extensions/v1beta1 explicitly so we have a full list of what's possible to serve
-	ret.EnableResources(
+	// disable deprecated beta resources in extensions/v1beta1 explicitly so we have a full list of what's possible to serve
+	ret.DisableResources(
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("daemonsets"),
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("deployments"),
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("networkpolicies"),
@@ -558,8 +558,8 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("replicasets"),
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("replicationcontrollers"),
 	)
-	// enabled deprecated beta versions explicitly so we have a full list of what's possible to serve
-	ret.EnableVersions(
+	// disable deprecated beta versions explicitly so we have a full list of what's possible to serve
+	ret.DisableVersions(
 		appsv1beta1.SchemeGroupVersion,
 		appsv1beta2.SchemeGroupVersion,
 	)

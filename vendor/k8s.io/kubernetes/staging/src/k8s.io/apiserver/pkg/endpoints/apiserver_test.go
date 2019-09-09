@@ -38,7 +38,6 @@ import (
 	"time"
 
 	restful "github.com/emicklei/go-restful"
-
 	fuzzer "k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -86,8 +85,6 @@ func (alwaysMutatingDeny) Handles(operation admission.Operation) bool {
 	return true
 }
 
-var _ admission.MutationInterface = &alwaysMutatingDeny{}
-
 type alwaysValidatingDeny struct{}
 
 func (alwaysValidatingDeny) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) (err error) {
@@ -97,8 +94,6 @@ func (alwaysValidatingDeny) Validate(ctx context.Context, a admission.Attributes
 func (alwaysValidatingDeny) Handles(operation admission.Operation) bool {
 	return true
 }
-
-var _ admission.ValidationInterface = &alwaysValidatingDeny{}
 
 // This creates fake API versions, similar to api/latest.go.
 var testAPIGroup = "test.group"
@@ -3757,7 +3752,7 @@ type namePopulatorAdmissionControl struct {
 	populateName string
 }
 
-func (npac *namePopulatorAdmissionControl) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) (err error) {
+func (npac *namePopulatorAdmissionControl) Validate(a admission.Attributes, o admission.ObjectInterfaces) (err error) {
 	if a.GetName() != npac.populateName {
 		npac.t.Errorf("Unexpected name: got %q, expected %q", a.GetName(), npac.populateName)
 	}
@@ -3767,8 +3762,6 @@ func (npac *namePopulatorAdmissionControl) Validate(ctx context.Context, a admis
 func (npac *namePopulatorAdmissionControl) Handles(operation admission.Operation) bool {
 	return true
 }
-
-var _ admission.ValidationInterface = &namePopulatorAdmissionControl{}
 
 func TestNamedCreaterWithGenerateName(t *testing.T) {
 	populateName := "bar"

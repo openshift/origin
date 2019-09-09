@@ -97,18 +97,4 @@ var GVRToStorageVersionHash = map[string]string{
 	"admissionregistration.k8s.io/v1/mutatingwebhookconfigurations":        "yxW1cpLtfp8=",
 	"admissionregistration.k8s.io/v1/validatingwebhookconfigurations":      "P9NhrezfnWE=",
 	"events.k8s.io/v1beta1/events":                                         "r2yiGXH7wu8=",
-
-	"extensions/v1beta1/daemonsets":          "dd7pWHUlMKQ=",
-	"extensions/v1beta1/deployments":         "8aSe+NMegvE=",
-	"extensions/v1beta1/networkpolicies":     "YpfwF18m1G8=",
-	"extensions/v1beta1/podsecuritypolicies": "khBLobUXkqA=",
-	"extensions/v1beta1/replicasets":         "P1RzHs8/mWQ=",
-	"apps/v1beta2/controllerrevisions":       "85nkx63pcBU=",
-	"apps/v1beta2/daemonsets":                "dd7pWHUlMKQ=",
-	"apps/v1beta2/deployments":               "8aSe+NMegvE=",
-	"apps/v1beta2/replicasets":               "P1RzHs8/mWQ=",
-	"apps/v1beta2/statefulsets":              "H+vl74LkKdo=",
-	"apps/v1beta1/controllerrevisions":       "85nkx63pcBU=",
-	"apps/v1beta1/deployments":               "8aSe+NMegvE=",
-	"apps/v1beta1/statefulsets":              "H+vl74LkKdo=",
 }

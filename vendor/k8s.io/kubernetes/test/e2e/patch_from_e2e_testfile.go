@@ -1,11 +1,8 @@
 package e2e
 
 import (
-	"flag"
 	"fmt"
 	"os"
-
-	"k8s.io/kubernetes/test/e2e/framework/config"
 
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
@@ -14,19 +11,11 @@ import (
 	"k8s.io/kubernetes/test/utils/image"
 )
 
-func HandleFlags() {
-	config.CopyFlags(config.Flags, flag.CommandLine)
-	framework.RegisterCommonFlags(flag.CommandLine)
-	framework.RegisterClusterFlags(flag.CommandLine)
-	flag.Parse()
-}
-
 // this function matches the init block from e2e_test.go
 func ViperizeFlags(viperConfig string) {
-	HandleFlags()
-
 	// Register framework flags, then handle flags and Viper config.
-	if err := viperconfig.ViperizeFlags(viperConfig, "e2e", flag.CommandLine); err != nil {
+	framework.HandleFlags()
+	if err := viperconfig.ViperizeFlags(viperConfig, "e2e"); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
