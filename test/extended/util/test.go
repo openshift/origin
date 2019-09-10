@@ -406,6 +406,9 @@ var (
 
 			// TODO(sdn): reenable when openshift/sdn is rebased to 1.16
 			`Services should implement service.kubernetes.io/headless`,
+
+			// TODO(storage): fix the use of SSH into the node
+			`volumeMode should not mount / map unused volumes in a pod`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
