@@ -409,6 +409,9 @@ var (
 
 			// TODO(storage): fix the use of SSH into the node
 			`volumeMode should not mount / map unused volumes in a pod`,
+
+			// TODO(workload): reactivate when oc is rebased
+			`should support exec using resource/name`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
