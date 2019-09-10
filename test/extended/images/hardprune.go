@@ -148,12 +148,6 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(deleted.Len()).To(o.Equal(0))
 
-		/* TODO: use a persistent storage for the registry to preserve data across re-deployments
-		readOnly := true
-		restarted, err = registryutil.ConfigureRegistry(oc, registryutil.RegistryConfiguration{ReadOnly: &readOnly})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		*/
-
 		/* imageName  | parent   | layers | imagestreams
 		 * ---------- | -------- | ------ | ------------
 		 *  baseImg1  |          | 1 2    | a a-tagged
@@ -170,13 +164,6 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		expectedDeletions := &RegistryStorageFiles{
-			/* TODO: reenable once we delete layer links as well
-			LayerLinks: RepoLinks{oc.Namespace()+"/a": []string{
-				imgs[baseImg1].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
-				imgs[baseImg1].DockerImageLayers[0].Name,
-				imgs[baseImg1].DockerImageLayers[1].Name,
-			}},
-			*/
 			ManifestLinks: RepoLinks{oc.Namespace() + "/a": []string{baseImg1}},
 		}
 		err = AssertDeletedStorageFiles(deleted, expectedDeletions)
@@ -193,12 +180,6 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		imageutil.ImageWithMetadataOrDie(imgs[childImg1])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
-				/* TODO: reenable once we delete layer links as well
-				LayerLinks: RepoLinks{oc.Namespace()+"/c": []string{
-					imgs[childImg1].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
-					imgs[childImg1].DockerImageLayers[0].Name,
-				}},
-				*/
 				ManifestLinks: RepoLinks{oc.Namespace() + "/c": []string{childImg1}},
 				Blobs: []string{
 					childImg1, // manifest blob
@@ -235,12 +216,6 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		imageutil.ImageWithMetadataOrDie(imgs[childImg2])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
-				/* TODO: reenable once we delete layer links as well
-				LayerLinks: RepoLinks{oc.Namespace()+"/b": []string{
-					imgs[childImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
-					imgs[childImg2].DockerImageLayers[0].Name,
-				}},
-				*/
 				ManifestLinks: RepoLinks{oc.Namespace() + "/b": []string{childImg2}},
 				Blobs: []string{
 					childImg2, // manifest blob
@@ -263,13 +238,6 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		imageutil.ImageWithMetadataOrDie(imgs[baseImg2])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
-				/* TODO: reenable once we delete layer links as well
-				LayerLinks: RepoLinks{oc.Namespace()+"/b": []string{
-					imgs[baseImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
-					imgs[baseImg2].DockerImageLayers[0].Name,
-					imgs[baseImg2].DockerImageLayers[1].Name,
-				}},
-				*/
 				Repos: []string{oc.Namespace() + "/b"},
 				Blobs: []string{
 					baseImg2, // manifest blob
@@ -319,13 +287,6 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		imageutil.ImageWithMetadataOrDie(imgs[childImg3])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
-				/* TODO: reenable once we delete layer links as well
-				LayerLinks: RepoLinks{oc.Namespace()+"/b": []string{
-					imgs[baseImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
-					imgs[baseImg2].DockerImageLayers[0].Name,
-					imgs[baseImg2].DockerImageLayers[1].Name,
-				}},
-				*/
 				ManifestLinks: RepoLinks{oc.Namespace() + "/c": []string{childImg3}},
 				Blobs: []string{
 					childImg3,
