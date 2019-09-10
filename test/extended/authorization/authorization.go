@@ -209,7 +209,6 @@ var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system
 var globalDeploymentConfigGetterUsers = sets.NewString(
 	"system:serviceaccount:kube-system:generic-garbage-collector",
 	"system:serviceaccount:kube-system:namespace-controller",
-	"system:serviceaccount:kube-system:clusterrole-aggregation-controller",
 )
 
 type resourceAccessReviewTest struct {
