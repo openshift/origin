@@ -92,7 +92,6 @@
 // test/extended/testdata/builds/custom-build/Dockerfile.sample
 // test/extended/testdata/builds/custom-build/build.sh
 // test/extended/testdata/builds/docker-add/Dockerfile
-// test/extended/testdata/builds/gradle-pipeline.yaml
 // test/extended/testdata/builds/incremental-auth-build.json
 // test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment
 // test/extended/testdata/builds/s2i-environment-build-app/Gemfile
@@ -20417,38 +20416,6 @@ func testExtendedTestdataBuildsDockerAddDockerfile() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/docker-add/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsGradlePipelineYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: gradle
-spec:
-  strategy:
-    type: JenkinsPipeline
-    jenkinsPipelineStrategy:
-      jenkinsfile: |-
-        node("maven") {
-          git url: "https://github.com/openshift/gs-spring-boot-spock.git"
-          sh "./gradlew build"
-        }
-  triggers:
-  - type: ConfigChange
-`)
-
-func testExtendedTestdataBuildsGradlePipelineYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsGradlePipelineYaml, nil
-}
-
-func testExtendedTestdataBuildsGradlePipelineYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsGradlePipelineYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/gradle-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -57334,7 +57301,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/custom-build/Dockerfile.sample": testExtendedTestdataBuildsCustomBuildDockerfileSample,
 	"test/extended/testdata/builds/custom-build/build.sh": testExtendedTestdataBuildsCustomBuildBuildSh,
 	"test/extended/testdata/builds/docker-add/Dockerfile": testExtendedTestdataBuildsDockerAddDockerfile,
-	"test/extended/testdata/builds/gradle-pipeline.yaml": testExtendedTestdataBuildsGradlePipelineYaml,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
 	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment": testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
 	"test/extended/testdata/builds/s2i-environment-build-app/Gemfile": testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile,
@@ -57891,7 +57857,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"docker-add": &bintree{nil, map[string]*bintree{
 						"Dockerfile": &bintree{testExtendedTestdataBuildsDockerAddDockerfile, map[string]*bintree{}},
 					}},
-					"gradle-pipeline.yaml": &bintree{testExtendedTestdataBuildsGradlePipelineYaml, map[string]*bintree{}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
 					"s2i-environment-build-app": &bintree{nil, map[string]*bintree{
 						".s2i": &bintree{nil, map[string]*bintree{
