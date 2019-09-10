@@ -25,7 +25,7 @@ import (
 const (
 	machineAPIGroup       = "machine.openshift.io"
 	machineSetOwningLabel = "machine.openshift.io/cluster-api-machineset"
-	scalingTime           = 7 * time.Minute
+	scalingTime           = 12 * time.Minute
 )
 
 // machineSetClient returns a client for machines scoped to the proper namespace
