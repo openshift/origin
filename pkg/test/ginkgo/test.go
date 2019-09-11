@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -104,6 +105,22 @@ func newSuiteFromFile(name string, contents []byte) (*TestSuite, error) {
 		return ok
 	}
 	return suite, nil
+}
+
+func filterWithRegex(suite *TestSuite, regex string) error {
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		return err
+	}
+	origMatches := suite.Matches
+	suite.Matches = func(name string) bool {
+		if match := origMatches(name); !match {
+			return false
+		}
+
+		return re.MatchString(name)
+	}
+	return nil
 }
 
 func testNames(tests []*testCase) []string {
