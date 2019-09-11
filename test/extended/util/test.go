@@ -406,6 +406,11 @@ var (
 			"when the NodeLease feature is enabled",
 			"RuntimeClass should reject",
 
+			// TODO(node): configure the cri handler for the runtime class to make this work
+			"should run a Pod requesting a RuntimeClass with a configured handler",
+			"should reject a Pod requesting a RuntimeClass with conflicting node selector",
+			"should run a Pod requesting a RuntimeClass with scheduling",
+
 			// TODO(sdn): reenable when openshift/sdn is rebased to 1.16
 			`Services should implement service.kubernetes.io/headless`,
 
