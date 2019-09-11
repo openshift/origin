@@ -64,16 +64,7 @@ var _ = g.Describe("[cli] oc adm must-gather", func() {
 		defer os.RemoveAll(tempDir)
 		o.Expect(oc.Run("adm", "must-gather").Args("--dest-dir", tempDir).Execute()).To(o.Succeed())
 
-		imageClient := versioned.NewForConfigOrDie(oc.AdminConfig())
-		stream, err := imageClient.ImageV1().ImageStreams("openshift").Get("must-gather", metav1.GetOptions{})
-		o.Expect(err).ToNot(o.HaveOccurred())
-		imageId, ok := imageutil.ResolveLatestTaggedImage(stream, "latest")
-		o.Expect(ok).To(o.BeTrue())
-		pluginOutputDir := path.Join(tempDir, regexp.MustCompile("[^A-Za-z0-9]+").ReplaceAllString(imageId, "-"))
-		fileInfo, err := os.Stat(pluginOutputDir)
-		if err != nil || !fileInfo.IsDir() {
-			pluginOutputDir = tempDir
-		}
+		pluginOutputDir := getPluginOutputDir(oc, tempDir)
 
 		auditDirectories := [][]string{
 			{pluginOutputDir, "audit_logs", "kube-apiserver"},
@@ -186,10 +177,24 @@ var _ = g.Describe("[cli] oc adm must-gather", func() {
 			"ls -l > /artifacts/ls.log",
 		}
 		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
-		expectedFilePath := path.Join(tempDir, "ls.log")
+		expectedFilePath := path.Join(getPluginOutputDir(oc, tempDir), "ls.log")
 		o.Expect(expectedFilePath).To(o.BeAnExistingFile())
 		stat, err := os.Stat(expectedFilePath)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		o.Expect(stat.Size()).To(o.BeNumerically(">", 0))
 	})
 })
+
+func getPluginOutputDir(oc *util.CLI, tempDir string) string {
+	imageClient := versioned.NewForConfigOrDie(oc.AdminConfig())
+	stream, err := imageClient.ImageV1().ImageStreams("openshift").Get("must-gather", metav1.GetOptions{})
+	o.Expect(err).ToNot(o.HaveOccurred())
+	imageId, ok := imageutil.ResolveLatestTaggedImage(stream, "latest")
+	o.Expect(ok).To(o.BeTrue())
+	pluginOutputDir := path.Join(tempDir, regexp.MustCompile("[^A-Za-z0-9]+").ReplaceAllString(imageId, "-"))
+	fileInfo, err := os.Stat(pluginOutputDir)
+	if err != nil || !fileInfo.IsDir() {
+		pluginOutputDir = tempDir
+	}
+	return pluginOutputDir
+}
