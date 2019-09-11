@@ -42,4 +42,8 @@ if [[ "$( cat "${OUTPUT_PARENT}/test/extended/testdata/bindata.go" | wc -c )" -g
     exit 1
 fi
 
+pushd "${OS_ROOT}/vendor/k8s.io/kubernetes" > /dev/null
+PATH="$(dirname "$(os::util::find::gopath_binary go-bindata)"):${PATH}" hack/generate-bindata.sh
+popd > /dev/null
+
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
