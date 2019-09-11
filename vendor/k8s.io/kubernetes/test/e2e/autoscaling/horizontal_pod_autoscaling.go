@@ -28,7 +28,7 @@ import (
 
 // These tests don't seem to be running properly in parallel: issue: #20338.
 //
-var _ = SIGDescribe("[Feature:HPA] Horizontal pod autoscaling (scale resource: CPU)", func() {
+var _ = SIGDescribe("[Serial] [Feature:HPA] Horizontal pod autoscaling (scale resource: CPU)", func() {
 	var rc *common.ResourceConsumer
 	f := framework.NewDefaultFramework("horizontal-pod-autoscaling")
 
@@ -66,7 +66,7 @@ var _ = SIGDescribe("[Feature:HPA] Horizontal pod autoscaling (scale resource: C
 		})
 	})
 
-	SIGDescribe("[Serial] ReplicationController light", func() {
+	SIGDescribe("ReplicationController light", func() {
 		ginkgo.It("Should scale from 1 pod to 2 pods", func() {
 			scaleTest := &HPAScaleTest{
 				initPods:                    1,
