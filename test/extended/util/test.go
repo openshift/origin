@@ -494,6 +494,9 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1749882
 			`\[sig-storage\] CSI Volumes CSI Topology test using GCE PD driver \[Serial\]`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1751367
+			`gce-localssd-scsi-fs`,
 		},
 		"[Suite:openshift/scalability]": {},
 		// tests that replace the old test-cmd script
