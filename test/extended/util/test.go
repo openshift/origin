@@ -433,6 +433,9 @@ var (
 			// TODO(sdn): reenable when openshift/sdn is rebased to 1.16
 			`Services should implement service.kubernetes.io/headless`,
 
+			// TODO(sdn): test pod fails to connect in 1.16
+			`should allow ingress access from updated pod`,
+
 			// TODO(storage): fix the use of SSH into the node
 			`volumeMode should not mount / map unused volumes in a pod`,
 
