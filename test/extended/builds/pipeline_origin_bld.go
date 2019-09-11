@@ -32,6 +32,8 @@ const (
 	syncPluginName                       = "openshift-sync"
 	secretName                           = "secret-to-credential"
 	secretCredentialSyncLabel            = "credential.sync.jenkins.openshift.io"
+	secretCredentialSecretNameAnnotation = "jenkins.openshift.io/secret.name"
+	secretCredentialNewName              = "testName"
 	envVarsPipelineGitRepoBuildConfig    = "test-build-app-pipeline"
 )
 
@@ -377,7 +379,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 		})
 	})
 
-	g.Context("Sync plugin tests", func() {
+	g.Context("jenkins-sync-plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
 			defer cleanup(jenkinsEphemeralTemplatePath)
@@ -427,7 +429,6 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 			})
 
 			g.By("Sync secret to credential")
-
 			g.By("should map openshift secret to a jenkins credential as the secret is manipulated", func() {
 				g.By("create secret for jenkins credential")
 				err := oc.Run("create").Args("-f", secretPath).Execute()
@@ -460,7 +461,16 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("verify credential deleted when secret deleted")
+				g.By("verify name change of secret after adding annotation")
+				err = oc.Run("annotate").Args("secret", secretName, secretCredentialSecretNameAnnotation+"="+secretCredentialNewName).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s/", secretCredentialNewName)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("verify credential secret name change")
 				err = oc.Run("delete").Args("secret", secretName).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
