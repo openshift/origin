@@ -1,7 +1,6 @@
 package util
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path"
@@ -26,7 +25,6 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
-	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/generated"
@@ -47,18 +45,6 @@ var (
 
 var TestContext *e2e.TestContextType = &e2e.TestContext
 
-// init initialize the extended testing suite.
-// You can set these environment variables to configure extended tests:
-// KUBECONFIG - Path to kubeconfig containing embedded authinfo
-// TEST_REPORT_DIR - If set, JUnit output will be written to this directory for each test
-// TEST_REPORT_FILE_NAME - If set, will determine the name of the file that JUnit output is written to
-func Init() {
-	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
-	reale2e.ViperizeFlags(reale2e.GetViperConfig())
-	e2e.HandleFlags()
-	InitTest()
-}
-
 func InitStandardFlags() {
 	e2e.RegisterCommonFlags()
 	e2e.RegisterClusterFlags()
@@ -67,7 +53,7 @@ func InitStandardFlags() {
 	//e2e.RegisterStorageFlags()
 }
 
-func InitTest() {
+func InitTest(dryRun bool) {
 	InitDefaultEnvironmentVariables()
 	// interpret synthetic input in `--ginkgo.focus` and/or `--ginkgo.skip`
 	ginkgo.BeforeEach(checkSyntheticInput)
@@ -90,10 +76,12 @@ func InitTest() {
 	// load and set the host variable for kubectl
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: TestContext.KubeConfig}, &clientcmd.ConfigOverrides{})
 	cfg, err := clientConfig.ClientConfig()
-	if err != nil {
+	if err != nil && !dryRun { // we don't need the host when doing a dryrun
 		FatalErr(err)
 	}
-	TestContext.Host = cfg.Host
+	if cfg != nil {
+		TestContext.Host = cfg.Host
+	}
 
 	reportFileName = os.Getenv("TEST_REPORT_FILE_NAME")
 	if reportFileName == "" {

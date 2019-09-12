@@ -11,12 +11,13 @@ import (
 
 var _ = g.Describe("[Suite:openshift/crdvalidation/apiserver] APIServer CR fields validation", func() {
 	var (
-		oc              = exutil.NewCLI("cluster-basic-auth", exutil.KubeConfigPath())
-		apiServerClient = oc.AdminConfigClient().ConfigV1().APIServers()
+		oc = exutil.NewCLI("cluster-basic-auth", exutil.KubeConfigPath())
 	)
 	defer g.GinkgoRecover()
 
 	g.It("additionalCORSAllowedOrigins", func() {
+		apiServerClient := oc.AdminConfigClient().ConfigV1().APIServers()
+
 		apiServer, err := apiServerClient.Get("cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
