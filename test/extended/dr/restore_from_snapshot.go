@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -50,30 +51,28 @@ var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
 			Resource: "clusteroperators",
 		})
 
-		bastionHost := setupSSHBastion(oc)
-		proxy := fmt.Sprintf(proxyTemplate, sshOpts, bastionHost)
-		defer removeSSHBastion(oc)
-
 		setMachineConfig("rollback-A.yaml", oc, mcps)
 
-		masters := getAllMasters(oc)
+		masters := masterNodes(oc)
+		masterNames := sets.NewString()
+		for _, node := range masters {
+			masterNames.Insert(node.Name)
+		}
+
 		e2e.Logf("masters: %v", masters)
 		o.Expect(masters).NotTo(o.BeEmpty())
 		firstMaster := masters[0]
 		e2e.Logf("first master: %v", firstMaster)
 
 		e2e.Logf("Make etcd backup on first master")
-		runViaBastionSSH(firstMaster, proxy,
-			"sudo -i /bin/bash -x /usr/local/bin/etcd-snapshot-backup.sh /root/assets/backup/snapshot.db")
-		runViaBastionSSH(firstMaster, proxy,
-			"sudo -i install -o core -g core /root/assets/backup/snapshot.db /tmp/snapshot.db")
+		expectSSH("sudo -i /bin/bash -x /usr/local/bin/etcd-snapshot-backup.sh /root/assets/backup/snapshot.db", firstMaster)
+		expectSSH("sudo -i install -o core -g core /root/assets/backup/snapshot.db /tmp/snapshot.db", firstMaster)
 
 		setMachineConfig("rollback-B.yaml", oc, mcps)
 
-		masterHosts := strings.Join(masters, " ")
+		masterHosts := strings.Join(masterNames.List(), " ")
 		restoreScriptPath := exutil.FixturePath("testdata", "disaster-recovery", "restore-etcd.sh")
-		cmd := fmt.Sprintf("env BASTION_HOST='%s' MASTERHOSTS='%s' KUBE_SSH_KEY_PATH='%s' /bin/bash -x %s ",
-			bastionHost, masterHosts, os.Getenv("KUBE_SSH_KEY_PATH"), restoreScriptPath)
+		cmd := fmt.Sprintf("env BASTION_HOST= MASTERHOSTS='%s' KUBE_SSH_KEY_PATH='%s' /bin/bash -x %s ", masterHosts, os.Getenv("KUBE_SSH_KEY_PATH"), restoreScriptPath)
 		runCommandAndRetry(cmd)
 
 		time.Sleep(30 * time.Second)
@@ -88,7 +87,7 @@ var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
 		o.Expect(rollBackInMC).To(o.BeEquivalentTo("data:,A"))
 
 		for _, master := range masters {
-			rollBackFile := fetchRollbackFileContents(master, proxy)
+			rollBackFile := fetchFileContents(master, "/etc/rollback-test")
 			o.Expect(rollBackFile).To(o.BeEquivalentTo("A"))
 		}
 	})
@@ -131,9 +130,4 @@ func waitForAPIServer(oc *exutil.CLI) {
 		return true, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-func fetchRollbackFileContents(master string, proxy string) string {
-	e2e.Logf("Fetching /etc/rollback-test file contents from %s", master)
-	return runViaBastionSSH(master, proxy, "cat /etc/rollback-test")
 }

@@ -49,8 +49,9 @@ var staticSuites = []*ginkgo.TestSuite{
 		The disruptive test suite.
 		`),
 		Matches: func(name string) bool {
-			return !strings.Contains(name, "[Disabled") && strings.Contains(name, "[Disruptive]")
+			return strings.Contains(name, "[Disruptive]") && strings.Contains(name, "[dr-quorum-restore]")
 		},
+		TestTimeout: 60 * time.Minute,
 	},
 	{
 		Name: "kubernetes/conformance",
