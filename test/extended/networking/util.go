@@ -207,7 +207,7 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 		pod.Spec.Containers[0].Image = "openshift/node"
 		pod.Spec.NodeName = nodeName
 		pod.Spec.HostNetwork = true
-		privileged := true
+		privileged := false
 		pod.Spec.Volumes = []corev1.Volume{
 			{
 				Name: "ovs-socket",
