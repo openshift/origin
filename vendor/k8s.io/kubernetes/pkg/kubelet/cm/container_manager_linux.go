@@ -63,7 +63,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/oom"
 	"k8s.io/kubernetes/pkg/util/procfs"
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
-	utilio "k8s.io/utils/io"
 	utilpath "k8s.io/utils/path"
 )
 
@@ -72,7 +71,6 @@ const (
 	dockerPidFile         = "/var/run/docker.pid"
 	containerdProcessName = "docker-containerd"
 	containerdPidFile     = "/run/docker/libcontainerd/docker-containerd.pid"
-	maxPidFileLength      = 1 << 10 // 1KB
 )
 
 var (
@@ -707,7 +705,7 @@ func getPidFromPidFile(pidFile string) (int, error) {
 	}
 	defer file.Close()
 
-	data, err := utilio.ReadAtMost(file, maxPidFileLength)
+	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		return 0, fmt.Errorf("error reading pid file %s: %v", pidFile, err)
 	}

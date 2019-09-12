@@ -18,6 +18,7 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -31,7 +32,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-	utilio "k8s.io/utils/io"
 )
 
 type podEventType int
@@ -216,7 +216,7 @@ func (s *sourceFile) extractFromFile(filename string) (pod *v1.Pod, err error) {
 	}
 	defer file.Close()
 
-	data, err := utilio.ReadAtMost(file, maxConfigLength)
+	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		return pod, err
 	}
