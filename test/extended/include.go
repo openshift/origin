@@ -38,6 +38,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/csrapprover"
 	_ "github.com/openshift/origin/test/extended/deployments"
 	_ "github.com/openshift/origin/test/extended/dns"
+	_ "github.com/openshift/origin/test/extended/dr"
 	_ "github.com/openshift/origin/test/extended/etcd"
 	_ "github.com/openshift/origin/test/extended/idling"
 	_ "github.com/openshift/origin/test/extended/image_ecosystem"
@@ -57,6 +58,4 @@ import (
 	_ "github.com/openshift/origin/test/extended/security"
 	_ "github.com/openshift/origin/test/extended/templates"
 	_ "github.com/openshift/origin/test/extended/user"
-
-	_ "github.com/openshift/origin/test/e2e/dr"
 )

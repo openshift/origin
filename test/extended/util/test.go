@@ -288,10 +288,6 @@ func testNameContains(name string) bool {
 	return strings.Contains(ginkgo.CurrentGinkgoTestDescription().FullTestText, name)
 }
 
-func isOriginUpgradeTest() bool {
-	return isPackage("/origin/test/e2e/upgrade/")
-}
-
 func skipTestNamespaceCustomization() bool {
 	return (isPackage("/kubernetes/test/e2e/namespace.go") && (testNameContains("should always delete fast") || testNameContains("should delete fast enough")))
 }
@@ -301,15 +297,14 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 	if !strings.HasPrefix(baseName, "e2e-") {
 		baseName = "e2e-" + baseName
 	}
+
 	ns, err := e2e.CreateTestingNS(baseName, c, labels)
 	if err != nil {
 		return ns, err
 	}
 
-	klog.V(2).Infof("blah=%s", ginkgo.CurrentGinkgoTestDescription().FileName)
-
 	// Add anyuid and privileged permissions for upstream tests
-	if (isKubernetesE2ETest() && !skipTestNamespaceCustomization()) || isOriginUpgradeTest() {
+	if strings.HasPrefix(baseName, "e2e-k8s-") || (isKubernetesE2ETest() && !skipTestNamespaceCustomization()) {
 		clientConfig, err := getClientConfig(KubeConfigPath())
 		if err != nil {
 			return ns, err
