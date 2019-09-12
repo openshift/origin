@@ -131,10 +131,17 @@ func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 }
 
 func AnnotateTestSuite() {
+	testRenamer := newGinkgoTestRenamerFromGlobals(e2e.TestContext.Provider)
+
+	ginkgo.WalkTests(testRenamer.maybeRenameTest)
+}
+
+func newGinkgoTestRenamerFromGlobals(provider string) *ginkgoTestRenamer {
 	var allLabels []string
 	matches := make(map[string]*regexp.Regexp)
 	stringMatches := make(map[string][]string)
 	excludes := make(map[string]*regexp.Regexp)
+
 	for label, items := range testMaps {
 		sort.Strings(items)
 		allLabels = append(allLabels, label)
@@ -157,69 +164,89 @@ func AnnotateTestSuite() {
 	}
 	sort.Strings(allLabels)
 
-	if e2e.TestContext.Provider != "" {
-		excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:%s\]`, e2e.TestContext.Provider))
+	if provider != "" {
+		excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:%s\]`, provider))
 	}
+	klog.Infof("openshift-tests excluded test regex is %q", strings.Join(excludedTests, `|`))
 	excludedTestsFilter := regexp.MustCompile(strings.Join(excludedTests, `|`))
 
-	ginkgo.WalkTests(func(name string, node types.TestNode) {
-		labels := ""
-		for {
-			count := 0
-			for _, label := range allLabels {
-				if strings.Contains(name, label) {
+	return &ginkgoTestRenamer{
+		allLabels:     allLabels,
+		stringMatches: stringMatches,
+		matches:       matches,
+		excludes:      excludes,
+
+		excludedTestsFilter: excludedTestsFilter,
+	}
+}
+
+type ginkgoTestRenamer struct {
+	allLabels     []string
+	stringMatches map[string][]string
+	matches       map[string]*regexp.Regexp
+	excludes      map[string]*regexp.Regexp
+
+	excludedTestsFilter *regexp.Regexp
+}
+
+func (r *ginkgoTestRenamer) maybeRenameTest(name string, node types.TestNode) {
+	labels := ""
+	for {
+		count := 0
+		for _, label := range r.allLabels {
+			if strings.Contains(name, label) {
+				continue
+			}
+
+			var hasLabel bool
+			for _, segment := range r.stringMatches[label] {
+				hasLabel = strings.Contains(name, segment)
+				if hasLabel {
+					break
+				}
+			}
+			if !hasLabel {
+				if re := r.matches[label]; re != nil {
+					hasLabel = r.matches[label].MatchString(name)
+				}
+			}
+
+			if hasLabel {
+				// TODO: remove when we no longer need it
+				if re, ok := r.excludes[label]; ok && re.MatchString(name) {
 					continue
 				}
+				count++
+				labels += " " + label
+				name += " " + label
+			}
+		}
+		if count == 0 {
+			break
+		}
+	}
 
-				var hasLabel bool
-				for _, segment := range stringMatches[label] {
-					hasLabel = strings.Contains(name, segment)
-					if hasLabel {
-						break
-					}
-				}
-				if !hasLabel {
-					if re := matches[label]; re != nil {
-						hasLabel = matches[label].MatchString(name)
-					}
-				}
-
-				if hasLabel {
-					// TODO: remove when we no longer need it
-					if re, ok := excludes[label]; ok && re.MatchString(name) {
-						continue
-					}
-					count++
-					labels += " " + label
-					name += " " + label
-				}
-			}
-			if count == 0 {
-				break
-			}
+	if !r.excludedTestsFilter.MatchString(name) {
+		isSerial := strings.Contains(name, "[Serial]")
+		isConformance := strings.Contains(name, "[Conformance]")
+		switch {
+		case isSerial && isConformance:
+			node.SetText(node.Text() + " [Suite:openshift/conformance/serial/minimal]")
+		case isSerial:
+			node.SetText(node.Text() + " [Suite:openshift/conformance/serial]")
+		case isConformance:
+			node.SetText(node.Text() + " [Suite:openshift/conformance/parallel/minimal]")
+		default:
+			node.SetText(node.Text() + " [Suite:openshift/conformance/parallel]")
 		}
-		if !excludedTestsFilter.MatchString(name) {
-			isSerial := strings.Contains(name, "[Serial]")
-			isConformance := strings.Contains(name, "[Conformance]")
-			switch {
-			case isSerial && isConformance:
-				node.SetText(node.Text() + " [Suite:openshift/conformance/serial/minimal]")
-			case isSerial:
-				node.SetText(node.Text() + " [Suite:openshift/conformance/serial]")
-			case isConformance:
-				node.SetText(node.Text() + " [Suite:openshift/conformance/parallel/minimal]")
-			default:
-				node.SetText(node.Text() + " [Suite:openshift/conformance/parallel]")
-			}
-		}
-		if strings.Contains(node.CodeLocation().FileName, "/origin/test/") && !strings.Contains(node.Text(), "[Suite:openshift") {
-			node.SetText(node.Text() + " [Suite:openshift]")
-		}
-		if strings.Contains(node.CodeLocation().FileName, "/kubernetes/test/e2e/") {
-			node.SetText(node.Text() + " [Suite:k8s]")
-		}
-		node.SetText(node.Text() + labels)
-	})
+	}
+	if strings.Contains(node.CodeLocation().FileName, "/origin/test/") && !strings.Contains(node.Text(), "[Suite:openshift") {
+		node.SetText(node.Text() + " [Suite:openshift]")
+	}
+	if strings.Contains(node.CodeLocation().FileName, "/kubernetes/test/e2e/") {
+		node.SetText(node.Text() + " [Suite:k8s]")
+	}
+	node.SetText(node.Text() + labels)
 }
 
 // ProwGCPSetup makes sure certain required env vars are available in the case
