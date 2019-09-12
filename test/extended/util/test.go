@@ -437,7 +437,6 @@ var (
 
 			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
 
-			`\[HPA\] Horizontal pod autoscaling \(scale resource: Custom Metrics from Stackdriver\)`, // down custom metrics apiservices break other clients
 		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
@@ -497,6 +496,10 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1751367
 			`gce-localssd-scsi-fs`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1750851
+			// should be serial if/when it's re-enabled
+			`\[HPA\] Horizontal pod autoscaling \(scale resource: Custom Metrics from Stackdriver\)`,
 		},
 		"[Suite:openshift/scalability]": {},
 		// tests that replace the old test-cmd script
