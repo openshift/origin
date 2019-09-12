@@ -335,6 +335,10 @@ func (test localResourceAccessReviewTest) run() {
 				if strings.HasPrefix(curr, "system:serviceaccount:openshift-") {
 					continue
 				}
+				// skip the ci provisioner to pass gcp: ci-provisioner@openshift-gce-devel-ci.iam.gserviceaccount.com
+				if strings.HasPrefix(curr, "ci-provisioner@") {
+					continue
+				}
 				actualUsersToCheck.Insert(curr)
 			}
 			if !reflect.DeepEqual(actualUsersToCheck, sets.NewString(test.response.UsersSlice...)) {
