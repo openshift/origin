@@ -2,14 +2,44 @@ package externalipranger
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+
+	"k8s.io/apiserver/pkg/authentication/user"
+
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 )
+
+type fakeTestAuthorizer struct {
+	t *testing.T
+}
+
+func fakeAuthorizer(t *testing.T) authorizer.Authorizer {
+	return &fakeTestAuthorizer{
+		t: t,
+	}
+}
+
+func (a *fakeTestAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
+	ui := attributes.GetUser()
+	if ui == nil {
+		return authorizer.DecisionNoOpinion, "", fmt.Errorf("No valid UserInfo for Context")
+	}
+	// system:serviceaccount:test:admin user aka admin user is allowed to set
+	// external IPs
+	if ui.GetName() == "system:serviceaccount:test:admin" {
+		return authorizer.DecisionAllow, "", nil
+	}
+	// Non test:admin user aka without admin privileges:
+	return authorizer.DecisionDeny, "", nil
+}
 
 // TestAdmission verifies various scenarios involving pod/project/global node label selectors
 func TestAdmission(t *testing.T) {
@@ -48,23 +78,34 @@ func TestAdmission(t *testing.T) {
 		errFn           func(err error) bool
 		loadBalancer    bool
 		ingressIP       string
+		userinfo        user.Info
 	}{
 		{
 			admit:    true,
 			op:       admission.Create,
-			testName: "No external IPs on create",
+			testName: "No external IPs on create for test:ordinary-user user",
+			userinfo: serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
 			admit:    true,
 			op:       admission.Update,
-			testName: "No external IPs on update",
+			testName: "No external IPs on update for test:admin user",
+			userinfo: serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
 			admit:       false,
 			externalIPs: []string{"1.2.3.4"},
 			op:          admission.Create,
-			testName:    "No external IPs allowed on create",
+			testName:    "No external IPs allowed on create for test:ordinary-user user",
 			errFn:       func(err error) bool { return strings.Contains(err.Error(), "externalIPs have been disabled") },
+			userinfo:    serviceaccount.UserInfo("test", "ordinary-user", ""),
+		},
+		{
+			admit:       true,
+			externalIPs: []string{"1.2.3.4"},
+			op:          admission.Create,
+			testName:    "External IPs allowed on create for test:admin user",
+			userinfo:    serviceaccount.UserInfo("test", "admin", ""),
 		},
 		{
 			admit:       false,
@@ -72,6 +113,14 @@ func TestAdmission(t *testing.T) {
 			op:          admission.Update,
 			testName:    "No external IPs allowed on update",
 			errFn:       func(err error) bool { return strings.Contains(err.Error(), "externalIPs have been disabled") },
+			userinfo:    serviceaccount.UserInfo("test", "ordinary-user", ""),
+		},
+		{
+			admit:       true,
+			externalIPs: []string{"1.2.3.4"},
+			op:          admission.Update,
+			testName:    "External IPs allowed on update for test:admin user",
+			userinfo:    serviceaccount.UserInfo("test", "admin", ""),
 		},
 		{
 			admit:       false,
@@ -83,6 +132,7 @@ func TestAdmission(t *testing.T) {
 				return strings.Contains(err.Error(), "externalIP is not allowed") &&
 					strings.Contains(err.Error(), "spec.externalIPs[0]")
 			},
+			userinfo: serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
 			admit:       false,
@@ -94,6 +144,7 @@ func TestAdmission(t *testing.T) {
 				return strings.Contains(err.Error(), "externalIP is not allowed") &&
 					strings.Contains(err.Error(), "spec.externalIPs[0]")
 			},
+			userinfo: serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
 			admit:       false,
@@ -106,6 +157,7 @@ func TestAdmission(t *testing.T) {
 				return strings.Contains(err.Error(), "externalIP is not allowed") &&
 					strings.Contains(err.Error(), "spec.externalIPs[0]")
 			},
+			userinfo: serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
 			admit:       false,
@@ -118,20 +170,23 @@ func TestAdmission(t *testing.T) {
 				return strings.Contains(err.Error(), "externalIP is not allowed") &&
 					strings.Contains(err.Error(), "spec.externalIPs[0]")
 			},
+			userinfo: serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
 			admit:       true,
 			admits:      []*net.IPNet{ipv4},
 			externalIPs: []string{"172.0.0.1"},
 			op:          admission.Create,
-			testName:    "IP in range on create",
+			testName:    "IP in range on create for test:ordinary-user user",
+			userinfo:    serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
 			admit:       true,
 			admits:      []*net.IPNet{ipv4},
 			externalIPs: []string{"172.0.0.1"},
 			op:          admission.Update,
-			testName:    "IP in range on update",
+			testName:    "IP in range on update for test:admin user",
+			userinfo:    serviceaccount.UserInfo("test", "admin", ""),
 		},
 		// other checks
 		{
@@ -144,13 +199,24 @@ func TestAdmission(t *testing.T) {
 				return strings.Contains(err.Error(), "externalIPs must be a valid address") &&
 					strings.Contains(err.Error(), "spec.externalIPs[0]")
 			},
+			userinfo: serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
 			admit:       false,
 			admits:      []*net.IPNet{none},
 			externalIPs: []string{"1.2.3.4"},
 			op:          admission.Create,
-			testName:    "IP range is empty",
+			testName:    "IP range is empty for test:ordinary-user user",
+			errFn:       func(err error) bool { return strings.Contains(err.Error(), "externalIP is not allowed") },
+			userinfo:    serviceaccount.UserInfo("test", "ordinary-user", ""),
+		},
+		{
+			admit:       true,
+			admits:      []*net.IPNet{none},
+			externalIPs: []string{"1.2.3.4"},
+			op:          admission.Create,
+			testName:    "IP range is empty, but test:admin user allowed",
+			userinfo:    serviceaccount.UserInfo("test", "admin", ""),
 		},
 		{
 			admit:       false,
@@ -159,6 +225,7 @@ func TestAdmission(t *testing.T) {
 			externalIPs: []string{"1.2.3.4"},
 			op:          admission.Create,
 			testName:    "rejections can cover the entire range",
+			userinfo:    serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		// Ingress IP checks
 		{
@@ -168,6 +235,7 @@ func TestAdmission(t *testing.T) {
 			testName:     "Ingress ip allowed when external ips are disabled",
 			loadBalancer: true,
 			ingressIP:    "1.2.3.4",
+			userinfo:     serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
 			admit:        true,
@@ -177,6 +245,7 @@ func TestAdmission(t *testing.T) {
 			testName:     "Ingress ip allowed when external ips are enabled",
 			loadBalancer: true,
 			ingressIP:    "1.2.3.4",
+			userinfo:     serviceaccount.UserInfo("test", "admin", ""),
 		},
 		{
 			admit:        false,
@@ -186,13 +255,19 @@ func TestAdmission(t *testing.T) {
 			testName:     "Ingress ip not allowed for non-lb service",
 			loadBalancer: false,
 			ingressIP:    "1.2.3.4",
+			userinfo:     serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 	}
 	for _, test := range tests {
 		svc.Spec.ExternalIPs = test.externalIPs
 		allowIngressIP := len(test.ingressIP) > 0 || test.loadBalancer
 		handler := NewExternalIPRanger(test.rejects, test.admits, allowIngressIP)
-
+		handler.SetAuthorizer(fakeAuthorizer(t))
+		err := handler.ValidateInitialization()
+		if err != nil {
+			t.Errorf("%s: Got an error %s", test.testName, err)
+			continue
+		}
 		if test.loadBalancer {
 			svc.Spec.Type = kapi.ServiceTypeLoadBalancer
 		} else {
@@ -218,7 +293,8 @@ func TestAdmission(t *testing.T) {
 			oldSvc = nil
 		}
 
-		err := handler.Validate(context.TODO(), admission.NewAttributesRecord(svc, oldSvc, kapi.Kind("Service").WithVersion("version"), "namespace", svc.ObjectMeta.Name, kapi.Resource("services").WithVersion("version"), "", test.op, nil, false, nil), nil)
+		err = handler.Validate(context.TODO(), admission.NewAttributesRecord(svc, oldSvc, kapi.Kind("Service").WithVersion("version"), "namespace", svc.ObjectMeta.Name, kapi.Resource("services").WithVersion("version"), "", test.op, nil, false, test.userinfo), nil)
+
 		if test.admit && err != nil {
 			t.Errorf("%s: expected no error but got: %s", test.testName, err)
 		} else if !test.admit && err == nil {
