@@ -41,9 +41,9 @@ var _ = g.Describe("[Suite:openshift/oauth] LDAP IDP", func() {
 		myEmail        = "person1smith@example.com"
 	)
 
-	adminConfig := oc.AdminConfig()
-
 	g.It("should authenticate against an ldap server", func() {
+		adminConfig := oc.AdminConfig()
+
 		// Clean up mapped identity and user.
 		defer userv1client.NewForConfigOrDie(oc.AdminConfig()).Identities().Delete(fmt.Sprintf("%s:%s", providerName, myUserDNBase64), nil)
 		defer userv1client.NewForConfigOrDie(oc.AdminConfig()).Users().Delete(userName, nil)

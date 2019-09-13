@@ -124,9 +124,10 @@ func newRunCommand() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mirrorToFile(opt, func() error {
-				if err := initProvider(opt.Provider); err != nil {
+				if err := initProvider(opt.Provider, opt.DryRun); err != nil {
 					return err
 				}
+
 				e2e.AfterReadingAllFlags(exutil.TestContext)
 				e2e.TestContext.DumpLogsOnFailure = true
 				exutil.TestContext.DumpLogsOnFailure = true
@@ -187,7 +188,7 @@ func newRunUpgradeCommand() *cobra.Command {
 					}
 				}
 
-				if err := initProvider(opt.Provider); err != nil {
+				if err := initProvider(opt.Provider, opt.DryRun); err != nil {
 					return err
 				}
 				e2e.AfterReadingAllFlags(exutil.TestContext)
@@ -221,7 +222,7 @@ func newRunTestCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := initProvider(os.Getenv("TEST_PROVIDER")); err != nil {
+			if err := initProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun); err != nil {
 				return err
 			}
 			if err := initUpgrade(os.Getenv("TEST_SUITE_OPTIONS")); err != nil {
@@ -273,7 +274,7 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
 }
 
-func initProvider(provider string) error {
+func initProvider(provider string, dryRun bool) error {
 	// record the exit error to the output file
 	if err := decodeProviderTo(provider, exutil.TestContext); err != nil {
 		return err
@@ -292,7 +293,7 @@ func initProvider(provider string) error {
 	//exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
 
 	exutil.AnnotateTestSuite()
-	exutil.InitTest()
+	exutil.InitTest(dryRun)
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	// TODO: infer SSH keys from the cluster
