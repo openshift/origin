@@ -1,6 +1,7 @@
 package scmauth
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -8,6 +9,7 @@ import (
 )
 
 const SSHPrivateKeyMethodName = "ssh-privatekey"
+const knownHostsFileName = "known_hosts"
 
 // SSHPrivateKey implements SCMAuth interface for using SSH private keys.
 type SSHPrivateKey struct{}
@@ -23,10 +25,31 @@ func (_ SSHPrivateKey) Setup(baseDir string, context SCMAuthContext) error {
 	if err := script.Chmod(0711); err != nil {
 		return err
 	}
-	content := "#!/bin/sh\nssh -i " +
-		filepath.Join(baseDir, SSHPrivateKeyMethodName) +
-		" -o StrictHostKeyChecking=false \"$@\"\n"
-
+	foundPrivateKey := false
+	foundKnownHosts := false
+	files, err := ioutil.ReadDir(baseDir)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		switch {
+		case file.Name() == knownHostsFileName:
+			foundKnownHosts = true
+		case file.Name() == SSHPrivateKeyMethodName:
+			foundPrivateKey = true
+		}
+		glog.V(5).Infof("source secret dir %s has file %s", baseDir, file.Name())
+	}
+	if !foundPrivateKey {
+		return fmt.Errorf("could not find the ssh-privatekey file for the ssh secret stored at %s", baseDir)
+	}
+	// let's see if known_hosts was included in the secret
+	content := "#!/bin/sh\nssh -i " + filepath.Join(baseDir, SSHPrivateKeyMethodName)
+	if !foundKnownHosts {
+		content = content + " -o StrictHostKeyChecking=false \"$@\"\n"
+	} else {
+		content = content + " -o UserKnownHostsFile=" + filepath.Join(baseDir, knownHostsFileName) + " \"$@\"\n"
+	}
 	glog.V(5).Infof("Adding Private SSH Auth:\n%s\n", content)
 
 	if _, err := script.WriteString(content); err != nil {
