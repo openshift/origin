@@ -3,6 +3,7 @@ package builds
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -93,30 +95,27 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 
 	for _, test := range tests {
+		g.By(fmt.Sprintf("testing %s webhooks", test.Name))
 		for _, s := range test.URLs {
 			// trigger build event sending push notification
 			clusterAdminClientConfig := oc.AdminConfig()
 
+			g.By("executing the webhook to get the build object")
 			body := postFile(clusterAdminBuildClient.RESTClient(), test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
-			if len(body) == 0 {
-				t.Fatalf("%s: Webhook did not return expected Build object.", test.Name)
-			}
+			o.Expect(body).NotTo(o.BeEmpty())
 
+			g.By("Unmarshalling the build object")
 			returnedBuild := &buildv1.Build{}
 			err := json.Unmarshal(body, returnedBuild)
-			if err != nil {
-				t.Fatalf("%s: Unable to unmarshal returned body into a Build object: %v", test.Name, err)
-			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("checking that the build exists")
 			actual, err := clusterAdminBuildClient.Builds(oc.Namespace()).Get(returnedBuild.Name, metav1.GetOptions{})
-			if err != nil {
-				t.Errorf("Created build not found in cluster: %v", err)
-			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("checking that we found the correct build")
 			// There should only be one trigger on these builds.
-			if actual.Spec.TriggeredBy[0].Message != returnedBuild.Spec.TriggeredBy[0].Message {
-				t.Fatalf("%s: Webhook returned incorrect build.", test.Name)
-			}
+			o.Expect(actual.Spec.TriggeredBy[0].Message).To(o.Equal(returnedBuild.Spec.TriggeredBy[0].Message))
 		}
 	}
 }
