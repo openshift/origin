@@ -211,6 +211,7 @@
 // test/extended/testdata/cmd/test/cmd/run.sh
 // test/extended/testdata/cmd/test/cmd/secrets.sh
 // test/extended/testdata/cmd/test/cmd/services.sh
+// test/extended/testdata/cmd/test/cmd/set-data.sh
 // test/extended/testdata/cmd/test/cmd/set-image.sh
 // test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh
 // test/extended/testdata/cmd/test/cmd/setbuildhook.sh
@@ -34365,6 +34366,82 @@ func testExtendedTestdataCmdTestCmdServicesSh() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataCmdTestCmdSetDataSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete cm --all
+  oc delete secret test
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/oc/set/data"
+
+os::cmd::expect_success 'oc create configmap test'
+tmpfile="$(mktemp)"
+echo "c" > "${tmpfile}"
+
+# test --local flag
+os::cmd::expect_failure_and_text 'oc set data cm/test a=b --local' 'provide one or more resources by argument or filename'
+# test --dry-run flag with -o formats
+os::cmd::expect_success_and_text 'oc set data cm/test a=b --dry-run' 'test'
+os::cmd::expect_success_and_text 'oc set data cm/test a=b --dry-run -o name' 'configmap/test'
+os::cmd::expect_success_and_text 'oc set data cm/test a=b --dry-run' 'configmap/test data updated \(dry run\)'
+
+os::cmd::expect_failure_and_text 'oc set data cm/test a=c a-' 'you may not remove and set the key'
+os::cmd::expect_failure_and_text 'oc set data cm/test a=c --from-literal=a=b' 'cannot set key "a" in both argument and flag'
+
+os::cmd::expect_success 'oc set data cm/test a=b'
+os::cmd::expect_success_and_text "oc get cm/test -o jsonpath='{.data.a}'" 'b'
+os::cmd::expect_success_and_text 'oc set data cm/test a=b' 'info: test was not changed'
+
+os::cmd::expect_success 'oc set data cm/test a-'
+os::cmd::expect_success_and_text "oc get cm/test -o jsonpath='{.data.a}'" ''
+os::cmd::expect_success_and_text 'oc set data cm/test a-' 'info: test was not changed'
+
+os::cmd::expect_success "oc set data cm/test --from-file=b=${tmpfile}"
+os::cmd::expect_success_and_text "oc get cm/test -o jsonpath='{.data.b}'" 'c'
+os::cmd::expect_success_and_text "oc set data cm/test --from-file=b=${tmpfile}" 'info: test was not changed'
+
+rm -rf ${tmpfile}
+mkdir -p ${tmpfile}
+echo '1' > "${tmpfile}/a"
+echo '2' > "${tmpfile}/b"
+os::cmd::expect_success 'oc set data cm/test b-'
+os::cmd::expect_success "oc set data cm/test --from-file=${tmpfile}"
+os::cmd::expect_success_and_text "oc get cm/test -o jsonpath='{.data.a}'" '1'
+os::cmd::expect_success_and_text "oc get cm/test -o jsonpath='{.data.b}'" '2'
+os::cmd::expect_success_and_text "oc set data cm/test --from-file=${tmpfile}" "info: test was not changed"
+
+os::cmd::expect_success 'oc create secret generic test'
+os::cmd::expect_success 'oc set data secret/test a=b'
+os::cmd::expect_success_and_text "oc get secret/test -o jsonpath='{.data.a}'" 'Yg=='
+os::cmd::expect_success_and_text 'oc set data secret/test a=b' 'info: test was not changed'
+
+
+echo "set-data: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdSetDataShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdSetDataSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdSetDataSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdSetDataShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/set-data.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataCmdTestCmdSetImageSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -57420,6 +57497,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/run.sh": testExtendedTestdataCmdTestCmdRunSh,
 	"test/extended/testdata/cmd/test/cmd/secrets.sh": testExtendedTestdataCmdTestCmdSecretsSh,
 	"test/extended/testdata/cmd/test/cmd/services.sh": testExtendedTestdataCmdTestCmdServicesSh,
+	"test/extended/testdata/cmd/test/cmd/set-data.sh": testExtendedTestdataCmdTestCmdSetDataSh,
 	"test/extended/testdata/cmd/test/cmd/set-image.sh": testExtendedTestdataCmdTestCmdSetImageSh,
 	"test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh": testExtendedTestdataCmdTestCmdSetLivenessProbeSh,
 	"test/extended/testdata/cmd/test/cmd/setbuildhook.sh": testExtendedTestdataCmdTestCmdSetbuildhookSh,
@@ -58028,6 +58106,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"run.sh": &bintree{testExtendedTestdataCmdTestCmdRunSh, map[string]*bintree{}},
 							"secrets.sh": &bintree{testExtendedTestdataCmdTestCmdSecretsSh, map[string]*bintree{}},
 							"services.sh": &bintree{testExtendedTestdataCmdTestCmdServicesSh, map[string]*bintree{}},
+							"set-data.sh": &bintree{testExtendedTestdataCmdTestCmdSetDataSh, map[string]*bintree{}},
 							"set-image.sh": &bintree{testExtendedTestdataCmdTestCmdSetImageSh, map[string]*bintree{}},
 							"set-liveness-probe.sh": &bintree{testExtendedTestdataCmdTestCmdSetLivenessProbeSh, map[string]*bintree{}},
 							"setbuildhook.sh": &bintree{testExtendedTestdataCmdTestCmdSetbuildhookSh, map[string]*bintree{}},
