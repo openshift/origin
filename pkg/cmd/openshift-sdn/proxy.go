@@ -153,8 +153,6 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 	iptInterface := utiliptables.New(execer, dbus, protocol)
 
 	var proxier proxy.ProxyProvider
-	var servicesHandler pconfig.ServiceHandler
-	var endpointsHandler pconfig.EndpointsHandler
 	var healthzServer *healthcheck.HealthzServer
 	if len(sdn.ProxyConfig.HealthzBindAddress) > 0 {
 		nodeRef := &v1.ObjectReference{
@@ -180,7 +178,7 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 			// IPTablesMasqueradeBit must be specified or defaulted.
 			klog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
 		}
-		proxierIptables, err := iptables.NewProxier(
+		proxier, err = iptables.NewProxier(
 			iptInterface,
 			utilsysctl.New(),
 			execer,
@@ -200,23 +198,15 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		if err != nil {
 			klog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
-		proxier = proxierIptables
-		endpointsHandler = proxierIptables
-		servicesHandler = proxierIptables
 		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
 		klog.V(0).Info("Tearing down userspace rules.")
 		userspace.CleanupLeftovers(iptInterface)
 	case kubeproxyconfig.ProxyModeUserspace:
 		klog.V(0).Info("Using userspace Proxier.")
-		// This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
-		// our config.EndpointsHandler.
-		loadBalancer := userspace.NewLoadBalancerRR()
-		// set EndpointsHandler to our loadBalancer
-		endpointsHandler = loadBalancer
 
 		execer := utilexec.New()
-		proxierUserspace, err := userspace.NewProxier(
-			loadBalancer,
+		proxier, err = userspace.NewProxier(
+			userspace.NewLoadBalancerRR(),
 			bindAddr,
 			iptInterface,
 			execer,
@@ -229,8 +219,6 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		if err != nil {
 			klog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
-		proxier = proxierUserspace
-		servicesHandler = proxierUserspace
 		// Remove artifacts from the pure-iptables Proxier.
 		klog.V(0).Info("Tearing down pure-iptables proxy rules.")
 		iptables.CleanupLeftovers(iptInterface)
@@ -248,28 +236,26 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 	)
 
 	if sdn.NodeConfig.EnableUnidling {
-		unidlingLoadBalancer := userspace.NewLoadBalancerRR()
 		signaler := unidler.NewEventSignaler(recorder)
-		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, sdn.ProxyConfig.IPTables.SyncPeriod.Duration, sdn.ProxyConfig.IPTables.MinSyncPeriod.Duration, sdn.ProxyConfig.UDPIdleTimeout.Duration, sdn.ProxyConfig.NodePortAddresses, signaler)
+		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(userspace.NewLoadBalancerRR(), bindAddr, iptInterface, execer, *portRange, sdn.ProxyConfig.IPTables.SyncPeriod.Duration, sdn.ProxyConfig.IPTables.MinSyncPeriod.Duration, sdn.ProxyConfig.UDPIdleTimeout.Duration, sdn.ProxyConfig.NodePortAddresses, signaler)
 		if err != nil {
 			klog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
-		hybridProxier, err := hybrid.NewHybridProxier(
-			unidlingLoadBalancer,
-			unidlingUserspaceProxy,
-			endpointsHandler,
-			servicesHandler,
-			proxier,
+		hp, ok := proxier.(hybrid.RunnableProxy)
+		if !ok {
+			// unreachable
+			klog.Fatalf("unidling proxy must be used in iptables mode")
+		}
+		proxier, err = hybrid.NewHybridProxier(
+			hp,
 			unidlingUserspaceProxy,
 			sdn.ProxyConfig.IPTables.SyncPeriod.Duration,
+			sdn.ProxyConfig.IPTables.MinSyncPeriod.Duration,
 			sdn.informers.KubeInformers.Core().V1().Services().Lister(),
 		)
 		if err != nil {
 			klog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
-		endpointsHandler = hybridProxier
-		servicesHandler = hybridProxier
-		proxier = hybridProxier
 	}
 
 	endpointsConfig := pconfig.NewEndpointsConfig(
@@ -277,13 +263,13 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		sdn.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 	// customized handling registration that inserts a filter if needed
-	if err := sdn.OsdnProxy.Start(endpointsHandler); err != nil {
+	if err := sdn.OsdnProxy.Start(proxier); err != nil {
 		klog.Fatalf("error: node proxy plugin startup failed: %v", err)
 	}
-	endpointsHandler = sdn.OsdnProxy
+	proxier = sdn.OsdnProxy
 
 	// Wrap the proxy to know when it finally initializes
-	waitingProxy := newWaitingProxyHandler(servicesHandler, endpointsHandler, waitChan)
+	waitingProxy := newWaitingProxyHandler(proxier, waitChan)
 
 	iptInterface.AddReloadFunc(proxier.Sync)
 	serviceConfig.RegisterEventHandler(waitingProxy)
@@ -361,17 +347,15 @@ type waitingProxyHandler struct {
 	waitChan    chan<- bool
 	initialized bool
 
-	serviceChild    pconfig.ServiceHandler
+	proxier         proxy.ProxyProvider
 	serviceSynced   bool
-	endpointsChild  pconfig.EndpointsHandler
 	endpointsSynced bool
 }
 
-func newWaitingProxyHandler(serviceChild pconfig.ServiceHandler, endpointsChild pconfig.EndpointsHandler, waitChan chan<- bool) *waitingProxyHandler {
+func newWaitingProxyHandler(proxier proxy.ProxyProvider, waitChan chan<- bool) *waitingProxyHandler {
 	return &waitingProxyHandler{
-		serviceChild:   serviceChild,
-		endpointsChild: endpointsChild,
-		waitChan:       waitChan,
+		proxier:  proxier,
+		waitChan: waitChan,
 	}
 }
 
@@ -384,19 +368,19 @@ func (wph *waitingProxyHandler) checkInitialized() {
 }
 
 func (wph *waitingProxyHandler) OnServiceAdd(service *v1.Service) {
-	wph.serviceChild.OnServiceAdd(service)
+	wph.proxier.OnServiceAdd(service)
 }
 
 func (wph *waitingProxyHandler) OnServiceUpdate(oldService, service *v1.Service) {
-	wph.serviceChild.OnServiceUpdate(oldService, service)
+	wph.proxier.OnServiceUpdate(oldService, service)
 }
 
 func (wph *waitingProxyHandler) OnServiceDelete(service *v1.Service) {
-	wph.serviceChild.OnServiceDelete(service)
+	wph.proxier.OnServiceDelete(service)
 }
 
 func (wph *waitingProxyHandler) OnServiceSynced() {
-	wph.serviceChild.OnServiceSynced()
+	wph.proxier.OnServiceSynced()
 	wph.Lock()
 	defer wph.Unlock()
 	wph.serviceSynced = true
@@ -404,19 +388,19 @@ func (wph *waitingProxyHandler) OnServiceSynced() {
 }
 
 func (wph *waitingProxyHandler) OnEndpointsAdd(endpoints *v1.Endpoints) {
-	wph.endpointsChild.OnEndpointsAdd(endpoints)
+	wph.proxier.OnEndpointsAdd(endpoints)
 }
 
 func (wph *waitingProxyHandler) OnEndpointsUpdate(oldEndpoints, endpoints *v1.Endpoints) {
-	wph.endpointsChild.OnEndpointsUpdate(oldEndpoints, endpoints)
+	wph.proxier.OnEndpointsUpdate(oldEndpoints, endpoints)
 }
 
 func (wph *waitingProxyHandler) OnEndpointsDelete(endpoints *v1.Endpoints) {
-	wph.endpointsChild.OnEndpointsDelete(endpoints)
+	wph.proxier.OnEndpointsDelete(endpoints)
 }
 
 func (wph *waitingProxyHandler) OnEndpointsSynced() {
-	wph.endpointsChild.OnEndpointsSynced()
+	wph.proxier.OnEndpointsSynced()
 	wph.Lock()
 	defer wph.Unlock()
 	wph.endpointsSynced = true
