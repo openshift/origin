@@ -149,6 +149,7 @@ var _ = g.Describe("[Feature:SecurityContextConstraints] ", func() {
 		if _, err := clusterAdminKubeClientset.RbacV1().ClusterRoleBindings().Create(&crb); err != nil {
 			t.Fatal(err)
 		}
+		oc.AddExplicitResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("clusterrolebindings"), "", crb.Name)
 
 		// wait for RBAC to catch up to user1 role binding for SCC
 		if err := oc.WaitForAccessAllowed(&kubeauthorizationv1.SelfSubjectAccessReview{
