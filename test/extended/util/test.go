@@ -54,7 +54,7 @@ func InitStandardFlags() {
 	//e2e.RegisterStorageFlags()
 }
 
-func InitTest(dryRun bool) {
+func InitTest(dryRun bool) error {
 	InitDefaultEnvironmentVariables()
 	// interpret synthetic input in `--ginkgo.focus` and/or `--ginkgo.skip`
 	ginkgo.BeforeEach(checkSyntheticInput)
@@ -78,7 +78,7 @@ func InitTest(dryRun bool) {
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: TestContext.KubeConfig}, &clientcmd.ConfigOverrides{})
 	cfg, err := clientConfig.ClientConfig()
 	if err != nil && !dryRun { // we don't need the host when doing a dryrun
-		FatalErr(err)
+		return err
 	}
 	if cfg != nil {
 		TestContext.Host = cfg.Host
@@ -95,6 +95,7 @@ func InitTest(dryRun bool) {
 	TestContext.CreateTestingNS = createTestingNS
 
 	klog.V(2).Infof("Extended test version %s", version.Get().String())
+	return nil
 }
 
 func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
