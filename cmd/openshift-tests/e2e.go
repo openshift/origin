@@ -44,16 +44,6 @@ var staticSuites = []*ginkgo.TestSuite{
 		},
 	},
 	{
-		Name: "openshift/conformance/multitenant",
-		Description: templates.LongDesc(`
-		Only the portion of the openshift/conformance test suite that applies to the openshift-sdn multitenant plugin.
-		`),
-		Matches: func(name string) bool {
-			return !strings.Contains(name, "[Feature:NetworkPolicy]") && strings.Contains(name, "[Suite:openshift/conformance/")
-		},
-		Parallelism: 30,
-	},
-	{
 		Name: "openshift/disruptive",
 		Description: templates.LongDesc(`
 		The disruptive test suite.
