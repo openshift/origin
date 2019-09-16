@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"runtime/debug"
 	"strings"
-	"testing"
 
 	g "github.com/onsi/ginkgo"
 	"golang.org/x/net/context"
@@ -224,8 +224,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	defer ht.done()
 	t = ht
 
-	var tt *testing.T // will cause nil panics that make it easy enough to find where things went wrong
-
 	kubeConfig = restclient.CopyConfig(kubeConfig)
 	kubeConfig.QPS = 99999
 	kubeConfig.Burst = 9999
@@ -233,7 +231,12 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	crdClient := apiextensionsclientset.NewForConfigOrDie(kubeConfig)
 
 	// create CRDs so we can make sure that custom resources do not get lost
-	etcddata.CreateTestCRDs(tt, crdClient, false, etcddata.GetCustomResourceDefinitionData()...)
+	for _, crd := range etcddata.GetCustomResourceDefinitionData() {
+		if _, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd); err != nil {
+			t.Fatalf("Failed to create %s CRD; %v", crd.Name, err)
+		}
+	}
+
 	defer func() {
 		deleteCRD := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete
 		if err := errors.NewAggregate([]error{
@@ -318,7 +321,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		t.Fatal(err)
 	}
 
-	for _, resourceToPersist := range etcddata.GetResources(tt, serverResources) {
+	for _, resourceToPersist := range getResources(t, serverResources) {
 		mapping := resourceToPersist.Mapping
 		gvResource := mapping.Resource
 		gvk := mapping.GroupVersionKind
@@ -703,4 +706,18 @@ func diffMapKeys(a, b interface{}, stringer func(interface{}) string) []string {
 	}
 
 	return ret
+}
+
+func getResources(t g.GinkgoTInterface, serverResources []*metav1.APIResourceList) []etcddata.Resource {
+	defer func() {
+		if err := recover(); err != nil {
+			msg := fmt.Sprintf("failed to get etcd resources due to %v", err)
+			msg = fmt.Sprintf("%s, if you see this error that means etcddata.GetResources method wanted to fail the test by calling testing.T struct (nil). Please examine the input.", msg)
+			msg = fmt.Sprintf("%s\n stack: %s", msg, debug.Stack())
+			t.Fatal(msg)
+		}
+	}()
+
+	// there is neither no way of getting testing.T from ginkgo framework nor creating a new struct
+	return etcddata.GetResources(nil, serverResources)
 }
