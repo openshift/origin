@@ -962,6 +962,7 @@ func InitCinderDriver() testsuites.TestDriver {
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapExec:        true,
+				testsuites.CapBlock:       true,
 			},
 		},
 	}
