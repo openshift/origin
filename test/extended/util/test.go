@@ -415,7 +415,7 @@ var (
 
 			// Test fails on platforms that use LoadBalancerService and HostNetwork endpoint publishing strategy
 			`\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should set Forwarded headers appropriately`, // https://bugzilla.redhat.com/show_bug.cgi?id=1752646
-
+			`\[Conformance\]\[templates\] templateinstance impersonation tests should pass impersonation creation tests`,         // https://bugzilla.redhat.com/show_bug.cgi?id=1752910
 			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
 			"when the NodeLease feature is enabled",
 			"RuntimeClass should reject",

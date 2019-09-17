@@ -250,14 +250,6 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 	})
 
 	g.It("should pass impersonation update tests", func() {
-		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
-		// check who can update TemplateInstances.  Via Update(), spec updates
-		// should be rejected (with the exception of spec.metadata fields used
-		// by the garbage collector, not tested here).  Status updates should be
-		// silently ignored.  Via UpdateStatus(), spec updates should be
-		// silently ignored.  Status should only be updatable by a user with
-		// update access to that endpoint.  In practice this is intended only to
-		// be the templateinstance controller and system:admin.
 		for _, test := range tests {
 			var templateinstancecopy *templatev1.TemplateInstance
 			setUser(cli, test.user)
