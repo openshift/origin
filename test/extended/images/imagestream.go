@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -39,15 +40,12 @@ func mockImageStream() *imagev1.ImageStream {
 
 func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	clusterAdminImageClient := oc.AdminImageClient().ImageV1()
+	g.By("creating an imagestream and imagestream mappings")
 	stream := mockImageStream()
 
 	expected, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(stream)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if expected.Name == "" {
-		t.Errorf("Unexpected empty image Name %v", expected)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(expected.Name).NotTo(o.BeEmpty())
 
 	// create a mapping to an image that doesn't exist
 	mapping := &imagev1.ImageStreamMapping{
@@ -60,16 +58,14 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			DockerImageReference: "some/other/name",
 		},
 	}
-	if _, err := clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// verify we can tag a second time with the same data, and nothing changes
-	if _, err := clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping); err != nil {
-		t.Fatalf("unexpected non-error or type: %v", err)
-	}
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	o.Expect(err).NotTo(o.HaveOccurred())
 
-	// create an image directly
+	g.By("creating an image directly")
 	image := &imagev1.Image{
 		ObjectMeta: metav1.ObjectMeta{Name: "image2"},
 		DockerImageMetadata: runtime.RawExtension{
@@ -85,52 +81,42 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 	image.DockerImageReference = "some/other/name" // can reuse references across multiple images
 	actual, err := clusterAdminImageClient.Images().Create(image)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 	if actual == nil || actual.Name != image.Name {
 		t.Errorf("unexpected object: %#v", actual)
 	}
 
 	// verify that image stream mappings cannot mutate / overwrite the image (images are immutable)
+	g.By("attempting to overwrite imagestream mappings")
 	mapping = &imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: stream.Name},
 		Tag:        "newest",
 		Image:      *image,
 	}
 	mapping.Image.DockerImageReference = "different"
-	if _, err := clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	o.Expect(err).NotTo(o.HaveOccurred())
 	image, err = clusterAdminImageClient.Images().Get(image.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if image.DockerImageReference != "some/other/name" {
-		t.Fatalf("image was unexpectedly mutated: %#v", image)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(image.DockerImageReference).To(o.Equal("some/other/name"))
 
 	// ensure the correct tags are set
+	g.By("verifying imagestream tags are correct")
 	updated, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(stream.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+
+	o.Expect(err).NotTo(o.HaveOccurred())
 	if updated.Spec.Tags != nil && len(updated.Spec.Tags) > 0 {
 		t.Errorf("unexpected object: %#v", updated.Spec.Tags)
 	}
 
 	fromTag, err := clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newer", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:newer" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
 	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newest", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:newest" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "different" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
@@ -142,47 +128,40 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 		Tag:        "anothertag",
 		Image:      *image,
 	}
-	if _, err := clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	o.Expect(err).NotTo(o.HaveOccurred())
 	// ensure the correct tags are set
 	updated, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(stream.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 	if updated.Spec.Tags != nil && len(updated.Spec.Tags) > 0 {
 		t.Errorf("unexpected object: %#v", updated.Spec.Tags)
 	}
 
-	if _, err := clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":doesnotexist", metav1.GetOptions{}); err == nil || !errors.IsNotFound(err) {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	// expect not found error for non-existent imagestream tag
+	_, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":doesnotexist", metav1.GetOptions{})
+	o.Expect(err).To(o.HaveOccurred())
+	o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
 
 	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newer", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:newer" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
 	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newest", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:newest" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "different" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":anothertag", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:anothertag" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
-	// try an update with an incorrect resource version
-	if _, err := clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Update(&imagev1.ImageStreamTag{
+	// try an update with an incorrect resource version - needs to have conflict error
+	g.By("updating imagestreamtag expecting conflict")
+	_, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Update(&imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion + "0"},
 		Tag: &imagev1.TagReference{
 			From: &corev1.ObjectReference{
@@ -190,11 +169,11 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 				Name: "newest",
 			},
 		},
-	}); !errors.IsConflict(err) {
-		t.Fatalf("should have returned conflict error: %v", err)
-	}
+	})
+	o.Expect(errors.IsConflict(err)).To(o.BeTrue())
 
 	// update and create a new tag
+	g.By("adding a new tag to an existing imagestream via update")
 	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Update(&imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion},
 		Tag: &imagev1.TagReference{
@@ -204,9 +183,8 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("should have returned conflict error: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+
 	if fromTag.Name != "test:brandnew" || fromTag.Image.UID == "" || fromTag.Tag.From.Name != "newest" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
@@ -217,9 +195,7 @@ func TestImageStreamWithoutDockerImageConfig(t g.GinkgoTInterface, oc *exutil.CL
 	stream := mockImageStream()
 
 	expected, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(stream)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 	if expected.Name == "" {
 		t.Errorf("Unexpected empty image Name %v", expected)
 	}
@@ -230,9 +206,7 @@ func TestImageStreamWithoutDockerImageConfig(t g.GinkgoTInterface, oc *exutil.CL
 	}
 
 	imageConfigBytes, err := json.Marshal(imageConfig)
-	if err != nil {
-		t.Fatalf("error marshaling image config: %s", err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	image := imagev1.Image{
 		ObjectMeta: metav1.ObjectMeta{
@@ -258,59 +232,38 @@ func TestImageStreamWithoutDockerImageConfig(t g.GinkgoTInterface, oc *exutil.CL
 		Tag:   "newer",
 		Image: image,
 	}
-	if _, err := clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	img, err := clusterAdminImageClient.Images().Get(image.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if img.Name != image.Name {
-		t.Fatalf("unexpected image: %#v", img)
-	}
-	if len(img.DockerImageConfig) == 0 {
-		t.Fatalf("image has an empty config: %#v", img)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(img.Name).To(o.Equal(image.Name))
+	o.Expect(img.DockerImageConfig).NotTo(o.BeEmpty())
 
 	ist, err := clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newer", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if ist.Image.Name != image.Name {
-		t.Fatalf("unexpected image: %#v", img)
-	}
-	if len(ist.Image.DockerImageConfig) != 0 {
-		t.Errorf("image has a not empty config: %#v", ist)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(ist.Image.Name).To(o.Equal(image.Name))
+	o.Expect(ist.Image.DockerImageConfig).To(o.BeEmpty())
 
 	isi, err := clusterAdminImageClient.ImageStreamImages(oc.Namespace()).Get(imageutil.JoinImageStreamImage(stream.Name, BaseImageWith1LayerDigest), metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if isi.Image.Name != image.Name {
-		t.Fatalf("unexpected image: %#v", img)
-	}
-	if len(isi.Image.DockerImageConfig) != 0 {
-		t.Errorf("image has a not empty config: %#v", isi)
-	}
-
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(isi.Image.Name).To(o.Equal(image.Name))
+	o.Expect(isi.Image.DockerImageConfig).To(o.BeEmpty())
 }
 
 func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 	clusterAdminImageClient := oc.AdminImageClient().ImageV1()
 
 	stream := mockImageStream()
-	if _, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(stream); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(stream)
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	imageClientset := oc.AdminImageClient()
 	coreClient := oc.AdminKubeClient()
 
 	// can tag to a stream that exists
 	exec := NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
-	err := exec.Execute(
+	err = exec.Execute(
 		&appsv1.LifecycleHook{
 			TagImages: []appsv1.TagImageHook{
 				{
@@ -336,16 +289,13 @@ func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 		},
 		"test", "test",
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if stream, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(stream.Name, metav1.GetOptions{}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if tag, ok := imageutil.SpecHasTag(stream, "test"); !ok || tag.From == nil || tag.From.Name != "someimage:other" {
-		t.Fatalf("unexpected object: %#v", tag)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+	stream, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(stream.Name, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	tag, ok := imageutil.SpecHasTag(stream, "test")
+	o.Expect(ok).To(o.BeTrue())
+	o.Expect(tag.From).NotTo(o.BeNil())
+	o.Expect(tag.From.Name).To(o.Equal("someimage:other"))
 
 	// can execute a second time the same tag and it should work
 	exec = NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
@@ -375,9 +325,7 @@ func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 		},
 		"test", "test",
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// can lifecycle tag a new image stream
 	exec = NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
@@ -407,13 +355,10 @@ func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 		},
 		"test", "test",
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if stream, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get("test2", metav1.GetOptions{}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if tag, ok := imageutil.SpecHasTag(stream, "test"); !ok || tag.From == nil || tag.From.Name != "someimage:other" {
-		t.Fatalf("unexpected object: %#v", tag)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+	stream, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get("test2", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(ok).To(o.BeTrue())
+	o.Expect(tag.From).NotTo(o.BeNil())
+	o.Expect(tag.From.Name).To(o.Equal("someimage:other"))
 }
