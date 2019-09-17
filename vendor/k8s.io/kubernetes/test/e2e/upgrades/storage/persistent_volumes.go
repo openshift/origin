@@ -22,7 +22,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	"k8s.io/kubernetes/test/e2e/framework/volume"
 
 	"github.com/onsi/ginkgo"
 	"k8s.io/kubernetes/test/e2e/upgrades"
