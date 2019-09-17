@@ -756,16 +756,13 @@ func (c *CLI) WaitForAccessDenied(review *kubeauthorizationv1.SelfSubjectAccessR
 }
 
 func waitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
-	policyCachePollInterval := 100 * time.Millisecond
-	policyCachePollTimeout := 10 * time.Second
-	err := wait.Poll(policyCachePollInterval, policyCachePollTimeout, func() (bool, error) {
+	return wait.Poll(time.Second, time.Minute, func() (bool, error) {
 		response, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(review)
 		if err != nil {
 			return false, err
 		}
 		return response.Status.Allowed == allowed, nil
 	})
-	return err
 }
 
 func getClientConfig(kubeConfigFile string) (*rest.Config, error) {
