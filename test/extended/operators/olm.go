@@ -12,7 +12,7 @@ import (
 var _ = g.Describe("[Feature:Platform] OLM should", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("olm", exutil.KubeConfigPath())
+	var oc = exutil.NewCLIWithoutNamespace("default")
 
 	operators := "operators.coreos.com"
 	providedAPIs := []struct {
@@ -54,16 +54,17 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 		},
 	}
 
-	for _, api := range providedAPIs {
+	for i := range providedAPIs {
+		api := providedAPIs[i]
 		g.It(fmt.Sprintf("be installed with %s at version %s", api.plural, api.version), func() {
 			if api.fromAPIService {
 				// Ensure spec.version matches expected
-				raw, err := oc.AsAdmin().Run("get").Args("apiservices", fmt.Sprintf("%s.%s", api.version, api.group), "-o=jsonpath='{.spec.version}'").Output()
+				raw, err := oc.AsAdmin().Run("get").Args("apiservices", fmt.Sprintf("%s.%s", api.version, api.group), "-o=jsonpath={.spec.version}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(raw).To(o.Equal(api.version))
 			} else {
 				// Ensure expected version exists in spec.versions and is both served and stored
-				raw, err := oc.AsAdmin().Run("get").Args("crds", fmt.Sprintf("%s.%s", api.plural, api.group), fmt.Sprintf("-o=jsonpath='{.spec.versions[?(@.name==\"%s\")]}'", api.version)).Output()
+				raw, err := oc.AsAdmin().Run("get").Args("crds", fmt.Sprintf("%s.%s", api.plural, api.group), fmt.Sprintf("-o=jsonpath={.spec.versions[?(@.name==\"%s\")]}", api.version)).Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(raw).To(o.ContainSubstring("served:true"))
 				o.Expect(raw).To(o.ContainSubstring("storage:true"))
