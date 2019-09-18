@@ -55,9 +55,9 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 				g.By("expecting the build logs to contain the correct cgroups values")
 				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(buildLog).To(o.ContainSubstring("MEMORY=209715200"))
+				o.Expect(buildLog).To(o.ContainSubstring("MEMORY=419430400"))
 				// TODO: re-enable this check when https://github.com/containers/buildah/issues/1213 is resolved.
-				//o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=209715200"))
+				//o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=419430400"))
 
 				testScheme := runtime.NewScheme()
 				utilruntime.Must(buildv1.Install(testScheme))
