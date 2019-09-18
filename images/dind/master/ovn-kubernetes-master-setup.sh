@@ -27,11 +27,6 @@ function ovn-kubernetes-master-setup() {
   ln -sf /data/ovnkube /usr/local/bin/
   ln -sf /data/ovn-kube-util /usr/local/bin/
   ln -sf /data/ovn-k8s-cni-overlay /usr/local/bin/
-  ln -sf /data/ovn-k8s-gateway-helper /usr/local/bin/
-  ln -sf /data/ovn-k8s-util /usr/local/bin/
-  ln -sf /data/ovn-k8s-watcher /usr/local/bin/
-  mkdir -p /usr/lib/python2.7/site-packages
-  ln -sf /data/ovn_k8s /usr/lib/python2.7/site-packages/
 
   # Create the service account for OVN stuff
   if ! /usr/local/bin/oc --config="${kube_config}" get serviceaccount ovn >/dev/null 2>&1; then

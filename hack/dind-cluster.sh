@@ -113,11 +113,14 @@ function start() {
   echo "OPENSHIFT_REMOTE_RUNTIME_ENDPOINT=${runtime_endpoint}" >> "${config_root}/dind-env"
 
   ovn_kubernetes=
+  ovn_hybrid_overlay=
   if [[ -d "${ovn_root}" ]]; then
     copy-ovn-runtime "${ovn_root}" "${config_root}/"
     ovn_kubernetes=1
+    ovn_hybrid_overlay=${OVN_HO_ENABLE:-}
   fi
   echo "OPENSHIFT_OVN_KUBERNETES=${ovn_kubernetes}" >> "${config_root}/dind-env"
+  echo "OPENSHIFT_OVN_HYBRID_OVERLAY=${ovn_hybrid_overlay}" >> "${config_root}/dind-env"
 
   local registry_ip=
   if [[ -n "${local_registry}" ]]; then

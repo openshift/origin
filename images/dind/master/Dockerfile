@@ -39,4 +39,3 @@ RUN systemctl enable ovn-kubernetes-master-setup.service
 COPY ovn-kubernetes-master.service /etc/systemd/system/
 COPY ovn-kubernetes-master.sh /usr/local/bin/
 RUN systemctl enable ovn-kubernetes-master.service
-

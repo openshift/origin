@@ -22,6 +22,10 @@ function ovn-kubernetes-master() {
   ovn-nbctl set-connection ptcp:6641
   ovn-sbctl set-connection ptcp:6642
 
+  if [[ -n "${OPENSHIFT_OVN_HYBRID_OVERLAY}" ]]; then
+    HYBRID_OVERLAY_ARGS="--enable-hybrid-overlay --hybrid-overlay-cluster-subnets=11.128.0.0/16/24 --no-hostsubnet-nodes=beta.kubernetes.io/os=windows"
+  fi
+
   echo "Enabling and start ovn-kubernetes master services"
   /usr/local/bin/ovnkube \
 	--k8s-apiserver "${apiserver}" \
@@ -31,7 +35,8 @@ function ovn-kubernetes-master() {
 	--k8s-service-cidr "${service_cidr}" \
 	--nb-address "tcp://${ovn_master_ip}:6641" \
 	--sb-address "tcp://${ovn_master_ip}:6642" \
-	--init-master `hostname`
+	--init-master `hostname` \
+	${HYBRID_OVERLAY_ARGS:-}
 }
 
 if [[ -n "${OPENSHIFT_OVN_KUBERNETES}" ]]; then

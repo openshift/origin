@@ -51,6 +51,10 @@ EOF
 
   os::util::wait-for-condition "ovn-northd" "is-northd-running ${ovn_master_ip}" "120"
 
+  if [[ -n "${OPENSHIFT_OVN_HYBRID_OVERLAY}" ]]; then
+    HYBRID_OVERLAY_ARGS="--enable-hybrid-overlay"
+  fi
+
   echo "Enabling and start ovn-kubernetes node services"
   /usr/local/bin/ovnkube \
 	--k8s-apiserver "${apiserver}" \
@@ -61,7 +65,8 @@ EOF
 	--nb-address "tcp://${ovn_master_ip}:6641" \
 	--sb-address "tcp://${ovn_master_ip}:6642" \
 	--init-node ${host} \
-	--gateway-mode=local
+	--gateway-mode=local \
+	${HYBRID_OVERLAY_ARGS:-}
 }
 
 if [[ -n "${OPENSHIFT_OVN_KUBERNETES}" ]]; then
