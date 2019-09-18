@@ -13,7 +13,9 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 
 	networkapi "github.com/openshift/api/network/v1"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
@@ -51,6 +53,8 @@ type egressIPInfo struct {
 }
 
 type EgressIPWatcher interface {
+	Synced()
+
 	ClaimEgressIP(vnid uint32, egressIP, nodeIP string)
 	ReleaseEgressIP(egressIP, nodeIP string)
 
@@ -94,6 +98,17 @@ func NewEgressIPTracker(watcher EgressIPWatcher) *EgressIPTracker {
 func (eit *EgressIPTracker) Start(hostSubnetInformer networkinformers.HostSubnetInformer, netNamespaceInformer networkinformers.NetNamespaceInformer) {
 	eit.watchHostSubnets(hostSubnetInformer)
 	eit.watchNetNamespaces(netNamespaceInformer)
+
+	go func() {
+		cache.WaitForCacheSync(utilwait.NeverStop,
+			hostSubnetInformer.Informer().HasSynced,
+			netNamespaceInformer.Informer().HasSynced)
+
+		eit.Lock()
+		defer eit.Unlock()
+
+		eit.watcher.Synced()
+	}()
 }
 
 func (eit *EgressIPTracker) ensureEgressIPInfo(egressIP string) *egressIPInfo {
