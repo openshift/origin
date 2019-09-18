@@ -3827,6 +3827,8 @@ type NamespaceStatus struct {
 	// Phase is the current lifecycle phase of the namespace.
 	// +optional
 	Phase NamespacePhase
+	// +optional
+	Conditions []NamespaceCondition
 }
 
 type NamespacePhase string
@@ -3838,6 +3840,30 @@ const (
 	// NamespaceTerminating means the namespace is undergoing graceful termination
 	NamespaceTerminating NamespacePhase = "Terminating"
 )
+
+// NamespaceConditionType defines constants reporting on status during namespace lifetime and deletion progress
+type NamespaceConditionType string
+
+// These are valid conditions of a namespace.
+const (
+	NamespaceDeletionDiscoveryFailure NamespaceConditionType = "NamespaceDeletionDiscoveryFailure"
+	NamespaceDeletionContentFailure   NamespaceConditionType = "NamespaceDeletionContentFailure"
+	NamespaceDeletionGVParsingFailure NamespaceConditionType = "NamespaceDeletionGroupVersionParsingFailure"
+)
+
+// NamespaceCondition contains details about state of namespace.
+type NamespaceCondition struct {
+	// Type of namespace controller condition.
+	Type NamespaceConditionType
+	// Status of the condition, one of True, False, Unknown.
+	Status ConditionStatus
+	// +optional
+	LastTransitionTime metav1.Time
+	// +optional
+	Reason string
+	// +optional
+	Message string
+}
 
 // +genclient
 // +genclient:nonNamespaced
