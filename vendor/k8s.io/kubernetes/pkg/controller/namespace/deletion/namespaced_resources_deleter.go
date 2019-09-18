@@ -134,9 +134,6 @@ func (d *namespacedResourcesDeleter) Delete(nsName string) error {
 
 	// there may still be content for us to remove
 	estimate, err := d.deleteAllContent(namespace)
-	// we don't care about errors on reporting the status message update
-	// we unconditionally set this value to ensure that we clear it when deletion is complete
-	_, _ = d.retryOnConflictError(namespace, d.updateSetDeletionFailureFunc(err))
 	if err != nil {
 		return err
 	}
@@ -296,20 +293,6 @@ func (d *namespacedResourcesDeleter) updateNamespaceStatusFunc(namespace *v1.Nam
 	newNamespace.Status = *namespace.Status.DeepCopy()
 	newNamespace.Status.Phase = v1.NamespaceTerminating
 	return d.nsClient.UpdateStatus(&newNamespace)
-}
-
-// updateSetDeletionFailureFunc will set an annotation indicating that the namespace controller has failed to delete all content
-func (d *namespacedResourcesDeleter) updateSetDeletionFailureFunc(err error) func(namespace *v1.Namespace) (*v1.Namespace, error) {
-	errorAnnotationName := "namespace-controller.kcm.openshift.io/deletion-error"
-	return func(namespace *v1.Namespace) (*v1.Namespace, error) {
-		newNamespace := namespace.DeepCopy()
-		if err == nil || len(err.Error()) == 0 {
-			delete(newNamespace.Annotations, errorAnnotationName)
-		} else {
-			newNamespace.Annotations[errorAnnotationName] = err.Error()
-		}
-		return d.nsClient.Update(newNamespace)
-	}
 }
 
 // finalized returns true if the namespace.Spec.Finalizers is an empty list
