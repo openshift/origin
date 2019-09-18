@@ -3,6 +3,7 @@ package operators
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -174,6 +175,9 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	g.It("have operators on the cluster version", func() {
+		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+			e2e.Skipf("Test is disabled to allow cluster components to have different versions")
+		}
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c := configclient.NewForConfigOrDie(cfg)

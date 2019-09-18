@@ -21,6 +21,9 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 
 	It("should ensure pods use images from our release image with proper ImagePullPolicy", func() {
+		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+			e2e.Skipf("Test is disabled to allow cluster components to have different versions")
+		}
 		imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get("pull-secret", metav1.GetOptions{})
 		if err != nil {
 			e2e.Failf("unable to get pull secret for cluster: %v", err)
