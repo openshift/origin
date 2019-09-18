@@ -133,10 +133,7 @@ func (d *namespacedResourcesDeleter) Delete(nsName string) error {
 	}
 
 	// there may still be content for us to remove
-	estimate, err := d.deleteAllContent(namespace.Name, *namespace.DeletionTimestamp)
-	// we don't care about errors on reporting the status message update
-	// we unconditionally set this value to ensure that we clear it when deletion is complete
-	_, _ = d.retryOnConflictError(namespace, d.updateSetDeletionFailureFunc(err))
+	estimate, err := d.deleteAllContent(namespace)
 	if err != nil {
 		return err
 	}
@@ -293,23 +290,9 @@ func (d *namespacedResourcesDeleter) updateNamespaceStatusFunc(namespace *v1.Nam
 	}
 	newNamespace := v1.Namespace{}
 	newNamespace.ObjectMeta = namespace.ObjectMeta
-	newNamespace.Status = namespace.Status
+	newNamespace.Status = *namespace.Status.DeepCopy()
 	newNamespace.Status.Phase = v1.NamespaceTerminating
 	return d.nsClient.UpdateStatus(&newNamespace)
-}
-
-// updateSetDeletionFailureFunc will set an annotation indicating that the namespace controller has failed to delete all content
-func (d *namespacedResourcesDeleter) updateSetDeletionFailureFunc(err error) func(namespace *v1.Namespace) (*v1.Namespace, error) {
-	errorAnnotationName := "namespace-controller.kcm.openshift.io/deletion-error"
-	return func(namespace *v1.Namespace) (*v1.Namespace, error) {
-		newNamespace := namespace.DeepCopy()
-		if err == nil || len(err.Error()) == 0 {
-			delete(newNamespace.Annotations, errorAnnotationName)
-		} else {
-			newNamespace.Annotations[errorAnnotationName] = err.Error()
-		}
-		return d.nsClient.Update(newNamespace)
-	}
 }
 
 // finalized returns true if the namespace.Spec.Finalizers is an empty list
@@ -436,33 +419,43 @@ func (d *namespacedResourcesDeleter) deleteEachItem(gvr schema.GroupVersionResou
 	return nil
 }
 
+type gvrDeletionMetadata struct {
+	// finalizerEstimateSeconds is an estimate of how much longer to wait.  zero means that no estimate has made and does not
+	// mean that all content has been removed.
+	finalizerEstimateSeconds int64
+	// numRemaining is how many instances of the gvr remain
+	numRemaining int
+	// finalizersToNumRemaining maps finalizers to how many resources are stuck on them
+	finalizersToNumRemaining map[string]int
+}
+
 // deleteAllContentForGroupVersionResource will use the dynamic client to delete each resource identified in gvr.
 // It returns an estimate of the time remaining before the remaining resources are deleted.
 // If estimate > 0, not all resources are guaranteed to be gone.
 func (d *namespacedResourcesDeleter) deleteAllContentForGroupVersionResource(
 	gvr schema.GroupVersionResource, namespace string,
-	namespaceDeletedAt metav1.Time) (int64, error) {
+	namespaceDeletedAt metav1.Time) (gvrDeletionMetadata, error) {
 	klog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - namespace: %s, gvr: %v", namespace, gvr)
 
 	// estimate how long it will take for the resource to be deleted (needed for objects that support graceful delete)
 	estimate, err := d.estimateGracefulTermination(gvr, namespace, namespaceDeletedAt)
 	if err != nil {
 		klog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - unable to estimate - namespace: %s, gvr: %v, err: %v", namespace, gvr, err)
-		return estimate, err
+		return gvrDeletionMetadata{}, err
 	}
 	klog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - estimate - namespace: %s, gvr: %v, estimate: %v", namespace, gvr, estimate)
 
 	// first try to delete the entire collection
 	deleteCollectionSupported, err := d.deleteCollection(gvr, namespace)
 	if err != nil {
-		return estimate, err
+		return gvrDeletionMetadata{finalizerEstimateSeconds: estimate}, err
 	}
 
 	// delete collection was not supported, so we list and delete each item...
 	if !deleteCollectionSupported {
 		err = d.deleteEachItem(gvr, namespace)
 		if err != nil {
-			return estimate, err
+			return gvrDeletionMetadata{finalizerEstimateSeconds: estimate}, err
 		}
 	}
 
@@ -472,31 +465,66 @@ func (d *namespacedResourcesDeleter) deleteAllContentForGroupVersionResource(
 	unstructuredList, listSupported, err := d.listCollection(gvr, namespace)
 	if err != nil {
 		klog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - error verifying no items in namespace: %s, gvr: %v, err: %v", namespace, gvr, err)
-		return estimate, err
+		return gvrDeletionMetadata{finalizerEstimateSeconds: estimate}, err
 	}
 	if !listSupported {
-		return estimate, nil
+		return gvrDeletionMetadata{finalizerEstimateSeconds: estimate}, nil
 	}
 	klog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - items remaining - namespace: %s, gvr: %v, items: %v", namespace, gvr, len(unstructuredList.Items))
-	if len(unstructuredList.Items) != 0 && estimate == int64(0) {
-		// if any item has a finalizer, we treat that as a normal condition, and use a default estimation to allow for GC to complete.
-		for _, item := range unstructuredList.Items {
-			if len(item.GetFinalizers()) > 0 {
-				klog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - items remaining with finalizers - namespace: %s, gvr: %v, finalizers: %v", namespace, gvr, item.GetFinalizers())
-				return finalizerEstimateSeconds, nil
-			}
-		}
-		// nothing reported a finalizer, so something was unexpected as it should have been deleted.
-		return estimate, fmt.Errorf("unexpected items still remain in namespace: %s for gvr: %v", namespace, gvr)
+	if len(unstructuredList.Items) == 0 {
+		// we're done
+		return gvrDeletionMetadata{finalizerEstimateSeconds: 0, numRemaining: 0}, nil
 	}
-	return estimate, nil
+
+	// use the list to find the finalizers
+	finalizersToNumRemaining := map[string]int{}
+	for _, item := range unstructuredList.Items {
+		for _, finalizer := range item.GetFinalizers() {
+			finalizersToNumRemaining[finalizer] = finalizersToNumRemaining[finalizer] + 1
+		}
+	}
+
+	if estimate != int64(0) {
+		klog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - estimate is present - namespace: %s, gvr: %v, finalizers: %v", namespace, gvr, finalizersToNumRemaining)
+		return gvrDeletionMetadata{
+			finalizerEstimateSeconds: estimate,
+			numRemaining:             len(unstructuredList.Items),
+			finalizersToNumRemaining: finalizersToNumRemaining,
+		}, nil
+	}
+
+	// if any item has a finalizer, we treat that as a normal condition, and use a default estimation to allow for GC to complete.
+	if len(finalizersToNumRemaining) > 0 {
+		klog.V(5).Infof("namespace controller - deleteAllContentForGroupVersionResource - items remaining with finalizers - namespace: %s, gvr: %v, finalizers: %v", namespace, gvr, finalizersToNumRemaining)
+		return gvrDeletionMetadata{
+			finalizerEstimateSeconds: finalizerEstimateSeconds,
+			numRemaining:             len(unstructuredList.Items),
+			finalizersToNumRemaining: finalizersToNumRemaining,
+		}, nil
+	}
+
+	// nothing reported a finalizer, so something was unexpected as it should have been deleted.
+	return gvrDeletionMetadata{
+		finalizerEstimateSeconds: estimate,
+		numRemaining:             len(unstructuredList.Items),
+	}, fmt.Errorf("unexpected items still remain in namespace: %s for gvr: %v", namespace, gvr)
+}
+
+type allGVRDeletionMetadata struct {
+	// gvrToNumRemaining is how many instances of the gvr remain
+	gvrToNumRemaining map[schema.GroupVersionResource]int
+	// finalizersToNumRemaining maps finalizers to how many resources are stuck on them
+	finalizersToNumRemaining map[string]int
 }
 
 // deleteAllContent will use the dynamic client to delete each resource identified in groupVersionResources.
 // It returns an estimate of the time remaining before the remaining resources are deleted.
 // If estimate > 0, not all resources are guaranteed to be gone.
-func (d *namespacedResourcesDeleter) deleteAllContent(namespace string, namespaceDeletedAt metav1.Time) (int64, error) {
+func (d *namespacedResourcesDeleter) deleteAllContent(ns *v1.Namespace) (int64, error) {
+	namespace := ns.Name
+	namespaceDeletedAt := *ns.DeletionTimestamp
 	var errs []error
+	conditionUpdater := namespaceConditionUpdater{}
 	estimate := int64(0)
 	klog.V(4).Infof("namespace controller - deleteAllContent - namespace: %s", namespace)
 
@@ -504,6 +532,7 @@ func (d *namespacedResourcesDeleter) deleteAllContent(namespace string, namespac
 	if err != nil {
 		// discovery errors are not fatal.  We often have some set of resources we can operate against even if we don't have a complete list
 		errs = append(errs, err)
+		conditionUpdater.ProcessDiscoverResourcesErr(err)
 	}
 	// TODO(sttts): get rid of opCache and pass the verbs (especially "deletecollection") down into the deleter
 	deletableResources := discovery.FilteredBy(discovery.SupportsAllVerbs{Verbs: []string{"delete"}}, resources)
@@ -511,23 +540,48 @@ func (d *namespacedResourcesDeleter) deleteAllContent(namespace string, namespac
 	if err != nil {
 		// discovery errors are not fatal.  We often have some set of resources we can operate against even if we don't have a complete list
 		errs = append(errs, err)
+		conditionUpdater.ProcessGroupVersionErr(err)
+	}
+
+	numRemainingTotals := allGVRDeletionMetadata{
+		gvrToNumRemaining:        map[schema.GroupVersionResource]int{},
+		finalizersToNumRemaining: map[string]int{},
 	}
 	for gvr := range groupVersionResources {
-		gvrEstimate, err := d.deleteAllContentForGroupVersionResource(gvr, namespace, namespaceDeletedAt)
+		gvrDeletionMetadata, err := d.deleteAllContentForGroupVersionResource(gvr, namespace, namespaceDeletedAt)
 		if err != nil {
 			// If there is an error, hold on to it but proceed with all the remaining
 			// groupVersionResources.
 			errs = append(errs, err)
+			conditionUpdater.ProcessDeleteContentErr(err)
 		}
-		if gvrEstimate > estimate {
-			estimate = gvrEstimate
+		if gvrDeletionMetadata.finalizerEstimateSeconds > estimate {
+			estimate = gvrDeletionMetadata.finalizerEstimateSeconds
+		}
+		if gvrDeletionMetadata.numRemaining > 0 {
+			numRemainingTotals.gvrToNumRemaining[gvr] = gvrDeletionMetadata.numRemaining
+			for finalizer, numRemaining := range gvrDeletionMetadata.finalizersToNumRemaining {
+				if numRemaining == 0 {
+					continue
+				}
+				numRemainingTotals.finalizersToNumRemaining[finalizer] = numRemainingTotals.finalizersToNumRemaining[finalizer] + numRemaining
+			}
 		}
 	}
-	if len(errs) > 0 {
-		return estimate, utilerrors.NewAggregate(errs)
+	conditionUpdater.ProcessContentTotals(numRemainingTotals)
+
+	// we always want to update the conditions because if we have set a condition to "it worked" after it was previously, "it didn't work",
+	// we need to reflect that information.  Recall that additional finalizers can be set on namespaces, so this finalizer may clear itself and
+	// NOT remove the resource instance.
+	if hasChanged := conditionUpdater.Update(ns); hasChanged {
+		if _, err = d.nsClient.UpdateStatus(ns); err != nil {
+			utilruntime.HandleError(fmt.Errorf("couldn't update status condition for namespace %q: %v", namespace, err))
+		}
 	}
-	klog.V(4).Infof("namespace controller - deleteAllContent - namespace: %s, estimate: %v", namespace, estimate)
-	return estimate, nil
+
+	// if len(errs)==0, NewAggregate returns nil.
+	klog.V(4).Infof("namespace controller - deleteAllContent - namespace: %s, estimate: %v, errors: %v", namespace, estimate, utilerrors.NewAggregate(errs))
+	return estimate, utilerrors.NewAggregate(errs)
 }
 
 // estimateGrracefulTermination will estimate the graceful termination required for the specific entity in the namespace
@@ -541,7 +595,7 @@ func (d *namespacedResourcesDeleter) estimateGracefulTermination(gvr schema.Grou
 		estimate, err = d.estimateGracefulTerminationForPods(ns)
 	}
 	if err != nil {
-		return estimate, err
+		return 0, err
 	}
 	// determine if the estimate is greater than the deletion timestamp
 	duration := time.Since(namespaceDeletedAt.Time)
@@ -558,11 +612,11 @@ func (d *namespacedResourcesDeleter) estimateGracefulTerminationForPods(ns strin
 	estimate := int64(0)
 	podsGetter := d.podsGetter
 	if podsGetter == nil || reflect.ValueOf(podsGetter).IsNil() {
-		return estimate, fmt.Errorf("unexpected: podsGetter is nil. Cannot estimate grace period seconds for pods")
+		return 0, fmt.Errorf("unexpected: podsGetter is nil. Cannot estimate grace period seconds for pods")
 	}
 	items, err := podsGetter.Pods(ns).List(metav1.ListOptions{})
 	if err != nil {
-		return estimate, err
+		return 0, err
 	}
 	for i := range items.Items {
 		pod := items.Items[i]
