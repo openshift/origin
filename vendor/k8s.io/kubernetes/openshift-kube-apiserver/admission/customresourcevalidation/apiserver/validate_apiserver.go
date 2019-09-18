@@ -116,14 +116,14 @@ func (apiserverV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj r
 }
 
 func validateAPIServerSpecCreate(spec configv1.APIServerSpec) field.ErrorList {
-
 	errs := validateAdditionalCORSAllowedOrigins(field.NewPath("spec").Child("additionalCORSAllowedOrigins"), spec.AdditionalCORSAllowedOrigins)
+	errs = append(errs, validateEncryption(field.NewPath("spec").Child("encryption"), spec.Encryption)...)
 	return errs
 }
 
 func validateAPIServerSpecUpdate(newSpec, oldSpec configv1.APIServerSpec) field.ErrorList {
-
 	errs := validateAdditionalCORSAllowedOrigins(field.NewPath("spec").Child("additionalCORSAllowedOrigins"), newSpec.AdditionalCORSAllowedOrigins)
+	errs = append(errs, validateEncryption(field.NewPath("spec").Child("encryption"), newSpec.Encryption)...)
 	return errs
 }
 
@@ -142,6 +142,21 @@ func validateAdditionalCORSAllowedOrigins(fieldPath *field.Path, cors []string) 
 		if _, err := regexp.Compile(re); err != nil {
 			errs = append(errs, field.Invalid(fieldPath.Index(i), re, fmt.Sprintf("not a valid regular expression: %v", err)))
 		}
+	}
+
+	return errs
+}
+
+func validateEncryption(fieldPath *field.Path, encryption configv1.APIServerEncryption) field.ErrorList {
+	errs := field.ErrorList{}
+
+	switch encryption.Type {
+	case "", configv1.EncryptionTypeIdentity, configv1.EncryptionTypeAESCBC:
+		// valid encryption types, unset means use the default
+	default:
+		errs = append(errs,
+			field.NotSupported(fieldPath.Child("type"), encryption.Type, []string{string(configv1.EncryptionTypeIdentity), string(configv1.EncryptionTypeAESCBC)}),
+		)
 	}
 
 	return errs
