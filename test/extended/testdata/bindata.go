@@ -22819,7 +22819,7 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
     "resources": {
       "limits": {
         "cpu": "60m",
-        "memory": "200Mi"
+        "memory": "400Mi"
       }
     },
     "source": {
