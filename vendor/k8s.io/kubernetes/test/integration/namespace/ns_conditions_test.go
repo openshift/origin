@@ -31,7 +31,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/metadata"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/controller/namespace"
 	"k8s.io/kubernetes/test/integration/etcd"
@@ -98,10 +97,10 @@ func TestNamespaceCondition(t *testing.T) {
 			if condition.Type == corev1.NamespaceDeletionContentFailure && condition.Message == `All content successfully deleted, may be waiting on finalization` {
 				conditionsFound++
 			}
-			if condition.Type == corev1.NamespaceContentRemaining && condition.Message == `Some resources are remaining: deployments.apps has 1 resource instances` {
+			if condition.Type == corev1.NamespaceContentRemaining && condition.Message == `Some resources are remaining: deployments.apps has 1 resource instances, deployments.extensions has 1 resource instances` {
 				conditionsFound++
 			}
-			if condition.Type == corev1.NamespaceFinalizersRemaining && condition.Message == `Some content in the namespace has finalizers remaining: custom.io/finalizer in 1 resource instances` {
+			if condition.Type == corev1.NamespaceFinalizersRemaining && condition.Message == `Some content in the namespace has finalizers remaining: custom.io/finalizer in 2 resource instances` {
 				conditionsFound++
 			}
 		}
@@ -143,7 +142,7 @@ func namespaceLifecycleSetup(t *testing.T) (framework.CloseFunc, *namespace.Name
 	resyncPeriod := 12 * time.Hour
 	informers := informers.NewSharedInformerFactory(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "deployment-informers")), resyncPeriod)
 
-	metadataClient, err := metadata.NewForConfig(&config)
+	dynamicClient, err := dynamic.NewForConfig(&config)
 	if err != nil {
 		panic(err)
 	}
@@ -152,7 +151,7 @@ func namespaceLifecycleSetup(t *testing.T) (framework.CloseFunc, *namespace.Name
 
 	controller := namespace.NewNamespaceController(
 		clientSet,
-		metadataClient,
+		dynamicClient,
 		discoverResourcesFn,
 		informers.Core().V1().Namespaces(),
 		10*time.Hour,
@@ -160,5 +159,5 @@ func namespaceLifecycleSetup(t *testing.T) (framework.CloseFunc, *namespace.Name
 	if err != nil {
 		t.Fatalf("error creating Deployment controller: %v", err)
 	}
-	return closeFn, controller, informers, clientSet, dynamic.NewForConfigOrDie(&config)
+	return closeFn, controller, informers, clientSet, dynamicClient
 }
