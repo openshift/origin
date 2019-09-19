@@ -1803,3 +1803,13 @@ func IsClusterOperated(oc *CLI) bool {
 	}
 	return true
 }
+
+func DumpDaemonSet(namespace string, name string, oc *CLI) error {
+	dsYAML, err := oc.AsAdmin().Run("get", "ds", name, "-n", namespace, "-o", "yaml").Output()
+	if err != nil {
+		e2e.Logf("failed to get daemoneset %s/%s: %v", namespace, name, err)
+		return err
+	}
+	e2e.Logf("daemonset %s/%s:\n%s", namespace, name, dsYAML)
+	return nil
+}
