@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"sigs.k8s.io/structured-merge-diff/typed"
-	"sigs.k8s.io/structured-merge-diff/value"
 )
 
 func TestValidateDeducedType(t *testing.T) {
@@ -34,11 +33,11 @@ func TestValidateDeducedType(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
-			v, err := value.FromYAML([]byte(test))
+			v, err := typed.DeducedParseableType.FromYAML(typed.YAMLObject(test))
 			if err != nil {
 				t.Fatalf("Failed to parse yaml: %v", err)
 			}
-			if err := typed.AsTypedDeduced(v).Validate(); err != nil {
+			if err := v.Validate(); err != nil {
 				t.Fatalf("Validation failed: %v", err)
 			}
 		})
@@ -182,7 +181,7 @@ func TestMergeDeduced(t *testing.T) {
 		t.Run(fmt.Sprintf("triplet-%v", i), func(t *testing.T) {
 			t.Parallel()
 
-			pt := typed.DeducedParseableType{}
+			pt := typed.DeducedParseableType
 			lhs, err := pt.FromYAML(triplet.lhs)
 			if err != nil {
 				t.Fatalf("unable to parser/validate lhs yaml: %v\n%v", err, triplet.lhs)
@@ -218,7 +217,7 @@ func TestMergeDeduced(t *testing.T) {
 func TestToSetDeduced(t *testing.T) {
 	tests := []objSetPair{
 		{`{"key":"foo","value":1}`, _NS(_P("key"), _P("value"))},
-		{`{"key":"foo","value":{"a": "b"}}`, _NS(_P("key"), _P("value", "a"))},
+		{`{"key":"foo","value":{"a": "b"}}`, _NS(_P("key"), _P("value"), _P("value", "a"))},
 		{`{"key":"foo","value":null}`, _NS(_P("key"), _P("value"))},
 		{`{"key":"foo"}`, _NS(_P("key"))},
 		{`{"key":"foo","value":true}`, _NS(_P("key"), _P("value"))},
@@ -228,11 +227,11 @@ func TestToSetDeduced(t *testing.T) {
 		{`{"bool":true}`, _NS(_P("bool"))},
 		{`{"bool":false}`, _NS(_P("bool"))},
 		{`{"list":["a","b","c"]}`, _NS(_P("list"))},
-		{`{"color":{}}`, _NS()},
+		{`{"color":{}}`, _NS(_P("color"))},
 		{`{"color":null}`, _NS(_P("color"))},
-		{`{"color":{"R":255,"G":0,"B":0}}`, _NS(_P("color", "R"), _P("color", "G"), _P("color", "B"))},
+		{`{"color":{"R":255,"G":0,"B":0}}`, _NS(_P("color"), _P("color", "R"), _P("color", "G"), _P("color", "B"))},
 		{`{"arbitraryWavelengthColor":null}`, _NS(_P("arbitraryWavelengthColor"))},
-		{`{"arbitraryWavelengthColor":{"IR":255}}`, _NS(_P("arbitraryWavelengthColor", "IR"))},
+		{`{"arbitraryWavelengthColor":{"IR":255}}`, _NS(_P("arbitraryWavelengthColor"), _P("arbitraryWavelengthColor", "IR"))},
 		{`{"args":[]}`, _NS(_P("args"))},
 		{`{"args":null}`, _NS(_P("args"))},
 		{`{"args":[null]}`, _NS(_P("args"))},
@@ -245,7 +244,7 @@ func TestToSetDeduced(t *testing.T) {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			t.Parallel()
 
-			tv, err := typed.DeducedParseableType{}.FromYAML(v.object)
+			tv, err := typed.DeducedParseableType.FromYAML(v.object)
 			if err != nil {
 				t.Errorf("failed to parse object: %v", err)
 			}
@@ -271,25 +270,25 @@ func TestSymdiffDeduced(t *testing.T) {
 		lhs:      `{"key":"foo","value":{}}`,
 		rhs:      `{"key":"foo","value":1}`,
 		removed:  _NS(),
-		modified: _NS(),
-		added:    _NS(_P("value")),
+		modified: _NS(_P("value")),
+		added:    _NS(),
 	}, {
 		lhs:      `{"key":"foo","value":1}`,
 		rhs:      `{"key":"foo","value":{}}`,
-		removed:  _NS(_P("value")),
-		modified: _NS(),
+		removed:  _NS(),
+		modified: _NS(_P("value")),
 		added:    _NS(),
 	}, {
 		lhs:      `{"key":"foo","value":1}`,
 		rhs:      `{"key":"foo","value":{"deep":{"nested":1}}}`,
-		removed:  _NS(_P("value")),
-		modified: _NS(),
-		added:    _NS(_P("value", "deep", "nested")),
+		removed:  _NS(),
+		modified: _NS(_P("value")),
+		added:    _NS(_P("value", "deep"), _P("value", "deep", "nested")),
 	}, {
 		lhs:      `{"key":"foo","value":null}`,
 		rhs:      `{"key":"foo","value":{}}`,
-		removed:  _NS(_P("value")),
-		modified: _NS(),
+		removed:  _NS(),
+		modified: _NS(_P("value")),
 		added:    _NS(),
 	}, {
 		lhs:      `{"key":"foo"}`,
@@ -308,7 +307,7 @@ func TestSymdiffDeduced(t *testing.T) {
 		rhs:      `{"inner":{}}`,
 		removed:  _NS(),
 		modified: _NS(),
-		added:    _NS(),
+		added:    _NS(_P("inner")),
 	}, {
 		lhs:      `{}`,
 		rhs:      `{"inner":null}`,
@@ -318,15 +317,15 @@ func TestSymdiffDeduced(t *testing.T) {
 	}, {
 		lhs:      `{"inner":null}`,
 		rhs:      `{"inner":{}}`,
-		removed:  _NS(_P("inner")),
-		modified: _NS(),
+		removed:  _NS(),
+		modified: _NS(_P("inner")),
 		added:    _NS(),
 	}, {
 		lhs:      `{"inner":{}}`,
 		rhs:      `{"inner":null}`,
 		removed:  _NS(),
-		modified: _NS(),
-		added:    _NS(_P("inner")),
+		modified: _NS(_P("inner")),
+		added:    _NS(),
 	}, {
 		lhs:      `{"inner":{}}`,
 		rhs:      `{"inner":{}}`,
@@ -372,21 +371,21 @@ func TestSymdiffDeduced(t *testing.T) {
 	}, {
 		lhs:      `{"a":{}}`,
 		rhs:      `{"b":{}}`,
-		removed:  _NS(),
+		removed:  _NS(_P("a")),
 		modified: _NS(),
-		added:    _NS(),
+		added:    _NS(_P("b")),
 	}, {
 		lhs:      `{"a":{"b":{"c":{}}}}`,
 		rhs:      `{"a":{"b":{}}}`,
-		removed:  _NS(),
+		removed:  _NS(_P("a", "b", "c")),
 		modified: _NS(),
 		added:    _NS(),
 	}, {
 		lhs:      `{"a":{"b":{"c":[true]}}}`,
 		rhs:      `{"a":{"b":[false]}}`,
 		removed:  _NS(_P("a", "b", "c")),
-		modified: _NS(),
-		added:    _NS(_P("a", "b")),
+		modified: _NS(_P("a", "b")),
+		added:    _NS(),
 	}, {
 		lhs:      `{"a":{}}`,
 		rhs:      `{"a":{"b":"true"}}`,
@@ -453,7 +452,7 @@ func TestSymdiffDeduced(t *testing.T) {
 		quint := quint
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			//t.Parallel()
-			pt := typed.DeducedParseableType{}
+			pt := typed.DeducedParseableType
 
 			tvLHS, err := pt.FromYAML(quint.lhs)
 			if err != nil {

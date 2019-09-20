@@ -53,8 +53,9 @@ func (ProjectSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ProjectStatus = map[string]string{
-	"":      "ProjectStatus is information about the current status of a Project",
-	"phase": "Phase is the current lifecycle phase of the project",
+	"":           "ProjectStatus is information about the current status of a Project",
+	"phase":      "Phase is the current lifecycle phase of the project",
+	"conditions": "Represents the latest available observations of the project current state.",
 }
 
 func (ProjectStatus) SwaggerDoc() map[string]string {

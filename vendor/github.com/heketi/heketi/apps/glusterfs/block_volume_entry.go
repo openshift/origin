@@ -19,6 +19,7 @@ import (
 	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/idgen"
+	"github.com/heketi/heketi/pkg/sortedstrings"
 	"github.com/lpabon/godbc"
 )
 
@@ -173,11 +174,6 @@ func (v *BlockVolumeEntry) eligibleClustersAndVolumes(db wdb.RODB) (
 	if e != nil {
 		return
 	}
-	if len(possibleClusters) == 0 {
-		logger.LogError("No clusters eligible to satisfy create block volume request")
-		e = ErrNoSpace
-		return
-	}
 	logger.Debug("Using the following clusters: %+v", possibleClusters)
 
 	var possibleVolumes []string
@@ -223,22 +219,6 @@ func (v *BlockVolumeEntry) eligibleClustersAndVolumes(db wdb.RODB) (
 		}
 	}
 	return
-}
-
-func (v *BlockVolumeEntry) cleanupBlockVolumeCreate(db wdb.DB,
-	executor executors.Executor) error {
-
-	hvname, err := v.blockHostingVolumeName(db)
-	if err != nil {
-		return err
-	}
-
-	err = v.deleteBlockVolumeExec(db, hvname, executor)
-	if err != nil {
-		return err
-	}
-
-	return v.removeComponents(db, false)
 }
 
 func (v *BlockVolumeEntry) Create(db wdb.DB,
@@ -313,8 +293,15 @@ func (v *BlockVolumeEntry) deleteBlockVolumeExec(db wdb.RODB,
 	}
 
 	logger.Debug("Using executor host [%v]", executorhost)
+	return v.destroyFromHost(executor, hvname, executorhost)
+}
 
-	err = executor.BlockVolumeDestroy(executorhost, hvname, v.Info.Name)
+// destroyFromHost removes the block volume using the provided
+// executor, block hosting volume name, and host.
+func (v *BlockVolumeEntry) destroyFromHost(
+	executor executors.Executor, hvname, h string) error {
+
+	err := executor.BlockVolumeDestroy(h, hvname, v.Info.Name)
 	if _, ok := err.(*executors.VolumeDoesNotExistErr); ok {
 		logger.Warning(
 			"Block volume %v (%v) does not exist: assuming already deleted",
@@ -413,6 +400,21 @@ func (v *BlockVolumeEntry) updateHosts(hosts []string) {
 	v.Info.BlockVolume.Hosts = hosts
 }
 
+// hosts returns a node-to-host mapping for all nodes suitable
+// for running commands related to this block volume
+func (v *BlockVolumeEntry) hosts(db wdb.RODB) (nodeHosts, error) {
+	var hosts nodeHosts
+	err := db.View(func(tx *bolt.Tx) error {
+		cluster, err := NewClusterEntryFromId(tx, v.Info.Cluster)
+		if err != nil {
+			return err
+		}
+		hosts, err = cluster.hosts(wdb.WrapTx(tx))
+		return err
+	})
+	return hosts, err
+}
+
 // hasPendingBlockHostingVolume returns true if the db contains pending
 // block hosting volumes.
 func hasPendingBlockHostingVolume(tx *bolt.Tx) (bool, error) {
@@ -441,4 +443,48 @@ func hasPendingBlockHostingVolume(tx *bolt.Tx) (bool, error) {
 		}
 	}
 	return (len(pmap) != 0), nil
+}
+
+// consistencyCheck ... verifies that a blockVolumeEntry is consistent with rest of the database.
+// It is a method on blockVolumeEntry and needs rest of the database as its input.
+func (v *BlockVolumeEntry) consistencyCheck(db Db) (response DbEntryCheckResponse) {
+
+	// No consistency check required for following attributes
+	// Id
+	// Name
+	// Size
+	// HaCount
+	// Auth
+
+	// PendingId
+	if v.Pending.Id != "" {
+		response.Pending = true
+		if _, found := db.PendingOperations[v.Pending.Id]; !found {
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("BlockVolume %v marked pending but no pending op %v", v.Info.Id, v.Pending.Id))
+		}
+		// TODO: Validate back the pending operations' relationship to the blockVolume
+		// This is skipped because some of it is handled in auto cleanup code.
+	}
+
+	// Cluster
+	if clusterEntry, found := db.Clusters[v.Info.Cluster]; !found {
+		response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("BlockVolume %v unknown cluster %v", v.Info.Id, v.Info.Cluster))
+	} else {
+		if !sortedstrings.Has(clusterEntry.Info.BlockVolumes, v.Info.Id) {
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("BlockVolume %v no link back to blockVolume from cluster %v", v.Info.Id, v.Info.Cluster))
+		}
+		// TODO: Check if BlockVolume Hosts belong to the cluster.
+	}
+
+	// Volume
+	if volumeEntry, found := db.Volumes[v.Info.BlockHostingVolume]; !found {
+		response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("BlockVolume %v unknown volume %v", v.Info.Id, v.Info.BlockHostingVolume))
+	} else {
+		if !sortedstrings.Has(volumeEntry.Info.BlockInfo.BlockVolumes, v.Info.Id) {
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("BlockVolume %v no link back to blockVolume from volume %v", v.Info.Id, v.Info.BlockHostingVolume))
+		}
+		// TODO: Check if BlockVolume Hosts belong to the volume.
+	}
+	return
+
 }

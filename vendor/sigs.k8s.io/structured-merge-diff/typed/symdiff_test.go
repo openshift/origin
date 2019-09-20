@@ -48,14 +48,24 @@ var symdiffCases = []symdiffTestCase{{
 	rootTypeName: "stringPair",
 	schema: `types:
 - name: stringPair
-  struct:
+  map:
     fields:
     - name: key
       type:
         scalar: string
     - name: value
       type:
-        untyped: {}
+        namedType: __untyped_atomic_
+- name: __untyped_atomic_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 `,
 	quints: []symdiffQuint{{
 		lhs:      `{"key":"foo","value":1}`,
@@ -105,13 +115,23 @@ var symdiffCases = []symdiffTestCase{{
 	rootTypeName: "nestedMap",
 	schema: `types:
 - name: nestedMap
-  struct:
+  map:
     fields:
     - name: inner
       type:
         map:
           elementType:
-            untyped: {}
+            namedType: __untyped_atomic_
+- name: __untyped_atomic_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 `,
 	quints: []symdiffQuint{{
 		lhs:      `{}`,
@@ -149,15 +169,15 @@ var symdiffCases = []symdiffTestCase{{
 	rootTypeName: "nestedStruct",
 	schema: `types:
 - name: nestedStruct
-  struct:
+  map:
     fields:
     - name: inner
       type:
-        struct:
+        map:
           fields:
           - name: value
             type:
-              untyped: {}
+              namedType: __untyped_atomic_
 `,
 	quints: []symdiffQuint{{
 		lhs:      `{}`,
@@ -195,14 +215,24 @@ var symdiffCases = []symdiffTestCase{{
 	rootTypeName: "nestedList",
 	schema: `types:
 - name: nestedList
-  struct:
+  map:
     fields:
     - name: inner
       type:
         list:
           elementType:
-            untyped: {}
+            namedType: __untyped_atomic_
           elementRelationship: atomic
+- name: __untyped_atomic_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 `,
 	quints: []symdiffQuint{{
 		lhs:      `{}`,
@@ -274,7 +304,7 @@ var symdiffCases = []symdiffTestCase{{
 	rootTypeName: "myStruct",
 	schema: `types:
 - name: myStruct
-  struct:
+  map:
     fields:
     - name: numeric
       type:
@@ -356,7 +386,7 @@ var symdiffCases = []symdiffTestCase{{
 	rootTypeName: "myRoot",
 	schema: `types:
 - name: myRoot
-  struct:
+  map:
     fields:
     - name: list
       type:
@@ -378,7 +408,7 @@ var symdiffCases = []symdiffTestCase{{
       scalar: string
     elementRelationship: atomic
 - name: myElement
-  struct:
+  map:
     fields:
     - name: key
       type:

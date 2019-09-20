@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package alertcenter provides access to the G Suite Alert Center API.
 //
-// See https://developers.google.com/admin-sdk/alertcenter/
+// For product documentation, see: https://developers.google.com/admin-sdk/alertcenter/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/alertcenter/v1beta1"
 //   ...
-//   alertcenterService, err := alertcenter.New(oauthHttpClient)
+//   ctx := context.Background()
+//   alertcenterService, err := alertcenter.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   alertcenterService, err := alertcenter.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   alertcenterService, err := alertcenter.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package alertcenter // import "google.golang.org/api/alertcenter/v1beta1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -56,6 +80,32 @@ const (
 	AppsAlertsScope = "https://www.googleapis.com/auth/apps.alerts"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/apps.alerts",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -124,6 +174,7 @@ type AccountWarning struct {
 	//
 	// * Suspicious login
 	// * Suspicious login (less secure app)
+	// * Suspicious programmatic login
 	// * User suspended (suspicious activity)
 	LoginDetails *LoginDetails `json:"loginDetails,omitempty"`
 
@@ -150,8 +201,81 @@ func (s *AccountWarning) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// ActivityRule: Alerts from G Suite Security Center rules service
+// configured by admin.
+type ActivityRule struct {
+	// ActionNames: List of action names associated with the rule threshold.
+	ActionNames []string `json:"actionNames,omitempty"`
+
+	// CreateTime: Rule create timestamp.
+	CreateTime string `json:"createTime,omitempty"`
+
+	// Description: Description of the rule.
+	Description string `json:"description,omitempty"`
+
+	// DisplayName: Alert display name.
+	DisplayName string `json:"displayName,omitempty"`
+
+	// Name: Rule name.
+	Name string `json:"name,omitempty"`
+
+	// Query: Query that is used to get the data from the associated source.
+	Query string `json:"query,omitempty"`
+
+	// SupersededAlerts: List of alert ids superseded by this alert. It is
+	// used to indicate that
+	// this alert is essentially extension of superseded alerts and we found
+	// the
+	// relationship after creating these alerts.
+	SupersededAlerts []string `json:"supersededAlerts,omitempty"`
+
+	// SupersedingAlert: Alert id superseding this alert. It is used to
+	// indicate that superseding
+	// alert is essentially extension of this alert and we found the
+	// relationship
+	// after creating both alerts.
+	SupersedingAlert string `json:"supersedingAlert,omitempty"`
+
+	// Threshold: Alert threshold is for example “COUNT > 5”.
+	Threshold string `json:"threshold,omitempty"`
+
+	// TriggerSource: The trigger sources for this rule.
+	//
+	// * GMAIL_EVENTS
+	// * DEVICE_EVENTS
+	// * USER_EVENTS
+	TriggerSource string `json:"triggerSource,omitempty"`
+
+	// UpdateTime: The timestamp of the last update to the rule.
+	UpdateTime string `json:"updateTime,omitempty"`
+
+	// WindowSize: Rule window size. Possible values are 1 hour or 24 hours.
+	WindowSize string `json:"windowSize,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ActionNames") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ActionNames") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ActivityRule) MarshalJSON() ([]byte, error) {
+	type NoMethod ActivityRule
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // Alert: An alert affecting a customer.
-// All fields are read-only once created.
 type Alert struct {
 	// AlertId: Output only. The unique identifier for the alert.
 	AlertId string `json:"alertId,omitempty"`
@@ -174,7 +298,7 @@ type Alert struct {
 	// EndTime: Optional. The time the event that caused this alert ceased
 	// being active.
 	// If provided, the end time must not be earlier than the start time.
-	// If not provided, the end time defaults to the start time.
+	// If not provided, it indicates an ongoing alert.
 	EndTime string `json:"endTime,omitempty"`
 
 	// SecurityInvestigationToolLink: Output only. An optional
@@ -185,6 +309,7 @@ type Alert struct {
 
 	// Source: Required. A unique identifier for the system that reported
 	// the alert.
+	// This is output only after alert is created.
 	//
 	// Supported sources are any of the following:
 	//
@@ -202,9 +327,13 @@ type Alert struct {
 	StartTime string `json:"startTime,omitempty"`
 
 	// Type: Required. The type of the alert.
+	// This is output only after alert is created.
 	// For a list of available alert types see
 	// [G Suite Alert types](/admin-sdk/alertcenter/reference/alert-types).
 	Type string `json:"type,omitempty"`
+
+	// UpdateTime: Output only. The time this alert was last updated.
+	UpdateTime string `json:"updateTime,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
@@ -895,10 +1024,13 @@ func (s *MailPhishing) MarshalJSON() ([]byte, error) {
 // MaliciousEntity: Entity whose actions triggered a Gmail phishing
 // alert.
 type MaliciousEntity struct {
+	// DisplayName: The header from display name.
+	DisplayName string `json:"displayName,omitempty"`
+
 	// FromHeader: The sender email address.
 	FromHeader string `json:"fromHeader,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "FromHeader") to
+	// ForceSendFields is a list of field names (e.g. "DisplayName") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -906,10 +1038,10 @@ type MaliciousEntity struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "FromHeader") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
+	// NullFields is a list of field names (e.g. "DisplayName") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
 	// null. It is an error if a field in this list has a non-empty value.
 	// This may be used to include null fields in Patch requests.
 	NullFields []string `json:"-"`
@@ -1335,7 +1467,9 @@ type AlertsGetCall struct {
 	header_      http.Header
 }
 
-// Get: Gets the specified alert.
+// Get: Gets the specified alert. Attempting to get a nonexistent alert
+// returns
+// `NOT_FOUND` error.
 func (r *AlertsService) Get(alertId string) *AlertsGetCall {
 	c := &AlertsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.alertId = alertId
@@ -1449,7 +1583,7 @@ func (c *AlertsGetCall) Do(opts ...googleapi.CallOption) (*Alert, error) {
 	}
 	return ret, nil
 	// {
-	//   "description": "Gets the specified alert.",
+	//   "description": "Gets the specified alert. Attempting to get a nonexistent alert returns\n`NOT_FOUND` error.",
 	//   "flatPath": "v1beta1/alerts/{alertId}",
 	//   "httpMethod": "GET",
 	//   "id": "alertcenter.alerts.get",
@@ -1458,7 +1592,7 @@ func (c *AlertsGetCall) Do(opts ...googleapi.CallOption) (*Alert, error) {
 	//   ],
 	//   "parameters": {
 	//     "alertId": {
-	//       "description": "Required. The identifier of the alert to retrieve.\nReturns a NOT_FOUND error if no such alert.",
+	//       "description": "Required. The identifier of the alert to retrieve.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
@@ -1511,8 +1645,10 @@ func (c *AlertsListCall) CustomerId(customerId string) *AlertsListCall {
 // [Query
 // filters](/admin-sdk/alertcenter/guides/query-filters) and
 // [Supported
-// query filter
-// fields](/admin-sdk/alertcenter/reference/filter-fields#alerts.list).
+// query
+// filter
+// fields](/admin-sdk/alertcenter/reference/filter-fields#alerts.l
+// ist).
 func (c *AlertsListCall) Filter(filter string) *AlertsListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -1524,7 +1660,9 @@ func (c *AlertsListCall) Filter(filter string) *AlertsListCall {
 // You can sort the results in descending order based on the
 // creation
 // timestamp using `order_by="create_time desc".
-// Currently, only sorting by `create_time desc` is supported.
+// Currently, supported sorting are `create_time asc`, `create_time
+// desc`,
+// `update_time desc`
 func (c *AlertsListCall) OrderBy(orderBy string) *AlertsListCall {
 	c.urlParams_.Set("orderBy", orderBy)
 	return c
@@ -1656,12 +1794,12 @@ func (c *AlertsListCall) Do(opts ...googleapi.CallOption) (*ListAlertsResponse, 
 	//       "type": "string"
 	//     },
 	//     "filter": {
-	//       "description": "Optional. A query string for filtering alert results.\nFor more details, see [Query\nfilters](/admin-sdk/alertcenter/guides/query-filters) and [Supported\nquery filter fields](/admin-sdk/alertcenter/reference/filter-fields#alerts.list).",
+	//       "description": "Optional. A query string for filtering alert results.\nFor more details, see [Query\nfilters](/admin-sdk/alertcenter/guides/query-filters) and [Supported\nquery filter\nfields](/admin-sdk/alertcenter/reference/filter-fields#alerts.list).",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
 	//     "orderBy": {
-	//       "description": "Optional. The sort order of the list results.\nIf not specified results may be returned in arbitrary order.\nYou can sort the results in descending order based on the creation\ntimestamp using `order_by=\"create_time desc\"`.\nCurrently, only sorting by `create_time desc` is supported.",
+	//       "description": "Optional. The sort order of the list results.\nIf not specified results may be returned in arbitrary order.\nYou can sort the results in descending order based on the creation\ntimestamp using `order_by=\"create_time desc\"`.\nCurrently, supported sorting are `create_time asc`, `create_time desc`,\n`update_time desc`",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -1867,7 +2005,9 @@ type AlertsFeedbackCreateCall struct {
 	header_       http.Header
 }
 
-// Create: Creates new feedback for an alert.
+// Create: Creates new feedback for an alert. Attempting to create a
+// feedback for
+// a non-existent alert returns `NOT_FOUND` error.
 func (r *AlertsFeedbackService) Create(alertId string, alertfeedback *AlertFeedback) *AlertsFeedbackCreateCall {
 	c := &AlertsFeedbackCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.alertId = alertId
@@ -1974,7 +2114,7 @@ func (c *AlertsFeedbackCreateCall) Do(opts ...googleapi.CallOption) (*AlertFeedb
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates new feedback for an alert.",
+	//   "description": "Creates new feedback for an alert. Attempting to create a feedback for\na non-existent alert returns `NOT_FOUND` error.",
 	//   "flatPath": "v1beta1/alerts/{alertId}/feedback",
 	//   "httpMethod": "POST",
 	//   "id": "alertcenter.alerts.feedback.create",
@@ -1983,7 +2123,7 @@ func (c *AlertsFeedbackCreateCall) Do(opts ...googleapi.CallOption) (*AlertFeedb
 	//   ],
 	//   "parameters": {
 	//     "alertId": {
-	//       "description": "Required. The identifier of the alert this feedback belongs to.\nReturns a `NOT_FOUND` error if no such alert.",
+	//       "description": "Required. The identifier of the alert this feedback belongs to.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
@@ -2019,7 +2159,9 @@ type AlertsFeedbackListCall struct {
 	header_      http.Header
 }
 
-// List: Lists all the feedback for an alert.
+// List: Lists all the feedback for an alert. Attempting to list
+// feedbacks for
+// a non-existent alert returns `NOT_FOUND` error.
 func (r *AlertsFeedbackService) List(alertId string) *AlertsFeedbackListCall {
 	c := &AlertsFeedbackListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.alertId = alertId
@@ -2041,9 +2183,10 @@ func (c *AlertsFeedbackListCall) CustomerId(customerId string) *AlertsFeedbackLi
 // [Query
 // filters](/admin-sdk/alertcenter/guides/query-filters) and
 // [Supported
-// query filter
-// fields](/admin-sdk/alertcenter/reference/filter-fields#alerts.feedback
-// .list).
+// query
+// filter
+// fields](/admin-sdk/alertcenter/reference/filter-fields#alerts.f
+// eedback.list).
 func (c *AlertsFeedbackListCall) Filter(filter string) *AlertsFeedbackListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -2147,7 +2290,7 @@ func (c *AlertsFeedbackListCall) Do(opts ...googleapi.CallOption) (*ListAlertFee
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists all the feedback for an alert.",
+	//   "description": "Lists all the feedback for an alert. Attempting to list feedbacks for\na non-existent alert returns `NOT_FOUND` error.",
 	//   "flatPath": "v1beta1/alerts/{alertId}/feedback",
 	//   "httpMethod": "GET",
 	//   "id": "alertcenter.alerts.feedback.list",
@@ -2156,7 +2299,7 @@ func (c *AlertsFeedbackListCall) Do(opts ...googleapi.CallOption) (*ListAlertFee
 	//   ],
 	//   "parameters": {
 	//     "alertId": {
-	//       "description": "Required. The alert identifier.\nThe \"-\" wildcard could be used to represent all alerts.\nIf alert does not exist returns a `NOT_FOUND` error.",
+	//       "description": "Required. The alert identifier.\nThe \"-\" wildcard could be used to represent all alerts.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
@@ -2167,7 +2310,7 @@ func (c *AlertsFeedbackListCall) Do(opts ...googleapi.CallOption) (*ListAlertFee
 	//       "type": "string"
 	//     },
 	//     "filter": {
-	//       "description": "Optional. A query string for filtering alert feedback results.\nFor more details, see [Query\nfilters](/admin-sdk/alertcenter/guides/query-filters) and [Supported\nquery filter fields](/admin-sdk/alertcenter/reference/filter-fields#alerts.feedback.list).",
+	//       "description": "Optional. A query string for filtering alert feedback results.\nFor more details, see [Query\nfilters](/admin-sdk/alertcenter/guides/query-filters) and [Supported\nquery filter\nfields](/admin-sdk/alertcenter/reference/filter-fields#alerts.feedback.list).",
 	//       "location": "query",
 	//       "type": "string"
 	//     }
@@ -2336,7 +2479,7 @@ type V1beta1UpdateSettingsCall struct {
 	header_    http.Header
 }
 
-// UpdateSettings: Update the customer-level settings.
+// UpdateSettings: Updates the customer-level settings.
 func (r *V1beta1Service) UpdateSettings(settings *Settings) *V1beta1UpdateSettingsCall {
 	c := &V1beta1UpdateSettingsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.settings = settings
@@ -2439,7 +2582,7 @@ func (c *V1beta1UpdateSettingsCall) Do(opts ...googleapi.CallOption) (*Settings,
 	}
 	return ret, nil
 	// {
-	//   "description": "Update the customer-level settings.",
+	//   "description": "Updates the customer-level settings.",
 	//   "flatPath": "v1beta1/settings",
 	//   "httpMethod": "PATCH",
 	//   "id": "alertcenter.updateSettings",

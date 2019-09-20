@@ -5,7 +5,7 @@
   "description": "Analyzes the performance of a web page and provides tailored suggestions to make that page faster.",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/speed/docs/insights/v5/get-started",
-  "etag": "\"J3WqvAcMk4eQjJXvfSI4Yr8VouA/NtoJIO0Mp0BYbtnKoGvOvVKCYHs\"",
+  "etag": "\"VPK3KBfpaEgZ16pozGOoMYfKc0U/Ta6I-MdyzU28jP7YoMs8WuXC-dg\"",
   "icons": {
     "x16": "https://www.google.com/images/icons/product/pagespeed-16.png",
     "x32": "https://www.google.com/images/icons/product/pagespeed-32.png"
@@ -137,7 +137,7 @@
       }
     }
   },
-  "revision": "20181127",
+  "revision": "20190507",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "GoogleprotobufValue": {
@@ -441,6 +441,35 @@
             }
           },
           "type": "object"
+        },
+        "stackPacks": {
+          "description": "The Stack Pack advice strings.",
+          "items": {
+            "properties": {
+              "descriptions": {
+                "additionalProperties": {
+                  "description": "The specific stack pack description.",
+                  "type": "string"
+                },
+                "description": "The stack pack advice strings.",
+                "type": "object"
+              },
+              "iconDataURL": {
+                "description": "The stack pack icon data uri.",
+                "type": "string"
+              },
+              "id": {
+                "description": "The stack pack id.",
+                "type": "string"
+              },
+              "title": {
+                "description": "The stack pack title.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
         },
         "timing": {
           "description": "Timing information for this LHR.",

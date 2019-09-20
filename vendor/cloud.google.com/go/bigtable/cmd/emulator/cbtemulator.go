@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import (
 	"log"
 
 	"cloud.google.com/go/bigtable/bttest"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -30,9 +31,18 @@ var (
 	port = flag.Int("port", 9000, "the port number to bind to on the local machine")
 )
 
+const (
+	maxMsgSize = 256 * 1024 * 1024 // 256 MiB
+)
+
 func main() {
+	grpc.EnableTracing = false
 	flag.Parse()
-	srv, err := bttest.NewServer(fmt.Sprintf("%s:%d", *host, *port))
+	opts := []grpc.ServerOption{
+		grpc.MaxRecvMsgSize(maxMsgSize),
+		grpc.MaxSendMsgSize(maxMsgSize),
+	}
+	srv, err := bttest.NewServer(fmt.Sprintf("%s:%d", *host, *port), opts...)
 	if err != nil {
 		log.Fatalf("failed to start emulator: %v", err)
 	}

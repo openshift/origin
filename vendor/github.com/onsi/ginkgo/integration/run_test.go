@@ -2,6 +2,8 @@ package integration_test
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"regexp"
 	"runtime"
 	"strings"
@@ -26,7 +28,7 @@ var _ = Describe("Running Specs", func() {
 	Context("when pointed at the current directory", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("ginkgo")
-			copyIn("passing_ginkgo_tests", pathToTest)
+			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
 		})
 
 		It("should run the tests in the working directory", func() {
@@ -44,7 +46,7 @@ var _ = Describe("Running Specs", func() {
 	Context("when passed an explicit package to run", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("ginkgo")
-			copyIn("passing_ginkgo_tests", pathToTest)
+			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
 		})
 
 		It("should run the ginkgo style tests", func() {
@@ -63,8 +65,8 @@ var _ = Describe("Running Specs", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("ginkgo")
 			otherPathToTest := tmpPath("other")
-			copyIn("passing_ginkgo_tests", pathToTest)
-			copyIn("more_ginkgo_tests", otherPathToTest)
+			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
+			copyIn(fixturePath("more_ginkgo_tests"), otherPathToTest, false)
 		})
 
 		It("should run the ginkgo style tests", func() {
@@ -83,9 +85,9 @@ var _ = Describe("Running Specs", func() {
 			pathToTest = tmpPath("ginkgo")
 			otherPathToTest := tmpPath("other")
 			focusedPathToTest := tmpPath("focused")
-			copyIn("passing_ginkgo_tests", pathToTest)
-			copyIn("more_ginkgo_tests", otherPathToTest)
-			copyIn("focused_fixture", focusedPathToTest)
+			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
+			copyIn(fixturePath("more_ginkgo_tests"), otherPathToTest, false)
+			copyIn(fixturePath("focused_fixture"), focusedPathToTest, false)
 		})
 
 		It("should exit with a status code of 2 and explain why", func() {
@@ -98,6 +100,24 @@ var _ = Describe("Running Specs", func() {
 			Ω(output).Should(ContainSubstring("Test Suite Passed"))
 			Ω(output).Should(ContainSubstring("Detected Programmatic Focus - setting exit status to %d", types.GINKGO_FOCUS_EXIT_CODE))
 		})
+
+		Context("when the GINKGO_EDITOR_INTEGRATION environment variable is set", func() {
+			BeforeEach(func() {
+				os.Setenv("GINKGO_EDITOR_INTEGRATION", "true")
+			})
+			AfterEach(func() {
+				os.Setenv("GINKGO_EDITOR_INTEGRATION", "")
+			})
+			It("should exit with a status code of 0 to allow a coverage file to be generated", func() {
+				session := startGinkgo(tmpDir, "--noColor", "--succinct=false", "-r")
+				Eventually(session).Should(gexec.Exit(0))
+				output := string(session.Out.Contents())
+
+				Ω(output).Should(ContainSubstring("Running Suite: Passing_ginkgo_tests Suite"))
+				Ω(output).Should(ContainSubstring("Running Suite: More_ginkgo_tests Suite"))
+				Ω(output).Should(ContainSubstring("Test Suite Passed"))
+			})
+		})
 	})
 
 	Context("when told to skipPackages", func() {
@@ -105,9 +125,9 @@ var _ = Describe("Running Specs", func() {
 			pathToTest = tmpPath("ginkgo")
 			otherPathToTest := tmpPath("other")
 			focusedPathToTest := tmpPath("focused")
-			copyIn("passing_ginkgo_tests", pathToTest)
-			copyIn("more_ginkgo_tests", otherPathToTest)
-			copyIn("focused_fixture", focusedPathToTest)
+			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
+			copyIn(fixturePath("more_ginkgo_tests"), otherPathToTest, false)
+			copyIn(fixturePath("focused_fixture"), focusedPathToTest, false)
 		})
 
 		It("should skip packages that match the list", func() {
@@ -146,12 +166,35 @@ var _ = Describe("Running Specs", func() {
 		})
 	})
 
+	Context("when there are test files but `go test` reports there are no tests to run", func() {
+		BeforeEach(func() {
+			pathToTest = tmpPath("ginkgo")
+			copyIn(fixturePath("no_test_fn"), pathToTest, false)
+		})
+
+		It("suggests running ginkgo bootstrap", func() {
+			session := startGinkgo(tmpDir, "--noColor", "--skipPackage=other,focused", "-r")
+			Eventually(session).Should(gexec.Exit(0))
+			output := string(session.Err.Contents())
+
+			Ω(output).Should(ContainSubstring(`Found no test suites, did you forget to run "ginkgo bootstrap"?`))
+		})
+
+		It("fails if told to requireSuite", func() {
+			session := startGinkgo(tmpDir, "--noColor", "--skipPackage=other,focused", "-r", "-requireSuite")
+			Eventually(session).Should(gexec.Exit(1))
+			output := string(session.Err.Contents())
+
+			Ω(output).Should(ContainSubstring(`Found no test suites, did you forget to run "ginkgo bootstrap"?`))
+		})
+	})
+
 	Context("when told to randomizeSuites", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("ginkgo")
 			otherPathToTest := tmpPath("other")
-			copyIn("passing_ginkgo_tests", pathToTest)
-			copyIn("more_ginkgo_tests", otherPathToTest)
+			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
+			copyIn(fixturePath("more_ginkgo_tests"), otherPathToTest, false)
 		})
 
 		It("should skip packages that match the regexp", func() {
@@ -172,7 +215,7 @@ var _ = Describe("Running Specs", func() {
 	Context("when pointed at a package with xunit style tests", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("xunit")
-			copyIn("xunit_tests", pathToTest)
+			copyIn(fixturePath("xunit_tests"), pathToTest, false)
 		})
 
 		It("should run the xunit style tests", func() {
@@ -188,7 +231,7 @@ var _ = Describe("Running Specs", func() {
 	Context("when pointed at a package with no tests", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("no_tests")
-			copyIn("no_tests", pathToTest)
+			copyIn(fixturePath("no_tests"), pathToTest, false)
 		})
 
 		It("should fail", func() {
@@ -202,7 +245,7 @@ var _ = Describe("Running Specs", func() {
 	Context("when pointed at a package that fails to compile", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("does_not_compile")
-			copyIn("does_not_compile", pathToTest)
+			copyIn(fixturePath("does_not_compile"), pathToTest, false)
 		})
 
 		It("should fail", func() {
@@ -217,7 +260,7 @@ var _ = Describe("Running Specs", func() {
 	Context("when running in parallel", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("ginkgo")
-			copyIn("passing_ginkgo_tests", pathToTest)
+			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
 		})
 
 		Context("with a specific number of -nodes", func() {
@@ -244,8 +287,49 @@ var _ = Describe("Running Specs", func() {
 				if nodes > 4 {
 					nodes = nodes - 1
 				}
-				Ω(output).Should(MatchRegexp(`\[\d+\] Passing_ginkgo_tests Suite - 4 specs - %d nodes [%s]{4} SUCCESS! \d+(\.\d+)?[muµ]s`, nodes, regexp.QuoteMeta(denoter)))
+				Ω(output).Should(MatchRegexp(`\[\d+\] Passing_ginkgo_tests Suite - 4 specs - %d nodes [%s]{4} SUCCESS! \d+(\.\d+)?[muµ]?s`, nodes, regexp.QuoteMeta(denoter)))
 				Ω(output).Should(ContainSubstring("Test Suite Passed"))
+			})
+		})
+	})
+
+	Context("when running in parallel with -debug", func() {
+		BeforeEach(func() {
+			pathToTest = tmpPath("ginkgo")
+			copyIn(fixturePath("debug_parallel_fixture"), pathToTest, false)
+		})
+
+		Context("without -v", func() {
+			It("should emit node output to files on disk", func() {
+				session := startGinkgo(pathToTest, "--nodes=2", "--debug")
+				Eventually(session).Should(gexec.Exit(0))
+
+				f0, err := ioutil.ReadFile(pathToTest + "/ginkgo-node-1.log")
+				Ω(err).ShouldNot(HaveOccurred())
+				f1, err := ioutil.ReadFile(pathToTest + "/ginkgo-node-2.log")
+				Ω(err).ShouldNot(HaveOccurred())
+				content := string(append(f0, f1...))
+
+				for i := 0; i < 10; i += 1 {
+					Ω(content).Should(ContainSubstring("StdOut %d\n", i))
+					Ω(content).Should(ContainSubstring("GinkgoWriter %d\n", i))
+				}
+			})
+		})
+
+		Context("without -v", func() {
+			It("should emit node output to files on disk, without duplicating the GinkgoWriter output", func() {
+				session := startGinkgo(pathToTest, "--nodes=2", "--debug", "-v")
+				Eventually(session).Should(gexec.Exit(0))
+
+				f0, err := ioutil.ReadFile(pathToTest + "/ginkgo-node-1.log")
+				Ω(err).ShouldNot(HaveOccurred())
+				f1, err := ioutil.ReadFile(pathToTest + "/ginkgo-node-2.log")
+				Ω(err).ShouldNot(HaveOccurred())
+				content := string(append(f0, f1...))
+
+				out := strings.Split(content, "GinkgoWriter 2")
+				Ω(out).Should(HaveLen(2))
 			})
 		})
 	})
@@ -253,7 +337,7 @@ var _ = Describe("Running Specs", func() {
 	Context("when streaming in parallel", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("ginkgo")
-			copyIn("passing_ginkgo_tests", pathToTest)
+			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
 		})
 
 		It("should print output in realtime", func() {
@@ -273,8 +357,8 @@ var _ = Describe("Running Specs", func() {
 		BeforeEach(func() {
 			passingTest := tmpPath("A")
 			otherPassingTest := tmpPath("E")
-			copyIn("passing_ginkgo_tests", passingTest)
-			copyIn("more_ginkgo_tests", otherPassingTest)
+			copyIn(fixturePath("passing_ginkgo_tests"), passingTest, false)
+			copyIn(fixturePath("more_ginkgo_tests"), otherPassingTest, false)
 		})
 
 		Context("when all the tests pass", func() {
@@ -307,7 +391,7 @@ var _ = Describe("Running Specs", func() {
 		Context("when one of the packages has a failing tests", func() {
 			BeforeEach(func() {
 				failingTest := tmpPath("C")
-				copyIn("failing_ginkgo_tests", failingTest)
+				copyIn(fixturePath("failing_ginkgo_tests"), failingTest, false)
 			})
 
 			It("should fail and stop running tests", func() {
@@ -330,7 +414,7 @@ var _ = Describe("Running Specs", func() {
 		Context("when one of the packages fails to compile", func() {
 			BeforeEach(func() {
 				doesNotCompileTest := tmpPath("C")
-				copyIn("does_not_compile", doesNotCompileTest)
+				copyIn(fixturePath("does_not_compile"), doesNotCompileTest, false)
 			})
 
 			It("should fail and stop running tests", func() {
@@ -349,10 +433,10 @@ var _ = Describe("Running Specs", func() {
 		Context("when either is the case, but the keepGoing flag is set", func() {
 			BeforeEach(func() {
 				doesNotCompileTest := tmpPath("B")
-				copyIn("does_not_compile", doesNotCompileTest)
+				copyIn(fixturePath("does_not_compile"), doesNotCompileTest, false)
 
 				failingTest := tmpPath("C")
-				copyIn("failing_ginkgo_tests", failingTest)
+				copyIn(fixturePath("failing_ginkgo_tests"), failingTest, false)
 			})
 
 			It("should soldier on", func() {
@@ -373,7 +457,7 @@ var _ = Describe("Running Specs", func() {
 
 	Context("when told to keep going --untilItFails", func() {
 		BeforeEach(func() {
-			copyIn("eventually_failing", tmpDir)
+			copyIn(fixturePath("eventually_failing"), tmpDir, false)
 		})
 
 		It("should keep rerunning the tests, until a failure occurs", func() {

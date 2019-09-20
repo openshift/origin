@@ -69,7 +69,7 @@ func (in *OAuthAccessToken) DeepCopyObject() runtime.Object {
 func (in *OAuthAccessTokenList) DeepCopyInto(out *OAuthAccessTokenList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OAuthAccessToken, len(*in))
@@ -133,7 +133,7 @@ func (in *OAuthAuthorizeToken) DeepCopyObject() runtime.Object {
 func (in *OAuthAuthorizeTokenList) DeepCopyInto(out *OAuthAuthorizeTokenList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OAuthAuthorizeToken, len(*in))
@@ -250,7 +250,7 @@ func (in *OAuthClientAuthorization) DeepCopyObject() runtime.Object {
 func (in *OAuthClientAuthorizationList) DeepCopyInto(out *OAuthClientAuthorizationList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OAuthClientAuthorization, len(*in))
@@ -283,7 +283,7 @@ func (in *OAuthClientAuthorizationList) DeepCopyObject() runtime.Object {
 func (in *OAuthClientList) DeepCopyInto(out *OAuthClientList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OAuthClient, len(*in))

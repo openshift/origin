@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,6 +47,16 @@ func NewDscNodeClientWithBaseURI(baseURI string, subscriptionID string) DscNodeC
 // automationAccountName - the name of the automation account.
 // nodeID - the node id.
 func (client DscNodeClient) Delete(ctx context.Context, resourceGroupName string, automationAccountName string, nodeID string) (result DscNode, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DscNodeClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -100,8 +111,8 @@ func (client DscNodeClient) DeletePreparer(ctx context.Context, resourceGroupNam
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client DscNodeClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -123,6 +134,16 @@ func (client DscNodeClient) DeleteResponder(resp *http.Response) (result DscNode
 // automationAccountName - the name of the automation account.
 // nodeID - the node id.
 func (client DscNodeClient) Get(ctx context.Context, resourceGroupName string, automationAccountName string, nodeID string) (result DscNode, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DscNodeClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -177,8 +198,8 @@ func (client DscNodeClient) GetPreparer(ctx context.Context, resourceGroupName s
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client DscNodeClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -200,6 +221,16 @@ func (client DscNodeClient) GetResponder(resp *http.Response) (result DscNode, e
 // automationAccountName - the name of the automation account.
 // filter - the filter to apply on the operation.
 func (client DscNodeClient) ListByAutomationAccount(ctx context.Context, resourceGroupName string, automationAccountName string, filter string) (result DscNodeListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DscNodeClient.ListByAutomationAccount")
+		defer func() {
+			sc := -1
+			if result.dnlr.Response.Response != nil {
+				sc = result.dnlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -257,8 +288,8 @@ func (client DscNodeClient) ListByAutomationAccountPreparer(ctx context.Context,
 // ListByAutomationAccountSender sends the ListByAutomationAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client DscNodeClient) ListByAutomationAccountSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByAutomationAccountResponder handles the response to the ListByAutomationAccount request. The method always
@@ -275,8 +306,8 @@ func (client DscNodeClient) ListByAutomationAccountResponder(resp *http.Response
 }
 
 // listByAutomationAccountNextResults retrieves the next set of results, if any.
-func (client DscNodeClient) listByAutomationAccountNextResults(lastResults DscNodeListResult) (result DscNodeListResult, err error) {
-	req, err := lastResults.dscNodeListResultPreparer()
+func (client DscNodeClient) listByAutomationAccountNextResults(ctx context.Context, lastResults DscNodeListResult) (result DscNodeListResult, err error) {
+	req, err := lastResults.dscNodeListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "automation.DscNodeClient", "listByAutomationAccountNextResults", nil, "Failure preparing next results request")
 	}
@@ -297,6 +328,16 @@ func (client DscNodeClient) listByAutomationAccountNextResults(lastResults DscNo
 
 // ListByAutomationAccountComplete enumerates all values, automatically crossing page boundaries as required.
 func (client DscNodeClient) ListByAutomationAccountComplete(ctx context.Context, resourceGroupName string, automationAccountName string, filter string) (result DscNodeListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DscNodeClient.ListByAutomationAccount")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByAutomationAccount(ctx, resourceGroupName, automationAccountName, filter)
 	return
 }
@@ -308,6 +349,16 @@ func (client DscNodeClient) ListByAutomationAccountComplete(ctx context.Context,
 // nodeID - parameters supplied to the update dsc node.
 // parameters - parameters supplied to the update dsc node.
 func (client DscNodeClient) Update(ctx context.Context, resourceGroupName string, automationAccountName string, nodeID string, parameters DscNodeUpdateParameters) (result DscNode, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DscNodeClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -364,8 +415,8 @@ func (client DscNodeClient) UpdatePreparer(ctx context.Context, resourceGroupNam
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client DscNodeClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

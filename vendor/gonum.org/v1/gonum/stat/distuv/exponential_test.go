@@ -6,7 +6,10 @@ package distuv
 
 import (
 	"math"
+	"sort"
 	"testing"
+
+	"golang.org/x/exp/rand"
 )
 
 func TestExponentialProb(t *testing.T) {
@@ -41,6 +44,38 @@ func TestExponentialProb(t *testing.T) {
 
 func TestExponentialFitPrior(t *testing.T) {
 	testConjugateUpdate(t, func() ConjugateUpdater { return &Exponential{Rate: 13.7} })
+}
+
+func TestExponential(t *testing.T) {
+	src := rand.New(rand.NewSource(1))
+	for i, dist := range []Exponential{
+		{Rate: 3, Src: src},
+		{Rate: 1.5, Src: src},
+		{Rate: 0.9, Src: src},
+	} {
+		testExponential(t, dist, i)
+	}
+}
+
+func testExponential(t *testing.T, dist Exponential, i int) {
+	const (
+		tol  = 1e-2
+		n    = 3e6
+		bins = 50
+	)
+	x := make([]float64, n)
+	generateSamples(x, dist)
+	sort.Float64s(x)
+
+	checkMean(t, i, x, dist, tol)
+	checkVarAndStd(t, i, x, dist, tol)
+	checkEntropy(t, i, x, dist, tol)
+	checkExKurtosis(t, i, x, dist, tol)
+	checkSkewness(t, i, x, dist, tol)
+	checkMedian(t, i, x, dist, tol)
+	checkQuantileCDFSurvival(t, i, x, dist, tol)
+	checkProbContinuous(t, i, x, dist, 1e-10)
+	checkProbQuantContinuous(t, i, x, dist, tol)
 }
 
 func TestExponentialScore(t *testing.T) {

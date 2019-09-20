@@ -188,7 +188,7 @@
         "clientEvents": {
           "methods": {
             "create": {
-              "description": "Report events issued when end user interacts with customer's application\nthat uses Cloud Talent Solution. You may inspect the created events in\n[self service\ntools](https://console.cloud.google.com/talent-solution/overview).\n[Learn\nmore](https://cloud.google.com/talent-solution/job-search/docs/management-tools)\nabout self service tools.",
+              "description": "Report events issued when end user interacts with customer's application\nthat uses Cloud Talent Solution. You may inspect the created events in\n[self service\ntools](https://console.cloud.google.com/talent-solution/overview).\n[Learn\nmore](https://cloud.google.com/talent-solution/docs/management-tools)\nabout self service tools.",
               "flatPath": "v3p1beta1/projects/{projectsId}/clientEvents",
               "httpMethod": "POST",
               "id": "jobs.projects.clientEvents.create",
@@ -628,11 +628,41 @@
               ]
             }
           }
+        },
+        "operations": {
+          "methods": {
+            "get": {
+              "description": "Gets the latest state of a long-running operation.  Clients can use this\nmethod to poll the operation result at intervals as recommended by the API\nservice.",
+              "flatPath": "v3p1beta1/projects/{projectsId}/operations/{operationsId}",
+              "httpMethod": "GET",
+              "id": "jobs.projects.operations.get",
+              "parameterOrder": [
+                "name"
+              ],
+              "parameters": {
+                "name": {
+                  "description": "The name of the operation resource.",
+                  "location": "path",
+                  "pattern": "^projects/[^/]+/operations/[^/]+$",
+                  "required": true,
+                  "type": "string"
+                }
+              },
+              "path": "v3p1beta1/{+name}",
+              "response": {
+                "$ref": "Operation"
+              },
+              "scopes": [
+                "https://www.googleapis.com/auth/cloud-platform",
+                "https://www.googleapis.com/auth/jobs"
+              ]
+            }
+          }
         }
       }
     }
   },
-  "revision": "20181126",
+  "revision": "20190531",
   "rootUrl": "https://jobs.googleapis.com/",
   "schemas": {
     "ApplicationInfo": {
@@ -729,7 +759,7 @@
           "description": "A event issued when a job seeker interacts with the application that\nimplements Cloud Talent Solution."
         },
         "parentEventId": {
-          "description": "Required except the first event.\n\nThe event_id of an event that resulted in the current event. For example, a\nJob view event usually follows a parent\nimpression event: A job seeker first does a\nsearch where a list of jobs appears\n(impression). The job seeker then selects a\nresult and views the description of a particular job (Job\nview).",
+          "description": "Optional.\n\nThe event_id of an event that resulted in the current event. For example, a\nJob view event usually follows a parent\nimpression event: A job seeker first does a\nsearch where a list of jobs appears\n(impression). The job seeker then selects a\nresult and views the description of a particular job (Job\nview).",
           "type": "string"
         },
         "requestId": {
@@ -744,7 +774,7 @@
       "id": "CommuteFilter",
       "properties": {
         "allowImpreciseAddresses": {
-          "description": "Optional.\nIf `true`, jobs without street level addresses may also be returned.\nFor city level addresses, the city center is used. For state and coarser\nlevel addresses, text matching is used.\nIf this field is set to `false` or is not specified, only jobs that include\nstreet level addresses will be returned by commute search.",
+          "description": "Optional.\nIf true, jobs without \"precise\" addresses (street level addresses or GPS\ncoordinates) might also be returned. For city and coarser level addresses,\ntext matching is used. If this field is set to false or is not specified,\nonly jobs that include precise addresses are returned by Commute\nSearch.\n\nNote: If `allow_imprecise_addresses` is set to true, Commute Search is not\nable to calculate accurate commute times to jobs with city level and\ncoarser address information. Jobs with imprecise addresses will return a\n`travel_duration` time of 0 regardless of distance from the job seeker.",
           "type": "boolean"
         },
         "commuteMethod": {
@@ -752,18 +782,22 @@
           "enum": [
             "COMMUTE_METHOD_UNSPECIFIED",
             "DRIVING",
-            "TRANSIT"
+            "TRANSIT",
+            "WALKING",
+            "CYCLING"
           ],
           "enumDescriptions": [
             "Commute method is not specified.",
             "Commute time is calculated based on driving time.",
-            "Commute time is calculated based on public transit including bus, metro,\nsubway, etc."
+            "Commute time is calculated based on public transit including bus, metro,\nsubway, etc.",
+            "Commute time is calculated based on walking time.",
+            "Commute time is calculated based on biking time."
           ],
           "type": "string"
         },
         "departureTime": {
           "$ref": "TimeOfDay",
-          "description": "Optional.\n\nThe departure time used to calculate traffic impact, represented as\n.google.type.TimeOfDay in local time zone.\n\nCurrently traffic model is restricted to hour level resolution."
+          "description": "Optional.\n\nThe departure time used to calculate traffic impact, represented as\ngoogle.type.TimeOfDay in local time zone.\n\nCurrently traffic model is restricted to hour level resolution."
         },
         "roadTraffic": {
           "description": "Optional.\n\nSpecifies the traffic density to use when calculating commute time.",
@@ -922,7 +956,7 @@
           "description": "Optional.\n\nCompensation range."
         },
         "type": {
-          "description": "Optional.\n\nCompensation type.\n\nDefault is CompensationUnit.OTHER_COMPENSATION_TYPE.",
+          "description": "Optional.\n\nCompensation type.\n\nDefault is CompensationUnit.COMPENSATION_TYPE_UNSPECIFIED.",
           "enum": [
             "COMPENSATION_TYPE_UNSPECIFIED",
             "BASE",
@@ -948,7 +982,7 @@
           "type": "string"
         },
         "unit": {
-          "description": "Optional.\n\nFrequency of the specified amount.\n\nDefault is CompensationUnit.OTHER_COMPENSATION_UNIT.",
+          "description": "Optional.\n\nFrequency of the specified amount.\n\nDefault is CompensationUnit.COMPENSATION_UNIT_UNSPECIFIED.",
           "enum": [
             "COMPENSATION_UNIT_UNSPECIFIED",
             "HOURLY",
@@ -979,7 +1013,7 @@
       "id": "CompensationFilter",
       "properties": {
         "includeJobsWithUnspecifiedCompensationRange": {
-          "description": "Optional.\n\nWhether to include jobs whose compensation range is unspecified.",
+          "description": "Optional.\n\nIf set to true, jobs with unspecified compensation range fields are\nincluded.",
           "type": "boolean"
         },
         "range": {
@@ -1729,7 +1763,7 @@
           "type": "string"
         },
         "postingRegion": {
-          "description": "Optional.\n\nThe job PostingRegion (for example, state, country) throughout which\nthe job is available. If this field is set, a\nLocationFilter in a search query within the job region\nfinds this job posting if an exact location match is not specified.\nIf this field is set to PostingRegion.NATION_WIDE or\n[PostingRegion.ADMINISTRATIVE_AREA], setting job addresses\nto the same location level as this field is strongly recommended.",
+          "description": "Optional.\n\nThe job PostingRegion (for example, state, country) throughout which\nthe job is available. If this field is set, a\nLocationFilter in a search query within the job region\nfinds this job posting if an exact location match isn't specified.\nIf this field is set to PostingRegion.NATION or\nPostingRegion.ADMINISTRATIVE_AREA, setting job Job.addresses\nto the same location level as this field is strongly recommended.",
           "enum": [
             "POSTING_REGION_UNSPECIFIED",
             "ADMINISTRATIVE_AREA",
@@ -1925,7 +1959,7 @@
             "The job seeker, or other entity interacting with the service, performs an\naction with a single click from the search results page to apply to a job\n(without viewing the details of the job posting), and is redirected\nto a different website to complete the application. If a candidate\nperforms this action, send only this event to the service. Do not also\nsend JobEventType.APPLICATION_START,\nJobEventType.APPLICATION_FINISH or JobEventType.VIEW events.",
             "This event should be used when a company submits an application\non behalf of a job seeker. This event is intended for use by staffing\nagencies attempting to place candidates.",
             "The job seeker or other entity interacting with the service demonstrated\nan interest in a job by bookmarking or saving it.",
-            "The job seeker or other entity interacting with the service was\nsent a notification, such as an email alert or device notification,\ncontatining one or more jobs listings generated by the service.",
+            "The job seeker or other entity interacting with the service was\nsent a notification, such as an email alert or device notification,\ncontaining one or more jobs listings generated by the service.",
             "The job seeker or other entity interacting with the service was\nemployed by the hiring entity (employer). Send this event\nonly if the job seeker was hired through an application that was\ninitiated by a search conducted through the Cloud Talent Solution\nservice.",
             "A recruiter or staffing agency submitted an application on behalf of the\ncandidate after interacting with the service to identify a suitable job\nposting.",
             "The entity interacting with the service (for example, the job seeker),\nwas granted an initial interview by the hiring entity (employer). This\nevent should only be sent if the job seeker was granted an interview as\npart of an application that was initiated by a search conducted through /\nrecommendation provided by the Cloud Talent Solution service.",
@@ -2004,7 +2038,7 @@
           "type": "array"
         },
         "excludedJobs": {
-          "description": "Optional.\n\nThis filter specifies a list of job names to be excluded during search.\n\nAt most 200 excluded job names are allowed.",
+          "description": "Optional.\n\nThis filter specifies a list of job names to be excluded during search.\n\nAt most 400 excluded job names are allowed.",
           "items": {
             "type": "string"
           },
@@ -2348,6 +2382,41 @@
       },
       "type": "object"
     },
+    "Operation": {
+      "description": "This resource represents a long-running operation that is the result of a\nnetwork API call.",
+      "id": "Operation",
+      "properties": {
+        "done": {
+          "description": "If the value is `false`, it means the operation is still in progress.\nIf `true`, the operation is completed, and either `error` or `response` is\navailable.",
+          "type": "boolean"
+        },
+        "error": {
+          "$ref": "Status",
+          "description": "The error result of the operation in case of failure or cancellation."
+        },
+        "metadata": {
+          "additionalProperties": {
+            "description": "Properties of the object. Contains field @type with type URL.",
+            "type": "any"
+          },
+          "description": "Service-specific metadata associated with the operation.  It typically\ncontains progress information and common metadata such as create time.\nSome services might not provide such metadata.  Any method that returns a\nlong-running operation should document the metadata type, if any.",
+          "type": "object"
+        },
+        "name": {
+          "description": "The server-assigned name, which is only unique within the same service that\noriginally returns it. If you use the default HTTP mapping, the\n`name` should be a resource name ending with `operations/{unique_id}`.",
+          "type": "string"
+        },
+        "response": {
+          "additionalProperties": {
+            "description": "Properties of the object. Contains field @type with type URL.",
+            "type": "any"
+          },
+          "description": "The normal response of the operation in case of success.  If the original\nmethod returns no data on success, such as `Delete`, the response is\n`google.protobuf.Empty`.  If the original method is standard\n`Get`/`Create`/`Update`, the response should be the resource.  For other\nmethods, the response should have the type `XxxResponse`, where `Xxx`\nis the original method name.  For example, if the original method name\nis `TakeSnapshot()`, the inferred response type is\n`TakeSnapshotResponse`.",
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
     "PostalAddress": {
       "description": "Represents a postal address, e.g. for postal delivery or payments addresses.\nGiven a postal address, a postal service can deliver items to a premise, P.O.\nBox or similar.\nIt is not intended to model geographical locations (roads, towns,\nmountains).\n\nIn typical usage an address would be created via user input or from importing\nexisting data, depending on the type of process.\n\nAdvice on address input / editing:\n - Use an i18n-ready address widget such as\n   https://github.com/googlei18n/libaddressinput)\n- Users should not be presented with UI elements for input or editing of\n  fields outside countries where that field is used.\n\nFor more guidance on how to use this schema, please see:\nhttps://support.google.com/business/answer/6397478",
       "id": "PostalAddress",
@@ -2522,8 +2591,8 @@
           "enumDescriptions": [
             "Default value.",
             "A ID only view of job, with following attributes:\nJob.name, Job.requisition_id, Job.language_code.",
-            "A minimal view of the job, with the following attributes:\nJob.name, Job.requisition_id, Job.job_title,\nJob.company_name, Job.DerivedInfo.locations, Job.language_code.",
-            "A small view of the job, with the following attributes in the search\nresults: Job.name, Job.requisition_id, Job.job_title,\nJob.company_name, Job.DerivedInfo.locations, Job.visibility,\nJob.language_code, Job.description.",
+            "A minimal view of the job, with the following attributes:\nJob.name, Job.requisition_id, Job.title,\nJob.company_name, Job.DerivedInfo.locations, Job.language_code.",
+            "A small view of the job, with the following attributes in the search\nresults: Job.name, Job.requisition_id, Job.title,\nJob.company_name, Job.DerivedInfo.locations, Job.visibility,\nJob.language_code, Job.description.",
             "All available attributes are included in the search results."
           ],
           "type": "string"
@@ -2534,7 +2603,7 @@
           "type": "integer"
         },
         "orderBy": {
-          "description": "Optional.\n\nThe criteria determining how search results are sorted. Default is\n\"relevance desc\".\n\nSupported options are:\n\n* \"relevance desc\": By relevance descending, as determined by the API\nalgorithms. Relevance thresholding of query results is only available\nwith this ordering.\n* \"posting`_`publish`_`time desc\": By Job.posting_publish_time descending.\n* \"posting`_`update`_`time desc\": By Job.posting_update_time descending.\n* \"title\": By Job.title ascending.\n* \"title desc\": By Job.title descending.\n* \"annualized`_`base`_`compensation\": By job's\nCompensationInfo.annualized_base_compensation_range ascending. Jobs\nwhose annualized base compensation is unspecified are put at the end of\nsearch results.\n* \"annualized`_`base`_`compensation desc\": By job's\nCompensationInfo.annualized_base_compensation_range descending. Jobs\nwhose annualized base compensation is unspecified are put at the end of\nsearch results.\n* \"annualized`_`total`_`compensation\": By job's\nCompensationInfo.annualized_total_compensation_range ascending. Jobs\nwhose annualized base compensation is unspecified are put at the end of\nsearch results.\n* \"annualized`_`total`_`compensation desc\": By job's\nCompensationInfo.annualized_total_compensation_range descending. Jobs\nwhose annualized base compensation is unspecified are put at the end of\nsearch results.\n* \"custom`_`ranking desc\": By the relevance score adjusted to the\nSearchJobsRequest.custom_ranking_info.ranking_expression with weight\nfactor assigned by\nSearchJobsRequest.custom_ranking_info.importance_level in descending\norder.",
+          "description": "Optional.\n\nThe criteria determining how search results are sorted. Default is\n\"relevance desc\".\n\nSupported options are:\n\n* \"relevance desc\": By relevance descending, as determined by the API\nalgorithms. Relevance thresholding of query results is only available\nwith this ordering.\n* \"posting`_`publish`_`time desc\": By Job.posting_publish_time\ndescending.\n* \"posting`_`update`_`time desc\": By Job.posting_update_time\ndescending.\n* \"title\": By Job.title ascending.\n* \"title desc\": By Job.title descending.\n* \"annualized`_`base`_`compensation\": By job's\nCompensationInfo.annualized_base_compensation_range ascending. Jobs\nwhose annualized base compensation is unspecified are put at the end of\nsearch results.\n* \"annualized`_`base`_`compensation desc\": By job's\nCompensationInfo.annualized_base_compensation_range descending. Jobs\nwhose annualized base compensation is unspecified are put at the end of\nsearch results.\n* \"annualized`_`total`_`compensation\": By job's\nCompensationInfo.annualized_total_compensation_range ascending. Jobs\nwhose annualized base compensation is unspecified are put at the end of\nsearch results.\n* \"annualized`_`total`_`compensation desc\": By job's\nCompensationInfo.annualized_total_compensation_range descending. Jobs\nwhose annualized base compensation is unspecified are put at the end of\nsearch results.\n* \"custom`_`ranking desc\": By the relevance score adjusted to the\nSearchJobsRequest.custom_ranking_info.ranking_expression with weight\nfactor assigned by\nSearchJobsRequest.custom_ranking_info.importance_level in descending\norder.\n* \"location`_`distance\": By the distance between the location on jobs and\n locations specified in the\nSearchJobsRequest.job_query.location_filters.\nWhen this order is selected, the\nSearchJobsRequest.job_query.location_filters must not be empty. When\na job has multiple locations, the location closest to one of the locations\nspecified in the location filter will be used to calculate location\ndistance. Distance is calculated by the distance between two lat/long\ncoordinates, with a precision of 10e-4 degrees (11.3 meters).\nJobs that don't have locations specified will be ranked below jobs having\nlocations.\nDiversification strategy is still applied unless explicitly disabled in\nSearchJobsRequest.diversification_level.",
           "type": "string"
         },
         "pageSize": {
@@ -2640,6 +2709,33 @@
         },
         "correctedText": {
           "description": "Correction output consisting of the corrected keyword string.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Status": {
+      "description": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). The error model is designed to be:\n\n- Simple to use and understand for most users\n- Flexible enough to meet unexpected needs\n\n# Overview\n\nThe `Status` message contains three pieces of data: error code, error\nmessage, and error details. The error code should be an enum value of\ngoogle.rpc.Code, but it may accept additional error codes if needed.  The\nerror message should be a developer-facing English message that helps\ndevelopers *understand* and *resolve* the error. If a localized user-facing\nerror message is needed, put the localized message in the error details or\nlocalize it in the client. The optional error details may contain arbitrary\ninformation about the error. There is a predefined set of error detail types\nin the package `google.rpc` that can be used for common error conditions.\n\n# Language mapping\n\nThe `Status` message is the logical representation of the error model, but it\nis not necessarily the actual wire format. When the `Status` message is\nexposed in different client libraries and different wire protocols, it can be\nmapped differently. For example, it will likely be mapped to some exceptions\nin Java, but more likely mapped to some error codes in C.\n\n# Other uses\n\nThe error model and the `Status` message can be used in a variety of\nenvironments, either with or without APIs, to provide a\nconsistent developer experience across different environments.\n\nExample uses of this error model include:\n\n- Partial errors. If a service needs to return partial errors to the client,\n    it may embed the `Status` in the normal response to indicate the partial\n    errors.\n\n- Workflow errors. A typical workflow has multiple steps. Each step may\n    have a `Status` message for error reporting.\n\n- Batch operations. If a client uses batch request and batch response, the\n    `Status` message should be used directly inside batch response, one for\n    each error sub-response.\n\n- Asynchronous operations. If an API call embeds asynchronous operation\n    results in its response, the status of those operations should be\n    represented directly using the `Status` message.\n\n- Logging. If some API errors are stored in logs, the message `Status` could\n    be used directly after any stripping needed for security/privacy reasons.",
+      "id": "Status",
+      "properties": {
+        "code": {
+          "description": "The status code, which should be an enum value of google.rpc.Code.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "description": "A list of messages that carry the error details.  There is a common set of\nmessage types for APIs to use.",
+          "items": {
+            "additionalProperties": {
+              "description": "Properties of the object. Contains field @type with type URL.",
+              "type": "any"
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "description": "A developer-facing error message, which should be in English. Any\nuser-facing error message should be localized and sent in the\ngoogle.rpc.Status.details field, or localized by the client.",
           "type": "string"
         }
       },

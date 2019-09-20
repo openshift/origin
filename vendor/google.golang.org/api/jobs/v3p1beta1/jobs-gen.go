@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package jobs provides access to the Cloud Talent Solution API.
 //
-// See https://cloud.google.com/talent-solution/job-search/docs/
+// For product documentation, see: https://cloud.google.com/talent-solution/job-search/docs/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/jobs/v3p1beta1"
 //   ...
-//   jobsService, err := jobs.New(oauthHttpClient)
+//   ctx := context.Background()
+//   jobsService, err := jobs.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   jobsService, err := jobs.NewService(ctx, option.WithScopes(jobs.JobsScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   jobsService, err := jobs.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   jobsService, err := jobs.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package jobs // import "google.golang.org/api/jobs/v3p1beta1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -59,6 +87,33 @@ const (
 	JobsScope = "https://www.googleapis.com/auth/jobs"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/jobs",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -88,6 +143,7 @@ func NewProjectsService(s *Service) *ProjectsService {
 	rs.ClientEvents = NewProjectsClientEventsService(s)
 	rs.Companies = NewProjectsCompaniesService(s)
 	rs.Jobs = NewProjectsJobsService(s)
+	rs.Operations = NewProjectsOperationsService(s)
 	return rs
 }
 
@@ -99,6 +155,8 @@ type ProjectsService struct {
 	Companies *ProjectsCompaniesService
 
 	Jobs *ProjectsJobsService
+
+	Operations *ProjectsOperationsService
 }
 
 func NewProjectsClientEventsService(s *Service) *ProjectsClientEventsService {
@@ -125,6 +183,15 @@ func NewProjectsJobsService(s *Service) *ProjectsJobsService {
 }
 
 type ProjectsJobsService struct {
+	s *Service
+}
+
+func NewProjectsOperationsService(s *Service) *ProjectsOperationsService {
+	rs := &ProjectsOperationsService{s: s}
+	return rs
+}
+
+type ProjectsOperationsService struct {
 	s *Service
 }
 
@@ -355,7 +422,7 @@ type ClientEvent struct {
 	// implements Cloud Talent Solution.
 	JobEvent *JobEvent `json:"jobEvent,omitempty"`
 
-	// ParentEventId: Required except the first event.
+	// ParentEventId: Optional.
 	//
 	// The event_id of an event that resulted in the current event. For
 	// example, a
@@ -406,14 +473,24 @@ func (s *ClientEvent) MarshalJSON() ([]byte, error) {
 // Parameters needed for commute search.
 type CommuteFilter struct {
 	// AllowImpreciseAddresses: Optional.
-	// If `true`, jobs without street level addresses may also be
-	// returned.
-	// For city level addresses, the city center is used. For state and
-	// coarser
-	// level addresses, text matching is used.
-	// If this field is set to `false` or is not specified, only jobs that
-	// include
-	// street level addresses will be returned by commute search.
+	// If true, jobs without "precise" addresses (street level addresses or
+	// GPS
+	// coordinates) might also be returned. For city and coarser level
+	// addresses,
+	// text matching is used. If this field is set to false or is not
+	// specified,
+	// only jobs that include precise addresses are returned by
+	// Commute
+	// Search.
+	//
+	// Note: If `allow_imprecise_addresses` is set to true, Commute Search
+	// is not
+	// able to calculate accurate commute times to jobs with city level
+	// and
+	// coarser address information. Jobs with imprecise addresses will
+	// return a
+	// `travel_duration` time of 0 regardless of distance from the job
+	// seeker.
 	AllowImpreciseAddresses bool `json:"allowImpreciseAddresses,omitempty"`
 
 	// CommuteMethod: Required.
@@ -426,13 +503,15 @@ type CommuteFilter struct {
 	//   "TRANSIT" - Commute time is calculated based on public transit
 	// including bus, metro,
 	// subway, etc.
+	//   "WALKING" - Commute time is calculated based on walking time.
+	//   "CYCLING" - Commute time is calculated based on biking time.
 	CommuteMethod string `json:"commuteMethod,omitempty"`
 
 	// DepartureTime: Optional.
 	//
 	// The departure time used to calculate traffic impact, represented
 	// as
-	// .google.type.TimeOfDay in local time zone.
+	// google.type.TimeOfDay in local time zone.
 	//
 	// Currently traffic model is restricted to hour level resolution.
 	DepartureTime *TimeOfDay `json:"departureTime,omitempty"`
@@ -755,7 +834,7 @@ type CompensationEntry struct {
 	//
 	// Compensation type.
 	//
-	// Default is CompensationUnit.OTHER_COMPENSATION_TYPE.
+	// Default is CompensationUnit.COMPENSATION_TYPE_UNSPECIFIED.
 	//
 	// Possible values:
 	//   "COMPENSATION_TYPE_UNSPECIFIED" - Default value.
@@ -779,7 +858,7 @@ type CompensationEntry struct {
 	//
 	// Frequency of the specified amount.
 	//
-	// Default is CompensationUnit.OTHER_COMPENSATION_UNIT.
+	// Default is CompensationUnit.COMPENSATION_UNIT_UNSPECIFIED.
 	//
 	// Possible values:
 	//   "COMPENSATION_UNIT_UNSPECIFIED" - Default value.
@@ -835,7 +914,9 @@ func (s *CompensationEntry) UnmarshalJSON(data []byte) error {
 type CompensationFilter struct {
 	// IncludeJobsWithUnspecifiedCompensationRange: Optional.
 	//
-	// Whether to include jobs whose compensation range is unspecified.
+	// If set to true, jobs with unspecified compensation range fields
+	// are
+	// included.
 	IncludeJobsWithUnspecifiedCompensationRange bool `json:"includeJobsWithUnspecifiedCompensationRange,omitempty"`
 
 	// Range: Optional.
@@ -2481,11 +2562,10 @@ type Job struct {
 	// which
 	// the job is available. If this field is set, a
 	// LocationFilter in a search query within the job region
-	// finds this job posting if an exact location match is not
-	// specified.
-	// If this field is set to PostingRegion.NATION_WIDE
+	// finds this job posting if an exact location match isn't specified.
+	// If this field is set to PostingRegion.NATION
 	// or
-	// [PostingRegion.ADMINISTRATIVE_AREA], setting job addresses
+	// PostingRegion.ADMINISTRATIVE_AREA, setting job Job.addresses
 	// to the same location level as this field is strongly recommended.
 	//
 	// Possible values:
@@ -2827,7 +2907,7 @@ type JobEvent struct {
 	// the service was
 	// sent a notification, such as an email alert or device
 	// notification,
-	// contatining one or more jobs listings generated by the service.
+	// containing one or more jobs listings generated by the service.
 	//   "HIRED" - The job seeker or other entity interacting with the
 	// service was
 	// employed by the hiring entity (employer). Send this event
@@ -3045,7 +3125,7 @@ type JobQuery struct {
 	// This filter specifies a list of job names to be excluded during
 	// search.
 	//
-	// At most 200 excluded job names are allowed.
+	// At most 400 excluded job names are allowed.
 	ExcludedJobs []string `json:"excludedJobs,omitempty"`
 
 	// JobCategories: Optional.
@@ -3756,6 +3836,82 @@ func (s *NumericBucketingResult) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Operation: This resource represents a long-running operation that is
+// the result of a
+// network API call.
+type Operation struct {
+	// Done: If the value is `false`, it means the operation is still in
+	// progress.
+	// If `true`, the operation is completed, and either `error` or
+	// `response` is
+	// available.
+	Done bool `json:"done,omitempty"`
+
+	// Error: The error result of the operation in case of failure or
+	// cancellation.
+	Error *Status `json:"error,omitempty"`
+
+	// Metadata: Service-specific metadata associated with the operation.
+	// It typically
+	// contains progress information and common metadata such as create
+	// time.
+	// Some services might not provide such metadata.  Any method that
+	// returns a
+	// long-running operation should document the metadata type, if any.
+	Metadata googleapi.RawMessage `json:"metadata,omitempty"`
+
+	// Name: The server-assigned name, which is only unique within the same
+	// service that
+	// originally returns it. If you use the default HTTP mapping,
+	// the
+	// `name` should be a resource name ending with
+	// `operations/{unique_id}`.
+	Name string `json:"name,omitempty"`
+
+	// Response: The normal response of the operation in case of success.
+	// If the original
+	// method returns no data on success, such as `Delete`, the response
+	// is
+	// `google.protobuf.Empty`.  If the original method is
+	// standard
+	// `Get`/`Create`/`Update`, the response should be the resource.  For
+	// other
+	// methods, the response should have the type `XxxResponse`, where
+	// `Xxx`
+	// is the original method name.  For example, if the original method
+	// name
+	// is `TakeSnapshot()`, the inferred response type
+	// is
+	// `TakeSnapshotResponse`.
+	Response googleapi.RawMessage `json:"response,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "Done") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Done") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Operation) MarshalJSON() ([]byte, error) {
+	type NoMethod Operation
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // PostalAddress: Represents a postal address, e.g. for postal delivery
 // or payments addresses.
 // Given a postal address, a postal service can deliver items to a
@@ -4239,12 +4395,11 @@ type SearchJobsRequest struct {
 	// Job.name, Job.requisition_id, Job.language_code.
 	//   "JOB_VIEW_MINIMAL" - A minimal view of the job, with the following
 	// attributes:
-	// Job.name, Job.requisition_id, Job.job_title,
+	// Job.name, Job.requisition_id, Job.title,
 	// Job.company_name, Job.DerivedInfo.locations, Job.language_code.
 	//   "JOB_VIEW_SMALL" - A small view of the job, with the following
 	// attributes in the search
-	// results: Job.name, Job.requisition_id,
-	// Job.job_title,
+	// results: Job.name, Job.requisition_id, Job.title,
 	// Job.company_name, Job.DerivedInfo.locations,
 	// Job.visibility,
 	// Job.language_code, Job.description.
@@ -4282,9 +4437,11 @@ type SearchJobsRequest struct {
 	// algorithms. Relevance thresholding of query results is only
 	// available
 	// with this ordering.
-	// * "posting`_`publish`_`time desc": By Job.posting_publish_time
+	// * "posting`_`publish`_`time desc": By
+	// Job.posting_publish_time
 	// descending.
-	// * "posting`_`update`_`time desc": By Job.posting_update_time
+	// * "posting`_`update`_`time desc": By
+	// Job.posting_update_time
 	// descending.
 	// * "title": By Job.title ascending.
 	// * "title desc": By Job.title descending.
@@ -4325,6 +4482,28 @@ type SearchJobsRequest struct {
 	// SearchJobsRequest.custom_ranking_info.importance_level in
 	// descending
 	// order.
+	// * "location`_`distance": By the distance between the location on jobs
+	// and
+	//  locations specified in
+	// the
+	// SearchJobsRequest.job_query.location_filters.
+	// When this order is selected,
+	// the
+	// SearchJobsRequest.job_query.location_filters must not be empty.
+	// When
+	// a job has multiple locations, the location closest to one of the
+	// locations
+	// specified in the location filter will be used to calculate
+	// location
+	// distance. Distance is calculated by the distance between two
+	// lat/long
+	// coordinates, with a precision of 10e-4 degrees (11.3 meters).
+	// Jobs that don't have locations specified will be ranked below jobs
+	// having
+	// locations.
+	// Diversification strategy is still applied unless explicitly disabled
+	// in
+	// SearchJobsRequest.diversification_level.
 	OrderBy string `json:"orderBy,omitempty"`
 
 	// PageSize: Optional.
@@ -4542,6 +4721,125 @@ type SpellingCorrection struct {
 
 func (s *SpellingCorrection) MarshalJSON() ([]byte, error) {
 	type NoMethod SpellingCorrection
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// Status: The `Status` type defines a logical error model that is
+// suitable for
+// different programming environments, including REST APIs and RPC APIs.
+// It is
+// used by [gRPC](https://github.com/grpc). The error model is designed
+// to be:
+//
+// - Simple to use and understand for most users
+// - Flexible enough to meet unexpected needs
+//
+// # Overview
+//
+// The `Status` message contains three pieces of data: error code,
+// error
+// message, and error details. The error code should be an enum value
+// of
+// google.rpc.Code, but it may accept additional error codes if needed.
+// The
+// error message should be a developer-facing English message that
+// helps
+// developers *understand* and *resolve* the error. If a localized
+// user-facing
+// error message is needed, put the localized message in the error
+// details or
+// localize it in the client. The optional error details may contain
+// arbitrary
+// information about the error. There is a predefined set of error
+// detail types
+// in the package `google.rpc` that can be used for common error
+// conditions.
+//
+// # Language mapping
+//
+// The `Status` message is the logical representation of the error
+// model, but it
+// is not necessarily the actual wire format. When the `Status` message
+// is
+// exposed in different client libraries and different wire protocols,
+// it can be
+// mapped differently. For example, it will likely be mapped to some
+// exceptions
+// in Java, but more likely mapped to some error codes in C.
+//
+// # Other uses
+//
+// The error model and the `Status` message can be used in a variety
+// of
+// environments, either with or without APIs, to provide a
+// consistent developer experience across different
+// environments.
+//
+// Example uses of this error model include:
+//
+// - Partial errors. If a service needs to return partial errors to the
+// client,
+//     it may embed the `Status` in the normal response to indicate the
+// partial
+//     errors.
+//
+// - Workflow errors. A typical workflow has multiple steps. Each step
+// may
+//     have a `Status` message for error reporting.
+//
+// - Batch operations. If a client uses batch request and batch
+// response, the
+//     `Status` message should be used directly inside batch response,
+// one for
+//     each error sub-response.
+//
+// - Asynchronous operations. If an API call embeds asynchronous
+// operation
+//     results in its response, the status of those operations should
+// be
+//     represented directly using the `Status` message.
+//
+// - Logging. If some API errors are stored in logs, the message
+// `Status` could
+//     be used directly after any stripping needed for security/privacy
+// reasons.
+type Status struct {
+	// Code: The status code, which should be an enum value of
+	// google.rpc.Code.
+	Code int64 `json:"code,omitempty"`
+
+	// Details: A list of messages that carry the error details.  There is a
+	// common set of
+	// message types for APIs to use.
+	Details []googleapi.RawMessage `json:"details,omitempty"`
+
+	// Message: A developer-facing error message, which should be in
+	// English. Any
+	// user-facing error message should be localized and sent in
+	// the
+	// google.rpc.Status.details field, or localized by the client.
+	Message string `json:"message,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Code") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Code") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Status) MarshalJSON() ([]byte, error) {
+	type NoMethod Status
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -5042,8 +5340,8 @@ type ProjectsClientEventsCreateCall struct {
 // tools](https://console.cloud.google.com/talent-solution/overvi
 // ew).
 // [Learn
-// more](https://cloud.google.com/talent-solution/job-search/
-// docs/management-tools)
+// more](https://cloud.google.com/talent-solution/docs/manage
+// ment-tools)
 // about self service tools.
 func (r *ProjectsClientEventsService) Create(parent string, createclienteventrequest *CreateClientEventRequest) *ProjectsClientEventsCreateCall {
 	c := &ProjectsClientEventsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -5142,7 +5440,7 @@ func (c *ProjectsClientEventsCreateCall) Do(opts ...googleapi.CallOption) (*Clie
 	}
 	return ret, nil
 	// {
-	//   "description": "Report events issued when end user interacts with customer's application\nthat uses Cloud Talent Solution. You may inspect the created events in\n[self service\ntools](https://console.cloud.google.com/talent-solution/overview).\n[Learn\nmore](https://cloud.google.com/talent-solution/job-search/docs/management-tools)\nabout self service tools.",
+	//   "description": "Report events issued when end user interacts with customer's application\nthat uses Cloud Talent Solution. You may inspect the created events in\n[self service\ntools](https://console.cloud.google.com/talent-solution/overview).\n[Learn\nmore](https://cloud.google.com/talent-solution/docs/management-tools)\nabout self service tools.",
 	//   "flatPath": "v3p1beta1/projects/{projectsId}/clientEvents",
 	//   "httpMethod": "POST",
 	//   "id": "jobs.projects.clientEvents.create",
@@ -7240,4 +7538,152 @@ func (c *ProjectsJobsSearchForAlertCall) Pages(ctx context.Context, f func(*Sear
 		}
 		c.searchjobsrequest.PageToken = x.NextPageToken
 	}
+}
+
+// method id "jobs.projects.operations.get":
+
+type ProjectsOperationsGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Gets the latest state of a long-running operation.  Clients can
+// use this
+// method to poll the operation result at intervals as recommended by
+// the API
+// service.
+func (r *ProjectsOperationsService) Get(name string) *ProjectsOperationsGetCall {
+	c := &ProjectsOperationsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *ProjectsOperationsGetCall) Fields(s ...googleapi.Field) *ProjectsOperationsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *ProjectsOperationsGetCall) IfNoneMatch(entityTag string) *ProjectsOperationsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *ProjectsOperationsGetCall) Context(ctx context.Context) *ProjectsOperationsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *ProjectsOperationsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsOperationsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v3p1beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "jobs.projects.operations.get" call.
+// Exactly one of *Operation or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsOperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Gets the latest state of a long-running operation.  Clients can use this\nmethod to poll the operation result at intervals as recommended by the API\nservice.",
+	//   "flatPath": "v3p1beta1/projects/{projectsId}/operations/{operationsId}",
+	//   "httpMethod": "GET",
+	//   "id": "jobs.projects.operations.get",
+	//   "parameterOrder": [
+	//     "name"
+	//   ],
+	//   "parameters": {
+	//     "name": {
+	//       "description": "The name of the operation resource.",
+	//       "location": "path",
+	//       "pattern": "^projects/[^/]+/operations/[^/]+$",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v3p1beta1/{+name}",
+	//   "response": {
+	//     "$ref": "Operation"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/jobs"
+	//   ]
+	// }
+
 }

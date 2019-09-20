@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,6 +47,16 @@ func NewExtensionsClientWithBaseURI(baseURI string, subscriptionID string) Exten
 // extensionName - the name of the cluster extension.
 // parameters - the cluster extensions create request.
 func (client ExtensionsClient) Create(ctx context.Context, resourceGroupName string, clusterName string, extensionName string, parameters Extension) (result ExtensionsCreateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ExtensionsClient.Create")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreatePreparer(ctx, resourceGroupName, clusterName, extensionName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.ExtensionsClient", "Create", nil, "Failure preparing request")
@@ -88,13 +99,9 @@ func (client ExtensionsClient) CreatePreparer(ctx context.Context, resourceGroup
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExtensionsClient) CreateSender(req *http.Request) (future ExtensionsCreateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -120,6 +127,16 @@ func (client ExtensionsClient) CreateResponder(resp *http.Response) (result auto
 // clusterName - the name of the cluster.
 // extensionName - the name of the cluster extension.
 func (client ExtensionsClient) Delete(ctx context.Context, resourceGroupName string, clusterName string, extensionName string) (result ExtensionsDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ExtensionsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, clusterName, extensionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.ExtensionsClient", "Delete", nil, "Failure preparing request")
@@ -160,13 +177,9 @@ func (client ExtensionsClient) DeletePreparer(ctx context.Context, resourceGroup
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExtensionsClient) DeleteSender(req *http.Request) (future ExtensionsDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -191,6 +204,16 @@ func (client ExtensionsClient) DeleteResponder(resp *http.Response) (result auto
 // resourceGroupName - the name of the resource group.
 // clusterName - the name of the cluster.
 func (client ExtensionsClient) DisableMonitoring(ctx context.Context, resourceGroupName string, clusterName string) (result ExtensionsDisableMonitoringFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ExtensionsClient.DisableMonitoring")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DisableMonitoringPreparer(ctx, resourceGroupName, clusterName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.ExtensionsClient", "DisableMonitoring", nil, "Failure preparing request")
@@ -230,13 +253,9 @@ func (client ExtensionsClient) DisableMonitoringPreparer(ctx context.Context, re
 // DisableMonitoringSender sends the DisableMonitoring request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExtensionsClient) DisableMonitoringSender(req *http.Request) (future ExtensionsDisableMonitoringFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -262,6 +281,16 @@ func (client ExtensionsClient) DisableMonitoringResponder(resp *http.Response) (
 // clusterName - the name of the cluster.
 // parameters - the Operations Management Suite (OMS) workspace parameters.
 func (client ExtensionsClient) EnableMonitoring(ctx context.Context, resourceGroupName string, clusterName string, parameters ClusterMonitoringRequest) (result ExtensionsEnableMonitoringFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ExtensionsClient.EnableMonitoring")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.EnableMonitoringPreparer(ctx, resourceGroupName, clusterName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.ExtensionsClient", "EnableMonitoring", nil, "Failure preparing request")
@@ -303,13 +332,9 @@ func (client ExtensionsClient) EnableMonitoringPreparer(ctx context.Context, res
 // EnableMonitoringSender sends the EnableMonitoring request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExtensionsClient) EnableMonitoringSender(req *http.Request) (future ExtensionsEnableMonitoringFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -335,6 +360,16 @@ func (client ExtensionsClient) EnableMonitoringResponder(resp *http.Response) (r
 // clusterName - the name of the cluster.
 // extensionName - the name of the cluster extension.
 func (client ExtensionsClient) Get(ctx context.Context, resourceGroupName string, clusterName string, extensionName string) (result Extension, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ExtensionsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, clusterName, extensionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.ExtensionsClient", "Get", nil, "Failure preparing request")
@@ -381,8 +416,8 @@ func (client ExtensionsClient) GetPreparer(ctx context.Context, resourceGroupNam
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExtensionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -403,6 +438,16 @@ func (client ExtensionsClient) GetResponder(resp *http.Response) (result Extensi
 // resourceGroupName - the name of the resource group.
 // clusterName - the name of the cluster.
 func (client ExtensionsClient) GetMonitoringStatus(ctx context.Context, resourceGroupName string, clusterName string) (result ClusterMonitoringResponse, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ExtensionsClient.GetMonitoringStatus")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetMonitoringStatusPreparer(ctx, resourceGroupName, clusterName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.ExtensionsClient", "GetMonitoringStatus", nil, "Failure preparing request")
@@ -448,8 +493,8 @@ func (client ExtensionsClient) GetMonitoringStatusPreparer(ctx context.Context, 
 // GetMonitoringStatusSender sends the GetMonitoringStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExtensionsClient) GetMonitoringStatusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetMonitoringStatusResponder handles the response to the GetMonitoringStatus request. The method always

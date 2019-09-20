@@ -46,14 +46,14 @@ func DgeevBenchmark(b *testing.B, impl Dgeever) {
 		wr := make([]float64, n)
 		wi := make([]float64, n)
 		work := make([]float64, 1)
-		impl.Dgeev(lapack.ComputeLeftEV, lapack.ComputeRightEV, n, nil, n, nil, nil, nil, n, nil, n, work, -1)
+		impl.Dgeev(lapack.LeftEVCompute, lapack.RightEVCompute, n, a.Data, a.Stride, wr, wi, vl.Data, vl.Stride, vr.Data, vr.Stride, work, -1)
 		work = make([]float64, int(work[0]))
 		b.Run(bm.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				b.StopTimer()
 				copyGeneral(a, bm.a)
 				b.StartTimer()
-				impl.Dgeev(lapack.ComputeLeftEV, lapack.ComputeRightEV, n, a.Data, a.Stride, wr, wi,
+				impl.Dgeev(lapack.LeftEVCompute, lapack.RightEVCompute, n, a.Data, a.Stride, wr, wi,
 					vl.Data, vl.Stride, vr.Data, vr.Stride, work, len(work))
 			}
 			resultGeneral = a

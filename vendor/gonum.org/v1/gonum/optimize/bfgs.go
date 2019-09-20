@@ -10,6 +10,11 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+var (
+	_ Method      = (*BFGS)(nil)
+	_ localMethod = (*BFGS)(nil)
+)
+
 // BFGS implements the Broyden–Fletcher–Goldfarb–Shanno optimization method. It
 // is a quasi-Newton method that performs successive rank-one updates to an
 // estimate of the inverse Hessian of the objective function. It exhibits
@@ -20,6 +25,10 @@ type BFGS struct {
 	// Accepted steps should satisfy the strong Wolfe conditions.
 	// If Linesearcher == nil, an appropriate default is chosen.
 	Linesearcher Linesearcher
+	// GradStopThreshold sets the threshold for stopping if the gradient norm
+	// gets too small. If GradStopThreshold is 0 it is defaulted to 1e-12, and
+	// if it is NaN the setting is not used.
+	GradStopThreshold float64
 
 	ls *LinesearchMethod
 
@@ -42,6 +51,10 @@ func (b *BFGS) Status() (Status, error) {
 	return b.status, b.err
 }
 
+func (*BFGS) Uses(has Available) (uses Available, err error) {
+	return has.gradient()
+}
+
 func (b *BFGS) Init(dim, tasks int) int {
 	b.status = NotTerminated
 	b.err = nil
@@ -49,7 +62,7 @@ func (b *BFGS) Init(dim, tasks int) int {
 }
 
 func (b *BFGS) Run(operation chan<- Task, result <-chan Task, tasks []Task) {
-	b.status, b.err = localOptimizer{}.run(b, operation, result, tasks)
+	b.status, b.err = localOptimizer{}.run(b, b.GradStopThreshold, operation, result, tasks)
 	close(operation)
 	return
 }
@@ -168,7 +181,7 @@ func (b *BFGS) NextDirection(loc *Location, dir []float64) (stepSize float64) {
 	return 1
 }
 
-func (*BFGS) Needs() struct {
+func (*BFGS) needs() struct {
 	Gradient bool
 	Hessian  bool
 } {

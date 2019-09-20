@@ -3,6 +3,9 @@
 // license that can be found in the LICENSE file.
 
 /*
+This repository is no longer maintained.
+Development has moved to https://github.com/gonum/gonum.
+
 Package blas provides interfaces for the BLAS linear algebra standard.
 
 All methods must perform appropriate parameter checking and panic if

@@ -21,10 +21,8 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-// BatchInput ...
-type BatchInput struct {
-	Documents *[]Input `json:"documents,omitempty"`
-}
+// The package's fully qualified name.
+const fqdn = "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.1/textanalytics"
 
 // DetectedLanguage ...
 type DetectedLanguage struct {
@@ -36,32 +34,46 @@ type DetectedLanguage struct {
 	Score *float64 `json:"score,omitempty"`
 }
 
-// EntitiesBatchResultItemV2dot1 ...
-type EntitiesBatchResultItemV2dot1 struct {
-	// ID - Unique document identifier.
-	ID *string `json:"id,omitempty"`
-	// Entities - Recognized entities in the document.
-	Entities *[]EntityRecordV2dot1 `json:"entities,omitempty"`
+// DocumentStatistics ...
+type DocumentStatistics struct {
+	// CharactersCount - Number of text elements recognized in the document.
+	CharactersCount *int32 `json:"charactersCount,omitempty"`
+	// TransactionsCount - Number of transactions for the document.
+	TransactionsCount *int32 `json:"transactionsCount,omitempty"`
 }
 
-// EntitiesBatchResultV2dot1 ...
-type EntitiesBatchResultV2dot1 struct {
+// EntitiesBatchResult ...
+type EntitiesBatchResult struct {
 	autorest.Response `json:"-"`
-	Documents         *[]EntitiesBatchResultItemV2dot1 `json:"documents,omitempty"`
-	Errors            *[]ErrorRecord                   `json:"errors,omitempty"`
+	// Documents - READ-ONLY; Response by document
+	Documents *[]EntitiesBatchResultItem `json:"documents,omitempty"`
+	// Errors - READ-ONLY; Errors and Warnings by document
+	Errors *[]ErrorRecord `json:"errors,omitempty"`
+	// Statistics - READ-ONLY; (Optional) if showStats=true was specified in the request this field will contain information about the request payload.
+	Statistics *RequestStatistics `json:"statistics,omitempty"`
 }
 
-// EntityRecordV2dot1 ...
-type EntityRecordV2dot1 struct {
+// EntitiesBatchResultItem ...
+type EntitiesBatchResultItem struct {
+	// ID - Unique, non-empty document identifier.
+	ID *string `json:"id,omitempty"`
+	// Entities - READ-ONLY; Recognized entities in the document.
+	Entities *[]EntityRecord `json:"entities,omitempty"`
+	// Statistics - (Optional) if showStats=true was specified in the request this field will contain information about the document payload.
+	Statistics *DocumentStatistics `json:"statistics,omitempty"`
+}
+
+// EntityRecord ...
+type EntityRecord struct {
 	// Name - Entity formal name.
 	Name *string `json:"name,omitempty"`
 	// Matches - List of instances this entity appears in the text.
-	Matches *[]MatchRecordV2dot1 `json:"matches,omitempty"`
+	Matches *[]MatchRecord `json:"matches,omitempty"`
 	// WikipediaLanguage - Wikipedia language for which the WikipediaId and WikipediaUrl refers to.
 	WikipediaLanguage *string `json:"wikipediaLanguage,omitempty"`
 	// WikipediaID - Wikipedia unique identifier of the recognized entity.
 	WikipediaID *string `json:"wikipediaId,omitempty"`
-	// WikipediaURL - URL for the entity's English Wikipedia page.
+	// WikipediaURL - READ-ONLY; URL for the entity's Wikipedia page.
 	WikipediaURL *string `json:"wikipediaUrl,omitempty"`
 	// BingID - Bing unique identifier of the recognized entity. Use in conjunction with the Bing Entity Search API to fetch additional relevant information.
 	BingID *string `json:"bingId,omitempty"`
@@ -87,13 +99,6 @@ type ErrorResponse struct {
 	InnerError *InternalError `json:"innerError,omitempty"`
 }
 
-// Input ...
-type Input struct {
-	// ID - Unique, non-empty document identifier.
-	ID   *string `json:"id,omitempty"`
-	Text *string `json:"text,omitempty"`
-}
-
 // InternalError ...
 type InternalError struct {
 	Code       *string        `json:"code,omitempty"`
@@ -104,35 +109,64 @@ type InternalError struct {
 // KeyPhraseBatchResult ...
 type KeyPhraseBatchResult struct {
 	autorest.Response `json:"-"`
-	Documents         *[]KeyPhraseBatchResultItem `json:"documents,omitempty"`
-	Errors            *[]ErrorRecord              `json:"errors,omitempty"`
+	// Documents - READ-ONLY; Response by document
+	Documents *[]KeyPhraseBatchResultItem `json:"documents,omitempty"`
+	// Errors - READ-ONLY; Errors and Warnings by document
+	Errors *[]ErrorRecord `json:"errors,omitempty"`
+	// Statistics - READ-ONLY; =(Optional) if showStats=true was specified in the request this field will contain information about the request payload.
+	Statistics *RequestStatistics `json:"statistics,omitempty"`
 }
 
 // KeyPhraseBatchResultItem ...
 type KeyPhraseBatchResultItem struct {
-	// KeyPhrases - A list of representative words or phrases. The number of key phrases returned is proportional to the number of words in the input document.
-	KeyPhrases *[]string `json:"keyPhrases,omitempty"`
-	// ID - Unique document identifier.
+	// ID - Unique, non-empty document identifier.
 	ID *string `json:"id,omitempty"`
+	// KeyPhrases - READ-ONLY; A list of representative words or phrases. The number of key phrases returned is proportional to the number of words in the input document.
+	KeyPhrases *[]string `json:"keyPhrases,omitempty"`
+	// Statistics - (Optional) if showStats=true was specified in the request this field will contain information about the document payload.
+	Statistics *DocumentStatistics `json:"statistics,omitempty"`
+}
+
+// LanguageBatchInput ...
+type LanguageBatchInput struct {
+	Documents *[]LanguageInput `json:"documents,omitempty"`
 }
 
 // LanguageBatchResult ...
 type LanguageBatchResult struct {
 	autorest.Response `json:"-"`
-	Documents         *[]LanguageBatchResultItem `json:"documents,omitempty"`
-	Errors            *[]ErrorRecord             `json:"errors,omitempty"`
+	// Documents - READ-ONLY; Response by document
+	Documents *[]LanguageBatchResultItem `json:"documents,omitempty"`
+	// Errors - READ-ONLY; Errors and Warnings by document
+	Errors *[]ErrorRecord `json:"errors,omitempty"`
+	// Statistics - READ-ONLY; (Optional) if showStats=true was specified in the request this field will contain information about the request payload.
+	Statistics *RequestStatistics `json:"statistics,omitempty"`
 }
 
 // LanguageBatchResultItem ...
 type LanguageBatchResultItem struct {
-	// ID - Unique document identifier.
+	// ID - Unique, non-empty document identifier.
 	ID *string `json:"id,omitempty"`
 	// DetectedLanguages - A list of extracted languages.
 	DetectedLanguages *[]DetectedLanguage `json:"detectedLanguages,omitempty"`
+	// Statistics - (Optional) if showStats=true was specified in the request this field will contain information about the document payload.
+	Statistics *DocumentStatistics `json:"statistics,omitempty"`
 }
 
-// MatchRecordV2dot1 ...
-type MatchRecordV2dot1 struct {
+// LanguageInput ...
+type LanguageInput struct {
+	CountryHint *string `json:"countryHint,omitempty"`
+	// ID - Unique, non-empty document identifier.
+	ID   *string `json:"id,omitempty"`
+	Text *string `json:"text,omitempty"`
+}
+
+// MatchRecord ...
+type MatchRecord struct {
+	// WikipediaScore - (optional) If a well-known item with Wikipedia link is recognized, a decimal number denoting the confidence level of the Wikipedia info will be returned.
+	WikipediaScore *float64 `json:"wikipediaScore,omitempty"`
+	// EntityTypeScore - (optional) If an entity type is recognized, a decimal number denoting the confidence level of the entity type will be returned.
+	EntityTypeScore *float64 `json:"entityTypeScore,omitempty"`
 	// Text - Entity text as appears in the request.
 	Text *string `json:"text,omitempty"`
 	// Offset - Start position (in Unicode characters) for the entity match text.
@@ -155,17 +189,40 @@ type MultiLanguageInput struct {
 	Text *string `json:"text,omitempty"`
 }
 
+// RequestStatistics ...
+type RequestStatistics struct {
+	// DocumentsCount - Number of documents submitted in the request.
+	DocumentsCount *int32 `json:"documentsCount,omitempty"`
+	// ValidDocumentsCount - Number of valid documents. This excludes empty, over-size limit or non-supported languages documents.
+	ValidDocumentsCount *int32 `json:"validDocumentsCount,omitempty"`
+	// ErroneousDocumentsCount - Number of invalid documents. This includes empty, over-size limit or non-supported languages documents.
+	ErroneousDocumentsCount *int32 `json:"erroneousDocumentsCount,omitempty"`
+	// TransactionsCount - Number of transactions for the request.
+	TransactionsCount *int64 `json:"transactionsCount,omitempty"`
+}
+
 // SentimentBatchResult ...
 type SentimentBatchResult struct {
-	autorest.Response `json:"-"`
-	Documents         *[]SentimentBatchResultItem `json:"documents,omitempty"`
-	Errors            *[]ErrorRecord              `json:"errors,omitempty"`
+	// Documents - READ-ONLY; Response by document
+	Documents *[]SentimentBatchResultItem `json:"documents,omitempty"`
+	// Errors - READ-ONLY; Errors and Warnings by document
+	Errors *[]ErrorRecord `json:"errors,omitempty"`
+	// Statistics - READ-ONLY; (Optional) if showStats=true was specified in the request this field will contain information about the request payload.
+	Statistics *RequestStatistics `json:"statistics,omitempty"`
 }
 
 // SentimentBatchResultItem ...
 type SentimentBatchResultItem struct {
+	// ID - Unique, non-empty document identifier.
+	ID *string `json:"id,omitempty"`
 	// Score - A decimal number between 0 and 1 denoting the sentiment of the document. A score above 0.7 usually refers to a positive document while a score below 0.3 normally has a negative connotation. Mid values refer to neutral text.
 	Score *float64 `json:"score,omitempty"`
-	// ID - Unique document identifier.
-	ID *string `json:"id,omitempty"`
+	// Statistics - (Optional) if showStats=true was specified in the request this field will contain information about the document payload.
+	Statistics *DocumentStatistics `json:"statistics,omitempty"`
+}
+
+// SetObject ...
+type SetObject struct {
+	autorest.Response `json:"-"`
+	Value             interface{} `json:"value,omitempty"`
 }

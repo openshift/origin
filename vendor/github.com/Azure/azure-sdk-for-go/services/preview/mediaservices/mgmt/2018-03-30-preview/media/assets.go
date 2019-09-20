@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,6 +47,16 @@ func NewAssetsClientWithBaseURI(baseURI string, subscriptionID string) AssetsCli
 // assetName - the Asset name.
 // parameters - the request parameters
 func (client AssetsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, accountName string, assetName string, parameters Asset) (result Asset, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, accountName, assetName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.AssetsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -94,8 +105,8 @@ func (client AssetsClient) CreateOrUpdatePreparer(ctx context.Context, resourceG
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -117,6 +128,16 @@ func (client AssetsClient) CreateOrUpdateResponder(resp *http.Response) (result 
 // accountName - the Media Services account name.
 // assetName - the Asset name.
 func (client AssetsClient) Delete(ctx context.Context, resourceGroupName string, accountName string, assetName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, accountName, assetName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.AssetsClient", "Delete", nil, "Failure preparing request")
@@ -163,8 +184,8 @@ func (client AssetsClient) DeletePreparer(ctx context.Context, resourceGroupName
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -185,6 +206,16 @@ func (client AssetsClient) DeleteResponder(resp *http.Response) (result autorest
 // accountName - the Media Services account name.
 // assetName - the Asset name.
 func (client AssetsClient) Get(ctx context.Context, resourceGroupName string, accountName string, assetName string) (result Asset, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, accountName, assetName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.AssetsClient", "Get", nil, "Failure preparing request")
@@ -231,8 +262,8 @@ func (client AssetsClient) GetPreparer(ctx context.Context, resourceGroupName st
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -255,6 +286,16 @@ func (client AssetsClient) GetResponder(resp *http.Response) (result Asset, err 
 // accountName - the Media Services account name.
 // assetName - the Asset name.
 func (client AssetsClient) GetEncryptionKey(ctx context.Context, resourceGroupName string, accountName string, assetName string) (result AssetStorageEncryptionKey, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetsClient.GetEncryptionKey")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetEncryptionKeyPreparer(ctx, resourceGroupName, accountName, assetName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.AssetsClient", "GetEncryptionKey", nil, "Failure preparing request")
@@ -301,8 +342,8 @@ func (client AssetsClient) GetEncryptionKeyPreparer(ctx context.Context, resourc
 // GetEncryptionKeySender sends the GetEncryptionKey request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetsClient) GetEncryptionKeySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetEncryptionKeyResponder handles the response to the GetEncryptionKey request. The method always
@@ -325,8 +366,18 @@ func (client AssetsClient) GetEncryptionKeyResponder(resp *http.Response) (resul
 // filter - restricts the set of items returned.
 // top - specifies a non-negative integer n that limits the number of items returned from a collection. The
 // service returns the number of available items up to but not greater than the specified value n.
-// orderby - specifies the the key by which the result collection should be ordered.
+// orderby - specifies the key by which the result collection should be ordered.
 func (client AssetsClient) List(ctx context.Context, resourceGroupName string, accountName string, filter string, top *int32, orderby string) (result AssetCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetsClient.List")
+		defer func() {
+			sc := -1
+			if result.ac.Response.Response != nil {
+				sc = result.ac.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, accountName, filter, top, orderby)
 	if err != nil {
@@ -382,8 +433,8 @@ func (client AssetsClient) ListPreparer(ctx context.Context, resourceGroupName s
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -400,8 +451,8 @@ func (client AssetsClient) ListResponder(resp *http.Response) (result AssetColle
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client AssetsClient) listNextResults(lastResults AssetCollection) (result AssetCollection, err error) {
-	req, err := lastResults.assetCollectionPreparer()
+func (client AssetsClient) listNextResults(ctx context.Context, lastResults AssetCollection) (result AssetCollection, err error) {
+	req, err := lastResults.assetCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "media.AssetsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -422,6 +473,16 @@ func (client AssetsClient) listNextResults(lastResults AssetCollection) (result 
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AssetsClient) ListComplete(ctx context.Context, resourceGroupName string, accountName string, filter string, top *int32, orderby string) (result AssetCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, resourceGroupName, accountName, filter, top, orderby)
 	return
 }
@@ -434,6 +495,16 @@ func (client AssetsClient) ListComplete(ctx context.Context, resourceGroupName s
 // assetName - the Asset name.
 // parameters - the request parameters
 func (client AssetsClient) ListContainerSas(ctx context.Context, resourceGroupName string, accountName string, assetName string, parameters ListContainerSasInput) (result AssetContainerSas, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetsClient.ListContainerSas")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListContainerSasPreparer(ctx, resourceGroupName, accountName, assetName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.AssetsClient", "ListContainerSas", nil, "Failure preparing request")
@@ -482,8 +553,8 @@ func (client AssetsClient) ListContainerSasPreparer(ctx context.Context, resourc
 // ListContainerSasSender sends the ListContainerSas request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetsClient) ListContainerSasSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListContainerSasResponder handles the response to the ListContainerSas request. The method always
@@ -506,6 +577,16 @@ func (client AssetsClient) ListContainerSasResponder(resp *http.Response) (resul
 // assetName - the Asset name.
 // parameters - the request parameters
 func (client AssetsClient) Update(ctx context.Context, resourceGroupName string, accountName string, assetName string, parameters Asset) (result Asset, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AssetsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, accountName, assetName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.AssetsClient", "Update", nil, "Failure preparing request")
@@ -554,8 +635,8 @@ func (client AssetsClient) UpdatePreparer(ctx context.Context, resourceGroupName
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client AssetsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

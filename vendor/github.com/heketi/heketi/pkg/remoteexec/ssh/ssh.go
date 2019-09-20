@@ -98,21 +98,6 @@ func NewSshExecWithKeyFile(logger *logging.Logger, user string, file string) *Ss
 	return sshexec
 }
 
-// This function requires the password string to be crypt encrypted
-func NewSshExecWithPassword(logger *logging.Logger, user string, password string) *SshExec {
-
-	sshexec := &SshExec{}
-	sshexec.logger = logger
-
-	// Define the Client Config as :
-	sshexec.clientConfig = &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{ssh.Password(password)},
-	}
-
-	return sshexec
-}
-
 // This function was based from https://github.com/coreos/etcd-manager/blob/master/main.go
 func (s *SshExec) ConnectAndExec(host string, commands []string, timeoutMinutes int, useSudo bool) ([]string, error) {
 

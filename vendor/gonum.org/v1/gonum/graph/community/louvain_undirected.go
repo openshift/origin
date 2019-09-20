@@ -13,6 +13,7 @@ import (
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/internal/ordered"
 	"gonum.org/v1/gonum/graph/internal/set"
+	"gonum.org/v1/gonum/graph/iterator"
 )
 
 // qUndirected returns the modularity Q score of the graph g subdivided into the
@@ -26,7 +27,7 @@ import (
 // graph.Undirect may be used as a shim to allow calculation of Q for
 // directed graphs.
 func qUndirected(g graph.Undirected, communities [][]graph.Node, resolution float64) float64 {
-	nodes := g.Nodes()
+	nodes := graph.NodesOf(g.Nodes())
 	weight := positiveWeightFuncFor(g)
 
 	// Calculate the total edge weight of the graph
@@ -36,8 +37,9 @@ func qUndirected(g graph.Undirected, communities [][]graph.Node, resolution floa
 	for _, u := range nodes {
 		uid := u.ID()
 		w := weight(uid, uid)
-		for _, v := range g.From(uid) {
-			w += weight(uid, v.ID())
+		to := g.From(uid)
+		for to.Next() {
+			w += weight(uid, to.Node().ID())
 		}
 		m2 += w
 		k[uid] = w
@@ -175,7 +177,7 @@ func reduceUndirected(g graph.Undirected, communities [][]graph.Node) *ReducedUn
 			return r
 		}
 
-		nodes := g.Nodes()
+		nodes := graph.NodesOf(g.Nodes())
 		// TODO(kortschak) This sort is necessary really only
 		// for testing. In practice we would not be using the
 		// community provided by the user for a Q calculation.
@@ -205,8 +207,9 @@ func reduceUndirected(g graph.Undirected, communities [][]graph.Node) *ReducedUn
 			uid := u.ID()
 			ucid := communityOf[uid]
 			var out []int
-			for _, v := range g.From(uid) {
-				vid := v.ID()
+			to := g.From(uid)
+			for to.Next() {
+				vid := to.Node().ID()
 				vcid := communityOf[vid]
 				if vcid != ucid {
 					out = append(out, vcid)
@@ -268,8 +271,9 @@ func reduceUndirected(g graph.Undirected, communities [][]graph.Node) *ReducedUn
 			for _, v := range comm[i+1:] {
 				r.nodes[ucid].weight += 2 * weight(uid, v.ID())
 			}
-			for _, v := range g.From(uid) {
-				vid := v.ID()
+			to := g.From(uid)
+			for to.Next() {
+				vid := to.Node().ID()
 				vcid := communityOf[vid]
 				found := false
 				for _, e := range out {
@@ -292,28 +296,37 @@ func reduceUndirected(g graph.Undirected, communities [][]graph.Node) *ReducedUn
 	return &r
 }
 
-// Has returns whether the node exists within the graph.
-func (g *ReducedUndirected) Has(id int64) bool {
-	return 0 <= id || id < int64(len(g.nodes))
+// Node returns the node with the given ID if it exists in the graph,
+// and nil otherwise.
+func (g *ReducedUndirected) Node(id int64) graph.Node {
+	if g.has(id) {
+		return g.nodes[id]
+	}
+	return nil
+}
+
+// has returns whether the node exists within the graph.
+func (g *ReducedUndirected) has(id int64) bool {
+	return 0 <= id && id < int64(len(g.nodes))
 }
 
 // Nodes returns all the nodes in the graph.
-func (g *ReducedUndirected) Nodes() []graph.Node {
+func (g *ReducedUndirected) Nodes() graph.Nodes {
 	nodes := make([]graph.Node, len(g.nodes))
 	for i := range g.nodes {
 		nodes[i] = node(i)
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // From returns all nodes in g that can be reached directly from u.
-func (g *ReducedUndirected) From(uid int64) []graph.Node {
+func (g *ReducedUndirected) From(uid int64) graph.Nodes {
 	out := g.edges[uid]
 	nodes := make([]graph.Node, len(out))
 	for i, vid := range out {
 		nodes[i] = g.nodes[vid]
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // HasEdgeBetween returns whether an edge exists between nodes x and y.
@@ -427,7 +440,7 @@ type undirectedLocalMover struct {
 // node IDs of g must be contiguous in [0,n) where n is the number of nodes.
 // If g has a zero edge weight sum, nil is returned.
 func newUndirectedLocalMover(g *ReducedUndirected, communities [][]graph.Node, resolution float64) *undirectedLocalMover {
-	nodes := g.Nodes()
+	nodes := graph.NodesOf(g.Nodes())
 	l := undirectedLocalMover{
 		g:            g,
 		nodes:        nodes,
@@ -443,8 +456,9 @@ func newUndirectedLocalMover(g *ReducedUndirected, communities [][]graph.Node, r
 	for _, u := range l.nodes {
 		uid := u.ID()
 		w := l.weight(uid, uid)
-		for _, v := range g.From(uid) {
-			w += l.weight(uid, v.ID())
+		to := g.From(uid)
+		for to.Next() {
+			w += l.weight(uid, to.Node().ID())
 		}
 		l.edgeWeightOf[uid] = w
 		l.m2 += w

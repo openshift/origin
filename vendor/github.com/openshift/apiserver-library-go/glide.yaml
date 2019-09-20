@@ -2,34 +2,34 @@ package: github.com/openshift/apiserver-library-go
 import:
 # kube first
 - package: k8s.io/api
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/apimachinery
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/apiserver
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/client-go
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/component-base
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/kubernetes
-  version: v1.14.0
+  version: v1.16.0
+- package: k8s.io/klog
+  version: v0.4.0
 
 # code generator
 - package: k8s.io/code-generator
-  version: kubernetes-1.14.0
+  version: kubernetes-1.16.0
 - package: k8s.io/gengo
   version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
 # for gengo
 - package: golang.org/x/tools/imports
   version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
 
-
-
 # openshift second
 - package: github.com/openshift/api
-  version: master
+  version: prebase-1.16
 - package: github.com/openshift/client-go
-  version: master
+  version: prebase-1.16
 - package: github.com/openshift/library-go
-  version: master
+  version: prebase-1.16
 

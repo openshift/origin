@@ -8,22 +8,18 @@ import (
 	"math"
 
 	"golang.org/x/exp/rand"
+	"gonum.org/v1/gonum/bound"
 )
-
-type Bound struct {
-	Min float64
-	Max float64
-}
 
 // Uniform represents a multivariate uniform distribution.
 type Uniform struct {
-	bounds []Bound
+	bounds []bound.Bound
 	dim    int
 	rnd    *rand.Rand
 }
 
 // NewUniform creates a new uniform distribution with the given bounds.
-func NewUniform(bnds []Bound, src rand.Source) *Uniform {
+func NewUniform(bnds []bound.Bound, src rand.Source) *Uniform {
 	dim := len(bnds)
 	if dim == 0 {
 		panic(badZeroDimension)
@@ -34,7 +30,7 @@ func NewUniform(bnds []Bound, src rand.Source) *Uniform {
 		}
 	}
 	u := &Uniform{
-		bounds: make([]Bound, dim),
+		bounds: make([]bound.Bound, dim),
 		dim:    dim,
 	}
 	if src != nil {
@@ -54,7 +50,7 @@ func NewUnitUniform(dim int, src rand.Source) *Uniform {
 	if dim <= 0 {
 		panic(nonPosDimension)
 	}
-	bounds := make([]Bound, dim)
+	bounds := make([]bound.Bound, dim)
 	for i := range bounds {
 		bounds[i].Min = 0
 		bounds[i].Max = 1
@@ -73,9 +69,9 @@ func NewUnitUniform(dim int, src rand.Source) *Uniform {
 // is nil, a new slice is allocated and returned. If the input is non-nil, then
 // the bounds are stored in-place into the input argument, and Bounds will panic
 // if len(bounds) != u.Dim().
-func (u *Uniform) Bounds(bounds []Bound) []Bound {
+func (u *Uniform) Bounds(bounds []bound.Bound) []bound.Bound {
 	if bounds == nil {
-		bounds = make([]Bound, u.Dim())
+		bounds = make([]bound.Bound, u.Dim())
 	}
 	if len(bounds) != u.Dim() {
 		panic(badInputLength)

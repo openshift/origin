@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewFileServersClientWithBaseURI(baseURI string, subscriptionID string) File
 // from 1 through 64 characters long.
 // parameters - the parameters to provide for file server creation.
 func (client FileServersClient) Create(ctx context.Context, resourceGroupName string, fileServerName string, parameters FileServerCreateParameters) (result FileServersCreateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileServersClient.Create")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
@@ -114,13 +125,9 @@ func (client FileServersClient) CreatePreparer(ctx context.Context, resourceGrou
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileServersClient) CreateSender(req *http.Request) (future FileServersCreateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -148,6 +155,16 @@ func (client FileServersClient) CreateResponder(resp *http.Response) (result Fil
 // contain a combination of alphanumeric characters along with dash (-) and underscore (_). The name must be
 // from 1 through 64 characters long.
 func (client FileServersClient) Delete(ctx context.Context, resourceGroupName string, fileServerName string) (result FileServersDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileServersClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
@@ -197,13 +214,9 @@ func (client FileServersClient) DeletePreparer(ctx context.Context, resourceGrou
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileServersClient) DeleteSender(req *http.Request) (future FileServersDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -230,6 +243,16 @@ func (client FileServersClient) DeleteResponder(resp *http.Response) (result aut
 // contain a combination of alphanumeric characters along with dash (-) and underscore (_). The name must be
 // from 1 through 64 characters long.
 func (client FileServersClient) Get(ctx context.Context, resourceGroupName string, fileServerName string) (result FileServer, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileServersClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
@@ -285,8 +308,8 @@ func (client FileServersClient) GetPreparer(ctx context.Context, resourceGroupNa
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileServersClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -305,10 +328,20 @@ func (client FileServersClient) GetResponder(resp *http.Response) (result FileSe
 // List to list all the file servers available under the given subscription (and across all resource groups within that
 // subscription)
 // Parameters:
-// filter - an OData $filter clause.. Used to filter results that are returned in the GET respnose.
-// selectParameter - an OData $select clause. Used to select the properties to be returned in the GET respnose.
+// filter - an OData $filter clause. Used to filter results that are returned in the GET response.
+// selectParameter - an OData $select clause. Used to select the properties to be returned in the GET response.
 // maxResults - the maximum number of items to return in the response. A maximum of 1000 files can be returned.
 func (client FileServersClient) List(ctx context.Context, filter string, selectParameter string, maxResults *int32) (result FileServerListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileServersClient.List")
+		defer func() {
+			sc := -1
+			if result.fslr.Response.Response != nil {
+				sc = result.fslr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -373,8 +406,8 @@ func (client FileServersClient) ListPreparer(ctx context.Context, filter string,
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileServersClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -391,8 +424,8 @@ func (client FileServersClient) ListResponder(resp *http.Response) (result FileS
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client FileServersClient) listNextResults(lastResults FileServerListResult) (result FileServerListResult, err error) {
-	req, err := lastResults.fileServerListResultPreparer()
+func (client FileServersClient) listNextResults(ctx context.Context, lastResults FileServerListResult) (result FileServerListResult, err error) {
+	req, err := lastResults.fileServerListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batchai.FileServersClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -413,6 +446,16 @@ func (client FileServersClient) listNextResults(lastResults FileServerListResult
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client FileServersClient) ListComplete(ctx context.Context, filter string, selectParameter string, maxResults *int32) (result FileServerListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileServersClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, filter, selectParameter, maxResults)
 	return
 }
@@ -421,10 +464,20 @@ func (client FileServersClient) ListComplete(ctx context.Context, filter string,
 // resource group.
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
-// filter - an OData $filter clause.. Used to filter results that are returned in the GET respnose.
-// selectParameter - an OData $select clause. Used to select the properties to be returned in the GET respnose.
+// filter - an OData $filter clause. Used to filter results that are returned in the GET response.
+// selectParameter - an OData $select clause. Used to select the properties to be returned in the GET response.
 // maxResults - the maximum number of items to return in the response. A maximum of 1000 files can be returned.
 func (client FileServersClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, filter string, selectParameter string, maxResults *int32) (result FileServerListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileServersClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.fslr.Response.Response != nil {
+				sc = result.fslr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
@@ -492,8 +545,8 @@ func (client FileServersClient) ListByResourceGroupPreparer(ctx context.Context,
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileServersClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -510,8 +563,8 @@ func (client FileServersClient) ListByResourceGroupResponder(resp *http.Response
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client FileServersClient) listByResourceGroupNextResults(lastResults FileServerListResult) (result FileServerListResult, err error) {
-	req, err := lastResults.fileServerListResultPreparer()
+func (client FileServersClient) listByResourceGroupNextResults(ctx context.Context, lastResults FileServerListResult) (result FileServerListResult, err error) {
+	req, err := lastResults.fileServerListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batchai.FileServersClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -532,6 +585,16 @@ func (client FileServersClient) listByResourceGroupNextResults(lastResults FileS
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client FileServersClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, filter string, selectParameter string, maxResults *int32) (result FileServerListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileServersClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, filter, selectParameter, maxResults)
 	return
 }

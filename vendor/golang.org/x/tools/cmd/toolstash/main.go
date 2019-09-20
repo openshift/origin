@@ -156,6 +156,7 @@ func usage() {
 }
 
 var (
+	goCmd   = flag.String("go", "go", "path to \"go\" command")
 	norun   = flag.Bool("n", false, "print but do not run commands")
 	verbose = flag.Bool("v", false, "print commands being run")
 	cmp     = flag.Bool("cmp", false, "compare tool object files")
@@ -173,9 +174,13 @@ var (
 	binDir   string
 )
 
-func canCmp(name string) bool {
+func canCmp(name string, args []string) bool {
 	switch name {
-	case "compile", "link", "asm":
+	case "asm", "compile", "link":
+		if len(args) == 1 && (args[0] == "-V" || strings.HasPrefix(args[0], "-V=")) {
+			// cmd/go uses "compile -V=full" to query the tool's build ID.
+			return false
+		}
 		return true
 	}
 	return len(name) == 2 && '0' <= name[0] && name[0] <= '9' && (name[1] == 'a' || name[1] == 'g' || name[1] == 'l')
@@ -199,7 +204,11 @@ func main() {
 		usage()
 	}
 
-	goroot = runtime.GOROOT()
+	s, err := exec.Command(*goCmd, "env", "GOROOT").CombinedOutput()
+	if err != nil {
+		log.Fatalf("%s env GOROOT: %v", *goCmd, err)
+	}
+	goroot = strings.TrimSpace(string(s))
 	toolDir = filepath.Join(goroot, fmt.Sprintf("pkg/tool/%s_%s", runtime.GOOS, runtime.GOARCH))
 	stashDir = filepath.Join(goroot, "pkg/toolstash")
 
@@ -230,7 +239,7 @@ func main() {
 			os.Exit(2)
 		}
 
-		if *cmp && canCmp(tool) {
+		if *cmp && canCmp(tool, cmd[1:]) {
 			compareTool()
 			return
 		}
@@ -248,7 +257,7 @@ func main() {
 	xcmd.Stdin = os.Stdin
 	xcmd.Stdout = os.Stdout
 	xcmd.Stderr = os.Stderr
-	err := xcmd.Run()
+	err = xcmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -273,11 +282,14 @@ func compareTool() {
 
 	case tool == "compile" || strings.HasSuffix(tool, "g"): // compiler
 		useDashN := true
-		for _, s := range cmd {
+		dashcIndex := -1
+		for i, s := range cmd {
 			if s == "-+" {
 				// Compiling runtime. Don't use -N.
 				useDashN = false
-				break
+			}
+			if strings.HasPrefix(s, "-c=") {
+				dashcIndex = i
 			}
 		}
 		cmdN := injectflags(cmd, nil, useDashN)
@@ -288,8 +300,14 @@ func compareTool() {
 			} else {
 				log.Printf("compiler output differs")
 			}
+			if dashcIndex >= 0 {
+				cmd[dashcIndex] = "-c=1"
+			}
 			cmd = injectflags(cmd, []string{"-v", "-m=2"}, useDashN)
 			break
+		}
+		if dashcIndex >= 0 {
+			cmd[dashcIndex] = "-c=1"
 		}
 		cmd = injectflags(cmd, []string{"-v", "-m=2"}, false)
 		log.Printf("compiler output differs, only with optimizers enabled")

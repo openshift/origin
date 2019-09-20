@@ -38,6 +38,16 @@ func (o *pollingObserver) AddReactor(reaction ReactorFn, startingFileContent map
 
 		if startingContent, ok := startingFileContent[f]; ok {
 			klog.V(3).Infof("Starting from specified content for file %q", f)
+			// if empty starting content is specified, do not hash the empty string but just return it the same
+			// way as calculateFileHash() does in that case.
+			// in case the file exists and is empty, we don't care about the initial content anyway, because we
+			// are only going to react when the file content change.
+			// in case the file does not exists but empty string is specified as initial content, without this
+			// the content will be hashed and reaction will trigger as if the content changed.
+			if len(startingContent) == 0 {
+				o.files[f] = ""
+				continue
+			}
 			o.files[f], err = calculateHash(bytes.NewBuffer(startingContent))
 			if err != nil {
 				panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))

@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package binaryauthorization provides access to the Binary Authorization API.
 //
-// See https://cloud.google.com/binary-authorization/
+// For product documentation, see: https://cloud.google.com/binary-authorization/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/binaryauthorization/v1beta1"
 //   ...
-//   binaryauthorizationService, err := binaryauthorization.New(oauthHttpClient)
+//   ctx := context.Background()
+//   binaryauthorizationService, err := binaryauthorization.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   binaryauthorizationService, err := binaryauthorization.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   binaryauthorizationService, err := binaryauthorization.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package binaryauthorization // import "google.golang.org/api/binaryauthorization/v1beta1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -56,6 +80,32 @@ const (
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -128,15 +178,18 @@ type AdmissionRule struct {
 	// by the admission rule.
 	//
 	// Possible values:
-	//   "ENFORCEMENT_MODE_UNSPECIFIED" - Mandatory.
+	//   "ENFORCEMENT_MODE_UNSPECIFIED" - Do not use.
 	//   "ENFORCED_BLOCK_AND_AUDIT_LOG" - Enforce the admission rule by
 	// blocking the pod creation.
+	//   "DRYRUN_AUDIT_LOG_ONLY" - Dryrun mode: Audit logging only.  This
+	// will allow the pod creation as if
+	// the admission request had specified break-glass.
 	EnforcementMode string `json:"enforcementMode,omitempty"`
 
 	// EvaluationMode: Required. How this admission rule will be evaluated.
 	//
 	// Possible values:
-	//   "EVALUATION_MODE_UNSPECIFIED" - Mandatory.
+	//   "EVALUATION_MODE_UNSPECIFIED" - Do not use.
 	//   "ALWAYS_ALLOW" - This rule allows all all pod creations.
 	//   "REQUIRE_ATTESTATION" - This rule allows a pod creation if all the
 	// attestors listed in
@@ -268,26 +321,53 @@ func (s *Attestor) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// AttestorPublicKey: An attestator public key that will be used
-// to
-// verify attestations signed by this attestor.
+// AttestorPublicKey: An attestor public key that will be used to
+// verify
+// attestations signed by this attestor.
 type AttestorPublicKey struct {
 	// AsciiArmoredPgpPublicKey: ASCII-armored representation of a PGP
 	// public key, as the entire output by
 	// the command `gpg --export --armor foo@example.com` (either LF or
 	// CRLF
 	// line endings).
+	// When using this field, `id` should be left blank.  The BinAuthz
+	// API
+	// handlers will calculate the ID and fill it in automatically.
+	// BinAuthz
+	// computes this ID as the OpenPGP RFC4880 V4 fingerprint, represented
+	// as
+	// upper-case hex.  If `id` is provided by the caller, it will
+	// be
+	// overwritten by the API-calculated ID.
 	AsciiArmoredPgpPublicKey string `json:"asciiArmoredPgpPublicKey,omitempty"`
 
 	// Comment: Optional. A descriptive comment. This field may be updated.
 	Comment string `json:"comment,omitempty"`
 
-	// Id: Output only. This field will be overwritten with key ID
-	// information, for
-	// example, an identifier extracted from a PGP public key. This field
-	// may not
-	// be updated.
+	// Id: The ID of this public key.
+	// Signatures verified by BinAuthz must include the ID of the public key
+	// that
+	// can be used to verify them, and that ID must match the contents of
+	// this
+	// field exactly.
+	// Additional restrictions on this field can be imposed based on which
+	// public
+	// key type is encapsulated. See the documentation on `public_key` cases
+	// below
+	// for details.
 	Id string `json:"id,omitempty"`
+
+	// PkixPublicKey: A raw PKIX SubjectPublicKeyInfo format public
+	// key.
+	//
+	// NOTE: `id` may be explicitly provided by the caller when using
+	// this
+	// type of public key, but it MUST be a valid RFC3986 URI. If `id` is
+	// left
+	// blank, a default one will be computed based on the digest of the
+	// DER
+	// encoding of the public key.
+	PkixPublicKey *PkixPublicKey `json:"pkixPublicKey,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g.
 	// "AsciiArmoredPgpPublicKey") to unconditionally include in API
@@ -316,9 +396,8 @@ func (s *AttestorPublicKey) MarshalJSON() ([]byte, error) {
 
 // Binding: Associates `members` with a `role`.
 type Binding struct {
-	// Condition: Unimplemented. The condition that is associated with this
-	// binding.
-	// NOTE: an unsatisfied condition will not allow user access via
+	// Condition: The condition that is associated with this binding.
+	// NOTE: An unsatisfied condition will not allow user access via
 	// current
 	// binding. Different bindings, including their conditions, are
 	// examined
@@ -352,7 +431,7 @@ type Binding struct {
 	//    For example, `admins@example.com`.
 	//
 	//
-	// * `domain:{domain}`: A Google Apps domain name that represents all
+	// * `domain:{domain}`: The G Suite domain (primary) that represents all
 	// the
 	//    users of that domain. For example, `google.com` or
 	// `example.com`.
@@ -604,6 +683,77 @@ func (s *ListAttestorsResponse) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// PkixPublicKey: A public key in the PkixPublicKey format
+// (see
+// https://tools.ietf.org/html/rfc5280#section-4.1.2.7 for
+// details).
+// Public keys of this type are typically textually encoded using the
+// PEM
+// format.
+type PkixPublicKey struct {
+	// PublicKeyPem: A PEM-encoded public key, as described
+	// in
+	// https://tools.ietf.org/html/rfc7468#section-13
+	PublicKeyPem string `json:"publicKeyPem,omitempty"`
+
+	// SignatureAlgorithm: The signature algorithm used to verify a message
+	// against a signature using
+	// this key.
+	// These signature algorithm must match the structure and any
+	// object
+	// identifiers encoded in `public_key_pem` (i.e. this algorithm must
+	// match
+	// that of the public key).
+	//
+	// Possible values:
+	//   "SIGNATURE_ALGORITHM_UNSPECIFIED" - Not specified.
+	//   "RSA_PSS_2048_SHA256" - RSASSA-PSS 2048 bit key with a SHA256
+	// digest.
+	//   "RSA_PSS_3072_SHA256" - RSASSA-PSS 3072 bit key with a SHA256
+	// digest.
+	//   "RSA_PSS_4096_SHA256" - RSASSA-PSS 4096 bit key with a SHA256
+	// digest.
+	//   "RSA_PSS_4096_SHA512" - RSASSA-PSS 4096 bit key with a SHA512
+	// digest.
+	//   "RSA_SIGN_PKCS1_2048_SHA256" - RSASSA-PKCS1-v1_5 with a 2048 bit
+	// key and a SHA256 digest.
+	//   "RSA_SIGN_PKCS1_3072_SHA256" - RSASSA-PKCS1-v1_5 with a 3072 bit
+	// key and a SHA256 digest.
+	//   "RSA_SIGN_PKCS1_4096_SHA256" - RSASSA-PKCS1-v1_5 with a 4096 bit
+	// key and a SHA256 digest.
+	//   "RSA_SIGN_PKCS1_4096_SHA512" - RSASSA-PKCS1-v1_5 with a 4096 bit
+	// key and a SHA512 digest.
+	//   "ECDSA_P256_SHA256" - ECDSA on the NIST P-256 curve with a SHA256
+	// digest.
+	//   "ECDSA_P384_SHA384" - ECDSA on the NIST P-384 curve with a SHA384
+	// digest.
+	//   "ECDSA_P521_SHA512" - ECDSA on the NIST P-521 curve with a SHA512
+	// digest.
+	SignatureAlgorithm string `json:"signatureAlgorithm,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "PublicKeyPem") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "PublicKeyPem") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *PkixPublicKey) MarshalJSON() ([]byte, error) {
+	type NoMethod PkixPublicKey
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // Policy: A policy for container image binary authorization.
 type Policy struct {
 	// AdmissionWhitelistPatterns: Optional. Admission policy whitelisting.
@@ -628,12 +778,28 @@ type Policy struct {
 	ClusterAdmissionRules map[string]AdmissionRule `json:"clusterAdmissionRules,omitempty"`
 
 	// DefaultAdmissionRule: Required. Default admission rule for a cluster
-	// without a per-cluster
-	// admission rule.
+	// without a per-cluster, per-
+	// kubernetes-service-account, or per-istio-service-identity admission
+	// rule.
 	DefaultAdmissionRule *AdmissionRule `json:"defaultAdmissionRule,omitempty"`
 
 	// Description: Optional. A descriptive comment.
 	Description string `json:"description,omitempty"`
+
+	// GlobalPolicyEvaluationMode: Optional. Controls the evaluation of a
+	// Google-maintained global admission
+	// policy for common system-level images. Images not covered by the
+	// global
+	// policy will be subject to the project admission policy. This
+	// setting
+	// has no effect when specified inside a global admission policy.
+	//
+	// Possible values:
+	//   "GLOBAL_POLICY_EVALUATION_MODE_UNSPECIFIED" - Not specified:
+	// DISABLE is assumed.
+	//   "ENABLE" - Enables global policy evaluation.
+	//   "DISABLE" - Disables global policy evaluation.
+	GlobalPolicyEvaluationMode string `json:"globalPolicyEvaluationMode,omitempty"`
 
 	// Name: Output only. The resource name, in the format
 	// `projects/*/policy`. There is
@@ -859,7 +1025,14 @@ type ProjectsGetPolicyCall struct {
 	header_      http.Header
 }
 
-// GetPolicy: Gets the policy for this project. Returns a default
+// GetPolicy: A policy specifies the attestors that must attest to
+// a container image, before the project is allowed to deploy
+// that
+// image. There is at most one policy per project. All image
+// admission
+// requests are permitted if a project has no policy.
+//
+// Gets the policy for this project. Returns a default
 // policy if the project does not have one.
 func (r *ProjectsService) GetPolicy(name string) *ProjectsGetPolicyCall {
 	c := &ProjectsGetPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -965,7 +1138,7 @@ func (c *ProjectsGetPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error
 	}
 	return ret, nil
 	// {
-	//   "description": "Gets the policy for this project. Returns a default\npolicy if the project does not have one.",
+	//   "description": "A policy specifies the attestors that must attest to\na container image, before the project is allowed to deploy that\nimage. There is at most one policy per project. All image admission\nrequests are permitted if a project has no policy.\n\nGets the policy for this project. Returns a default\npolicy if the project does not have one.",
 	//   "flatPath": "v1beta1/projects/{projectsId}/policy",
 	//   "httpMethod": "GET",
 	//   "id": "binaryauthorization.projects.getPolicy",

@@ -31,12 +31,211 @@ package packed
 import (
 	"bytes"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
 	math_rand "math/rand"
+	"runtime"
 	"testing"
 	"time"
 	"unsafe"
+
+	"github.com/gogo/protobuf/proto"
 )
+
+func BenchmarkVarintIssue436withCount(b *testing.B) {
+	var arraySizes = []struct {
+		name  string
+		value int64
+	}{
+		{"2^0_ints", 1 << 0},
+		{"2^1_ints", 1 << 1},
+		{"2^2_ints", 1 << 2},
+		{"2^3_ints", 1 << 3},
+		{"2^4_ints", 1 << 4},
+		{"2^8_ints", 1 << 8},
+		{"2^16_ints", 1 << 16},
+		{"2^20_ints", 1 << 20},
+		{"2^24_ints", 1 << 24},
+	}
+
+	var varintSizes = []struct {
+		name  string
+		value int64
+	}{
+		{"max_int 2^7-4", 1<<7 - 4},
+		{"max_int 2^15-4", 1<<15 - 4},
+		{"max_int 2^31-4", 1<<31 - 4},
+		{"max_int 2^63-4", 1<<63 - 4},
+	}
+
+	for _, arraySize := range arraySizes {
+		for _, varintSize := range varintSizes {
+			seed := time.Now().UnixNano()
+			rng := math_rand.New(math_rand.NewSource(seed))
+			buf := make([]int64, arraySize.value)
+			for j := range buf {
+				buf[j] = rng.Int63n(varintSize.value)
+			}
+
+			b.Run(arraySize.name+", "+varintSize.name, func(b *testing.B) {
+				msg := &NinRepNative{
+					Field8: buf,
+				}
+
+				data, err := proto.Marshal(msg)
+				if err != nil {
+					b.Fatal(err)
+				}
+
+				normalmsg := &NinRepNative{}
+
+				for i := 0; i < b.N; i++ {
+					err = proto.Unmarshal(data, normalmsg)
+					if err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestVarintIssue436(t *testing.T) {
+	n := 1 << 22 // Makes for 32 MiB
+
+	m := &runtime.MemStats{}
+
+	msgNormal := &NinRepNative{
+		Field8: make([]int64, n),
+	}
+	dataNormal, err := proto.Marshal(msgNormal)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	normalmsg := &NinRepNative{}
+	runtime.ReadMemStats(m)
+	beforeNormal := m.TotalAlloc
+	err = proto.Unmarshal(dataNormal, normalmsg)
+	runtime.ReadMemStats(m)
+	afterNormal := m.TotalAlloc
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	msgPacked := &NinRepPackedNative{
+		Field8: make([]int64, n),
+	}
+	dataPacked, err := proto.Marshal(msgPacked)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	packedmsg := &NinRepPackedNative{}
+	runtime.ReadMemStats(m)
+	beforePacked := m.TotalAlloc
+	err = proto.Unmarshal(dataPacked, packedmsg)
+	runtime.ReadMemStats(m)
+	afterPacked := m.TotalAlloc
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	totalNormal := afterNormal - beforeNormal
+	totalPacked := afterPacked - beforePacked
+	usedRatio := float64(totalPacked) / float64(totalNormal)
+	if usedRatio > 0.5 {
+		t.Fatalf("unmarshaling packed msg allocated too much memory:\nnormal:\t\t%d bytes\npacked:\t\t%d bytes\nused ratio:\t%.2f%%", totalNormal, totalPacked, usedRatio*100)
+	}
+}
+
+func TestIssue436(t *testing.T) {
+	n := 1 << 22 // Makes for 32 MiB
+
+	m := &runtime.MemStats{}
+
+	msgNormal := &NinRepNative{
+		Field1: make([]float64, n),
+	}
+	dataNormal, err := proto.Marshal(msgNormal)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	normalmsg := &NinRepNative{}
+	runtime.ReadMemStats(m)
+	beforeNormal := m.TotalAlloc
+	err = proto.Unmarshal(dataNormal, normalmsg)
+	runtime.ReadMemStats(m)
+	afterNormal := m.TotalAlloc
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	msgPacked := &NinRepPackedNative{
+		Field1: make([]float64, n),
+	}
+	dataPacked, err := proto.Marshal(msgPacked)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	packedmsg := &NinRepPackedNative{}
+	runtime.ReadMemStats(m)
+	beforePacked := m.TotalAlloc
+	err = proto.Unmarshal(dataPacked, packedmsg)
+	runtime.ReadMemStats(m)
+	afterPacked := m.TotalAlloc
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	totalNormal := afterNormal - beforeNormal
+	totalPacked := afterPacked - beforePacked
+	usedRatio := float64(totalPacked) / float64(totalNormal)
+	if usedRatio > 0.5 {
+		t.Fatalf("unmarshaling packed msg allocated too much memory:\nnormal:\t\t%d bytes\npacked:\t\t%d bytes\nused ratio:\t%.2f%%", totalNormal, totalPacked, usedRatio*100)
+	}
+}
+
+/*
+https://github.com/gogo/protobuf/issues/503
+preallocation was estimating length over all data vs. just that for the given field.
+*/
+func TestTestPackedPreallocation(t *testing.T) {
+	n1 := 900
+	n2 := 700
+
+	msgPacked := &NinRepPackedNative{
+		Field3: make([]int32, n1),
+		Field4: make([]int64, n2),
+	}
+
+	dataPacked, err := proto.Marshal(msgPacked)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	packedmsg := &NinRepPackedNative{}
+	err = proto.Unmarshal(dataPacked, packedmsg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if v := len(packedmsg.Field3); v != n1 {
+		t.Errorf("Field3 incorrect len: %v != %v", v, n1)
+	}
+
+	if v := len(packedmsg.Field4); v != n2 {
+		t.Errorf("Field4 incorrect len: %v != %v", v, n2)
+	}
+
+	if v := cap(packedmsg.Field3); v != n1 {
+		t.Errorf("Field3 incorrect cap: %v != %v", v, n1)
+	}
+
+	if v := cap(packedmsg.Field4); v != n2 {
+		t.Errorf("Field4 incorrect cap: %v != %v", v, n2)
+	}
+}
 
 /*
 https://github.com/gogo/protobuf/issues/detail?id=21

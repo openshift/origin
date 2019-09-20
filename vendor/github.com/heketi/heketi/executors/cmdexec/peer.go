@@ -13,6 +13,8 @@ import (
 	"fmt"
 
 	"github.com/lpabon/godbc"
+
+	rex "github.com/heketi/heketi/pkg/remoteexec"
 )
 
 // :TODO: Rename this function to NodeInit or something
@@ -24,9 +26,10 @@ func (s *CmdExecutor) PeerProbe(host, newnode string) error {
 	logger.Info("Probing: %v -> %v", host, newnode)
 	// create the commands
 	commands := []string{
-		fmt.Sprintf("gluster peer probe %v", newnode),
+		fmt.Sprintf("%v peer probe %v", s.glusterCommand(), newnode),
 	}
-	_, err := s.RemoteExecutor.RemoteCommandExecute(host, commands, 10)
+	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands,
+		s.GlusterCliExecTimeout()))
 	if err != nil {
 		return err
 	}
@@ -35,10 +38,11 @@ func (s *CmdExecutor) PeerProbe(host, newnode string) error {
 	if s.RemoteExecutor.SnapShotLimit() > 0 {
 		logger.Info("Setting snapshot limit")
 		commands = []string{
-			fmt.Sprintf("gluster --mode=script snapshot config snap-max-hard-limit %v",
-				s.RemoteExecutor.SnapShotLimit()),
+			fmt.Sprintf("%v snapshot config snap-max-hard-limit %v",
+				s.glusterCommand(), s.RemoteExecutor.SnapShotLimit()),
 		}
-		_, err := s.RemoteExecutor.RemoteCommandExecute(host, commands, 10)
+		err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands,
+			s.GlusterCliExecTimeout()))
 		if err != nil {
 			return err
 		}
@@ -54,9 +58,10 @@ func (s *CmdExecutor) PeerDetach(host, detachnode string) error {
 	// create the commands
 	logger.Info("Detaching node %v", detachnode)
 	commands := []string{
-		fmt.Sprintf("gluster peer detach %v", detachnode),
+		fmt.Sprintf("%v peer detach %v", s.glusterCommand(), detachnode),
 	}
-	_, err := s.RemoteExecutor.RemoteCommandExecute(host, commands, 10)
+	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands,
+		s.GlusterCliExecTimeout()))
 	if err != nil {
 		logger.Err(err)
 	}
@@ -71,7 +76,7 @@ func (s *CmdExecutor) GlusterdCheck(host string) error {
 	commands := []string{
 		fmt.Sprintf("systemctl status glusterd"),
 	}
-	_, err := s.RemoteExecutor.RemoteCommandExecute(host, commands, 10)
+	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands, 10))
 	if err != nil {
 		logger.Err(err)
 		return err

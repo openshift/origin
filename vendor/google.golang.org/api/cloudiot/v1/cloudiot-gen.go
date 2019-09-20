@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package cloudiot provides access to the Cloud IoT API.
 //
-// See https://cloud.google.com/iot
+// For product documentation, see: https://cloud.google.com/iot
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/cloudiot/v1"
 //   ...
-//   cloudiotService, err := cloudiot.New(oauthHttpClient)
+//   ctx := context.Background()
+//   cloudiotService, err := cloudiot.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   cloudiotService, err := cloudiot.NewService(ctx, option.WithScopes(cloudiot.CloudiotScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   cloudiotService, err := cloudiot.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   cloudiotService, err := cloudiot.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package cloudiot // import "google.golang.org/api/cloudiot/v1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -59,6 +87,33 @@ const (
 	CloudiotScope = "https://www.googleapis.com/auth/cloudiot"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/cloudiot",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -169,34 +224,10 @@ type ProjectsLocationsRegistriesGroupsService struct {
 
 func NewProjectsLocationsRegistriesGroupsDevicesService(s *Service) *ProjectsLocationsRegistriesGroupsDevicesService {
 	rs := &ProjectsLocationsRegistriesGroupsDevicesService{s: s}
-	rs.ConfigVersions = NewProjectsLocationsRegistriesGroupsDevicesConfigVersionsService(s)
-	rs.States = NewProjectsLocationsRegistriesGroupsDevicesStatesService(s)
 	return rs
 }
 
 type ProjectsLocationsRegistriesGroupsDevicesService struct {
-	s *Service
-
-	ConfigVersions *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsService
-
-	States *ProjectsLocationsRegistriesGroupsDevicesStatesService
-}
-
-func NewProjectsLocationsRegistriesGroupsDevicesConfigVersionsService(s *Service) *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsService {
-	rs := &ProjectsLocationsRegistriesGroupsDevicesConfigVersionsService{s: s}
-	return rs
-}
-
-type ProjectsLocationsRegistriesGroupsDevicesConfigVersionsService struct {
-	s *Service
-}
-
-func NewProjectsLocationsRegistriesGroupsDevicesStatesService(s *Service) *ProjectsLocationsRegistriesGroupsDevicesStatesService {
-	rs := &ProjectsLocationsRegistriesGroupsDevicesStatesService{s: s}
-	return rs
-}
-
-type ProjectsLocationsRegistriesGroupsDevicesStatesService struct {
 	s *Service
 }
 
@@ -246,9 +277,8 @@ type BindDeviceToGatewayResponse struct {
 
 // Binding: Associates `members` with a `role`.
 type Binding struct {
-	// Condition: Unimplemented. The condition that is associated with this
-	// binding.
-	// NOTE: an unsatisfied condition will not allow user access via
+	// Condition: The condition that is associated with this binding.
+	// NOTE: An unsatisfied condition will not allow user access via
 	// current
 	// binding. Different bindings, including their conditions, are
 	// examined
@@ -282,7 +312,7 @@ type Binding struct {
 	//    For example, `admins@example.com`.
 	//
 	//
-	// * `domain:{domain}`: A Google Apps domain name that represents all
+	// * `domain:{domain}`: The G Suite domain (primary) that represents all
 	// the
 	//    users of that domain. For example, `google.com` or
 	// `example.com`.
@@ -1572,20 +1602,20 @@ func (s *StateNotificationConfig) MarshalJSON() ([]byte, error) {
 }
 
 // Status: The `Status` type defines a logical error model that is
-// suitable for different
-// programming environments, including REST APIs and RPC APIs. It is
-// used by
-// [gRPC](https://github.com/grpc). The error model is designed to
-// be:
+// suitable for
+// different programming environments, including REST APIs and RPC APIs.
+// It is
+// used by [gRPC](https://github.com/grpc). The error model is designed
+// to be:
 //
 // - Simple to use and understand for most users
 // - Flexible enough to meet unexpected needs
 //
 // # Overview
 //
-// The `Status` message contains three pieces of data: error code, error
-// message,
-// and error details. The error code should be an enum value
+// The `Status` message contains three pieces of data: error code,
+// error
+// message, and error details. The error code should be an enum value
 // of
 // google.rpc.Code, but it may accept additional error codes if needed.
 // The
@@ -4851,146 +4881,6 @@ func (c *ProjectsLocationsRegistriesDevicesStatesListCall) Do(opts ...googleapi.
 
 }
 
-// method id "cloudiot.projects.locations.registries.groups.bindDeviceToGateway":
-
-type ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall struct {
-	s                          *Service
-	parent                     string
-	binddevicetogatewayrequest *BindDeviceToGatewayRequest
-	urlParams_                 gensupport.URLParams
-	ctx_                       context.Context
-	header_                    http.Header
-}
-
-// BindDeviceToGateway: Associates the device with the gateway.
-func (r *ProjectsLocationsRegistriesGroupsService) BindDeviceToGateway(parent string, binddevicetogatewayrequest *BindDeviceToGatewayRequest) *ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall {
-	c := &ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.parent = parent
-	c.binddevicetogatewayrequest = binddevicetogatewayrequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall) Fields(s ...googleapi.Field) *ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall) Context(ctx context.Context) *ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.binddevicetogatewayrequest)
-	if err != nil {
-		return nil, err
-	}
-	reqHeaders.Set("Content-Type", "application/json")
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}:bindDeviceToGateway")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"parent": c.parent,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudiot.projects.locations.registries.groups.bindDeviceToGateway" call.
-// Exactly one of *BindDeviceToGatewayResponse or error will be non-nil.
-// Any non-2xx status code is an error. Response headers are in either
-// *BindDeviceToGatewayResponse.ServerResponse.Header or (if a response
-// was returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was
-// because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRegistriesGroupsBindDeviceToGatewayCall) Do(opts ...googleapi.CallOption) (*BindDeviceToGatewayResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &BindDeviceToGatewayResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Associates the device with the gateway.",
-	//   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/registries/{registriesId}/groups/{groupsId}:bindDeviceToGateway",
-	//   "httpMethod": "POST",
-	//   "id": "cloudiot.projects.locations.registries.groups.bindDeviceToGateway",
-	//   "parameterOrder": [
-	//     "parent"
-	//   ],
-	//   "parameters": {
-	//     "parent": {
-	//       "description": "The name of the registry. For example,\n`projects/example-project/locations/us-central1/registries/my-registry`.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/locations/[^/]+/registries/[^/]+/groups/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v1/{+parent}:bindDeviceToGateway",
-	//   "request": {
-	//     "$ref": "BindDeviceToGatewayRequest"
-	//   },
-	//   "response": {
-	//     "$ref": "BindDeviceToGatewayResponse"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/cloudiot"
-	//   ]
-	// }
-
-}
-
 // method id "cloudiot.projects.locations.registries.groups.getIamPolicy":
 
 type ProjectsLocationsRegistriesGroupsGetIamPolicyCall struct {
@@ -5420,305 +5310,6 @@ func (c *ProjectsLocationsRegistriesGroupsTestIamPermissionsCall) Do(opts ...goo
 
 }
 
-// method id "cloudiot.projects.locations.registries.groups.unbindDeviceFromGateway":
-
-type ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall struct {
-	s                              *Service
-	parent                         string
-	unbinddevicefromgatewayrequest *UnbindDeviceFromGatewayRequest
-	urlParams_                     gensupport.URLParams
-	ctx_                           context.Context
-	header_                        http.Header
-}
-
-// UnbindDeviceFromGateway: Deletes the association between the device
-// and the gateway.
-func (r *ProjectsLocationsRegistriesGroupsService) UnbindDeviceFromGateway(parent string, unbinddevicefromgatewayrequest *UnbindDeviceFromGatewayRequest) *ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall {
-	c := &ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.parent = parent
-	c.unbinddevicefromgatewayrequest = unbinddevicefromgatewayrequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall) Fields(s ...googleapi.Field) *ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall) Context(ctx context.Context) *ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.unbinddevicefromgatewayrequest)
-	if err != nil {
-		return nil, err
-	}
-	reqHeaders.Set("Content-Type", "application/json")
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}:unbindDeviceFromGateway")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"parent": c.parent,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudiot.projects.locations.registries.groups.unbindDeviceFromGateway" call.
-// Exactly one of *UnbindDeviceFromGatewayResponse or error will be
-// non-nil. Any non-2xx status code is an error. Response headers are in
-// either *UnbindDeviceFromGatewayResponse.ServerResponse.Header or (if
-// a response was returned at all) in error.(*googleapi.Error).Header.
-// Use googleapi.IsNotModified to check whether the returned error was
-// because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRegistriesGroupsUnbindDeviceFromGatewayCall) Do(opts ...googleapi.CallOption) (*UnbindDeviceFromGatewayResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &UnbindDeviceFromGatewayResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Deletes the association between the device and the gateway.",
-	//   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/registries/{registriesId}/groups/{groupsId}:unbindDeviceFromGateway",
-	//   "httpMethod": "POST",
-	//   "id": "cloudiot.projects.locations.registries.groups.unbindDeviceFromGateway",
-	//   "parameterOrder": [
-	//     "parent"
-	//   ],
-	//   "parameters": {
-	//     "parent": {
-	//       "description": "The name of the registry. For example,\n`projects/example-project/locations/us-central1/registries/my-registry`.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/locations/[^/]+/registries/[^/]+/groups/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v1/{+parent}:unbindDeviceFromGateway",
-	//   "request": {
-	//     "$ref": "UnbindDeviceFromGatewayRequest"
-	//   },
-	//   "response": {
-	//     "$ref": "UnbindDeviceFromGatewayResponse"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/cloudiot"
-	//   ]
-	// }
-
-}
-
-// method id "cloudiot.projects.locations.registries.groups.devices.get":
-
-type ProjectsLocationsRegistriesGroupsDevicesGetCall struct {
-	s            *Service
-	name         string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// Get: Gets details about a device.
-func (r *ProjectsLocationsRegistriesGroupsDevicesService) Get(name string) *ProjectsLocationsRegistriesGroupsDevicesGetCall {
-	c := &ProjectsLocationsRegistriesGroupsDevicesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.name = name
-	return c
-}
-
-// FieldMask sets the optional parameter "fieldMask": The fields of the
-// `Device` resource to be returned in the response. If the
-// field mask is unset or empty, all fields are returned.
-func (c *ProjectsLocationsRegistriesGroupsDevicesGetCall) FieldMask(fieldMask string) *ProjectsLocationsRegistriesGroupsDevicesGetCall {
-	c.urlParams_.Set("fieldMask", fieldMask)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsLocationsRegistriesGroupsDevicesGetCall) Fields(s ...googleapi.Field) *ProjectsLocationsRegistriesGroupsDevicesGetCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets the optional parameter which makes the operation
-// fail if the object's ETag matches the given value. This is useful for
-// getting updates only after the object has changed since the last
-// request. Use googleapi.IsNotModified to check whether the response
-// error from Do is the result of In-None-Match.
-func (c *ProjectsLocationsRegistriesGroupsDevicesGetCall) IfNoneMatch(entityTag string) *ProjectsLocationsRegistriesGroupsDevicesGetCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsLocationsRegistriesGroupsDevicesGetCall) Context(ctx context.Context) *ProjectsLocationsRegistriesGroupsDevicesGetCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsLocationsRegistriesGroupsDevicesGetCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRegistriesGroupsDevicesGetCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"name": c.name,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudiot.projects.locations.registries.groups.devices.get" call.
-// Exactly one of *Device or error will be non-nil. Any non-2xx status
-// code is an error. Response headers are in either
-// *Device.ServerResponse.Header or (if a response was returned at all)
-// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
-// check whether the returned error was because http.StatusNotModified
-// was returned.
-func (c *ProjectsLocationsRegistriesGroupsDevicesGetCall) Do(opts ...googleapi.CallOption) (*Device, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &Device{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Gets details about a device.",
-	//   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/registries/{registriesId}/groups/{groupsId}/devices/{devicesId}",
-	//   "httpMethod": "GET",
-	//   "id": "cloudiot.projects.locations.registries.groups.devices.get",
-	//   "parameterOrder": [
-	//     "name"
-	//   ],
-	//   "parameters": {
-	//     "fieldMask": {
-	//       "description": "The fields of the `Device` resource to be returned in the response. If the\nfield mask is unset or empty, all fields are returned.",
-	//       "format": "google-fieldmask",
-	//       "location": "query",
-	//       "type": "string"
-	//     },
-	//     "name": {
-	//       "description": "The name of the device. For example,\n`projects/p0/locations/us-central1/registries/registry0/devices/device0` or\n`projects/p0/locations/us-central1/registries/registry0/devices/{num_id}`.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/locations/[^/]+/registries/[^/]+/groups/[^/]+/devices/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v1/{+name}",
-	//   "response": {
-	//     "$ref": "Device"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/cloudiot"
-	//   ]
-	// }
-
-}
-
 // method id "cloudiot.projects.locations.registries.groups.devices.list":
 
 type ProjectsLocationsRegistriesGroupsDevicesListCall struct {
@@ -6024,789 +5615,4 @@ func (c *ProjectsLocationsRegistriesGroupsDevicesListCall) Pages(ctx context.Con
 		}
 		c.PageToken(x.NextPageToken)
 	}
-}
-
-// method id "cloudiot.projects.locations.registries.groups.devices.modifyCloudToDeviceConfig":
-
-type ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall struct {
-	s                                *Service
-	name                             string
-	modifycloudtodeviceconfigrequest *ModifyCloudToDeviceConfigRequest
-	urlParams_                       gensupport.URLParams
-	ctx_                             context.Context
-	header_                          http.Header
-}
-
-// ModifyCloudToDeviceConfig: Modifies the configuration for the device,
-// which is eventually sent from
-// the Cloud IoT Core servers. Returns the modified configuration
-// version and
-// its metadata.
-func (r *ProjectsLocationsRegistriesGroupsDevicesService) ModifyCloudToDeviceConfig(name string, modifycloudtodeviceconfigrequest *ModifyCloudToDeviceConfigRequest) *ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall {
-	c := &ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.name = name
-	c.modifycloudtodeviceconfigrequest = modifycloudtodeviceconfigrequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall) Fields(s ...googleapi.Field) *ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall) Context(ctx context.Context) *ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifycloudtodeviceconfigrequest)
-	if err != nil {
-		return nil, err
-	}
-	reqHeaders.Set("Content-Type", "application/json")
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:modifyCloudToDeviceConfig")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"name": c.name,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudiot.projects.locations.registries.groups.devices.modifyCloudToDeviceConfig" call.
-// Exactly one of *DeviceConfig or error will be non-nil. Any non-2xx
-// status code is an error. Response headers are in either
-// *DeviceConfig.ServerResponse.Header or (if a response was returned at
-// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
-// to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *ProjectsLocationsRegistriesGroupsDevicesModifyCloudToDeviceConfigCall) Do(opts ...googleapi.CallOption) (*DeviceConfig, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &DeviceConfig{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Modifies the configuration for the device, which is eventually sent from\nthe Cloud IoT Core servers. Returns the modified configuration version and\nits metadata.",
-	//   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/registries/{registriesId}/groups/{groupsId}/devices/{devicesId}:modifyCloudToDeviceConfig",
-	//   "httpMethod": "POST",
-	//   "id": "cloudiot.projects.locations.registries.groups.devices.modifyCloudToDeviceConfig",
-	//   "parameterOrder": [
-	//     "name"
-	//   ],
-	//   "parameters": {
-	//     "name": {
-	//       "description": "The name of the device. For example,\n`projects/p0/locations/us-central1/registries/registry0/devices/device0` or\n`projects/p0/locations/us-central1/registries/registry0/devices/{num_id}`.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/locations/[^/]+/registries/[^/]+/groups/[^/]+/devices/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v1/{+name}:modifyCloudToDeviceConfig",
-	//   "request": {
-	//     "$ref": "ModifyCloudToDeviceConfigRequest"
-	//   },
-	//   "response": {
-	//     "$ref": "DeviceConfig"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/cloudiot"
-	//   ]
-	// }
-
-}
-
-// method id "cloudiot.projects.locations.registries.groups.devices.patch":
-
-type ProjectsLocationsRegistriesGroupsDevicesPatchCall struct {
-	s          *Service
-	name       string
-	device     *Device
-	urlParams_ gensupport.URLParams
-	ctx_       context.Context
-	header_    http.Header
-}
-
-// Patch: Updates a device.
-func (r *ProjectsLocationsRegistriesGroupsDevicesService) Patch(name string, device *Device) *ProjectsLocationsRegistriesGroupsDevicesPatchCall {
-	c := &ProjectsLocationsRegistriesGroupsDevicesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.name = name
-	c.device = device
-	return c
-}
-
-// UpdateMask sets the optional parameter "updateMask": Only updates the
-// `device` fields indicated by this mask.
-// The field mask must not be empty, and it must not contain fields
-// that
-// are immutable or only set by the server.
-// Mutable top-level fields: `credentials`, `blocked`, and `metadata`
-func (c *ProjectsLocationsRegistriesGroupsDevicesPatchCall) UpdateMask(updateMask string) *ProjectsLocationsRegistriesGroupsDevicesPatchCall {
-	c.urlParams_.Set("updateMask", updateMask)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsLocationsRegistriesGroupsDevicesPatchCall) Fields(s ...googleapi.Field) *ProjectsLocationsRegistriesGroupsDevicesPatchCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsLocationsRegistriesGroupsDevicesPatchCall) Context(ctx context.Context) *ProjectsLocationsRegistriesGroupsDevicesPatchCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsLocationsRegistriesGroupsDevicesPatchCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRegistriesGroupsDevicesPatchCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.device)
-	if err != nil {
-		return nil, err
-	}
-	reqHeaders.Set("Content-Type", "application/json")
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("PATCH", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"name": c.name,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudiot.projects.locations.registries.groups.devices.patch" call.
-// Exactly one of *Device or error will be non-nil. Any non-2xx status
-// code is an error. Response headers are in either
-// *Device.ServerResponse.Header or (if a response was returned at all)
-// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
-// check whether the returned error was because http.StatusNotModified
-// was returned.
-func (c *ProjectsLocationsRegistriesGroupsDevicesPatchCall) Do(opts ...googleapi.CallOption) (*Device, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &Device{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Updates a device.",
-	//   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/registries/{registriesId}/groups/{groupsId}/devices/{devicesId}",
-	//   "httpMethod": "PATCH",
-	//   "id": "cloudiot.projects.locations.registries.groups.devices.patch",
-	//   "parameterOrder": [
-	//     "name"
-	//   ],
-	//   "parameters": {
-	//     "name": {
-	//       "description": "The resource path name. For example,\n`projects/p1/locations/us-central1/registries/registry0/devices/dev0` or\n`projects/p1/locations/us-central1/registries/registry0/devices/{num_id}`.\nWhen `name` is populated as a response from the service, it always ends\nin the device numeric ID.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/locations/[^/]+/registries/[^/]+/groups/[^/]+/devices/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     },
-	//     "updateMask": {
-	//       "description": "Only updates the `device` fields indicated by this mask.\nThe field mask must not be empty, and it must not contain fields that\nare immutable or only set by the server.\nMutable top-level fields: `credentials`, `blocked`, and `metadata`",
-	//       "format": "google-fieldmask",
-	//       "location": "query",
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v1/{+name}",
-	//   "request": {
-	//     "$ref": "Device"
-	//   },
-	//   "response": {
-	//     "$ref": "Device"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/cloudiot"
-	//   ]
-	// }
-
-}
-
-// method id "cloudiot.projects.locations.registries.groups.devices.sendCommandToDevice":
-
-type ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall struct {
-	s                          *Service
-	name                       string
-	sendcommandtodevicerequest *SendCommandToDeviceRequest
-	urlParams_                 gensupport.URLParams
-	ctx_                       context.Context
-	header_                    http.Header
-}
-
-// SendCommandToDevice: Sends a command to the specified device. In
-// order for a device to be able
-// to receive commands, it must:
-// 1) be connected to Cloud IoT Core using the MQTT protocol, and
-// 2) be subscribed to the group of MQTT topics specified by
-//    /devices/{device-id}/commands/#. This subscription will receive
-// commands
-//    at the top-level topic /devices/{device-id}/commands as well as
-// commands
-//    for subfolders, like /devices/{device-id}/commands/subfolder.
-//    Note that subscribing to specific subfolders is not supported.
-// If the command could not be delivered to the device, this method
-// will
-// return an error; in particular, if the device is not subscribed,
-// this
-// method will return FAILED_PRECONDITION. Otherwise, this method
-// will
-// return OK. If the subscription is QoS 1, at least once delivery will
-// be
-// guaranteed; for QoS 0, no acknowledgment will be expected from the
-// device.
-func (r *ProjectsLocationsRegistriesGroupsDevicesService) SendCommandToDevice(name string, sendcommandtodevicerequest *SendCommandToDeviceRequest) *ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall {
-	c := &ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.name = name
-	c.sendcommandtodevicerequest = sendcommandtodevicerequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall) Fields(s ...googleapi.Field) *ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall) Context(ctx context.Context) *ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sendcommandtodevicerequest)
-	if err != nil {
-		return nil, err
-	}
-	reqHeaders.Set("Content-Type", "application/json")
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:sendCommandToDevice")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"name": c.name,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudiot.projects.locations.registries.groups.devices.sendCommandToDevice" call.
-// Exactly one of *SendCommandToDeviceResponse or error will be non-nil.
-// Any non-2xx status code is an error. Response headers are in either
-// *SendCommandToDeviceResponse.ServerResponse.Header or (if a response
-// was returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was
-// because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRegistriesGroupsDevicesSendCommandToDeviceCall) Do(opts ...googleapi.CallOption) (*SendCommandToDeviceResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &SendCommandToDeviceResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Sends a command to the specified device. In order for a device to be able\nto receive commands, it must:\n1) be connected to Cloud IoT Core using the MQTT protocol, and\n2) be subscribed to the group of MQTT topics specified by\n   /devices/{device-id}/commands/#. This subscription will receive commands\n   at the top-level topic /devices/{device-id}/commands as well as commands\n   for subfolders, like /devices/{device-id}/commands/subfolder.\n   Note that subscribing to specific subfolders is not supported.\nIf the command could not be delivered to the device, this method will\nreturn an error; in particular, if the device is not subscribed, this\nmethod will return FAILED_PRECONDITION. Otherwise, this method will\nreturn OK. If the subscription is QoS 1, at least once delivery will be\nguaranteed; for QoS 0, no acknowledgment will be expected from the device.",
-	//   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/registries/{registriesId}/groups/{groupsId}/devices/{devicesId}:sendCommandToDevice",
-	//   "httpMethod": "POST",
-	//   "id": "cloudiot.projects.locations.registries.groups.devices.sendCommandToDevice",
-	//   "parameterOrder": [
-	//     "name"
-	//   ],
-	//   "parameters": {
-	//     "name": {
-	//       "description": "The name of the device. For example,\n`projects/p0/locations/us-central1/registries/registry0/devices/device0` or\n`projects/p0/locations/us-central1/registries/registry0/devices/{num_id}`.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/locations/[^/]+/registries/[^/]+/groups/[^/]+/devices/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v1/{+name}:sendCommandToDevice",
-	//   "request": {
-	//     "$ref": "SendCommandToDeviceRequest"
-	//   },
-	//   "response": {
-	//     "$ref": "SendCommandToDeviceResponse"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/cloudiot"
-	//   ]
-	// }
-
-}
-
-// method id "cloudiot.projects.locations.registries.groups.devices.configVersions.list":
-
-type ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall struct {
-	s            *Service
-	name         string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// List: Lists the last few versions of the device configuration in
-// descending
-// order (i.e.: newest first).
-func (r *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsService) List(name string) *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall {
-	c := &ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.name = name
-	return c
-}
-
-// NumVersions sets the optional parameter "numVersions": The number of
-// versions to list. Versions are listed in decreasing order of
-// the version number. The maximum number of versions retained is 10. If
-// this
-// value is zero, it will return all the versions available.
-func (c *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall) NumVersions(numVersions int64) *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall {
-	c.urlParams_.Set("numVersions", fmt.Sprint(numVersions))
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall) Fields(s ...googleapi.Field) *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets the optional parameter which makes the operation
-// fail if the object's ETag matches the given value. This is useful for
-// getting updates only after the object has changed since the last
-// request. Use googleapi.IsNotModified to check whether the response
-// error from Do is the result of In-None-Match.
-func (c *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall) IfNoneMatch(entityTag string) *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall) Context(ctx context.Context) *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/configVersions")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"name": c.name,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudiot.projects.locations.registries.groups.devices.configVersions.list" call.
-// Exactly one of *ListDeviceConfigVersionsResponse or error will be
-// non-nil. Any non-2xx status code is an error. Response headers are in
-// either *ListDeviceConfigVersionsResponse.ServerResponse.Header or (if
-// a response was returned at all) in error.(*googleapi.Error).Header.
-// Use googleapi.IsNotModified to check whether the returned error was
-// because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRegistriesGroupsDevicesConfigVersionsListCall) Do(opts ...googleapi.CallOption) (*ListDeviceConfigVersionsResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &ListDeviceConfigVersionsResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Lists the last few versions of the device configuration in descending\norder (i.e.: newest first).",
-	//   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/registries/{registriesId}/groups/{groupsId}/devices/{devicesId}/configVersions",
-	//   "httpMethod": "GET",
-	//   "id": "cloudiot.projects.locations.registries.groups.devices.configVersions.list",
-	//   "parameterOrder": [
-	//     "name"
-	//   ],
-	//   "parameters": {
-	//     "name": {
-	//       "description": "The name of the device. For example,\n`projects/p0/locations/us-central1/registries/registry0/devices/device0` or\n`projects/p0/locations/us-central1/registries/registry0/devices/{num_id}`.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/locations/[^/]+/registries/[^/]+/groups/[^/]+/devices/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     },
-	//     "numVersions": {
-	//       "description": "The number of versions to list. Versions are listed in decreasing order of\nthe version number. The maximum number of versions retained is 10. If this\nvalue is zero, it will return all the versions available.",
-	//       "format": "int32",
-	//       "location": "query",
-	//       "type": "integer"
-	//     }
-	//   },
-	//   "path": "v1/{+name}/configVersions",
-	//   "response": {
-	//     "$ref": "ListDeviceConfigVersionsResponse"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/cloudiot"
-	//   ]
-	// }
-
-}
-
-// method id "cloudiot.projects.locations.registries.groups.devices.states.list":
-
-type ProjectsLocationsRegistriesGroupsDevicesStatesListCall struct {
-	s            *Service
-	name         string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// List: Lists the last few versions of the device state in descending
-// order (i.e.:
-// newest first).
-func (r *ProjectsLocationsRegistriesGroupsDevicesStatesService) List(name string) *ProjectsLocationsRegistriesGroupsDevicesStatesListCall {
-	c := &ProjectsLocationsRegistriesGroupsDevicesStatesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.name = name
-	return c
-}
-
-// NumStates sets the optional parameter "numStates": The number of
-// states to list. States are listed in descending order of
-// update time. The maximum number of states retained is 10. If
-// this
-// value is zero, it will return all the states available.
-func (c *ProjectsLocationsRegistriesGroupsDevicesStatesListCall) NumStates(numStates int64) *ProjectsLocationsRegistriesGroupsDevicesStatesListCall {
-	c.urlParams_.Set("numStates", fmt.Sprint(numStates))
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProjectsLocationsRegistriesGroupsDevicesStatesListCall) Fields(s ...googleapi.Field) *ProjectsLocationsRegistriesGroupsDevicesStatesListCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets the optional parameter which makes the operation
-// fail if the object's ETag matches the given value. This is useful for
-// getting updates only after the object has changed since the last
-// request. Use googleapi.IsNotModified to check whether the response
-// error from Do is the result of In-None-Match.
-func (c *ProjectsLocationsRegistriesGroupsDevicesStatesListCall) IfNoneMatch(entityTag string) *ProjectsLocationsRegistriesGroupsDevicesStatesListCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ProjectsLocationsRegistriesGroupsDevicesStatesListCall) Context(ctx context.Context) *ProjectsLocationsRegistriesGroupsDevicesStatesListCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ProjectsLocationsRegistriesGroupsDevicesStatesListCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRegistriesGroupsDevicesStatesListCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/states")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"name": c.name,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "cloudiot.projects.locations.registries.groups.devices.states.list" call.
-// Exactly one of *ListDeviceStatesResponse or error will be non-nil.
-// Any non-2xx status code is an error. Response headers are in either
-// *ListDeviceStatesResponse.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was
-// because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRegistriesGroupsDevicesStatesListCall) Do(opts ...googleapi.CallOption) (*ListDeviceStatesResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &ListDeviceStatesResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Lists the last few versions of the device state in descending order (i.e.:\nnewest first).",
-	//   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/registries/{registriesId}/groups/{groupsId}/devices/{devicesId}/states",
-	//   "httpMethod": "GET",
-	//   "id": "cloudiot.projects.locations.registries.groups.devices.states.list",
-	//   "parameterOrder": [
-	//     "name"
-	//   ],
-	//   "parameters": {
-	//     "name": {
-	//       "description": "The name of the device. For example,\n`projects/p0/locations/us-central1/registries/registry0/devices/device0` or\n`projects/p0/locations/us-central1/registries/registry0/devices/{num_id}`.",
-	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/locations/[^/]+/registries/[^/]+/groups/[^/]+/devices/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     },
-	//     "numStates": {
-	//       "description": "The number of states to list. States are listed in descending order of\nupdate time. The maximum number of states retained is 10. If this\nvalue is zero, it will return all the states available.",
-	//       "format": "int32",
-	//       "location": "query",
-	//       "type": "integer"
-	//     }
-	//   },
-	//   "path": "v1/{+name}/states",
-	//   "response": {
-	//     "$ref": "ListDeviceStatesResponse"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/cloudiot"
-	//   ]
-	// }
-
 }

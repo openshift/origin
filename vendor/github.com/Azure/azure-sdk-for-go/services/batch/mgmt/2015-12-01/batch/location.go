@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -43,6 +44,16 @@ func NewLocationClientWithBaseURI(baseURI string, subscriptionID string) Locatio
 // Parameters:
 // locationName - the desired region for the quotas.
 func (client LocationClient) GetQuotas(ctx context.Context, locationName string) (result LocationQuota, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LocationClient.GetQuotas")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetQuotasPreparer(ctx, locationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.LocationClient", "GetQuotas", nil, "Failure preparing request")
@@ -87,8 +98,8 @@ func (client LocationClient) GetQuotasPreparer(ctx context.Context, locationName
 // GetQuotasSender sends the GetQuotas request. The method will close the
 // http.Response Body if it receives an error.
 func (client LocationClient) GetQuotasSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetQuotasResponder handles the response to the GetQuotas request. The method always

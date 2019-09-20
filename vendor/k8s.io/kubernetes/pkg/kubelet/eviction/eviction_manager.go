@@ -24,7 +24,7 @@ import (
 
 	"k8s.io/klog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/clock"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -145,7 +145,7 @@ func (m *managerImpl) Admit(attrs *lifecycle.PodAdmitAttributes) lifecycle.PodAd
 		}
 
 		// When node has memory pressure and TaintNodesByCondition is enabled, check BestEffort Pod's toleration:
-		// admit it if tolerates memory pressure taint, fail for other tolerations, e.g. OutOfDisk.
+		// admit it if tolerates memory pressure taint, fail for other tolerations, e.g. DiskPressure.
 		if utilfeature.DefaultFeatureGate.Enabled(features.TaintNodesByCondition) &&
 			v1helper.TolerationsTolerateTaint(attrs.Pod.Spec.Tolerations, &v1.Taint{
 				Key:    schedulerapi.TaintNodeMemoryPressure,
@@ -323,10 +323,8 @@ func (m *managerImpl) synchronize(diskInfoProvider DiskInfoProvider, podFunc Act
 
 	// rank the thresholds by eviction priority
 	sort.Sort(byEvictionPriority(thresholds))
-	thresholdToReclaim := thresholds[0]
-	resourceToReclaim, found := signalToResource[thresholdToReclaim.Signal]
-	if !found {
-		klog.V(3).Infof("eviction manager: threshold %s was crossed, but reclaim is not implemented for this threshold.", thresholdToReclaim.Signal)
+	thresholdToReclaim, resourceToReclaim, foundAny := getReclaimableThreshold(thresholds)
+	if !foundAny {
 		return nil
 	}
 	klog.Warningf("eviction manager: attempting to reclaim %v", resourceToReclaim)
@@ -378,6 +376,7 @@ func (m *managerImpl) synchronize(diskInfoProvider DiskInfoProvider, podFunc Act
 		}
 		message, annotations := evictionMessage(resourceToReclaim, pod, statsFunc)
 		if m.evictPod(pod, gracePeriodOverride, message, annotations) {
+			metrics.Evictions.WithLabelValues(string(thresholdToReclaim.Signal)).Inc()
 			return []*v1.Pod{pod}
 		}
 	}
@@ -498,7 +497,7 @@ func (m *managerImpl) podEphemeralStorageLimitEviction(podStats statsapi.PodStat
 	}
 
 	podEphemeralStorageTotalUsage := &resource.Quantity{}
-	fsStatsSet := []fsStatsType{}
+	var fsStatsSet []fsStatsType
 	if *m.dedicatedImageFs {
 		fsStatsSet = []fsStatsType{fsStatsLogs, fsStatsLocalVolumeSource}
 	} else {

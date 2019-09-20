@@ -16,7 +16,7 @@
 
 # A set of helpers for starting/running etcd for tests
 
-ETCD_VERSION=${ETCD_VERSION:-3.3.10}
+ETCD_VERSION=${ETCD_VERSION:-3.3.15}
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 ETCD_PORT=${ETCD_PORT:-2379}
 export KUBE_INTEGRATION_ETCD_URL="http://${ETCD_HOST}:${ETCD_PORT}"
@@ -112,9 +112,9 @@ kube::etcd::install() {
 
     cd "${KUBE_ROOT}/third_party" || return 1
     if [[ $(readlink etcd) == etcd-v${ETCD_VERSION}-${os}-* ]]; then
-      kube::log::info "etcd v${ETCD_VERSION} already installed at path:"
-      kube::log::info "$(pwd)/$(readlink etcd)"
-      return  # already installed
+      kube::log::info "etcd v${ETCD_VERSION} already installed. To use:"
+      kube::log::info "export PATH=\"$(pwd)/etcd:\${PATH}\""
+      return  #already installed
     fi
 
     if [[ ${os} == "darwin" ]]; then
@@ -133,6 +133,6 @@ kube::etcd::install() {
       rm "${download_file}"
     fi
     kube::log::info "etcd v${ETCD_VERSION} installed. To use:"
-    kube::log::info "export PATH=$(pwd)/etcd:\${PATH}"
+    kube::log::info "export PATH=\"$(pwd)/etcd:\${PATH}\""
   )
 }

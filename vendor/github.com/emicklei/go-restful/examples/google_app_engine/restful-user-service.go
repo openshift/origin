@@ -153,7 +153,7 @@ func init() {
 		WebServicesUrl: getGaeURL(),
 		ApiPath:        "/apidocs.json",
 
-		// Optionally, specifiy where the UI is located
+		// Optionally, specify where the UI is located
 		SwaggerPath: "/apidocs/",
 		// GAE support static content which is configured in your app.yaml.
 		// This example expect the swagger-ui in static/swagger so you should place it there :)

@@ -180,5 +180,39 @@ func TestToFromJSON(t *testing.T) {
 				t.Fatalf("Failed to round-trip.\ninput: %#v\noutput: %#v", j, string(o))
 			}
 		})
+		t.Run(fmt.Sprintf("Fast %d", i), func(t *testing.T) {
+			v, err := FromJSONFast([]byte(j))
+			if err != nil {
+				t.Fatalf("failed to parse json: %v", err)
+			}
+			o, err := v.ToJSONFast()
+			if err != nil {
+				t.Fatalf("failed to marshal into json: %v", err)
+			}
+			if !reflect.DeepEqual(j, string(o)) {
+				t.Fatalf("Failed to round-trip.\ninput: %#v\noutput: %#v", j, string(o))
+			}
+		})
+	}
+}
+
+func TestJSONParseError(t *testing.T) {
+	js := []string{
+		"invalid json",
+	}
+
+	for _, j := range js {
+		t.Run(fmt.Sprintf("%q", j), func(t *testing.T) {
+			v, err := FromJSON([]byte(j))
+			if err == nil {
+				t.Fatalf("wanted error but got: %#v", v)
+			}
+		})
+		t.Run(fmt.Sprintf("fast-%q", j), func(t *testing.T) {
+			v, err := FromJSONFast([]byte(j))
+			if err == nil {
+				t.Fatalf("wanted error but got: %#v", v)
+			}
+		})
 	}
 }

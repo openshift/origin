@@ -19,7 +19,6 @@ package proxy
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -222,8 +221,8 @@ func (h *UpgradeAwareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request
 		h.Transport = h.defaultProxyTransport(req.URL, h.Transport)
 	}
 
-	// WithContext creates a shallow clone of the request with the new context.
-	newReq := req.WithContext(context.Background())
+	// WithContext creates a shallow clone of the request with the same context.
+	newReq := req.WithContext(req.Context())
 	newReq.Header = utilnet.CloneHeader(req.Header)
 	if !h.UseRequestLocation {
 		newReq.URL = &loc
@@ -233,34 +232,7 @@ func (h *UpgradeAwareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request
 	proxy.Transport = h.Transport
 	proxy.FlushInterval = h.FlushInterval
 	proxy.ErrorLog = log.New(noSuppressPanicError{}, "", log.LstdFlags)
-	proxy.ServeHTTP(maybeWrapFlushHeadersWriter(w), newReq)
-}
-
-// maybeWrapFlushHeadersWriter wraps the given writer to force flushing headers prior to writing the response body.
-// if the given writer does not support http.Flusher, http.Hijacker, and http.CloseNotifier, the original writer is returned.
-// TODO(liggitt): drop this once https://github.com/golang/go/issues/31125 is fixed
-func maybeWrapFlushHeadersWriter(w http.ResponseWriter) http.ResponseWriter {
-	flusher, isFlusher := w.(http.Flusher)
-	hijacker, isHijacker := w.(http.Hijacker)
-	closeNotifier, isCloseNotifier := w.(http.CloseNotifier)
-	// flusher, hijacker, and closeNotifier are all used by the ReverseProxy implementation.
-	// if the given writer can't support all three, return the original writer.
-	if !isFlusher || !isHijacker || !isCloseNotifier {
-		return w
-	}
-	return &flushHeadersWriter{w, flusher, hijacker, closeNotifier}
-}
-
-type flushHeadersWriter struct {
-	http.ResponseWriter
-	http.Flusher
-	http.Hijacker
-	http.CloseNotifier
-}
-
-func (w *flushHeadersWriter) WriteHeader(code int) {
-	w.ResponseWriter.WriteHeader(code)
-	w.Flusher.Flush()
+	proxy.ServeHTTP(w, newReq)
 }
 
 type noSuppressPanicError struct{}

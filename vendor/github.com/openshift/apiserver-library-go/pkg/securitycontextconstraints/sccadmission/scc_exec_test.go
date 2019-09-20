@@ -1,6 +1,7 @@
 package sccadmission
 
 import (
+	"context"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -99,8 +100,8 @@ func TestExecAdmit(t *testing.T) {
 		p.constraintAdmission.sccLister = cache
 		p.SetExternalKubeClientSet(tc)
 
-		attrs := admission.NewAttributesRecord(nil, nil, coreapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", coreapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, false, &user.DefaultInfo{})
-		err := p.Validate(attrs, nil)
+		attrs := admission.NewAttributesRecord(nil, nil, coreapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", coreapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, nil, false, &user.DefaultInfo{})
+		err := p.Validate(context.TODO(), attrs, nil)
 
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s: expected no errors but received %v", k, err)

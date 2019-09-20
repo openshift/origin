@@ -16,10 +16,9 @@ This means that `runc` 1.0.0 should implement the 1.0 version of the specificati
 
 You can find official releases of `runc` on the [release](https://github.com/opencontainers/runc/releases) page.
 
-### Security
+## Security
 
-If you wish to report a security issue, please disclose the issue responsibly
-to security@opencontainers.org.
+Reporting process and disclosure communications are outlined in [/org/security](https://github.com/opencontainers/org/blob/master/security/)
 
 ## Building
 
@@ -68,6 +67,7 @@ make BUILDTAGS='seccomp apparmor'
 | selinux   | selinux process and mount labeling | <none>      |
 | apparmor  | apparmor profile support           | <none>      |
 | ambient   | ambient capability support         | kernel 4.3  |
+| nokmem    | disable kernel memory account      | <none>      |
 
 
 ### Running the test suite
@@ -85,6 +85,18 @@ You can run a specific test case by setting the `TESTFLAGS` variable.
 
 ```bash
 # make test TESTFLAGS="-run=SomeTestFunction"
+```
+
+You can run a specific integration test by setting the `TESTPATH` variable.
+
+```bash
+# make test TESTPATH="/checkpoint.bats"
+```
+
+You can run a test in your proxy environment by setting `DOCKER_BUILD_PROXY` and `DOCKER_RUN_PROXY` variables.
+
+```bash
+# make test DOCKER_BUILD_PROXY="--build-arg HTTP_PROXY=http://yourproxy/" DOCKER_RUN_PROXY="-e HTTP_PROXY=http://yourproxy/"
 ```
 
 ### Dependencies Management
@@ -251,3 +263,7 @@ PIDFile=/run/mycontainerid.pid
 [Install]
 WantedBy=multi-user.target
 ```
+
+## License
+
+The code and docs are released under the [Apache 2.0 license](LICENSE).

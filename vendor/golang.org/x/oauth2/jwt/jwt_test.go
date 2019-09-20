@@ -8,11 +8,13 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/jws"
 )
 
@@ -186,5 +188,108 @@ func TestJWTFetch_Assertion(t *testing.T) {
 	}
 	if got != want {
 		t.Errorf("access token header = %q; want %q", got, want)
+	}
+}
+
+func TestJWTFetch_AssertionPayload(t *testing.T) {
+	var assertion string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		assertion = r.Form.Get("assertion")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+			"access_token": "90d64460d14870c08c81352a05dedd3465940a7c",
+			"scope": "user",
+			"token_type": "bearer",
+			"expires_in": 3600
+		}`))
+	}))
+	defer ts.Close()
+
+	for _, conf := range []*Config{
+		{
+			Email:        "aaa1@xxx.com",
+			PrivateKey:   dummyPrivateKey,
+			PrivateKeyID: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+			TokenURL:     ts.URL,
+		},
+		{
+			Email:        "aaa2@xxx.com",
+			PrivateKey:   dummyPrivateKey,
+			PrivateKeyID: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+			TokenURL:     ts.URL,
+			Audience:     "https://example.com",
+		},
+	} {
+		t.Run(conf.Email, func(t *testing.T) {
+			_, err := conf.TokenSource(context.Background()).Token()
+			if err != nil {
+				t.Fatalf("Failed to fetch token: %v", err)
+			}
+
+			parts := strings.Split(assertion, ".")
+			if len(parts) != 3 {
+				t.Fatalf("assertion = %q; want 3 parts", assertion)
+			}
+			gotjson, err := base64.RawURLEncoding.DecodeString(parts[1])
+			if err != nil {
+				t.Fatalf("invalid token payload; err = %v", err)
+			}
+
+			claimSet := jws.ClaimSet{}
+			if err := json.Unmarshal(gotjson, &claimSet); err != nil {
+				t.Errorf("failed to unmarshal json token payload = %q; err = %v", gotjson, err)
+			}
+
+			if got, want := claimSet.Iss, conf.Email; got != want {
+				t.Errorf("payload email = %q; want %q", got, want)
+			}
+			if got, want := claimSet.Scope, strings.Join(conf.Scopes, " "); got != want {
+				t.Errorf("payload scope = %q; want %q", got, want)
+			}
+			aud := conf.TokenURL
+			if conf.Audience != "" {
+				aud = conf.Audience
+			}
+			if got, want := claimSet.Aud, aud; got != want {
+				t.Errorf("payload audience = %q; want %q", got, want)
+			}
+			if got, want := claimSet.Sub, conf.Subject; got != want {
+				t.Errorf("payload subject = %q; want %q", got, want)
+			}
+			if got, want := claimSet.Prn, conf.Subject; got != want {
+				t.Errorf("payload prn = %q; want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestTokenRetrieveError(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "invalid_grant"}`))
+	}))
+	defer ts.Close()
+
+	conf := &Config{
+		Email:      "aaa@xxx.com",
+		PrivateKey: dummyPrivateKey,
+		TokenURL:   ts.URL,
+	}
+
+	_, err := conf.TokenSource(context.Background()).Token()
+	if err == nil {
+		t.Fatalf("got no error, expected one")
+	}
+	_, ok := err.(*oauth2.RetrieveError)
+	if !ok {
+		t.Fatalf("got %T error, expected *RetrieveError", err)
+	}
+	// Test error string for backwards compatibility
+	expected := fmt.Sprintf("oauth2: cannot fetch token: %v\nResponse: %s", "400 Bad Request", `{"error": "invalid_grant"}`)
+	if errStr := err.Error(); errStr != expected {
+		t.Fatalf("got %#v, expected %#v", errStr, expected)
 	}
 }

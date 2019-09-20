@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,6 +50,16 @@ func NewBackupsClientWithBaseURI(baseURI string, subscriptionID string) BackupsC
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client BackupsClient) Clone(ctx context.Context, deviceName string, backupName string, backupElementName string, parameters CloneRequest, resourceGroupName string, managerName string) (result BackupsCloneFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BackupsClient.Clone")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.TargetDeviceID", Name: validation.Null, Rule: true, Chain: nil},
@@ -112,13 +123,9 @@ func (client BackupsClient) ClonePreparer(ctx context.Context, deviceName string
 // CloneSender sends the Clone request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupsClient) CloneSender(req *http.Request) (future BackupsCloneFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -145,6 +152,16 @@ func (client BackupsClient) CloneResponder(resp *http.Response) (result autorest
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client BackupsClient) Delete(ctx context.Context, deviceName string, backupName string, resourceGroupName string, managerName string) (result BackupsDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BackupsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -193,13 +210,9 @@ func (client BackupsClient) DeletePreparer(ctx context.Context, deviceName strin
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupsClient) DeleteSender(req *http.Request) (future BackupsDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -226,6 +239,16 @@ func (client BackupsClient) DeleteResponder(resp *http.Response) (result autores
 // managerName - the manager name
 // filter - oData Filter options
 func (client BackupsClient) ListByDevice(ctx context.Context, deviceName string, resourceGroupName string, managerName string, filter string) (result BackupListPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BackupsClient.ListByDevice")
+		defer func() {
+			sc := -1
+			if result.bl.Response.Response != nil {
+				sc = result.bl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -283,8 +306,8 @@ func (client BackupsClient) ListByDevicePreparer(ctx context.Context, deviceName
 // ListByDeviceSender sends the ListByDevice request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupsClient) ListByDeviceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByDeviceResponder handles the response to the ListByDevice request. The method always
@@ -301,8 +324,8 @@ func (client BackupsClient) ListByDeviceResponder(resp *http.Response) (result B
 }
 
 // listByDeviceNextResults retrieves the next set of results, if any.
-func (client BackupsClient) listByDeviceNextResults(lastResults BackupList) (result BackupList, err error) {
-	req, err := lastResults.backupListPreparer()
+func (client BackupsClient) listByDeviceNextResults(ctx context.Context, lastResults BackupList) (result BackupList, err error) {
+	req, err := lastResults.backupListPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "storsimple.BackupsClient", "listByDeviceNextResults", nil, "Failure preparing next results request")
 	}
@@ -323,6 +346,16 @@ func (client BackupsClient) listByDeviceNextResults(lastResults BackupList) (res
 
 // ListByDeviceComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BackupsClient) ListByDeviceComplete(ctx context.Context, deviceName string, resourceGroupName string, managerName string, filter string) (result BackupListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BackupsClient.ListByDevice")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByDevice(ctx, deviceName, resourceGroupName, managerName, filter)
 	return
 }
@@ -334,6 +367,16 @@ func (client BackupsClient) ListByDeviceComplete(ctx context.Context, deviceName
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client BackupsClient) Restore(ctx context.Context, deviceName string, backupName string, resourceGroupName string, managerName string) (result BackupsRestoreFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BackupsClient.Restore")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -382,13 +425,9 @@ func (client BackupsClient) RestorePreparer(ctx context.Context, deviceName stri
 // RestoreSender sends the Restore request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupsClient) RestoreSender(req *http.Request) (future BackupsRestoreFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}

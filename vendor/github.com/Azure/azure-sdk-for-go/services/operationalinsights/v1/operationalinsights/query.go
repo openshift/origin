@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewQueryClientWithBaseURI(baseURI string) QueryClient {
 // body - the Analytics query. Learn more about the [Analytics query
 // syntax](https://azure.microsoft.com/documentation/articles/app-insights-analytics-reference/)
 func (client QueryClient) Execute(ctx context.Context, workspaceID string, body QueryBody) (result QueryResults, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/QueryClient.Execute")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: body,
 			Constraints: []validation.Constraint{{Target: "body.Query", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -92,8 +103,8 @@ func (client QueryClient) ExecutePreparer(ctx context.Context, workspaceID strin
 // ExecuteSender sends the Execute request. The method will close the
 // http.Response Body if it receives an error.
 func (client QueryClient) ExecuteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ExecuteResponder handles the response to the Execute request. The method always

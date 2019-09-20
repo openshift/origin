@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -50,6 +51,16 @@ func NewTriggersClientWithBaseURI(baseURI string, subscriptionID string) Trigger
 // ifMatch - eTag of the trigger entity.  Should only be specified for update, for which it should match
 // existing entity or can be * for unconditional update.
 func (client TriggersClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, trigger TriggerResource, ifMatch string) (result TriggerResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -120,8 +131,8 @@ func (client TriggersClient) CreateOrUpdatePreparer(ctx context.Context, resourc
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client TriggersClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -143,6 +154,16 @@ func (client TriggersClient) CreateOrUpdateResponder(resp *http.Response) (resul
 // factoryName - the factory name.
 // triggerName - the trigger name.
 func (client TriggersClient) Delete(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -205,8 +226,8 @@ func (client TriggersClient) DeletePreparer(ctx context.Context, resourceGroupNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client TriggersClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -229,6 +250,16 @@ func (client TriggersClient) DeleteResponder(resp *http.Response) (result autore
 // ifNoneMatch - eTag of the trigger entity. Should only be specified for get. If the ETag matches the existing
 // entity tag, or if * was provided, then no content will be returned.
 func (client TriggersClient) Get(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, ifNoneMatch string) (result TriggerResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -295,8 +326,8 @@ func (client TriggersClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client TriggersClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -317,6 +348,16 @@ func (client TriggersClient) GetResponder(resp *http.Response) (result TriggerRe
 // resourceGroupName - the resource group name.
 // factoryName - the factory name.
 func (client TriggersClient) ListByFactory(ctx context.Context, resourceGroupName string, factoryName string) (result TriggerListResponsePage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.ListByFactory")
+		defer func() {
+			sc := -1
+			if result.tlr.Response.Response != nil {
+				sc = result.tlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -375,8 +416,8 @@ func (client TriggersClient) ListByFactoryPreparer(ctx context.Context, resource
 // ListByFactorySender sends the ListByFactory request. The method will close the
 // http.Response Body if it receives an error.
 func (client TriggersClient) ListByFactorySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByFactoryResponder handles the response to the ListByFactory request. The method always
@@ -393,8 +434,8 @@ func (client TriggersClient) ListByFactoryResponder(resp *http.Response) (result
 }
 
 // listByFactoryNextResults retrieves the next set of results, if any.
-func (client TriggersClient) listByFactoryNextResults(lastResults TriggerListResponse) (result TriggerListResponse, err error) {
-	req, err := lastResults.triggerListResponsePreparer()
+func (client TriggersClient) listByFactoryNextResults(ctx context.Context, lastResults TriggerListResponse) (result TriggerListResponse, err error) {
+	req, err := lastResults.triggerListResponsePreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "datafactory.TriggersClient", "listByFactoryNextResults", nil, "Failure preparing next results request")
 	}
@@ -415,6 +456,16 @@ func (client TriggersClient) listByFactoryNextResults(lastResults TriggerListRes
 
 // ListByFactoryComplete enumerates all values, automatically crossing page boundaries as required.
 func (client TriggersClient) ListByFactoryComplete(ctx context.Context, resourceGroupName string, factoryName string) (result TriggerListResponseIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.ListByFactory")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByFactory(ctx, resourceGroupName, factoryName)
 	return
 }
@@ -425,6 +476,16 @@ func (client TriggersClient) ListByFactoryComplete(ctx context.Context, resource
 // factoryName - the factory name.
 // triggerName - the trigger name.
 func (client TriggersClient) Start(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result TriggersStartFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.Start")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -481,13 +542,9 @@ func (client TriggersClient) StartPreparer(ctx context.Context, resourceGroupNam
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client TriggersClient) StartSender(req *http.Request) (future TriggersStartFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -513,6 +570,16 @@ func (client TriggersClient) StartResponder(resp *http.Response) (result autores
 // factoryName - the factory name.
 // triggerName - the trigger name.
 func (client TriggersClient) Stop(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result TriggersStopFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.Stop")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -569,13 +636,9 @@ func (client TriggersClient) StopPreparer(ctx context.Context, resourceGroupName
 // StopSender sends the Stop request. The method will close the
 // http.Response Body if it receives an error.
 func (client TriggersClient) StopSender(req *http.Request) (future TriggersStopFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}

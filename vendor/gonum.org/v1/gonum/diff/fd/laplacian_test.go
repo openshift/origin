@@ -13,7 +13,7 @@ import (
 
 func TestLaplacian(t *testing.T) {
 	for cas, test := range hessianTestCases {
-		// Modify the test cases where the forumla is set.
+		// Modify the test cases where the formula is set.
 		settings := test.settings
 		if settings != nil && !settings.Formula.isZero() {
 			settings.Formula = Forward2nd

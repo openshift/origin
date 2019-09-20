@@ -89,21 +89,32 @@ func (c *ControllerCommandConfig) NewCommandWithContext(ctx context.Context) *co
 				klog.Fatal(err)
 			}
 
-			// setup file observer to terminate when given files change
-			obs, err := fileobserver.NewObserver(10 * time.Second)
-			if err != nil {
-				klog.Fatal(err)
-			}
 			ctx, terminate := context.WithCancel(shutdownCtx)
-			files := map[string][]byte{}
-			for _, fn := range c.basicFlags.TerminateOnFiles {
-				files[fn], _ = ioutil.ReadFile(fn) // intentionally ignore error
+			defer terminate()
+
+			if len(c.basicFlags.TerminateOnFiles) > 0 {
+				// setup file observer to terminate when given files change
+				obs, err := fileobserver.NewObserver(10 * time.Second)
+				if err != nil {
+					klog.Fatal(err)
+				}
+				files := map[string][]byte{}
+				for _, fn := range c.basicFlags.TerminateOnFiles {
+					fileBytes, err := ioutil.ReadFile(fn)
+					if err != nil {
+						klog.Warningf("Unable to read initial content of %q: %v", fn, err)
+						continue // intentionally ignore errors
+					}
+					files[fn] = fileBytes
+				}
+				obs.AddReactor(func(filename string, action fileobserver.ActionType) error {
+					klog.Infof("exiting because %q changed", filename)
+					terminate()
+					return nil
+				}, files, c.basicFlags.TerminateOnFiles...)
+
+				go obs.Run(shutdownHandler)
 			}
-			obs.AddReactor(func(filename string, action fileobserver.ActionType) error {
-				klog.Infof("exiting because %q changed", filename)
-				terminate()
-				return nil
-			}, files, c.basicFlags.TerminateOnFiles...)
 
 			if err := c.StartController(ctx); err != nil {
 				klog.Fatal(err)

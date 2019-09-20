@@ -144,7 +144,7 @@
                   ],
                   "parameters": {
                     "debugOptions.enableDebugging": {
-                      "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                      "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                       "location": "query",
                       "type": "boolean"
                     },
@@ -211,7 +211,7 @@
                       ],
                       "parameters": {
                         "debugOptions.enableDebugging": {
-                          "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                          "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                           "location": "query",
                           "type": "boolean"
                         },
@@ -263,7 +263,7 @@
                   ],
                   "parameters": {
                     "debugOptions.enableDebugging": {
-                      "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                      "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                       "location": "query",
                       "type": "boolean"
                     },
@@ -317,7 +317,7 @@
                   ],
                   "parameters": {
                     "debugOptions.enableDebugging": {
-                      "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                      "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                       "location": "query",
                       "type": "boolean"
                     },
@@ -382,7 +382,7 @@
               ],
               "parameters": {
                 "debugOptions.enableDebugging": {
-                  "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                  "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                   "location": "query",
                   "type": "boolean"
                 },
@@ -414,7 +414,7 @@
               ],
               "parameters": {
                 "debugOptions.enableDebugging": {
-                  "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                  "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                   "location": "query",
                   "type": "boolean"
                 },
@@ -485,7 +485,7 @@
                       "type": "string"
                     },
                     "debugOptions.enableDebugging": {
-                      "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                      "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                       "location": "query",
                       "type": "boolean"
                     },
@@ -566,7 +566,7 @@
                       "type": "string"
                     },
                     "debugOptions.enableDebugging": {
-                      "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                      "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                       "location": "query",
                       "type": "boolean"
                     },
@@ -636,7 +636,7 @@
                       "type": "string"
                     },
                     "debugOptions.enableDebugging": {
-                      "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                      "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                       "location": "query",
                       "type": "boolean"
                     },
@@ -765,7 +765,7 @@
                   ],
                   "parameters": {
                     "name": {
-                      "description": "Name of the Data Source to start a resumable upload.\nFormat: datasources/{source_id}",
+                      "description": "Name of the Item to start a resumable upload.\nFormat: datasources/{source_id}/items/{item_id}.",
                       "location": "path",
                       "pattern": "^datasources/[^/]+/items/[^/]+$",
                       "required": true,
@@ -926,12 +926,12 @@
                   "type": "string"
                 },
                 "requestOptions.debugOptions.enableDebugging": {
-                  "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                  "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                   "location": "query",
                   "type": "boolean"
                 },
                 "requestOptions.languageCode": {
-                  "description": "The BCP-47 language code, such as \"en-US\" or \"sr-Latn\".\nFor more information, see\nhttp://www.unicode.org/reports/tr35/#Unicode_locale_identifier.\nFor translations.",
+                  "description": "The BCP-47 language code, such as \"en-US\" or \"sr-Latn\".\nFor more information, see\nhttp://www.unicode.org/reports/tr35/#Unicode_locale_identifier.\nFor translations.\n\nWhen specified, the documents in search results are biased towards the\nspecified language.\nSuggest API does not use this parameter. It autocompletes only based on\ncharacters in the query.",
                   "location": "query",
                   "type": "string"
                 },
@@ -964,7 +964,7 @@
         "datasources": {
           "methods": {
             "create": {
-              "description": "Creates data source.",
+              "description": "Creates a datasource.",
               "flatPath": "v1/settings/datasources",
               "httpMethod": "POST",
               "id": "cloudsearch.settings.datasources.create",
@@ -984,7 +984,7 @@
               ]
             },
             "delete": {
-              "description": "Deletes a data source.",
+              "description": "Deletes a datasource.",
               "flatPath": "v1/settings/datasources/{datasourcesId}",
               "httpMethod": "DELETE",
               "id": "cloudsearch.settings.datasources.delete",
@@ -993,12 +993,12 @@
               ],
               "parameters": {
                 "debugOptions.enableDebugging": {
-                  "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                  "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                   "location": "query",
                   "type": "boolean"
                 },
                 "name": {
-                  "description": "Name of the data source.\nFormat: datasources/{source_id}.",
+                  "description": "Name of the datasource.\nFormat: datasources/{source_id}.",
                   "location": "path",
                   "pattern": "^datasources/[^/]+$",
                   "required": true,
@@ -1016,7 +1016,7 @@
               ]
             },
             "get": {
-              "description": "Gets a data source.",
+              "description": "Gets a datasource.",
               "flatPath": "v1/settings/datasources/{datasourcesId}",
               "httpMethod": "GET",
               "id": "cloudsearch.settings.datasources.get",
@@ -1025,12 +1025,12 @@
               ],
               "parameters": {
                 "debugOptions.enableDebugging": {
-                  "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                  "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                   "location": "query",
                   "type": "boolean"
                 },
                 "name": {
-                  "description": "Name of the data source resource.\nFormat: datasources/{source_id}.",
+                  "description": "Name of the datasource resource.\nFormat: datasources/{source_id}.",
                   "location": "path",
                   "pattern": "^datasources/[^/]+$",
                   "required": true,
@@ -1048,19 +1048,19 @@
               ]
             },
             "list": {
-              "description": "Lists data sources.",
+              "description": "Lists datasources.",
               "flatPath": "v1/settings/datasources",
               "httpMethod": "GET",
               "id": "cloudsearch.settings.datasources.list",
               "parameterOrder": [],
               "parameters": {
                 "debugOptions.enableDebugging": {
-                  "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                  "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                   "location": "query",
                   "type": "boolean"
                 },
                 "pageSize": {
-                  "description": "Maximum number of data sources to fetch in a request.\nThe max value is 100.\n\u003cbr /\u003eThe default value is 10",
+                  "description": "Maximum number of datasources to fetch in a request.\nThe max value is 100.\n\u003cbr /\u003eThe default value is 10",
                   "format": "int32",
                   "location": "query",
                   "type": "integer"
@@ -1082,7 +1082,7 @@
               ]
             },
             "update": {
-              "description": "Updates a data source.",
+              "description": "Updates a datasource.",
               "flatPath": "v1/settings/datasources/{datasourcesId}",
               "httpMethod": "PUT",
               "id": "cloudsearch.settings.datasources.update",
@@ -1091,7 +1091,7 @@
               ],
               "parameters": {
                 "name": {
-                  "description": "Name of the data source resource.\nFormat: datasources/{source_id}.\n\u003cbr /\u003eThe name is ignored when creating a data source.",
+                  "description": "Name of the datasource resource.\nFormat: datasources/{source_id}.\n\u003cbr /\u003eThe name is ignored when creating a datasource.",
                   "location": "path",
                   "pattern": "^datasources/[^/]+$",
                   "required": true,
@@ -1145,7 +1145,7 @@
               ],
               "parameters": {
                 "debugOptions.enableDebugging": {
-                  "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                  "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                   "location": "query",
                   "type": "boolean"
                 },
@@ -1177,7 +1177,7 @@
               ],
               "parameters": {
                 "debugOptions.enableDebugging": {
-                  "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                  "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                   "location": "query",
                   "type": "boolean"
                 },
@@ -1207,7 +1207,7 @@
               "parameterOrder": [],
               "parameters": {
                 "debugOptions.enableDebugging": {
-                  "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+                  "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
                   "location": "query",
                   "type": "boolean"
                 },
@@ -1300,7 +1300,7 @@
     "stats": {
       "methods": {
         "getIndex": {
-          "description": "Gets indexed item statistics aggreggated across all data sources.",
+          "description": "Gets indexed item statistics aggreggated across all data sources. This\nAPI only returns statistics for previous dates; it doesn't return\nstatistics for the current day.",
           "flatPath": "v1/stats/index",
           "httpMethod": "GET",
           "id": "cloudsearch.stats.getIndex",
@@ -1429,7 +1429,7 @@
       }
     }
   },
-  "revision": "20181206",
+  "revision": "20190522",
   "rootUrl": "https://cloudsearch.googleapis.com/",
   "schemas": {
     "BooleanOperatorOptions": {
@@ -1510,11 +1510,11 @@
       "type": "object"
     },
     "DataSource": {
-      "description": "Data source is a logical namespace for items to be indexed.\nAll items must belong to a data source.  This is the prerequisite before\nitems can be indexed into Cloud Search.",
+      "description": "Datasource is a logical namespace for items to be indexed.\nAll items must belong to a datasource.  This is the prerequisite before\nitems can be indexed into Cloud Search.",
       "id": "DataSource",
       "properties": {
         "disableModifications": {
-          "description": "If true, Indexing API rejects any modification calls to this data source\nsuch as create, update, and delete.\nDisabling this does not imply halting process of previously\naccepted data.",
+          "description": "If true, Indexing API rejects any modification calls to this datasource\nsuch as create, update, and delete.\nDisabling this does not imply halting process of previously\naccepted data.",
           "type": "boolean"
         },
         "disableServing": {
@@ -1522,7 +1522,7 @@
           "type": "boolean"
         },
         "displayName": {
-          "description": "Required. Display name of the data source\nThe maximum length is 300 characters.",
+          "description": "Required. Display name of the datasource\nThe maximum length is 300 characters.",
           "type": "string"
         },
         "indexingServiceAccounts": {
@@ -1533,25 +1533,25 @@
           "type": "array"
         },
         "itemsVisibility": {
-          "description": "This restricts visibility to items at a data source level to the\ndisjunction of users/groups mentioned with the field. Note that, this\ndoes not ensure access to a specific item, as users need to have ACL\npermissions on the contained items. This ensures a high level access\non the entire data source, and that the individual items are not shared\noutside this visibility.",
+          "description": "This field restricts visibility to items at the datasource level. Items\nwithin the datasource are restricted to the union of users and groups\nincluded in this field. Note that, this does not ensure access to a\nspecific item, as users need to have ACL permissions on the contained\nitems. This ensures a high level access on the entire datasource, and\nthat the individual items are not shared outside this visibility.",
           "items": {
             "$ref": "GSuitePrincipal"
           },
           "type": "array"
         },
         "name": {
-          "description": "Name of the data source resource.\nFormat: datasources/{source_id}.\n\u003cbr /\u003eThe name is ignored when creating a data source.",
+          "description": "Name of the datasource resource.\nFormat: datasources/{source_id}.\n\u003cbr /\u003eThe name is ignored when creating a datasource.",
           "type": "string"
         },
         "operationIds": {
-          "description": "IDs of the Long Running Operations (LROs) currently running for this schema.",
+          "description": "IDs of the Long Running Operations (LROs) currently running for this\nschema.",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "shortName": {
-          "description": "A short name or alias for the source.  This value will be used to match the\n'source' operator. For example, if the short name is *\u0026lt;value\u0026gt;* then\nqueries like *source:\u0026lt;value\u0026gt;* will only return results for this\nsource. The value must be unique across all data sources. The value must\nonly contain alphanumeric characters (a-zA-Z0-9). The value cannot start\nwith 'google' and cannot be one of the following: mail, gmail, docs, drive,\ngroups, sites, calendar, hangouts, gplus, keep.\nIts maximum length is 32 characters.",
+          "description": "A short name or alias for the source.  This value will be used to match the\n'source' operator. For example, if the short name is *\u0026lt;value\u0026gt;* then\nqueries like *source:\u0026lt;value\u0026gt;* will only return results for this\nsource. The value must be unique across all datasources. The value must\nonly contain alphanumeric characters (a-zA-Z0-9). The value cannot start\nwith 'google' and cannot be one of the following: mail, gmail, docs, drive,\ngroups, sites, calendar, hangouts, gplus, keep, people, teams.\nIts maximum length is 32 characters.",
           "type": "string"
         }
       },
@@ -1580,7 +1580,7 @@
       "id": "DataSourceRestriction",
       "properties": {
         "filterOptions": {
-          "description": "Filter options restricting the results. If multiple filters\nare present, they are grouped by object type before joining.\nFilters with the same object type are joined conjunctively, then\nthe resulting expressions are joined disjunctively.\n\nThe maximum number of elements is 20.",
+          "description": "Filter options restricting the results. If multiple filters\nare present, they are grouped by object type before joining.\nFilters with the same object type are joined conjunctively, then\nthe resulting expressions are joined disjunctively.\n\nThe maximum number of elements is 20.\n\nNOTE: Suggest API supports only few filters at the moment:\n  \"objecttype\", \"type\" and \"mimetype\".\nFor now, schema specific filters cannot be used to filter suggestions.",
           "items": {
             "$ref": "FilterOptions"
           },
@@ -1650,7 +1650,6 @@
       "id": "DateValues",
       "properties": {
         "values": {
-          "description": "The maximum number of elements is 100.",
           "items": {
             "$ref": "Date"
           },
@@ -1664,7 +1663,7 @@
       "id": "DebugOptions",
       "properties": {
         "enableDebugging": {
-          "description": "If set, the request will enable debugging features of Cloud Search.\nOnly turn on this field, if asked by Google to help with debugging.",
+          "description": "If you are asked by Google to help with debugging, set this field.\nOtherwise, ignore this field.",
           "type": "boolean"
         }
       },
@@ -1726,7 +1725,6 @@
       "id": "DoubleValues",
       "properties": {
         "values": {
-          "description": "The maximum number of elements is 100.",
           "items": {
             "format": "double",
             "type": "number"
@@ -1921,7 +1919,7 @@
       "id": "EnumValues",
       "properties": {
         "values": {
-          "description": "The maximum allowable length for string values is 32 characters.\nThe maximum number of elements is 100.",
+          "description": "The maximum allowable length for string values is 32 characters.",
           "items": {
             "type": "string"
           },
@@ -1961,12 +1959,12 @@
       "id": "FacetBucket",
       "properties": {
         "count": {
-          "description": "Number of results that match the bucket value.",
+          "description": "Number of results that match the bucket value. Counts are only returned\nfor searches when count accuracy is ensured. Can be empty.",
           "format": "int32",
           "type": "integer"
         },
         "percentage": {
-          "description": "Percent of results that match the bucket value. This value is between\n(0-100].\nThis may not be accurate and is a best effort estimate.",
+          "description": "Percent of results that match the bucket value. This value is between\n(0-100]. Percentages are returned for all searches, but are an estimate.\nBecause percentages are always returned, you should render percentages\ninstead of counts.",
           "format": "int32",
           "type": "integer"
         },
@@ -1980,6 +1978,11 @@
       "description": "Specifies operators to return facet results for. There will be one\nFacetResult for every source_name/object_type/operator_name combination.",
       "id": "FacetOptions",
       "properties": {
+        "numFacetBuckets": {
+          "description": "Maximum number of facet buckets that should be returned for this facet.\nDefaults to 10.\nMaximum value is 100.",
+          "format": "int32",
+          "type": "integer"
+        },
         "objectType": {
           "description": "If object_type is set, only those objects of that type will be used to\ncompute facets. If empty, then all objects will be used to compute facets.",
           "type": "string"
@@ -2000,7 +2003,7 @@
       "id": "FacetResult",
       "properties": {
         "buckets": {
-          "description": "FacetBuckets for values in response containing atleast a single result.",
+          "description": "FacetBuckets for values in response containing at least a single result.",
           "items": {
             "$ref": "FacetBucket"
           },
@@ -2068,12 +2071,12 @@
       "id": "FreshnessOptions",
       "properties": {
         "freshnessDuration": {
-          "description": "The duration (in seconds) after which an object should be considered\nstale.",
+          "description": "The duration after which an object should be considered\nstale. The default value is 180 days (in seconds).",
           "format": "google-duration",
           "type": "string"
         },
         "freshnessProperty": {
-          "description": "This property indicates the freshness level of the object in the index.\nIf set, this property must be a top-level property within the\nproperty definitions\nand it must be a\ntimestamp type\nor\ndate type.\nOtherwise, the Indexing API uses\nupdateTime\nas the freshness indicator.\nThe maximum length is 256 characters.",
+          "description": "This property indicates the freshness level of the object in the index.\nIf set, this property must be a top-level property within the\nproperty definitions\nand it must be a\ntimestamp type\nor\ndate type.\nOtherwise, the Indexing API uses\nupdateTime\nas the freshness indicator.\nThe maximum length is 256 characters.\n\nWhen a property is used to calculate fresheness, the value defaults\nto 2 years from the current time.",
           "type": "string"
         }
       },
@@ -2123,6 +2126,158 @@
       },
       "type": "object"
     },
+    "GmailActionRestrict": {
+      "description": "Gmail Action restricts (i.e. read/replied/snoozed).",
+      "id": "GmailActionRestrict",
+      "properties": {
+        "type": {
+          "enum": [
+            "UNSPECIFIED",
+            "UNREAD",
+            "READ",
+            "REPLIED_TO",
+            "MUTED"
+          ],
+          "enumDescriptions": [
+            "",
+            "is:unread",
+            "is:read",
+            "label:^io_re",
+            "label:mute"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "GmailAttachmentRestrict": {
+      "description": "Gmail Attachment restricts (i.e. has:attachment, has:drive, filename:pdf).",
+      "id": "GmailAttachmentRestrict",
+      "properties": {
+        "type": {
+          "enum": [
+            "UNSPECIFIED",
+            "HAS_ATTACHMENT",
+            "HAS_PHOTO",
+            "HAS_DRIVE",
+            "HAS_DOCUMENT",
+            "HAS_SPREADSHEET",
+            "HAS_PRESENTATION",
+            "HAS_YOUTUBE",
+            "HAS_PDF"
+          ],
+          "enumDescriptions": [
+            "",
+            "has:attachment",
+            "has photos (changes to filename:(jpg OR jpeg OR png)  when typed)",
+            "has:drive",
+            "has:document",
+            "has:spreadsheet",
+            "has:presentation",
+            "has:youtube",
+            "filename:pdf"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "GmailFolderRestrict": {
+      "description": "Gmail Folder restricts (i.e. in Drafts/Sent/Chats/User Generated Labels).",
+      "id": "GmailFolderRestrict",
+      "properties": {
+        "type": {
+          "enum": [
+            "UNSPECIFIED",
+            "IN_SENT",
+            "IN_DRAFT",
+            "CHATS",
+            "IN_TRASH",
+            "USER_GENERATED_LABEL"
+          ],
+          "enumDescriptions": [
+            "",
+            "in:sent",
+            "in:draft",
+            "label:chats",
+            "in:trash",
+            "label:\u003cuser generated\u003e"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "GmailIntelligentRestrict": {
+      "description": "Gmail Intelligent restricts (i.e. smartlabels, important).",
+      "id": "GmailIntelligentRestrict",
+      "properties": {
+        "type": {
+          "enum": [
+            "UNSPECIFIED",
+            "SOCIAL",
+            "UPDATES",
+            "FORUMS",
+            "PROMOTIONS",
+            "IMPORTANT",
+            "FLIGHT_RESERVATION",
+            "LODGING_RESERVATION",
+            "CAR_RESERVATION",
+            "BUS_RESERVATION"
+          ],
+          "enumDescriptions": [
+            "",
+            "category:social",
+            "category:updates",
+            "category:forums",
+            "category:promotions",
+            "is:important",
+            "label:^cob_sm_flightreservation",
+            "label:^cob_sm_lodgingreservation",
+            "label:^cob_sm_rentalcarreservation",
+            "label:^cob_sm_busreservation"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "GmailTimeRestrict": {
+      "description": "Gmail Time restricts (i.e. received today, this week).",
+      "id": "GmailTimeRestrict",
+      "properties": {
+        "type": {
+          "enum": [
+            "UNSPECIFIED",
+            "FROM_THIS_WEEK",
+            "OLDER_THAN_ONE_YEAR",
+            "FROM_TODAY",
+            "FROM_YESTERDAY",
+            "FROM_THIS_MONTH",
+            "FROM_CERTAIN_MONTH",
+            "OLDER_THAN_TODAY",
+            "OLDER_THAN_YESTERDAY",
+            "OLDER_THAN_A_WEEK",
+            "OLDER_THAN_A_MONTH"
+          ],
+          "enumDescriptions": [
+            "",
+            "newer_than:7d",
+            "older_than:1y",
+            "newer_than:1d",
+            "newer_than:2d older_than:1d",
+            "newer_than:30d",
+            "This will read as something like \"From November\" and will have operator\nbefore:X after:Y",
+            "older_than:1d",
+            "older_than:2d",
+            "older_than:7d",
+            "older_than:30d"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "HtmlOperatorOptions": {
       "description": "Used to provide a search operator for html properties. This is optional.\nSearch operators let users restrict the query to specific fields relevant\nto the type of item being searched.",
       "id": "HtmlOperatorOptions",
@@ -2154,11 +2309,21 @@
       "id": "HtmlValues",
       "properties": {
         "values": {
-          "description": "The maximum allowable length for html values is 2048 characters.\nThe maximum number of string elements is 100.",
+          "description": "The maximum allowable length for html values is 2048 characters.",
           "items": {
             "type": "string"
           },
           "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "IndexItemOptions": {
+      "id": "IndexItemOptions",
+      "properties": {
+        "allowUnknownGsuitePrincipals": {
+          "description": "Specifies if the index request should allow gsuite principals that do not\nexist or are deleted in the index request.",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -2173,6 +2338,9 @@
         "debugOptions": {
           "$ref": "DebugOptions",
           "description": "Common debug options."
+        },
+        "indexItemOptions": {
+          "$ref": "IndexItemOptions"
         },
         "item": {
           "$ref": "Item",
@@ -2254,7 +2422,6 @@
       "id": "IntegerValues",
       "properties": {
         "values": {
-          "description": "The maximum number of elements is 100.",
           "items": {
             "format": "int64",
             "type": "string"
@@ -2393,7 +2560,7 @@
           "type": "array"
         },
         "readers": {
-          "description": "List of principals who are allowed to see the item in search results.\nOptional if inheriting permissions from another item or if the item\nis not intended to be visible, such as\nvirtual containers.\nThe maximum number of elements is 1000.",
+          "description": "List of principals who are allowed to see the item in search results.\nOptional if inheriting permissions from another item or if the item\nis not intended to be visible, such as\nvirtual\ncontainers.\nThe maximum number of elements is 1000.",
           "items": {
             "$ref": "Principal"
           },
@@ -2744,7 +2911,7 @@
           "description": "The named source for the result, such as Gmail."
         },
         "updateTime": {
-          "description": "The last modified date for the object in the search result.",
+          "description": "The last modified date for the object in the search result. If not\nset in the item, the value returned here is empty. When\n`updateTime` is used for calculating freshness and is not set, this\nvalue defaults to 2 years from the current time.",
           "format": "google-datetime",
           "type": "string"
         }
@@ -2756,7 +2923,7 @@
       "id": "Metaline",
       "properties": {
         "properties": {
-          "description": "The list of displayed properties for the metaline.",
+          "description": "The list of displayed properties for the metaline. The maxiumum number of\nproperties is 5.",
           "items": {
             "$ref": "DisplayedProperty"
           },
@@ -2841,7 +3008,7 @@
       "id": "ObjectDisplayOptions",
       "properties": {
         "metalines": {
-          "description": "Defines the properties that will be displayed in the metalines of the\nsearch results. The property values will be displayed in the order given\nhere. If a property holds multiple values, all of the values will be\ndiplayed before the next properties. For this reason, it is a good practice\nto specify singular properties before repeated properties in this list. All\nof the properties must set\nis_returnable\nto true. The maximum number of elements is 3.",
+          "description": "Defines the properties that will be displayed in the metalines of the\nsearch results. The property values will be displayed in the order given\nhere. If a property holds multiple values, all of the values will be\ndiplayed before the next properties. For this reason, it is a good practice\nto specify singular properties before repeated properties in this list. All\nof the properties must set\nis_returnable\nto true. The maximum number of metalines is 3.",
           "items": {
             "$ref": "Metaline"
           },
@@ -2888,7 +3055,6 @@
       "id": "ObjectValues",
       "properties": {
         "values": {
-          "description": "The maximum number of elements is 100.",
           "items": {
             "$ref": "StructuredDataObject"
           },
@@ -2918,7 +3084,7 @@
           "type": "object"
         },
         "name": {
-          "description": "The server-assigned name, which is only unique within the same service that\noriginally returns it. If you use the default HTTP mapping, the\n`name` should have the format of `operations/some/unique/name`.",
+          "description": "The server-assigned name, which is only unique within the same service that\noriginally returns it. If you use the default HTTP mapping, the\n`name` should be a resource name ending with `operations/{unique_id}`.",
           "type": "string"
         },
         "response": {
@@ -2933,7 +3099,7 @@
       "type": "object"
     },
     "PeopleSuggestion": {
-      "description": "A people suggestion.",
+      "description": "This field contains information about the person being suggested.",
       "id": "PeopleSuggestion",
       "properties": {
         "person": {
@@ -3136,11 +3302,15 @@
           "type": "boolean"
         },
         "isReturnable": {
-          "description": "Indicates that the property identifies data that should be returned in search\nresults via the Query API. If set to *true*, indicates that Query API\nusers can use matching property fields in results. However, storing fields\nrequires more space allocation and uses more bandwidth for search queries,\nwhich impacts performance over large datasets. Set to *true* here only if\nthe field is needed for search results. Cannot be true for properties\nwhose type is an object.",
+          "description": "Indicates that the property identifies data that should be returned in\nsearch results via the Query API. If set to *true*, indicates that Query\nAPI users can use matching property fields in results. However, storing\nfields requires more space allocation and uses more bandwidth for search\nqueries, which impacts performance over large datasets. Set to *true* here\nonly if the field is needed for search results. Cannot be true for\nproperties whose type is an object.",
           "type": "boolean"
         },
         "isSortable": {
           "description": "Indicates that the property can be used for sorting. Cannot be true for\nproperties that are repeatable. Cannot be true for properties whose type\nis object or user identifier. IsReturnable must be true to set this option.\nOnly supported for Boolean, Date, Double, Integer, and Timestamp\nproperties.",
+          "type": "boolean"
+        },
+        "isWildcardSearchable": {
+          "description": "Indicates that users can perform wildcard search for this\nproperty. Only supported for Text properties. IsReturnable must be true to\nset this option. In a given datasource maximum of 5 properties can be\nmarked as is_wildcard_searchable.\n\nNote: This is an alpha feature and is enabled for whitelisted users only.",
           "type": "boolean"
         },
         "name": {
@@ -3386,7 +3556,7 @@
       "type": "object"
     },
     "QuerySuggestion": {
-      "description": "A completed query suggestion.",
+      "description": "This field does not contain anything as of now and is just used as an\nindicator that the suggest result was a phrase completion.",
       "id": "QuerySuggestion",
       "properties": {},
       "type": "object"
@@ -3444,7 +3614,7 @@
           "description": "Debug options of the request"
         },
         "languageCode": {
-          "description": "The BCP-47 language code, such as \"en-US\" or \"sr-Latn\".\nFor more information, see\nhttp://www.unicode.org/reports/tr35/#Unicode_locale_identifier.\nFor translations.",
+          "description": "The BCP-47 language code, such as \"en-US\" or \"sr-Latn\".\nFor more information, see\nhttp://www.unicode.org/reports/tr35/#Unicode_locale_identifier.\nFor translations.\n\nWhen specified, the documents in search results are biased towards the\nspecified language.\nSuggest API does not use this parameter. It autocompletes only based on\ncharacters in the query.",
           "type": "string"
         },
         "searchApplicationId": {
@@ -3480,20 +3650,38 @@
       "type": "object"
     },
     "RestrictItem": {
-      "description": "Information relevant only to a restrict entry.\nNextId: 7",
+      "description": "Information relevant only to a restrict entry.\nNextId: 12",
       "id": "RestrictItem",
       "properties": {
         "driveFollowUpRestrict": {
-          "$ref": "DriveFollowUpRestrict"
+          "$ref": "DriveFollowUpRestrict",
+          "description": "LINT.ThenChange(//depot/google3/java/com/google/apps/search/quality/itemsuggest/utils/SubtypeRerankingUtils.java)"
         },
         "driveLocationRestrict": {
           "$ref": "DriveLocationRestrict"
         },
         "driveMimeTypeRestrict": {
-          "$ref": "DriveMimeTypeRestrict"
+          "$ref": "DriveMimeTypeRestrict",
+          "description": "LINT.IfChange\nDrive Types."
         },
         "driveTimeSpanRestrict": {
           "$ref": "DriveTimeSpanRestrict"
+        },
+        "gmailActionRestrict": {
+          "$ref": "GmailActionRestrict"
+        },
+        "gmailAttachmentRestrict": {
+          "$ref": "GmailAttachmentRestrict"
+        },
+        "gmailFolderRestrict": {
+          "$ref": "GmailFolderRestrict",
+          "description": "Gmail Types."
+        },
+        "gmailIntelligentRestrict": {
+          "$ref": "GmailIntelligentRestrict"
+        },
+        "gmailTimeRestrict": {
+          "$ref": "GmailTimeRestrict"
         },
         "searchOperator": {
           "description": "The search restrict (e.g. \"after:2017-09-11 before:2017-09-12\").",
@@ -3612,7 +3800,7 @@
           "type": "array"
         },
         "operationIds": {
-          "description": "IDs of the Long Running Operations (LROs) currently running for this\nschema. After modifying the schema, wait for opeations to complete\nbefore indexing additional content.",
+          "description": "IDs of the Long Running Operations (LROs) currently running for this\nschema. After modifying the schema, wait for operations to complete\nbefore indexing additional content.",
           "items": {
             "type": "string"
           },
@@ -3626,7 +3814,7 @@
       "id": "ScoringConfig",
       "properties": {
         "disableFreshness": {
-          "description": "Whether to use freshness as a ranking signal. By default, freshness is used\nas a ranking signal.",
+          "description": "Whether to use freshness as a ranking signal. By default, freshness is used\nas a ranking signal. Note that this setting is not available in the Admin\nUI.",
           "type": "boolean"
         },
         "disablePersonalization": {
@@ -3667,7 +3855,7 @@
           "type": "string"
         },
         "operationIds": {
-          "description": "IDs of the Long Running Operations (LROs) currently running for this schema.\nOutput only field.",
+          "description": "IDs of the Long Running Operations (LROs) currently running for this\nschema. Output only field.",
           "items": {
             "type": "string"
           },
@@ -3726,7 +3914,7 @@
       "id": "SearchQualityMetadata",
       "properties": {
         "quality": {
-          "description": "An indication of the quality of the item, used to influence search quality.\nValue should be between 0.0 (lowest quality) and 1.0 (highest quality).",
+          "description": "An indication of the quality of the item, used to influence search quality.\nValue should be between 0.0 (lowest quality) and 1.0 (highest quality). The\ndefault value is 0.0.",
           "format": "double",
           "type": "number"
         }
@@ -3872,7 +4060,7 @@
           "type": "string"
         },
         "url": {
-          "description": "The URL of the result.",
+          "description": "The URL of the search result. The URL contains a Google redirect to the\nactual item. This URL is signed and shouldn't be changed.",
           "type": "string"
         }
       },
@@ -4071,7 +4259,7 @@
       "type": "object"
     },
     "Status": {
-      "description": "The `Status` type defines a logical error model that is suitable for different\nprogramming environments, including REST APIs and RPC APIs. It is used by\n[gRPC](https://github.com/grpc). The error model is designed to be:\n\n- Simple to use and understand for most users\n- Flexible enough to meet unexpected needs\n\n# Overview\n\nThe `Status` message contains three pieces of data: error code, error message,\nand error details. The error code should be an enum value of\ngoogle.rpc.Code, but it may accept additional error codes if needed.  The\nerror message should be a developer-facing English message that helps\ndevelopers *understand* and *resolve* the error. If a localized user-facing\nerror message is needed, put the localized message in the error details or\nlocalize it in the client. The optional error details may contain arbitrary\ninformation about the error. There is a predefined set of error detail types\nin the package `google.rpc` that can be used for common error conditions.\n\n# Language mapping\n\nThe `Status` message is the logical representation of the error model, but it\nis not necessarily the actual wire format. When the `Status` message is\nexposed in different client libraries and different wire protocols, it can be\nmapped differently. For example, it will likely be mapped to some exceptions\nin Java, but more likely mapped to some error codes in C.\n\n# Other uses\n\nThe error model and the `Status` message can be used in a variety of\nenvironments, either with or without APIs, to provide a\nconsistent developer experience across different environments.\n\nExample uses of this error model include:\n\n- Partial errors. If a service needs to return partial errors to the client,\n    it may embed the `Status` in the normal response to indicate the partial\n    errors.\n\n- Workflow errors. A typical workflow has multiple steps. Each step may\n    have a `Status` message for error reporting.\n\n- Batch operations. If a client uses batch request and batch response, the\n    `Status` message should be used directly inside batch response, one for\n    each error sub-response.\n\n- Asynchronous operations. If an API call embeds asynchronous operation\n    results in its response, the status of those operations should be\n    represented directly using the `Status` message.\n\n- Logging. If some API errors are stored in logs, the message `Status` could\n    be used directly after any stripping needed for security/privacy reasons.",
+      "description": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). The error model is designed to be:\n\n- Simple to use and understand for most users\n- Flexible enough to meet unexpected needs\n\n# Overview\n\nThe `Status` message contains three pieces of data: error code, error\nmessage, and error details. The error code should be an enum value of\ngoogle.rpc.Code, but it may accept additional error codes if needed.  The\nerror message should be a developer-facing English message that helps\ndevelopers *understand* and *resolve* the error. If a localized user-facing\nerror message is needed, put the localized message in the error details or\nlocalize it in the client. The optional error details may contain arbitrary\ninformation about the error. There is a predefined set of error detail types\nin the package `google.rpc` that can be used for common error conditions.\n\n# Language mapping\n\nThe `Status` message is the logical representation of the error model, but it\nis not necessarily the actual wire format. When the `Status` message is\nexposed in different client libraries and different wire protocols, it can be\nmapped differently. For example, it will likely be mapped to some exceptions\nin Java, but more likely mapped to some error codes in C.\n\n# Other uses\n\nThe error model and the `Status` message can be used in a variety of\nenvironments, either with or without APIs, to provide a\nconsistent developer experience across different environments.\n\nExample uses of this error model include:\n\n- Partial errors. If a service needs to return partial errors to the client,\n    it may embed the `Status` in the normal response to indicate the partial\n    errors.\n\n- Workflow errors. A typical workflow has multiple steps. Each step may\n    have a `Status` message for error reporting.\n\n- Batch operations. If a client uses batch request and batch response, the\n    `Status` message should be used directly inside batch response, one for\n    each error sub-response.\n\n- Asynchronous operations. If an API call embeds asynchronous operation\n    results in its response, the status of those operations should be\n    represented directly using the `Status` message.\n\n- Logging. If some API errors are stored in logs, the message `Status` could\n    be used directly after any stripping needed for security/privacy reasons.",
       "id": "Status",
       "properties": {
         "code": {
@@ -4116,7 +4304,8 @@
       "id": "StructuredResult",
       "properties": {
         "person": {
-          "$ref": "Person"
+          "$ref": "Person",
+          "description": "Representation of a person"
         }
       },
       "type": "object"
@@ -4126,14 +4315,14 @@
       "id": "SuggestRequest",
       "properties": {
         "dataSourceRestrictions": {
-          "description": "The sources to use for suggestions. If not specified, all data sources\nfrom the current search application are used.",
+          "description": "The sources to use for suggestions. If not specified, all data sources\nfrom the current search application are used.\nSuggestions are based on Gmail titles. Suggestions from third party sources\nare not available.",
           "items": {
             "$ref": "DataSourceRestriction"
           },
           "type": "array"
         },
         "query": {
-          "description": "Partial query for the completion suggestion.",
+          "description": "Partial query for which autocomplete suggestions will be shown.\nFor example, if the query is \"sea\", then the server might return\n\"season\", \"search\", \"seagull\" and so on.",
           "type": "string"
         },
         "requestOptions": {
@@ -4148,7 +4337,7 @@
       "id": "SuggestResponse",
       "properties": {
         "suggestResults": {
-          "description": "List of suggestion results.",
+          "description": "List of suggestions.",
           "items": {
             "$ref": "SuggestResult"
           },
@@ -4162,10 +4351,12 @@
       "id": "SuggestResult",
       "properties": {
         "peopleSuggestion": {
-          "$ref": "PeopleSuggestion"
+          "$ref": "PeopleSuggestion",
+          "description": "This is present when the suggestion indicates a person. It\ncontains more information about the person - like their email ID,\nname etc."
         },
         "querySuggestion": {
-          "$ref": "QuerySuggestion"
+          "$ref": "QuerySuggestion",
+          "description": "This field will be present if the suggested query is a word/phrase\ncompletion."
         },
         "source": {
           "$ref": "Source",
@@ -4213,7 +4404,7 @@
       "id": "TextValues",
       "properties": {
         "values": {
-          "description": "The maximum allowable length for text values is 2048 characters.\nThe maximum number of string elements is 100.",
+          "description": "The maximum allowable length for text values is 2048 characters.",
           "items": {
             "type": "string"
           },
@@ -4257,7 +4448,6 @@
       "id": "TimestampValues",
       "properties": {
         "values": {
-          "description": "The maximum number of elements is 100.",
           "items": {
             "format": "google-datetime",
             "type": "string"

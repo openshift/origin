@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -44,6 +45,16 @@ func NewQuotaByCounterKeysClient() QuotaByCounterKeysClient {
 // accessible by "boo" counter key. But if it’s defined as counter-key="@("b"+"a")" then it will be accessible
 // by "ba" key
 func (client QuotaByCounterKeysClient) List(ctx context.Context, apimBaseURL string, quotaCounterKey string) (result QuotaCounterCollection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/QuotaByCounterKeysClient.List")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListPreparer(ctx, apimBaseURL, quotaCounterKey)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.QuotaByCounterKeysClient", "List", nil, "Failure preparing request")
@@ -91,8 +102,8 @@ func (client QuotaByCounterKeysClient) ListPreparer(ctx context.Context, apimBas
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client QuotaByCounterKeysClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -119,6 +130,16 @@ func (client QuotaByCounterKeysClient) ListResponder(resp *http.Response) (resul
 // by "ba" key
 // parameters - the value of the quota counter to be applied to all quota counter periods.
 func (client QuotaByCounterKeysClient) Update(ctx context.Context, apimBaseURL string, quotaCounterKey string, parameters QuotaCounterValueContractProperties) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/QuotaByCounterKeysClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, apimBaseURL, quotaCounterKey, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.QuotaByCounterKeysClient", "Update", nil, "Failure preparing request")
@@ -168,8 +189,8 @@ func (client QuotaByCounterKeysClient) UpdatePreparer(ctx context.Context, apimB
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client QuotaByCounterKeysClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

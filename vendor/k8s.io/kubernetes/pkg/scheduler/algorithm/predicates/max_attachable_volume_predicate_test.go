@@ -23,11 +23,12 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/storage/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	utilfeaturetesting "k8s.io/apiserver/pkg/util/feature/testing"
+	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	csilibplugins "k8s.io/csi-translation-lib/plugins"
 	"k8s.io/kubernetes/pkg/features"
 	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
@@ -834,12 +835,14 @@ func TestVolumeCountConflicts(t *testing.T) {
 	// running attachable predicate tests without feature gate and no limit present on nodes
 	for _, test := range tests {
 		os.Setenv(KubeMaxPDVols, strconv.Itoa(test.maxVols))
+		node, csiNode := getNodeWithPodAndVolumeLimits("node", test.existingPods, int64(test.maxVols), test.filterName)
 		pred := NewMaxPDVolumeCountPredicate(test.filterName,
+			getFakeCSINodeInfo(csiNode),
 			getFakeStorageClassInfo(test.filterName),
 			getFakePVInfo(test.filterName),
 			getFakePVCInfo(test.filterName))
 
-		fits, reasons, err := pred(test.newPod, GetPredicateMetadata(test.newPod, nil), schedulernodeinfo.NewNodeInfo(test.existingPods...))
+		fits, reasons, err := pred(test.newPod, GetPredicateMetadata(test.newPod, nil), node)
 		if err != nil {
 			t.Errorf("[%s]%s: unexpected error: %v", test.filterName, test.test, err)
 		}
@@ -851,12 +854,13 @@ func TestVolumeCountConflicts(t *testing.T) {
 		}
 	}
 
-	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.AttachVolumeLimit, true)()
+	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.AttachVolumeLimit, true)()
 
 	// running attachable predicate tests with feature gate and limit present on nodes
 	for _, test := range tests {
-		node := getNodeWithPodAndVolumeLimits(test.existingPods, int64(test.maxVols), test.filterName)
+		node, csiNode := getNodeWithPodAndVolumeLimits("node", test.existingPods, int64(test.maxVols), test.filterName)
 		pred := NewMaxPDVolumeCountPredicate(test.filterName,
+			getFakeCSINodeInfo(csiNode),
 			getFakeStorageClassInfo(test.filterName),
 			getFakePVInfo(test.filterName),
 			getFakePVCInfo(test.filterName))
@@ -881,7 +885,7 @@ func getFakeStorageClassInfo(sc string) FakeStorageClassInfo {
 	case GCEPDVolumeFilterType:
 		provisioner = csilibplugins.GCEPDInTreePluginName
 	case AzureDiskVolumeFilterType:
-		provisioner = AzureDiskInTreePluginName
+		provisioner = csilibplugins.AzureDiskInTreePluginName
 	case CinderVolumeFilterType:
 		provisioner = csilibplugins.CinderInTreePluginName
 	default:
@@ -1047,7 +1051,7 @@ func TestMaxVolumeFuncM4(t *testing.T) {
 	}
 }
 
-func getNodeWithPodAndVolumeLimits(pods []*v1.Pod, limit int64, driverNames ...string) *schedulernodeinfo.NodeInfo {
+func getNodeWithPodAndVolumeLimits(limitSource string, pods []*v1.Pod, limit int64, driverNames ...string) (*schedulernodeinfo.NodeInfo, *v1beta1.CSINode) {
 	nodeInfo := schedulernodeinfo.NewNodeInfo(pods...)
 	node := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{Name: "node-for-max-pd-test-1"},
@@ -1055,11 +1059,57 @@ func getNodeWithPodAndVolumeLimits(pods []*v1.Pod, limit int64, driverNames ...s
 			Allocatable: v1.ResourceList{},
 		},
 	}
-	for _, driver := range driverNames {
-		node.Status.Allocatable[getVolumeLimitKey(driver)] = *resource.NewQuantity(limit, resource.DecimalSI)
+	var csiNode *v1beta1.CSINode
+
+	addLimitToNode := func() {
+		for _, driver := range driverNames {
+			node.Status.Allocatable[getVolumeLimitKey(driver)] = *resource.NewQuantity(limit, resource.DecimalSI)
+		}
 	}
+
+	initCSINode := func() {
+		csiNode = &v1beta1.CSINode{
+			ObjectMeta: metav1.ObjectMeta{Name: "csi-node-for-max-pd-test-1"},
+			Spec: v1beta1.CSINodeSpec{
+				Drivers: []v1beta1.CSINodeDriver{},
+			},
+		}
+	}
+
+	addDriversCSINode := func(addLimits bool) {
+		initCSINode()
+		for _, driver := range driverNames {
+			driver := v1beta1.CSINodeDriver{
+				Name:   driver,
+				NodeID: "node-for-max-pd-test-1",
+			}
+			if addLimits {
+				driver.Allocatable = &v1beta1.VolumeNodeResources{
+					Count: utilpointer.Int32Ptr(int32(limit)),
+				}
+			}
+			csiNode.Spec.Drivers = append(csiNode.Spec.Drivers, driver)
+		}
+	}
+
+	switch limitSource {
+	case "node":
+		addLimitToNode()
+	case "csinode":
+		addDriversCSINode(true)
+	case "both":
+		addLimitToNode()
+		addDriversCSINode(true)
+	case "csinode-with-no-limit":
+		addDriversCSINode(false)
+	case "no-csi-driver":
+		initCSINode()
+	default:
+		// Do nothing.
+	}
+
 	nodeInfo.SetNode(node)
-	return nodeInfo
+	return nodeInfo, csiNode
 }
 
 func getVolumeLimitKey(filterType string) v1.ResourceName {

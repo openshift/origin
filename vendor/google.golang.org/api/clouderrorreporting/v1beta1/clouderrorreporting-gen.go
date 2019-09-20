@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package clouderrorreporting provides access to the Stackdriver Error Reporting API.
 //
-// See https://cloud.google.com/error-reporting/
+// For product documentation, see: https://cloud.google.com/error-reporting/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/clouderrorreporting/v1beta1"
 //   ...
-//   clouderrorreportingService, err := clouderrorreporting.New(oauthHttpClient)
+//   ctx := context.Background()
+//   clouderrorreportingService, err := clouderrorreporting.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   clouderrorreportingService, err := clouderrorreporting.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   clouderrorreportingService, err := clouderrorreporting.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package clouderrorreporting // import "google.golang.org/api/clouderrorreporting/v1beta1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -56,6 +80,32 @@ const (
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -555,27 +605,35 @@ type ReportedErrorEvent struct {
 	// Go.
 	// Supported stack trace formats are:
 	//
-	// * **Java**: Must be the return value of
-	// [`Throwable.printStackTrace()`](https://docs.oracle.com/javase/7/docs/
-	// api/java/lang/Throwable.html#printStackTrace%28%29).
-	// * **Python**: Must be the return value of
-	// [`traceback.format_exc()`](https://docs.python.org/2/library/traceback
-	// .html#traceback.format_exc).
-	// * **JavaScript**: Must be the value of
-	// [`error.stack`](https://github.com/v8/v8/wiki/Stack-Trace-API)
-	// as returned by V8.
-	// * **Ruby**: Must contain frames returned by
-	// [`Exception.backtrace`](https://ruby-doc.org/core-2.2.0/Exception.html
-	// #method-i-backtrace).
-	// * **C#**: Must be the return value of
-	// [`Exception.ToString()`](https://msdn.microsoft.com/en-us/library/syst
-	// em.exception.tostring.aspx).
+	// * **Java**: Must be the return value
+	// of
+	// [`Throwable.printStackTrace()`](https://docs.oracle.com/javase/7/do
+	// cs/api/java/lang/Throwable.html#printStackTrace%28%29).
+	// * **Python**: Must be the return value
+	// of
+	// [`traceback.format_exc()`](https://docs.python.org/2/library/traceb
+	// ack.html#traceback.format_exc).
+	// * **JavaScript**: Must be the value
+	// of
+	// [`error.stack`](https://github.com/v8/v8/wiki/Stack-Trace-API) as
+	// returned
+	// by V8.
+	// * **Ruby**: Must contain frames returned
+	// by
+	// [`Exception.backtrace`](https://ruby-doc.org/core-2.2.0/Exception.h
+	// tml#method-i-backtrace).
+	// * **C#**: Must be the return value
+	// of
+	// [`Exception.ToString()`](https://msdn.microsoft.com/en-us/library/s
+	// ystem.exception.tostring.aspx).
 	// * **PHP**: Must start with `PHP (Notice|Parse error|Fatal
 	// error|Warning)`
-	// and contain the result of
-	// [`(string)$exception`](http://php.net/manual/en/exception.tostring.php
-	// ).
-	// * **Go**: Must be the return value of
+	// and contain the result
+	// of
+	// [`(string)$exception`](http://php.net/manual/en/exception.tostring.
+	// php).
+	// * **Go**: Must be the return value
+	// of
 	// [`runtime.Stack()`](https://golang.org/pkg/runtime/debug/#Stack).
 	Message string `json:"message,omitempty"`
 
@@ -1236,10 +1294,12 @@ type ProjectsEventsReportCall struct {
 // key](https://support.google.com/cloud/answer/6158862)
 // for authentication. To use an API key, append it to the URL as the
 // value of
-// a `key` parameter. For example:
+// a `key` parameter. For
+// example:
 //
 // `POST
-// https://clouderrorreporting.googleapis.com/v1beta1/projects/example-project/events:report?key=123ABC456`
+// https://clouderrorreporting.googleapis.com/v1beta1/pro
+// jects/example-project/events:report?key=123ABC456`
 func (r *ProjectsEventsService) Report(projectName string, reportederrorevent *ReportedErrorEvent) *ProjectsEventsReportCall {
 	c := &ProjectsEventsReportCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.projectName = projectName
@@ -1337,7 +1397,7 @@ func (c *ProjectsEventsReportCall) Do(opts ...googleapi.CallOption) (*ReportErro
 	}
 	return ret, nil
 	// {
-	//   "description": "Report an individual error event.\n\nThis endpoint accepts **either** an OAuth token,\n**or** an [API key](https://support.google.com/cloud/answer/6158862)\nfor authentication. To use an API key, append it to the URL as the value of\na `key` parameter. For example:\n\n`POST https://clouderrorreporting.googleapis.com/v1beta1/projects/example-project/events:report?key=123ABC456`",
+	//   "description": "Report an individual error event.\n\nThis endpoint accepts **either** an OAuth token,\n**or** an [API key](https://support.google.com/cloud/answer/6158862)\nfor authentication. To use an API key, append it to the URL as the value of\na `key` parameter. For example:\n\n`POST\nhttps://clouderrorreporting.googleapis.com/v1beta1/projects/example-project/events:report?key=123ABC456`",
 	//   "flatPath": "v1beta1/projects/{projectsId}/events:report",
 	//   "httpMethod": "POST",
 	//   "id": "clouderrorreporting.projects.events.report",
@@ -1346,7 +1406,7 @@ func (c *ProjectsEventsReportCall) Do(opts ...googleapi.CallOption) (*ReportErro
 	//   ],
 	//   "parameters": {
 	//     "projectName": {
-	//       "description": "[Required] The resource name of the Google Cloud Platform project. Written\nas `projects/` plus the\n[Google Cloud Platform project ID](https://support.google.com/cloud/answer/6158840).\nExample: `projects/my-project-123`.",
+	//       "description": "[Required] The resource name of the Google Cloud Platform project. Written\nas `projects/` plus the\n[Google Cloud Platform project\nID](https://support.google.com/cloud/answer/6158840). Example:\n`projects/my-project-123`.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+$",
 	//       "required": true,

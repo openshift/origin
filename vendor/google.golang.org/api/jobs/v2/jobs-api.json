@@ -14,7 +14,7 @@
   "basePath": "",
   "baseUrl": "https://jobs.googleapis.com/",
   "batchPath": "batch",
-  "canonicalName": "Job Service",
+  "canonicalName": "Cloud Talent Solution",
   "description": "Cloud Talent Solution provides the capability to create, read, update, and delete job postings, as well as search jobs based on keywords and filters.\n",
   "discoveryVersion": "v1",
   "documentationLink": "https://cloud.google.com/talent-solution/job-search/docs/",
@@ -614,7 +614,7 @@
       }
     }
   },
-  "revision": "20181126",
+  "revision": "20190531",
   "rootUrl": "https://jobs.googleapis.com/",
   "schemas": {
     "BatchDeleteJobsRequest": {
@@ -910,7 +910,7 @@
           "type": "string"
         },
         "unit": {
-          "description": "Optional.\n\nFrequency of the specified amount.\n\nDefault is CompensationUnit.OTHER_COMPENSATION_UNIT.",
+          "description": "Optional.\n\nFrequency of the specified amount.\n\nDefault is CompensationUnit.COMPENSATION_UNIT_UNSPECIFIED.",
           "enum": [
             "COMPENSATION_UNIT_UNSPECIFIED",
             "HOURLY",
@@ -1196,7 +1196,7 @@
           "type": "boolean"
         },
         "longValue": {
-          "description": "Optional but at least one of string_values or long_value must\nbe specified.\n\nThis field is used to perform number range search.\n(`EQ`, `GT`, `GE`, `LE`, `LT`) over filterable `long_value`. For\n`long_value`, a value between Long.MIN and Long.MIN is allowed.",
+          "description": "Optional but at least one of string_values or long_value must\nbe specified.\n\nThis field is used to perform number range search.\n(`EQ`, `GT`, `GE`, `LE`, `LT`) over filterable `long_value`. For\n`long_value`, a value between Long.MIN and Long.MAX is allowed.",
           "format": "int64",
           "type": "string"
         },
@@ -1351,7 +1351,7 @@
             "A mobile device web browser, such as a phone or tablet with a Chrome\nbrowser.",
             "An Android device native application.",
             "An iOS device native application.",
-            "A bot, as opposed to a device operated by human beings, such as a web crawler.",
+            "A bot, as opposed to a device operated by human beings, such as a web\ncrawler.",
             "Other devices types."
           ],
           "type": "string"
@@ -1514,7 +1514,7 @@
           "type": "string"
         },
         "unit": {
-          "description": "Optional.\n\nFrequency of the specified amount.\n\nDefault is CompensationUnit.OTHER_COMPENSATION_UNIT.",
+          "description": "Optional.\n\nFrequency of the specified amount.\n\nDefault is CompensationUnit.COMPENSATION_UNIT_UNSPECIFIED.",
           "enum": [
             "EXTENDED_COMPENSATION_UNIT_UNSPECIFIED",
             "HOURLY",
@@ -1727,7 +1727,7 @@
           "type": "array"
         },
         "customAttributeHistogramFacets": {
-          "description": "Optional.\n\nSpecifies the custom attributes histogram requests.\nDuplicate values of CustomAttributeHistogramRequest.key are not allowed.",
+          "description": "Optional.\n\nSpecifies the custom attributes histogram requests.\nDuplicate values of CustomAttributeHistogramRequest.key are not\nallowed.",
           "items": {
             "$ref": "CustomAttributeHistogramRequest"
           },
@@ -2112,7 +2112,7 @@
           "description": "Optional.\n\nThe end date of the job in UTC time zone. Typically this field\nis used for contracting engagements.\nDates prior to 1970/1/1 and invalid date formats are ignored."
         },
         "expireTime": {
-          "description": "Optional but strongly recommended for the best service\nexperience.\n\nThe expiration timestamp of the job. After this timestamp, the\njob is marked as expired, and it no longer appears in search results. The\nexpired job can't be deleted or listed by the DeleteJob and\nListJobs APIs, but it can be retrieved with the GetJob API or\nupdated with the UpdateJob API. An expired job can be updated and\nopened again by using a future expiration timestamp. Updating an expired job fails if there is another\nexisting open job with same requisition_id, company_name and\nlanguage_code.\n\nThe expired jobs are retained in our system for 90 days. However, the\noverall expired job count cannot exceed 3 times the maximum of open jobs\ncount over the past week, otherwise jobs with earlier expire time are\ncleaned first. Expired jobs are no longer accessible after they are cleaned\nout.\nThe format of this field is RFC 3339 date strings. Example:\n2000-01-01T00:00:00.999999999Z\nSee\n[https://www.ietf.org/rfc/rfc3339.txt](https://www.ietf.org/rfc/rfc3339.txt).\n\nA valid date range is between 1970-01-01T00:00:00.0Z and\n2100-12-31T23:59:59.999Z. Invalid dates are ignored and treated as expire\ntime not provided.\n\nIf this value is not provided at the time of job creation or is invalid, the job posting\nexpires after 30 days from the job's creation time. For example, if the\njob was created on 2017/01/01 13:00AM UTC with an unspecified expiration\ndate, the job expires after 2017/01/31 13:00AM UTC.\n\nIf this value is not provided but expiry_date is, expiry_date is\nused.\n\nIf this value is not provided on job update, it depends on the field masks\nset by UpdateJobRequest.update_job_fields. If the field masks include\nexpiry_time, or the masks are empty meaning that every field is\nupdated, the job posting expires after 30 days from the job's last\nupdate time. Otherwise the expiration date isn't updated.",
+          "description": "Optional but strongly recommended for the best service\nexperience.\n\nThe expiration timestamp of the job. After this timestamp, the\njob is marked as expired, and it no longer appears in search results. The\nexpired job can't be deleted or listed by the DeleteJob and\nListJobs APIs, but it can be retrieved with the GetJob API or\nupdated with the UpdateJob API. An expired job can be updated and\nopened again by using a future expiration timestamp. Updating an expired\njob fails if there is another existing open job with same\nrequisition_id, company_name and language_code.\n\nThe expired jobs are retained in our system for 90 days. However, the\noverall expired job count cannot exceed 3 times the maximum of open jobs\ncount over the past week, otherwise jobs with earlier expire time are\ncleaned first. Expired jobs are no longer accessible after they are cleaned\nout.\nThe format of this field is RFC 3339 date strings. Example:\n2000-01-01T00:00:00.999999999Z\nSee\n[https://www.ietf.org/rfc/rfc3339.txt](https://www.ietf.org/rfc/rfc3339.txt).\n\nA valid date range is between 1970-01-01T00:00:00.0Z and\n2100-12-31T23:59:59.999Z. Invalid dates are ignored and treated as expire\ntime not provided.\n\nIf this value is not provided at the time of job creation or is invalid,\nthe job posting expires after 30 days from the job's creation time. For\nexample, if the job was created on 2017/01/01 13:00AM UTC with an\nunspecified expiration date, the job expires after 2017/01/31 13:00AM UTC.\n\nIf this value is not provided but expiry_date is, expiry_date is\nused.\n\nIf this value is not provided on job update, it depends on the field masks\nset by UpdateJobRequest.update_job_fields. If the field masks include\nexpiry_time, or the masks are empty meaning that every field is\nupdated, the job posting expires after 30 days from the job's last\nupdate time. Otherwise the expiration date isn't updated.",
           "format": "google-datetime",
           "type": "string"
         },
@@ -2409,7 +2409,7 @@
           "description": "Deprecated. Always use compensation_filter.\n\nOptional.\n\nThis search filter is applied only to\nJob.extended_compensation_info. For example, if the filter is specified\nas \"Hourly job with per-hour compensation \u003e $15\", only jobs that meet\nthese criteria are searched. If a filter is not defined, all open jobs\nare searched."
         },
         "languageCodes": {
-          "description": "Optional.\n\nThis filter specifies the locale of jobs to search against,\nfor example, \"en-US\".\n\nIf a value is not specified, the search results may contain jobs in any\nlocale.\n\n\nLanguage codes should be in BCP-47 format, for example, \"en-US\" or \"sr-Latn\".\nFor more information, see\n[Tags for Identifying Languages](https://tools.ietf.org/html/bcp47).\n\nAt most 10 language code filters are allowed.",
+          "description": "Optional.\n\nThis filter specifies the locale of jobs to search against,\nfor example, \"en-US\".\n\nIf a value is not specified, the search results may contain jobs in any\nlocale.\n\n\nLanguage codes should be in BCP-47 format, for example, \"en-US\" or\n\"sr-Latn\". For more information, see [Tags for Identifying\nLanguages](https://tools.ietf.org/html/bcp47).\n\nAt most 10 language code filters are allowed.",
           "items": {
             "type": "string"
           },
@@ -2842,7 +2842,7 @@
           "type": "string"
         },
         "jobTitleSnippet": {
-          "description": "Contains snippets of text from the Job.job_title field most\nclosely matching a search query's keywords, if available. The matching query\nkeywords are enclosed in HTML bold tags.",
+          "description": "Contains snippets of text from the Job.job_title field most\nclosely matching a search query's keywords, if available. The matching\nquery keywords are enclosed in HTML bold tags.",
           "type": "string"
         },
         "searchTextSnippet": {
@@ -3066,7 +3066,7 @@
           ],
           "enumDescriptions": [
             "Default value.",
-            "A small view of the job, with the following attributes in the search results:\nJob.name, Job.requisition_id, Job.job_title,\nJob.company_name, Job.job_locations, Job.description,\nJob.visibility.\nNote: Job.description is deprecated. It is scheduled to be removed\nfrom MatchingJob.Job objects in the SearchJobsResponse results\non 12/31/2018.",
+            "A small view of the job, with the following attributes in the search\nresults: Job.name, Job.requisition_id, Job.job_title,\nJob.company_name, Job.job_locations, Job.description,\nJob.visibility.\nNote: Job.description is deprecated. It is scheduled to be removed\nfrom MatchingJob.Job objects in the SearchJobsResponse results\non 12/31/2018.",
             "A minimal view of the job, with the following attributes in the search\nresults: Job.name, Job.requisition_id, Job.job_title,\nJob.company_name, Job.job_locations.",
             "All available attributes are included in the search results.\nNote: [Job.description, Job.responsibilities,\nJob.qualifications and Job.incentives are deprecated.\nThese fields are scheduled to be removed from MatchingJob.Job objects\nin the SearchJobsResponse results on 12/31/2018.\nSee the alternative MatchingJob.search_text_snippet and\nMatchingJob.job_summary fields."
           ],
@@ -3089,7 +3089,7 @@
           "type": "string"
         },
         "offset": {
-          "description": "Optional.\n\nAn integer that specifies the current offset (that is, starting result location, amongst the jobs deemed by the API as relevant) in\nsearch results. This field is only considered if page_token is unset.\n\nFor example, 0 means to  return results starting from the first matching\njob, and 10 means to return from the 11th job. This can be used for\npagination, (for example, pageSize = 10 and offset = 10 means to return\nfrom the second page).",
+          "description": "Optional.\n\nAn integer that specifies the current offset (that is, starting result\nlocation, amongst the jobs deemed by the API as relevant) in search\nresults. This field is only considered if page_token is unset.\n\nFor example, 0 means to  return results starting from the first matching\njob, and 10 means to return from the 11th job. This can be used for\npagination, (for example, pageSize = 10 and offset = 10 means to return\nfrom the second page).",
           "format": "int32",
           "type": "integer"
         },
@@ -3203,7 +3203,7 @@
           ],
           "enumDescriptions": [
             "Default value.",
-            "A small view of the job, with the following attributes in the search results:\nJob.name, Job.requisition_id, Job.job_title,\nJob.company_name, Job.job_locations, Job.description,\nJob.visibility.\nNote: Job.description is deprecated. It is scheduled to be removed\nfrom MatchingJob.Job objects in the SearchJobsResponse results\non 12/31/2018.",
+            "A small view of the job, with the following attributes in the search\nresults: Job.name, Job.requisition_id, Job.job_title,\nJob.company_name, Job.job_locations, Job.description,\nJob.visibility.\nNote: Job.description is deprecated. It is scheduled to be removed\nfrom MatchingJob.Job objects in the SearchJobsResponse results\non 12/31/2018.",
             "A minimal view of the job, with the following attributes in the search\nresults: Job.name, Job.requisition_id, Job.job_title,\nJob.company_name, Job.job_locations.",
             "All available attributes are included in the search results.\nNote: [Job.description, Job.responsibilities,\nJob.qualifications and Job.incentives are deprecated.\nThese fields are scheduled to be removed from MatchingJob.Job objects\nin the SearchJobsResponse results on 12/31/2018.\nSee the alternative MatchingJob.search_text_snippet and\nMatchingJob.job_summary fields."
           ],

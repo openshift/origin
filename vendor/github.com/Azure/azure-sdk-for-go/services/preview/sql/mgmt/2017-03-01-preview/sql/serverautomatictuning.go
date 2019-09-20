@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewServerAutomaticTuningClientWithBaseURI(baseURI string, subscriptionID st
 // from the Azure Resource Manager API or the portal.
 // serverName - the name of the server.
 func (client ServerAutomaticTuningClient) Get(ctx context.Context, resourceGroupName string, serverName string) (result ServerAutomaticTuning, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ServerAutomaticTuningClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, serverName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerAutomaticTuningClient", "Get", nil, "Failure preparing request")
@@ -92,8 +103,8 @@ func (client ServerAutomaticTuningClient) GetPreparer(ctx context.Context, resou
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServerAutomaticTuningClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -116,6 +127,16 @@ func (client ServerAutomaticTuningClient) GetResponder(resp *http.Response) (res
 // serverName - the name of the server.
 // parameters - the requested automatic tuning resource state.
 func (client ServerAutomaticTuningClient) Update(ctx context.Context, resourceGroupName string, serverName string, parameters ServerAutomaticTuning) (result ServerAutomaticTuning, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ServerAutomaticTuningClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, serverName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerAutomaticTuningClient", "Update", nil, "Failure preparing request")
@@ -163,8 +184,8 @@ func (client ServerAutomaticTuningClient) UpdatePreparer(ctx context.Context, re
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServerAutomaticTuningClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

@@ -23,7 +23,6 @@ type Dbdsqrer interface {
 func DbdsqrTest(t *testing.T, impl Dbdsqrer) {
 	rnd := rand.New(rand.NewSource(1))
 	bi := blas64.Implementation()
-	_ = bi
 	for _, uplo := range []blas.Uplo{blas.Upper, blas.Lower} {
 		for _, test := range []struct {
 			n, ncvt, nru, ncc, ldvt, ldu, ldc int
@@ -49,13 +48,13 @@ func DbdsqrTest(t *testing.T, impl Dbdsqrer) {
 				ldu := test.ldu
 				ldc := test.ldc
 				if ldvt == 0 {
-					ldvt = ncvt
+					ldvt = max(1, ncvt)
 				}
 				if ldu == 0 {
-					ldu = n
+					ldu = max(1, n)
 				}
 				if ldc == 0 {
-					ldc = ncc
+					ldc = max(1, ncc)
 				}
 
 				d := make([]float64, n)
@@ -92,7 +91,7 @@ func DbdsqrTest(t *testing.T, impl Dbdsqrer) {
 					pt[i*ldpt+i] = 1
 				}
 
-				ok := impl.Dbdsqr(uplo, n, n, n, 0, d, e, pt, ldpt, q, ldq, nil, 0, work)
+				ok := impl.Dbdsqr(uplo, n, n, n, 0, d, e, pt, ldpt, q, ldq, nil, 1, work)
 
 				isUpper := uplo == blas.Upper
 				errStr := fmt.Sprintf("isUpper = %v, n = %v, ncvt = %v, nru = %v, ncc = %v", isUpper, n, ncvt, nru, ncc)

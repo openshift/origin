@@ -35,7 +35,7 @@ type Debug struct {
 	// Command stores the CNI command that the plugin received
 	Command string
 
-	// CmdArgs stores the CNI Args and Env Vars that the plugin recieved
+	// CmdArgs stores the CNI Args and Env Vars that the plugin received
 	CmdArgs skel.CmdArgs
 }
 

@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/opencontainers/runc/libcontainer/logs"
+
 	"github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/sirupsen/logrus"
@@ -63,9 +65,8 @@ func main() {
 	app.Version = strings.Join(v, "\n")
 
 	root := "/run/runc"
-	if os.Geteuid() != 0 {
-		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-		if runtimeDir != "" {
+	if shouldHonorXDGRuntimeDir() {
+		if runtimeDir := os.Getenv("XDG_RUNTIME_DIR"); runtimeDir != "" {
 			root = runtimeDir + "/runc"
 			// According to the XDG specification, we need to set anything in
 			// XDG_RUNTIME_DIR to have a sticky bit if we don't want it to get
@@ -86,7 +87,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "log",
-			Value: "/dev/null",
+			Value: "",
 			Usage: "set the log file path where internal debug information is written",
 		},
 		cli.StringFlag{
@@ -107,6 +108,11 @@ func main() {
 		cli.BoolFlag{
 			Name:  "systemd-cgroup",
 			Usage: "enable systemd cgroup support, expects cgroupsPath to be of form \"slice:prefix:name\" for e.g. \"system.slice:runc:434234\"",
+		},
+		cli.StringFlag{
+			Name:  "rootless",
+			Value: "auto",
+			Usage: "ignore cgroup permission errors ('true', 'false', or 'auto')",
 		},
 	}
 	app.Commands = []cli.Command{
@@ -129,26 +135,9 @@ func main() {
 		updateCommand,
 	}
 	app.Before = func(context *cli.Context) error {
-		if context.GlobalBool("debug") {
-			logrus.SetLevel(logrus.DebugLevel)
-		}
-		if path := context.GlobalString("log"); path != "" {
-			f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0666)
-			if err != nil {
-				return err
-			}
-			logrus.SetOutput(f)
-		}
-		switch context.GlobalString("log-format") {
-		case "text":
-			// retain logrus's default.
-		case "json":
-			logrus.SetFormatter(new(logrus.JSONFormatter))
-		default:
-			return fmt.Errorf("unknown log-format %q", context.GlobalString("log-format"))
-		}
-		return nil
+		return logs.ConfigureLogging(createLogConfig(context))
 	}
+
 	// If the command returns an error, cli takes upon itself to print
 	// the error on cli.ErrWriter and exit.
 	// Use our own writer here to ensure the log gets sent to the right location.
@@ -165,4 +154,23 @@ type FatalWriter struct {
 func (f *FatalWriter) Write(p []byte) (n int, err error) {
 	logrus.Error(string(p))
 	return f.cliErrWriter.Write(p)
+}
+
+func createLogConfig(context *cli.Context) logs.Config {
+	logFilePath := context.GlobalString("log")
+	logPipeFd := ""
+	if logFilePath == "" {
+		logPipeFd = "2"
+	}
+	config := logs.Config{
+		LogPipeFd:   logPipeFd,
+		LogLevel:    logrus.InfoLevel,
+		LogFilePath: logFilePath,
+		LogFormat:   context.GlobalString("log-format"),
+	}
+	if context.GlobalBool("debug") {
+		config.LogLevel = logrus.DebugLevel
+	}
+
+	return config
 }

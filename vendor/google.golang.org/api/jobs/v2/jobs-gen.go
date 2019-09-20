@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package jobs provides access to the Cloud Talent Solution API.
 //
-// See https://cloud.google.com/talent-solution/job-search/docs/
+// For product documentation, see: https://cloud.google.com/talent-solution/job-search/docs/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/jobs/v2"
 //   ...
-//   jobsService, err := jobs.New(oauthHttpClient)
+//   ctx := context.Background()
+//   jobsService, err := jobs.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   jobsService, err := jobs.NewService(ctx, option.WithScopes(jobs.JobsScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   jobsService, err := jobs.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   jobsService, err := jobs.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package jobs // import "google.golang.org/api/jobs/v2"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -59,6 +87,33 @@ const (
 	JobsScope = "https://www.googleapis.com/auth/jobs"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/jobs",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -712,7 +767,7 @@ type CompensationEntry struct {
 	//
 	// Frequency of the specified amount.
 	//
-	// Default is CompensationUnit.OTHER_COMPENSATION_UNIT.
+	// Default is CompensationUnit.COMPENSATION_UNIT_UNSPECIFIED.
 	//
 	// Possible values:
 	//   "COMPENSATION_UNIT_UNSPECIFIED" - Default value. Equivalent to
@@ -1256,7 +1311,7 @@ type CustomAttribute struct {
 	// This field is used to perform number range search.
 	// (`EQ`, `GT`, `GE`, `LE`, `LT`) over filterable `long_value`.
 	// For
-	// `long_value`, a value between Long.MIN and Long.MIN is allowed.
+	// `long_value`, a value between Long.MIN and Long.MAX is allowed.
 	LongValue int64 `json:"longValue,omitempty,string"`
 
 	// StringValues: Optional but at least one of string_values or
@@ -1596,7 +1651,8 @@ type DeviceInfo struct {
 	//   "ANDROID" - An Android device native application.
 	//   "IOS" - An iOS device native application.
 	//   "BOT" - A bot, as opposed to a device operated by human beings,
-	// such as a web crawler.
+	// such as a web
+	// crawler.
 	//   "OTHER" - Other devices types.
 	DeviceType string `json:"deviceType,omitempty"`
 
@@ -1904,7 +1960,7 @@ type ExtendedCompensationInfoCompensationEntry struct {
 	//
 	// Frequency of the specified amount.
 	//
-	// Default is CompensationUnit.OTHER_COMPENSATION_UNIT.
+	// Default is CompensationUnit.COMPENSATION_UNIT_UNSPECIFIED.
 	//
 	// Possible values:
 	//   "EXTENDED_COMPENSATION_UNIT_UNSPECIFIED" - Default value.
@@ -2270,7 +2326,8 @@ type HistogramFacets struct {
 	// CustomAttributeHistogramFacets: Optional.
 	//
 	// Specifies the custom attributes histogram requests.
-	// Duplicate values of CustomAttributeHistogramRequest.key are not
+	// Duplicate values of CustomAttributeHistogramRequest.key are
+	// not
 	// allowed.
 	CustomAttributeHistogramFacets []*CustomAttributeHistogramRequest `json:"customAttributeHistogramFacets,omitempty"`
 
@@ -2808,10 +2865,10 @@ type Job struct {
 	// updated with the UpdateJob API. An expired job can be updated
 	// and
 	// opened again by using a future expiration timestamp. Updating an
-	// expired job fails if there is another
-	// existing open job with same requisition_id, company_name
-	// and
-	// language_code.
+	// expired
+	// job fails if there is another existing open job with
+	// same
+	// requisition_id, company_name and language_code.
 	//
 	// The expired jobs are retained in our system for 90 days. However,
 	// the
@@ -2836,12 +2893,13 @@ type Job struct {
 	// time not provided.
 	//
 	// If this value is not provided at the time of job creation or is
-	// invalid, the job posting
-	// expires after 30 days from the job's creation time. For example, if
-	// the
-	// job was created on 2017/01/01 13:00AM UTC with an unspecified
-	// expiration
-	// date, the job expires after 2017/01/31 13:00AM UTC.
+	// invalid,
+	// the job posting expires after 30 days from the job's creation time.
+	// For
+	// example, if the job was created on 2017/01/01 13:00AM UTC with
+	// an
+	// unspecified expiration date, the job expires after 2017/01/31 13:00AM
+	// UTC.
 	//
 	// If this value is not provided but expiry_date is, expiry_date
 	// is
@@ -3495,10 +3553,10 @@ type JobFilters struct {
 	// locale.
 	//
 	//
-	// Language codes should be in BCP-47 format, for example, "en-US" or
-	// "sr-Latn".
-	// For more information, see
-	// [Tags for Identifying
+	// Language codes should be in BCP-47 format, for example, "en-US"
+	// or
+	// "sr-Latn". For more information, see [Tags for
+	// Identifying
 	// Languages](https://tools.ietf.org/html/bcp47).
 	//
 	// At most 10 language code filters are allowed.
@@ -4382,8 +4440,8 @@ type MatchingJob struct {
 	// JobTitleSnippet: Contains snippets of text from the Job.job_title
 	// field most
 	// closely matching a search query's keywords, if available. The
-	// matching query
-	// keywords are enclosed in HTML bold tags.
+	// matching
+	// query keywords are enclosed in HTML bold tags.
 	JobTitleSnippet string `json:"jobTitleSnippet,omitempty"`
 
 	// SearchTextSnippet: Contains snippets of text from the Job.description
@@ -4971,8 +5029,9 @@ type SearchJobsRequest struct {
 	// Possible values:
 	//   "JOB_VIEW_UNSPECIFIED" - Default value.
 	//   "SMALL" - A small view of the job, with the following attributes in
-	// the search results:
-	// Job.name, Job.requisition_id, Job.job_title,
+	// the search
+	// results: Job.name, Job.requisition_id,
+	// Job.job_title,
 	// Job.company_name, Job.job_locations,
 	// Job.description,
 	// Job.visibility.
@@ -5024,10 +5083,10 @@ type SearchJobsRequest struct {
 	// Offset: Optional.
 	//
 	// An integer that specifies the current offset (that is, starting
-	// result location, amongst the jobs deemed by the API as relevant)
-	// in
-	// search results. This field is only considered if page_token is
-	// unset.
+	// result
+	// location, amongst the jobs deemed by the API as relevant) in
+	// search
+	// results. This field is only considered if page_token is unset.
 	//
 	// For example, 0 means to  return results starting from the first
 	// matching
@@ -5209,8 +5268,9 @@ type SearchJobsResponse struct {
 	// Possible values:
 	//   "JOB_VIEW_UNSPECIFIED" - Default value.
 	//   "SMALL" - A small view of the job, with the following attributes in
-	// the search results:
-	// Job.name, Job.requisition_id, Job.job_title,
+	// the search
+	// results: Job.name, Job.requisition_id,
+	// Job.job_title,
 	// Job.company_name, Job.job_locations,
 	// Job.description,
 	// Job.visibility.

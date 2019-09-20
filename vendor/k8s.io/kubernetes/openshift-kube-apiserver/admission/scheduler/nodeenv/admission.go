@@ -1,6 +1,7 @@
 package nodeenv
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -45,7 +46,7 @@ var _ = admission.ValidationInterface(&podNodeEnvironment{})
 var _ = admission.MutationInterface(&podNodeEnvironment{})
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
-func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool) (err error) {
+func (p *podNodeEnvironment) admit(ctx context.Context, a admission.Attributes, mutationAllowed bool) (err error) {
 	resource := a.GetResource().GroupResource()
 	if resource != corev1.Resource("pods") {
 		return nil
@@ -101,12 +102,12 @@ func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool)
 	return nil
 }
 
-func (p *podNodeEnvironment) Admit(a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
-	return p.admit(a, true)
+func (p *podNodeEnvironment) Admit(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
+	return p.admit(ctx, a, true)
 }
 
-func (p *podNodeEnvironment) Validate(a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
-	return p.admit(a, false)
+func (p *podNodeEnvironment) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
+	return p.admit(ctx, a, false)
 }
 
 func (p *podNodeEnvironment) SetDefaultNodeSelector(in string) {

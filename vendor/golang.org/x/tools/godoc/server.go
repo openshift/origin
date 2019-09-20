@@ -7,6 +7,7 @@ package godoc
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/build"
@@ -87,6 +88,14 @@ func (h *handlerServer) GetPageInfo(abspath, relpath string, mode PageInfoMode, 
 		return ioutil.NopCloser(bytes.NewReader(data)), nil
 	}
 
+	// Make the syscall/js package always visible by default.
+	// It defaults to the host's GOOS/GOARCH, and golang.org's
+	// linux/amd64 means the wasm syscall/js package was blank.
+	// And you can't run godoc on js/wasm anyway, so host defaults
+	// don't make sense here.
+	if goos == "" && goarch == "" && relpath == "syscall/js" {
+		goos, goarch = "js", "wasm"
+	}
 	if goos != "" {
 		ctxt.GOOS = goos
 	}
@@ -199,11 +208,13 @@ func (h *handlerServer) GetPageInfo(abspath, relpath string, mode PageInfoMode, 
 		timestamp = ts
 	}
 	if dir == nil {
-		// no directory tree present (too early after startup or
-		// command-line mode); compute one level for this page
+		// TODO(agnivade): handle this case better, now since there is no CLI mode.
+		// no directory tree present (happens in command-line mode);
+		// compute 2 levels for this page. The second level is to
+		// get the synopses of sub-directories.
 		// note: cannot use path filter here because in general
-		//       it doesn't contain the FSTree path
-		dir = h.c.newDirectory(abspath, 1)
+		// it doesn't contain the FSTree path
+		dir = h.c.newDirectory(abspath, 2)
 		timestamp = time.Now()
 	}
 	info.Dirs = dir.listing(true, func(path string) bool { return h.includePath(path, mode) })
@@ -248,20 +259,24 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	relpath := pathpkg.Clean(r.URL.Path[len(h.stripPrefix)+1:])
+
+	if !h.corpusInitialized() {
+		h.p.ServeError(w, r, relpath, errors.New("Scan is not yet complete. Please retry after a few moments"))
+		return
+	}
+
 	abspath := pathpkg.Join(h.fsRoot, relpath)
 	mode := h.p.GetPageInfoMode(r)
 	if relpath == builtinPkgPath {
-		mode = NoFiltering | NoTypeAssoc
+		// The fake built-in package contains unexported identifiers,
+		// but we want to show them. Also, disable type association,
+		// since it's not helpful for this fake package (see issue 6645).
+		mode |= NoFiltering | NoTypeAssoc
 	}
 	info := h.GetPageInfo(abspath, relpath, mode, r.FormValue("GOOS"), r.FormValue("GOARCH"))
 	if info.Err != nil {
 		log.Print(info.Err)
 		h.p.ServeError(w, r, relpath, info.Err)
-		return
-	}
-
-	if mode&NoHTML != 0 {
-		h.p.ServeText(w, applyTemplate(h.p.PackageText, "packageText", info))
 		return
 	}
 
@@ -304,6 +319,7 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Emit JSON array for type information.
 	pi := h.c.Analysis.PackageInfo(relpath)
+	hasTreeView := len(pi.CallGraph) != 0
 	info.CallGraphIndex = pi.CallGraphIndex
 	info.CallGraph = htmltemplate.JS(marshalJSON(pi.CallGraph))
 	info.AnalysisData = htmltemplate.JS(marshalJSON(pi.Types))
@@ -312,14 +328,27 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		info.TypeInfoIndex[ti.Name] = i
 	}
 
-	info.Share = allowShare(r)
+	info.GoogleCN = googleCN(r)
+	var body []byte
+	if info.Dirname == "/src" {
+		body = applyTemplate(h.p.PackageRootHTML, "packageRootHTML", info)
+	} else {
+		body = applyTemplate(h.p.PackageHTML, "packageHTML", info)
+	}
 	h.p.ServePage(w, Page{
 		Title:    title,
 		Tabtitle: tabtitle,
 		Subtitle: subtitle,
-		Body:     applyTemplate(h.p.PackageHTML, "packageHTML", info),
-		Share:    info.Share,
+		Body:     body,
+		GoogleCN: info.GoogleCN,
+		TreeView: hasTreeView,
 	})
+}
+
+func (h *handlerServer) corpusInitialized() bool {
+	h.c.initMu.RLock()
+	defer h.c.initMu.RUnlock()
+	return h.c.initDone
 }
 
 type PageInfoMode uint
@@ -330,9 +359,8 @@ const (
 	NoFiltering PageInfoMode = 1 << iota // do not filter exports
 	AllMethods                           // show all embedded methods
 	ShowSource                           // show source code, do not extract documentation
-	NoHTML                               // show result in textual form, do not generate HTML
 	FlatDir                              // show directory in a flat (non-indented) manner
-	NoTypeAssoc                          // don't associate consts, vars, and factory functions with types
+	NoTypeAssoc                          // don't associate consts, vars, and factory functions with types (not exposed via ?m= query parameter, used for package builtin, see issue 6645)
 )
 
 // modeNames defines names for each PageInfoMode flag.
@@ -340,7 +368,6 @@ var modeNames = map[string]PageInfoMode{
 	"all":     NoFiltering,
 	"methods": AllMethods,
 	"src":     ShowSource,
-	"text":    NoHTML,
 	"flat":    FlatDir,
 }
 
@@ -579,10 +606,11 @@ func (p *Presentation) serveTextFile(w http.ResponseWriter, r *http.Request, abs
 	fmt.Fprintf(&buf, `<p><a href="/%s?m=text">View as plain text</a></p>`, htmlpkg.EscapeString(relpath))
 
 	p.ServePage(w, Page{
-		Title:    title + " " + relpath,
+		Title:    title,
+		SrcPath:  relpath,
 		Tabtitle: relpath,
 		Body:     buf.Bytes(),
-		Share:    allowShare(r),
+		GoogleCN: googleCN(r),
 	})
 }
 
@@ -629,8 +657,16 @@ func formatGoSource(buf *bytes.Buffer, text []byte, links []analysis.Link, patte
 		//
 		// The first tab for the code snippet needs to start in column 9, so
 		// it indents a full 8 spaces, hence the two nbsp's. Otherwise the tab
-		// character only indents about two spaces.
-		fmt.Fprintf(saved, `<span id="L%d" class="ln" data-content="%6d">&nbsp;&nbsp;</span>`, n, n)
+		// character only indents a short amount.
+		//
+		// Due to rounding and font width Firefox might not treat 8 rendered
+		// characters as 8 characters wide, and subsequently may treat the tab
+		// character in the 9th position as moving the width from (7.5 or so) up
+		// to 8. See
+		// https://github.com/webcompat/web-bugs/issues/17530#issuecomment-402675091
+		// for a fuller explanation. The solution is to add a CSS class to
+		// explicitly declare the width to be 8 characters.
+		fmt.Fprintf(saved, `<span id="L%d" class="ln">%6d&nbsp;&nbsp;</span>`, n, n)
 		n++
 		saved.Write(line)
 		saved.WriteByte('\n')
@@ -649,10 +685,11 @@ func (p *Presentation) serveDirectory(w http.ResponseWriter, r *http.Request, ab
 	}
 
 	p.ServePage(w, Page{
-		Title:    "Directory " + relpath,
+		Title:    "Directory",
+		SrcPath:  relpath,
 		Tabtitle: relpath,
 		Body:     applyTemplate(p.DirlistHTML, "dirlistHTML", list),
-		Share:    allowShare(r),
+		GoogleCN: googleCN(r),
 	})
 }
 
@@ -681,7 +718,7 @@ func (p *Presentation) ServeHTMLDoc(w http.ResponseWriter, r *http.Request, absp
 	page := Page{
 		Title:    meta.Title,
 		Subtitle: meta.Subtitle,
-		Share:    allowShare(r),
+		GoogleCN: googleCN(r),
 	}
 
 	// evaluate as template if indicated

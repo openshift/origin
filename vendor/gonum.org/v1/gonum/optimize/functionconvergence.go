@@ -4,10 +4,38 @@
 
 package optimize
 
-import "math"
+import (
+	"math"
+)
 
-// FunctionConverge tests for the convergence of function values. See comment
-// in Settings.
+// Converger returns the convergence of the optimization based on
+// locations found during optimization. Converger must not modify the value of
+// the provided Location in any of the methods.
+type Converger interface {
+	Init(dim int)
+	Converged(loc *Location) Status
+}
+
+// NeverTerminate implements Converger, always reporting NotTerminated.
+type NeverTerminate struct{}
+
+func (NeverTerminate) Init(dim int) {}
+
+func (NeverTerminate) Converged(loc *Location) Status {
+	return NotTerminated
+}
+
+// FunctionConverge tests for insufficient improvement in the optimum value
+// over the last iterations. A FunctionConvergence status is returned if
+// there is no significant decrease for FunctionConverge.Iterations. A
+// significant decrease is considered if
+//   f < f_best
+// and
+//  f_best - f > FunctionConverge.Relative * maxabs(f, f_best) + FunctionConverge.Absolute
+// If the decrease is significant, then the iteration counter is reset and
+// f_best is updated.
+//
+// If FunctionConverge.Iterations == 0, it has no effect.
 type FunctionConverge struct {
 	Absolute   float64
 	Relative   float64
@@ -18,13 +46,14 @@ type FunctionConverge struct {
 	iter  int
 }
 
-func (fc *FunctionConverge) Init() {
+func (fc *FunctionConverge) Init(dim int) {
 	fc.first = true
 	fc.best = 0
 	fc.iter = 0
 }
 
-func (fc *FunctionConverge) FunctionConverged(f float64) Status {
+func (fc *FunctionConverge) Converged(l *Location) Status {
+	f := l.F
 	if fc.first {
 		fc.best = f
 		fc.first = false
