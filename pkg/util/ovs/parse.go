@@ -372,7 +372,7 @@ func fieldMatches(val, match string, ptype ParseType) bool {
 func ParseExternalIDs(externalIDs string) (map[string]string, error) {
 	ids := make(map[string]string, 1)
 	// Output from "find" and "list" will have braces, but input to "set" won't
-	if externalIDs[0] == '{' && externalIDs[len(externalIDs)-1] == '}' {
+	if strings.HasPrefix(externalIDs, "{") && strings.HasSuffix(externalIDs, "}") {
 		externalIDs = externalIDs[1 : len(externalIDs)-1]
 	}
 	for _, id := range strings.Split(externalIDs, ",") {

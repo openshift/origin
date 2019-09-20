@@ -75,7 +75,7 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 	if err != nil {
 		return err
 	}
-	err = oc.ovs.AddBridge("fail-mode=secure", "protocols=OpenFlow13")
+	err = oc.ovs.AddBridge("fail_mode=secure", "protocols=OpenFlow13")
 	if err != nil {
 		return err
 	}
@@ -228,13 +228,63 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 	return otx.Commit()
 }
 
+type podNetworkInfo struct {
+	vethName string
+	ip       string
+	ofport   int
+}
+
+// GetPodNetworkInfo returns network interface information about all currently-attached pods.
+func (oc *ovsController) GetPodNetworkInfo() (map[string]podNetworkInfo, error) {
+	rows, err := oc.ovs.Find("interface", []string{"name", "external_ids", "ofport"}, "external_ids:sandbox!=\"\"")
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[string]podNetworkInfo)
+	for _, row := range rows {
+		if row["name"] == "" || row["external_ids"] == "" || row["ofport"] == "" {
+			utilruntime.HandleError(fmt.Errorf("ovs-vsctl output missing one or more fields: %v", row))
+			continue
+		}
+
+		ids, err := ovs.ParseExternalIDs(row["external_ids"])
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("Could not parse external_ids %q: %v", row["external_ids"], err))
+			continue
+		}
+		if ids["ip"] == "" || ids["sandbox"] == "" {
+			utilruntime.HandleError(fmt.Errorf("ovs-vsctl output missing one or more external_ids: %v", ids))
+			continue
+		}
+		if net.ParseIP(ids["ip"]) == nil {
+			utilruntime.HandleError(fmt.Errorf("Could not parse IP %q for sandbox %q", ids["ip"], ids["sandbox"]))
+			continue
+		}
+
+		ofport, err := strconv.Atoi(row["ofport"])
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("Could not parse ofport %q: %v", row["ofport"], err))
+			continue
+		}
+
+		results[ids["sandbox"]] = podNetworkInfo{
+			vethName: row["name"],
+			ip:       ids["ip"],
+			ofport:   ofport,
+		}
+	}
+
+	return results, nil
+}
+
 func (oc *ovsController) NewTransaction() ovs.Transaction {
 	return oc.ovs.NewTransaction()
 }
 
 func (oc *ovsController) ensureOvsPort(hostVeth, sandboxID, podIP string) (int, error) {
 	ofport, err := oc.ovs.AddPort(hostVeth, -1,
-		fmt.Sprintf(`external-ids=sandbox="%s",ip="%s"`, sandboxID, podIP),
+		fmt.Sprintf(`external_ids=sandbox="%s",ip="%s"`, sandboxID, podIP),
 	)
 	if err != nil {
 		// If hostVeth doesn't exist, ovs-vsctl will return an error, but will
@@ -288,7 +338,7 @@ func (oc *ovsController) SetUpPod(sandboxID, hostVeth string, podIP net.IP, vnid
 
 // Returned list can also be used for port names
 func (oc *ovsController) getInterfacesForSandbox(sandboxID string) ([]string, error) {
-	return oc.ovs.Find("interface", "name", "external-ids:sandbox="+sandboxID)
+	return oc.ovs.FindOne("interface", "name", "external_ids:sandbox="+sandboxID)
 }
 
 func (oc *ovsController) ClearPodBandwidth(portList []string, sandboxID string) error {
@@ -300,7 +350,7 @@ func (oc *ovsController) ClearPodBandwidth(portList []string, sandboxID string) 
 	}
 
 	// Now that the QoS is unused remove it
-	qosList, err := oc.ovs.Find("qos", "_uuid", "external-ids:sandbox="+sandboxID)
+	qosList, err := oc.ovs.FindOne("qos", "_uuid", "external_ids:sandbox="+sandboxID)
 	if err != nil {
 		return err
 	}
@@ -326,7 +376,7 @@ func (oc *ovsController) SetPodBandwidth(hostVeth, sandboxID string, ingressBPS,
 	}
 
 	if ingressBPS > 0 {
-		qos, err := oc.ovs.Create("qos", "type=linux-htb", fmt.Sprintf("other-config:max-rate=%d", ingressBPS), "external-ids=sandbox="+sandboxID)
+		qos, err := oc.ovs.Create("qos", "type=linux-htb", fmt.Sprintf("other_config:max-rate=%d", ingressBPS), "external_ids=sandbox="+sandboxID)
 		if err != nil {
 			return err
 		}
@@ -347,31 +397,27 @@ func (oc *ovsController) SetPodBandwidth(hostVeth, sandboxID string, ingressBPS,
 }
 
 func (oc *ovsController) getPodDetailsBySandboxID(sandboxID string) (int, net.IP, error) {
-	strports, err := oc.ovs.Find("interface", "ofport", "external-ids:sandbox="+sandboxID)
-	if err != nil {
-		return 0, nil, err
-	}
-	strIDs, err := oc.ovs.Find("interface", "external-ids", "external-ids:sandbox="+sandboxID)
+	rows, err := oc.ovs.Find("interface", []string{"ofport", "external_ids"}, "external_ids:sandbox="+sandboxID)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	if len(strports) == 0 || len(strIDs) == 0 {
-		return 0, nil, fmt.Errorf("failed to find pod details from OVS flows")
-	} else if len(strports) > 1 || len(strIDs) > 1 {
-		return 0, nil, fmt.Errorf("found multiple pods for sandbox ID %q: %#v / %#v", sandboxID, strports, strIDs)
+	if len(rows) == 0 {
+		return 0, nil, fmt.Errorf("failed to find pod details in OVS database")
+	} else if len(rows) > 1 {
+		return 0, nil, fmt.Errorf("found multiple pods for sandbox ID %q: %#v", sandboxID, rows)
 	}
 
-	ofport, err := strconv.Atoi(strports[0])
+	ofport, err := strconv.Atoi(rows[0]["ofport"])
 	if err != nil {
-		return 0, nil, fmt.Errorf("could not parse ofport %q: %v", strports[0], err)
+		return 0, nil, fmt.Errorf("could not parse ofport %q: %v", rows[0]["ofport"], err)
 	}
 
-	ids, err := ovs.ParseExternalIDs(strIDs[0])
+	ids, err := ovs.ParseExternalIDs(rows[0]["external_ids"])
 	if err != nil {
-		return 0, nil, fmt.Errorf("could not parse external-ids %q: %v", strIDs[0], err)
+		return 0, nil, fmt.Errorf("could not parse external_ids %q: %v", rows[0]["external_ids"], err)
 	} else if ids["ip"] == "" {
-		return 0, nil, fmt.Errorf("external-ids %q does not contain IP", strIDs[0])
+		return 0, nil, fmt.Errorf("external_ids %#v does not contain IP", ids)
 	}
 	podIP := net.ParseIP(ids["ip"])
 	if podIP == nil {

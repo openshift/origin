@@ -100,15 +100,15 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	}
 }
 
-func (plugin *OsdnNode) SetupSDN() (bool, error) {
+func (plugin *OsdnNode) SetupSDN() (bool, map[string]podNetworkInfo, error) {
 	// Make sure IPv4 forwarding state is 1
 	sysctl := sysctl.New()
 	val, err := sysctl.GetSysctl("net/ipv4/ip_forward")
 	if err != nil {
-		return false, fmt.Errorf("could not get IPv4 forwarding state: %s", err)
+		return false, nil, fmt.Errorf("could not get IPv4 forwarding state: %s", err)
 	}
 	if val != 1 {
-		return false, fmt.Errorf("net/ipv4/ip_forward=0, it must be set to 1")
+		return false, nil, fmt.Errorf("net/ipv4/ip_forward=0, it must be set to 1")
 	}
 
 	var clusterNetworkCIDRs []string
@@ -119,7 +119,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	localSubnetCIDR := plugin.localSubnetCIDR
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	if err != nil {
-		return false, fmt.Errorf("invalid local subnet CIDR: %v", err)
+		return false, nil, fmt.Errorf("invalid local subnet CIDR: %v", err)
 	}
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
@@ -129,16 +129,20 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
 
 	if err := waitForOVS(ovsDialDefaultNetwork, ovsDialDefaultAddress); err != nil {
-		return false, err
+		return false, nil, err
 	}
 
 	var changed bool
+	existingPods, err := plugin.oc.GetPodNetworkInfo()
+	if err != nil {
+		glog.Warningf("[SDN setup] Could not get details of existing pods: %v", err)
+	}
 	if err := plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs); err == nil {
 		glog.V(5).Infof("[SDN setup] no SDN setup required")
 	} else {
 		glog.Infof("[SDN setup] full SDN setup required (%v)", err)
 		if err := plugin.setup(clusterNetworkCIDRs, localSubnetCIDR, localSubnetGateway, gwCIDR); err != nil {
-			return false, err
+			return false, nil, err
 		}
 		changed = true
 	}
@@ -148,7 +152,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	healthFn := func() error { return plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs) }
 	runOVSHealthCheck(ovsDialDefaultNetwork, ovsDialDefaultAddress, healthFn)
 
-	return changed, nil
+	return changed, existingPods, nil
 }
 
 func (plugin *OsdnNode) setup(clusterNetworkCIDRs []string, localSubnetCIDR, localSubnetGateway, gwCIDR string) error {

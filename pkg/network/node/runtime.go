@@ -63,3 +63,23 @@ func (node *OsdnNode) getPodSandboxID(filter *kruntimeapi.PodSandboxFilter) (str
 	}
 	return podSandboxList[0].Id, nil
 }
+
+func (node *OsdnNode) getPodSandboxes() (map[string]*kruntimeapi.PodSandbox, error) {
+	runtimeService, err := node.getRuntimeService()
+	if err != nil {
+		return nil, err
+	}
+
+	podSandboxList, err := runtimeService.ListPodSandbox(&kruntimeapi.PodSandboxFilter{
+		State: &kruntimeapi.PodSandboxStateValue{State: kruntimeapi.PodSandboxState_SANDBOX_READY},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pod sandboxes: %v", err)
+	}
+
+	podSandboxMap := make(map[string]*kruntimeapi.PodSandbox)
+	for _, sandbox := range podSandboxList {
+		podSandboxMap[getPodKey(sandbox.Metadata.Namespace, sandbox.Metadata.Name)] = sandbox
+	}
+	return podSandboxMap, nil
+}

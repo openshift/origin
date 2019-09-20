@@ -15,11 +15,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/vishvananda/netlink"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	kubeutilnet "k8s.io/apimachinery/pkg/util/net"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
@@ -269,29 +270,6 @@ func GetLinkDetails(ip string) (netlink.Link, *net.IPNet, error) {
 	return nil, nil, ErrorNetworkInterfaceNotFound
 }
 
-func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
-	for _, pod := range pods {
-		// Get the sandbox ID for this pod from the runtime
-		filter := &kruntimeapi.PodSandboxFilter{
-			LabelSelector: map[string]string{ktypes.KubernetesPodUIDLabel: string(pod.UID)},
-		}
-		sandboxID, err := node.getPodSandboxID(filter)
-		if err != nil {
-			return err
-		}
-
-		// Make an event that the pod is going to be killed
-		podRef := &v1.ObjectReference{Kind: "Pod", Name: pod.Name, Namespace: pod.Namespace, UID: pod.UID}
-		node.recorder.Eventf(podRef, v1.EventTypeWarning, "NetworkFailed", "The pod's network interface has been lost and the pod will be stopped.")
-
-		glog.V(5).Infof("Killing pod '%s/%s' sandbox due to failed restart", pod.Namespace, pod.Name)
-		if err := node.runtimeService.StopPodSandbox(sandboxID); err != nil {
-			glog.Warningf("Failed to kill pod '%s/%s' sandbox: %v", pod.Namespace, pod.Name, err)
-		}
-	}
-	return nil
-}
-
 func (node *OsdnNode) Start() error {
 	glog.V(2).Infof("Starting openshift-sdn network plugin")
 
@@ -329,7 +307,7 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
 
-	networkChanged, err := node.SetupSDN()
+	networkChanged, existingOFPodNetworks, err := node.SetupSDN()
 	if err != nil {
 		return fmt.Errorf("node SDN setup failed: %v", err)
 	}
@@ -351,39 +329,31 @@ func (node *OsdnNode) Start() error {
 	if !node.useConnTrack {
 		node.watchServices()
 	}
-
-	glog.V(2).Infof("Starting openshift-sdn pod manager")
-	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR,
-		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String()); err != nil {
+	existingSandboxPods, err := node.getPodSandboxes()
+	if err != nil {
 		return err
 	}
 
-	if networkChanged {
-		var pods, podsToKill []kapi.Pod
+	runningPods, err := node.GetRunningPods(metav1.NamespaceAll)
+	if err != nil {
+		return err
+	}
 
-		pods, err = node.GetLocalPods(metav1.NamespaceAll)
+	if err = node.podManager.InitRunningPods(existingSandboxPods, existingOFPodNetworks, runningPods); err != nil {
+		return err
+	}
+
+	glog.V(2).Infof("Starting openshift-sdn pod manager")
+	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR,
+		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String(),
+		networkChanged); err != nil {
+		return err
+	}
+
+	if networkChanged && len(existingOFPodNetworks) > 0 {
+		err := node.reattachPods(existingSandboxPods, existingOFPodNetworks)
 		if err != nil {
 			return err
-		}
-		for _, p := range pods {
-			// Ignore HostNetwork pods since they don't go through OVS
-			if p.Spec.SecurityContext != nil && p.Spec.SecurityContext.HostNetwork {
-				continue
-			}
-			if err := node.UpdatePod(p); err != nil {
-				glog.Warningf("will restart pod '%s/%s' due to update failure on restart: %s", p.Namespace, p.Name, err)
-				podsToKill = append(podsToKill, p)
-			} else if vnid, err := node.policy.GetVNID(p.Namespace); err == nil {
-				node.policy.EnsureVNIDRules(vnid)
-			}
-		}
-
-		// Kill pods we couldn't recover; they will get restarted and then
-		// we'll be able to set them up correctly
-		if len(podsToKill) > 0 {
-			if err := node.killUpdateFailedPods(podsToKill); err != nil {
-				glog.Warningf("failed to restart pods that failed to update at startup: %v", err)
-			}
 		}
 	}
 
@@ -418,6 +388,57 @@ func (node *OsdnNode) Start() error {
 	return nil
 }
 
+// reattachPods takes an array containing the information about pods that had been
+// attached to the OVS bridge before restart, and either reattaches or kills each of the
+// corresponding pods.
+func (node *OsdnNode) reattachPods(existingPodSandboxes map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo) error {
+
+	failed := []*kruntimeapi.PodSandbox{}
+	for sandboxID, podInfo := range existingOFPodNetworks {
+		sandbox, ok := existingPodSandboxes[sandboxID]
+		if !ok {
+			glog.V(5).Infof("Sandbox for pod with IP %s no longer exists", podInfo.ip)
+			continue
+		}
+		if _, err := netlink.LinkByName(podInfo.vethName); err != nil {
+			glog.Infof("Interface %s for pod '%s/%s' no longer exists", podInfo.vethName, sandbox.Metadata.Namespace, sandbox.Metadata.Name)
+			failed = append(failed, sandbox)
+			continue
+		}
+
+		req := &cniserver.PodRequest{
+			Command:      cniserver.CNI_ADD,
+			PodNamespace: sandbox.Metadata.Namespace,
+			PodName:      sandbox.Metadata.Name,
+			SandboxID:    sandboxID,
+			HostVeth:     podInfo.vethName,
+			AssignedIP:   podInfo.ip,
+			Result:       make(chan *cniserver.PodResult),
+		}
+		glog.Infof("Reattaching pod '%s/%s' to SDN", req.PodNamespace, req.PodName)
+		// NB: we don't need to worry about locking here because the cniserver
+		// isn't running for real yet.
+		if _, err := node.podManager.handleCNIRequest(req); err != nil {
+			glog.Warningf("Could not reattach pod '%s/%s' to SDN: %v", req.PodNamespace, req.PodName, err)
+			failed = append(failed, sandbox)
+		}
+	}
+
+	// Kill pods we couldn't recover; they will get restarted and then
+	// we'll be able to set them up correctly
+	for _, sandbox := range failed {
+		podRef := &v1.ObjectReference{Kind: "Pod", Name: sandbox.Metadata.Name, Namespace: sandbox.Metadata.Namespace, UID: types.UID(sandbox.Metadata.Uid)}
+		node.recorder.Eventf(podRef, v1.EventTypeWarning, "NetworkFailed", "The pod's network interface has been lost and the pod will be stopped.")
+
+		glog.V(5).Infof("Killing pod '%s/%s' sandbox", podRef.Namespace, podRef.Name)
+		if err := node.runtimeService.StopPodSandbox(sandbox.Id); err != nil {
+			glog.Warningf("Failed to kill pod '%s/%s' sandbox: %v", podRef.Namespace, podRef.Name, err)
+		}
+	}
+
+	return nil
+}
+
 // FIXME: this should eventually go into kubelet via a CNI UPDATE/CHANGE action
 // See https://github.com/containernetworking/cni/issues/89
 func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
@@ -442,7 +463,7 @@ func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 	return err
 }
 
-func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
+func (node *OsdnNode) GetRunningPods(namespace string) ([]kapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
 	opts := metav1.ListOptions{
 		LabelSelector: labels.Everything().String(),

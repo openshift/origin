@@ -33,6 +33,9 @@ func NewFake(bridge string) Interface {
 }
 
 func (fake *ovsFake) AddBridge(properties ...string) error {
+	if err := validateColumns(properties...); err != nil {
+		return err
+	}
 	fake.ports = make(map[string]ovsPortInfo)
 	fake.flows = make([]OvsFlow, 0)
 	return nil
@@ -67,11 +70,14 @@ func (fake *ovsFake) AddPort(port string, ofportRequest int, properties ...strin
 	if err := fake.ensureExists(); err != nil {
 		return -1, err
 	}
+	if err := validateColumns(properties...); err != nil {
+		return -1, err
+	}
 
 	var externalIDs map[string]string
 	var dst_port string
 	for _, property := range properties {
-		if strings.HasPrefix(property, "external-ids=") {
+		if strings.HasPrefix(property, "external_ids=") {
 			var err error
 			externalIDs, err = ParseExternalIDs(property[13:])
 			if err != nil {
@@ -123,6 +129,9 @@ func (fake *ovsFake) SetFrags(mode string) error {
 }
 
 func (ovsif *ovsFake) Create(table string, values ...string) (string, error) {
+	if err := validateColumns(values...); err != nil {
+		return "", err
+	}
 	return "fake-UUID", nil
 }
 
@@ -131,6 +140,9 @@ func (fake *ovsFake) Destroy(table, record string) error {
 }
 
 func (fake *ovsFake) Get(table, record, column string) (string, error) {
+	if err := validateColumns(column); err != nil {
+		return "", err
+	}
 	if column == "options:dst_port" {
 		return fmt.Sprintf("\"%s\"", fake.ports[record].dst_port), nil
 	}
@@ -138,29 +150,54 @@ func (fake *ovsFake) Get(table, record, column string) (string, error) {
 }
 
 func (fake *ovsFake) Set(table, record string, values ...string) error {
+	if err := validateColumns(values...); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (fake *ovsFake) Find(table, column, condition string) ([]string, error) {
-	results := make([]string, 0)
-	if (table == "Interface" || table == "interface") && strings.HasPrefix(condition, "external-ids:") {
+func (fake *ovsFake) Find(table string, columns []string, condition string) ([]map[string]string, error) {
+	if err := validateColumns(columns...); err != nil {
+		return nil, err
+	}
+	if err := validateColumns(condition); err != nil {
+		return nil, err
+	}
+	results := make([]map[string]string, 0)
+	if (table == "Interface" || table == "interface") && strings.HasPrefix(condition, "external_ids:") {
 		parsed := strings.Split(condition[13:], "=")
 		if len(parsed) != 2 {
 			return nil, fmt.Errorf("could not parse condition %q", condition)
 		}
 		for portName, portInfo := range fake.ports {
 			if portInfo.externalIDs[parsed[0]] == parsed[1] {
-				if column == "name" {
-					results = append(results, portName)
-				} else if column == "ofport" {
-					results = append(results, fmt.Sprintf("%d", portInfo.ofport))
-				} else if column == "external-ids" {
-					results = append(results, UnparseExternalIDs(portInfo.externalIDs))
+				result := make(map[string]string)
+				for _, column := range columns {
+					if column == "name" {
+						result[column] = portName
+					} else if column == "ofport" {
+						result[column] = fmt.Sprintf("%d", portInfo.ofport)
+					} else if column == "external_ids" {
+						result[column] = UnparseExternalIDs(portInfo.externalIDs)
+					}
 				}
+				results = append(results, result)
 			}
 		}
 	}
 	return results, nil
+}
+
+func (fake *ovsFake) FindOne(table, column, condition string) ([]string, error) {
+	fullResult, err := fake.Find(table, []string{column}, condition)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, 0, len(fullResult))
+	for _, row := range fullResult {
+		result = append(result, row[column])
+	}
+	return result, nil
 }
 
 func (fake *ovsFake) Clear(table, record string, columns ...string) error {

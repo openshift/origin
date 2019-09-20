@@ -17,13 +17,14 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
@@ -171,10 +172,13 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 }
 
 // Start the CNI server and start processing requests from it
-func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork, serviceNetworkCIDR string) error {
+func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork, serviceNetworkCIDR string, clearHostPorts bool) error {
 	if m.enableHostports {
 		iptInterface := utiliptables.New(utilexec.New(), utildbus.New(), utiliptables.ProtocolIpv4)
 		m.hostportSyncer = kubehostport.NewHostportSyncer(iptInterface)
+		if clearHostPorts {
+			_ = m.hostportSyncer.SyncHostports(Tun0, nil)
+		}
 	}
 
 	var err error
@@ -188,13 +192,53 @@ func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetwork
 	return m.cniServer.Start(m.handleCNIRequest)
 }
 
+func (m *podManager) InitRunningPods(existingSandboxPods map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo, cRunningPods []kapi.Pod) error {
+	m.runningPodsLock.Lock()
+	defer m.runningPodsLock.Unlock()
+
+	for _, cPod := range cRunningPods {
+		cKey := getPodKey(cPod.Namespace, cPod.Name)
+
+		var v1Pod v1.Pod
+		if err := kapiv1.Convert_core_Pod_To_v1_Pod(&cPod, &v1Pod, nil); err != nil {
+			glog.Warningf("Could not convert core pod: %s to v1Pod", cKey)
+			continue
+		}
+
+		podPortMapping := constructPodPortMapping(&v1Pod, net.ParseIP(v1Pod.Status.PodIP))
+
+		vnid, err := m.policy.GetVNID(cPod.Namespace)
+		if err != nil {
+			glog.Warningf("No VNID for pod %s", cKey)
+			continue
+		}
+
+		sandbox, ok := existingSandboxPods[cKey]
+		if !ok {
+			glog.Warningf("No sandbox for pod %s", cKey)
+			continue
+		}
+
+		podNetworkInfo, ok := existingOFPodNetworks[sandbox.Id]
+		if !ok {
+			glog.Warningf("No network information for pod %s", cKey)
+			continue
+		}
+
+		m.runningPods[cKey] = &runningPod{podPortMapping: podPortMapping, vnid: vnid, ofport: podNetworkInfo.ofport}
+	}
+
+	glog.V(5).Infof("Finished initializing podManager with running pods at start-up")
+	return nil
+}
+
 // Returns a key for use with the runningPods map
-func getPodKey(request *cniserver.PodRequest) string {
-	return fmt.Sprintf("%s/%s", request.PodNamespace, request.PodName)
+func getPodKey(namespace, name string) string {
+	return fmt.Sprintf("%s/%s", namespace, name)
 }
 
 func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.PodPortMapping {
-	if pod := m.runningPods[getPodKey(request)]; pod != nil {
+	if pod := m.runningPods[getPodKey(request.PodNamespace, request.PodName)]; pod != nil {
 		return pod.podPortMapping
 	}
 	return nil
@@ -300,7 +344,7 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 	m.runningPodsLock.Lock()
 	defer m.runningPodsLock.Unlock()
 
-	pk := getPodKey(request)
+	pk := getPodKey(request.PodNamespace, request.PodName)
 	result := &cniserver.PodResult{}
 	switch request.Command {
 	case cniserver.CNI_ADD:
@@ -500,16 +544,6 @@ func podIsExited(p *kcontainer.Pod) bool {
 func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *runningPod, error) {
 	defer PodOperationsLatency.WithLabelValues(PodOperationSetup).Observe(sinceInMicroseconds(time.Now()))
 
-	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	ipamResult, podIP, err := m.ipamAdd(req.Netns, req.SandboxID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to run IPAM for %v: %v", req.SandboxID, err)
-	}
-
 	// Release any IPAM allocations and hostports if the setup failed
 	var success bool
 	defer func() {
@@ -522,6 +556,23 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 			}
 		}
 	}()
+
+	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var ipamResult cnitypes.Result
+	podIP := net.ParseIP(req.AssignedIP)
+	if podIP == nil {
+		ipamResult, podIP, err = m.ipamAdd(req.Netns, req.SandboxID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to run IPAM for %v: %v", req.SandboxID, err)
+		}
+		if err := maybeAddMacvlan(pod, req.Netns); err != nil {
+			return nil, nil, err
+		}
+	}
 
 	// Open any hostports the pod wants
 	var v1Pod v1.Pod
@@ -537,10 +588,6 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 
 	vnid, err := m.policy.GetVNID(req.PodNamespace)
 	if err != nil {
-		return nil, nil, err
-	}
-
-	if err := maybeAddMacvlan(pod, req.Netns); err != nil {
 		return nil, nil, err
 	}
 
