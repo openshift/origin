@@ -346,6 +346,7 @@ func clean(fileName string) string {
 func untarAll(reader io.Reader, destDir, prefix string) error {
 	// TODO: use compression here?
 	tarReader := tar.NewReader(reader)
+	symlinks := map[string]string{} // map of link -> destination
 	for {
 		header, err := tarReader.Next()
 		if err != nil {
@@ -398,22 +399,10 @@ func untarAll(reader io.Reader, destDir, prefix string) error {
 		}
 
 		if mode&os.ModeSymlink != 0 {
-			linkname := header.Linkname
-			// We need to ensure that the link destination is always within boundries
-			// of the destination directory. This prevents any kind of path traversal
-			// from within tar archive.
-			linktarget := linkname
-			if !filepath.IsAbs(linkname) {
-				linktarget = filepath.Join(evaledPath, linkname)
+			if _, exists := symlinks[destFileName]; exists {
+				return fmt.Errorf("duplicate symlink: %q", destFileName)
 			}
-			if !isDestRelative(destDir, linktarget) {
-				glog.Warningf("warning: link %q is pointing to %q which is outside target destination, skipping\n", destFileName, header.Linkname)
-				continue
-			}
-			err := os.Symlink(linkname, destFileName)
-			if err != nil {
-				return err
-			}
+			symlinks[destFileName] = header.Linkname
 		} else {
 			outFile, err := os.Create(destFileName)
 			if err != nil {
@@ -426,6 +415,17 @@ func untarAll(reader io.Reader, destDir, prefix string) error {
 			if err := outFile.Close(); err != nil {
 				return err
 			}
+		}
+	}
+
+	// Create symlinks after all regular files have been written.
+	// Ordering this way prevents writing data outside the destination directory through path
+	// traversals.
+	// Symlink chaining is prevented due to the directory tree being established (MkdirAll) before
+	// creating any symlinks.
+	for newname, oldname := range symlinks {
+		if err := os.Symlink(oldname, newname); err != nil {
+			return err
 		}
 	}
 

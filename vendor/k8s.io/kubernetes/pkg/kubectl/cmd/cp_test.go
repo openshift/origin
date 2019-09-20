@@ -239,23 +239,24 @@ func checkErr(t *testing.T, err error) {
 
 func TestTarUntar(t *testing.T) {
 	dir, err := ioutil.TempDir("", "input")
-	checkErr(t, err)
-	dir2, err := ioutil.TempDir("", "output")
-	checkErr(t, err)
-	dir3, err := ioutil.TempDir("", "dir")
-	checkErr(t, err)
-
+	dir2, err2 := ioutil.TempDir("", "output")
+	if err != nil || err2 != nil {
+		t.Errorf("unexpected error: %v | %v", err, err2)
+		t.FailNow()
+	}
 	dir = dir + "/"
 	defer func() {
-		os.RemoveAll(dir)
-		os.RemoveAll(dir2)
-		os.RemoveAll(dir3)
+		if err := os.RemoveAll(dir); err != nil {
+			t.Errorf("Unexpected error cleaning up: %v", err)
+		}
+		if err := os.RemoveAll(dir2); err != nil {
+			t.Errorf("Unexpected error cleaning up: %v", err)
+		}
 	}()
 
 	files := []struct {
 		name     string
 		data     string
-		omitted  bool
 		fileType FileType
 	}{
 		{
@@ -280,24 +281,7 @@ func TestTarUntar(t *testing.T) {
 		},
 		{
 			name:     "gakki",
-			data:     "tmp/gakki",
-			fileType: SymLink,
-		},
-		{
-			name:     "relative_to_dest",
-			data:     path.Join(dir2, "foo"),
-			fileType: SymLink,
-		},
-		{
-			name:     "tricky_relative",
-			data:     path.Join(dir3, "xyz"),
-			omitted:  true,
-			fileType: SymLink,
-		},
-		{
-			name:     "absolute_path",
 			data:     "/tmp/gakki",
-			omitted:  true,
 			fileType: SymLink,
 		},
 	}
@@ -363,12 +347,7 @@ func TestTarUntar(t *testing.T) {
 			}
 		} else if file.fileType == SymLink {
 			dest, err := os.Readlink(filePath)
-			if file.omitted {
-				if err != nil && strings.Contains(err.Error(), "no such file or directory") {
-					continue
-				}
-				t.Fatalf("expected to omit symlink for %s", filePath)
-			}
+
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -640,6 +619,76 @@ func TestCopyToPod(t *testing.T) {
 			}
 		})
 	}
+}
+
+type testFile struct {
+	path       string
+	linkTarget string // For link types
+	expected   string // Expect to find the file here (or not, if empty)
+}
+
+func TestUntar_NestedSymlinks(t *testing.T) {
+	testdir, err := ioutil.TempDir("", "test-untar-nested")
+	require.NoError(t, err)
+	defer os.RemoveAll(testdir)
+	t.Logf("Test base: %s", testdir)
+
+	basedir := filepath.Join(testdir, "base")
+
+	// Test chaining back-tick symlinks.
+	backLinkFirst := testFile{
+		path:       "nested/back-link-first",
+		linkTarget: "../",
+		expected:   filepath.Join(basedir, "nested/back-link-first"),
+	}
+	files := []testFile{backLinkFirst, {
+		path:       "nested/back-link-first/back-link-second",
+		linkTarget: "../",
+		expected:   "",
+	}}
+
+	buf := makeTestTar(t, files)
+
+	// Expect untarAll to fail. The second link will trigger a directory to be created at
+	// "nested/back-link-first", which should trigger a file exists error when the back-link-first
+	// symlink is created.
+	expectedErr := os.LinkError{
+		Op:  "symlink",
+		Old: backLinkFirst.linkTarget,
+		New: backLinkFirst.expected,
+		Err: fmt.Errorf("file exists")}
+	actualErr := untarAll(buf, filepath.Join(basedir), "")
+	assert.EqualError(t, actualErr, expectedErr.Error())
+}
+
+func makeTestTar(t *testing.T, files []testFile) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	tw := tar.NewWriter(buf)
+	for _, f := range files {
+		if f.linkTarget == "" {
+			hdr := &tar.Header{
+				Name: f.path,
+				Mode: 0666,
+				Size: int64(len(f.path)),
+			}
+			require.NoError(t, tw.WriteHeader(hdr), f.path)
+			if !strings.HasSuffix(f.path, "/") {
+				_, err := tw.Write([]byte(f.path))
+				require.NoError(t, err, f.path)
+			}
+		} else {
+			hdr := &tar.Header{
+				Name:     f.path,
+				Mode:     0777,
+				Typeflag: tar.TypeSymlink,
+				Linkname: f.linkTarget,
+			}
+			require.NoError(t, tw.WriteHeader(hdr), f.path)
+		}
+	}
+	tw.Close()
+
+	return buf
 }
 
 func TestUntar_SingleFile(t *testing.T) {
