@@ -78,20 +78,34 @@ func TestStockRules(t *testing.T) {
 
 		testName string
 		provider string
+		netSkips []string
 
 		expectedText string
 	}{
+		{
+			name:         "not skipped",
+			provider:     "gce",
+			netSkips:     []string{"OpenShiftSDN"},
+			testName:     `[sig-network] Networking Granular Checks: Pods should function for intra-pod communication: http [LinuxOnly] [NodeConformance] [Conformance]`,
+			expectedText: `[sig-network] Networking Granular Checks: Pods should function for intra-pod communication: http [LinuxOnly] [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal]`,
+		},
 		{
 			name:         "should skip localssd on gce",
 			provider:     "gce",
 			testName:     `[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted`,
 			expectedText: `[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [Skipped:gce]`, // notice that this isn't categorized into any of our buckets
 		},
+		{
+			name:         "should skip NetworkPolicy tests on multitenant",
+			netSkips:     []string{"OpenShiftSDN", "OpenShiftSDN/Multitenant"},
+			testName:     `[Feature:NetworkPolicy] should do something with NetworkPolicy`,
+			expectedText: `[Feature:NetworkPolicy] should do something with NetworkPolicy [Skipped:Network/OpenShiftSDN/Multitenant]`,
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			testRenamer := newGinkgoTestRenamerFromGlobals(test.provider)
+			testRenamer := newGinkgoTestRenamerFromGlobals(test.provider, test.netSkips)
 			testNode := &testNode{
 				text: test.testName,
 			}

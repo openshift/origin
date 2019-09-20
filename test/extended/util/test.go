@@ -131,12 +131,21 @@ func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 }
 
 func AnnotateTestSuite() {
-	testRenamer := newGinkgoTestRenamerFromGlobals(e2e.TestContext.Provider)
+	testRenamer := newGinkgoTestRenamerFromGlobals(e2e.TestContext.Provider, getNetworkSkips())
 
 	ginkgo.WalkTests(testRenamer.maybeRenameTest)
 }
 
-func newGinkgoTestRenamerFromGlobals(provider string) *ginkgoTestRenamer {
+func getNetworkSkips() []string {
+	out, err := e2e.KubectlCmd("get", "network.operator.openshift.io", "cluster", "--template", "{{.spec.defaultNetwork.type}}{{if .spec.defaultNetwork.openshiftSDNConfig}} {{.spec.defaultNetwork.type}}/{{.spec.defaultNetwork.openshiftSDNConfig.mode}}{{end}}").CombinedOutput()
+	if err != nil {
+		e2e.Logf("Could not get network operator configuration: not adding any plugin-specific skips")
+		return nil
+	}
+	return strings.Split(string(out), " ")
+}
+
+func newGinkgoTestRenamerFromGlobals(provider string, networkSkips []string) *ginkgoTestRenamer {
 	var allLabels []string
 	matches := make(map[string]*regexp.Regexp)
 	stringMatches := make(map[string][]string)
@@ -166,6 +175,9 @@ func newGinkgoTestRenamerFromGlobals(provider string) *ginkgoTestRenamer {
 
 	if provider != "" {
 		excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:%s\]`, provider))
+	}
+	for _, network := range networkSkips {
+		excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:Network/%s\]`, network))
 	}
 	klog.Infof("openshift-tests excluded test regex is %q", strings.Join(excludedTests, `|`))
 	excludedTestsFilter := regexp.MustCompile(strings.Join(excludedTests, `|`))
@@ -363,8 +375,6 @@ var (
 			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
 			`\[Feature:CustomResourceWebhookConversion\]`, // webhook conversion is off by default.  sig-master/@sttts
 
-			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
-
 			`should proxy to cadvisor`, // we don't expose cAdvisor port directly for security reasons
 		},
 		// tests that rely on special configuration that we do not yet support
@@ -518,6 +528,23 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1750851
 			// should be serial if/when it's re-enabled
 			`\[HPA\] Horizontal pod autoscaling \(scale resource: Custom Metrics from Stackdriver\)`,
+		},
+		// tests that don't pass under openshift-sdn but that are expected to pass
+		// with other network plugins (particularly ovn-kubernetes)
+		"[Skipped:Network/OpenShiftSDN]": {
+			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
+		},
+		// tests that don't pass under openshift-sdn multitenant mode
+		"[Skipped:Network/OpenShiftSDN/Multitenant]": {
+			`\[Feature:NetworkPolicy\]`, // not compatible with multitenant mode
+			`\[sig-network\] Services should preserve source pod IP for traffic thru service cluster IP`, // known bug, not planned to be fixed
+		},
+		// tests that don't pass under OVN Kubernetes
+		"[Skipped:Network/OVNKubernetes]": {
+			`\[sig-network\] Services should be able to switch session affinity for NodePort service`,            // https://jira.coreos.com/browse/SDN-510
+			`\[sig-network\] Services should be able to switch session affinity for service with type clusterIP`, // https://jira.coreos.com/browse/SDN-510
+			`\[sig-network\] Services should have session affinity work for NodePort service`,                    // https://jira.coreos.com/browse/SDN-510
+			`\[sig-network\] Services should have session affinity work for service with type clusterIP`,         // https://jira.coreos.com/browse/SDN-510
 		},
 		"[Suite:openshift/scalability]": {},
 		// tests that replace the old test-cmd script
