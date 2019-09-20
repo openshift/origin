@@ -1,5 +1,5 @@
-hash: fbd25b5deb27fc4a1a6983f6a4d763cdf5153fceffe72c16b9bc90e6e4e8dd
-updated: 2019-07-21T11:15:49.781134265+02:00
+hash: 9409c48ec721d1a3a1a6336845d10efe49bbf0dfe5e363e5d95b8b657beaefc3
+updated: 2019-08-16T14:35:45.701339235-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -21,6 +21,7 @@ imports:
   - negotiate
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
+  repo: https://github.com/openshift/gssapi.git
 - name: github.com/armon/circbuf
   version: bbbad097214e2918d8543d5201d12bfd7bca254d
 - name: github.com/asaskevich/govalidator
@@ -67,7 +68,7 @@ imports:
 - name: github.com/Azure/azure-sdk-for-go
   version: 8c6dfb65cae4368cc3242549023a616e42fcb702
   subpackages:
-  - services/compute/mgmt/2017-12-01/compute
+  - services/compute/mgmt/2019-03-01/compute
   - services/containerregistry/mgmt/2017-10-01/containerregistry
   - services/network/mgmt/2017-09-01/network
   - services/storage/mgmt/2017-10-01/storage
@@ -512,9 +513,9 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: bfb38958ad2298964492841280eea188b9c23e7b
+  version: 20236160a414454a9c64b6c8829381c6f4bddcaa
 - name: github.com/google/cadvisor
-  version: e7bafcb870aceaff6ae15189520febdede52b50f
+  version: 087e94f7f4d628ac57e427d292607984dde59041
   repo: https://github.com/openshift/google-cadvisor.git
   subpackages:
   - accelerators
@@ -973,7 +974,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: c0887bd82bb30c80ad4a0fd19a22b2520a8223c6
+  version: 88ea7f56be8b37593900daf982db5cde64f62221
   subpackages:
   - dockerclient
   - imageprogress
@@ -1438,7 +1439,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/testserver
 - name: k8s.io/apimachinery
-  version: 5f1ab6ad9104144e43c7e477938fd278ade27eb2
+  version: 5c0e7e0ce91a8083e170765a544def530b8ee4f0
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/equality
@@ -1506,7 +1507,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 996cefeb14170756dc1626dde64fcfb63c8edb24
+  version: 6eafd6a7ccfb33517f1d852155d8862d8b5d3e93
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1619,7 +1620,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 7eaf7133bcfa11e19ebbbc76ff53e2cb32524683
+  version: 9feea9d4142fd23f46451ef4292787b85e2e0a52
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1861,7 +1862,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: d8b46d72a413981e6ea99605dcef3b8ca3f2223f
+  version: 58be19a7e8bc2e29eef4936c8f6dedbcaa0d0388
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
