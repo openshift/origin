@@ -379,7 +379,7 @@ var (
 			`NetworkPolicy.*egress`,     // not supported
 			`NetworkPolicy.*named port`, // not yet implemented
 			`enforce egress policy`,     // not support
-			`should proxy to cadvisor`, // we don't expose cAdvisor port directly for security reasons
+			`should proxy to cadvisor`,  // we don't expose cAdvisor port directly for security reasons
 		},
 		// tests that rely on special configuration that we do not yet support
 		"[Disabled:SpecialConfig]": {
