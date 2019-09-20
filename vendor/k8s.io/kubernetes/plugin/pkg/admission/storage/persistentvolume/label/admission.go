@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/admission"
@@ -110,6 +111,11 @@ func (l *persistentVolumeLabel) Admit(a admission.Attributes, o admission.Object
 		return nil
 	}
 
+	start := time.Now()
+	defer func() {
+		duration := time.Now().Sub(start)
+		klog.Infof("JSAF: PV label admission took %d ns", duration.Nanoseconds())
+	}()
 	var volumeLabels map[string]string
 	if volume.Spec.AWSElasticBlockStore != nil {
 		labels, err := l.findAWSEBSLabels(volume)
