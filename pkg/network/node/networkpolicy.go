@@ -38,6 +38,9 @@ type networkPolicyPlugin struct {
 	kNamespaces map[string]kapi.Namespace
 	pods        map[ktypes.UID]kapi.Pod
 
+	// namespaceSelector match cache; see selectNamespacesInternal
+	nsMatchCache map[string]map[string]uint32
+
 	runner *async.BoundedFrequencyRunner
 }
 
@@ -73,6 +76,8 @@ func NewNetworkPolicyPlugin() osdnPolicy {
 		namespaces:  make(map[uint32]*npNamespace),
 		kNamespaces: make(map[string]kapi.Namespace),
 		pods:        make(map[ktypes.UID]kapi.Pod),
+
+		nsMatchCache: make(map[string]map[string]uint32),
 	}
 }
 
@@ -164,6 +169,7 @@ func (np *networkPolicyPlugin) AddNetNamespace(netns *networkapi.NetNamespace) {
 		return
 	}
 
+	np.flushNSMatchCache()
 	np.namespaces[netns.NetID] = &npNamespace{
 		name:     netns.NetName,
 		vnid:     netns.NetID,
@@ -185,6 +191,7 @@ func (np *networkPolicyPlugin) DeleteNetNamespace(netns *networkapi.NetNamespace
 	defer np.lock.Unlock()
 
 	if npns, exists := np.namespaces[netns.NetID]; exists {
+		np.flushNSMatchCache()
 		if npns.inUse {
 			npns.inUse = false
 			// We call syncNamespaceFlows() not syncNamespace() because it
@@ -300,6 +307,35 @@ func (np *networkPolicyPlugin) SyncVNIDRules() {
 	}
 }
 
+// Match namespaces against a selector, using a cache so that, eg, when a new Namespace is
+// added, we only figure out if it matches "name: default" once, rather than recomputing
+// the set of namespaces that match that selector for every single "allow-from-default"
+// policy in the cluster.
+//
+// Yes, if a selector matches against multiple labels then the order they appear in
+// cacheKey here is non-deterministic, but that just means that, eg, we might compute the
+// results twice rather than just once, and twice is still better than 10,000 times.
+func (np *networkPolicyPlugin) selectNamespacesInternal(sel labels.Selector) map[string]uint32 {
+	cacheKey := sel.String()
+	namespaces, wasCached := np.nsMatchCache[cacheKey]
+	if !wasCached {
+		namespaces = make(map[string]uint32)
+		for vnid, ns := range np.namespaces {
+			if kns, exists := np.kNamespaces[ns.name]; exists {
+				if sel.Matches(labels.Set(kns.Labels)) {
+					namespaces[ns.name] = vnid
+				}
+			}
+		}
+		np.nsMatchCache[cacheKey] = namespaces
+	}
+	return namespaces
+}
+
+func (np *networkPolicyPlugin) flushNSMatchCache() {
+	np.nsMatchCache = make(map[string]map[string]uint32)
+}
+
 func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []uint32 {
 	vnids := []uint32{}
 	sel, err := metav1.LabelSelectorAsSelector(lsel)
@@ -308,12 +344,10 @@ func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []ui
 		utilruntime.HandleError(fmt.Errorf("ValidateNetworkPolicy() failure! Invalid NamespaceSelector: %v", err))
 		return vnids
 	}
-	for vnid, ns := range np.namespaces {
-		if kns, exists := np.kNamespaces[ns.name]; exists {
-			if sel.Matches(labels.Set(kns.Labels)) {
-				vnids = append(vnids, vnid)
-			}
-		}
+
+	namespaces := np.selectNamespacesInternal(sel)
+	for _, vnid := range namespaces {
+		vnids = append(vnids, vnid)
 	}
 	return vnids
 }
@@ -558,6 +592,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, ev
 	defer np.lock.Unlock()
 
 	np.kNamespaces[ns.Name] = *ns
+	np.flushNSMatchCache()
 	np.refreshNetworkPolicies(refreshForNamespaces)
 }
 
@@ -569,6 +604,7 @@ func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
 	defer np.lock.Unlock()
 
 	delete(np.kNamespaces, ns.Name)
+	np.flushNSMatchCache()
 	np.refreshNetworkPolicies(refreshForNamespaces)
 }
 
