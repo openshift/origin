@@ -5,7 +5,7 @@ rules:
   branches:
   - name: origin-4.2-kubernetes-1.14.6
     source:
-      branch: master
+      branch: release-4.2
       dir: vendor/k8s.io/kubernetes
   - name: origin-4.1-kubernetes-1.13.4
     source:
