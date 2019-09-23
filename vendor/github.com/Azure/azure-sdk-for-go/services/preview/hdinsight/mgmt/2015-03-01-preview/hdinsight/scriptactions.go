@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewScriptActionsClientWithBaseURI(baseURI string, subscriptionID string) Sc
 // clusterName - the name of the cluster.
 // scriptName - the name of the script.
 func (client ScriptActionsClient) Delete(ctx context.Context, resourceGroupName string, clusterName string, scriptName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ScriptActionsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, clusterName, scriptName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.ScriptActionsClient", "Delete", nil, "Failure preparing request")
@@ -91,8 +102,8 @@ func (client ScriptActionsClient) DeletePreparer(ctx context.Context, resourceGr
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ScriptActionsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -113,6 +124,16 @@ func (client ScriptActionsClient) DeleteResponder(resp *http.Response) (result a
 // clusterName - the name of the cluster.
 // scriptExecutionID - the script execution Id
 func (client ScriptActionsClient) GetExecutionDetail(ctx context.Context, resourceGroupName string, clusterName string, scriptExecutionID string) (result RuntimeScriptActionDetail, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ScriptActionsClient.GetExecutionDetail")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetExecutionDetailPreparer(ctx, resourceGroupName, clusterName, scriptExecutionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.ScriptActionsClient", "GetExecutionDetail", nil, "Failure preparing request")
@@ -159,8 +180,8 @@ func (client ScriptActionsClient) GetExecutionDetailPreparer(ctx context.Context
 // GetExecutionDetailSender sends the GetExecutionDetail request. The method will close the
 // http.Response Body if it receives an error.
 func (client ScriptActionsClient) GetExecutionDetailSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetExecutionDetailResponder handles the response to the GetExecutionDetail request. The method always
@@ -181,6 +202,16 @@ func (client ScriptActionsClient) GetExecutionDetailResponder(resp *http.Respons
 // resourceGroupName - the name of the resource group.
 // clusterName - the name of the cluster.
 func (client ScriptActionsClient) ListPersistedScripts(ctx context.Context, resourceGroupName string, clusterName string) (result ScriptActionsListPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ScriptActionsClient.ListPersistedScripts")
+		defer func() {
+			sc := -1
+			if result.sal.Response.Response != nil {
+				sc = result.sal.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listPersistedScriptsNextResults
 	req, err := client.ListPersistedScriptsPreparer(ctx, resourceGroupName, clusterName)
 	if err != nil {
@@ -227,8 +258,8 @@ func (client ScriptActionsClient) ListPersistedScriptsPreparer(ctx context.Conte
 // ListPersistedScriptsSender sends the ListPersistedScripts request. The method will close the
 // http.Response Body if it receives an error.
 func (client ScriptActionsClient) ListPersistedScriptsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListPersistedScriptsResponder handles the response to the ListPersistedScripts request. The method always
@@ -245,8 +276,8 @@ func (client ScriptActionsClient) ListPersistedScriptsResponder(resp *http.Respo
 }
 
 // listPersistedScriptsNextResults retrieves the next set of results, if any.
-func (client ScriptActionsClient) listPersistedScriptsNextResults(lastResults ScriptActionsList) (result ScriptActionsList, err error) {
-	req, err := lastResults.scriptActionsListPreparer()
+func (client ScriptActionsClient) listPersistedScriptsNextResults(ctx context.Context, lastResults ScriptActionsList) (result ScriptActionsList, err error) {
+	req, err := lastResults.scriptActionsListPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "hdinsight.ScriptActionsClient", "listPersistedScriptsNextResults", nil, "Failure preparing next results request")
 	}
@@ -267,6 +298,16 @@ func (client ScriptActionsClient) listPersistedScriptsNextResults(lastResults Sc
 
 // ListPersistedScriptsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ScriptActionsClient) ListPersistedScriptsComplete(ctx context.Context, resourceGroupName string, clusterName string) (result ScriptActionsListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ScriptActionsClient.ListPersistedScripts")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListPersistedScripts(ctx, resourceGroupName, clusterName)
 	return
 }

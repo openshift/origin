@@ -10,10 +10,11 @@
 package glusterfs
 
 import (
-	"github.com/heketi/heketi/pkg/idgen"
-	"github.com/heketi/tests"
 	"reflect"
 	"testing"
+
+	"github.com/heketi/heketi/pkg/idgen"
+	"github.com/heketi/tests"
 )
 
 func TestNewSimpleAllocatorRing(t *testing.T) {

@@ -21,13 +21,10 @@ package deploymentmanager
 
 import original "github.com/Azure/azure-sdk-for-go/services/preview/deploymentmanager/mgmt/2018-09-01-preview/deploymentmanager"
 
-type ArtifactSourcesClient = original.ArtifactSourcesClient
-
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
-type BaseClient = original.BaseClient
 type DeploymentMode = original.DeploymentMode
 
 const (
@@ -52,9 +49,12 @@ const (
 type ArtifactSource = original.ArtifactSource
 type ArtifactSourceProperties = original.ArtifactSourceProperties
 type ArtifactSourcePropertiesModel = original.ArtifactSourcePropertiesModel
-type BasicAuthentication = original.BasicAuthentication
+type ArtifactSourcesClient = original.ArtifactSourcesClient
 type Authentication = original.Authentication
 type AzureEntityResource = original.AzureEntityResource
+type BaseClient = original.BaseClient
+type BasicAuthentication = original.BasicAuthentication
+type BasicStepProperties = original.BasicStepProperties
 type CloudError = original.CloudError
 type CloudErrorBody = original.CloudErrorBody
 type Identity = original.Identity
@@ -62,6 +62,7 @@ type ListOperation = original.ListOperation
 type Message = original.Message
 type Operation = original.Operation
 type OperationDetail = original.OperationDetail
+type OperationsClient = original.OperationsClient
 type PrePostStep = original.PrePostStep
 type ProxyResource = original.ProxyResource
 type Resource = original.Resource
@@ -72,14 +73,16 @@ type RolloutProperties = original.RolloutProperties
 type RolloutPropertiesModel = original.RolloutPropertiesModel
 type RolloutRequest = original.RolloutRequest
 type RolloutRequestProperties = original.RolloutRequestProperties
-type RolloutsCreateOrUpdateFuture = original.RolloutsCreateOrUpdateFuture
 type RolloutStep = original.RolloutStep
+type RolloutsClient = original.RolloutsClient
+type RolloutsCreateOrUpdateFuture = original.RolloutsCreateOrUpdateFuture
 type SasAuthentication = original.SasAuthentication
 type SasProperties = original.SasProperties
 type Service = original.Service
 type ServiceProperties = original.ServiceProperties
 type ServiceResource = original.ServiceResource
 type ServiceResourceProperties = original.ServiceResourceProperties
+type ServiceTopologiesClient = original.ServiceTopologiesClient
 type ServiceTopologyProperties = original.ServiceTopologyProperties
 type ServiceTopologyResource = original.ServiceTopologyResource
 type ServiceTopologyResourceProperties = original.ServiceTopologyResourceProperties
@@ -88,42 +91,26 @@ type ServiceUnitArtifacts = original.ServiceUnitArtifacts
 type ServiceUnitProperties = original.ServiceUnitProperties
 type ServiceUnitResource = original.ServiceUnitResource
 type ServiceUnitResourceProperties = original.ServiceUnitResourceProperties
+type ServiceUnitsClient = original.ServiceUnitsClient
 type ServiceUnitsCreateOrUpdateFuture = original.ServiceUnitsCreateOrUpdateFuture
+type ServicesClient = original.ServicesClient
 type Step = original.Step
 type StepOperationInfo = original.StepOperationInfo
-type BasicStepProperties = original.BasicStepProperties
 type StepProperties = original.StepProperties
 type StepResource = original.StepResource
+type StepsClient = original.StepsClient
 type TrackedResource = original.TrackedResource
 type WaitStepAttributes = original.WaitStepAttributes
 type WaitStepProperties = original.WaitStepProperties
-type OperationsClient = original.OperationsClient
-type RolloutsClient = original.RolloutsClient
-type ServicesClient = original.ServicesClient
-type ServiceTopologiesClient = original.ServiceTopologiesClient
-type ServiceUnitsClient = original.ServiceUnitsClient
-type StepsClient = original.StepsClient
 
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
 func NewArtifactSourcesClient(subscriptionID string) ArtifactSourcesClient {
 	return original.NewArtifactSourcesClient(subscriptionID)
 }
 func NewArtifactSourcesClientWithBaseURI(baseURI string, subscriptionID string) ArtifactSourcesClient {
 	return original.NewArtifactSourcesClientWithBaseURI(baseURI, subscriptionID)
-}
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
-func PossibleDeploymentModeValues() []DeploymentMode {
-	return original.PossibleDeploymentModeValues()
-}
-func PossibleStepTypeValues() []StepType {
-	return original.PossibleStepTypeValues()
-}
-func PossibleTypeValues() []Type {
-	return original.PossibleTypeValues()
 }
 func NewOperationsClient(subscriptionID string) OperationsClient {
 	return original.NewOperationsClient(subscriptionID)
@@ -137,12 +124,6 @@ func NewRolloutsClient(subscriptionID string) RolloutsClient {
 func NewRolloutsClientWithBaseURI(baseURI string, subscriptionID string) RolloutsClient {
 	return original.NewRolloutsClientWithBaseURI(baseURI, subscriptionID)
 }
-func NewServicesClient(subscriptionID string) ServicesClient {
-	return original.NewServicesClient(subscriptionID)
-}
-func NewServicesClientWithBaseURI(baseURI string, subscriptionID string) ServicesClient {
-	return original.NewServicesClientWithBaseURI(baseURI, subscriptionID)
-}
 func NewServiceTopologiesClient(subscriptionID string) ServiceTopologiesClient {
 	return original.NewServiceTopologiesClient(subscriptionID)
 }
@@ -155,11 +136,29 @@ func NewServiceUnitsClient(subscriptionID string) ServiceUnitsClient {
 func NewServiceUnitsClientWithBaseURI(baseURI string, subscriptionID string) ServiceUnitsClient {
 	return original.NewServiceUnitsClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewServicesClient(subscriptionID string) ServicesClient {
+	return original.NewServicesClient(subscriptionID)
+}
+func NewServicesClientWithBaseURI(baseURI string, subscriptionID string) ServicesClient {
+	return original.NewServicesClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewStepsClient(subscriptionID string) StepsClient {
 	return original.NewStepsClient(subscriptionID)
 }
 func NewStepsClientWithBaseURI(baseURI string, subscriptionID string) StepsClient {
 	return original.NewStepsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleDeploymentModeValues() []DeploymentMode {
+	return original.PossibleDeploymentModeValues()
+}
+func PossibleStepTypeValues() []StepType {
+	return original.PossibleStepTypeValues()
+}
+func PossibleTypeValues() []Type {
+	return original.PossibleTypeValues()
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

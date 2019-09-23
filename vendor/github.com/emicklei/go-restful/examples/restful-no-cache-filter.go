@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
@@ -16,7 +17,7 @@ func main() {
 	ws.Filter(restful.NoBrowserCacheFilter)
 	ws.Route(ws.GET("/hello").To(hello))
 	restful.Add(ws)
-	http.ListenAndServe(":8080", nil)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func hello(req *restful.Request, resp *restful.Response) {

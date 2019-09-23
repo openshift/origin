@@ -32,7 +32,7 @@ type WeightedBuilder interface {
 //
 // If dst has nodes that exist in g, Prim will panic.
 func Prim(dst WeightedBuilder, g graph.WeightedUndirected) float64 {
-	nodes := g.Nodes()
+	nodes := graph.NodesOf(g.Nodes())
 	if len(nodes) == 0 {
 		return 0
 	}
@@ -49,7 +49,7 @@ func Prim(dst WeightedBuilder, g graph.WeightedUndirected) float64 {
 
 	u := nodes[0]
 	uid := u.ID()
-	for _, v := range g.From(uid) {
+	for _, v := range graph.NodesOf(g.From(uid)) {
 		w, ok := g.Weight(uid, v.ID())
 		if !ok {
 			panic("prim: unexpected invalid weight")
@@ -67,7 +67,7 @@ func Prim(dst WeightedBuilder, g graph.WeightedUndirected) float64 {
 
 		u = e.From()
 		uid := u.ID()
-		for _, n := range g.From(uid) {
+		for _, n := range graph.NodesOf(g.From(uid)) {
 			if key, ok := q.key(n); ok {
 				w, ok := g.Weight(uid, n.ID())
 				if !ok {
@@ -146,7 +146,7 @@ func (q *primQueue) update(u, v graph.Node, key float64) {
 // the set of edges in the graph.
 type UndirectedWeightLister interface {
 	graph.WeightedUndirected
-	WeightedEdges() []graph.WeightedEdge
+	WeightedEdges() graph.WeightedEdges
 }
 
 // Kruskal generates a minimum spanning tree of g by greedy tree coalescence, placing
@@ -162,11 +162,11 @@ type UndirectedWeightLister interface {
 //
 // If dst has nodes that exist in g, Kruskal will panic.
 func Kruskal(dst WeightedBuilder, g UndirectedWeightLister) float64 {
-	edges := g.WeightedEdges()
+	edges := graph.WeightedEdgesOf(g.WeightedEdges())
 	sort.Sort(byWeight(edges))
 
 	ds := newDisjointSet()
-	for _, node := range g.Nodes() {
+	for _, node := range graph.NodesOf(g.Nodes()) {
 		dst.AddNode(node)
 		ds.makeSet(node.ID())
 	}

@@ -50,3 +50,19 @@ func TestBSONObjectId_fullCycle(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, id, idCopy)
 }
+
+func TestDeepCopyObjectId(t *testing.T) {
+	id := NewObjectId("507f1f77bcf86cd799439011")
+	in := &id
+
+	out := new(ObjectId)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *ObjectId
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}

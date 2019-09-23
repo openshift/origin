@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -44,6 +45,16 @@ func NewLocationsClientWithBaseURI(baseURI string, subscriptionID string) Locati
 // locationName - the name of the location
 // parameters - the request parameters
 func (client LocationsClient) CheckNameAvailability(ctx context.Context, locationName string, parameters CheckNameAvailabilityInput) (result EntityNameAvailabilityCheckOutput, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LocationsClient.CheckNameAvailability")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CheckNameAvailabilityPreparer(ctx, locationName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.LocationsClient", "CheckNameAvailability", nil, "Failure preparing request")
@@ -90,8 +101,8 @@ func (client LocationsClient) CheckNameAvailabilityPreparer(ctx context.Context,
 // CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client LocationsClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always

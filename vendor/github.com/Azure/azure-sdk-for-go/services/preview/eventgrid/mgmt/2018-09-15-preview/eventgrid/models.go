@@ -18,12 +18,16 @@ package eventgrid
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"net/http"
 )
+
+// The package's fully qualified name.
+const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/eventgrid/mgmt/2018-09-15-preview/eventgrid"
 
 // DomainProvisioningState enumerates the values for domain provisioning state.
 type DomainProvisioningState string
@@ -278,7 +282,7 @@ type BasicAdvancedFilter interface {
 // AdvancedFilter represents an advanced filter that can be used to filter events based on various event
 // envelope/data fields.
 type AdvancedFilter struct {
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -452,7 +456,7 @@ func (af AdvancedFilter) AsBasicAdvancedFilter() (BasicAdvancedFilter, bool) {
 type BoolEqualsAdvancedFilter struct {
 	// Value - The filter value
 	Value *bool `json:"value,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -552,9 +556,10 @@ type BasicDeadLetterDestination interface {
 	AsDeadLetterDestination() (*DeadLetterDestination, bool)
 }
 
-// DeadLetterDestination information about the dead letter destination for an event subscription. To configure a
-// deadletter destination, do not directly instantiate an object of this class. Instead, instantiate an object of a
-// derived class. Currently, StorageBlobDeadLetterDestination is the only class that derives from this class.
+// DeadLetterDestination information about the dead letter destination for an event subscription. To configure
+// a deadletter destination, do not directly instantiate an object of this class. Instead, instantiate an
+// object of a derived class. Currently, StorageBlobDeadLetterDestination is the only class that derives from
+// this class.
 type DeadLetterDestination struct {
 	// EndpointType - Possible values include: 'EndpointTypeDeadLetterDestination', 'EndpointTypeStorageBlob'
 	EndpointType EndpointTypeBasicDeadLetterDestination `json:"endpointType,omitempty"`
@@ -631,11 +636,11 @@ type Domain struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Tags of the resource
 	Tags map[string]*string `json:"tags"`
-	// ID - Fully qualified identifier of the resource
+	// ID - READ-ONLY; Fully qualified identifier of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - Name of the resource
+	// Name - READ-ONLY; Name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - Type of the resource
+	// Type - READ-ONLY; Type of the resource
 	Type *string `json:"type,omitempty"`
 }
 
@@ -650,15 +655,6 @@ func (d Domain) MarshalJSON() ([]byte, error) {
 	}
 	if d.Tags != nil {
 		objectMap["tags"] = d.Tags
-	}
-	if d.ID != nil {
-		objectMap["id"] = d.ID
-	}
-	if d.Name != nil {
-		objectMap["name"] = d.Name
-	}
-	if d.Type != nil {
-		objectMap["type"] = d.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -734,9 +730,9 @@ func (d *Domain) UnmarshalJSON(body []byte) error {
 
 // DomainProperties properties of the Domain
 type DomainProperties struct {
-	// ProvisioningState - Provisioning state of the domain. Possible values include: 'Creating', 'Updating', 'Deleting', 'Succeeded', 'Canceled', 'Failed'
+	// ProvisioningState - READ-ONLY; Provisioning state of the domain. Possible values include: 'Creating', 'Updating', 'Deleting', 'Succeeded', 'Canceled', 'Failed'
 	ProvisioningState DomainProvisioningState `json:"provisioningState,omitempty"`
-	// Endpoint - Endpoint for the domain.
+	// Endpoint - READ-ONLY; Endpoint for the domain.
 	Endpoint *string `json:"endpoint,omitempty"`
 	// InputSchema - This determines the format that Event Grid should expect for incoming events published to the domain. Possible values include: 'InputSchemaEventGridSchema', 'InputSchemaCustomEventSchema', 'InputSchemaCloudEventV01Schema'
 	InputSchema InputSchema `json:"inputSchema,omitempty"`
@@ -810,7 +806,7 @@ type DomainsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DomainsCreateOrUpdateFuture) Result(client DomainsClient) (d Domain, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "eventgrid.DomainsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -829,7 +825,8 @@ func (future *DomainsCreateOrUpdateFuture) Result(client DomainsClient) (d Domai
 	return
 }
 
-// DomainsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
+// DomainsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type DomainsDeleteFuture struct {
 	azure.Future
 }
@@ -838,7 +835,7 @@ type DomainsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DomainsDeleteFuture) Result(client DomainsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "eventgrid.DomainsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -867,7 +864,8 @@ type DomainsListResult struct {
 	Value *[]Domain `json:"value,omitempty"`
 }
 
-// DomainsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
+// DomainsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type DomainsUpdateFuture struct {
 	azure.Future
 }
@@ -876,7 +874,7 @@ type DomainsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DomainsUpdateFuture) Result(client DomainsClient) (d Domain, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "eventgrid.DomainsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -898,11 +896,11 @@ func (future *DomainsUpdateFuture) Result(client DomainsClient) (d Domain, err e
 // DomainTopic domain Topic
 type DomainTopic struct {
 	autorest.Response `json:"-"`
-	// ID - Fully qualified identifier of the resource
+	// ID - READ-ONLY; Fully qualified identifier of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - Name of the resource
+	// Name - READ-ONLY; Name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - Type of the resource
+	// Type - READ-ONLY; Type of the resource
 	Type *string `json:"type,omitempty"`
 }
 
@@ -928,7 +926,8 @@ func (dup DomainUpdateParameters) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// EventHubEventSubscriptionDestination information about the event hub destination for an event subscription
+// EventHubEventSubscriptionDestination information about the event hub destination for an event
+// subscription
 type EventHubEventSubscriptionDestination struct {
 	// EventHubEventSubscriptionDestinationProperties - Event Hub Properties of the event subscription destination
 	*EventHubEventSubscriptionDestinationProperties `json:"properties,omitempty"`
@@ -1023,11 +1022,11 @@ type EventSubscription struct {
 	autorest.Response `json:"-"`
 	// EventSubscriptionProperties - Properties of the event subscription
 	*EventSubscriptionProperties `json:"properties,omitempty"`
-	// ID - Fully qualified identifier of the resource
+	// ID - READ-ONLY; Fully qualified identifier of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - Name of the resource
+	// Name - READ-ONLY; Name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - Type of the resource
+	// Type - READ-ONLY; Type of the resource
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1036,15 +1035,6 @@ func (es EventSubscription) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if es.EventSubscriptionProperties != nil {
 		objectMap["properties"] = es.EventSubscriptionProperties
-	}
-	if es.ID != nil {
-		objectMap["id"] = es.ID
-	}
-	if es.Name != nil {
-		objectMap["name"] = es.Name
-	}
-	if es.Type != nil {
-		objectMap["type"] = es.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1291,9 +1281,9 @@ type EventSubscriptionFullURL struct {
 
 // EventSubscriptionProperties properties of the Event Subscription
 type EventSubscriptionProperties struct {
-	// Topic - Name of the topic of the event subscription.
+	// Topic - READ-ONLY; Name of the topic of the event subscription.
 	Topic *string `json:"topic,omitempty"`
-	// ProvisioningState - Provisioning state of the event subscription. Possible values include: 'EventSubscriptionProvisioningStateCreating', 'EventSubscriptionProvisioningStateUpdating', 'EventSubscriptionProvisioningStateDeleting', 'EventSubscriptionProvisioningStateSucceeded', 'EventSubscriptionProvisioningStateCanceled', 'EventSubscriptionProvisioningStateFailed', 'EventSubscriptionProvisioningStateAwaitingManualAction'
+	// ProvisioningState - READ-ONLY; Provisioning state of the event subscription. Possible values include: 'EventSubscriptionProvisioningStateCreating', 'EventSubscriptionProvisioningStateUpdating', 'EventSubscriptionProvisioningStateDeleting', 'EventSubscriptionProvisioningStateSucceeded', 'EventSubscriptionProvisioningStateCanceled', 'EventSubscriptionProvisioningStateFailed', 'EventSubscriptionProvisioningStateAwaitingManualAction'
 	ProvisioningState EventSubscriptionProvisioningState `json:"provisioningState,omitempty"`
 	// Destination - Information about the destination where events have to be delivered for the event subscription.
 	Destination BasicEventSubscriptionDestination `json:"destination,omitempty"`
@@ -1415,7 +1405,7 @@ type EventSubscriptionsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *EventSubscriptionsCreateOrUpdateFuture) Result(client EventSubscriptionsClient) (es EventSubscription, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "eventgrid.EventSubscriptionsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1434,8 +1424,8 @@ func (future *EventSubscriptionsCreateOrUpdateFuture) Result(client EventSubscri
 	return
 }
 
-// EventSubscriptionsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// EventSubscriptionsDeleteFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type EventSubscriptionsDeleteFuture struct {
 	azure.Future
 }
@@ -1444,7 +1434,7 @@ type EventSubscriptionsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *EventSubscriptionsDeleteFuture) Result(client EventSubscriptionsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "eventgrid.EventSubscriptionsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1464,8 +1454,8 @@ type EventSubscriptionsListResult struct {
 	Value *[]EventSubscription `json:"value,omitempty"`
 }
 
-// EventSubscriptionsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// EventSubscriptionsUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type EventSubscriptionsUpdateFuture struct {
 	azure.Future
 }
@@ -1474,7 +1464,7 @@ type EventSubscriptionsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *EventSubscriptionsUpdateFuture) Result(client EventSubscriptionsClient) (es EventSubscription, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "eventgrid.EventSubscriptionsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1591,11 +1581,11 @@ func (esup *EventSubscriptionUpdateParameters) UnmarshalJSON(body []byte) error 
 type EventType struct {
 	// EventTypeProperties - Properties of the event type.
 	*EventTypeProperties `json:"properties,omitempty"`
-	// ID - Fully qualified identifier of the resource
+	// ID - READ-ONLY; Fully qualified identifier of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - Name of the resource
+	// Name - READ-ONLY; Name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - Type of the resource
+	// Type - READ-ONLY; Type of the resource
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1604,15 +1594,6 @@ func (et EventType) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if et.EventTypeProperties != nil {
 		objectMap["properties"] = et.EventTypeProperties
-	}
-	if et.ID != nil {
-		objectMap["id"] = et.ID
-	}
-	if et.Name != nil {
-		objectMap["name"] = et.Name
-	}
-	if et.Type != nil {
-		objectMap["type"] = et.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1685,8 +1666,8 @@ type EventTypesListResult struct {
 	Value *[]EventType `json:"value,omitempty"`
 }
 
-// HybridConnectionEventSubscriptionDestination information about the HybridConnection destination for an event
-// subscription.
+// HybridConnectionEventSubscriptionDestination information about the HybridConnection destination for an
+// event subscription.
 type HybridConnectionEventSubscriptionDestination struct {
 	// HybridConnectionEventSubscriptionDestinationProperties - Hybrid connection Properties of the event subscription destination
 	*HybridConnectionEventSubscriptionDestinationProperties `json:"properties,omitempty"`
@@ -1770,7 +1751,8 @@ func (hcesd *HybridConnectionEventSubscriptionDestination) UnmarshalJSON(body []
 	return nil
 }
 
-// HybridConnectionEventSubscriptionDestinationProperties the properties for a hybrid connection destination.
+// HybridConnectionEventSubscriptionDestinationProperties the properties for a hybrid connection
+// destination.
 type HybridConnectionEventSubscriptionDestinationProperties struct {
 	// ResourceID - The Azure Resource ID of an hybrid connection that is the destination of an event subscription.
 	ResourceID *string `json:"resourceId,omitempty"`
@@ -1785,8 +1767,8 @@ type BasicInputSchemaMapping interface {
 }
 
 // InputSchemaMapping by default, Event Grid expects events to be in the Event Grid event schema. Specifying an
-// input schema mapping enables publishing to Event Grid using a custom input schema. Currently, the only supported
-// type of InputSchemaMapping is 'JsonInputSchemaMapping'.
+// input schema mapping enables publishing to Event Grid using a custom input schema. Currently, the only
+// supported type of InputSchemaMapping is 'JsonInputSchemaMapping'.
 type InputSchemaMapping struct {
 	// InputSchemaMappingType - Possible values include: 'InputSchemaMappingTypeInputSchemaMapping', 'InputSchemaMappingTypeJSON'
 	InputSchemaMappingType InputSchemaMappingType `json:"inputSchemaMappingType,omitempty"`
@@ -1854,18 +1836,18 @@ func (ism InputSchemaMapping) AsBasicInputSchemaMapping() (BasicInputSchemaMappi
 	return &ism, true
 }
 
-// JSONField this is used to express the source of an input schema mapping for a single target field in the Event
-// Grid Event schema. This is currently used in the mappings for the 'id','topic' and 'eventtime' properties. This
-// represents a field in the input event schema.
+// JSONField this is used to express the source of an input schema mapping for a single target field in the
+// Event Grid Event schema. This is currently used in the mappings for the 'id','topic' and 'eventTime'
+// properties. This represents a field in the input event schema.
 type JSONField struct {
 	// SourceField - Name of a field in the input event schema that's to be used as the source of a mapping.
 	SourceField *string `json:"sourceField,omitempty"`
 }
 
-// JSONFieldWithDefault this is used to express the source of an input schema mapping for a single target field in
-// the Event Grid Event schema. This is currently used in the mappings for the 'subject','eventtype' and
-// 'dataversion' properties. This represents a field in the input event schema along with a default value to be
-// used, and at least one of these two properties should be provided.
+// JSONFieldWithDefault this is used to express the source of an input schema mapping for a single target
+// field in the Event Grid Event schema. This is currently used in the mappings for the
+// 'subject','eventType' and 'dataVersion' properties. This represents a field in the input event schema
+// along with a default value to be used, and at least one of these two properties should be provided.
 type JSONFieldWithDefault struct {
 	// SourceField - Name of a field in the input event schema that's to be used as the source of a mapping.
 	SourceField *string `json:"sourceField,omitempty"`
@@ -1873,8 +1855,8 @@ type JSONFieldWithDefault struct {
 	DefaultValue *string `json:"defaultValue,omitempty"`
 }
 
-// JSONInputSchemaMapping this enables publishing to Event Grid using a custom input schema. This can be used to
-// map properties from a custom input JSON schema to the Event Grid event schema.
+// JSONInputSchemaMapping this enables publishing to Event Grid using a custom input schema. This can be
+// used to map properties from a custom input JSON schema to the Event Grid event schema.
 type JSONInputSchemaMapping struct {
 	// JSONInputSchemaMappingProperties - JSON Properties of the input schema mapping
 	*JSONInputSchemaMappingProperties `json:"properties,omitempty"`
@@ -1943,8 +1925,8 @@ func (jism *JSONInputSchemaMapping) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// JSONInputSchemaMappingProperties this can be used to map properties of a source schema (or default values, for
-// certain supported properties) to properties of the EventGridEvent schema.
+// JSONInputSchemaMappingProperties this can be used to map properties of a source schema (or default
+// values, for certain supported properties) to properties of the EventGridEvent schema.
 type JSONInputSchemaMappingProperties struct {
 	// ID - The mapping information for the Id property of the Event Grid Event.
 	ID *JSONField `json:"id,omitempty"`
@@ -1964,7 +1946,7 @@ type JSONInputSchemaMappingProperties struct {
 type NumberGreaterThanAdvancedFilter struct {
 	// Value - The filter value
 	Value *float64 `json:"value,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -2060,7 +2042,7 @@ func (ngtaf NumberGreaterThanAdvancedFilter) AsBasicAdvancedFilter() (BasicAdvan
 type NumberGreaterThanOrEqualsAdvancedFilter struct {
 	// Value - The filter value
 	Value *float64 `json:"value,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -2156,7 +2138,7 @@ func (ngtoeaf NumberGreaterThanOrEqualsAdvancedFilter) AsBasicAdvancedFilter() (
 type NumberInAdvancedFilter struct {
 	// Values - The set of filter values
 	Values *[]float64 `json:"values,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -2252,7 +2234,7 @@ func (niaf NumberInAdvancedFilter) AsBasicAdvancedFilter() (BasicAdvancedFilter,
 type NumberLessThanAdvancedFilter struct {
 	// Value - The filter value
 	Value *float64 `json:"value,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -2348,7 +2330,7 @@ func (nltaf NumberLessThanAdvancedFilter) AsBasicAdvancedFilter() (BasicAdvanced
 type NumberLessThanOrEqualsAdvancedFilter struct {
 	// Value - The filter value
 	Value *float64 `json:"value,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -2444,7 +2426,7 @@ func (nltoeaf NumberLessThanOrEqualsAdvancedFilter) AsBasicAdvancedFilter() (Bas
 type NumberNotInAdvancedFilter struct {
 	// Values - The set of filter values
 	Values *[]float64 `json:"values,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -2569,11 +2551,11 @@ type OperationsListResult struct {
 
 // Resource definition of a Resource
 type Resource struct {
-	// ID - Fully qualified identifier of the resource
+	// ID - READ-ONLY; Fully qualified identifier of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - Name of the resource
+	// Name - READ-ONLY; Name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - Type of the resource
+	// Type - READ-ONLY; Type of the resource
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2759,7 +2741,7 @@ type StorageQueueEventSubscriptionDestinationProperties struct {
 type StringBeginsWithAdvancedFilter struct {
 	// Values - The set of filter values
 	Values *[]string `json:"values,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -2855,7 +2837,7 @@ func (sbwaf StringBeginsWithAdvancedFilter) AsBasicAdvancedFilter() (BasicAdvanc
 type StringContainsAdvancedFilter struct {
 	// Values - The set of filter values
 	Values *[]string `json:"values,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -2951,7 +2933,7 @@ func (scaf StringContainsAdvancedFilter) AsBasicAdvancedFilter() (BasicAdvancedF
 type StringEndsWithAdvancedFilter struct {
 	// Values - The set of filter values
 	Values *[]string `json:"values,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -3047,7 +3029,7 @@ func (sewaf StringEndsWithAdvancedFilter) AsBasicAdvancedFilter() (BasicAdvanced
 type StringInAdvancedFilter struct {
 	// Values - The set of filter values
 	Values *[]string `json:"values,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -3143,7 +3125,7 @@ func (siaf StringInAdvancedFilter) AsBasicAdvancedFilter() (BasicAdvancedFilter,
 type StringNotInAdvancedFilter struct {
 	// Values - The set of filter values
 	Values *[]string `json:"values,omitempty"`
-	// Key - The filter key. Represents an event property with upto two levels of nesting.
+	// Key - The filter key. Represents an event property with up to two levels of nesting.
 	Key *string `json:"key,omitempty"`
 	// OperatorType - Possible values include: 'OperatorTypeAdvancedFilter', 'OperatorTypeNumberIn', 'OperatorTypeNumberNotIn', 'OperatorTypeNumberLessThan', 'OperatorTypeNumberGreaterThan', 'OperatorTypeNumberLessThanOrEquals', 'OperatorTypeNumberGreaterThanOrEquals', 'OperatorTypeBoolEquals', 'OperatorTypeStringIn', 'OperatorTypeStringNotIn', 'OperatorTypeStringBeginsWith', 'OperatorTypeStringEndsWith', 'OperatorTypeStringContains'
 	OperatorType OperatorType `json:"operatorType,omitempty"`
@@ -3244,11 +3226,11 @@ type Topic struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Tags of the resource
 	Tags map[string]*string `json:"tags"`
-	// ID - Fully qualified identifier of the resource
+	// ID - READ-ONLY; Fully qualified identifier of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - Name of the resource
+	// Name - READ-ONLY; Name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - Type of the resource
+	// Type - READ-ONLY; Type of the resource
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3263,15 +3245,6 @@ func (t Topic) MarshalJSON() ([]byte, error) {
 	}
 	if t.Tags != nil {
 		objectMap["tags"] = t.Tags
-	}
-	if t.ID != nil {
-		objectMap["id"] = t.ID
-	}
-	if t.Name != nil {
-		objectMap["name"] = t.Name
-	}
-	if t.Type != nil {
-		objectMap["type"] = t.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3347,9 +3320,9 @@ func (t *Topic) UnmarshalJSON(body []byte) error {
 
 // TopicProperties properties of the Topic
 type TopicProperties struct {
-	// ProvisioningState - Provisioning state of the topic. Possible values include: 'TopicProvisioningStateCreating', 'TopicProvisioningStateUpdating', 'TopicProvisioningStateDeleting', 'TopicProvisioningStateSucceeded', 'TopicProvisioningStateCanceled', 'TopicProvisioningStateFailed'
+	// ProvisioningState - READ-ONLY; Provisioning state of the topic. Possible values include: 'TopicProvisioningStateCreating', 'TopicProvisioningStateUpdating', 'TopicProvisioningStateDeleting', 'TopicProvisioningStateSucceeded', 'TopicProvisioningStateCanceled', 'TopicProvisioningStateFailed'
 	ProvisioningState TopicProvisioningState `json:"provisioningState,omitempty"`
-	// Endpoint - Endpoint for the topic.
+	// Endpoint - READ-ONLY; Endpoint for the topic.
 	Endpoint *string `json:"endpoint,omitempty"`
 	// InputSchema - This determines the format that Event Grid should expect for incoming events published to the topic. Possible values include: 'InputSchemaEventGridSchema', 'InputSchemaCustomEventSchema', 'InputSchemaCloudEventV01Schema'
 	InputSchema InputSchema `json:"inputSchema,omitempty"`
@@ -3413,7 +3386,8 @@ type TopicRegenerateKeyRequest struct {
 	KeyName *string `json:"keyName,omitempty"`
 }
 
-// TopicsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
+// TopicsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type TopicsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -3422,7 +3396,7 @@ type TopicsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *TopicsCreateOrUpdateFuture) Result(client TopicsClient) (t Topic, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "eventgrid.TopicsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3450,7 +3424,7 @@ type TopicsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *TopicsDeleteFuture) Result(client TopicsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "eventgrid.TopicsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3488,7 +3462,7 @@ type TopicsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *TopicsUpdateFuture) Result(client TopicsClient) (t Topic, err error) {
 	var done bool
-	done, err = future.Done(client)
+	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "eventgrid.TopicsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3512,11 +3486,11 @@ type TopicTypeInfo struct {
 	autorest.Response `json:"-"`
 	// TopicTypeProperties - Properties of the topic type info
 	*TopicTypeProperties `json:"properties,omitempty"`
-	// ID - Fully qualified identifier of the resource
+	// ID - READ-ONLY; Fully qualified identifier of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - Name of the resource
+	// Name - READ-ONLY; Name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - Type of the resource
+	// Type - READ-ONLY; Type of the resource
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3525,15 +3499,6 @@ func (tti TopicTypeInfo) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if tti.TopicTypeProperties != nil {
 		objectMap["properties"] = tti.TopicTypeProperties
-	}
-	if tti.ID != nil {
-		objectMap["id"] = tti.ID
-	}
-	if tti.Name != nil {
-		objectMap["name"] = tti.Name
-	}
-	if tti.Type != nil {
-		objectMap["type"] = tti.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3633,11 +3598,11 @@ type TrackedResource struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Tags of the resource
 	Tags map[string]*string `json:"tags"`
-	// ID - Fully qualified identifier of the resource
+	// ID - READ-ONLY; Fully qualified identifier of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - Name of the resource
+	// Name - READ-ONLY; Name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - Type of the resource
+	// Type - READ-ONLY; Type of the resource
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3649,15 +3614,6 @@ func (tr TrackedResource) MarshalJSON() ([]byte, error) {
 	}
 	if tr.Tags != nil {
 		objectMap["tags"] = tr.Tags
-	}
-	if tr.ID != nil {
-		objectMap["id"] = tr.ID
-	}
-	if tr.Name != nil {
-		objectMap["name"] = tr.Name
-	}
-	if tr.Type != nil {
-		objectMap["type"] = tr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3746,11 +3702,11 @@ func (whesd *WebHookEventSubscriptionDestination) UnmarshalJSON(body []byte) err
 	return nil
 }
 
-// WebHookEventSubscriptionDestinationProperties information about the webhook destination properties for an event
-// subscription.
+// WebHookEventSubscriptionDestinationProperties information about the webhook destination properties for
+// an event subscription.
 type WebHookEventSubscriptionDestinationProperties struct {
 	// EndpointURL - The URL that represents the endpoint of the destination of an event subscription.
 	EndpointURL *string `json:"endpointUrl,omitempty"`
-	// EndpointBaseURL - The base URL that represents the endpoint of the destination of an event subscription.
+	// EndpointBaseURL - READ-ONLY; The base URL that represents the endpoint of the destination of an event subscription.
 	EndpointBaseURL *string `json:"endpointBaseUrl,omitempty"`
 }

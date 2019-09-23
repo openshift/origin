@@ -17,22 +17,27 @@ type ListOptsBuilder interface {
 // sort by a particular attribute. SortDir sets the direction, and is
 // either `asc' or `desc'. Marker and Limit are used for pagination.
 type ListOpts struct {
-	Description        string `q:"description"`
-	AdminStateUp       *bool  `q:"admin_state_up"`
-	ProjectID          string `q:"project_id"`
-	ProvisioningStatus string `q:"provisioning_status"`
-	VipAddress         string `q:"vip_address"`
-	VipPortID          string `q:"vip_port_id"`
-	VipSubnetID        string `q:"vip_subnet_id"`
-	ID                 string `q:"id"`
-	OperatingStatus    string `q:"operating_status"`
-	Name               string `q:"name"`
-	Flavor             string `q:"flavor"`
-	Provider           string `q:"provider"`
-	Limit              int    `q:"limit"`
-	Marker             string `q:"marker"`
-	SortKey            string `q:"sort_key"`
-	SortDir            string `q:"sort_dir"`
+	Description        string   `q:"description"`
+	AdminStateUp       *bool    `q:"admin_state_up"`
+	ProjectID          string   `q:"project_id"`
+	ProvisioningStatus string   `q:"provisioning_status"`
+	VipAddress         string   `q:"vip_address"`
+	VipPortID          string   `q:"vip_port_id"`
+	VipSubnetID        string   `q:"vip_subnet_id"`
+	VipNetworkID       string   `q:"vip_network_id"`
+	ID                 string   `q:"id"`
+	OperatingStatus    string   `q:"operating_status"`
+	Name               string   `q:"name"`
+	Flavor             string   `q:"flavor"`
+	Provider           string   `q:"provider"`
+	Limit              int      `q:"limit"`
+	Marker             string   `q:"marker"`
+	SortKey            string   `q:"sort_key"`
+	SortDir            string   `q:"sort_dir"`
+	Tags               []string `q:"tags"`
+	TagsAny            []string `q:"tags-any"`
+	TagsNot            []string `q:"not-tags"`
+	TagsNotAny         []string `q:"not-tags-any"`
 }
 
 // ToLoadBalancerListQuery formats a ListOpts into a query string.
@@ -76,10 +81,21 @@ type CreateOpts struct {
 	// Human-readable description for the Loadbalancer.
 	Description string `json:"description,omitempty"`
 
-	// The network on which to allocate the Loadbalancer's address. A project can
+	// Providing a neutron port ID for the vip_port_id tells Octavia to use this
+	// port for the VIP. If the port has more than one subnet you must specify
+	// either the vip_subnet_id or vip_address to clarify which address should
+	// be used for the VIP.
+	VipPortID string `json:"vip_port_id,omitempty"`
+
+	// The subnet on which to allocate the Loadbalancer's address. A project can
 	// only create Loadbalancers on networks authorized by policy (e.g. networks
 	// that belong to them or networks that are shared).
-	VipSubnetID string `json:"vip_subnet_id" required:"true"`
+	VipSubnetID string `json:"vip_subnet_id,omitempty"`
+
+	// The network on which to allocate the Loadbalancer's address. A tenant can
+	// only create Loadbalancers on networks authorized by policy (e.g. networks
+	// that belong to them or networks that are shared).
+	VipNetworkID string `json:"vip_network_id,omitempty"`
 
 	// ProjectID is the UUID of the project who owns the Loadbalancer.
 	// Only administrative users can specify a project UUID other than their own.

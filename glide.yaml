@@ -8,109 +8,118 @@ import:
 # kube first
 - package: k8s.io/api
   repo:    https://github.com/openshift/kubernetes-api.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/apiextensions-apiserver
   repo:    https://github.com/openshift/kubernetes-apiextensions-apiserver.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/apimachinery
   repo:    https://github.com/openshift/kubernetes-apimachinery.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/apiserver
   repo:    https://github.com/openshift/kubernetes-apiserver.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/client-go
   repo:    https://github.com/openshift/kubernetes-client-go.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/cli-runtime
   repo:    https://github.com/openshift/kubernetes-cli-runtime.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/cloud-provider
   repo:    https://github.com/openshift/kubernetes-cloud-provider.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/cluster-bootstrap
   repo:    https://github.com/openshift/kubernetes-cluster-bootstrap.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/code-generator
   repo:    https://github.com/openshift/kubernetes-code-generator.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/component-base
   repo:    https://github.com/openshift/kubernetes-component-base.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/csi-api
-  repo:    https://github.com/openshift/kubernetes-csi-api.git
-  version: origin-4.2-kubernetes-1.14.0
+  repo:    https://github.com/openshift/kubernetes-cri-api.git
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/csi-translation-lib
   repo:    https://github.com/openshift/kubernetes-csi-translation-lib.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/kube-aggregator
   repo:    https://github.com/openshift/kubernetes-kube-aggregator.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/kube-controller-manager
   repo:    https://github.com/openshift/kubernetes-kube-controller-manager.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
+- package: k8s.io/kubectl
+  repo:    https://github.com/openshift/kubernetes-kubectl.git
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/kubelet
   repo:    https://github.com/openshift/kubernetes-kubelet.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/kube-proxy
   repo:    https://github.com/openshift/kubernetes-kube-proxy.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/kube-scheduler
   repo:    https://github.com/openshift/kubernetes-kube-scheduler.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
+- package: k8s.io/legacy-cloud-providers
+  repo:    https://github.com/openshift/kubernetes-legacy-cloud-providers.git
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/metrics
   repo:    https://github.com/openshift/kubernetes-metrics.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/sample-apiserver
   repo:    https://github.com/openshift/kubernetes-sample-apiserver.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/sample-cli-plugin
   repo:    https://github.com/openshift/kubernetes-sample-cli-plugin.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/sample-controller
   repo:    https://github.com/openshift/kubernetes-sample-controller.git
-  version: origin-4.2-kubernetes-1.14.0
+  version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/kubernetes
   repo:    https://github.com/openshift/kubernetes.git
-  version: origin-4.2-kubernetes-1.14.6
- # this matches the 1.14 branch from kube
+  version: origin-4.3-kubernetes-1.16.0-rc.2
+# this matches the 1.16 branch from kube
 - package: k8s.io/gengo
-  version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
+  version: 26a664648505d962332bda642b27306bc10d1082
 - package: k8s.io/utils
-  version: c2654d5206da6b7b6ace12841e8f359bb89b443c
+  version: 581e00157fb1a0435d4fac54a52d1ca1e481d60e
 - package: k8s.io/kube-openapi
-  version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
+  version: 743ec37842bffe49dd4221d9026f30fb1d5adbc4
 - package: k8s.io/klog
-  version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f # recent klog bump broke glog flags test in k8s.io/apiserver, pin
+  version: v0.4.0
 # for gengo
 - package: golang.org/x/tools/imports
-  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
+  version: 6e04913cbbac05c5c0c9d8f237717e292f700e76
+
+# see if old grpc can let kubelet/crio communicate
+- package: google.golang.org/grpc
+  version: 168a6198bcb0ef175f7dacec0b8691fc141dc9b8
+
+# force old etcd3
+- package: github.com/coreos/etcd
+  version: 27fc7e2296f506182f58ce846e48f36b34fe6842
+- package: github.com/ugorji/go
+  version: bdcc60b419d136a85cdf2e7cbcac34b3f1cd6e57
 
 # openshift second
 - package: github.com/openshift/api
-  version: master
+  version: prebase-1.16
 - package: github.com/openshift/client-go
-  version: master
+  version: prebase-1.16
 - package: github.com/openshift/library-go
-  version: master
+  version: prebase-1.16
 - package: github.com/openshift/apiserver-library-go
-  version: master
+  version: prebase-1.16
 
 # forks third
-# master
 - package: github.com/onsi/ginkgo
   repo:    https://github.com/openshift/onsi-ginkgo.git
-  version: release-v1.2.0
-# pod - sjenning
-# origin-3.11-runc-871ba2e
-- package: github.com/opencontainers/runc
-  repo:    https://github.com/openshift/opencontainers-runc.git
-  version: 7c7775178c25e952571573f44a8df281824cf8e1
-# pod - sjenning
-# openshift-4.1-cadvisor-v0.32.0
+  version: origin-4.3
 - package: github.com/google/cadvisor
   repo:    https://github.com/openshift/google-cadvisor.git
-  version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
+  version: openshift-4.3-cadvisor-v0.33.2
 # these need to match the kubelet
+# TODO(node): recheck these levels
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git
   version: image-registry-3.11
@@ -122,23 +131,28 @@ import:
 - package: github.com/golang/glog
   repo:    https://github.com/openshift/golang-glog.git
   version: delegate-to-klog
-# retrieve latest version that fixes deadlock on kqueue
-- package: github.com/fsnotify/fsnotify
-  version: v1.4.7
 
 # mine: specific to openshift
 # master? for bindata
 - package: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
 
-# to avoid go4.org website outages on glide update
-- package: go4.org
-  repo: https://github.com/go4org/go4
-  version: 03efcb870d84809319ea509714dd6d19a1498483
-  subpackages:
-  - errorutil
+# due to https://github.com/Masterminds/glide/issues/881 manually show where
+# to get gonum.org/v1/gonum from
+- package: gonum.org/v1/gonum
+  repo: https://github.com/gonum/gonum.git
 
-# needed to get the
+# set alias location for this package due to
+# https://github.com/Masterminds/glide/issues/1057; upstream did this in
+# https://github.com/kubernetes/kubernetes/pull/72138
+- package: bitbucket.org/ww/goautoneg
+  repo: https://github.com/munnerz/goautoneg.git
+
+# help glide with go mod submodule tag
+- package: github.com/Azure/go-autorest
+  version: autorest/v0.9.0
+
+  # needed to get the
 - package: github.com/lestrrat/go-jspointer
   repo:    https://github.com/lestrrat/go-jspointer.git
 - package: github.com/lestrrat/go-pdebug
@@ -149,20 +163,3 @@ import:
 - package: github.com/lestrrat/go-structinfo
   repo:    https://github.com/lestrrat/go-structinfo.git
   version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
-
-# due to https://github.com/Masterminds/glide/issues/881 manually show where
-# to get gonum.org/v1/gonum from
-- package: gonum.org/v1/gonum
-  repo: https://github.com/gonum/gonum.git
-  version: cebdade430ccb61c1feba4878085f6cf8cb3320e
-
-# set alias location for this package due to
-# https://github.com/Masterminds/glide/issues/1057; upstream did this in
-# https://github.com/kubernetes/kubernetes/pull/72138
-- package: bitbucket.org/ww/goautoneg
-  repo: https://github.com/munnerz/goautoneg.git
-
-# yours that I suspect aren't pinning because vendor.conf is respected
-# yours: containers/image.  No idea why this isn't self-pinning.
-- package: github.com/containers/storage
-  version: 912de200380ac2fd1e90f91b78c1495ed8d5beea

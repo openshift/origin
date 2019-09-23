@@ -10,6 +10,8 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
+	"k8s.io/kubernetes/test/e2e/framework/pod"
+
 	testexutil "github.com/openshift/origin/test/extended/util"
 
 	corev1 "k8s.io/api/core/v1"
@@ -102,26 +104,8 @@ func waitForPodSuccessInNamespace(c kclientset.Interface, podName string, contNa
 	})
 }
 
-func waitForEndpoint(c kclientset.Interface, ns, name string) error {
-	for t := time.Now(); time.Since(t) < 3*time.Minute; time.Sleep(poll) {
-		endpoint, err := c.CoreV1().Endpoints(ns).Get(name, metav1.GetOptions{})
-		if kapierrs.IsNotFound(err) {
-			e2e.Logf("Endpoint %s/%s is not ready yet", ns, name)
-			continue
-		}
-		Expect(err).NotTo(HaveOccurred())
-		if len(endpoint.Subsets) == 0 || len(endpoint.Subsets[0].Addresses) == 0 {
-			e2e.Logf("Endpoint %s/%s is not ready yet", ns, name)
-			continue
-		} else {
-			return nil
-		}
-	}
-	return fmt.Errorf("Failed to get endpoints for %s/%s", ns, name)
-}
-
 func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
-	e2e.LaunchWebserverPod(f, serviceName, nodeName)
+	testexutil.LaunchWebserverPod(f, serviceName, nodeName)
 
 	// FIXME: make e2e.LaunchWebserverPod() set the label when creating the pod
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -160,7 +144,7 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 	serviceClient := f.ClientSet.CoreV1().Services(f.Namespace.Name)
 	_, err = serviceClient.Create(service)
 	expectNoError(err)
-	expectNoError(waitForEndpoint(f.ClientSet, f.Namespace.Name, serviceName))
+	expectNoError(testexutil.WaitForEndpoint(f.ClientSet, f.Namespace.Name, serviceName))
 	createdService, err := serviceClient.Get(serviceName, metav1.GetOptions{})
 	expectNoError(err)
 	serviceAddr = fmt.Sprintf("%s:%d", createdService.Spec.ClusterIP, servicePort)
@@ -170,20 +154,19 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration) error {
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
-	execPodName := e2e.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+	execPod := pod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
 		pod.Spec.NodeName = nodeName
 	})
 	defer func() {
 		e2e.Logf("Cleaning up the exec pod")
-		err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(execPodName, nil)
+		err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(execPod.Name, nil)
 		Expect(err).NotTo(HaveOccurred())
 	}()
-	execPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(execPodName, metav1.GetOptions{})
-	e2e.ExpectNoError(err)
 
 	var stdout string
 	e2e.Logf("Waiting up to %v to wget %s", timeout, host)
 	cmd := fmt.Sprintf("wget -T 30 -qO- %s", host)
+	var err error
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2) {
 		stdout, err = e2e.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 		if err != nil {
@@ -197,61 +180,7 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 		}
 		break
 	}
-	if err == nil {
-		return nil
-	}
-	savedErr := err
-
-	// Debug
-	debugPodName := e2e.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("debugpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
-		pod.Spec.Containers[0].Image = "openshift/node"
-		pod.Spec.NodeName = nodeName
-		pod.Spec.HostNetwork = true
-		privileged := true
-		pod.Spec.Volumes = []corev1.Volume{
-			{
-				Name: "ovs-socket",
-				VolumeSource: corev1.VolumeSource{
-					HostPath: &corev1.HostPathVolumeSource{
-						Path: "/var/run/openvswitch/br0.mgmt",
-					},
-				},
-			},
-		}
-		pod.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
-			{
-				Name:      "ovs-socket",
-				MountPath: "/var/run/openvswitch/br0.mgmt",
-			},
-		}
-		pod.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{Privileged: &privileged}
-	})
-	defer func() {
-		err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(debugPodName, nil)
-		Expect(err).NotTo(HaveOccurred())
-	}()
-	debugPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(debugPodName, metav1.GetOptions{})
-	e2e.ExpectNoError(err)
-
-	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "ovs-ofctl -O OpenFlow13 dump-flows br0")
-	if err != nil {
-		e2e.Logf("DEBUG: got error dumping OVS flows: %v", err)
-	} else {
-		e2e.Logf("DEBUG:\n%s\n", stdout)
-	}
-	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "iptables-save")
-	if err != nil {
-		e2e.Logf("DEBUG: got error dumping iptables: %v", err)
-	} else {
-		e2e.Logf("DEBUG:\n%s\n", stdout)
-	}
-	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "ss -ant")
-	if err != nil {
-		e2e.Logf("DEBUG: got error dumping sockets: %v", err)
-	} else {
-		e2e.Logf("DEBUG:\n%s\n", stdout)
-	}
-	return savedErr
+	return err
 }
 
 var cachedNetworkPluginName *string
@@ -384,7 +313,7 @@ func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 	serverNode, clientNode := findAppropriateNodes(f1, nodeType)
 	podName := "isolation-webserver"
 	defer f1.ClientSet.CoreV1().Pods(f1.Namespace.Name).Delete(podName, nil)
-	ip := e2e.LaunchWebserverPod(f1, podName, serverNode.Name)
+	ip := testexutil.LaunchWebserverPod(f1, podName, serverNode.Name)
 
 	return checkConnectivityToHost(f2, clientNode.Name, "isolation-wget", ip, 10*time.Second)
 }

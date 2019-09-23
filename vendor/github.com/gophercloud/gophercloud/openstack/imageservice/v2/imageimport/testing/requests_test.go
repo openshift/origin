@@ -36,3 +36,25 @@ func TestGet(t *testing.T) {
 	th.AssertEquals(t, s.ImportMethods.Type, "array")
 	th.AssertDeepEquals(t, s.ImportMethods.Value, validImportMethods)
 }
+
+func TestCreate(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/images/da3b75d9-3f4a-40e7-8a2c-bfab23927dea/import", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fakeclient.TokenID)
+		th.TestJSONRequest(t, r, ImportCreateRequest)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		fmt.Fprintf(w, `{}`)
+	})
+
+	opts := imageimport.CreateOpts{
+		Name: imageimport.WebDownloadMethod,
+		URI:  "http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img",
+	}
+	err := imageimport.Create(fakeclient.ServiceClient(), "da3b75d9-3f4a-40e7-8a2c-bfab23927dea", opts).ExtractErr()
+	th.AssertNoErr(t, err)
+}

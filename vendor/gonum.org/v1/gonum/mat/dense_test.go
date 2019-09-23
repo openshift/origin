@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strings"
 	"testing"
 
 	"golang.org/x/exp/rand"
@@ -16,9 +17,13 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-func asBasicMatrix(d *Dense) Matrix            { return (*basicMatrix)(d) }
-func asBasicSymmetric(s *SymDense) Matrix      { return (*basicSymmetric)(s) }
-func asBasicTriangular(t *TriDense) Triangular { return (*basicTriangular)(t) }
+func asBasicMatrix(d *Dense) Matrix              { return (*basicMatrix)(d) }
+func asBasicSymmetric(s *SymDense) Matrix        { return (*basicSymmetric)(s) }
+func asBasicTriangular(t *TriDense) Triangular   { return (*basicTriangular)(t) }
+func asBasicBanded(b *BandDense) Banded          { return (*basicBanded)(b) }
+func asBasicSymBanded(s *SymBandDense) SymBanded { return (*basicSymBanded)(s) }
+func asBasicTriBanded(t *TriBandDense) TriBanded { return (*basicTriBanded)(t) }
+func asBasicDiagonal(d *DiagDense) Diagonal      { return (*basicDiagonal)(d) }
 
 func TestNewDense(t *testing.T) {
 	for i, test := range []struct {
@@ -162,7 +167,7 @@ func TestNewDense(t *testing.T) {
 	}
 }
 
-func TestAtSet(t *testing.T) {
+func TestDenseAtSet(t *testing.T) {
 	for test, af := range [][][]float64{
 		{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}, // even
 		{{1, 2}, {4, 5}, {7, 8}},          // wide
@@ -215,7 +220,7 @@ func TestAtSet(t *testing.T) {
 	}
 }
 
-func TestSetRowColumn(t *testing.T) {
+func TestDenseSetRowColumn(t *testing.T) {
 	for _, as := range [][][]float64{
 		{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
 		{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}},
@@ -253,7 +258,39 @@ func TestSetRowColumn(t *testing.T) {
 	}
 }
 
-func TestRowColView(t *testing.T) {
+func TestDenseZero(t *testing.T) {
+	// Elements that equal 1 should be set to zero, elements that equal -1
+	// should remain unchanged.
+	for _, test := range []*Dense{
+		{
+			mat: blas64.General{
+				Rows:   4,
+				Cols:   3,
+				Stride: 5,
+				Data: []float64{
+					1, 1, 1, -1, -1,
+					1, 1, 1, -1, -1,
+					1, 1, 1, -1, -1,
+					1, 1, 1, -1, -1,
+				},
+			},
+		},
+	} {
+		dataCopy := make([]float64, len(test.mat.Data))
+		copy(dataCopy, test.mat.Data)
+		test.Zero()
+		for i, v := range test.mat.Data {
+			if dataCopy[i] != -1 && v != 0 {
+				t.Errorf("Matrix not zeroed in bounds")
+			}
+			if dataCopy[i] == -1 && v != -1 {
+				t.Errorf("Matrix zeroed out of bounds")
+			}
+		}
+	}
+}
+
+func TestDenseRowColView(t *testing.T) {
 	for _, test := range []struct {
 		mat [][]float64
 	}{
@@ -356,7 +393,27 @@ func TestRowColView(t *testing.T) {
 	}
 }
 
-func TestGrow(t *testing.T) {
+func TestDenseDiagView(t *testing.T) {
+	for cas, test := range []*Dense{
+		NewDense(1, 1, []float64{1}),
+		NewDense(2, 2, []float64{1, 2, 3, 4}),
+		NewDense(3, 4, []float64{
+			1, 2, 3, 4,
+			5, 6, 7, 8,
+			9, 10, 11, 12,
+		}),
+		NewDense(4, 3, []float64{
+			1, 2, 3,
+			4, 5, 6,
+			7, 8, 9,
+			10, 11, 12,
+		}),
+	} {
+		testDiagView(t, cas, test)
+	}
+}
+
+func TestDenseGrow(t *testing.T) {
 	m := &Dense{}
 	m = m.Grow(10, 10).(*Dense)
 	rows, cols := m.Dims()
@@ -411,7 +468,7 @@ func TestGrow(t *testing.T) {
 	}
 }
 
-func TestAdd(t *testing.T) {
+func TestDenseAdd(t *testing.T) {
 	for i, test := range []struct {
 		a, b, r [][]float64
 	}{
@@ -462,7 +519,7 @@ func TestAdd(t *testing.T) {
 		// These probably warrant a better check and failure. They should never happen in the wild though.
 		temp.mat.Data = nil
 		panicked, message := panics(func() { temp.Add(a, b) })
-		if !panicked || message != "runtime error: index out of range" {
+		if !panicked || !strings.HasPrefix(message, "runtime error: index out of range") {
 			t.Error("exected runtime panic for nil data slice")
 		}
 
@@ -498,7 +555,7 @@ func TestAdd(t *testing.T) {
 	testTwoInput(t, "Add", &Dense{}, method, denseComparison, legalTypesAll, legalSizeSameRectangular, 1e-14)
 }
 
-func TestSub(t *testing.T) {
+func TestDenseSub(t *testing.T) {
 	for i, test := range []struct {
 		a, b, r [][]float64
 	}{
@@ -549,7 +606,7 @@ func TestSub(t *testing.T) {
 		// These probably warrant a better check and failure. They should never happen in the wild though.
 		temp.mat.Data = nil
 		panicked, message := panics(func() { temp.Sub(a, b) })
-		if !panicked || message != "runtime error: index out of range" {
+		if !panicked || !strings.HasPrefix(message, "runtime error: index out of range") {
 			t.Error("exected runtime panic for nil data slice")
 		}
 
@@ -585,7 +642,7 @@ func TestSub(t *testing.T) {
 	testTwoInput(t, "Sub", &Dense{}, method, denseComparison, legalTypesAll, legalSizeSameRectangular, 1e-14)
 }
 
-func TestMulElem(t *testing.T) {
+func TestDenseMulElem(t *testing.T) {
 	for i, test := range []struct {
 		a, b, r [][]float64
 	}{
@@ -636,7 +693,7 @@ func TestMulElem(t *testing.T) {
 		// These probably warrant a better check and failure. They should never happen in the wild though.
 		temp.mat.Data = nil
 		panicked, message := panics(func() { temp.MulElem(a, b) })
-		if !panicked || message != "runtime error: index out of range" {
+		if !panicked || !strings.HasPrefix(message, "runtime error: index out of range") {
 			t.Error("exected runtime panic for nil data slice")
 		}
 
@@ -688,7 +745,7 @@ func (m *Dense) same(b Matrix) bool {
 	return true
 }
 
-func TestDivElem(t *testing.T) {
+func TestDenseDivElem(t *testing.T) {
 	for i, test := range []struct {
 		a, b, r [][]float64
 	}{
@@ -739,7 +796,7 @@ func TestDivElem(t *testing.T) {
 		// These probably warrant a better check and failure. They should never happen in the wild though.
 		temp.mat.Data = nil
 		panicked, message := panics(func() { temp.DivElem(a, b) })
-		if !panicked || message != "runtime error: index out of range" {
+		if !panicked || !strings.HasPrefix(message, "runtime error: index out of range") {
 			t.Error("exected runtime panic for nil data slice")
 		}
 
@@ -775,7 +832,7 @@ func TestDivElem(t *testing.T) {
 	testTwoInput(t, "DivElem", &Dense{}, method, denseComparison, legalTypesAll, legalSizeSameRectangular, 1e-14)
 }
 
-func TestMul(t *testing.T) {
+func TestDenseMul(t *testing.T) {
 	for i, test := range []struct {
 		a, b, r [][]float64
 	}{
@@ -831,7 +888,7 @@ func TestMul(t *testing.T) {
 		// These probably warrant a better check and failure. They should never happen in the wild though.
 		temp.mat.Data = nil
 		panicked, message := panics(func() { temp.Mul(a, b) })
-		if !panicked || message != "blas: index of c out of range" {
+		if !panicked || message != "blas: insufficient length of c" {
 			if message != "" {
 				t.Errorf("expected runtime panic for nil data slice: got %q", message)
 			} else {
@@ -889,7 +946,7 @@ func randDense(size int, rho float64, rnd func() float64) (*Dense, error) {
 	return d, nil
 }
 
-func TestExp(t *testing.T) {
+func TestDenseExp(t *testing.T) {
 	for i, test := range []struct {
 		a    [][]float64
 		want [][]float64
@@ -943,7 +1000,7 @@ func TestExp(t *testing.T) {
 	}
 }
 
-func TestPow(t *testing.T) {
+func TestDensePow(t *testing.T) {
 	for i, test := range []struct {
 		a    [][]float64
 		n    int
@@ -1030,7 +1087,7 @@ func TestPow(t *testing.T) {
 	}
 }
 
-func TestScale(t *testing.T) {
+func TestDenseScale(t *testing.T) {
 	for _, f := range []float64{0.5, 1, 3} {
 		method := func(receiver, a Matrix) {
 			type Scaler interface {
@@ -1046,7 +1103,7 @@ func TestScale(t *testing.T) {
 	}
 }
 
-func TestPowN(t *testing.T) {
+func TestDensePowN(t *testing.T) {
 	for i, test := range []struct {
 		a   [][]float64
 		mod func(*Dense)
@@ -1086,7 +1143,7 @@ func (m *Dense) iterativePow(a Matrix, n int) {
 	}
 }
 
-func TestCloneT(t *testing.T) {
+func TestDenseCloneT(t *testing.T) {
 	for i, test := range []struct {
 		a, want [][]float64
 	}{
@@ -1133,7 +1190,7 @@ func TestCloneT(t *testing.T) {
 	}
 }
 
-func TestCopyT(t *testing.T) {
+func TestDenseCopyT(t *testing.T) {
 	for i, test := range []struct {
 		a, want [][]float64
 	}{
@@ -1182,7 +1239,7 @@ func TestCopyT(t *testing.T) {
 	}
 }
 
-func TestCopyDenseAlias(t *testing.T) {
+func TestDenseCopyDenseAlias(t *testing.T) {
 	for _, trans := range []bool{false, true} {
 		for di := 0; di < 2; di++ {
 			for dj := 0; dj < 2; dj++ {
@@ -1220,7 +1277,7 @@ func TestCopyDenseAlias(t *testing.T) {
 	}
 }
 
-func TestCopyVecDenseAlias(t *testing.T) {
+func TestDenseCopyVecDenseAlias(t *testing.T) {
 	for _, horiz := range []bool{false, true} {
 		for do := 0; do < 2; do++ {
 			for di := 0; di < 3; di++ {
@@ -1262,7 +1319,7 @@ func TestCopyVecDenseAlias(t *testing.T) {
 
 func identity(r, c int, v float64) float64 { return v }
 
-func TestApply(t *testing.T) {
+func TestDenseApply(t *testing.T) {
 	for i, test := range []struct {
 		a, want [][]float64
 		fn      func(r, c int, v float64) float64
@@ -1362,7 +1419,7 @@ func TestApply(t *testing.T) {
 	}
 }
 
-func TestClone(t *testing.T) {
+func TestDenseClone(t *testing.T) {
 	for i, test := range []struct {
 		a    [][]float64
 		i, j int
@@ -1392,7 +1449,7 @@ func TestClone(t *testing.T) {
 }
 
 // TODO(kortschak) Roll this into testOneInput when it exists.
-func TestCopyPanic(t *testing.T) {
+func TestDenseCopyPanic(t *testing.T) {
 	for _, a := range []*Dense{
 		{},
 		{mat: blas64.General{Rows: 1}},
@@ -1413,7 +1470,7 @@ func TestCopyPanic(t *testing.T) {
 	}
 }
 
-func TestStack(t *testing.T) {
+func TestDenseStack(t *testing.T) {
 	for i, test := range []struct {
 		a, b, e [][]float64
 	}{
@@ -1457,7 +1514,7 @@ func TestStack(t *testing.T) {
 	testTwoInput(t, "Stack", &Dense{}, method, denseComparison, legalTypesAll, legalSizeSameWidth, 0)
 }
 
-func TestAugment(t *testing.T) {
+func TestDenseAugment(t *testing.T) {
 	for i, test := range []struct {
 		a, b, e [][]float64
 	}{
@@ -1501,7 +1558,7 @@ func TestAugment(t *testing.T) {
 	testTwoInput(t, "Augment", &Dense{}, method, denseComparison, legalTypesAll, legalSizeSameHeight, 0)
 }
 
-func TestRankOne(t *testing.T) {
+func TestDenseRankOne(t *testing.T) {
 	for i, test := range []struct {
 		x     []float64
 		y     []float64
@@ -1579,7 +1636,7 @@ func TestRankOne(t *testing.T) {
 	}
 }
 
-func TestOuter(t *testing.T) {
+func TestDenseOuter(t *testing.T) {
 	for i, test := range []struct {
 		x []float64
 		y []float64
@@ -1645,7 +1702,7 @@ func TestOuter(t *testing.T) {
 	}
 }
 
-func TestInverse(t *testing.T) {
+func TestDenseInverse(t *testing.T) {
 	for i, test := range []struct {
 		a    Matrix
 		want Matrix // nil indicates that a is singular.
@@ -1941,11 +1998,11 @@ func densePreMulBench(b *testing.B, size int, rho float64) {
 	}
 }
 
-func BenchmarkRow10(b *testing.B)   { rowBench(b, 10) }
-func BenchmarkRow100(b *testing.B)  { rowBench(b, 100) }
-func BenchmarkRow1000(b *testing.B) { rowBench(b, 1000) }
+func BenchmarkDenseRow10(b *testing.B)   { rowDenseBench(b, 10) }
+func BenchmarkDenseRow100(b *testing.B)  { rowDenseBench(b, 100) }
+func BenchmarkDenseRow1000(b *testing.B) { rowDenseBench(b, 1000) }
 
-func rowBench(b *testing.B, size int) {
+func rowDenseBench(b *testing.B, size int) {
 	a, _ := randDense(size, 1, rand.NormFloat64)
 	_, c := a.Dims()
 	dst := make([]float64, c)
@@ -1956,11 +2013,11 @@ func rowBench(b *testing.B, size int) {
 	}
 }
 
-func BenchmarkExp10(b *testing.B)   { expBench(b, 10) }
-func BenchmarkExp100(b *testing.B)  { expBench(b, 100) }
-func BenchmarkExp1000(b *testing.B) { expBench(b, 1000) }
+func BenchmarkDenseExp10(b *testing.B)   { expDenseBench(b, 10) }
+func BenchmarkDenseExp100(b *testing.B)  { expDenseBench(b, 100) }
+func BenchmarkDenseExp1000(b *testing.B) { expDenseBench(b, 1000) }
 
-func expBench(b *testing.B, size int) {
+func expDenseBench(b *testing.B, size int) {
 	a, _ := randDense(size, 1, rand.NormFloat64)
 
 	b.ResetTimer()
@@ -1970,29 +2027,29 @@ func expBench(b *testing.B, size int) {
 	}
 }
 
-func BenchmarkPow10_3(b *testing.B)   { powBench(b, 10, 3) }
-func BenchmarkPow100_3(b *testing.B)  { powBench(b, 100, 3) }
-func BenchmarkPow1000_3(b *testing.B) { powBench(b, 1000, 3) }
-func BenchmarkPow10_4(b *testing.B)   { powBench(b, 10, 4) }
-func BenchmarkPow100_4(b *testing.B)  { powBench(b, 100, 4) }
-func BenchmarkPow1000_4(b *testing.B) { powBench(b, 1000, 4) }
-func BenchmarkPow10_5(b *testing.B)   { powBench(b, 10, 5) }
-func BenchmarkPow100_5(b *testing.B)  { powBench(b, 100, 5) }
-func BenchmarkPow1000_5(b *testing.B) { powBench(b, 1000, 5) }
-func BenchmarkPow10_6(b *testing.B)   { powBench(b, 10, 6) }
-func BenchmarkPow100_6(b *testing.B)  { powBench(b, 100, 6) }
-func BenchmarkPow1000_6(b *testing.B) { powBench(b, 1000, 6) }
-func BenchmarkPow10_7(b *testing.B)   { powBench(b, 10, 7) }
-func BenchmarkPow100_7(b *testing.B)  { powBench(b, 100, 7) }
-func BenchmarkPow1000_7(b *testing.B) { powBench(b, 1000, 7) }
-func BenchmarkPow10_8(b *testing.B)   { powBench(b, 10, 8) }
-func BenchmarkPow100_8(b *testing.B)  { powBench(b, 100, 8) }
-func BenchmarkPow1000_8(b *testing.B) { powBench(b, 1000, 8) }
-func BenchmarkPow10_9(b *testing.B)   { powBench(b, 10, 9) }
-func BenchmarkPow100_9(b *testing.B)  { powBench(b, 100, 9) }
-func BenchmarkPow1000_9(b *testing.B) { powBench(b, 1000, 9) }
+func BenchmarkDensePow10_3(b *testing.B)   { powDenseBench(b, 10, 3) }
+func BenchmarkDensePow100_3(b *testing.B)  { powDenseBench(b, 100, 3) }
+func BenchmarkDensePow1000_3(b *testing.B) { powDenseBench(b, 1000, 3) }
+func BenchmarkDensePow10_4(b *testing.B)   { powDenseBench(b, 10, 4) }
+func BenchmarkDensePow100_4(b *testing.B)  { powDenseBench(b, 100, 4) }
+func BenchmarkDensePow1000_4(b *testing.B) { powDenseBench(b, 1000, 4) }
+func BenchmarkDensePow10_5(b *testing.B)   { powDenseBench(b, 10, 5) }
+func BenchmarkDensePow100_5(b *testing.B)  { powDenseBench(b, 100, 5) }
+func BenchmarkDensePow1000_5(b *testing.B) { powDenseBench(b, 1000, 5) }
+func BenchmarkDensePow10_6(b *testing.B)   { powDenseBench(b, 10, 6) }
+func BenchmarkDensePow100_6(b *testing.B)  { powDenseBench(b, 100, 6) }
+func BenchmarkDensePow1000_6(b *testing.B) { powDenseBench(b, 1000, 6) }
+func BenchmarkDensePow10_7(b *testing.B)   { powDenseBench(b, 10, 7) }
+func BenchmarkDensePow100_7(b *testing.B)  { powDenseBench(b, 100, 7) }
+func BenchmarkDensePow1000_7(b *testing.B) { powDenseBench(b, 1000, 7) }
+func BenchmarkDensePow10_8(b *testing.B)   { powDenseBench(b, 10, 8) }
+func BenchmarkDensePow100_8(b *testing.B)  { powDenseBench(b, 100, 8) }
+func BenchmarkDensePow1000_8(b *testing.B) { powDenseBench(b, 1000, 8) }
+func BenchmarkDensePow10_9(b *testing.B)   { powDenseBench(b, 10, 9) }
+func BenchmarkDensePow100_9(b *testing.B)  { powDenseBench(b, 100, 9) }
+func BenchmarkDensePow1000_9(b *testing.B) { powDenseBench(b, 1000, 9) }
 
-func powBench(b *testing.B, size, n int) {
+func powDenseBench(b *testing.B, size, n int) {
 	a, _ := randDense(size, 1, rand.NormFloat64)
 
 	b.ResetTimer()
@@ -2002,12 +2059,12 @@ func powBench(b *testing.B, size, n int) {
 	}
 }
 
-func BenchmarkMulTransDense100Half(b *testing.B)        { denseMulTransBench(b, 100, 0.5) }
-func BenchmarkMulTransDense100Tenth(b *testing.B)       { denseMulTransBench(b, 100, 0.1) }
-func BenchmarkMulTransDense1000Half(b *testing.B)       { denseMulTransBench(b, 1000, 0.5) }
-func BenchmarkMulTransDense1000Tenth(b *testing.B)      { denseMulTransBench(b, 1000, 0.1) }
-func BenchmarkMulTransDense1000Hundredth(b *testing.B)  { denseMulTransBench(b, 1000, 0.01) }
-func BenchmarkMulTransDense1000Thousandth(b *testing.B) { denseMulTransBench(b, 1000, 0.001) }
+func BenchmarkDenseMulTransDense100Half(b *testing.B)        { denseMulTransBench(b, 100, 0.5) }
+func BenchmarkDenseMulTransDense100Tenth(b *testing.B)       { denseMulTransBench(b, 100, 0.1) }
+func BenchmarDensekMulTransDense1000Half(b *testing.B)       { denseMulTransBench(b, 1000, 0.5) }
+func BenchmarkDenseMulTransDense1000Tenth(b *testing.B)      { denseMulTransBench(b, 1000, 0.1) }
+func BenchmarkDenseMulTransDense1000Hundredth(b *testing.B)  { denseMulTransBench(b, 1000, 0.01) }
+func BenchmarkDenseMulTransDense1000Thousandth(b *testing.B) { denseMulTransBench(b, 1000, 0.001) }
 func denseMulTransBench(b *testing.B, size int, rho float64) {
 	b.StopTimer()
 	a, _ := randDense(size, rho, rand.NormFloat64)
@@ -2020,12 +2077,12 @@ func denseMulTransBench(b *testing.B, size int, rho float64) {
 	}
 }
 
-func BenchmarkMulTransDenseSym100Half(b *testing.B)        { denseMulTransSymBench(b, 100, 0.5) }
-func BenchmarkMulTransDenseSym100Tenth(b *testing.B)       { denseMulTransSymBench(b, 100, 0.1) }
-func BenchmarkMulTransDenseSym1000Half(b *testing.B)       { denseMulTransSymBench(b, 1000, 0.5) }
-func BenchmarkMulTransDenseSym1000Tenth(b *testing.B)      { denseMulTransSymBench(b, 1000, 0.1) }
-func BenchmarkMulTransDenseSym1000Hundredth(b *testing.B)  { denseMulTransSymBench(b, 1000, 0.01) }
-func BenchmarkMulTransDenseSym1000Thousandth(b *testing.B) { denseMulTransSymBench(b, 1000, 0.001) }
+func BenchmarkDenseMulTransDenseSym100Half(b *testing.B)        { denseMulTransSymBench(b, 100, 0.5) }
+func BenchmarkDenseMulTransDenseSym100Tenth(b *testing.B)       { denseMulTransSymBench(b, 100, 0.1) }
+func BenchmarkDenseMulTransDenseSym1000Half(b *testing.B)       { denseMulTransSymBench(b, 1000, 0.5) }
+func BenchmarkDenseMulTransDenseSym1000Tenth(b *testing.B)      { denseMulTransSymBench(b, 1000, 0.1) }
+func BenchmarkDenseMulTransDenseSym1000Hundredth(b *testing.B)  { denseMulTransSymBench(b, 1000, 0.01) }
+func BenchmarkDenseMulTransDenseSym1000Thousandth(b *testing.B) { denseMulTransSymBench(b, 1000, 0.001) }
 func denseMulTransSymBench(b *testing.B, size int, rho float64) {
 	b.StopTimer()
 	a, _ := randDense(size, rho, rand.NormFloat64)

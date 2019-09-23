@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewVirtualMachinesClientWithBaseURI(baseURI string, subscriptionID string) 
 // name - the name of the virtual machine.
 // dataDiskProperties - request body for adding a new or existing data disk to a virtual machine.
 func (client VirtualMachinesClient) AddDataDisk(ctx context.Context, resourceGroupName string, labName string, name string, dataDiskProperties DataDiskProperties) (result VirtualMachinesAddDataDiskFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.AddDataDisk")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.AddDataDiskPreparer(ctx, resourceGroupName, labName, name, dataDiskProperties)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "AddDataDisk", nil, "Failure preparing request")
@@ -89,13 +100,9 @@ func (client VirtualMachinesClient) AddDataDiskPreparer(ctx context.Context, res
 // AddDataDiskSender sends the AddDataDisk request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) AddDataDiskSender(req *http.Request) (future VirtualMachinesAddDataDiskFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -122,6 +129,16 @@ func (client VirtualMachinesClient) AddDataDiskResponder(resp *http.Response) (r
 // name - the name of the virtual machine.
 // applyArtifactsRequest - request body for applying artifacts to a virtual machine.
 func (client VirtualMachinesClient) ApplyArtifacts(ctx context.Context, resourceGroupName string, labName string, name string, applyArtifactsRequest ApplyArtifactsRequest) (result VirtualMachinesApplyArtifactsFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.ApplyArtifacts")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ApplyArtifactsPreparer(ctx, resourceGroupName, labName, name, applyArtifactsRequest)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "ApplyArtifacts", nil, "Failure preparing request")
@@ -164,13 +181,9 @@ func (client VirtualMachinesClient) ApplyArtifactsPreparer(ctx context.Context, 
 // ApplyArtifactsSender sends the ApplyArtifacts request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) ApplyArtifactsSender(req *http.Request) (future VirtualMachinesApplyArtifactsFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -196,6 +209,16 @@ func (client VirtualMachinesClient) ApplyArtifactsResponder(resp *http.Response)
 // labName - the name of the lab.
 // name - the name of the virtual machine.
 func (client VirtualMachinesClient) Claim(ctx context.Context, resourceGroupName string, labName string, name string) (result VirtualMachinesClaimFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.Claim")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ClaimPreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "Claim", nil, "Failure preparing request")
@@ -236,13 +259,9 @@ func (client VirtualMachinesClient) ClaimPreparer(ctx context.Context, resourceG
 // ClaimSender sends the Claim request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) ClaimSender(req *http.Request) (future VirtualMachinesClaimFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -269,6 +288,16 @@ func (client VirtualMachinesClient) ClaimResponder(resp *http.Response) (result 
 // name - the name of the virtual machine.
 // labVirtualMachine - a virtual machine.
 func (client VirtualMachinesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, labName string, name string, labVirtualMachine LabVirtualMachine) (result VirtualMachinesCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: labVirtualMachine,
 			Constraints: []validation.Constraint{{Target: "labVirtualMachine.LabVirtualMachineProperties", Name: validation.Null, Rule: true,
@@ -326,13 +355,9 @@ func (client VirtualMachinesClient) CreateOrUpdatePreparer(ctx context.Context, 
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) CreateOrUpdateSender(req *http.Request) (future VirtualMachinesCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -359,6 +384,16 @@ func (client VirtualMachinesClient) CreateOrUpdateResponder(resp *http.Response)
 // labName - the name of the lab.
 // name - the name of the virtual machine.
 func (client VirtualMachinesClient) Delete(ctx context.Context, resourceGroupName string, labName string, name string) (result VirtualMachinesDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "Delete", nil, "Failure preparing request")
@@ -399,13 +434,9 @@ func (client VirtualMachinesClient) DeletePreparer(ctx context.Context, resource
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) DeleteSender(req *http.Request) (future VirtualMachinesDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -432,6 +463,16 @@ func (client VirtualMachinesClient) DeleteResponder(resp *http.Response) (result
 // name - the name of the virtual machine.
 // detachDataDiskProperties - request body for detaching data disk from a virtual machine.
 func (client VirtualMachinesClient) DetachDataDisk(ctx context.Context, resourceGroupName string, labName string, name string, detachDataDiskProperties DetachDataDiskProperties) (result VirtualMachinesDetachDataDiskFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.DetachDataDisk")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DetachDataDiskPreparer(ctx, resourceGroupName, labName, name, detachDataDiskProperties)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "DetachDataDisk", nil, "Failure preparing request")
@@ -474,13 +515,9 @@ func (client VirtualMachinesClient) DetachDataDiskPreparer(ctx context.Context, 
 // DetachDataDiskSender sends the DetachDataDisk request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) DetachDataDiskSender(req *http.Request) (future VirtualMachinesDetachDataDiskFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -508,6 +545,16 @@ func (client VirtualMachinesClient) DetachDataDiskResponder(resp *http.Response)
 // expand - specify the $expand query. Example:
 // 'properties($expand=artifacts,computeVm,networkInterface,applicableSchedule)'
 func (client VirtualMachinesClient) Get(ctx context.Context, resourceGroupName string, labName string, name string, expand string) (result LabVirtualMachine, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, labName, name, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "Get", nil, "Failure preparing request")
@@ -557,8 +604,8 @@ func (client VirtualMachinesClient) GetPreparer(ctx context.Context, resourceGro
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -584,6 +631,16 @@ func (client VirtualMachinesClient) GetResponder(resp *http.Response) (result La
 // top - the maximum number of resources to return from the operation.
 // orderby - the ordering expression for the results, using OData notation.
 func (client VirtualMachinesClient) List(ctx context.Context, resourceGroupName string, labName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationLabVirtualMachinePage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.List")
+		defer func() {
+			sc := -1
+			if result.rwclvm.Response.Response != nil {
+				sc = result.rwclvm.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, labName, expand, filter, top, orderby)
 	if err != nil {
@@ -642,8 +699,8 @@ func (client VirtualMachinesClient) ListPreparer(ctx context.Context, resourceGr
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -660,8 +717,8 @@ func (client VirtualMachinesClient) ListResponder(resp *http.Response) (result R
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client VirtualMachinesClient) listNextResults(lastResults ResponseWithContinuationLabVirtualMachine) (result ResponseWithContinuationLabVirtualMachine, err error) {
-	req, err := lastResults.responseWithContinuationLabVirtualMachinePreparer()
+func (client VirtualMachinesClient) listNextResults(ctx context.Context, lastResults ResponseWithContinuationLabVirtualMachine) (result ResponseWithContinuationLabVirtualMachine, err error) {
+	req, err := lastResults.responseWithContinuationLabVirtualMachinePreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -682,6 +739,16 @@ func (client VirtualMachinesClient) listNextResults(lastResults ResponseWithCont
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client VirtualMachinesClient) ListComplete(ctx context.Context, resourceGroupName string, labName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationLabVirtualMachineIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, resourceGroupName, labName, expand, filter, top, orderby)
 	return
 }
@@ -692,6 +759,16 @@ func (client VirtualMachinesClient) ListComplete(ctx context.Context, resourceGr
 // labName - the name of the lab.
 // name - the name of the virtual machine.
 func (client VirtualMachinesClient) ListApplicableSchedules(ctx context.Context, resourceGroupName string, labName string, name string) (result ApplicableSchedule, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.ListApplicableSchedules")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListApplicableSchedulesPreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "ListApplicableSchedules", nil, "Failure preparing request")
@@ -738,8 +815,8 @@ func (client VirtualMachinesClient) ListApplicableSchedulesPreparer(ctx context.
 // ListApplicableSchedulesSender sends the ListApplicableSchedules request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) ListApplicableSchedulesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListApplicableSchedulesResponder handles the response to the ListApplicableSchedules request. The method always
@@ -761,6 +838,16 @@ func (client VirtualMachinesClient) ListApplicableSchedulesResponder(resp *http.
 // labName - the name of the lab.
 // name - the name of the virtual machine.
 func (client VirtualMachinesClient) Start(ctx context.Context, resourceGroupName string, labName string, name string) (result VirtualMachinesStartFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.Start")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.StartPreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "Start", nil, "Failure preparing request")
@@ -801,13 +888,9 @@ func (client VirtualMachinesClient) StartPreparer(ctx context.Context, resourceG
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) StartSender(req *http.Request) (future VirtualMachinesStartFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -833,6 +916,16 @@ func (client VirtualMachinesClient) StartResponder(resp *http.Response) (result 
 // labName - the name of the lab.
 // name - the name of the virtual machine.
 func (client VirtualMachinesClient) Stop(ctx context.Context, resourceGroupName string, labName string, name string) (result VirtualMachinesStopFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.Stop")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.StopPreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "Stop", nil, "Failure preparing request")
@@ -873,13 +966,9 @@ func (client VirtualMachinesClient) StopPreparer(ctx context.Context, resourceGr
 // StopSender sends the Stop request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) StopSender(req *http.Request) (future VirtualMachinesStopFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -906,6 +995,16 @@ func (client VirtualMachinesClient) StopResponder(resp *http.Response) (result a
 // name - the name of the virtual machine.
 // labVirtualMachine - a virtual machine.
 func (client VirtualMachinesClient) Update(ctx context.Context, resourceGroupName string, labName string, name string, labVirtualMachine LabVirtualMachineFragment) (result LabVirtualMachine, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualMachinesClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, labName, name, labVirtualMachine)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.VirtualMachinesClient", "Update", nil, "Failure preparing request")
@@ -954,8 +1053,8 @@ func (client VirtualMachinesClient) UpdatePreparer(ctx context.Context, resource
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

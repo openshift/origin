@@ -585,7 +585,7 @@ func Test_deepCopyIntoMethod(t *testing.T) {
 func Test_extractTagParams(t *testing.T) {
 	testCases := []struct {
 		comments []string
-		expect   *tagValue
+		expect   *enabledTagValue
 	}{
 		{
 			comments: []string{
@@ -598,7 +598,7 @@ func Test_extractTagParams(t *testing.T) {
 				"Human comment",
 				"+k8s:deepcopy-gen",
 			},
-			expect: &tagValue{
+			expect: &enabledTagValue{
 				value:    "",
 				register: false,
 			},
@@ -608,7 +608,7 @@ func Test_extractTagParams(t *testing.T) {
 				"Human comment",
 				"+k8s:deepcopy-gen=package",
 			},
-			expect: &tagValue{
+			expect: &enabledTagValue{
 				value:    "package",
 				register: false,
 			},
@@ -618,7 +618,7 @@ func Test_extractTagParams(t *testing.T) {
 				"Human comment",
 				"+k8s:deepcopy-gen=package,register",
 			},
-			expect: &tagValue{
+			expect: &enabledTagValue{
 				value:    "package",
 				register: true,
 			},
@@ -628,7 +628,7 @@ func Test_extractTagParams(t *testing.T) {
 				"Human comment",
 				"+k8s:deepcopy-gen=package,register=true",
 			},
-			expect: &tagValue{
+			expect: &enabledTagValue{
 				value:    "package",
 				register: true,
 			},
@@ -638,7 +638,7 @@ func Test_extractTagParams(t *testing.T) {
 				"Human comment",
 				"+k8s:deepcopy-gen=package,register=false",
 			},
-			expect: &tagValue{
+			expect: &enabledTagValue{
 				value:    "package",
 				register: false,
 			},
@@ -646,7 +646,7 @@ func Test_extractTagParams(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		r := extractTag(tc.comments)
+		r := extractEnabledTag(tc.comments)
 		if r == nil && tc.expect != nil {
 			t.Errorf("case[%d]: expected non-nil", i)
 		}
@@ -661,8 +661,8 @@ func Test_extractTagParams(t *testing.T) {
 
 func Test_extractInterfacesTag(t *testing.T) {
 	testCases := []struct {
-		comments []string
-		expect   []string
+		comments, secondComments []string
+		expect                   []string
 	}{
 		{
 			comments: []string{},
@@ -696,10 +696,46 @@ func Test_extractInterfacesTag(t *testing.T) {
 				"k8s.io/kubernetes/runtime.Object",
 			},
 		},
+		{
+			secondComments: []string{
+				"+k8s:deepcopy-gen:interfaces=k8s.io/kubernetes/runtime.Object",
+			},
+			expect: []string{
+				"k8s.io/kubernetes/runtime.Object",
+			},
+		},
+		{
+			comments: []string{
+				"+k8s:deepcopy-gen:interfaces=k8s.io/kubernetes/runtime.Object",
+			},
+			secondComments: []string{
+				"+k8s:deepcopy-gen:interfaces=k8s.io/kubernetes/runtime.List",
+			},
+			expect: []string{
+				"k8s.io/kubernetes/runtime.List",
+				"k8s.io/kubernetes/runtime.Object",
+			},
+		},
+		{
+			comments: []string{
+				"+k8s:deepcopy-gen:interfaces=k8s.io/kubernetes/runtime.Object",
+			},
+			secondComments: []string{
+				"+k8s:deepcopy-gen:interfaces=k8s.io/kubernetes/runtime.Object",
+			},
+			expect: []string{
+				"k8s.io/kubernetes/runtime.Object",
+				"k8s.io/kubernetes/runtime.Object",
+			},
+		},
 	}
 
 	for i, tc := range testCases {
-		r := extractInterfacesTag(tc.comments)
+		typ := &types.Type{
+			CommentLines:              tc.comments,
+			SecondClosestCommentLines: tc.secondComments,
+		}
+		r := extractInterfacesTag(typ)
 		if r == nil && tc.expect != nil {
 			t.Errorf("case[%d]: expected non-nil", i)
 		}

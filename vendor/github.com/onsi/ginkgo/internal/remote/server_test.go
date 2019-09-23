@@ -47,7 +47,7 @@ var _ = Describe("Server", func() {
 
 			server.RegisterReporters(reporterA, reporterB)
 
-			forwardingReporter = NewForwardingReporter(server.Address(), &http.Client{}, &fakeOutputInterceptor{})
+			forwardingReporter = NewForwardingReporter(config.DefaultReporterConfigType{}, server.Address(), &http.Client{}, &fakeOutputInterceptor{}, nil, "")
 
 			suiteSummary = &types.SuiteSummary{
 				SuiteDescription: "My Test Suite",
@@ -146,10 +146,10 @@ var _ = Describe("Server", func() {
 			Context("when the first node's Alive has not been registered yet", func() {
 				It("should return pending", func() {
 					state := getBeforeSuite()
-					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{nil, types.RemoteBeforeSuiteStatePending}))
+					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{Data: nil, State: types.RemoteBeforeSuiteStatePending}))
 
 					state = getBeforeSuite()
-					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{nil, types.RemoteBeforeSuiteStatePending}))
+					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{Data: nil, State: types.RemoteBeforeSuiteStatePending}))
 				})
 			})
 
@@ -162,10 +162,10 @@ var _ = Describe("Server", func() {
 
 				It("should return pending", func() {
 					state := getBeforeSuite()
-					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{nil, types.RemoteBeforeSuiteStatePending}))
+					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{Data: nil, State: types.RemoteBeforeSuiteStatePending}))
 
 					state = getBeforeSuite()
-					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{nil, types.RemoteBeforeSuiteStatePending}))
+					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{Data: nil, State: types.RemoteBeforeSuiteStatePending}))
 				})
 			})
 
@@ -198,10 +198,10 @@ var _ = Describe("Server", func() {
 
 				It("should return disappeared", func() {
 					state := getBeforeSuite()
-					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{nil, types.RemoteBeforeSuiteStateDisappeared}))
+					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{Data: nil, State: types.RemoteBeforeSuiteStateDisappeared}))
 
 					state = getBeforeSuite()
-					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{nil, types.RemoteBeforeSuiteStateDisappeared}))
+					Ω(state).Should(Equal(types.RemoteBeforeSuiteData{Data: nil, State: types.RemoteBeforeSuiteStateDisappeared}))
 				})
 			})
 		})

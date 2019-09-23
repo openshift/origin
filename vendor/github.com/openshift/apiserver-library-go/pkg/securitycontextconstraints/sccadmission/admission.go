@@ -1,6 +1,7 @@
 package sccadmission
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"sort"
@@ -70,7 +71,7 @@ func NewConstraint() *constraint {
 // On updates, the BeforeUpdate of the pod strategy only zeroes out the status.  That means that
 // any change that claims the pod is no longer privileged will be removed.  That should hold until
 // we get a true old/new set of objects in.
-func (c *constraint) Admit(a admission.Attributes, _ admission.ObjectInterfaces) error {
+func (c *constraint) Admit(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) error {
 	if ignore, err := shouldIgnore(a); err != nil {
 		return err
 	} else if ignore {
@@ -102,7 +103,7 @@ func (c *constraint) Admit(a admission.Attributes, _ admission.ObjectInterfaces)
 	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
-func (c *constraint) Validate(a admission.Attributes, _ admission.ObjectInterfaces) error {
+func (c *constraint) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) error {
 	if ignore, err := shouldIgnore(a); err != nil {
 		return err
 	} else if ignore {

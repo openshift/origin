@@ -1,10 +1,7 @@
 go-difflib
 ==========
 
-THIS PACKAGE IS NO LONGER MAINTAINED.
-
-At this point, I have no longer the time nor the interest to work on go-difflib. I apologize for the inconvenience.
-
+[![Build Status](https://travis-ci.org/pmezard/go-difflib.png?branch=master)](https://travis-ci.org/pmezard/go-difflib)
 [![GoDoc](https://godoc.org/github.com/pmezard/go-difflib/difflib?status.svg)](https://godoc.org/github.com/pmezard/go-difflib/difflib)
 
 Go-difflib is a partial port of python 3 difflib package. Its main goal
@@ -29,14 +26,14 @@ Diffs are configured with Unified (or ContextDiff) structures, and can
 be output to an io.Writer or returned as a string.
 
 ```Go
-diff := difflib.UnifiedDiff{
+diff := UnifiedDiff{
     A:        difflib.SplitLines("foo\nbar\n"),
     B:        difflib.SplitLines("foo\nbaz\n"),
     FromFile: "Original",
     ToFile:   "Current",
     Context:  3,
 }
-text, _ := difflib.GetUnifiedDiffString(diff)
+text, _ := GetUnifiedDiffString(diff)
 fmt.Printf(text)
 ```
 

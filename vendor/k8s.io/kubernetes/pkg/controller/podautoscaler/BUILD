@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "doc.go",
         "horizontal.go",
+        "patch_dc.go",
         "rate_limiters.go",
         "replica_calculator.go",
     ],
@@ -78,6 +79,7 @@ go_test(
         "//staging/src/k8s.io/client-go/rest:go_default_library",
         "//staging/src/k8s.io/client-go/scale/fake:go_default_library",
         "//staging/src/k8s.io/client-go/testing:go_default_library",
+        "//staging/src/k8s.io/client-go/tools/cache:go_default_library",
         "//staging/src/k8s.io/metrics/pkg/apis/custom_metrics/v1beta2:go_default_library",
         "//staging/src/k8s.io/metrics/pkg/apis/external_metrics/v1beta1:go_default_library",
         "//staging/src/k8s.io/metrics/pkg/apis/metrics/v1alpha1:go_default_library",
@@ -102,6 +104,7 @@ filegroup(
     name = "all-srcs",
     srcs = [
         ":package-srcs",
+        "//pkg/controller/podautoscaler/config:all-srcs",
         "//pkg/controller/podautoscaler/metrics:all-srcs",
     ],
     tags = ["automanaged"],

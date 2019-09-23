@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,6 +50,16 @@ func NewRelationshipsClientWithBaseURI(baseURI string, subscriptionID string) Re
 // relationshipName - the name of the Relationship.
 // parameters - parameters supplied to the CreateOrUpdate Relationship operation.
 func (client RelationshipsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, hubName string, relationshipName string, parameters RelationshipResourceFormat) (result RelationshipsCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RelationshipsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: relationshipName,
 			Constraints: []validation.Constraint{{Target: "relationshipName", Name: validation.MaxLength, Rule: 512, Chain: nil},
@@ -104,13 +115,9 @@ func (client RelationshipsClient) CreateOrUpdatePreparer(ctx context.Context, re
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client RelationshipsClient) CreateOrUpdateSender(req *http.Request) (future RelationshipsCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -137,6 +144,16 @@ func (client RelationshipsClient) CreateOrUpdateResponder(resp *http.Response) (
 // hubName - the name of the hub.
 // relationshipName - the name of the relationship.
 func (client RelationshipsClient) Delete(ctx context.Context, resourceGroupName string, hubName string, relationshipName string) (result RelationshipsDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RelationshipsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, hubName, relationshipName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipsClient", "Delete", nil, "Failure preparing request")
@@ -177,13 +194,9 @@ func (client RelationshipsClient) DeletePreparer(ctx context.Context, resourceGr
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client RelationshipsClient) DeleteSender(req *http.Request) (future RelationshipsDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -209,6 +222,16 @@ func (client RelationshipsClient) DeleteResponder(resp *http.Response) (result a
 // hubName - the name of the hub.
 // relationshipName - the name of the relationship.
 func (client RelationshipsClient) Get(ctx context.Context, resourceGroupName string, hubName string, relationshipName string) (result RelationshipResourceFormat, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RelationshipsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, hubName, relationshipName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipsClient", "Get", nil, "Failure preparing request")
@@ -255,8 +278,8 @@ func (client RelationshipsClient) GetPreparer(ctx context.Context, resourceGroup
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client RelationshipsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -277,6 +300,16 @@ func (client RelationshipsClient) GetResponder(resp *http.Response) (result Rela
 // resourceGroupName - the name of the resource group.
 // hubName - the name of the hub.
 func (client RelationshipsClient) ListByHub(ctx context.Context, resourceGroupName string, hubName string) (result RelationshipListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RelationshipsClient.ListByHub")
+		defer func() {
+			sc := -1
+			if result.rlr.Response.Response != nil {
+				sc = result.rlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByHubNextResults
 	req, err := client.ListByHubPreparer(ctx, resourceGroupName, hubName)
 	if err != nil {
@@ -323,8 +356,8 @@ func (client RelationshipsClient) ListByHubPreparer(ctx context.Context, resourc
 // ListByHubSender sends the ListByHub request. The method will close the
 // http.Response Body if it receives an error.
 func (client RelationshipsClient) ListByHubSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByHubResponder handles the response to the ListByHub request. The method always
@@ -341,8 +374,8 @@ func (client RelationshipsClient) ListByHubResponder(resp *http.Response) (resul
 }
 
 // listByHubNextResults retrieves the next set of results, if any.
-func (client RelationshipsClient) listByHubNextResults(lastResults RelationshipListResult) (result RelationshipListResult, err error) {
-	req, err := lastResults.relationshipListResultPreparer()
+func (client RelationshipsClient) listByHubNextResults(ctx context.Context, lastResults RelationshipListResult) (result RelationshipListResult, err error) {
+	req, err := lastResults.relationshipListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "customerinsights.RelationshipsClient", "listByHubNextResults", nil, "Failure preparing next results request")
 	}
@@ -363,6 +396,16 @@ func (client RelationshipsClient) listByHubNextResults(lastResults RelationshipL
 
 // ListByHubComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RelationshipsClient) ListByHubComplete(ctx context.Context, resourceGroupName string, hubName string) (result RelationshipListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RelationshipsClient.ListByHub")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByHub(ctx, resourceGroupName, hubName)
 	return
 }

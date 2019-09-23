@@ -1,0 +1,19 @@
+- name: install glusterfs, gluster-block
+  yum:
+    name:
+      - glusterfs-server
+      - glusterfs-client
+      - gluster-block
+    state: present
+
+- name: start glusterd, gluster-blockd
+  service: name={{ item }} state=started enabled=yes
+  with_items:
+    - glusterd
+    - gluster-blockd
+
+- name: copy hook file
+  copy: src=S99timeout.sh dest=/var/lib/glusterd/hooks/1/delete/pre/S99timeout.sh mode=755
+
+- name: copy script to kill sleep pid
+  copy: src=kill-pid.sh dest=/var/tmp/kill-pid.sh mode=755

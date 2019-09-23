@@ -19,16 +19,13 @@ package proxy
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -222,8 +219,8 @@ func (h *UpgradeAwareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request
 		h.Transport = h.defaultProxyTransport(req.URL, h.Transport)
 	}
 
-	// WithContext creates a shallow clone of the request with the new context.
-	newReq := req.WithContext(context.Background())
+	// WithContext creates a shallow clone of the request with the same context.
+	newReq := req.WithContext(req.Context())
 	newReq.Header = utilnet.CloneHeader(req.Header)
 	if !h.UseRequestLocation {
 		newReq.URL = &loc
@@ -232,47 +229,11 @@ func (h *UpgradeAwareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request
 	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: h.Location.Scheme, Host: h.Location.Host})
 	proxy.Transport = h.Transport
 	proxy.FlushInterval = h.FlushInterval
-	proxy.ErrorLog = log.New(noSuppressPanicError{}, "", log.LstdFlags)
-	proxy.ServeHTTP(maybeWrapFlushHeadersWriter(w), newReq)
-}
 
-// maybeWrapFlushHeadersWriter wraps the given writer to force flushing headers prior to writing the response body.
-// if the given writer does not support http.Flusher, http.Hijacker, and http.CloseNotifier, the original writer is returned.
-// TODO(liggitt): drop this once https://github.com/golang/go/issues/31125 is fixed
-func maybeWrapFlushHeadersWriter(w http.ResponseWriter) http.ResponseWriter {
-	flusher, isFlusher := w.(http.Flusher)
-	hijacker, isHijacker := w.(http.Hijacker)
-	closeNotifier, isCloseNotifier := w.(http.CloseNotifier)
-	// flusher, hijacker, and closeNotifier are all used by the ReverseProxy implementation.
-	// if the given writer can't support all three, return the original writer.
-	if !isFlusher || !isHijacker || !isCloseNotifier {
-		return w
-	}
-	return &flushHeadersWriter{w, flusher, hijacker, closeNotifier}
-}
-
-type flushHeadersWriter struct {
-	http.ResponseWriter
-	http.Flusher
-	http.Hijacker
-	http.CloseNotifier
-}
-
-func (w *flushHeadersWriter) WriteHeader(code int) {
-	w.ResponseWriter.WriteHeader(code)
-	w.Flusher.Flush()
-}
-
-type noSuppressPanicError struct{}
-
-func (noSuppressPanicError) Write(p []byte) (n int, err error) {
-	// skip "suppressing panic for copyResponse error in test; copy error" error message
-	// that ends up in CI tests on each kube-apiserver termination as noise and
-	// everybody thinks this is fatal.
-	if strings.Contains(string(p), "suppressing panic") {
-		return len(p), nil
-	}
-	return os.Stderr.Write(p)
+	defer func() {
+		recover() // ignore panics inside of the reverse proxy on unclean disconnects
+	}()
+	proxy.ServeHTTP(w, newReq)
 }
 
 // tryUpgrade returns true if the request was handled.

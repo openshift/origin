@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewLogProfilesClientWithBaseURI(baseURI string, subscriptionID string) LogP
 // logProfileName - the name of the log profile.
 // parameters - parameters supplied to the operation.
 func (client LogProfilesClient) CreateOrUpdate(ctx context.Context, logProfileName string, parameters LogProfileResource) (result LogProfileResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LogProfilesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.LogProfileProperties", Name: validation.Null, Rule: true,
@@ -105,8 +116,8 @@ func (client LogProfilesClient) CreateOrUpdatePreparer(ctx context.Context, logP
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client LogProfilesClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -126,6 +137,16 @@ func (client LogProfilesClient) CreateOrUpdateResponder(resp *http.Response) (re
 // Parameters:
 // logProfileName - the name of the log profile.
 func (client LogProfilesClient) Delete(ctx context.Context, logProfileName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LogProfilesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, logProfileName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "insights.LogProfilesClient", "Delete", nil, "Failure preparing request")
@@ -170,8 +191,8 @@ func (client LogProfilesClient) DeletePreparer(ctx context.Context, logProfileNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client LogProfilesClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -190,6 +211,16 @@ func (client LogProfilesClient) DeleteResponder(resp *http.Response) (result aut
 // Parameters:
 // logProfileName - the name of the log profile.
 func (client LogProfilesClient) Get(ctx context.Context, logProfileName string) (result LogProfileResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LogProfilesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, logProfileName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "insights.LogProfilesClient", "Get", nil, "Failure preparing request")
@@ -234,8 +265,8 @@ func (client LogProfilesClient) GetPreparer(ctx context.Context, logProfileName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client LogProfilesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -253,6 +284,16 @@ func (client LogProfilesClient) GetResponder(resp *http.Response) (result LogPro
 
 // List list the log profiles.
 func (client LogProfilesClient) List(ctx context.Context) (result LogProfileCollection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LogProfilesClient.List")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "insights.LogProfilesClient", "List", nil, "Failure preparing request")
@@ -296,8 +337,8 @@ func (client LogProfilesClient) ListPreparer(ctx context.Context) (*http.Request
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client LogProfilesClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -318,6 +359,16 @@ func (client LogProfilesClient) ListResponder(resp *http.Response) (result LogPr
 // logProfileName - the name of the log profile.
 // logProfilesResource - parameters supplied to the operation.
 func (client LogProfilesClient) Update(ctx context.Context, logProfileName string, logProfilesResource LogProfileResourcePatch) (result LogProfileResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LogProfilesClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, logProfileName, logProfilesResource)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "insights.LogProfilesClient", "Update", nil, "Failure preparing request")
@@ -364,8 +415,8 @@ func (client LogProfilesClient) UpdatePreparer(ctx context.Context, logProfileNa
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client LogProfilesClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

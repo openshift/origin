@@ -46,7 +46,7 @@ func TestHITS(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {

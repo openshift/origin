@@ -19,22 +19,22 @@
 
 package blueprint
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/blueprint/mgmt/2017-11-11-preview/blueprint"
+import (
+	"context"
 
-type ArtifactsClient = original.ArtifactsClient
-type AssignmentsClient = original.AssignmentsClient
-type BlueprintsClient = original.BlueprintsClient
+	original "github.com/Azure/azure-sdk-for-go/services/preview/blueprint/mgmt/2018-11-01-preview/blueprint"
+)
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
-type BaseClient = original.BaseClient
 type AssignmentLockMode = original.AssignmentLockMode
 
 const (
-	AllResources AssignmentLockMode = original.AllResources
-	None         AssignmentLockMode = original.None
+	AllResourcesDoNotDelete AssignmentLockMode = original.AllResourcesDoNotDelete
+	AllResourcesReadOnly    AssignmentLockMode = original.AllResourcesReadOnly
+	None                    AssignmentLockMode = original.None
 )
 
 type AssignmentProvisioningState = original.AssignmentProvisioningState
@@ -88,21 +88,35 @@ const (
 	String       TemplateParameterType = original.String
 )
 
-type BasicArtifact = original.BasicArtifact
 type Artifact = original.Artifact
 type ArtifactList = original.ArtifactList
 type ArtifactListIterator = original.ArtifactListIterator
 type ArtifactListPage = original.ArtifactListPage
 type ArtifactModel = original.ArtifactModel
 type ArtifactPropertiesBase = original.ArtifactPropertiesBase
+type ArtifactsClient = original.ArtifactsClient
 type Assignment = original.Assignment
+type AssignmentDeploymentJob = original.AssignmentDeploymentJob
+type AssignmentDeploymentJobResult = original.AssignmentDeploymentJobResult
+type AssignmentJobCreatedResource = original.AssignmentJobCreatedResource
 type AssignmentList = original.AssignmentList
 type AssignmentListIterator = original.AssignmentListIterator
 type AssignmentListPage = original.AssignmentListPage
 type AssignmentLockSettings = original.AssignmentLockSettings
+type AssignmentOperation = original.AssignmentOperation
+type AssignmentOperationList = original.AssignmentOperationList
+type AssignmentOperationListIterator = original.AssignmentOperationListIterator
+type AssignmentOperationListPage = original.AssignmentOperationListPage
+type AssignmentOperationProperties = original.AssignmentOperationProperties
+type AssignmentOperationsClient = original.AssignmentOperationsClient
 type AssignmentProperties = original.AssignmentProperties
 type AssignmentStatus = original.AssignmentStatus
+type AssignmentsClient = original.AssignmentsClient
 type AzureResourceBase = original.AzureResourceBase
+type AzureResourceManagerError = original.AzureResourceManagerError
+type BaseClient = original.BaseClient
+type BasicArtifact = original.BasicArtifact
+type BlueprintsClient = original.BlueprintsClient
 type KeyVaultReference = original.KeyVaultReference
 type List = original.List
 type ListIterator = original.ListIterator
@@ -116,11 +130,13 @@ type ParameterValueBase = original.ParameterValueBase
 type PolicyAssignmentArtifact = original.PolicyAssignmentArtifact
 type PolicyAssignmentArtifactProperties = original.PolicyAssignmentArtifactProperties
 type Properties = original.Properties
+type PublishedArtifactsClient = original.PublishedArtifactsClient
 type PublishedBlueprint = original.PublishedBlueprint
 type PublishedBlueprintList = original.PublishedBlueprintList
 type PublishedBlueprintListIterator = original.PublishedBlueprintListIterator
 type PublishedBlueprintListPage = original.PublishedBlueprintListPage
 type PublishedBlueprintProperties = original.PublishedBlueprintProperties
+type PublishedBlueprintsClient = original.PublishedBlueprintsClient
 type ResourceGroupDefinition = original.ResourceGroupDefinition
 type ResourceGroupValue = original.ResourceGroupValue
 type ResourcePropertiesBase = original.ResourcePropertiesBase
@@ -137,15 +153,41 @@ type Status = original.Status
 type TemplateArtifact = original.TemplateArtifact
 type TemplateArtifactProperties = original.TemplateArtifactProperties
 type TrackedResource = original.TrackedResource
-type OperationsClient = original.OperationsClient
-type PublishedArtifactsClient = original.PublishedArtifactsClient
-type PublishedBlueprintsClient = original.PublishedBlueprintsClient
+type UserAssignedIdentity = original.UserAssignedIdentity
+type WhoIsBlueprintContract = original.WhoIsBlueprintContract
 
+func New() BaseClient {
+	return original.New()
+}
+func NewArtifactListIterator(page ArtifactListPage) ArtifactListIterator {
+	return original.NewArtifactListIterator(page)
+}
+func NewArtifactListPage(getNextPage func(context.Context, ArtifactList) (ArtifactList, error)) ArtifactListPage {
+	return original.NewArtifactListPage(getNextPage)
+}
 func NewArtifactsClient() ArtifactsClient {
 	return original.NewArtifactsClient()
 }
 func NewArtifactsClientWithBaseURI(baseURI string) ArtifactsClient {
 	return original.NewArtifactsClientWithBaseURI(baseURI)
+}
+func NewAssignmentListIterator(page AssignmentListPage) AssignmentListIterator {
+	return original.NewAssignmentListIterator(page)
+}
+func NewAssignmentListPage(getNextPage func(context.Context, AssignmentList) (AssignmentList, error)) AssignmentListPage {
+	return original.NewAssignmentListPage(getNextPage)
+}
+func NewAssignmentOperationListIterator(page AssignmentOperationListPage) AssignmentOperationListIterator {
+	return original.NewAssignmentOperationListIterator(page)
+}
+func NewAssignmentOperationListPage(getNextPage func(context.Context, AssignmentOperationList) (AssignmentOperationList, error)) AssignmentOperationListPage {
+	return original.NewAssignmentOperationListPage(getNextPage)
+}
+func NewAssignmentOperationsClient() AssignmentOperationsClient {
+	return original.NewAssignmentOperationsClient()
+}
+func NewAssignmentOperationsClientWithBaseURI(baseURI string) AssignmentOperationsClient {
+	return original.NewAssignmentOperationsClientWithBaseURI(baseURI)
 }
 func NewAssignmentsClient() AssignmentsClient {
 	return original.NewAssignmentsClient()
@@ -159,8 +201,29 @@ func NewBlueprintsClient() BlueprintsClient {
 func NewBlueprintsClientWithBaseURI(baseURI string) BlueprintsClient {
 	return original.NewBlueprintsClientWithBaseURI(baseURI)
 }
-func New() BaseClient {
-	return original.New()
+func NewListIterator(page ListPage) ListIterator {
+	return original.NewListIterator(page)
+}
+func NewListPage(getNextPage func(context.Context, List) (List, error)) ListPage {
+	return original.NewListPage(getNextPage)
+}
+func NewPublishedArtifactsClient() PublishedArtifactsClient {
+	return original.NewPublishedArtifactsClient()
+}
+func NewPublishedArtifactsClientWithBaseURI(baseURI string) PublishedArtifactsClient {
+	return original.NewPublishedArtifactsClientWithBaseURI(baseURI)
+}
+func NewPublishedBlueprintListIterator(page PublishedBlueprintListPage) PublishedBlueprintListIterator {
+	return original.NewPublishedBlueprintListIterator(page)
+}
+func NewPublishedBlueprintListPage(getNextPage func(context.Context, PublishedBlueprintList) (PublishedBlueprintList, error)) PublishedBlueprintListPage {
+	return original.NewPublishedBlueprintListPage(getNextPage)
+}
+func NewPublishedBlueprintsClient() PublishedBlueprintsClient {
+	return original.NewPublishedBlueprintsClient()
+}
+func NewPublishedBlueprintsClientWithBaseURI(baseURI string) PublishedBlueprintsClient {
+	return original.NewPublishedBlueprintsClientWithBaseURI(baseURI)
 }
 func NewWithBaseURI(baseURI string) BaseClient {
 	return original.NewWithBaseURI(baseURI)
@@ -182,24 +245,6 @@ func PossibleTargetScopeValues() []TargetScope {
 }
 func PossibleTemplateParameterTypeValues() []TemplateParameterType {
 	return original.PossibleTemplateParameterTypeValues()
-}
-func NewOperationsClient() OperationsClient {
-	return original.NewOperationsClient()
-}
-func NewOperationsClientWithBaseURI(baseURI string) OperationsClient {
-	return original.NewOperationsClientWithBaseURI(baseURI)
-}
-func NewPublishedArtifactsClient() PublishedArtifactsClient {
-	return original.NewPublishedArtifactsClient()
-}
-func NewPublishedArtifactsClientWithBaseURI(baseURI string) PublishedArtifactsClient {
-	return original.NewPublishedArtifactsClientWithBaseURI(baseURI)
-}
-func NewPublishedBlueprintsClient() PublishedBlueprintsClient {
-	return original.NewPublishedBlueprintsClient()
-}
-func NewPublishedBlueprintsClientWithBaseURI(baseURI string) PublishedBlueprintsClient {
-	return original.NewPublishedBlueprintsClientWithBaseURI(baseURI)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

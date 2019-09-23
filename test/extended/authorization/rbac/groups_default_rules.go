@@ -93,7 +93,7 @@ var (
 
 		// this is from upstream kube
 		rbacv1helpers.NewRule("get").URLs(
-			"/healthz",
+			"/healthz", "/livez",
 			"/version",
 			"/version/",
 		).RuleOrDie(),

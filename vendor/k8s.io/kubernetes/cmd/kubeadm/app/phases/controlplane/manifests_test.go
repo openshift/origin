@@ -18,6 +18,7 @@ package controlplane
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -25,13 +26,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lithammer/dedent"
+
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/version"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/certs"
-	authzmodes "k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes"
-
+	staticpodutil "k8s.io/kubernetes/cmd/kubeadm/app/util/staticpod"
 	testutil "k8s.io/kubernetes/cmd/kubeadm/test"
 )
 
@@ -49,86 +50,143 @@ func TestGetStaticPodSpecs(t *testing.T) {
 	}
 
 	// Executes GetStaticPodSpecs
+	specs := GetStaticPodSpecs(cfg, &kubeadmapi.APIEndpoint{})
 
-	// TODO: Move the "pkg/util/version".Version object into the internal API instead of always parsing the string
-	k8sVersion, _ := version.ParseSemantic(cfg.KubernetesVersion)
-
-	specs := GetStaticPodSpecs(cfg, &kubeadmapi.APIEndpoint{}, k8sVersion)
-
-	var assertions = []struct {
+	var tests = []struct {
+		name          string
 		staticPodName string
 	}{
 		{
+			name:          "KubeAPIServer",
 			staticPodName: kubeadmconstants.KubeAPIServer,
 		},
 		{
+			name:          "KubeControllerManager",
 			staticPodName: kubeadmconstants.KubeControllerManager,
 		},
 		{
+			name:          "KubeScheduler",
 			staticPodName: kubeadmconstants.KubeScheduler,
 		},
 	}
 
-	for _, assertion := range assertions {
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// assert the spec for the staticPodName exists
+			if spec, ok := specs[tc.staticPodName]; ok {
 
-		// assert the spec for the staticPodName exists
-		if spec, ok := specs[assertion.staticPodName]; ok {
+				// Assert each specs refers to the right pod
+				if spec.Spec.Containers[0].Name != tc.staticPodName {
+					t.Errorf("getKubeConfigSpecs spec for %s contains pod %s, expects %s", tc.staticPodName, spec.Spec.Containers[0].Name, tc.staticPodName)
+				}
 
-			// Assert each specs refers to the right pod
-			if spec.Spec.Containers[0].Name != assertion.staticPodName {
-				t.Errorf("getKubeConfigSpecs spec for %s contains pod %s, expects %s", assertion.staticPodName, spec.Spec.Containers[0].Name, assertion.staticPodName)
+			} else {
+				t.Errorf("getStaticPodSpecs didn't create spec for %s ", tc.staticPodName)
 			}
-
-		} else {
-			t.Errorf("getStaticPodSpecs didn't create spec for %s ", assertion.staticPodName)
-		}
+		})
 	}
 }
 
 func TestCreateStaticPodFilesAndWrappers(t *testing.T) {
 
 	var tests = []struct {
+		name       string
 		components []string
 	}{
 		{
+			name:       "KubeAPIServer KubeAPIServer KubeScheduler",
 			components: []string{kubeadmconstants.KubeAPIServer, kubeadmconstants.KubeControllerManager, kubeadmconstants.KubeScheduler},
 		},
 		{
+			name:       "KubeAPIServer",
 			components: []string{kubeadmconstants.KubeAPIServer},
 		},
 		{
+			name:       "KubeControllerManager",
 			components: []string{kubeadmconstants.KubeControllerManager},
 		},
 		{
+			name:       "KubeScheduler",
 			components: []string{kubeadmconstants.KubeScheduler},
 		},
 	}
 
 	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Create temp folder for the test case
+			tmpdir := testutil.SetupTempDir(t)
+			defer os.RemoveAll(tmpdir)
 
-		// Create temp folder for the test case
-		tmpdir := testutil.SetupTempDir(t)
-		defer os.RemoveAll(tmpdir)
+			// Creates a Cluster Configuration
+			cfg := &kubeadmapi.ClusterConfiguration{
+				KubernetesVersion: "v1.9.0",
+			}
 
-		// Creates a Cluster Configuration
-		cfg := &kubeadmapi.ClusterConfiguration{
-			KubernetesVersion: "v1.9.0",
-		}
+			// Execute createStaticPodFunction
+			manifestPath := filepath.Join(tmpdir, kubeadmconstants.ManifestsSubDirName)
+			err := CreateStaticPodFiles(manifestPath, "", cfg, &kubeadmapi.APIEndpoint{}, test.components...)
+			if err != nil {
+				t.Errorf("Error executing createStaticPodFunction: %v", err)
+				return
+			}
 
-		// Execute createStaticPodFunction
-		manifestPath := filepath.Join(tmpdir, kubeadmconstants.ManifestsSubDirName)
-		err := CreateStaticPodFiles(manifestPath, cfg, &kubeadmapi.APIEndpoint{}, test.components...)
-		if err != nil {
-			t.Errorf("Error executing createStaticPodFunction: %v", err)
-			continue
-		}
+			// Assert expected files are there
+			testutil.AssertFilesCount(t, manifestPath, len(test.components))
 
-		// Assert expected files are there
-		testutil.AssertFilesCount(t, manifestPath, len(test.components))
+			for _, fileName := range test.components {
+				testutil.AssertFileExists(t, manifestPath, fileName+".yaml")
+			}
+		})
+	}
+}
 
-		for _, fileName := range test.components {
-			testutil.AssertFileExists(t, manifestPath, fileName+".yaml")
-		}
+func TestCreateStaticPodFilesKustomize(t *testing.T) {
+	// Create temp folder for the test case
+	tmpdir := testutil.SetupTempDir(t)
+	defer os.RemoveAll(tmpdir)
+
+	// Creates a Cluster Configuration
+	cfg := &kubeadmapi.ClusterConfiguration{
+		KubernetesVersion: "v1.9.0",
+	}
+
+	kustomizePath := filepath.Join(tmpdir, "kustomize")
+	err := os.MkdirAll(kustomizePath, 0777)
+	if err != nil {
+		t.Fatalf("Couldn't create %s", kustomizePath)
+	}
+
+	patchString := dedent.Dedent(`
+    apiVersion: v1
+    kind: Pod
+    metadata:
+        name: kube-apiserver
+        namespace: kube-system
+        annotations:
+            kustomize: patch for kube-apiserver
+    `)
+
+	err = ioutil.WriteFile(filepath.Join(kustomizePath, "patch.yaml"), []byte(patchString), 0644)
+	if err != nil {
+		t.Fatalf("WriteFile returned unexpected error: %v", err)
+	}
+
+	// Execute createStaticPodFunction with kustomizations
+	manifestPath := filepath.Join(tmpdir, kubeadmconstants.ManifestsSubDirName)
+	err = CreateStaticPodFiles(manifestPath, kustomizePath, cfg, &kubeadmapi.APIEndpoint{}, kubeadmconstants.KubeAPIServer)
+	if err != nil {
+		t.Errorf("Error executing createStaticPodFunction: %v", err)
+		return
+	}
+
+	pod, err := staticpodutil.ReadStaticPodFromDisk(filepath.Join(manifestPath, fmt.Sprintf("%s.yaml", kubeadmconstants.KubeAPIServer)))
+	if err != nil {
+		t.Errorf("Error executing ReadStaticPodFromDisk: %v", err)
+		return
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations["kustomize"]; !ok {
+		t.Error("Kustomize did not apply patches corresponding to the resource")
 	}
 }
 
@@ -354,7 +412,7 @@ func TestGetAPIServerCommand(t *testing.T) {
 				APIServer: kubeadmapi.APIServer{
 					ControlPlaneComponent: kubeadmapi.ControlPlaneComponent{
 						ExtraArgs: map[string]string{
-							"authorization-mode": authzmodes.ModeABAC,
+							"authorization-mode": kubeadmconstants.ModeABAC,
 						},
 					},
 				},
@@ -442,7 +500,7 @@ func TestGetAPIServerCommand(t *testing.T) {
 				APIServer: kubeadmapi.APIServer{
 					ControlPlaneComponent: kubeadmapi.ControlPlaneComponent{
 						ExtraArgs: map[string]string{
-							"authorization-mode": authzmodes.ModeWebhook,
+							"authorization-mode": kubeadmconstants.ModeWebhook,
 						},
 					},
 				},
@@ -567,6 +625,36 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 		},
 		{
+			name: "custom service-cluster-ip-range for " + cpVersion,
+			cfg: &kubeadmapi.ClusterConfiguration{
+				Networking: kubeadmapi.Networking{
+					PodSubnet:     "10.0.1.15/16",
+					ServiceSubnet: "172.20.0.0/24"},
+				CertificatesDir:   testCertsDir,
+				KubernetesVersion: cpVersion,
+			},
+			expected: []string{
+				"kube-controller-manager",
+				"--bind-address=127.0.0.1",
+				"--leader-elect=true",
+				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
+				"--root-ca-file=" + testCertsDir + "/ca.crt",
+				"--service-account-private-key-file=" + testCertsDir + "/sa.key",
+				"--cluster-signing-cert-file=" + testCertsDir + "/ca.crt",
+				"--cluster-signing-key-file=" + testCertsDir + "/ca.key",
+				"--use-service-account-credentials=true",
+				"--controllers=*,bootstrapsigner,tokencleaner",
+				"--authentication-kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
+				"--authorization-kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
+				"--client-ca-file=" + testCertsDir + "/ca.crt",
+				"--requestheader-client-ca-file=" + testCertsDir + "/front-proxy-ca.crt",
+				"--allocate-node-cidrs=true",
+				"--cluster-cidr=10.0.1.15/16",
+				"--node-cidr-mask-size=24",
+				"--service-cluster-ip-range=172.20.0.0/24",
+			},
+		},
+		{
 			name: "custom extra-args for " + cpVersion,
 			cfg: &kubeadmapi.ClusterConfiguration{
 				Networking: kubeadmapi.Networking{PodSubnet: "10.0.1.15/16"},
@@ -599,7 +687,10 @@ func TestGetControllerManagerCommand(t *testing.T) {
 		{
 			name: "custom IPv6 networking for " + cpVersion,
 			cfg: &kubeadmapi.ClusterConfiguration{
-				Networking:        kubeadmapi.Networking{PodSubnet: "2001:db8::/64"},
+				Networking: kubeadmapi.Networking{
+					PodSubnet:     "2001:db8::/64",
+					ServiceSubnet: "fd03::/112",
+				},
 				CertificatesDir:   testCertsDir,
 				KubernetesVersion: cpVersion,
 			},
@@ -621,17 +712,20 @@ func TestGetControllerManagerCommand(t *testing.T) {
 				"--allocate-node-cidrs=true",
 				"--cluster-cidr=2001:db8::/64",
 				"--node-cidr-mask-size=80",
+				"--service-cluster-ip-range=fd03::/112",
 			},
 		},
 	}
 
 	for _, rt := range tests {
-		actual := getControllerManagerCommand(rt.cfg, version.MustParseSemantic(rt.cfg.KubernetesVersion))
-		sort.Strings(actual)
-		sort.Strings(rt.expected)
-		if !reflect.DeepEqual(actual, rt.expected) {
-			errorDiffArguments(t, rt.name, actual, rt.expected)
-		}
+		t.Run(rt.name, func(t *testing.T) {
+			actual := getControllerManagerCommand(rt.cfg)
+			sort.Strings(actual)
+			sort.Strings(rt.expected)
+			if !reflect.DeepEqual(actual, rt.expected) {
+				errorDiffArguments(t, rt.name, actual, rt.expected)
+			}
+		})
 	}
 }
 
@@ -703,16 +797,17 @@ func TestCalcNodeCidrSize(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		actualPrefix := calcNodeCidrSize(test.podSubnet)
-		if actualPrefix != test.expectedPrefix {
-			t.Errorf("Case [%s]\nCalc of node CIDR size for pod subnet %q failed: Expected %q, saw %q",
-				test.name, test.podSubnet, test.expectedPrefix, actualPrefix)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			actualPrefix := calcNodeCidrSize(test.podSubnet)
+			if actualPrefix != test.expectedPrefix {
+				t.Errorf("Case [%s]\nCalc of node CIDR size for pod subnet %q failed: Expected %q, saw %q",
+					test.name, test.podSubnet, test.expectedPrefix, actualPrefix)
+			}
+		})
 	}
 
 }
 func TestGetControllerManagerCommandExternalCA(t *testing.T) {
-
 	tests := []struct {
 		name            string
 		cfg             *kubeadmapi.InitConfiguration
@@ -780,32 +875,34 @@ func TestGetControllerManagerCommandExternalCA(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		// Create temp folder for the test case
-		tmpdir := testutil.SetupTempDir(t)
-		defer os.RemoveAll(tmpdir)
-		test.cfg.CertificatesDir = tmpdir
+		t.Run(test.name, func(t *testing.T) {
+			// Create temp folder for the test case
+			tmpdir := testutil.SetupTempDir(t)
+			defer os.RemoveAll(tmpdir)
+			test.cfg.CertificatesDir = tmpdir
 
-		if err := certs.CreatePKIAssets(test.cfg); err != nil {
-			t.Errorf("failed creating pki assets: %v", err)
-		}
-
-		// delete ca.key and front-proxy-ca.key if test.caKeyPresent is false
-		if !test.caKeyPresent {
-			if err := os.Remove(filepath.Join(test.cfg.CertificatesDir, kubeadmconstants.CAKeyName)); err != nil {
-				t.Errorf("failed removing %s: %v", kubeadmconstants.CAKeyName, err)
+			if err := certs.CreatePKIAssets(test.cfg); err != nil {
+				t.Errorf("failed creating pki assets: %v", err)
 			}
-			if err := os.Remove(filepath.Join(test.cfg.CertificatesDir, kubeadmconstants.FrontProxyCAKeyName)); err != nil {
-				t.Errorf("failed removing %s: %v", kubeadmconstants.FrontProxyCAKeyName, err)
-			}
-		}
 
-		actual := getControllerManagerCommand(&test.cfg.ClusterConfiguration, version.MustParseSemantic(test.cfg.KubernetesVersion))
-		expected := test.expectedArgFunc(tmpdir)
-		sort.Strings(actual)
-		sort.Strings(expected)
-		if !reflect.DeepEqual(actual, expected) {
-			errorDiffArguments(t, test.name, actual, expected)
-		}
+			// delete ca.key and front-proxy-ca.key if test.caKeyPresent is false
+			if !test.caKeyPresent {
+				if err := os.Remove(filepath.Join(test.cfg.CertificatesDir, kubeadmconstants.CAKeyName)); err != nil {
+					t.Errorf("failed removing %s: %v", kubeadmconstants.CAKeyName, err)
+				}
+				if err := os.Remove(filepath.Join(test.cfg.CertificatesDir, kubeadmconstants.FrontProxyCAKeyName)); err != nil {
+					t.Errorf("failed removing %s: %v", kubeadmconstants.FrontProxyCAKeyName, err)
+				}
+			}
+
+			actual := getControllerManagerCommand(&test.cfg.ClusterConfiguration)
+			expected := test.expectedArgFunc(tmpdir)
+			sort.Strings(actual)
+			sort.Strings(expected)
+			if !reflect.DeepEqual(actual, expected) {
+				errorDiffArguments(t, test.name, actual, expected)
+			}
+		})
 	}
 }
 
@@ -823,17 +920,21 @@ func TestGetSchedulerCommand(t *testing.T) {
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/scheduler.conf",
+				"--authentication-kubeconfig=" + kubeadmconstants.KubernetesDir + "/scheduler.conf",
+				"--authorization-kubeconfig=" + kubeadmconstants.KubernetesDir + "/scheduler.conf",
 			},
 		},
 	}
 
 	for _, rt := range tests {
-		actual := getSchedulerCommand(rt.cfg)
-		sort.Strings(actual)
-		sort.Strings(rt.expected)
-		if !reflect.DeepEqual(actual, rt.expected) {
-			errorDiffArguments(t, rt.name, actual, rt.expected)
-		}
+		t.Run(rt.name, func(t *testing.T) {
+			actual := getSchedulerCommand(rt.cfg)
+			sort.Strings(actual)
+			sort.Strings(rt.expected)
+			if !reflect.DeepEqual(actual, rt.expected) {
+				errorDiffArguments(t, rt.name, actual, rt.expected)
+			}
+		})
 	}
 }
 
@@ -850,37 +951,37 @@ func TestGetAuthzModes(t *testing.T) {
 		},
 		{
 			name:     "add missing Node",
-			authMode: []string{authzmodes.ModeRBAC},
+			authMode: []string{kubeadmconstants.ModeRBAC},
 			expected: "Node,RBAC",
 		},
 		{
 			name:     "add missing RBAC",
-			authMode: []string{authzmodes.ModeNode},
+			authMode: []string{kubeadmconstants.ModeNode},
 			expected: "Node,RBAC",
 		},
 		{
 			name:     "add defaults to ABAC",
-			authMode: []string{authzmodes.ModeABAC},
+			authMode: []string{kubeadmconstants.ModeABAC},
 			expected: "Node,RBAC,ABAC",
 		},
 		{
 			name:     "add defaults to RBAC+Webhook",
-			authMode: []string{authzmodes.ModeRBAC, authzmodes.ModeWebhook},
+			authMode: []string{kubeadmconstants.ModeRBAC, kubeadmconstants.ModeWebhook},
 			expected: "Node,RBAC,Webhook",
 		},
 		{
 			name:     "add default to Webhook",
-			authMode: []string{authzmodes.ModeWebhook},
+			authMode: []string{kubeadmconstants.ModeWebhook},
 			expected: "Node,RBAC,Webhook",
 		},
 		{
 			name:     "AlwaysAllow ignored",
-			authMode: []string{authzmodes.ModeAlwaysAllow},
+			authMode: []string{kubeadmconstants.ModeAlwaysAllow},
 			expected: "Node,RBAC",
 		},
 		{
 			name:     "AlwaysDeny ignored",
-			authMode: []string{authzmodes.ModeAlwaysDeny},
+			authMode: []string{kubeadmconstants.ModeAlwaysDeny},
 			expected: "Node,RBAC",
 		},
 		{
@@ -890,18 +991,17 @@ func TestGetAuthzModes(t *testing.T) {
 		},
 		{
 			name:     "Multiple ignored",
-			authMode: []string{authzmodes.ModeAlwaysAllow, authzmodes.ModeAlwaysDeny, "foo"},
+			authMode: []string{kubeadmconstants.ModeAlwaysAllow, kubeadmconstants.ModeAlwaysDeny, "foo"},
 			expected: "Node,RBAC",
 		},
 		{
 			name:     "all",
-			authMode: []string{authzmodes.ModeNode, authzmodes.ModeRBAC, authzmodes.ModeWebhook, authzmodes.ModeABAC},
+			authMode: []string{kubeadmconstants.ModeNode, kubeadmconstants.ModeRBAC, kubeadmconstants.ModeWebhook, kubeadmconstants.ModeABAC},
 			expected: "Node,RBAC,ABAC,Webhook",
 		},
 	}
 
 	for _, rt := range tests {
-
 		t.Run(rt.name, func(t *testing.T) {
 			actual := getAuthzModes(strings.Join(rt.authMode, ","))
 			if actual != rt.expected {

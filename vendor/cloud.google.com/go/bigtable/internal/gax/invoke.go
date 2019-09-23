@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Google Inc. All Rights Reserved.
+Copyright 2015 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,23 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This is ia snapshot from github.com/googleapis/gax-go with minor modifications.
+// Package gax is a snapshot from github.com/googleapis/gax-go/v2 with minor modifications.
 package gax
 
 import (
-	"math/rand"
+	"context"
 	"time"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"log"
-	"os"
 )
 
-var logger *log.Logger = log.New(os.Stderr, "", log.LstdFlags)
-
-// A user defined call stub.
+// APICall is a user defined call stub.
 type APICall func(context.Context) error
 
 // scaleDuration returns the product of a and mult.
@@ -60,10 +55,7 @@ func invokeWithRetry(ctx context.Context, stub APICall, callSettings CallSetting
 			return err
 		}
 
-		// Sleep a random amount up to the current delay
-		d := time.Duration(rand.Int63n(int64(delay)))
 		delayCtx, _ := context.WithTimeout(ctx, delay)
-		logger.Printf("Retryable error: %v, retrying in %v", err, d)
 		<-delayCtx.Done()
 
 		delay = scaleDuration(delay, backoffSettings.DelayTimeoutSettings.Multiplier)

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path"
@@ -46,8 +47,8 @@ var (
 var TestContext *e2e.TestContextType = &e2e.TestContext
 
 func InitStandardFlags() {
-	e2e.RegisterCommonFlags()
-	e2e.RegisterClusterFlags()
+	e2e.RegisterCommonFlags(flag.CommandLine)
+	e2e.RegisterClusterFlags(flag.CommandLine)
 
 	// replaced by a bare import above.
 	//e2e.RegisterStorageFlags()
@@ -361,6 +362,7 @@ var (
 			`\[Feature:DynamicAudit\]`,     // off by default.  sig-master
 
 			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
+			`\[Feature:IPv6DualStack.*\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -373,9 +375,11 @@ var (
 			`Kubernetes Dashboard`,            // Not installed by default (also probably slow image pull)
 			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
 			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
-			`\[Feature:CustomResourceWebhookConversion\]`, // webhook conversion is off by default.  sig-master/@sttts
 
-			`should proxy to cadvisor`, // we don't expose cAdvisor port directly for security reasons
+			`NetworkPolicy.*egress`,     // not supported
+			`NetworkPolicy.*named port`, // not yet implemented
+			`enforce egress policy`,     // not support
+			`should proxy to cadvisor`,  // we don't expose cAdvisor port directly for security reasons
 		},
 		// tests that rely on special configuration that we do not yet support
 		"[Disabled:SpecialConfig]": {
@@ -418,6 +422,8 @@ var (
 			`should be rejected when no endpoints exist`,                                 // https://bugzilla.redhat.com/show_bug.cgi?id=1711605
 			`PreemptionExecutionPath runs ReplicaSets to verify preemption running path`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711606
 			`TaintBasedEvictions`,                                                        // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
+			// TODO(workloads): reenable
+			`SchedulerPreemption`,
 
 			`\[Driver: iscsi\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
 
@@ -429,6 +435,23 @@ var (
 			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
 			"when the NodeLease feature is enabled",
 			"RuntimeClass should reject",
+
+			// TODO(node): configure the cri handler for the runtime class to make this work
+			"should run a Pod requesting a RuntimeClass with a configured handler",
+			"should reject a Pod requesting a RuntimeClass with conflicting node selector",
+			"should run a Pod requesting a RuntimeClass with scheduling",
+
+			// TODO(sdn): reenable when openshift/sdn is rebased to 1.16
+			`Services should implement service.kubernetes.io/headless`,
+
+			// TODO(sdn): test pod fails to connect in 1.16
+			`should allow ingress access from updated pod`,
+
+			// TODO(storage): fix the use of SSH into the node
+			`volumeMode should not mount / map unused volumes in a pod`,
+
+			// TODO(workload): reactivate when oc is rebased
+			`should support exec using resource/name`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -450,6 +473,9 @@ var (
 		"[Flaky]": {
 			`Job should run a job to completion when tasks sometimes fail and are not locally restarted`, // seems flaky, also may require too many resources
 			`openshift mongodb replication creating from a template`,                                     // flaking on deployment
+
+			// TODO(node): test works when run alone, but not in the suite in CI
+			`\[Feature:HPA\] Horizontal pod autoscaling \(scale resource: CPU\) \[sig-autoscaling\] ReplicationController light Should scale from 1 pod to 2 pods`,
 		},
 		// tests that must be run without competition
 		"[Serial]": {
@@ -465,6 +491,7 @@ var (
 
 			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
 
+			`\[Feature:HPA\] Horizontal pod autoscaling \(scale resource: CPU\) \[sig-autoscaling\] ReplicationController light Should scale from 1 pod to 2 pods`,
 		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.

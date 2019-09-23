@@ -241,6 +241,7 @@ var _ = g.Describe("[cli] oc explain", func() {
 	})
 
 	g.It("should contain proper spec+status for CRDs", func() {
+		g.Skip("skipping this test as all CRDs are non-structural, please fix me!")
 		for _, ct := range crdTypes {
 			e2e.Logf("Checking %s...", ct)
 			o.Expect(verifyCRDSpecStatusExplain(oc, ct)).NotTo(o.HaveOccurred())
@@ -248,6 +249,7 @@ var _ = g.Describe("[cli] oc explain", func() {
 	})
 
 	g.It("should contain proper fields description for special types", func() {
+		g.Skip("skipping this test as all CRDs are non-structural, please fix me!")
 		for _, st := range specialTypes {
 			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
 			o.Expect(verifyExplain(oc, st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())

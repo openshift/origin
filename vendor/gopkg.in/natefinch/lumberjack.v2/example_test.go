@@ -14,5 +14,6 @@ func Example() {
 		MaxSize:    500, // megabytes
 		MaxBackups: 3,
 		MaxAge:     28, // days
+		Compress:   true, // disabled by default
 	})
 }

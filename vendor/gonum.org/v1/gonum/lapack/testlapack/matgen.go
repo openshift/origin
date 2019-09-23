@@ -11,6 +11,7 @@ import (
 
 	"gonum.org/v1/gonum/blas"
 	"gonum.org/v1/gonum/blas/blas64"
+	"gonum.org/v1/gonum/floats"
 )
 
 // Dlatm1 computes the entries of dst as specified by mode, cond and rsign.
@@ -652,5 +653,88 @@ func checkMatrix(m, n int, a []float64, lda int) {
 	}
 	if len(a) < (m-1)*lda+n {
 		panic("testlapack: insufficient matrix slice length")
+	}
+}
+
+// randomOrthogonal returns an n×n random orthogonal matrix.
+func randomOrthogonal(n int, rnd *rand.Rand) blas64.General {
+	q := eye(n, n)
+	x := make([]float64, n)
+	v := make([]float64, n)
+	for j := 0; j < n-1; j++ {
+		// x represents the j-th column of a random matrix.
+		for i := 0; i < j; i++ {
+			x[i] = 0
+		}
+		for i := j; i < n; i++ {
+			x[i] = rnd.NormFloat64()
+		}
+		// Compute v that represents the elementary reflector that
+		// annihilates the subdiagonal elements of x.
+		reflector(v, x, j)
+		// Compute Q * H_j and store the result into Q.
+		applyReflector(q, q, v)
+	}
+	return q
+}
+
+// reflector generates a Householder reflector v that zeros out subdiagonal
+// entries in the j-th column of a matrix.
+func reflector(v, col []float64, j int) {
+	n := len(col)
+	if len(v) != n {
+		panic("slice length mismatch")
+	}
+	if j < 0 || n <= j {
+		panic("invalid column index")
+	}
+
+	for i := range v {
+		v[i] = 0
+	}
+	if j == n-1 {
+		return
+	}
+	s := floats.Norm(col[j:], 2)
+	if s == 0 {
+		return
+	}
+	v[j] = col[j] + math.Copysign(s, col[j])
+	copy(v[j+1:], col[j+1:])
+	s = floats.Norm(v[j:], 2)
+	floats.Scale(1/s, v[j:])
+}
+
+// applyReflector computes Q*H where H is a Householder matrix represented by
+// the Householder reflector v.
+func applyReflector(qh blas64.General, q blas64.General, v []float64) {
+	n := len(v)
+	if qh.Rows != n || qh.Cols != n {
+		panic("bad size of qh")
+	}
+	if q.Rows != n || q.Cols != n {
+		panic("bad size of q")
+	}
+	qv := make([]float64, n)
+	blas64.Gemv(blas.NoTrans, 1, q, blas64.Vector{Data: v, Inc: 1}, 0, blas64.Vector{Data: qv, Inc: 1})
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			qh.Data[i*qh.Stride+j] = q.Data[i*q.Stride+j]
+		}
+	}
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			qh.Data[i*qh.Stride+j] -= 2 * qv[i] * v[j]
+		}
+	}
+	var norm2 float64
+	for _, vi := range v {
+		norm2 += vi * vi
+	}
+	norm2inv := 1 / norm2
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			qh.Data[i*qh.Stride+j] *= norm2inv
+		}
 	}
 }

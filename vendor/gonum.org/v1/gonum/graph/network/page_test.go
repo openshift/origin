@@ -84,7 +84,7 @@ func TestPageRank(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -108,7 +108,7 @@ func TestPageRankSparse(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -187,7 +187,7 @@ func TestEdgeWeightedPageRank(t *testing.T) {
 		g := simple.NewWeightedDirectedGraph(test.self, test.absent)
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			ws, ok := test.edges[u]
@@ -218,7 +218,7 @@ func TestEdgeWeightedPageRankSparse(t *testing.T) {
 		g := simple.NewWeightedDirectedGraph(test.self, test.absent)
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			ws, ok := test.edges[u]

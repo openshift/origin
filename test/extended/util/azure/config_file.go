@@ -8,8 +8,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/kubernetes/pkg/cloudprovider/providers/azure"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/legacy-cloud-providers/azure"
 	"sigs.k8s.io/yaml"
 )
 

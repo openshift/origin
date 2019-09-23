@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -44,6 +45,16 @@ func NewUsagesClientWithBaseURI(baseURI string, subscriptionID string) UsagesCli
 // resourceGroupName - the name of the resource group where the recovery services vault is present.
 // vaultName - the name of the recovery services vault.
 func (client UsagesClient) ListByVaults(ctx context.Context, resourceGroupName string, vaultName string) (result VaultUsageList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UsagesClient.ListByVaults")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListByVaultsPreparer(ctx, resourceGroupName, vaultName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "recoveryservices.UsagesClient", "ListByVaults", nil, "Failure preparing request")
@@ -89,8 +100,8 @@ func (client UsagesClient) ListByVaultsPreparer(ctx context.Context, resourceGro
 // ListByVaultsSender sends the ListByVaults request. The method will close the
 // http.Response Body if it receives an error.
 func (client UsagesClient) ListByVaultsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByVaultsResponder handles the response to the ListByVaults request. The method always

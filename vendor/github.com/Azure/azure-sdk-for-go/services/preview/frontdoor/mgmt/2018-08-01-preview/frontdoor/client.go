@@ -25,6 +25,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -58,6 +59,16 @@ func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 // Parameters:
 // checkFrontDoorNameAvailabilityInput - input to check.
 func (client BaseClient) CheckFrontDoorNameAvailability(ctx context.Context, checkFrontDoorNameAvailabilityInput CheckNameAvailabilityInput) (result CheckNameAvailabilityOutput, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CheckFrontDoorNameAvailability")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: checkFrontDoorNameAvailabilityInput,
 			Constraints: []validation.Constraint{{Target: "checkFrontDoorNameAvailabilityInput.Name", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -105,8 +116,8 @@ func (client BaseClient) CheckFrontDoorNameAvailabilityPreparer(ctx context.Cont
 // CheckFrontDoorNameAvailabilitySender sends the CheckFrontDoorNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CheckFrontDoorNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CheckFrontDoorNameAvailabilityResponder handles the response to the CheckFrontDoorNameAvailability request. The method always
@@ -126,6 +137,16 @@ func (client BaseClient) CheckFrontDoorNameAvailabilityResponder(resp *http.Resp
 // Parameters:
 // checkFrontDoorNameAvailabilityInput - input to check.
 func (client BaseClient) CheckFrontDoorNameAvailabilityWithSubscription(ctx context.Context, checkFrontDoorNameAvailabilityInput CheckNameAvailabilityInput) (result CheckNameAvailabilityOutput, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CheckFrontDoorNameAvailabilityWithSubscription")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: checkFrontDoorNameAvailabilityInput,
 			Constraints: []validation.Constraint{{Target: "checkFrontDoorNameAvailabilityInput.Name", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -177,8 +198,8 @@ func (client BaseClient) CheckFrontDoorNameAvailabilityWithSubscriptionPreparer(
 // CheckFrontDoorNameAvailabilityWithSubscriptionSender sends the CheckFrontDoorNameAvailabilityWithSubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CheckFrontDoorNameAvailabilityWithSubscriptionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CheckFrontDoorNameAvailabilityWithSubscriptionResponder handles the response to the CheckFrontDoorNameAvailabilityWithSubscription request. The method always

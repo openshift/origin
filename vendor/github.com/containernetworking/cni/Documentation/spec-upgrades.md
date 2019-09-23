@@ -82,7 +82,7 @@ the plugin must return result JSON conforming to CNI spec version 0.2.0.
 ### Specific guidance for plugins written in Go
 Plugins written in Go may leverage the Go language packages in this repository
 to ease the process of upgrading and supporting multiple versions.  CNI 
-[Library and Plugins Release v0.5.0](https://github.com/containernetworking/cni/releases)
+[Library and Plugins Release v0.5.0](https://github.com/containernetworking/cni/releases/tag/v0.5.0)
 includes important changes to the Golang APIs.  Plugins using these APIs will
 require some changes now, but should more-easily handle spec changes and
 new features going forward.
@@ -149,7 +149,7 @@ result, err := current.NewResultFromResult(ipamResult)
 ```
 
 Other examples of spec v0.3.0-compatible plugins are the
-[main plugins in this repo](https://github.com/containernetworking/cni/tree/master/plugins/main)
+[main plugins in this repo](https://github.com/containernetworking/plugins/tree/master/plugins)
 
 
 ## For Runtime Authors
@@ -249,7 +249,7 @@ work with the fields exposed by that struct:
 ```go
 // runtime invokes the plugin to get the opaque types.Result
 // this may conform to any CNI spec version
-resultInterface, err := libcni.AddNetwork(netConf, runtimeConf)
+resultInterface, err := libcni.AddNetwork(ctx, netConf, runtimeConf)
 
 // upconvert result to the current 0.3.0 spec
 result, err := current.NewResultFromResult(resultInterface)

@@ -20,10 +20,12 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/parser"
 	"go/token"
 	"log"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -38,6 +40,16 @@ var (
 // TODO: simplify error reporting
 
 func ParseFile(source string) (*model.Package, error) {
+	srcDir, err := filepath.Abs(filepath.Dir(source))
+	if err != nil {
+		return nil, fmt.Errorf("failed getting source directory: %v", err)
+	}
+
+	var packageImport string
+	if p, err := build.ImportDir(srcDir, 0); err == nil {
+		packageImport = p.ImportPath
+	} // TODO: should we fail if this returns an error?
+
 	fs := token.NewFileSet()
 	file, err := parser.ParseFile(fs, source, nil, 0)
 	if err != nil {
@@ -45,9 +57,11 @@ func ParseFile(source string) (*model.Package, error) {
 	}
 
 	p := &fileParser{
-		fileSet:       fs,
-		imports:       make(map[string]string),
-		auxInterfaces: make(map[string]map[string]*ast.InterfaceType),
+		fileSet:            fs,
+		imports:            make(map[string]string),
+		importedInterfaces: make(map[string]map[string]*ast.InterfaceType),
+		auxInterfaces:      make(map[string]map[string]*ast.InterfaceType),
+		srcDir:             srcDir,
 	}
 
 	// Handle -imports.
@@ -70,13 +84,12 @@ func ParseFile(source string) (*model.Package, error) {
 	if err := p.parseAuxFiles(*auxFiles); err != nil {
 		return nil, err
 	}
-	p.addAuxInterfacesFromFile("", file) // this file
+	p.addAuxInterfacesFromFile(packageImport, file) // this file
 
-	pkg, err := p.parseFile(file)
+	pkg, err := p.parseFile(packageImport, file)
 	if err != nil {
 		return nil, err
 	}
-	pkg.DotImports = make([]string, 0, len(dotImports))
 	for path := range dotImports {
 		pkg.DotImports = append(pkg.DotImports, path)
 	}
@@ -84,11 +97,14 @@ func ParseFile(source string) (*model.Package, error) {
 }
 
 type fileParser struct {
-	fileSet *token.FileSet
-	imports map[string]string // package name => import path
+	fileSet            *token.FileSet
+	imports            map[string]string                        // package name => import path
+	importedInterfaces map[string]map[string]*ast.InterfaceType // package (or "") => name => interface
 
 	auxFiles      []*ast.File
 	auxInterfaces map[string]map[string]*ast.InterfaceType // package (or "") => name => interface
+
+	srcDir string
 }
 
 func (p *fileParser) errorf(pos token.Pos, format string, args ...interface{}) error {
@@ -108,12 +124,14 @@ func (p *fileParser) parseAuxFiles(auxFiles string) error {
 		if len(parts) != 2 {
 			return fmt.Errorf("bad aux file spec: %v", kv)
 		}
-		file, err := parser.ParseFile(p.fileSet, parts[1], nil, 0)
+		pkg, fpath := parts[0], parts[1]
+
+		file, err := parser.ParseFile(p.fileSet, fpath, nil, 0)
 		if err != nil {
 			return err
 		}
 		p.auxFiles = append(p.auxFiles, file)
-		p.addAuxInterfacesFromFile(parts[0], file)
+		p.addAuxInterfacesFromFile(pkg, file)
 	}
 	return nil
 }
@@ -127,8 +145,10 @@ func (p *fileParser) addAuxInterfacesFromFile(pkg string, file *ast.File) {
 	}
 }
 
-func (p *fileParser) parseFile(file *ast.File) (*model.Package, error) {
-	allImports := importsOfFile(file)
+// parseFile loads all file imports and auxiliary files import into the
+// fileParser, parses all file interfaces and returns package model.
+func (p *fileParser) parseFile(importPath string, file *ast.File) (*model.Package, error) {
+	allImports, dotImports := importsOfFile(file)
 	// Don't stomp imports provided by -imports. Those should take precedence.
 	for pkg, path := range allImports {
 		if _, ok := p.imports[pkg]; !ok {
@@ -138,7 +158,8 @@ func (p *fileParser) parseFile(file *ast.File) (*model.Package, error) {
 	// Add imports from auxiliary files, which might be needed for embedded interfaces.
 	// Don't stomp any other imports.
 	for _, f := range p.auxFiles {
-		for pkg, path := range importsOfFile(f) {
+		auxImports, _ := importsOfFile(f)
+		for pkg, path := range auxImports {
 			if _, ok := p.imports[pkg]; !ok {
 				p.imports[pkg] = path
 			}
@@ -147,7 +168,7 @@ func (p *fileParser) parseFile(file *ast.File) (*model.Package, error) {
 
 	var is []*model.Interface
 	for ni := range iterInterfaces(file) {
-		i, err := p.parseInterface(ni.name.String(), "", ni.it)
+		i, err := p.parseInterface(ni.name.String(), importPath, ni.it)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +177,35 @@ func (p *fileParser) parseFile(file *ast.File) (*model.Package, error) {
 	return &model.Package{
 		Name:       file.Name.String(),
 		Interfaces: is,
+		DotImports: dotImports,
 	}, nil
+}
+
+// parsePackage loads package specified by path, parses it and populates
+// corresponding imports and importedInterfaces into the fileParser.
+func (p *fileParser) parsePackage(path string) error {
+	var pkgs map[string]*ast.Package
+	if imp, err := build.Import(path, p.srcDir, build.FindOnly); err != nil {
+		return err
+	} else if pkgs, err = parser.ParseDir(p.fileSet, imp.Dir, nil, 0); err != nil {
+		return err
+	}
+	for _, pkg := range pkgs {
+		file := ast.MergePackageFiles(pkg, ast.FilterFuncDuplicates|ast.FilterUnassociatedComments|ast.FilterImportDuplicates)
+		if _, ok := p.importedInterfaces[path]; !ok {
+			p.importedInterfaces[path] = make(map[string]*ast.InterfaceType)
+		}
+		for ni := range iterInterfaces(file) {
+			p.importedInterfaces[path][ni.name.Name] = ni.it
+		}
+		imports, _ := importsOfFile(file)
+		for pkgName, pkgPath := range imports {
+			if _, ok := p.imports[pkgName]; !ok {
+				p.imports[pkgName] = pkgPath
+			}
+		}
+	}
+	return nil
 }
 
 func (p *fileParser) parseInterface(name, pkg string, it *ast.InterfaceType) (*model.Interface, error) {
@@ -178,9 +227,11 @@ func (p *fileParser) parseInterface(name, pkg string, it *ast.InterfaceType) (*m
 			intf.Methods = append(intf.Methods, m)
 		case *ast.Ident:
 			// Embedded interface in this package.
-			ei := p.auxInterfaces[""][v.String()]
+			ei := p.auxInterfaces[pkg][v.String()]
 			if ei == nil {
-				return nil, p.errorf(v.Pos(), "unknown embedded interface %s", v.String())
+				if ei = p.importedInterfaces[pkg][v.String()]; ei == nil {
+					return nil, p.errorf(v.Pos(), "unknown embedded interface %s", v.String())
+				}
 			}
 			eintf, err := p.parseInterface(v.String(), pkg, ei)
 			if err != nil {
@@ -194,15 +245,23 @@ func (p *fileParser) parseInterface(name, pkg string, it *ast.InterfaceType) (*m
 		case *ast.SelectorExpr:
 			// Embedded interface in another package.
 			fpkg, sel := v.X.(*ast.Ident).String(), v.Sel.String()
-			ei := p.auxInterfaces[fpkg][sel]
-			if ei == nil {
-				return nil, p.errorf(v.Pos(), "unknown embedded interface %s.%s", fpkg, sel)
-			}
 			epkg, ok := p.imports[fpkg]
 			if !ok {
 				return nil, p.errorf(v.X.Pos(), "unknown package %s", fpkg)
 			}
-			eintf, err := p.parseInterface(sel, epkg, ei)
+			ei := p.auxInterfaces[fpkg][sel]
+			if ei == nil {
+				fpkg = epkg
+				if _, ok = p.importedInterfaces[epkg]; !ok {
+					if err := p.parsePackage(epkg); err != nil {
+						return nil, p.errorf(v.Pos(), "could not parse package %s: %v", fpkg, err)
+					}
+				}
+				if ei = p.importedInterfaces[epkg][sel]; ei == nil {
+					return nil, p.errorf(v.Pos(), "unknown embedded interface %s.%s", fpkg, sel)
+				}
+			}
+			eintf, err := p.parseInterface(sel, fpkg, ei)
 			if err != nil {
 				return nil, err
 			}
@@ -319,6 +378,12 @@ func (p *fileParser) parseType(pkg string, typ ast.Expr) (model.Type, error) {
 		return &model.FuncType{In: in, Out: out, Variadic: variadic}, nil
 	case *ast.Ident:
 		if v.IsExported() {
+			// `pkg` may be an aliased imported pkg
+			// if so, patch the import w/ the fully qualified import
+			maybeImportedPkg, ok := p.imports[pkg]
+			if ok {
+				pkg = maybeImportedPkg
+			}
 			// assume type in this package
 			return &model.NamedType{Package: pkg, Type: v.Name}, nil
 		} else {
@@ -365,43 +430,43 @@ func (p *fileParser) parseType(pkg string, typ ast.Expr) (model.Type, error) {
 
 // importsOfFile returns a map of package name to import path
 // of the imports in file.
-func importsOfFile(file *ast.File) map[string]string {
-	/* We have to make guesses about some imports, because imports are not required
-	 * to have names. Named imports are always certain. Unnamed imports are guessed
-	 * to have a name of the last path component; if the last path component has dots,
-	 * the first dot-delimited field is used as the name.
-	 */
+func importsOfFile(file *ast.File) (normalImports map[string]string, dotImports []string) {
+	normalImports = make(map[string]string)
+	dotImports = make([]string, 0)
+	for _, is := range file.Imports {
+		var pkgName string
+		importPath := is.Path.Value[1 : len(is.Path.Value)-1] // remove quotes
 
-	m := make(map[string]string)
-	for _, decl := range file.Decls {
-		gd, ok := decl.(*ast.GenDecl)
-		if !ok || gd.Tok != token.IMPORT {
-			continue
-		}
-		for _, spec := range gd.Specs {
-			is, ok := spec.(*ast.ImportSpec)
-			if !ok {
+		if is.Name != nil {
+			// Named imports are always certain.
+			if is.Name.Name == "_" {
 				continue
 			}
-			pkg, importPath := "", string(is.Path.Value)
-			importPath = importPath[1 : len(importPath)-1] // remove quotes
-
-			if is.Name != nil {
-				if is.Name.Name == "_" {
-					continue
-				}
-				pkg = removeDot(is.Name.Name)
-			} else {
+			pkgName = is.Name.Name
+		} else {
+			pkg, err := build.Import(importPath, "", 0)
+			if err != nil {
+				// Fallback to import path suffix. Note that this is uncertain.
 				_, last := path.Split(importPath)
-				pkg = strings.SplitN(last, ".", 2)[0]
+				// If the last path component has dots, the first dot-delimited
+				// field is used as the name.
+				pkgName = strings.SplitN(last, ".", 2)[0]
+			} else {
+				pkgName = pkg.Name
 			}
-			if _, ok := m[pkg]; ok {
-				log.Fatalf("imported package collision: %q imported twice", pkg)
+		}
+
+		if pkgName == "." {
+			dotImports = append(dotImports, importPath)
+		} else {
+
+			if _, ok := normalImports[pkgName]; ok {
+				log.Fatalf("imported package collision: %q imported twice", pkgName)
 			}
-			m[pkg] = importPath
+			normalImports[pkgName] = importPath
 		}
 	}
-	return m
+	return
 }
 
 type namedInterface struct {

@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +24,7 @@ import (
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/errors"
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -32,10 +35,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	kclientset "k8s.io/client-go/kubernetes"
 	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/quota/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework/pod"
+	"k8s.io/kubernetes/test/e2e/framework/statefulset"
+	"k8s.io/kubernetes/test/utils/image"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -49,8 +56,9 @@ import (
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-
 	"github.com/openshift/origin/test/extended/testdata"
+
+	. "github.com/onsi/gomega"
 )
 
 // WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
@@ -463,7 +471,7 @@ func DumpPodsCommand(c kubernetes.Interface, ns string, selector labels.Selector
 
 	values := make(map[string]string)
 	for _, pod := range podList.Items {
-		stdout, err := e2e.RunHostCmdWithRetries(pod.Namespace, pod.Name, cmd, e2e.StatefulSetPoll, e2e.StatefulPodTimeout)
+		stdout, err := e2e.RunHostCmdWithRetries(pod.Namespace, pod.Name, cmd, statefulset.StatefulSetPoll, statefulset.StatefulPodTimeout)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		values[pod.Name] = stdout
 	}
@@ -1446,9 +1454,62 @@ func ParseLabelsOrDie(str string) labels.Selector {
 	return ret
 }
 
+// LaunchWebserverPod launches a pod serving http on port 8080 to act
+// as the target for networking connectivity checks.  The ip address
+// of the created pod will be returned if the pod is launched
+// successfully.
+func LaunchWebserverPod(f *e2e.Framework, podName, nodeName string) (ip string) {
+	containerName := fmt.Sprintf("%s-container", podName)
+	port := 8080
+	pod := &kapiv1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: podName,
+		},
+		Spec: kapiv1.PodSpec{
+			Containers: []kapiv1.Container{
+				{
+					Name:  containerName,
+					Image: image.GetE2EImage(image.Agnhost),
+					Args:  []string{"netexec", "--http-port", fmt.Sprintf("%d", port)},
+					Ports: []kapiv1.ContainerPort{{ContainerPort: int32(port)}},
+				},
+			},
+			NodeName:      nodeName,
+			RestartPolicy: kapiv1.RestartPolicyNever,
+		},
+	}
+	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
+	_, err := podClient.Create(pod)
+	e2e.ExpectNoError(err)
+	e2e.ExpectNoError(f.WaitForPodRunning(podName))
+	createdPod, err := podClient.Get(podName, metav1.GetOptions{})
+	e2e.ExpectNoError(err)
+	ip = net.JoinHostPort(createdPod.Status.PodIP, strconv.Itoa(port))
+	e2e.Logf("Target pod IP:port is %s", ip)
+	return
+}
+
+func WaitForEndpoint(c kclientset.Interface, ns, name string) error {
+	for t := time.Now(); time.Since(t) < 3*time.Minute; time.Sleep(5 * time.Second) {
+		endpoint, err := c.CoreV1().Endpoints(ns).Get(name, metav1.GetOptions{})
+		if kapierrs.IsNotFound(err) {
+			e2e.Logf("Endpoint %s/%s is not ready yet", ns, name)
+			continue
+		}
+		Expect(err).NotTo(HaveOccurred())
+		if len(endpoint.Subsets) == 0 || len(endpoint.Subsets[0].Addresses) == 0 {
+			e2e.Logf("Endpoint %s/%s is not ready yet", ns, name)
+			continue
+		} else {
+			return nil
+		}
+	}
+	return fmt.Errorf("Failed to get endpoints for %s/%s", ns, name)
+}
+
 // GetEndpointAddress will return an "ip:port" string for the endpoint.
 func GetEndpointAddress(oc *CLI, name string) (string, error) {
-	err := e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), name)
+	err := WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), name)
 	if err != nil {
 		return "", err
 	}
@@ -1465,7 +1526,7 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 // TODO: expose upstream
 func CreateExecPodOrFail(client corev1client.CoreV1Interface, ns, name string) string {
 	e2e.Logf("Creating new exec pod")
-	execPod := e2e.NewExecPodSpec(ns, name, false)
+	execPod := pod.NewExecPodSpec(ns, name, false)
 	created, err := client.Pods(ns).Create(execPod)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = wait.PollImmediate(e2e.Poll, 5*time.Minute, func() (bool, error) {

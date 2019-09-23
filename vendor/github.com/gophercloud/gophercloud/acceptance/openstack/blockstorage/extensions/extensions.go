@@ -8,10 +8,12 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/backups"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // CreateUploadImage will upload volume it as volume-baked image. An name of new image or err will be
@@ -170,4 +172,65 @@ func ExtendVolumeSize(t *testing.T, client *gophercloud.ServiceClient, volume *v
 	}
 
 	return nil
+}
+
+// CreateBackup will create a backup based on a volume. An error will be
+// will be returned if the backup could not be created.
+func CreateBackup(t *testing.T, client *gophercloud.ServiceClient, volumeID string) (*backups.Backup, error) {
+	t.Logf("Attempting to create a backup of volume %s", volumeID)
+
+	backupName := tools.RandomString("ACPTTEST", 16)
+	createOpts := backups.CreateOpts{
+		VolumeID: volumeID,
+		Name:     backupName,
+	}
+
+	backup, err := backups.Create(client, createOpts).Extract()
+	if err != nil {
+		return nil, err
+	}
+
+	err = WaitForBackupStatus(client, backup.ID, "available", 120)
+	if err != nil {
+		return nil, err
+	}
+
+	backup, err = backups.Get(client, backup.ID).Extract()
+	if err != nil {
+		return nil, err
+	}
+
+	t.Logf("Successfully created backup %s", backup.ID)
+	tools.PrintResource(t, backup)
+
+	th.AssertEquals(t, backup.Name, backupName)
+
+	return backup, nil
+}
+
+// DeleteBackup will delete a backup. A fatal error will occur if the backup
+// could not be deleted. This works best when used as a deferred function.
+func DeleteBackup(t *testing.T, client *gophercloud.ServiceClient, backupID string) {
+	if err := backups.Delete(client, backupID).ExtractErr(); err != nil {
+		t.Fatalf("Unable to delete backup %s: %s", backupID, err)
+	}
+
+	t.Logf("Deleted backup %s", backupID)
+}
+
+// WaitForBackupStatus will continually poll a backup, checking for a particular
+// status. It will do this for the amount of seconds defined.
+func WaitForBackupStatus(client *gophercloud.ServiceClient, id, status string, secs int) error {
+	return gophercloud.WaitFor(secs, func() (bool, error) {
+		current, err := backups.Get(client, id).Extract()
+		if err != nil {
+			return false, err
+		}
+
+		if current.Status == status {
+			return true, nil
+		}
+
+		return false, nil
+	})
 }

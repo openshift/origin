@@ -7,7 +7,7 @@ import (
 
 func TestMarshaler(t *testing.T) {
 	n := int64(1)
-	b, err := json.Marshal(&Object{&n})
+	b, err := json.Marshal(&Object{OptionalNumber: &n})
 	if err != nil {
 		t.Fatal(err)
 	}

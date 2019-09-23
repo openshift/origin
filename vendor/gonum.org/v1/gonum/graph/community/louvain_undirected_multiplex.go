@@ -14,6 +14,7 @@ import (
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/internal/ordered"
 	"gonum.org/v1/gonum/graph/internal/set"
+	"gonum.org/v1/gonum/graph/iterator"
 )
 
 // UndirectedMultiplex is an undirected multiplex graph.
@@ -46,7 +47,7 @@ type UndirectedMultiplex interface {
 // directed graphs.
 func qUndirectedMultiplex(g UndirectedMultiplex, communities [][]graph.Node, weights, resolutions []float64) []float64 {
 	q := make([]float64, g.Depth())
-	nodes := g.Nodes()
+	nodes := graph.NodesOf(g.Nodes())
 	layerWeight := 1.0
 	layerResolution := 1.0
 	if len(resolutions) == 1 {
@@ -80,8 +81,9 @@ func qUndirectedMultiplex(g UndirectedMultiplex, communities [][]graph.Node, wei
 		for _, u := range nodes {
 			uid := u.ID()
 			w := weight(uid, uid)
-			for _, v := range layer.From(uid) {
-				w += weight(uid, v.ID())
+			to := layer.From(uid)
+			for to.Next() {
+				w += weight(uid, to.Node().ID())
 			}
 			m2 += w
 			k[uid] = w
@@ -129,13 +131,15 @@ func NewUndirectedLayers(layers ...graph.Undirected) (UndirectedLayers, error) {
 		return nil, nil
 	}
 	base := make(set.Int64s)
-	for _, n := range layers[0].Nodes() {
-		base.Add(n.ID())
+	nodes := layers[0].Nodes()
+	for nodes.Next() {
+		base.Add(nodes.Node().ID())
 	}
 	for i, l := range layers[1:] {
 		next := make(set.Int64s)
-		for _, n := range l.Nodes() {
-			next.Add(n.ID())
+		nodes := l.Nodes()
+		for nodes.Next() {
+			next.Add(nodes.Node().ID())
 		}
 		if !set.Int64sEqual(next, base) {
 			return nil, fmt.Errorf("community: layer ID mismatch between layers: %d", i+1)
@@ -145,7 +149,7 @@ func NewUndirectedLayers(layers ...graph.Undirected) (UndirectedLayers, error) {
 }
 
 // Nodes returns the nodes of the receiver.
-func (g UndirectedLayers) Nodes() []graph.Node {
+func (g UndirectedLayers) Nodes() graph.Nodes {
 	if len(g) == 0 {
 		return nil
 	}
@@ -216,12 +220,12 @@ var (
 )
 
 // Nodes returns all the nodes in the graph.
-func (g *ReducedUndirectedMultiplex) Nodes() []graph.Node {
+func (g *ReducedUndirectedMultiplex) Nodes() graph.Nodes {
 	nodes := make([]graph.Node, len(g.nodes))
 	for i := range g.nodes {
 		nodes[i] = node(i)
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // Depth returns the number of layers in the multiplex graph.
@@ -285,7 +289,7 @@ func reduceUndirectedMultiplex(g UndirectedMultiplex, communities [][]graph.Node
 			return r
 		}
 
-		nodes := g.Nodes()
+		nodes := graph.NodesOf(g.Nodes())
 		// TODO(kortschak) This sort is necessary really only
 		// for testing. In practice we would not be using the
 		// community provided by the user for a Q calculation.
@@ -333,8 +337,9 @@ func reduceUndirectedMultiplex(g UndirectedMultiplex, communities [][]graph.Node
 				var out []int
 				uid := u.ID()
 				ucid := communityOf[uid]
-				for _, v := range layer.From(uid) {
-					vid := v.ID()
+				to := layer.From(uid)
+				for to.Next() {
+					vid := to.Node().ID()
 					vcid := communityOf[vid]
 					if vcid != ucid {
 						out = append(out, vcid)
@@ -415,8 +420,9 @@ func reduceUndirectedMultiplex(g UndirectedMultiplex, communities [][]graph.Node
 				for _, v := range comm[i+1:] {
 					r.nodes[ucid].weights[l] += 2 * sign * weight(uid, v.ID())
 				}
-				for _, v := range layer.From(uid) {
-					vid := v.ID()
+				to := layer.From(uid)
+				for to.Next() {
+					vid := to.Node().ID()
 					vcid := communityOf[vid]
 					found := false
 					for _, e := range out {
@@ -452,28 +458,37 @@ type undirectedLayerHandle struct {
 	layer int
 }
 
-// Has returns whether the node exists within the graph.
-func (g undirectedLayerHandle) Has(id int64) bool {
+// Node returns the node with the given ID if it exists in the graph,
+// and nil otherwise.
+func (g undirectedLayerHandle) Node(id int64) graph.Node {
+	if g.has(id) {
+		return g.multiplex.nodes[id]
+	}
+	return nil
+}
+
+// has returns whether the node exists within the graph.
+func (g undirectedLayerHandle) has(id int64) bool {
 	return 0 <= id && id < int64(len(g.multiplex.nodes))
 }
 
 // Nodes returns all the nodes in the graph.
-func (g undirectedLayerHandle) Nodes() []graph.Node {
+func (g undirectedLayerHandle) Nodes() graph.Nodes {
 	nodes := make([]graph.Node, len(g.multiplex.nodes))
 	for i := range g.multiplex.nodes {
 		nodes[i] = node(i)
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // From returns all nodes in g that can be reached directly from u.
-func (g undirectedLayerHandle) From(uid int64) []graph.Node {
+func (g undirectedLayerHandle) From(uid int64) graph.Nodes {
 	out := g.multiplex.layers[g.layer].edges[uid]
 	nodes := make([]graph.Node, len(out))
 	for i, vid := range out {
 		nodes[i] = g.multiplex.nodes[vid]
 	}
-	return nodes
+	return iterator.NewOrderedNodes(nodes)
 }
 
 // HasEdgeBetween returns whether an edge exists between nodes x and y.
@@ -597,7 +612,7 @@ type undirectedMultiplexLocalMover struct {
 // node IDs of g must be contiguous in [0,n) where n is the number of nodes.
 // If g has a zero edge weight sum, nil is returned.
 func newUndirectedMultiplexLocalMover(g *ReducedUndirectedMultiplex, communities [][]graph.Node, weights, resolutions []float64, all bool) *undirectedMultiplexLocalMover {
-	nodes := g.Nodes()
+	nodes := graph.NodesOf(g.Nodes())
 	l := undirectedMultiplexLocalMover{
 		g:            g,
 		nodes:        nodes,
@@ -637,8 +652,9 @@ func newUndirectedMultiplexLocalMover(g *ReducedUndirectedMultiplex, communities
 		for _, u := range l.nodes {
 			uid := u.ID()
 			w := weight(uid, uid)
-			for _, v := range layer.From(uid) {
-				w += weight(uid, v.ID())
+			to := layer.From(uid)
+			for to.Next() {
+				w += weight(uid, to.Node().ID())
 			}
 			l.edgeWeightOf[i][uid] = w
 			l.m2[i] += w

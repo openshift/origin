@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewProtectionPoliciesClientWithBaseURI(baseURI string, subscriptionID strin
 // policyName - backup policy to be created.
 // parameters - resource backup policy
 func (client ProtectionPoliciesClient) CreateOrUpdate(ctx context.Context, vaultName string, resourceGroupName string, policyName string, parameters ProtectionPolicyResource) (result ProtectionPolicyResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProtectionPoliciesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreateOrUpdatePreparer(ctx, vaultName, resourceGroupName, policyName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "backup.ProtectionPoliciesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -96,8 +107,8 @@ func (client ProtectionPoliciesClient) CreateOrUpdatePreparer(ctx context.Contex
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProtectionPoliciesClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -121,6 +132,16 @@ func (client ProtectionPoliciesClient) CreateOrUpdateResponder(resp *http.Respon
 // resourceGroupName - the name of the resource group where the recovery services vault is present.
 // policyName - backup policy to be deleted.
 func (client ProtectionPoliciesClient) Delete(ctx context.Context, vaultName string, resourceGroupName string, policyName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProtectionPoliciesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, vaultName, resourceGroupName, policyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "backup.ProtectionPoliciesClient", "Delete", nil, "Failure preparing request")
@@ -167,8 +188,8 @@ func (client ProtectionPoliciesClient) DeletePreparer(ctx context.Context, vault
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProtectionPoliciesClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -190,6 +211,16 @@ func (client ProtectionPoliciesClient) DeleteResponder(resp *http.Response) (res
 // resourceGroupName - the name of the resource group where the recovery services vault is present.
 // policyName - backup policy information to be fetched.
 func (client ProtectionPoliciesClient) Get(ctx context.Context, vaultName string, resourceGroupName string, policyName string) (result ProtectionPolicyResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProtectionPoliciesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, vaultName, resourceGroupName, policyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "backup.ProtectionPoliciesClient", "Get", nil, "Failure preparing request")
@@ -236,8 +267,8 @@ func (client ProtectionPoliciesClient) GetPreparer(ctx context.Context, vaultNam
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProtectionPoliciesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always

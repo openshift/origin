@@ -230,6 +230,19 @@ func HandleListClusterSuccessfully(t *testing.T) {
 	})
 }
 
+func HandleListDetailClusterSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/v1/clusters/detail", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.Header().Add("X-OpenStack-Request-Id", requestUUID)
+		w.WriteHeader(http.StatusOK)
+
+		fmt.Fprint(w, ClusterListResponse)
+	})
+}
+
 var UpdateResponse = fmt.Sprintf(`
 {
 	"uuid":"%s"
@@ -256,5 +269,24 @@ func HandleDeleteClusterSuccessfully(t *testing.T) {
 		w.Header().Add("Content-Type", "application/json")
 		w.Header().Add("X-OpenStack-Request-Id", requestUUID)
 		w.WriteHeader(http.StatusNoContent)
+	})
+}
+
+var ResizeResponse = fmt.Sprintf(`
+{
+	"uuid": "%s",
+	"node_count": 2
+}`, clusterUUID)
+
+func HandleResizeClusterSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/v1/clusters/"+clusterUUID+"/actions/resize", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.Header().Add("X-OpenStack-Request-Id", requestUUID)
+		w.WriteHeader(http.StatusAccepted)
+
+		fmt.Fprint(w, ResizeResponse)
 	})
 }

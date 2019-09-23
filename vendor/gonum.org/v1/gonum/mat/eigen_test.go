@@ -18,8 +18,8 @@ func TestEigen(t *testing.T) {
 		a *Dense
 
 		values []complex128
-		left   *Dense
-		right  *Dense
+		left   *CDense
+		right  *CDense
 	}{
 		{
 			a: NewDense(3, 3, []float64{
@@ -28,35 +28,57 @@ func TestEigen(t *testing.T) {
 				0, 0, 1,
 			}),
 			values: []complex128{1, 1, 1},
-			left: NewDense(3, 3, []float64{
+			left: NewCDense(3, 3, []complex128{
 				1, 0, 0,
 				0, 1, 0,
 				0, 0, 1,
 			}),
-			right: NewDense(3, 3, []float64{
+			right: NewCDense(3, 3, []complex128{
 				1, 0, 0,
 				0, 1, 0,
 				0, 0, 1,
 			}),
 		},
+		{
+			// Values compared with numpy.
+			a: NewDense(4, 4, []float64{
+				0.9025, 0.025, 0.475, 0.0475,
+				0.0475, 0.475, 0.475, 0.0025,
+				0.0475, 0.025, 0.025, 0.9025,
+				0.0025, 0.475, 0.025, 0.0475,
+			}),
+			values: []complex128{1, 0.7300317046114154, -0.1400158523057075 + 0.452854925738716i, -0.1400158523057075 - 0.452854925738716i},
+			left: NewCDense(4, 4, []complex128{
+				0.5, -0.3135167160788314, 0.0205812178013689 - 0.0045809393001271i, 0.0205812178013689 + 0.0045809393001271i,
+				0.5, 0.7842199280224774, -0.3755102695419336 + 0.2924634904103882i, -0.3755102695419336 - 0.2924634904103882i,
+				0.5, 0.3320220078078358, -0.1605261632278496 - 0.3881393645202528i, -0.1605261632278496 + 0.3881393645202528i,
+				0.5, 0.4200806584012395, 0.7723935249234153, 0.7723935249234153,
+			}),
+			right: NewCDense(4, 4, []complex128{
+				0.9476399565969628, -0.8637347682162745, -0.2688989440320280 - 0.1282234938321029i, -0.2688989440320280 + 0.1282234938321029i,
+				0.2394935907064427, 0.3457075153704627, -0.3621360383713332 - 0.2583198964498771i, -0.3621360383713332 + 0.2583198964498771i,
+				0.1692743801716332, 0.2706851011641580, 0.7426369401030960, 0.7426369401030960,
+				0.1263626404003607, 0.2473421516816520, -0.1116019576997347 + 0.3865433902819795i, -0.1116019576997347 - 0.3865433902819795i,
+			}),
+		},
 	} {
 		var e1, e2, e3, e4 Eigen
-		ok := e1.Factorize(test.a, true, true)
+		ok := e1.Factorize(test.a, EigenBoth)
 		if !ok {
 			panic("bad factorization")
 		}
-		e2.Factorize(test.a, false, true)
-		e3.Factorize(test.a, true, false)
-		e4.Factorize(test.a, false, false)
+		e2.Factorize(test.a, EigenRight)
+		e3.Factorize(test.a, EigenLeft)
+		e4.Factorize(test.a, EigenNone)
 
 		v1 := e1.Values(nil)
-		if !cmplxEqual(v1, test.values) {
-			t.Errorf("eigenvector mismatch. Case %v", i)
+		if !cmplxEqualTol(v1, test.values, 1e-14) {
+			t.Errorf("eigenvalue mismatch. Case %v", i)
 		}
-		if !Equal(e1.LeftVectors(), test.left) {
+		if !CEqualApprox(e1.LeftVectorsTo(nil), test.left, 1e-14) {
 			t.Errorf("left eigenvector mismatch. Case %v", i)
 		}
-		if !Equal(e1.Vectors(), test.right) {
+		if !CEqualApprox(e1.VectorsTo(nil), test.right, 1e-14) {
 			t.Errorf("right eigenvector mismatch. Case %v", i)
 		}
 
@@ -70,11 +92,11 @@ func TestEigen(t *testing.T) {
 		if !cmplxEqual(v1, e4.Values(nil)) {
 			t.Errorf("eigenvector mismatch. Case %v", i)
 		}
-		if !Equal(e1.Vectors(), e2.Vectors()) {
+		if !CEqual(e1.VectorsTo(nil), e2.VectorsTo(nil)) {
 			t.Errorf("right eigenvector mismatch. Case %v", i)
 		}
-		if !Equal(e1.LeftVectors(), e3.LeftVectors()) {
-			t.Errorf("right eigenvector mismatch. Case %v", i)
+		if !CEqual(e1.LeftVectorsTo(nil), e3.LeftVectorsTo(nil)) {
+			t.Errorf("left eigenvector mismatch. Case %v", i)
 		}
 
 		// TODO(btracey): Also add in a test for correctness when #308 is
@@ -85,6 +107,15 @@ func TestEigen(t *testing.T) {
 func cmplxEqual(v1, v2 []complex128) bool {
 	for i, v := range v1 {
 		if v != v2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func cmplxEqualTol(v1, v2 []complex128, tol float64) bool {
+	for i, v := range v1 {
+		if !cEqualWithinAbsOrRel(v, v2[i], tol, tol) {
 			return false
 		}
 	}

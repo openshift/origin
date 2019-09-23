@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package analytics provides access to the Google Analytics API.
 //
-// See https://developers.google.com/analytics/
+// For product documentation, see: https://developers.google.com/analytics/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/analytics/v3"
 //   ...
-//   analyticsService, err := analytics.New(oauthHttpClient)
+//   ctx := context.Background()
+//   analyticsService, err := analytics.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   analyticsService, err := analytics.NewService(ctx, option.WithScopes(analytics.AnalyticsUserDeletionScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   analyticsService, err := analytics.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   analyticsService, err := analytics.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package analytics // import "google.golang.org/api/analytics/v3"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -75,6 +103,38 @@ const (
 	AnalyticsUserDeletionScope = "https://www.googleapis.com/auth/analytics.user.deletion"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/analytics",
+		"https://www.googleapis.com/auth/analytics.edit",
+		"https://www.googleapis.com/auth/analytics.manage.users",
+		"https://www.googleapis.com/auth/analytics.manage.users.readonly",
+		"https://www.googleapis.com/auth/analytics.provision",
+		"https://www.googleapis.com/auth/analytics.readonly",
+		"https://www.googleapis.com/auth/analytics.user.deletion",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -769,8 +829,6 @@ func (s *AccountTicket) MarshalJSON() ([]byte, error) {
 type AccountTreeRequest struct {
 	AccountName string `json:"accountName,omitempty"`
 
-	AccountSettings *AccountTreeRequestAccountSettings `json:"accountSettings,omitempty"`
-
 	// Kind: Resource type for account ticket.
 	Kind string `json:"kind,omitempty"`
 
@@ -805,40 +863,6 @@ func (s *AccountTreeRequest) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-type AccountTreeRequestAccountSettings struct {
-	ShareAnonymouslyWithOthers bool `json:"shareAnonymouslyWithOthers,omitempty"`
-
-	ShareWithGoogleProducts bool `json:"shareWithGoogleProducts,omitempty"`
-
-	ShareWithSpecialists bool `json:"shareWithSpecialists,omitempty"`
-
-	ShareWithSupport bool `json:"shareWithSupport,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g.
-	// "ShareAnonymouslyWithOthers") to unconditionally include in API
-	// requests. By default, fields with empty values are omitted from API
-	// requests. However, any non-pointer, non-interface field appearing in
-	// ForceSendFields will be sent to the server regardless of whether the
-	// field is empty or not. This may be used to include empty fields in
-	// Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g.
-	// "ShareAnonymouslyWithOthers") to include in API requests with the
-	// JSON null value. By default, fields with empty values are omitted
-	// from API requests. However, any field with an empty value appearing
-	// in NullFields will be sent to the server as null. It is an error if a
-	// field in this list has a non-empty value. This may be used to include
-	// null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *AccountTreeRequestAccountSettings) MarshalJSON() ([]byte, error) {
-	type NoMethod AccountTreeRequestAccountSettings
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
 // AccountTreeResponse: JSON template for an Analytics account tree
 // response. The account tree response is used in the provisioning api
 // to return the result of creating an account, property, and view
@@ -846,8 +870,6 @@ func (s *AccountTreeRequestAccountSettings) MarshalJSON() ([]byte, error) {
 type AccountTreeResponse struct {
 	// Account: The account created.
 	Account *Account `json:"account,omitempty"`
-
-	AccountSettings *AccountTreeResponseAccountSettings `json:"accountSettings,omitempty"`
 
 	// Kind: Resource type for account ticket.
 	Kind string `json:"kind,omitempty"`
@@ -881,40 +903,6 @@ type AccountTreeResponse struct {
 
 func (s *AccountTreeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountTreeResponse
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-type AccountTreeResponseAccountSettings struct {
-	ShareAnonymouslyWithOthers bool `json:"shareAnonymouslyWithOthers,omitempty"`
-
-	ShareWithGoogleProducts bool `json:"shareWithGoogleProducts,omitempty"`
-
-	ShareWithSpecialists bool `json:"shareWithSpecialists,omitempty"`
-
-	ShareWithSupport bool `json:"shareWithSupport,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g.
-	// "ShareAnonymouslyWithOthers") to unconditionally include in API
-	// requests. By default, fields with empty values are omitted from API
-	// requests. However, any non-pointer, non-interface field appearing in
-	// ForceSendFields will be sent to the server regardless of whether the
-	// field is empty or not. This may be used to include empty fields in
-	// Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g.
-	// "ShareAnonymouslyWithOthers") to include in API requests with the
-	// JSON null value. By default, fields with empty values are omitted
-	// from API requests. However, any field with an empty value appearing
-	// in NullFields will be sent to the server as null. It is an error if a
-	// field in this list has a non-empty value. This may be used to include
-	// null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *AccountTreeResponseAccountSettings) MarshalJSON() ([]byte, error) {
-	type NoMethod AccountTreeResponseAccountSettings
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -980,17 +968,17 @@ func (s *Accounts) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// AdWordsAccount: JSON template for an AdWords account.
+// AdWordsAccount: JSON template for an Google Ads account.
 type AdWordsAccount struct {
-	// AutoTaggingEnabled: True if auto-tagging is enabled on the AdWords
+	// AutoTaggingEnabled: True if auto-tagging is enabled on the Google Ads
 	// account. Read-only after the insert operation.
 	AutoTaggingEnabled bool `json:"autoTaggingEnabled,omitempty"`
 
-	// CustomerId: Customer ID. This field is required when creating an
-	// AdWords link.
+	// CustomerId: Customer ID. This field is required when creating a
+	// Google Ads link.
 	CustomerId string `json:"customerId,omitempty"`
 
-	// Kind: Resource type for AdWords account.
+	// Kind: Resource type for Google Ads account.
 	Kind string `json:"kind,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AutoTaggingEnabled")
@@ -1658,30 +1646,31 @@ func (s *CustomMetrics) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// EntityAdWordsLink: JSON template for Analytics Entity AdWords Link.
+// EntityAdWordsLink: JSON template for Analytics Entity Google Ads
+// Link.
 type EntityAdWordsLink struct {
-	// AdWordsAccounts: A list of AdWords client accounts. These cannot be
-	// MCC accounts. This field is required when creating an AdWords link.
-	// It cannot be empty.
+	// AdWordsAccounts: A list of Google Ads client accounts. These cannot
+	// be MCC accounts. This field is required when creating a Google Ads
+	// link. It cannot be empty.
 	AdWordsAccounts []*AdWordsAccount `json:"adWordsAccounts,omitempty"`
 
 	// Entity: Web property being linked.
 	Entity *EntityAdWordsLinkEntity `json:"entity,omitempty"`
 
-	// Id: Entity AdWords link ID
+	// Id: Entity Google Ads link ID
 	Id string `json:"id,omitempty"`
 
-	// Kind: Resource type for entity AdWords link.
+	// Kind: Resource type for entity Google Ads link.
 	Kind string `json:"kind,omitempty"`
 
-	// Name: Name of the link. This field is required when creating an
-	// AdWords link.
+	// Name: Name of the link. This field is required when creating a Google
+	// Ads link.
 	Name string `json:"name,omitempty"`
 
 	// ProfileIds: IDs of linked Views (Profiles) represented as strings.
 	ProfileIds []string `json:"profileIds,omitempty"`
 
-	// SelfLink: URL link for this Google Analytics - Google AdWords link.
+	// SelfLink: URL link for this Google Analytics - Google Ads link.
 	SelfLink string `json:"selfLink,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -1740,11 +1729,11 @@ func (s *EntityAdWordsLinkEntity) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// EntityAdWordsLinks: An entity AdWords link collection provides a list
-// of GA-AdWords links Each resource in this collection corresponds to a
-// single link.
+// EntityAdWordsLinks: An entity Google Ads link collection provides a
+// list of GA-Google Ads links Each resource in this collection
+// corresponds to a single link.
 type EntityAdWordsLinks struct {
-	// Items: A list of entity AdWords links.
+	// Items: A list of entity Google Ads links.
 	Items []*EntityAdWordsLink `json:"items,omitempty"`
 
 	// ItemsPerPage: The maximum number of entries the response can contain,
@@ -1756,10 +1745,10 @@ type EntityAdWordsLinks struct {
 	// Kind: Collection type.
 	Kind string `json:"kind,omitempty"`
 
-	// NextLink: Next link for this AdWords link collection.
+	// NextLink: Next link for this Google Ads link collection.
 	NextLink string `json:"nextLink,omitempty"`
 
-	// PreviousLink: Previous link for this AdWords link collection.
+	// PreviousLink: Previous link for this Google Ads link collection.
 	PreviousLink string `json:"previousLink,omitempty"`
 
 	// StartIndex: The starting index of the entries, which is 1 by default
@@ -3737,8 +3726,8 @@ type LinkedForeignAccount struct {
 	// Kind: Resource type for linked foreign account.
 	Kind string `json:"kind,omitempty"`
 
-	// LinkedAccountId: The foreign account ID. For example the an AdWords
-	// `linkedAccountId` has the following format XXX-XXX-XXXX.
+	// LinkedAccountId: The foreign account ID. For example the an Google
+	// Ads `linkedAccountId` has the following format XXX-XXX-XXXX.
 	LinkedAccountId string `json:"linkedAccountId,omitempty"`
 
 	// RemarketingAudienceId: Remarketing audience ID to which this linked
@@ -17205,7 +17194,7 @@ func (c *ManagementUploadsUploadDataCall) doRequest(alt string) (*http.Response,
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId":          c.accountId,
 		"webPropertyId":      c.webPropertyId,
@@ -17340,7 +17329,7 @@ type ManagementWebPropertyAdWordsLinksDeleteCall struct {
 	header_                  http.Header
 }
 
-// Delete: Deletes a web property-AdWords link.
+// Delete: Deletes a web property-Google Ads link.
 func (r *ManagementWebPropertyAdWordsLinksService) Delete(accountId string, webPropertyId string, webPropertyAdWordsLinkId string) *ManagementWebPropertyAdWordsLinksDeleteCall {
 	c := &ManagementWebPropertyAdWordsLinksDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.accountId = accountId
@@ -17411,7 +17400,7 @@ func (c *ManagementWebPropertyAdWordsLinksDeleteCall) Do(opts ...googleapi.CallO
 	}
 	return nil
 	// {
-	//   "description": "Deletes a web property-AdWords link.",
+	//   "description": "Deletes a web property-Google Ads link.",
 	//   "httpMethod": "DELETE",
 	//   "id": "analytics.management.webPropertyAdWordsLinks.delete",
 	//   "parameterOrder": [
@@ -17427,13 +17416,13 @@ func (c *ManagementWebPropertyAdWordsLinksDeleteCall) Do(opts ...googleapi.CallO
 	//       "type": "string"
 	//     },
 	//     "webPropertyAdWordsLinkId": {
-	//       "description": "Web property AdWords link ID.",
+	//       "description": "Web property Google Ads link ID.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
 	//     },
 	//     "webPropertyId": {
-	//       "description": "Web property ID to delete the AdWords link for.",
+	//       "description": "Web property ID to delete the Google Ads link for.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
@@ -17460,7 +17449,7 @@ type ManagementWebPropertyAdWordsLinksGetCall struct {
 	header_                  http.Header
 }
 
-// Get: Returns a web property-AdWords link to which the user has
+// Get: Returns a web property-Google Ads link to which the user has
 // access.
 func (r *ManagementWebPropertyAdWordsLinksService) Get(accountId string, webPropertyId string, webPropertyAdWordsLinkId string) *ManagementWebPropertyAdWordsLinksGetCall {
 	c := &ManagementWebPropertyAdWordsLinksGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -17570,7 +17559,7 @@ func (c *ManagementWebPropertyAdWordsLinksGetCall) Do(opts ...googleapi.CallOpti
 	}
 	return ret, nil
 	// {
-	//   "description": "Returns a web property-AdWords link to which the user has access.",
+	//   "description": "Returns a web property-Google Ads link to which the user has access.",
 	//   "httpMethod": "GET",
 	//   "id": "analytics.management.webPropertyAdWordsLinks.get",
 	//   "parameterOrder": [
@@ -17586,13 +17575,13 @@ func (c *ManagementWebPropertyAdWordsLinksGetCall) Do(opts ...googleapi.CallOpti
 	//       "type": "string"
 	//     },
 	//     "webPropertyAdWordsLinkId": {
-	//       "description": "Web property-AdWords link ID.",
+	//       "description": "Web property-Google Ads link ID.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
 	//     },
 	//     "webPropertyId": {
-	//       "description": "Web property ID to retrieve the AdWords link for.",
+	//       "description": "Web property ID to retrieve the Google Ads link for.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
@@ -17622,7 +17611,7 @@ type ManagementWebPropertyAdWordsLinksInsertCall struct {
 	header_           http.Header
 }
 
-// Insert: Creates a webProperty-AdWords link.
+// Insert: Creates a webProperty-Google Ads link.
 func (r *ManagementWebPropertyAdWordsLinksService) Insert(accountId string, webPropertyId string, entityadwordslink *EntityAdWordsLink) *ManagementWebPropertyAdWordsLinksInsertCall {
 	c := &ManagementWebPropertyAdWordsLinksInsertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.accountId = accountId
@@ -17722,7 +17711,7 @@ func (c *ManagementWebPropertyAdWordsLinksInsertCall) Do(opts ...googleapi.CallO
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates a webProperty-AdWords link.",
+	//   "description": "Creates a webProperty-Google Ads link.",
 	//   "httpMethod": "POST",
 	//   "id": "analytics.management.webPropertyAdWordsLinks.insert",
 	//   "parameterOrder": [
@@ -17769,7 +17758,7 @@ type ManagementWebPropertyAdWordsLinksListCall struct {
 	header_       http.Header
 }
 
-// List: Lists webProperty-AdWords links for a given web property.
+// List: Lists webProperty-Google Ads links for a given web property.
 func (r *ManagementWebPropertyAdWordsLinksService) List(accountId string, webPropertyId string) *ManagementWebPropertyAdWordsLinksListCall {
 	c := &ManagementWebPropertyAdWordsLinksListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.accountId = accountId
@@ -17778,15 +17767,15 @@ func (r *ManagementWebPropertyAdWordsLinksService) List(accountId string, webPro
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
-// number of webProperty-AdWords links to include in this response.
+// number of webProperty-Google Ads links to include in this response.
 func (c *ManagementWebPropertyAdWordsLinksListCall) MaxResults(maxResults int64) *ManagementWebPropertyAdWordsLinksListCall {
 	c.urlParams_.Set("max-results", fmt.Sprint(maxResults))
 	return c
 }
 
 // StartIndex sets the optional parameter "start-index": An index of the
-// first webProperty-AdWords link to retrieve. Use this parameter as a
-// pagination mechanism along with the max-results parameter.
+// first webProperty-Google Ads link to retrieve. Use this parameter as
+// a pagination mechanism along with the max-results parameter.
 func (c *ManagementWebPropertyAdWordsLinksListCall) StartIndex(startIndex int64) *ManagementWebPropertyAdWordsLinksListCall {
 	c.urlParams_.Set("start-index", fmt.Sprint(startIndex))
 	return c
@@ -17891,7 +17880,7 @@ func (c *ManagementWebPropertyAdWordsLinksListCall) Do(opts ...googleapi.CallOpt
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists webProperty-AdWords links for a given web property.",
+	//   "description": "Lists webProperty-Google Ads links for a given web property.",
 	//   "httpMethod": "GET",
 	//   "id": "analytics.management.webPropertyAdWordsLinks.list",
 	//   "parameterOrder": [
@@ -17907,20 +17896,20 @@ func (c *ManagementWebPropertyAdWordsLinksListCall) Do(opts ...googleapi.CallOpt
 	//       "type": "string"
 	//     },
 	//     "max-results": {
-	//       "description": "The maximum number of webProperty-AdWords links to include in this response.",
+	//       "description": "The maximum number of webProperty-Google Ads links to include in this response.",
 	//       "format": "int32",
 	//       "location": "query",
 	//       "type": "integer"
 	//     },
 	//     "start-index": {
-	//       "description": "An index of the first webProperty-AdWords link to retrieve. Use this parameter as a pagination mechanism along with the max-results parameter.",
+	//       "description": "An index of the first webProperty-Google Ads link to retrieve. Use this parameter as a pagination mechanism along with the max-results parameter.",
 	//       "format": "int32",
 	//       "location": "query",
 	//       "minimum": "1",
 	//       "type": "integer"
 	//     },
 	//     "webPropertyId": {
-	//       "description": "Web property ID to retrieve the AdWords links for.",
+	//       "description": "Web property ID to retrieve the Google Ads links for.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
@@ -17951,7 +17940,7 @@ type ManagementWebPropertyAdWordsLinksPatchCall struct {
 	header_                  http.Header
 }
 
-// Patch: Updates an existing webProperty-AdWords link. This method
+// Patch: Updates an existing webProperty-Google Ads link. This method
 // supports patch semantics.
 func (r *ManagementWebPropertyAdWordsLinksService) Patch(accountId string, webPropertyId string, webPropertyAdWordsLinkId string, entityadwordslink *EntityAdWordsLink) *ManagementWebPropertyAdWordsLinksPatchCall {
 	c := &ManagementWebPropertyAdWordsLinksPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -18054,7 +18043,7 @@ func (c *ManagementWebPropertyAdWordsLinksPatchCall) Do(opts ...googleapi.CallOp
 	}
 	return ret, nil
 	// {
-	//   "description": "Updates an existing webProperty-AdWords link. This method supports patch semantics.",
+	//   "description": "Updates an existing webProperty-Google Ads link. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
 	//   "id": "analytics.management.webPropertyAdWordsLinks.patch",
 	//   "parameterOrder": [
@@ -18070,13 +18059,13 @@ func (c *ManagementWebPropertyAdWordsLinksPatchCall) Do(opts ...googleapi.CallOp
 	//       "type": "string"
 	//     },
 	//     "webPropertyAdWordsLinkId": {
-	//       "description": "Web property-AdWords link ID.",
+	//       "description": "Web property-Google Ads link ID.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
 	//     },
 	//     "webPropertyId": {
-	//       "description": "Web property ID to retrieve the AdWords link for.",
+	//       "description": "Web property ID to retrieve the Google Ads link for.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
@@ -18109,7 +18098,7 @@ type ManagementWebPropertyAdWordsLinksUpdateCall struct {
 	header_                  http.Header
 }
 
-// Update: Updates an existing webProperty-AdWords link.
+// Update: Updates an existing webProperty-Google Ads link.
 func (r *ManagementWebPropertyAdWordsLinksService) Update(accountId string, webPropertyId string, webPropertyAdWordsLinkId string, entityadwordslink *EntityAdWordsLink) *ManagementWebPropertyAdWordsLinksUpdateCall {
 	c := &ManagementWebPropertyAdWordsLinksUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.accountId = accountId
@@ -18211,7 +18200,7 @@ func (c *ManagementWebPropertyAdWordsLinksUpdateCall) Do(opts ...googleapi.CallO
 	}
 	return ret, nil
 	// {
-	//   "description": "Updates an existing webProperty-AdWords link.",
+	//   "description": "Updates an existing webProperty-Google Ads link.",
 	//   "httpMethod": "PUT",
 	//   "id": "analytics.management.webPropertyAdWordsLinks.update",
 	//   "parameterOrder": [
@@ -18227,13 +18216,13 @@ func (c *ManagementWebPropertyAdWordsLinksUpdateCall) Do(opts ...googleapi.CallO
 	//       "type": "string"
 	//     },
 	//     "webPropertyAdWordsLinkId": {
-	//       "description": "Web property-AdWords link ID.",
+	//       "description": "Web property-Google Ads link ID.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"
 	//     },
 	//     "webPropertyId": {
-	//       "description": "Web property ID to retrieve the AdWords link for.",
+	//       "description": "Web property ID to retrieve the Google Ads link for.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"

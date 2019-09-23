@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package cloudresourcemanager provides access to the Cloud Resource Manager API.
 //
-// See https://cloud.google.com/resource-manager
+// For product documentation, see: https://cloud.google.com/resource-manager
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/cloudresourcemanager/v1beta1"
 //   ...
-//   cloudresourcemanagerService, err := cloudresourcemanager.New(oauthHttpClient)
+//   ctx := context.Background()
+//   cloudresourcemanagerService, err := cloudresourcemanager.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   cloudresourcemanagerService, err := cloudresourcemanager.NewService(ctx, option.WithScopes(cloudresourcemanager.CloudPlatformReadOnlyScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   cloudresourcemanagerService, err := cloudresourcemanager.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   cloudresourcemanagerService, err := cloudresourcemanager.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package cloudresourcemanager // import "google.golang.org/api/cloudresourcemanager/v1beta1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -59,6 +87,33 @@ const (
 	CloudPlatformReadOnlyScope = "https://www.googleapis.com/auth/cloud-platform.read-only"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/cloud-platform.read-only",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -288,9 +343,8 @@ func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
 
 // Binding: Associates `members` with a `role`.
 type Binding struct {
-	// Condition: Unimplemented. The condition that is associated with this
-	// binding.
-	// NOTE: an unsatisfied condition will not allow user access via
+	// Condition: The condition that is associated with this binding.
+	// NOTE: An unsatisfied condition will not allow user access via
 	// current
 	// binding. Different bindings, including their conditions, are
 	// examined
@@ -324,7 +378,7 @@ type Binding struct {
 	//    For example, `admins@example.com`.
 	//
 	//
-	// * `domain:{domain}`: A Google Apps domain name that represents all
+	// * `domain:{domain}`: The G Suite domain (primary) that represents all
 	// the
 	//    users of that domain. For example, `google.com` or
 	// `example.com`.
@@ -949,15 +1003,16 @@ type Project struct {
 	//   "ACTIVE" - The normal and active state.
 	//   "DELETE_REQUESTED" - The project has been marked for deletion by
 	// the user
-	// (by invoking DeleteProject)
+	// (by invoking
+	// DeleteProject)
 	// or by the system (Google Cloud Platform).
 	// This can generally be reversed by invoking UndeleteProject.
 	//   "DELETE_IN_PROGRESS" - This lifecycle state is no longer used and
 	// is not returned by the API.
 	LifecycleState string `json:"lifecycleState,omitempty"`
 
-	// Name: The user-assigned display name of the Project.
-	// It must be 4 to 30 characters.
+	// Name: The optional user-assigned display name of the Project.
+	// When present it must be between 4 to 30 characters.
 	// Allowed characters are: lowercase and uppercase letters,
 	// numbers,
 	// hyphen, single-quote, double-quote, space, and exclamation
@@ -1359,7 +1414,7 @@ func (c *OrganizationsGetCall) Do(opts ...googleapi.CallOption) (*Organization, 
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The resource name of the Organization to fetch, e.g. \"organizations/1234\".",
+	//       "description": "The resource name of the Organization to fetch. This is the organization's\nrelative path in the API, formatted as \"organizations/[organizationId]\".\nFor example, \"organizations/1234\".",
 	//       "location": "path",
 	//       "pattern": "^organizations/[^/]+$",
 	//       "required": true,
@@ -1561,8 +1616,9 @@ func (r *OrganizationsService) List() *OrganizationsListCall {
 // |Filter|Description|
 // |------|-----------|
 // |owner.directorycu
-// stomerid:123456789|Organizations with `owner.directory_customer_id`
-// equal to `123456789`.|
+// stomerid:123456789|Organizations with
+// `owner.directory_customer_id` equal to
+// `123456789`.|
 // |domain:google.com|Organizations corresponding to the domain
 // `google.com`.|
 //
@@ -1691,7 +1747,7 @@ func (c *OrganizationsListCall) Do(opts ...googleapi.CallOption) (*ListOrganizat
 	//   "parameterOrder": [],
 	//   "parameters": {
 	//     "filter": {
-	//       "description": "An optional query string used to filter the Organizations to return in\nthe response. Filter rules are case-insensitive.\n\n\nOrganizations may be filtered by `owner.directoryCustomerId` or by\n`domain`, where the domain is a G Suite domain, for example:\n\n|Filter|Description|\n|------|-----------|\n|owner.directorycustomerid:123456789|Organizations with `owner.directory_customer_id` equal to `123456789`.|\n|domain:google.com|Organizations corresponding to the domain `google.com`.|\n\nThis field is optional.",
+	//       "description": "An optional query string used to filter the Organizations to return in\nthe response. Filter rules are case-insensitive.\n\n\nOrganizations may be filtered by `owner.directoryCustomerId` or by\n`domain`, where the domain is a G Suite domain, for example:\n\n|Filter|Description|\n|------|-----------|\n|owner.directorycustomerid:123456789|Organizations with\n`owner.directory_customer_id` equal to `123456789`.|\n|domain:google.com|Organizations corresponding to the domain `google.com`.|\n\nThis field is optional.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -2356,8 +2412,9 @@ type ProjectsDeleteCall struct {
 // However, you cannot update the project.
 //
 // After the deletion completes, the Project is not retrievable by
-// the  GetProject and
-// ListProjects methods.
+// the  GetProject
+// and ListProjects
+// methods.
 //
 // The caller must have modify permissions for this Project.
 func (r *ProjectsService) Delete(projectId string) *ProjectsDeleteCall {
@@ -2451,7 +2508,7 @@ func (c *ProjectsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 	}
 	return ret, nil
 	// {
-	//   "description": "Marks the Project identified by the specified\n`project_id` (for example, `my-project-123`) for deletion.\nThis method will only affect the Project if it has a lifecycle state of\nACTIVE.\n\nThis method changes the Project's lifecycle state from\nACTIVE\nto DELETE_REQUESTED.\nThe deletion starts at an unspecified time, at which point the project is\nno longer accessible.\n\nUntil the deletion completes, you can check the lifecycle state\nchecked by retrieving the Project with GetProject,\nand the Project remains visible to ListProjects.\nHowever, you cannot update the project.\n\nAfter the deletion completes, the Project is not retrievable by\nthe  GetProject and\nListProjects methods.\n\nThe caller must have modify permissions for this Project.",
+	//   "description": "Marks the Project identified by the specified\n`project_id` (for example, `my-project-123`) for deletion.\nThis method will only affect the Project if it has a lifecycle state of\nACTIVE.\n\nThis method changes the Project's lifecycle state from\nACTIVE\nto DELETE_REQUESTED.\nThe deletion starts at an unspecified time, at which point the project is\nno longer accessible.\n\nUntil the deletion completes, you can check the lifecycle state\nchecked by retrieving the Project with GetProject,\nand the Project remains visible to ListProjects.\nHowever, you cannot update the project.\n\nAfter the deletion completes, the Project is not retrievable by\nthe  GetProject\nand ListProjects\nmethods.\n\nThe caller must have modify permissions for this Project.",
 	//   "flatPath": "v1beta1/projects/{projectId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "cloudresourcemanager.projects.delete",
@@ -2923,17 +2980,31 @@ type ProjectsListCall struct {
 	header_      http.Header
 }
 
-// List: Lists Projects that are visible to the user and satisfy
-// the
-// specified filter. This method returns Projects in an unspecified
-// order.
+// List: Lists Projects that the caller has the
+// `resourcemanager.projects.get`
+// permission on and satisfy the specified filter.
+//
+// This method returns Projects in an unspecified order.
 // This method is eventually consistent with project mutations; this
 // means
 // that a newly created project may not appear in the results or
 // recent
 // updates to an existing project may not be reflected in the results.
 // To
-// retrieve the latest state of a project, use the GetProjectmethod.
+// retrieve the latest state of a project, use the
+// GetProject method.
+//
+// NOTE: If the request filter contains a `parent.type` and `parent.id`
+// and
+// the caller has the `resourcemanager.projects.list` permission on
+// the
+// parent, the results will be drawn from an alternate index which
+// provides
+// more consistent results. In future versions of this API, this List
+// method
+// will be split into List and Search to properly capture the
+// behavorial
+// difference.
 func (r *ProjectsService) List() *ProjectsListCall {
 	c := &ProjectsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	return c
@@ -2945,42 +3016,48 @@ func (r *ProjectsService) List() *ProjectsListCall {
 //
 // + `name`
 // + `id`
-// + <code>labels.<em>key</em></code> where *key* is the name of a
-// label
+// + `labels.<key>` (where *key* is the name of a label)
+// + `parent.type`
+// + `parent.id`
 //
-// Some examples of using labels as
-// filters:
+// Some examples of using labels as filters:
 //
-// |Filter|Description|
-// |------|-----------|
-// |name:how*|The project's name starts with "how".|
-// |name:Howl|The project's name is `Howl` or
-// `howl`.|
-// |name:HOWL|Equivalent to above.|
-// |NAME:howl|Equivalent to above.|
-// |labels.color:*|The project has the label
-// `color`.|
-// |labels.color:red|The project's label `color` has the value
-// `red`.|
-// |labels.color:red&nbsp;labels.size:big|The project's label `color`
-// has the value `red` and its label `size` has the value `big`.
+// | Filter           | Description
 //
-// If you specify a filter that has both `parent.type` and `parent.id`,
-// then
-// the `resourcemanager.projects.list` permission is checked on the
-// parent.
-// If the user has this permission, all projects under the parent will
-// be
-// returned after remaining filters have been applied. If the user lacks
-// this
-// permission, then all projects for which the user has
-// the
-// `resourcemanager.projects.get` permission will be returned after
-// remaining
-// filters have been applied. If no filter is specified, the call will
-// return
-// projects for which the user has `resourcemanager.projects.get`
-// permissions.
+// |
+// |------------------|------------------------------------------------
+// -----|
+// | name:how*        | The project's name starts with "how".
+//    |
+// | name:Howl        | The project's name is `Howl` or `howl`.
+//    |
+// | name:HOWL        | Equivalent to above.
+//    |
+// | NAME:howl        | Equivalent to above.
+//    |
+// | labels.color:*   | The project has the label `color`.
+//    |
+// | labels.color:red | The project's label `color` has the value `red`.
+//    |
+// | labels.color:red&nbsp;labels.size:big |The project's label `color`
+// has
+//   the value `red` and its label `size` has the value `big`.
+//    |
+//
+// If no filter is specified, the call will return projects for which
+// the user
+// has the `resourcemanager.projects.get` permission.
+//
+// NOTE: To perform a by-parent query (eg., what projects are directly
+// in a
+// Folder), the caller must have the
+// `resourcemanager.projects.list`
+// permission on the parent and the filter must contain both a
+// `parent.type`
+// and a `parent.id` restriction
+// (example: "parent.type:folder parent.id:123"). In this case an
+// alternate
+// search index is used which provides more consistent results.
 func (c *ProjectsListCall) Filter(filter string) *ProjectsListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -3098,14 +3175,14 @@ func (c *ProjectsListCall) Do(opts ...googleapi.CallOption) (*ListProjectsRespon
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists Projects that are visible to the user and satisfy the\nspecified filter. This method returns Projects in an unspecified order.\nThis method is eventually consistent with project mutations; this means\nthat a newly created project may not appear in the results or recent\nupdates to an existing project may not be reflected in the results. To\nretrieve the latest state of a project, use the GetProjectmethod.",
+	//   "description": "Lists Projects that the caller has the `resourcemanager.projects.get`\npermission on and satisfy the specified filter.\n\nThis method returns Projects in an unspecified order.\nThis method is eventually consistent with project mutations; this means\nthat a newly created project may not appear in the results or recent\nupdates to an existing project may not be reflected in the results. To\nretrieve the latest state of a project, use the\nGetProject method.\n\nNOTE: If the request filter contains a `parent.type` and `parent.id` and\nthe caller has the `resourcemanager.projects.list` permission on the\nparent, the results will be drawn from an alternate index which provides\nmore consistent results. In future versions of this API, this List method\nwill be split into List and Search to properly capture the behavorial\ndifference.",
 	//   "flatPath": "v1beta1/projects",
 	//   "httpMethod": "GET",
 	//   "id": "cloudresourcemanager.projects.list",
 	//   "parameterOrder": [],
 	//   "parameters": {
 	//     "filter": {
-	//       "description": "An expression for filtering the results of the request.  Filter rules are\ncase insensitive. The fields eligible for filtering are:\n\n+ `name`\n+ `id`\n+ \u003ccode\u003elabels.\u003cem\u003ekey\u003c/em\u003e\u003c/code\u003e where *key* is the name of a label\n\nSome examples of using labels as filters:\n\n|Filter|Description|\n|------|-----------|\n|name:how*|The project's name starts with \"how\".|\n|name:Howl|The project's name is `Howl` or `howl`.|\n|name:HOWL|Equivalent to above.|\n|NAME:howl|Equivalent to above.|\n|labels.color:*|The project has the label `color`.|\n|labels.color:red|The project's label `color` has the value `red`.|\n|labels.color:red\u0026nbsp;labels.size:big|The project's label `color` has the value `red` and its label `size` has the value `big`.\n\nIf you specify a filter that has both `parent.type` and `parent.id`, then\nthe `resourcemanager.projects.list` permission is checked on the parent.\nIf the user has this permission, all projects under the parent will be\nreturned after remaining filters have been applied. If the user lacks this\npermission, then all projects for which the user has the\n`resourcemanager.projects.get` permission will be returned after remaining\nfilters have been applied. If no filter is specified, the call will return\nprojects for which the user has `resourcemanager.projects.get` permissions.\n\nOptional.",
+	//       "description": "An expression for filtering the results of the request.  Filter rules are\ncase insensitive. The fields eligible for filtering are:\n\n+ `name`\n+ `id`\n+ `labels.\u003ckey\u003e` (where *key* is the name of a label)\n+ `parent.type`\n+ `parent.id`\n\nSome examples of using labels as filters:\n\n| Filter           | Description                                         |\n|------------------|-----------------------------------------------------|\n| name:how*        | The project's name starts with \"how\".               |\n| name:Howl        | The project's name is `Howl` or `howl`.             |\n| name:HOWL        | Equivalent to above.                                |\n| NAME:howl        | Equivalent to above.                                |\n| labels.color:*   | The project has the label `color`.                  |\n| labels.color:red | The project's label `color` has the value `red`.    |\n| labels.color:red\u0026nbsp;labels.size:big |The project's label `color` has\n  the value `red` and its label `size` has the value `big`.              |\n\nIf no filter is specified, the call will return projects for which the user\nhas the `resourcemanager.projects.get` permission.\n\nNOTE: To perform a by-parent query (eg., what projects are directly in a\nFolder), the caller must have the `resourcemanager.projects.list`\npermission on the parent and the filter must contain both a `parent.type`\nand a `parent.id` restriction\n(example: \"parent.type:folder parent.id:123\"). In this case an alternate\nsearch index is used which provides more consistent results.\n\nOptional.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },

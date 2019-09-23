@@ -95,11 +95,11 @@ func Modularize(g graph.Graph, resolution float64, src rand.Source) ReducedGraph
 
 // Multiplex is a multiplex graph.
 type Multiplex interface {
-	// Nodes returns the slice of nodes
+	// Nodes returns the nodes
 	// for the multiplex graph.
 	// All layers must refer to the same
 	// set of nodes.
-	Nodes() []graph.Node
+	Nodes() graph.Nodes
 
 	// Depth returns the number of layers
 	// in the multiplex graph.
@@ -257,9 +257,10 @@ type edge struct {
 	weight   float64
 }
 
-func (e edge) From() graph.Node { return e.from }
-func (e edge) To() graph.Node   { return e.to }
-func (e edge) Weight() float64  { return e.weight }
+func (e edge) From() graph.Node         { return e.from }
+func (e edge) To() graph.Node           { return e.to }
+func (e edge) ReversedEdge() graph.Edge { e.from, e.to = e.to, e.from; return e }
+func (e edge) Weight() float64          { return e.weight }
 
 // multiplexCommunity is a reduced multiplex graph node describing its membership.
 type multiplexCommunity struct {
@@ -280,9 +281,10 @@ type multiplexEdge struct {
 	weight   float64
 }
 
-func (e multiplexEdge) From() graph.Node { return e.from }
-func (e multiplexEdge) To() graph.Node   { return e.to }
-func (e multiplexEdge) Weight() float64  { return e.weight }
+func (e multiplexEdge) From() graph.Node         { return e.from }
+func (e multiplexEdge) To() graph.Node           { return e.to }
+func (e multiplexEdge) ReversedEdge() graph.Edge { e.from, e.to = e.to, e.from; return e }
+func (e multiplexEdge) Weight() float64          { return e.weight }
 
 // commIdx is an index of a node in a community held by a localMover.
 type commIdx struct {
@@ -309,7 +311,7 @@ type dense struct {
 
 // TakeMin mimics intsets.Sparse TakeMin for dense sets. If the dense
 // iterator position is less than the iterator size, TakeMin sets *p
-// to the the iterator position and increments the position and returns
+// to the iterator position and increments the position and returns
 // true.
 // Otherwise, it returns false and *p is undefined.
 func (d *dense) TakeMin(p *int) bool {
@@ -339,7 +341,7 @@ func newSlice(s set.Ints) *slice {
 
 // TakeMin mimics intsets.Sparse TakeMin for a sorted set. If the set
 // iterator position is less than the iterator size, TakeMin sets *p
-// to the the iterator position's element and increments the position
+// to the iterator position's element and increments the position
 // and returns true.
 // Otherwise, it returns false and *p is undefined.
 func (s *slice) TakeMin(p *int) bool {

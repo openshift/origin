@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,13 +8,39 @@
 //
 // This package is DEPRECATED. Use package cloud.google.com/go/pubsub instead.
 //
-// See https://cloud.google.com/pubsub/docs
+// For product documentation, see: https://cloud.google.com/pubsub/docs
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/pubsub/v1beta2"
 //   ...
-//   pubsubService, err := pubsub.New(oauthHttpClient)
+//   ctx := context.Background()
+//   pubsubService, err := pubsub.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   pubsubService, err := pubsub.NewService(ctx, option.WithScopes(pubsub.PubsubScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   pubsubService, err := pubsub.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   pubsubService, err := pubsub.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package pubsub // import "google.golang.org/api/pubsub/v1beta2"
 
 import (
@@ -31,6 +57,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -61,6 +89,33 @@ const (
 	PubsubScope = "https://www.googleapis.com/auth/pubsub"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/pubsub",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -162,9 +217,8 @@ func (s *AcknowledgeRequest) MarshalJSON() ([]byte, error) {
 
 // Binding: Associates `members` with a `role`.
 type Binding struct {
-	// Condition: Unimplemented. The condition that is associated with this
-	// binding.
-	// NOTE: an unsatisfied condition will not allow user access via
+	// Condition: The condition that is associated with this binding.
+	// NOTE: An unsatisfied condition will not allow user access via
 	// current
 	// binding. Different bindings, including their conditions, are
 	// examined
@@ -198,7 +252,7 @@ type Binding struct {
 	//    For example, `admins@example.com`.
 	//
 	//
-	// * `domain:{domain}`: A Google Apps domain name that represents all
+	// * `domain:{domain}`: The G Suite domain (primary) that represents all
 	// the
 	//    users of that domain. For example, `google.com` or
 	// `example.com`.
@@ -496,6 +550,59 @@ type ModifyPushConfigRequest struct {
 
 func (s *ModifyPushConfigRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyPushConfigRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// OidcToken: Contains information needed for generating an
+// [OpenID
+// Connect
+// token](https://developers.google.com/identity/protocols/OpenID
+// Connect).
+type OidcToken struct {
+	// Audience: Audience to be used when generating OIDC token. The
+	// audience claim
+	// identifies the recipients that the JWT is intended for. The
+	// audience
+	// value is a single case-sensitive string. Having multiple values
+	// (array)
+	// for the audience field is not supported. More info about the OIDC
+	// JWT
+	// token audience here:
+	// https://tools.ietf.org/html/rfc7519#section-4.1.3
+	// Note: if not specified, the Push endpoint URL will be used.
+	Audience string `json:"audience,omitempty"`
+
+	// ServiceAccountEmail: [Service
+	// account
+	// email](https://cloud.google.com/iam/docs/service-accounts)
+	// to be used for generating the OIDC token. The caller
+	// (for
+	// CreateSubscription, UpdateSubscription, and ModifyPushConfig RPCs)
+	// must
+	// have the iam.serviceAccounts.actAs permission for the service
+	// account.
+	ServiceAccountEmail string `json:"serviceAccountEmail,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Audience") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Audience") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *OidcToken) MarshalJSON() ([]byte, error) {
+	type NoMethod OidcToken
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -838,6 +945,11 @@ type PushConfig struct {
 	// * `v1` or `v1beta2`: uses the push format defined in the v1 Pub/Sub
 	// API.
 	Attributes map[string]string `json:"attributes,omitempty"`
+
+	// OidcToken: If specified, Pub/Sub will generate and attach an OIDC JWT
+	// token as an
+	// `Authorization` header in the HTTP request for every pushed message.
+	OidcToken *OidcToken `json:"oidcToken,omitempty"`
 
 	// PushEndpoint: A URL locating the endpoint to which messages should be
 	// pushed.

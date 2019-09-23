@@ -16,8 +16,6 @@ func TestListImage(t *testing.T) {
 
 	HandleImageListSuccessfully(t)
 
-	t.Logf("Test setup %+v\n", th.Server)
-
 	t.Logf("Id\tName\tOwner\tChecksum\tSizeBytes")
 
 	pager := images.List(fakeclient.ServiceClient(), images.ListOpts{Limit: 1})
@@ -256,6 +254,7 @@ func TestUpdateImage(t *testing.T) {
 	actualImage, err := images.Update(fakeclient.ServiceClient(), "da3b75d9-3f4a-40e7-8a2c-bfab23927dea", images.UpdateOpts{
 		images.ReplaceImageName{NewName: "Fedora 17"},
 		images.ReplaceImageTags{NewTags: []string{"fedora", "beefy"}},
+		images.ReplaceImageMinDisk{NewMinDisk: 21},
 	}).Extract()
 
 	th.AssertNoErr(t, err)
@@ -283,7 +282,7 @@ func TestUpdateImage(t *testing.T) {
 
 		Owner:            "",
 		MinRAMMegabytes:  0,
-		MinDiskGigabytes: 0,
+		MinDiskGigabytes: 21,
 
 		DiskFormat:      "",
 		ContainerFormat: "",

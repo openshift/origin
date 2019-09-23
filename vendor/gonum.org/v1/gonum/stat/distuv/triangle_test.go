@@ -20,9 +20,9 @@ func TestTriangleConstraint(t *testing.T) {
 	}()
 
 	// test b < a
-	NewTriangle(3, 1, 2)
+	NewTriangle(3, 1, 2, nil)
 	// test c > b
-	NewTriangle(1, 2, 3)
+	NewTriangle(1, 2, 3, nil)
 }
 
 func TestTriangle(t *testing.T) {
@@ -51,10 +51,11 @@ func TestTriangle(t *testing.T) {
 			c: 0.0,
 		},
 	} {
-		f := NewTriangle(test.a, test.b, test.c)
-		f.Src = src
-		tol := 1e-2
-		const n = 1e6
+		f := NewTriangle(test.a, test.b, test.c, src)
+		const (
+			tol = 1e-2
+			n   = 1e6
+		)
 		x := make([]float64, n)
 		generateSamples(x, f)
 		sort.Float64s(x)
@@ -98,5 +99,5 @@ func TestTriangleProb(t *testing.T) {
 			logProb: math.Inf(-1),
 		},
 	}
-	testDistributionProbs(t, NewTriangle(1, 3, 2), "Standard 1,2,3 Triangle", pts)
+	testDistributionProbs(t, NewTriangle(1, 3, 2, nil), "Standard 1,2,3 Triangle", pts)
 }

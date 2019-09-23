@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewHubsClientWithBaseURI(baseURI string, subscriptionID string) HubsClient 
 // hubName - the name of the Hub.
 // parameters - parameters supplied to the CreateOrUpdate Hub operation.
 func (client HubsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, hubName string, parameters Hub) (result Hub, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/HubsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: hubName,
 			Constraints: []validation.Constraint{{Target: "hubName", Name: validation.MaxLength, Rule: 64, Chain: nil},
@@ -116,8 +127,8 @@ func (client HubsClient) CreateOrUpdatePreparer(ctx context.Context, resourceGro
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client HubsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -138,6 +149,16 @@ func (client HubsClient) CreateOrUpdateResponder(resp *http.Response) (result Hu
 // resourceGroupName - the name of the resource group.
 // hubName - the name of the hub.
 func (client HubsClient) Delete(ctx context.Context, resourceGroupName string, hubName string) (result HubsDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/HubsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, hubName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customerinsights.HubsClient", "Delete", nil, "Failure preparing request")
@@ -177,13 +198,9 @@ func (client HubsClient) DeletePreparer(ctx context.Context, resourceGroupName s
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client HubsClient) DeleteSender(req *http.Request) (future HubsDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -208,6 +225,16 @@ func (client HubsClient) DeleteResponder(resp *http.Response) (result autorest.R
 // resourceGroupName - the name of the resource group.
 // hubName - the name of the hub.
 func (client HubsClient) Get(ctx context.Context, resourceGroupName string, hubName string) (result Hub, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/HubsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, hubName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customerinsights.HubsClient", "Get", nil, "Failure preparing request")
@@ -253,8 +280,8 @@ func (client HubsClient) GetPreparer(ctx context.Context, resourceGroupName stri
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client HubsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -272,6 +299,16 @@ func (client HubsClient) GetResponder(resp *http.Response) (result Hub, err erro
 
 // List gets all hubs in the specified subscription.
 func (client HubsClient) List(ctx context.Context) (result HubListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/HubsClient.List")
+		defer func() {
+			sc := -1
+			if result.hlr.Response.Response != nil {
+				sc = result.hlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -316,8 +353,8 @@ func (client HubsClient) ListPreparer(ctx context.Context) (*http.Request, error
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client HubsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -334,8 +371,8 @@ func (client HubsClient) ListResponder(resp *http.Response) (result HubListResul
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client HubsClient) listNextResults(lastResults HubListResult) (result HubListResult, err error) {
-	req, err := lastResults.hubListResultPreparer()
+func (client HubsClient) listNextResults(ctx context.Context, lastResults HubListResult) (result HubListResult, err error) {
+	req, err := lastResults.hubListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "customerinsights.HubsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -356,6 +393,16 @@ func (client HubsClient) listNextResults(lastResults HubListResult) (result HubL
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client HubsClient) ListComplete(ctx context.Context) (result HubListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/HubsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -364,6 +411,16 @@ func (client HubsClient) ListComplete(ctx context.Context) (result HubListResult
 // Parameters:
 // resourceGroupName - the name of the resource group.
 func (client HubsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result HubListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/HubsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.hlr.Response.Response != nil {
+				sc = result.hlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -409,8 +466,8 @@ func (client HubsClient) ListByResourceGroupPreparer(ctx context.Context, resour
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client HubsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -427,8 +484,8 @@ func (client HubsClient) ListByResourceGroupResponder(resp *http.Response) (resu
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client HubsClient) listByResourceGroupNextResults(lastResults HubListResult) (result HubListResult, err error) {
-	req, err := lastResults.hubListResultPreparer()
+func (client HubsClient) listByResourceGroupNextResults(ctx context.Context, lastResults HubListResult) (result HubListResult, err error) {
+	req, err := lastResults.hubListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "customerinsights.HubsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -449,6 +506,16 @@ func (client HubsClient) listByResourceGroupNextResults(lastResults HubListResul
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client HubsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result HubListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/HubsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
@@ -459,6 +526,16 @@ func (client HubsClient) ListByResourceGroupComplete(ctx context.Context, resour
 // hubName - the name of the Hub.
 // parameters - parameters supplied to the Update Hub operation.
 func (client HubsClient) Update(ctx context.Context, resourceGroupName string, hubName string, parameters Hub) (result Hub, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/HubsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, hubName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customerinsights.HubsClient", "Update", nil, "Failure preparing request")
@@ -506,8 +583,8 @@ func (client HubsClient) UpdatePreparer(ctx context.Context, resourceGroupName s
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client HubsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

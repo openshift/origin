@@ -53,3 +53,27 @@ func ScalIncTo(dst []complex64, incDst uintptr, alpha complex64, x []complex64, 
 		idst += incDst
 	}
 }
+
+// SscalUnitary is
+//  for i, v := range x {
+//  	x[i] = complex(real(v)*alpha, imag(v)*alpha)
+//  }
+func SscalUnitary(alpha float32, x []complex64) {
+	for i, v := range x {
+		x[i] = complex(real(v)*alpha, imag(v)*alpha)
+	}
+}
+
+// SscalInc is
+//  var ix uintptr
+//  for i := 0; i < int(n); i++ {
+//  	x[ix] = complex(real(x[ix])*alpha, imag(x[ix])*alpha)
+//  	ix += inc
+//  }
+func SscalInc(alpha float32, x []complex64, n, inc uintptr) {
+	var ix uintptr
+	for i := 0; i < int(n); i++ {
+		x[ix] = complex(real(x[ix])*alpha, imag(x[ix])*alpha)
+		ix += inc
+	}
+}

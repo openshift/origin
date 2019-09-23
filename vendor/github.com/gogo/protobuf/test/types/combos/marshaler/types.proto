@@ -73,15 +73,53 @@ message ProtoTypes {
   option (gogoproto.compare) = true;
   google.protobuf.Timestamp nullableTimestamp = 1;
   google.protobuf.Duration nullableDuration = 2;
-  google.protobuf.Timestamp timestamp = 3 [(gogoproto.nullable) = false];
-  google.protobuf.Duration duration = 4 [(gogoproto.nullable) = false];
+  google.protobuf.DoubleValue nullableDouble = 3;
+  google.protobuf.FloatValue nullableFloat = 4;
+  google.protobuf.Int64Value nullableInt64 = 5;
+  google.protobuf.UInt64Value nullableUInt64 = 6;
+  google.protobuf.Int32Value nullableInt32 = 7;
+  google.protobuf.UInt32Value nullableUInt32 = 8;
+  google.protobuf.BoolValue nullableBool = 9;
+  google.protobuf.StringValue nullableString = 10;
+  google.protobuf.BytesValue nullableBytes = 11;
+
+  google.protobuf.Timestamp timestamp = 12 [(gogoproto.nullable) = false];
+  google.protobuf.Duration duration = 13 [(gogoproto.nullable) = false];
+  google.protobuf.DoubleValue nonnullDouble = 14 [(gogoproto.nullable) = false];
+  google.protobuf.FloatValue nonnullFloat = 15 [(gogoproto.nullable) = false];
+  google.protobuf.Int64Value nonnullInt64 = 16 [(gogoproto.nullable) = false];
+  google.protobuf.UInt64Value nonnullUInt64 = 17 [(gogoproto.nullable) = false];
+  google.protobuf.Int32Value nonnullInt32 = 18 [(gogoproto.nullable) = false];
+  google.protobuf.UInt32Value nonnullUInt32 = 19 [(gogoproto.nullable) = false];
+  google.protobuf.BoolValue nonnullBool = 20 [(gogoproto.nullable) = false];
+  google.protobuf.StringValue nonnullString = 21 [(gogoproto.nullable) = false];
+  google.protobuf.BytesValue nonnullBytes = 22 [(gogoproto.nullable) = false];
 }
 
 message StdTypes {
   google.protobuf.Timestamp nullableTimestamp = 1 [(gogoproto.stdtime) = true];
   google.protobuf.Duration nullableDuration = 2 [(gogoproto.stdduration) = true];
-  google.protobuf.Timestamp timestamp = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
-  google.protobuf.Duration duration = 4 [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+  google.protobuf.DoubleValue nullableDouble = 3 [(gogoproto.wktpointer) = true];;
+  google.protobuf.FloatValue nullableFloat = 4 [(gogoproto.wktpointer) = true];;
+  google.protobuf.Int64Value nullableInt64 = 5 [(gogoproto.wktpointer) = true];;
+  google.protobuf.UInt64Value nullableUInt64 = 6 [(gogoproto.wktpointer) = true];;
+  google.protobuf.Int32Value nullableInt32 = 7 [(gogoproto.wktpointer) = true];;
+  google.protobuf.UInt32Value nullableUInt32 = 8 [(gogoproto.wktpointer) = true];;
+  google.protobuf.BoolValue nullableBool = 9 [(gogoproto.wktpointer) = true];;
+  google.protobuf.StringValue nullableString = 10 [(gogoproto.wktpointer) = true];;
+  google.protobuf.BytesValue nullableBytes = 11 [(gogoproto.wktpointer) = true];;
+
+  google.protobuf.Timestamp timestamp = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+  google.protobuf.Duration duration = 13 [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+  google.protobuf.DoubleValue nonnullDouble = 14 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+  google.protobuf.FloatValue nonnullFloat = 15 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+  google.protobuf.Int64Value nonnullInt64 = 16 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+  google.protobuf.UInt64Value nonnullUInt64 = 17 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+  google.protobuf.Int32Value nonnullInt32 = 18 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+  google.protobuf.UInt32Value nonnullUInt32 = 19 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+  google.protobuf.BoolValue nonnullBool = 20 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+  google.protobuf.StringValue nonnullString = 21 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+  google.protobuf.BytesValue nonnullBytes = 22 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
 }
 
 message RepProtoTypes {
@@ -90,6 +128,33 @@ message RepProtoTypes {
   repeated google.protobuf.Duration nullableDurations = 2;
   repeated google.protobuf.Timestamp timestamps = 3 [(gogoproto.nullable) = false];
   repeated google.protobuf.Duration durations = 4 [(gogoproto.nullable) = false];
+
+  repeated google.protobuf.DoubleValue nullableDouble = 5;
+  repeated google.protobuf.DoubleValue nonnullDouble = 6 [(gogoproto.nullable) = false];
+
+  repeated google.protobuf.FloatValue nullableFloat = 7;
+  repeated google.protobuf.FloatValue nonnullFloat = 8 [(gogoproto.nullable) = false];
+  
+  repeated google.protobuf.Int64Value nullableInt64 = 9;
+  repeated google.protobuf.Int64Value nonnullInt64 = 10 [(gogoproto.nullable) = false];
+
+  repeated google.protobuf.UInt64Value nullableUInt64 = 11;
+  repeated google.protobuf.UInt64Value nonnullUInt64 = 12 [(gogoproto.nullable) = false];
+
+  repeated google.protobuf.Int32Value nullableInt32 = 13;
+  repeated google.protobuf.Int32Value nonnullInt32 = 14 [(gogoproto.nullable) = false];
+
+  repeated google.protobuf.UInt32Value nullableUInt32 = 15;
+  repeated google.protobuf.UInt32Value nonnullUInt32 = 16 [(gogoproto.nullable) = false];
+
+  repeated google.protobuf.BoolValue nullableBool = 17;
+  repeated google.protobuf.BoolValue nonnullBool = 18 [(gogoproto.nullable) = false];
+
+  repeated google.protobuf.StringValue nullableString = 19;
+  repeated google.protobuf.StringValue nonnullString = 20 [(gogoproto.nullable) = false];
+
+  repeated google.protobuf.BytesValue nullableBytes = 21;
+  repeated google.protobuf.BytesValue nonnullBytes = 22 [(gogoproto.nullable) = false];
 }
 
 message RepStdTypes {
@@ -97,6 +162,33 @@ message RepStdTypes {
   repeated google.protobuf.Duration nullableDurations = 2 [(gogoproto.stdduration) = true];
   repeated google.protobuf.Timestamp timestamps = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
   repeated google.protobuf.Duration durations = 4 [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+
+  repeated google.protobuf.DoubleValue nullableDouble = 5 [(gogoproto.wktpointer) = true];
+  repeated google.protobuf.DoubleValue nonnullDouble = 6 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  repeated google.protobuf.FloatValue nullableFloat = 7 [(gogoproto.wktpointer) = true];
+  repeated google.protobuf.FloatValue nonnullFloat = 8 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  repeated google.protobuf.Int64Value nullableInt64 = 9 [(gogoproto.wktpointer) = true];
+  repeated google.protobuf.Int64Value nonnullInt64 = 10 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  repeated google.protobuf.UInt64Value nullableUInt64 = 11 [(gogoproto.wktpointer) = true];
+  repeated google.protobuf.UInt64Value nonnullUInt64 = 12 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  repeated google.protobuf.Int32Value nullableInt32 = 13 [(gogoproto.wktpointer) = true];
+  repeated google.protobuf.Int32Value nonnullInt32 = 14 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  repeated google.protobuf.UInt32Value nullableUInt32 = 15 [(gogoproto.wktpointer) = true];
+  repeated google.protobuf.UInt32Value nonnullUInt32 = 16 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  repeated google.protobuf.BoolValue nullableBool = 17 [(gogoproto.wktpointer) = true];
+  repeated google.protobuf.BoolValue nonnullBool = 18 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  repeated google.protobuf.StringValue nullableString = 19 [(gogoproto.wktpointer) = true];
+  repeated google.protobuf.StringValue nonnullString = 20 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  repeated google.protobuf.BytesValue nullableBytes = 21 [(gogoproto.wktpointer) = true];
+  repeated google.protobuf.BytesValue nonnullBytes = 22 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
 }
 
 message MapProtoTypes {
@@ -105,6 +197,33 @@ message MapProtoTypes {
 
   map<int32,google.protobuf.Duration> nullableDuration = 3;
   map<int32,google.protobuf.Duration> duration = 4 [(gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.DoubleValue> nullableDouble = 5;
+  map<int32, google.protobuf.DoubleValue> nonnullDouble = 6 [(gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.FloatValue> nullableFloat = 7;
+  map<int32, google.protobuf.FloatValue> nonnullFloat = 8 [(gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.Int64Value> nullableInt64 = 9;
+  map<int32, google.protobuf.Int64Value> nonnullInt64 = 10 [(gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.UInt64Value> nullableUInt64 = 11;
+  map<int32, google.protobuf.UInt64Value> nonnullUInt64 = 12 [(gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.Int32Value> nullableInt32 = 13;
+  map<int32, google.protobuf.Int32Value> nonnullInt32 = 14 [(gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.UInt32Value> nullableUInt32 = 15;
+  map<int32, google.protobuf.UInt32Value> nonnullUInt32 = 16 [(gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.BoolValue> nullableBool = 17;
+  map<int32, google.protobuf.BoolValue> nonnullBool = 18 [(gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.StringValue> nullableString = 19;
+  map<int32, google.protobuf.StringValue> nonnullString = 20 [(gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.BytesValue> nullableBytes = 21;
+  map<int32, google.protobuf.BytesValue> nonnullBytes = 22 [(gogoproto.nullable) = false];
 }
 
 message MapStdTypes {
@@ -113,12 +232,48 @@ message MapStdTypes {
 
   map<int32,google.protobuf.Duration> nullableDuration = 3 [(gogoproto.stdduration) = true];
   map<int32,google.protobuf.Duration> duration = 4 [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.DoubleValue> nullableDouble = 5 [(gogoproto.wktpointer) = true];
+  map<int32, google.protobuf.DoubleValue> nonnullDouble = 6 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.FloatValue> nullableFloat = 7 [(gogoproto.wktpointer) = true];
+  map<int32, google.protobuf.FloatValue> nonnullFloat = 8 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.Int64Value> nullableInt64 = 9 [(gogoproto.wktpointer) = true];
+  map<int32, google.protobuf.Int64Value> nonnullInt64 = 10 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.UInt64Value> nullableUInt64 = 11 [(gogoproto.wktpointer) = true];
+  map<int32, google.protobuf.UInt64Value> nonnullUInt64 = 12 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.Int32Value> nullableInt32 = 13 [(gogoproto.wktpointer) = true];
+  map<int32, google.protobuf.Int32Value> nonnullInt32 = 14 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.UInt32Value> nullableUInt32 = 15 [(gogoproto.wktpointer) = true];
+  map<int32, google.protobuf.UInt32Value> nonnullUInt32 = 16 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.BoolValue> nullableBool = 17 [(gogoproto.wktpointer) = true];
+  map<int32, google.protobuf.BoolValue> nonnullBool = 18 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.StringValue> nullableString = 19 [(gogoproto.wktpointer) = true];
+  map<int32, google.protobuf.StringValue> nonnullString = 20 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
+
+  map<int32, google.protobuf.BytesValue> nullableBytes = 21 [(gogoproto.wktpointer) = true];
+  map<int32, google.protobuf.BytesValue> nonnullBytes = 22 [(gogoproto.wktpointer) = true, (gogoproto.nullable) = false];
 }
 
 message OneofProtoTypes {
   oneof OneOfProtoTimes {
     google.protobuf.Timestamp timestamp = 1;
     google.protobuf.Duration duration = 2;
+    google.protobuf.DoubleValue repDouble = 3;
+    google.protobuf.FloatValue repFloat = 4;
+    google.protobuf.Int64Value repInt64 = 5;
+    google.protobuf.UInt64Value repUInt64 = 6;
+    google.protobuf.Int32Value repInt32 = 7;
+    google.protobuf.UInt32Value repUInt32 = 8;
+    google.protobuf.BoolValue repBool = 9;
+    google.protobuf.StringValue repString = 10;
+    google.protobuf.BytesValue repBytes = 11;
   }
 }
 
@@ -126,6 +281,15 @@ message OneofStdTypes {
   oneof OneOfStdTimes {
     google.protobuf.Timestamp timestamp = 1 [(gogoproto.stdtime) = true];
     google.protobuf.Duration duration = 2 [(gogoproto.stdduration) = true];
+    google.protobuf.DoubleValue repDouble = 3 [(gogoproto.wktpointer) = true];
+    google.protobuf.FloatValue repFloat = 4 [(gogoproto.wktpointer) = true];
+    google.protobuf.Int64Value repInt64 = 5 [(gogoproto.wktpointer) = true];
+    google.protobuf.UInt64Value repUInt64 = 6 [(gogoproto.wktpointer) = true];
+    google.protobuf.Int32Value repInt32 = 7 [(gogoproto.wktpointer) = true];
+    google.protobuf.UInt32Value repUInt32 = 8 [(gogoproto.wktpointer) = true];
+    google.protobuf.BoolValue repBool = 9 [(gogoproto.wktpointer) = true];
+    google.protobuf.StringValue repString = 10 [(gogoproto.wktpointer) = true];
+    google.protobuf.BytesValue repBytes = 11 [(gogoproto.wktpointer) = true];
   }
 }
 

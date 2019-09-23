@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	kubeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
-	apitest "k8s.io/kubernetes/pkg/kubelet/apis/cri/testing"
+	kubeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	apitest "k8s.io/cri-api/pkg/apis/testing"
 	"k8s.io/kubernetes/pkg/kubelet/util"
 	utilexec "k8s.io/utils/exec"
 )
@@ -208,8 +208,6 @@ func (f *RemoteRuntime) ExecSync(ctx context.Context, req *kubeapi.ExecSyncReque
 			return nil, err
 		}
 		exitCode = int32(exitError.ExitStatus())
-
-		return nil, err
 	}
 
 	return &kubeapi.ExecSyncResponse{

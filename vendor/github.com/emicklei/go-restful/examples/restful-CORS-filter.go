@@ -62,7 +62,7 @@ func main() {
 	// Add container filter to respond to OPTIONS
 	wsContainer.Filter(wsContainer.OPTIONSFilter)
 
-	log.Printf("start listening on localhost:8080")
+	log.Print("start listening on localhost:8080")
 	server := &http.Server{Addr: ":8080", Handler: wsContainer}
 	log.Fatal(server.ListenAndServe())
 }

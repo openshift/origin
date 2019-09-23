@@ -15,12 +15,11 @@ import (
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apiserveruser "k8s.io/apiserver/pkg/authentication/user"
+	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	rbacvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
-	g "github.com/onsi/ginkgo"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
@@ -33,6 +32,8 @@ import (
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+
+	g "github.com/onsi/ginkgo"
 )
 
 var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
@@ -174,7 +175,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if _, err := nonEscalatingEditClient.Core().Secrets(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
+			if _, err := nonEscalatingEditClient.CoreV1().Secrets(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
@@ -199,7 +200,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if _, err := escalatingEditClient.Core().Secrets(projectName).List(metav1.ListOptions{}); err != nil {
+			if _, err := escalatingEditClient.CoreV1().Secrets(projectName).List(metav1.ListOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})

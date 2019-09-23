@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// This repository is no longer maintained.
+// Development has moved to https://github.com/gonum/gonum.
+//
 // Package native is a pure-go implementation of the LAPACK API. The LAPACK API defines
 // a set of algorithms for advanced matrix operations.
 //

@@ -188,7 +188,7 @@
           ]
         },
         "repair": {
-          "description": "Recreates the required App Engine features for the specified App Engine application, for example a Cloud Storage bucket or App Engine service account. Use this method if you receive an error message about a missing feature, for example, Error retrieving the App Engine service account.",
+          "description": "Recreates the required App Engine features for the specified App Engine application, for example a Cloud Storage bucket or App Engine service account. Use this method if you receive an error message about a missing feature, for example, Error retrieving the App Engine service account. If you have deleted your App Engine service account, this will not be able to recreate it. Instead, you should attempt to use the IAM undelete API if possible at https://cloud.google.com/iam/reference/rest/v1/projects.serviceAccounts/undelete?apix_params=%7B\"name\"%3A\"projects%2F-%2FserviceAccounts%2Funique_id\"%2C\"resource\"%3A%7B%7D%7D . If the deletion was recent, the numeric ID can be found in the Cloud Console Activity Log.",
           "flatPath": "v1beta/apps/{appsId}:repair",
           "httpMethod": "POST",
           "id": "appengine.apps.repair",
@@ -1572,7 +1572,7 @@
       }
     }
   },
-  "revision": "20181120",
+  "revision": "20190531",
   "rootUrl": "https://appengine.googleapis.com/",
   "schemas": {
     "ApiConfigHandler": {
@@ -1803,7 +1803,7 @@
           "description": "Target scaling by CPU usage."
         },
         "customMetrics": {
-          "description": "Target scaling by user-provided metrics.",
+          "description": "Target scaling by user-provided metrics. Only applicable in the App Engine flexible environment.",
           "items": {
             "$ref": "CustomMetric"
           },
@@ -2771,7 +2771,7 @@
           "type": "string"
         },
         "sessionAffinity": {
-          "description": "Enable session affinity.",
+          "description": "Enable session affinity. Only applicable in the App Engine flexible environment.",
           "type": "boolean"
         },
         "subnetworkName": {
@@ -2847,7 +2847,7 @@
           "type": "object"
         },
         "name": {
-          "description": "The server-assigned name, which is only unique within the same service that originally returns it. If you use the default HTTP mapping, the name should have the format of operations/some/unique/name.",
+          "description": "The server-assigned name, which is only unique within the same service that originally returns it. If you use the default HTTP mapping, the name should be a resource name ending with operations/{unique_id}.",
           "type": "string"
         },
         "response": {
@@ -2857,39 +2857,6 @@
           },
           "description": "The normal response of the operation in case of success. If the original method returns no data on success, such as Delete, the response is google.protobuf.Empty. If the original method is standard Get/Create/Update, the response should be the resource. For other methods, the response should have the type XxxResponse, where Xxx is the original method name. For example, if the original method name is TakeSnapshot(), the inferred response type is TakeSnapshotResponse.",
           "type": "object"
-        }
-      },
-      "type": "object"
-    },
-    "OperationMetadata": {
-      "description": "Metadata for the given google.longrunning.Operation.",
-      "id": "OperationMetadata",
-      "properties": {
-        "endTime": {
-          "description": "Timestamp that this operation completed.@OutputOnly",
-          "format": "google-datetime",
-          "type": "string"
-        },
-        "insertTime": {
-          "description": "Timestamp that this operation was created.@OutputOnly",
-          "format": "google-datetime",
-          "type": "string"
-        },
-        "method": {
-          "description": "API method that initiated this operation. Example: google.appengine.v1beta4.Version.CreateVersion.@OutputOnly",
-          "type": "string"
-        },
-        "operationType": {
-          "description": "Type of this operation. Deprecated, use method field instead. Example: \"create_version\".@OutputOnly",
-          "type": "string"
-        },
-        "target": {
-          "description": "Name of the resource that this operation is acting on. Example: apps/myapp/modules/default.@OutputOnly",
-          "type": "string"
-        },
-        "user": {
-          "description": "User who requested this operation.@OutputOnly",
-          "type": "string"
         }
       },
       "type": "object"
@@ -3019,35 +2986,6 @@
             "type": "string"
           },
           "type": "array"
-        }
-      },
-      "type": "object"
-    },
-    "OperationMetadataV1Beta5": {
-      "description": "Metadata for the given google.longrunning.Operation.",
-      "id": "OperationMetadataV1Beta5",
-      "properties": {
-        "endTime": {
-          "description": "Timestamp that this operation completed.@OutputOnly",
-          "format": "google-datetime",
-          "type": "string"
-        },
-        "insertTime": {
-          "description": "Timestamp that this operation was created.@OutputOnly",
-          "format": "google-datetime",
-          "type": "string"
-        },
-        "method": {
-          "description": "API method name that initiated this operation. Example: google.appengine.v1beta5.Version.CreateVersion.@OutputOnly",
-          "type": "string"
-        },
-        "target": {
-          "description": "Name of the resource that this operation is acting on. Example: apps/myapp/services/default.@OutputOnly",
-          "type": "string"
-        },
-        "user": {
-          "description": "User who requested this operation.@OutputOnly",
-          "type": "string"
         }
       },
       "type": "object"
@@ -3297,7 +3235,7 @@
       "type": "object"
     },
     "Status": {
-      "description": "The Status type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by gRPC (https://github.com/grpc). The error model is designed to be:\nSimple to use and understand for most users\nFlexible enough to meet unexpected needsOverviewThe Status message contains three pieces of data: error code, error message, and error details. The error code should be an enum value of google.rpc.Code, but it may accept additional error codes if needed. The error message should be a developer-facing English message that helps developers understand and resolve the error. If a localized user-facing error message is needed, put the localized message in the error details or localize it in the client. The optional error details may contain arbitrary information about the error. There is a predefined set of error detail types in the package google.rpc that can be used for common error conditions.Language mappingThe Status message is the logical representation of the error model, but it is not necessarily the actual wire format. When the Status message is exposed in different client libraries and different wire protocols, it can be mapped differently. For example, it will likely be mapped to some exceptions in Java, but more likely mapped to some error codes in C.Other usesThe error model and the Status message can be used in a variety of environments, either with or without APIs, to provide a consistent developer experience across different environments.Example uses of this error model include:\nPartial errors. If a service needs to return partial errors to the client, it may embed the Status in the normal response to indicate the partial errors.\nWorkflow errors. A typical workflow has multiple steps. Each step may have a Status message for error reporting.\nBatch operations. If a client uses batch request and batch response, the Status message should be used directly inside batch response, one for each error sub-response.\nAsynchronous operations. If an API call embeds asynchronous operation results in its response, the status of those operations should be represented directly using the Status message.\nLogging. If some API errors are stored in logs, the message Status could be used directly after any stripping needed for security/privacy reasons.",
+      "description": "The Status type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by gRPC (https://github.com/grpc). Each Status message contains three pieces of data: error code, error message, and error details.You can find out more about this error model and how to work with it in the API Design Guide (https://cloud.google.com/apis/design/errors).",
       "id": "Status",
       "properties": {
         "code": {
@@ -3629,6 +3567,10 @@
           "description": "The channel of the runtime to use. Only available for some runtimes. Defaults to the default channel.",
           "type": "string"
         },
+        "runtimeMainExecutablePath": {
+          "description": "The path or name of the app's main executable.",
+          "type": "string"
+        },
         "servingStatus": {
           "description": "Current serving status of this version. Only the versions with a SERVING status create instances and can be billed.SERVING_STATUS_UNSPECIFIED is an invalid value. Defaults to SERVING.",
           "enum": [
@@ -3660,7 +3602,7 @@
           "description": "Enables VPC connectivity for standard apps."
         },
         "zones": {
-          "description": "The Google Compute Engine zones that are supported by this version in the App Engine flexible environment.",
+          "description": "The Google Compute Engine zones that are supported by this version in the App Engine flexible environment. Deprecated.",
           "items": {
             "type": "string"
           },

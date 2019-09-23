@@ -27,6 +27,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -58,6 +59,16 @@ func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 
 // ListOperations lists all of the available Microsoft.Features REST API operations.
 func (client BaseClient) ListOperations(ctx context.Context) (result OperationListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListOperations")
+		defer func() {
+			sc := -1
+			if result.olr.Response.Response != nil {
+				sc = result.olr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listOperationsNextResults
 	req, err := client.ListOperationsPreparer(ctx)
 	if err != nil {
@@ -98,8 +109,8 @@ func (client BaseClient) ListOperationsPreparer(ctx context.Context) (*http.Requ
 // ListOperationsSender sends the ListOperations request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ListOperationsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListOperationsResponder handles the response to the ListOperations request. The method always
@@ -116,8 +127,8 @@ func (client BaseClient) ListOperationsResponder(resp *http.Response) (result Op
 }
 
 // listOperationsNextResults retrieves the next set of results, if any.
-func (client BaseClient) listOperationsNextResults(lastResults OperationListResult) (result OperationListResult, err error) {
-	req, err := lastResults.operationListResultPreparer()
+func (client BaseClient) listOperationsNextResults(ctx context.Context, lastResults OperationListResult) (result OperationListResult, err error) {
+	req, err := lastResults.operationListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "features.BaseClient", "listOperationsNextResults", nil, "Failure preparing next results request")
 	}
@@ -138,6 +149,16 @@ func (client BaseClient) listOperationsNextResults(lastResults OperationListResu
 
 // ListOperationsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BaseClient) ListOperationsComplete(ctx context.Context) (result OperationListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListOperations")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListOperations(ctx)
 	return
 }

@@ -1197,3 +1197,51 @@ func testDeviceRemoveSizeAccounting(t *testing.T, useArbiter bool) {
 		return nil
 	})
 }
+
+func TestDbEntryLoadUnmarshalError(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app for a db
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	// precreate a dummy cluster
+	c := NewClusterEntry()
+	c.Info.Id = idgen.GenUUID()
+	c.Info.Block = true
+	c.Info.File = true
+	app.db.Update(func(tx *bolt.Tx) error {
+		err := c.Save(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		return nil
+	})
+
+	// works in the normal case
+	app.db.View(func(tx *bolt.Tx) error {
+		err := EntryLoad(tx, c, c.Info.Id)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		return nil
+	})
+
+	// mess up the value
+	app.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(c.BucketName()))
+		tests.Assert(t, b != nil, "expected b != nil")
+		err := b.Put([]byte(c.Info.Id), []byte("bob"))
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		return nil
+	})
+
+	// fails with a "malformed" value
+	app.db.View(func(tx *bolt.Tx) error {
+		err := EntryLoad(tx, c, c.Info.Id)
+		tests.Assert(t, err != nil, "expected err != nil, got:", err)
+		// assert that the error indicates the bucket and key that failed
+		tests.Assert(t, strings.Contains(err.Error(), c.BucketName()),
+			"expected", c.BucketName(), "in", err)
+		tests.Assert(t, strings.Contains(err.Error(), c.Info.Id),
+			"expected", c.Info.Id, "in", err)
+		return nil
+	})
+}

@@ -258,6 +258,7 @@ func HandleLoadbalancerCreationSuccessfully(t *testing.T, response string) {
 		th.TestJSONRequest(t, r, `{
 			"loadbalancer": {
 				"name": "db_lb",
+				"vip_port_id": "2bf413c8-41a9-4477-b505-333d5cbe8b55",
 				"vip_subnet_id": "9cedb85d-0759-4898-8a4b-fa5a5ea10086",
 				"vip_address": "10.30.176.48",
 				"flavor": "medium",
