@@ -65,13 +65,6 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	if namespace == "" {
 		return nil, apierrors.NewBadRequest("no namespace on request")
 	}
-
-	if createValidation != nil {
-		if err := createValidation(ctx, obj.DeepCopyObject()); err != nil {
-			return nil, err
-		}
-	}
-
 	resourceInfo, nonResourceInfo, incomplete, err := r.ruleResolver.RulesFor(user, namespace)
 
 	ret := &authorizationapi.SelfSubjectRulesReview{

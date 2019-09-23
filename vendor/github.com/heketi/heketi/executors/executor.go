@@ -27,7 +27,6 @@ type Executor interface {
 	VolumeExpand(host string, volume *VolumeRequest) (*Volume, error)
 	VolumeReplaceBrick(host string, volume string, oldBrick *BrickInfo, newBrick *BrickInfo) error
 	VolumeInfo(host string, volume string) (*Volume, error)
-	VolumesInfo(host string) (*VolInfo, error)
 	VolumeClone(host string, vsr *VolumeCloneRequest) (*Volume, error)
 	VolumeSnapshot(host string, vsr *VolumeSnapshotRequest) (*Snapshot, error)
 	SnapshotCloneVolume(host string, scr *SnapshotCloneRequest) (*Volume, error)
@@ -37,11 +36,6 @@ type Executor interface {
 	SetLogLevel(level string)
 	BlockVolumeCreate(host string, blockVolume *BlockVolumeRequest) (*BlockVolumeInfo, error)
 	BlockVolumeDestroy(host string, blockHostingVolumeName string, blockVolumeName string) error
-	PVS(host string) (*PVSCommandOutput, error)
-	VGS(host string) (*VGSCommandOutput, error)
-	LVS(host string) (*LVSCommandOutput, error)
-	GetBrickMountStatus(host string) (*BricksMountStatus, error)
-	ListBlockVolumes(host string, blockhostingvolume string) ([]string, error)
 }
 
 // Enumerate durability types
@@ -52,62 +46,6 @@ const (
 	DurabilityReplica
 	DurabilityDispersion
 )
-
-type PVSCommandOutput struct {
-	PVSReport []struct {
-		PVS []struct {
-			PVName string `json:"pv_name"`
-			VGName string `json:"vg_name"`
-			PVFmt  string `json:"pv_fmt"`
-			PVAttr string `json:"pv_attr"`
-			PVSize string `json:"pv_size"`
-			PVFree string `json:"pv_free"`
-		} `json:"pv"`
-	} `json:"report"`
-}
-
-type VGSCommandOutput struct {
-	VGSReport []struct {
-		VGS []struct {
-			VGName    string `json:"vg_name"`
-			PVCount   string `json:"pv_count:"`
-			LVCount   string `json:"lv_count"`
-			SnapCount string `json:"snap_count"`
-			VGAttr    string `json:"vg_attr"`
-			VGSize    string `json:"vg_size"`
-			VGFree    string `json:"vg_free"`
-		} `json:"vg"`
-	} `json:"report"`
-}
-type LVSCommandOutput struct {
-	LVSReport []struct {
-		LVS []struct {
-			LVName          string `json:"lv_name"`
-			VGName          string `json:"vg_name"`
-			LVAttr          string `json:"lv_attr"`
-			LVSize          string `json:"lv_size"`
-			PoolLV          string `json:"pool_lv"`
-			Origin          string `json:"origin"`
-			DataPercent     string `json:"data_percent"`
-			MetaDataPercent string `json:"metadata_percent"`
-			MovePV          string `json:"move_pv"`
-			MirrorLog       string `json:"mirror_log"`
-			CopyPercent     string `json:"copy_percent"`
-			ConvertLV       string `json:"convert_lv"`
-		} `json:"lv"`
-	} `json:"report"`
-}
-type BrickMountStatus struct {
-	Device       string
-	MountPoint   string
-	Type         string
-	MountOptions string
-	Mounted      bool
-}
-
-type BricksMountStatus struct {
-	Statuses []BrickMountStatus
-}
 
 // Returns the size of the device
 type DeviceInfo struct {

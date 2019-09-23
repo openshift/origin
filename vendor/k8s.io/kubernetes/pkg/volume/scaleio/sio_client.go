@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -30,8 +31,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/util/mount"
 
-	sio "github.com/thecodeteam/goscaleio"
-	siotypes "github.com/thecodeteam/goscaleio/types/v1"
+	sio "github.com/codedellemc/goscaleio"
+	siotypes "github.com/codedellemc/goscaleio/types/v1"
 	"k8s.io/klog"
 )
 
@@ -534,5 +535,5 @@ func (c *sioClient) getSdcPath() string {
 }
 
 func (c *sioClient) getSdcCmd() string {
-	return filepath.Join(c.getSdcPath(), "drv_cfg")
+	return path.Join(c.getSdcPath(), "drv_cfg")
 }

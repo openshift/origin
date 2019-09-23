@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog"
 	utiltrace "k8s.io/utils/trace"
 )
 
@@ -78,6 +77,14 @@ func storeElementKey(obj interface{}) (string, error) {
 	return elem.Key, nil
 }
 
+// watchCacheElement is a single "watch event" stored in a cache.
+// It contains the resource version of the object and the object
+// itself.
+type watchCacheElement struct {
+	resourceVersion uint64
+	watchCacheEvent *watchCacheEvent
+}
+
 // watchCache implements a Store interface.
 // However, it depends on the elements implementing runtime.Object interface.
 //
@@ -104,7 +111,7 @@ type watchCache struct {
 	// by endIndex (if cache is full it will be startIndex + capacity).
 	// Both startIndex and endIndex can be greater than buffer capacity -
 	// you should always apply modulo capacity to get an index in cache array.
-	cache      []*watchCacheEvent
+	cache      []watchCacheElement
 	startIndex int
 	endIndex   int
 
@@ -125,7 +132,7 @@ type watchCache struct {
 
 	// This handler is run at the end of every Add/Update/Delete method
 	// and additionally gets the previous value of the object.
-	eventHandler func(*watchCacheEvent)
+	onEvent func(*watchCacheEvent)
 
 	// for testing timeouts.
 	clock clock.Clock
@@ -137,20 +144,18 @@ type watchCache struct {
 func newWatchCache(
 	capacity int,
 	keyFunc func(runtime.Object) (string, error),
-	eventHandler func(*watchCacheEvent),
 	getAttrsFunc func(runtime.Object) (labels.Set, fields.Set, error),
 	versioner storage.Versioner) *watchCache {
 	wc := &watchCache{
 		capacity:            capacity,
 		keyFunc:             keyFunc,
 		getAttrsFunc:        getAttrsFunc,
-		cache:               make([]*watchCacheEvent, capacity),
+		cache:               make([]watchCacheElement, capacity),
 		startIndex:          0,
 		endIndex:            0,
 		store:               cache.NewStore(storeElementKey),
 		resourceVersion:     0,
 		listResourceVersion: 0,
-		eventHandler:        eventHandler,
 		clock:               clock.RealClock{},
 		versioner:           versioner,
 	}
@@ -206,8 +211,6 @@ func (w *watchCache) objectToVersionedRuntimeObject(obj interface{}) (runtime.Ob
 	return object, resourceVersion, nil
 }
 
-// processEvent is safe as long as there is at most one call to it in flight
-// at any point in time.
 func (w *watchCache) processEvent(event watch.Event, resourceVersion uint64, updateFunc func(*storeElement) error) error {
 	key, err := w.keyFunc(event.Object)
 	if err != nil {
@@ -228,50 +231,39 @@ func (w *watchCache) processEvent(event watch.Event, resourceVersion uint64, upd
 		ResourceVersion: resourceVersion,
 	}
 
-	if err := func() error {
-		// TODO: We should consider moving this lock below after the watchCacheEvent
-		// is created. In such situation, the only problematic scenario is Replace(
-		// happening after getting object from store and before acquiring a lock.
-		// Maybe introduce another lock for this purpose.
-		w.Lock()
-		defer w.Unlock()
-
-		previous, exists, err := w.store.Get(elem)
-		if err != nil {
-			return err
-		}
-		if exists {
-			previousElem := previous.(*storeElement)
-			watchCacheEvent.PrevObject = previousElem.Object
-			watchCacheEvent.PrevObjLabels = previousElem.Labels
-			watchCacheEvent.PrevObjFields = previousElem.Fields
-		}
-
-		w.updateCache(watchCacheEvent)
-		w.resourceVersion = resourceVersion
-		defer w.cond.Broadcast()
-
-		return updateFunc(elem)
-	}(); err != nil {
+	// TODO: We should consider moving this lock below after the watchCacheEvent
+	// is created. In such situation, the only problematic scenario is Replace(
+	// happening after getting object from store and before acquiring a lock.
+	// Maybe introduce another lock for this purpose.
+	w.Lock()
+	defer w.Unlock()
+	previous, exists, err := w.store.Get(elem)
+	if err != nil {
 		return err
 	}
-
-	// Avoid calling event handler under lock.
-	// This is safe as long as there is at most one call to processEvent in flight
-	// at any point in time.
-	if w.eventHandler != nil {
-		w.eventHandler(watchCacheEvent)
+	if exists {
+		previousElem := previous.(*storeElement)
+		watchCacheEvent.PrevObject = previousElem.Object
+		watchCacheEvent.PrevObjLabels = previousElem.Labels
+		watchCacheEvent.PrevObjFields = previousElem.Fields
 	}
-	return nil
+
+	if w.onEvent != nil {
+		w.onEvent(watchCacheEvent)
+	}
+	w.updateCache(resourceVersion, watchCacheEvent)
+	w.resourceVersion = resourceVersion
+	w.cond.Broadcast()
+	return updateFunc(elem)
 }
 
 // Assumes that lock is already held for write.
-func (w *watchCache) updateCache(event *watchCacheEvent) {
+func (w *watchCache) updateCache(resourceVersion uint64, event *watchCacheEvent) {
 	if w.endIndex == w.startIndex+w.capacity {
 		// Cache is full - remove the oldest element.
 		w.startIndex++
 	}
-	w.cache[w.endIndex%w.capacity] = event
+	w.cache[w.endIndex%w.capacity] = watchCacheElement{resourceVersion, event}
 	w.endIndex++
 }
 
@@ -402,7 +394,6 @@ func (w *watchCache) Replace(objs []interface{}, resourceVersion string) error {
 		w.onReplace()
 	}
 	w.cond.Broadcast()
-	klog.V(3).Infof("Replace watchCache (rev: %v) ", resourceVersion)
 	return nil
 }
 
@@ -412,6 +403,12 @@ func (w *watchCache) SetOnReplace(onReplace func()) {
 	w.onReplace = onReplace
 }
 
+func (w *watchCache) SetOnEvent(onEvent func(*watchCacheEvent)) {
+	w.Lock()
+	defer w.Unlock()
+	w.onEvent = onEvent
+}
+
 func (w *watchCache) GetAllEventsSinceThreadUnsafe(resourceVersion uint64) ([]*watchCacheEvent, error) {
 	size := w.endIndex - w.startIndex
 	var oldest uint64
@@ -419,7 +416,7 @@ func (w *watchCache) GetAllEventsSinceThreadUnsafe(resourceVersion uint64) ([]*w
 	case size >= w.capacity:
 		// Once the watch event buffer is full, the oldest watch event we can deliver
 		// is the first one in the buffer.
-		oldest = w.cache[w.startIndex%w.capacity].ResourceVersion
+		oldest = w.cache[w.startIndex%w.capacity].resourceVersion
 	case w.listResourceVersion > 0:
 		// If the watch event buffer isn't full, the oldest watch event we can deliver
 		// is one greater than the resource version of the last full list.
@@ -429,7 +426,7 @@ func (w *watchCache) GetAllEventsSinceThreadUnsafe(resourceVersion uint64) ([]*w
 		// in the buffer.
 		// This should only happen in unit tests that populate the buffer without
 		// performing list/replace operations.
-		oldest = w.cache[w.startIndex%w.capacity].ResourceVersion
+		oldest = w.cache[w.startIndex%w.capacity].resourceVersion
 	default:
 		return nil, fmt.Errorf("watch cache isn't correctly initialized")
 	}
@@ -469,12 +466,12 @@ func (w *watchCache) GetAllEventsSinceThreadUnsafe(resourceVersion uint64) ([]*w
 
 	// Binary search the smallest index at which resourceVersion is greater than the given one.
 	f := func(i int) bool {
-		return w.cache[(w.startIndex+i)%w.capacity].ResourceVersion > resourceVersion
+		return w.cache[(w.startIndex+i)%w.capacity].resourceVersion > resourceVersion
 	}
 	first := sort.Search(size, f)
 	result := make([]*watchCacheEvent, size-first)
 	for i := 0; i < size-first; i++ {
-		result[i] = w.cache[(w.startIndex+first+i)%w.capacity]
+		result[i] = w.cache[(w.startIndex+first+i)%w.capacity].watchCacheEvent
 	}
 	return result, nil
 }

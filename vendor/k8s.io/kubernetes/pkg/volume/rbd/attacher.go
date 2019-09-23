@@ -71,12 +71,8 @@ func (plugin *rbdPlugin) GetDeviceMountRefs(deviceMountPath string) ([]string, e
 	return mounter.GetMountRefs(deviceMountPath)
 }
 
-func (plugin *rbdPlugin) CanAttach(spec *volume.Spec) (bool, error) {
-	return true, nil
-}
-
-func (plugin *rbdPlugin) CanDeviceMount(spec *volume.Spec) (bool, error) {
-	return true, nil
+func (plugin *rbdPlugin) CanAttach(spec *volume.Spec) bool {
+	return true
 }
 
 // rbdAttacher implements volume.Attacher interface.

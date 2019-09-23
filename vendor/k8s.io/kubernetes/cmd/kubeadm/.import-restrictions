@@ -43,8 +43,7 @@
 				"k8s.io/utils/integer",
 				"k8s.io/utils/path",
 				"k8s.io/utils/pointer",
-				"k8s.io/utils/net",
-				"k8s.io/utils/trace"
+				"k8s.io/utils/net"
 			]
 		},
 		{
@@ -58,38 +57,42 @@
 				"k8s.io/kubernetes/pkg/apis/rbac",
 				"k8s.io/kubernetes/pkg/apis/scheduling",
 				"k8s.io/kubernetes/pkg/api/v1/pod",
-				"k8s.io/kubernetes/pkg/api/v1/service",
 				"k8s.io/kubernetes/pkg/capabilities",
 				"k8s.io/kubernetes/pkg/controller",
 				"k8s.io/kubernetes/pkg/features",
 				"k8s.io/kubernetes/pkg/fieldpath",
+				"k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes",
 				"k8s.io/kubernetes/pkg/kubelet/apis",
 				"k8s.io/kubernetes/pkg/kubelet/qos",
 				"k8s.io/kubernetes/pkg/kubelet/types",
 				"k8s.io/kubernetes/pkg/master/ports",
 				"k8s.io/kubernetes/pkg/proxy/apis/config",
-				"k8s.io/kubernetes/pkg/proxy",
 				"k8s.io/kubernetes/pkg/registry/core/service/allocator",
 				"k8s.io/kubernetes/pkg/registry/core/service/ipallocator",
 				"k8s.io/kubernetes/pkg/security/apparmor",
 				"k8s.io/kubernetes/pkg/serviceaccount",
-				"k8s.io/kubernetes/pkg/util/async",
-				"k8s.io/kubernetes/pkg/util/conntrack",
-				"k8s.io/kubernetes/pkg/util/dbus",
 				"k8s.io/kubernetes/pkg/util/hash",
-				"k8s.io/kubernetes/pkg/util/iptables",
+				"k8s.io/kubernetes/pkg/util/initsystem",
+				"k8s.io/kubernetes/pkg/util/ipvs",
 				"k8s.io/kubernetes/pkg/util/metrics",
+				"k8s.io/kubernetes/pkg/util/node",
+				"k8s.io/kubernetes/pkg/util/normalizer",
 				"k8s.io/kubernetes/pkg/util/parsers",
-				"k8s.io/kubernetes/pkg/util/sysctl",
-				"k8s.io/kubernetes/pkg/util/taints"
+				"k8s.io/kubernetes/pkg/util/procfs",
+				"k8s.io/kubernetes/pkg/util/taints",
+				"k8s.io/kubernetes/pkg/util/ipvs",
+				"k8s.io/kubernetes/pkg/version"
 			],
 			"ForbiddenPrefixes": [
 				"k8s.io/kubernetes/pkg/cloudprovider/providers",
 				"k8s.io/kubernetes/pkg/cloudprovider/providers/aws",
 				"k8s.io/kubernetes/pkg/cloudprovider/providers/azure",
+				"k8s.io/kubernetes/pkg/cloudprovider/providers/cloudstack",
 				"k8s.io/kubernetes/pkg/cloudprovider/providers/fake",
 				"k8s.io/kubernetes/pkg/cloudprovider/providers/gce",
 				"k8s.io/kubernetes/pkg/cloudprovider/providers/openstack",
+				"k8s.io/kubernetes/pkg/cloudprovider/providers/ovirt",
+				"k8s.io/kubernetes/pkg/cloudprovider/providers/photon",
 				"k8s.io/kubernetes/pkg/cloudprovider/providers/vsphere",
 				"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 			]
@@ -99,7 +102,6 @@
 			"AllowedPrefixes": [
 				"github.com/beorn7/perks/quantile",
 				"github.com/blang/semver",
-				"github.com/coredns/corefile-migration/migration",
 				"github.com/coreos/etcd/auth/authpb",
 				"github.com/coreos/etcd/clientv3",
 				"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes",
@@ -108,8 +110,16 @@
 				"github.com/coreos/etcd/pkg/tlsutil",
 				"github.com/coreos/etcd/pkg/transport",
 				"github.com/davecgh/go-spew/spew",
+				"github.com/docker/distribution/digestset",
 				"github.com/docker/distribution/reference",
-				"github.com/godbus/dbus",
+				"github.com/docker/docker/api",
+				"github.com/docker/docker/client",
+				"github.com/docker/docker/pkg/term",
+				"github.com/docker/go-connections/nat",
+				"github.com/docker/go-connections/sockets",
+				"github.com/docker/go-connections/tlsconfig",
+				"github.com/docker/go-units",
+				"github.com/docker/libnetwork/ipvs",
 				"github.com/gogo/protobuf/proto",
 				"github.com/gogo/protobuf/sortkeys",
 				"github.com/golang/groupcache/lru",
@@ -126,7 +136,7 @@
 				"github.com/json-iterator/go",
 				"github.com/MakeNowJust/heredoc",
 				"github.com/matttproud/golang_protobuf_extensions/pbutil",
-				"github.com/caddyserver/caddy/caddyfile",
+				"github.com/mholt/caddy/caddyfile",
 				"github.com/modern-go/concurrent",
 				"github.com/modern-go/reflect2",
 				"github.com/opencontainers/go-digest",
@@ -146,8 +156,7 @@
 				"github.com/russross/blackfriday",
 				"github.com/shurcooL/sanitized_anchor_name",
 				"github.com/spf13/cobra",
-				"github.com/spf13/pflag",
-				"github.com/vishvananda/netlink"
+				"github.com/spf13/pflag"
 			]
 		},
 		{
@@ -174,7 +183,13 @@
 				"golang.org/x/text/unicode/bidi",
 				"golang.org/x/text/unicode/norm",
 				"golang.org/x/text/width",
-				"golang.org/x/time/rate",
+				"golang.org/x/time/rate"
+			]
+		},
+		{
+			"SelectorRegexp": "google[.]golang[.]org",
+			"AllowedPrefixes": [
+				"google.golang.org/genproto/googleapis/rpc/status",
 				"google.golang.org/grpc"
 			]
 		},

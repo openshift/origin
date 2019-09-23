@@ -203,19 +203,3 @@ func TestIsDuration_Caveats(t *testing.T) {
 	assert.False(t, e)
 
 }
-
-func TestDeepCopyDuration(t *testing.T) {
-	dur := Duration(42)
-	in := &dur
-
-	out := new(Duration)
-	in.DeepCopyInto(out)
-	assert.Equal(t, in, out)
-
-	out2 := in.DeepCopy()
-	assert.Equal(t, in, out2)
-
-	var inNil *Duration
-	out3 := inNil.DeepCopy()
-	assert.Nil(t, out3)
-}

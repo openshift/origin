@@ -2,7 +2,6 @@ package testing
 
 import (
 	"testing"
-	"time"
 
 	"github.com/gophercloud/gophercloud/openstack/keymanager/v1/secrets"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -57,7 +56,6 @@ func TestCreateSecret(t *testing.T) {
 	defer th.TeardownHTTP()
 	HandleCreateSecretSuccessfully(t)
 
-	expiration := time.Date(2028, 6, 21, 2, 49, 48, 0, time.UTC)
 	createOpts := secrets.CreateOpts{
 		Algorithm:          "aes",
 		BitLength:          256,
@@ -66,7 +64,6 @@ func TestCreateSecret(t *testing.T) {
 		Payload:            "foobar",
 		PayloadContentType: "text/plain",
 		SecretType:         secrets.OpaqueSecret,
-		Expiration:         &expiration,
 	}
 
 	actual, err := secrets.Create(client.ServiceClient(), createOpts).Extract()

@@ -18,18 +18,13 @@ package storsimple
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/storsimple1200series/mgmt/2016-10-01/storsimple"
 
 // AlertEmailNotificationStatus enumerates the values for alert email notification status.
 type AlertEmailNotificationStatus string
@@ -666,11 +661,11 @@ type AccessControlRecord struct {
 	autorest.Response `json:"-"`
 	// AccessControlRecordProperties - Properties of AccessControlRecord
 	*AccessControlRecordProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -679,6 +674,15 @@ func (acr AccessControlRecord) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if acr.AccessControlRecordProperties != nil {
 		objectMap["properties"] = acr.AccessControlRecordProperties
+	}
+	if acr.ID != nil {
+		objectMap["id"] = acr.ID
+	}
+	if acr.Name != nil {
+		objectMap["name"] = acr.Name
+	}
+	if acr.Type != nil {
+		objectMap["type"] = acr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -757,7 +761,7 @@ type AccessControlRecordsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AccessControlRecordsCreateOrUpdateFuture) Result(client AccessControlRecordsClient) (acr AccessControlRecord, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -776,8 +780,8 @@ func (future *AccessControlRecordsCreateOrUpdateFuture) Result(client AccessCont
 	return
 }
 
-// AccessControlRecordsDeleteFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// AccessControlRecordsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type AccessControlRecordsDeleteFuture struct {
 	azure.Future
 }
@@ -786,7 +790,7 @@ type AccessControlRecordsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AccessControlRecordsDeleteFuture) Result(client AccessControlRecordsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -803,11 +807,11 @@ func (future *AccessControlRecordsDeleteFuture) Result(client AccessControlRecor
 type Alert struct {
 	// AlertProperties - Properties of alert
 	*AlertProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -816,6 +820,15 @@ func (a Alert) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if a.AlertProperties != nil {
 		objectMap["properties"] = a.AlertProperties
+	}
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -871,13 +884,13 @@ func (a *Alert) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// AlertErrorDetails error details for the alert
+// AlertErrorDetails errordetails for the alert
 type AlertErrorDetails struct {
 	// ErrorCode - Error code.
 	ErrorCode *string `json:"errorCode,omitempty"`
 	// ErrorMessage - Error Message
 	ErrorMessage *string `json:"errorMessage,omitempty"`
-	// Occurences - Number of occurrences.
+	// Occurences - Number of occurences.
 	Occurences *int32 `json:"occurences,omitempty"`
 }
 
@@ -910,37 +923,20 @@ type AlertListIterator struct {
 	page AlertListPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AlertListIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AlertListIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AlertListIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AlertListIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -962,11 +958,6 @@ func (iter AlertListIterator) Value() Alert {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AlertListIterator type.
-func NewAlertListIterator(page AlertListPage) AlertListIterator {
-	return AlertListIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (al AlertList) IsEmpty() bool {
 	return al.Value == nil || len(*al.Value) == 0
@@ -974,11 +965,11 @@ func (al AlertList) IsEmpty() bool {
 
 // alertListPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (al AlertList) alertListPreparer(ctx context.Context) (*http.Request, error) {
+func (al AlertList) alertListPreparer() (*http.Request, error) {
 	if al.NextLink == nil || len(to.String(al.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(al.NextLink)))
@@ -986,36 +977,19 @@ func (al AlertList) alertListPreparer(ctx context.Context) (*http.Request, error
 
 // AlertListPage contains a page of Alert values.
 type AlertListPage struct {
-	fn func(context.Context, AlertList) (AlertList, error)
+	fn func(AlertList) (AlertList, error)
 	al AlertList
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AlertListPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AlertListPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.al)
+func (page *AlertListPage) Next() error {
+	next, err := page.fn(page.al)
 	if err != nil {
 		return err
 	}
 	page.al = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AlertListPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1034,11 +1008,6 @@ func (page AlertListPage) Values() []Alert {
 		return nil
 	}
 	return *page.al.Value
-}
-
-// Creates a new instance of the AlertListPage type.
-func NewAlertListPage(getNextPage func(context.Context, AlertList) (AlertList, error)) AlertListPage {
-	return AlertListPage{fn: getNextPage}
 }
 
 // AlertProperties properties of alert
@@ -1126,11 +1095,11 @@ type AlertSettings struct {
 	autorest.Response `json:"-"`
 	// AlertSettingsProperties - Properties of AlertSettings
 	*AlertSettingsProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1139,6 +1108,15 @@ func (as AlertSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if as.AlertSettingsProperties != nil {
 		objectMap["properties"] = as.AlertSettingsProperties
+	}
+	if as.ID != nil {
+		objectMap["id"] = as.ID
+	}
+	if as.Name != nil {
+		objectMap["name"] = as.Name
+	}
+	if as.Type != nil {
+		objectMap["type"] = as.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1194,7 +1172,7 @@ func (as *AlertSettings) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// AlertSettingsProperties class containing the properties of AlertSettings
+// AlertSettingsProperties class containing the properties of Alertsettings
 type AlertSettingsProperties struct {
 	// EmailNotification - Value indicating whether user/admins will receive emails when an alert condition occurs on the system. Possible values include: 'Enabled', 'Disabled'
 	EmailNotification AlertEmailNotificationStatus `json:"emailNotification,omitempty"`
@@ -1202,7 +1180,7 @@ type AlertSettingsProperties struct {
 	NotificationToServiceOwners ServiceOwnersAlertNotificationStatus `json:"notificationToServiceOwners,omitempty"`
 	// AlertNotificationCulture - Culture setting to be used while building alert emails. For eg: "en-US"
 	AlertNotificationCulture *string `json:"alertNotificationCulture,omitempty"`
-	// AdditionalRecipientEmailList - List of email addresses (apart from admin/co-admin of subscription) to whom the alert emails need to be sent
+	// AdditionalRecipientEmailList - List of email addresses (apart from admin/coadmin of subscription) to whom the alert emails need to be sent
 	AdditionalRecipientEmailList *[]string `json:"additionalRecipientEmailList,omitempty"`
 }
 
@@ -1216,10 +1194,10 @@ type AlertSource struct {
 	AlertSourceType AlertSourceType `json:"alertSourceType,omitempty"`
 }
 
-// AsymmetricEncryptedSecret this class can be used as the Type for any secret entity represented as
-// Password, CertThumbprint, Algorithm. This class is intended to be used when the secret is encrypted with
-// an asymmetric key pair. The encryptionAlgorithm field is mainly for future usage to potentially allow
-// different entities encrypted using different algorithms.
+// AsymmetricEncryptedSecret this class can be used as the Type for any secret entity represented as Password,
+// CertThumbprint, Algorithm. This class is intended to be used when the secret is encrypted with an asymmetric key
+// pair. The encryptionAlgorithm field is mainly for future usage to potentially allow different entities encrypted
+// using different algorithms.
 type AsymmetricEncryptedSecret struct {
 	// Value - The value of the secret itself. If the secret is in plaintext then EncryptionAlgorithm will be none and EncryptionCertThumbprint will be null.
 	Value *string `json:"value,omitempty"`
@@ -1248,12 +1226,11 @@ type AvailableProviderOperation struct {
 	Properties interface{} `json:"properties,omitempty"`
 }
 
-// AvailableProviderOperationDisplay contains the localized display information for this particular
-// operation / action.
+// AvailableProviderOperationDisplay contains the localized display information for this particular operation /
+// action.
 // These value will be used by several clients for
 // (1) custom role definitions for RBAC;
-// (2) complex query filters for the event service; and (3) audit history / records for management
-// operations.
+// (2) complex query filters for the event service; and (3) audit history / records for management operations.
 type AvailableProviderOperationDisplay struct {
 	// Provider - Gets or sets Provider
 	// The localized friendly form of the resource provider name – it is expected to also include the publisher/company responsible.
@@ -1273,8 +1250,7 @@ type AvailableProviderOperationDisplay struct {
 	Description *string `json:"description,omitempty"`
 }
 
-// AvailableProviderOperations class for set of operations used for discovery of available provider
-// operations.
+// AvailableProviderOperations class for set of operations used for discovery of available provider operations.
 type AvailableProviderOperations struct {
 	autorest.Response `json:"-"`
 	// Value - The value.
@@ -1283,44 +1259,26 @@ type AvailableProviderOperations struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// AvailableProviderOperationsIterator provides access to a complete listing of AvailableProviderOperation
-// values.
+// AvailableProviderOperationsIterator provides access to a complete listing of AvailableProviderOperation values.
 type AvailableProviderOperationsIterator struct {
 	i    int
 	page AvailableProviderOperationsPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AvailableProviderOperationsIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AvailableProviderOperationsIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AvailableProviderOperationsIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AvailableProviderOperationsIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1342,11 +1300,6 @@ func (iter AvailableProviderOperationsIterator) Value() AvailableProviderOperati
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AvailableProviderOperationsIterator type.
-func NewAvailableProviderOperationsIterator(page AvailableProviderOperationsPage) AvailableProviderOperationsIterator {
-	return AvailableProviderOperationsIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (apo AvailableProviderOperations) IsEmpty() bool {
 	return apo.Value == nil || len(*apo.Value) == 0
@@ -1354,11 +1307,11 @@ func (apo AvailableProviderOperations) IsEmpty() bool {
 
 // availableProviderOperationsPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (apo AvailableProviderOperations) availableProviderOperationsPreparer(ctx context.Context) (*http.Request, error) {
+func (apo AvailableProviderOperations) availableProviderOperationsPreparer() (*http.Request, error) {
 	if apo.NextLink == nil || len(to.String(apo.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(apo.NextLink)))
@@ -1366,36 +1319,19 @@ func (apo AvailableProviderOperations) availableProviderOperationsPreparer(ctx c
 
 // AvailableProviderOperationsPage contains a page of AvailableProviderOperation values.
 type AvailableProviderOperationsPage struct {
-	fn  func(context.Context, AvailableProviderOperations) (AvailableProviderOperations, error)
+	fn  func(AvailableProviderOperations) (AvailableProviderOperations, error)
 	apo AvailableProviderOperations
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AvailableProviderOperationsPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AvailableProviderOperationsPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.apo)
+func (page *AvailableProviderOperationsPage) Next() error {
+	next, err := page.fn(page.apo)
 	if err != nil {
 		return err
 	}
 	page.apo = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AvailableProviderOperationsPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1416,20 +1352,15 @@ func (page AvailableProviderOperationsPage) Values() []AvailableProviderOperatio
 	return *page.apo.Value
 }
 
-// Creates a new instance of the AvailableProviderOperationsPage type.
-func NewAvailableProviderOperationsPage(getNextPage func(context.Context, AvailableProviderOperations) (AvailableProviderOperations, error)) AvailableProviderOperationsPage {
-	return AvailableProviderOperationsPage{fn: getNextPage}
-}
-
 // Backup the backup.
 type Backup struct {
 	// BackupProperties - Properties of backup
 	*BackupProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1438,6 +1369,15 @@ func (b Backup) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if b.BackupProperties != nil {
 		objectMap["properties"] = b.BackupProperties
+	}
+	if b.ID != nil {
+		objectMap["id"] = b.ID
+	}
+	if b.Name != nil {
+		objectMap["name"] = b.Name
+	}
+	if b.Type != nil {
+		objectMap["type"] = b.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1497,11 +1437,11 @@ func (b *Backup) UnmarshalJSON(body []byte) error {
 type BackupElement struct {
 	// BackupElementProperties - The Properties of backup element
 	*BackupElementProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1510,6 +1450,15 @@ func (be BackupElement) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if be.BackupElementProperties != nil {
 		objectMap["properties"] = be.BackupElementProperties
+	}
+	if be.ID != nil {
+		objectMap["id"] = be.ID
+	}
+	if be.Name != nil {
+		objectMap["name"] = be.Name
+	}
+	if be.Type != nil {
+		objectMap["type"] = be.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1598,37 +1547,20 @@ type BackupListIterator struct {
 	page BackupListPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *BackupListIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BackupListIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *BackupListIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *BackupListIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1650,11 +1582,6 @@ func (iter BackupListIterator) Value() Backup {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the BackupListIterator type.
-func NewBackupListIterator(page BackupListPage) BackupListIterator {
-	return BackupListIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (bl BackupList) IsEmpty() bool {
 	return bl.Value == nil || len(*bl.Value) == 0
@@ -1662,11 +1589,11 @@ func (bl BackupList) IsEmpty() bool {
 
 // backupListPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (bl BackupList) backupListPreparer(ctx context.Context) (*http.Request, error) {
+func (bl BackupList) backupListPreparer() (*http.Request, error) {
 	if bl.NextLink == nil || len(to.String(bl.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(bl.NextLink)))
@@ -1674,36 +1601,19 @@ func (bl BackupList) backupListPreparer(ctx context.Context) (*http.Request, err
 
 // BackupListPage contains a page of Backup values.
 type BackupListPage struct {
-	fn func(context.Context, BackupList) (BackupList, error)
+	fn func(BackupList) (BackupList, error)
 	bl BackupList
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *BackupListPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BackupListPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.bl)
+func (page *BackupListPage) Next() error {
+	next, err := page.fn(page.bl)
 	if err != nil {
 		return err
 	}
 	page.bl = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *BackupListPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1722,11 +1632,6 @@ func (page BackupListPage) Values() []Backup {
 		return nil
 	}
 	return *page.bl.Value
-}
-
-// Creates a new instance of the BackupListPage type.
-func NewBackupListPage(getNextPage func(context.Context, BackupList) (BackupList, error)) BackupListPage {
-	return BackupListPage{fn: getNextPage}
 }
 
 // BackupProperties class represents Backup properties
@@ -1754,11 +1659,11 @@ type BackupScheduleGroup struct {
 	autorest.Response `json:"-"`
 	// BackupScheduleGroupProperties - Properties of BackupScheduleGroup
 	*BackupScheduleGroupProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1767,6 +1672,15 @@ func (bsg BackupScheduleGroup) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if bsg.BackupScheduleGroupProperties != nil {
 		objectMap["properties"] = bsg.BackupScheduleGroupProperties
+	}
+	if bsg.ID != nil {
+		objectMap["id"] = bsg.ID
+	}
+	if bsg.Name != nil {
+		objectMap["name"] = bsg.Name
+	}
+	if bsg.Type != nil {
+		objectMap["type"] = bsg.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1845,7 +1759,7 @@ type BackupScheduleGroupsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupScheduleGroupsCreateOrUpdateFuture) Result(client BackupScheduleGroupsClient) (bsg BackupScheduleGroup, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupScheduleGroupsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1864,8 +1778,8 @@ func (future *BackupScheduleGroupsCreateOrUpdateFuture) Result(client BackupSche
 	return
 }
 
-// BackupScheduleGroupsDeleteFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// BackupScheduleGroupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type BackupScheduleGroupsDeleteFuture struct {
 	azure.Future
 }
@@ -1874,7 +1788,7 @@ type BackupScheduleGroupsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupScheduleGroupsDeleteFuture) Result(client BackupScheduleGroupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupScheduleGroupsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1896,7 +1810,7 @@ type BackupsCloneFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupsCloneFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupsCloneFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1909,8 +1823,7 @@ func (future *BackupsCloneFuture) Result(client BackupsClient) (ar autorest.Resp
 	return
 }
 
-// BackupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// BackupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type BackupsDeleteFuture struct {
 	azure.Future
 }
@@ -1919,7 +1832,7 @@ type BackupsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupsDeleteFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1934,11 +1847,11 @@ func (future *BackupsDeleteFuture) Result(client BackupsClient) (ar autorest.Res
 
 // BaseModel base class for models
 type BaseModel struct {
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1948,16 +1861,16 @@ type ChapProperties struct {
 	Password *AsymmetricEncryptedSecret `json:"password,omitempty"`
 }
 
-// ChapSettings challenge-Handshake Authentication Protocol (CHAP) setting
+// ChapSettings challenge-Handshake Authentical Protocol (CHAP) setting
 type ChapSettings struct {
 	autorest.Response `json:"-"`
 	// ChapProperties - Chap properties
 	*ChapProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1966,6 +1879,15 @@ func (cs ChapSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if cs.ChapProperties != nil {
 		objectMap["properties"] = cs.ChapProperties
+	}
+	if cs.ID != nil {
+		objectMap["id"] = cs.ID
+	}
+	if cs.Name != nil {
+		objectMap["name"] = cs.Name
+	}
+	if cs.Type != nil {
+		objectMap["type"] = cs.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2021,8 +1943,8 @@ func (cs *ChapSettings) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ChapSettingsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// ChapSettingsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type ChapSettingsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -2031,7 +1953,7 @@ type ChapSettingsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ChapSettingsCreateOrUpdateFuture) Result(client ChapSettingsClient) (cs ChapSettings, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.ChapSettingsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2050,8 +1972,7 @@ func (future *ChapSettingsCreateOrUpdateFuture) Result(client ChapSettingsClient
 	return
 }
 
-// ChapSettingsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ChapSettingsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ChapSettingsDeleteFuture struct {
 	azure.Future
 }
@@ -2060,7 +1981,7 @@ type ChapSettingsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ChapSettingsDeleteFuture) Result(client ChapSettingsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.ChapSettingsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2131,7 +2052,7 @@ func (cr *CloneRequest) UnmarshalJSON(body []byte) error {
 type CloneRequestProperties struct {
 	// TargetDeviceID - DeviceId of the device which will act as the Clone target
 	TargetDeviceID *string `json:"targetDeviceId,omitempty"`
-	// TargetAccessPointID - Access point Id on which clone job will performed.
+	// TargetAccessPointID - Accesspoint Id on which clone job will performed.
 	TargetAccessPointID *string `json:"targetAccessPointId,omitempty"`
 	// NewEndpointName - Name of new endpoint which will created as part of clone job.
 	NewEndpointName *string `json:"newEndpointName,omitempty"`
@@ -2146,11 +2067,11 @@ type Device struct {
 	autorest.Response `json:"-"`
 	// DeviceProperties - Collection of properties for the device
 	*DeviceProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2159,6 +2080,15 @@ func (d Device) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if d.DeviceProperties != nil {
 		objectMap["properties"] = d.DeviceProperties
+	}
+	if d.ID != nil {
+		objectMap["id"] = d.ID
+	}
+	if d.Name != nil {
+		objectMap["name"] = d.Name
+	}
+	if d.Type != nil {
+		objectMap["type"] = d.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2245,8 +2175,8 @@ type DeviceList struct {
 	Value *[]Device `json:"value,omitempty"`
 }
 
-// DevicePatch class that represents the Input for the PATCH call on Device. Currently the only patchable
-// property on device is "DeviceDescription"
+// DevicePatch class that represents the Input for the PATCH call on Device. Currently the only patchable property
+// on device is "DeviceDescription"
 type DevicePatch struct {
 	// DeviceDescription - Short description given for the device
 	DeviceDescription *string `json:"deviceDescription,omitempty"`
@@ -2292,7 +2222,7 @@ type DevicesCreateOrUpdateAlertSettingsFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesCreateOrUpdateAlertSettingsFuture) Result(client DevicesClient) (as AlertSettings, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesCreateOrUpdateAlertSettingsFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2311,8 +2241,8 @@ func (future *DevicesCreateOrUpdateAlertSettingsFuture) Result(client DevicesCli
 	return
 }
 
-// DevicesCreateOrUpdateSecuritySettingsFuture an abstraction for monitoring and retrieving the results of
-// a long-running operation.
+// DevicesCreateOrUpdateSecuritySettingsFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type DevicesCreateOrUpdateSecuritySettingsFuture struct {
 	azure.Future
 }
@@ -2321,7 +2251,7 @@ type DevicesCreateOrUpdateSecuritySettingsFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesCreateOrUpdateSecuritySettingsFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesCreateOrUpdateSecuritySettingsFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2334,8 +2264,7 @@ func (future *DevicesCreateOrUpdateSecuritySettingsFuture) Result(client Devices
 	return
 }
 
-// DevicesDeactivateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DevicesDeactivateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesDeactivateFuture struct {
 	azure.Future
 }
@@ -2344,7 +2273,7 @@ type DevicesDeactivateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesDeactivateFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesDeactivateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2357,8 +2286,7 @@ func (future *DevicesDeactivateFuture) Result(client DevicesClient) (ar autorest
 	return
 }
 
-// DevicesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DevicesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesDeleteFuture struct {
 	azure.Future
 }
@@ -2367,7 +2295,7 @@ type DevicesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesDeleteFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2390,7 +2318,7 @@ type DevicesDownloadUpdatesFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesDownloadUpdatesFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesDownloadUpdatesFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2403,8 +2331,7 @@ func (future *DevicesDownloadUpdatesFuture) Result(client DevicesClient) (ar aut
 	return
 }
 
-// DevicesFailoverFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DevicesFailoverFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesFailoverFuture struct {
 	azure.Future
 }
@@ -2413,7 +2340,7 @@ type DevicesFailoverFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesFailoverFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesFailoverFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2436,7 +2363,7 @@ type DevicesInstallUpdatesFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesInstallUpdatesFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesInstallUpdatesFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2458,7 +2385,7 @@ type DevicesPatchFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesPatchFuture) Result(client DevicesClient) (d Device, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesPatchFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2487,7 +2414,7 @@ type DevicesScanForUpdatesFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesScanForUpdatesFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesScanForUpdatesFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2505,11 +2432,11 @@ type EncryptionSettings struct {
 	autorest.Response `json:"-"`
 	// EncryptionSettingsProperties - Properties of the EncryptionSettings.
 	*EncryptionSettingsProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2518,6 +2445,15 @@ func (es EncryptionSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if es.EncryptionSettingsProperties != nil {
 		objectMap["properties"] = es.EncryptionSettingsProperties
+	}
+	if es.ID != nil {
+		objectMap["id"] = es.ID
+	}
+	if es.Name != nil {
+		objectMap["name"] = es.Name
+	}
+	if es.Type != nil {
+		objectMap["type"] = es.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2601,11 +2537,11 @@ type FileServer struct {
 	autorest.Response `json:"-"`
 	// FileServerProperties - The properties.
 	*FileServerProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2614,6 +2550,15 @@ func (fs FileServer) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if fs.FileServerProperties != nil {
 		objectMap["properties"] = fs.FileServerProperties
+	}
+	if fs.ID != nil {
+		objectMap["id"] = fs.ID
+	}
+	if fs.Name != nil {
+		objectMap["name"] = fs.Name
+	}
+	if fs.Type != nil {
+		objectMap["type"] = fs.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2688,8 +2633,7 @@ type FileServerProperties struct {
 	Description *string `json:"description,omitempty"`
 }
 
-// FileServersBackupNowFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// FileServersBackupNowFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type FileServersBackupNowFuture struct {
 	azure.Future
 }
@@ -2698,7 +2642,7 @@ type FileServersBackupNowFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FileServersBackupNowFuture) Result(client FileServersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.FileServersBackupNowFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2711,8 +2655,8 @@ func (future *FileServersBackupNowFuture) Result(client FileServersClient) (ar a
 	return
 }
 
-// FileServersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// FileServersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type FileServersCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -2721,7 +2665,7 @@ type FileServersCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FileServersCreateOrUpdateFuture) Result(client FileServersClient) (fs FileServer, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.FileServersCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2740,8 +2684,7 @@ func (future *FileServersCreateOrUpdateFuture) Result(client FileServersClient) 
 	return
 }
 
-// FileServersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// FileServersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type FileServersDeleteFuture struct {
 	azure.Future
 }
@@ -2750,7 +2693,7 @@ type FileServersDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FileServersDeleteFuture) Result(client FileServersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.FileServersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2768,11 +2711,11 @@ type FileShare struct {
 	autorest.Response `json:"-"`
 	// FileShareProperties - The properties.
 	*FileShareProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2781,6 +2724,15 @@ func (fs FileShare) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if fs.FileShareProperties != nil {
 		objectMap["properties"] = fs.FileShareProperties
+	}
+	if fs.ID != nil {
+		objectMap["id"] = fs.ID
+	}
+	if fs.Name != nil {
+		objectMap["name"] = fs.Name
+	}
+	if fs.Type != nil {
+		objectMap["type"] = fs.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2855,16 +2807,16 @@ type FileShareProperties struct {
 	AdminUser *string `json:"adminUser,omitempty"`
 	// ProvisionedCapacityInBytes - The total provisioned capacity in Bytes
 	ProvisionedCapacityInBytes *int64 `json:"provisionedCapacityInBytes,omitempty"`
-	// UsedCapacityInBytes - READ-ONLY; The used capacity in Bytes.
+	// UsedCapacityInBytes - The used capacity in Bytes.
 	UsedCapacityInBytes *int64 `json:"usedCapacityInBytes,omitempty"`
-	// LocalUsedCapacityInBytes - READ-ONLY; The local used capacity in Bytes.
+	// LocalUsedCapacityInBytes - The local used capacity in Bytes.
 	LocalUsedCapacityInBytes *int64 `json:"localUsedCapacityInBytes,omitempty"`
 	// MonitoringStatus - The monitoring status. Possible values include: 'MonitoringStatusEnabled', 'MonitoringStatusDisabled'
 	MonitoringStatus MonitoringStatus `json:"monitoringStatus,omitempty"`
 }
 
-// FileSharesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// FileSharesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type FileSharesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -2873,7 +2825,7 @@ type FileSharesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FileSharesCreateOrUpdateFuture) Result(client FileSharesClient) (fs FileShare, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.FileSharesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2892,8 +2844,7 @@ func (future *FileSharesCreateOrUpdateFuture) Result(client FileSharesClient) (f
 	return
 }
 
-// FileSharesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// FileSharesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type FileSharesDeleteFuture struct {
 	azure.Future
 }
@@ -2902,7 +2853,7 @@ type FileSharesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FileSharesDeleteFuture) Result(client FileSharesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.FileSharesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2917,7 +2868,7 @@ func (future *FileSharesDeleteFuture) Result(client FileSharesClient) (ar autore
 
 // IPConfig details related to the IP address configuration
 type IPConfig struct {
-	// IPAddress - The IP address of the network adapter, either ipv4 or ipv6.
+	// IPAddress - The ipaddress of the network adapter, either ipv4 or ipv6.
 	IPAddress *string `json:"ipAddress,omitempty"`
 	// PrefixLength - The prefix length of the network adapter.
 	PrefixLength *int32 `json:"prefixLength,omitempty"`
@@ -2925,16 +2876,16 @@ type IPConfig struct {
 	Gateway *string `json:"gateway,omitempty"`
 }
 
-// ISCSIDisk the iSCSI disk.
+// ISCSIDisk the iscsi disk.
 type ISCSIDisk struct {
 	autorest.Response `json:"-"`
 	// ISCSIDiskProperties - The properties.
 	*ISCSIDiskProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2943,6 +2894,15 @@ func (ID ISCSIDisk) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ID.ISCSIDiskProperties != nil {
 		objectMap["properties"] = ID.ISCSIDiskProperties
+	}
+	if ID.ID != nil {
+		objectMap["id"] = ID.ID
+	}
+	if ID.Name != nil {
+		objectMap["name"] = ID.Name
+	}
+	if ID.Type != nil {
+		objectMap["type"] = ID.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3005,7 +2965,7 @@ type ISCSIDiskList struct {
 	Value *[]ISCSIDisk `json:"value,omitempty"`
 }
 
-// ISCSIDiskProperties the iSCSI disk properties.
+// ISCSIDiskProperties the iscsi disk properties.
 type ISCSIDiskProperties struct {
 	// Description - The description.
 	Description *string `json:"description,omitempty"`
@@ -3017,16 +2977,16 @@ type ISCSIDiskProperties struct {
 	DataPolicy DataPolicy `json:"dataPolicy,omitempty"`
 	// ProvisionedCapacityInBytes - The provisioned capacity in bytes.
 	ProvisionedCapacityInBytes *int64 `json:"provisionedCapacityInBytes,omitempty"`
-	// UsedCapacityInBytes - READ-ONLY; The used capacity in bytes.
+	// UsedCapacityInBytes - The used capacity in bytes.
 	UsedCapacityInBytes *int64 `json:"usedCapacityInBytes,omitempty"`
-	// LocalUsedCapacityInBytes - READ-ONLY; The local used capacity in bytes.
+	// LocalUsedCapacityInBytes - The local used capacity in bytes.
 	LocalUsedCapacityInBytes *int64 `json:"localUsedCapacityInBytes,omitempty"`
 	// MonitoringStatus - The monitoring. Possible values include: 'MonitoringStatusEnabled', 'MonitoringStatusDisabled'
 	MonitoringStatus MonitoringStatus `json:"monitoringStatus,omitempty"`
 }
 
-// IscsiDisksCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// IscsiDisksCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type IscsiDisksCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -3035,7 +2995,7 @@ type IscsiDisksCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *IscsiDisksCreateOrUpdateFuture) Result(client IscsiDisksClient) (ID ISCSIDisk, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.IscsiDisksCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3054,8 +3014,7 @@ func (future *IscsiDisksCreateOrUpdateFuture) Result(client IscsiDisksClient) (I
 	return
 }
 
-// IscsiDisksDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// IscsiDisksDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type IscsiDisksDeleteFuture struct {
 	azure.Future
 }
@@ -3064,7 +3023,7 @@ type IscsiDisksDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *IscsiDisksDeleteFuture) Result(client IscsiDisksClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.IscsiDisksDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3077,16 +3036,16 @@ func (future *IscsiDisksDeleteFuture) Result(client IscsiDisksClient) (ar autore
 	return
 }
 
-// ISCSIServer the iSCSI server.
+// ISCSIServer the iscsi server.
 type ISCSIServer struct {
 	autorest.Response `json:"-"`
 	// ISCSIServerProperties - The properties.
 	*ISCSIServerProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3095,6 +3054,15 @@ func (is ISCSIServer) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if is.ISCSIServerProperties != nil {
 		objectMap["properties"] = is.ISCSIServerProperties
+	}
+	if is.ID != nil {
+		objectMap["id"] = is.ID
+	}
+	if is.Name != nil {
+		objectMap["name"] = is.Name
+	}
+	if is.Type != nil {
+		objectMap["type"] = is.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3157,7 +3125,7 @@ type ISCSIServerList struct {
 	Value *[]ISCSIServer `json:"value,omitempty"`
 }
 
-// ISCSIServerProperties the iSCSI server properties.
+// ISCSIServerProperties the iscsi server properties.
 type ISCSIServerProperties struct {
 	// StorageDomainID - The storage domain id.
 	StorageDomainID *string `json:"storageDomainId,omitempty"`
@@ -3181,7 +3149,7 @@ type IscsiServersBackupNowFuture struct {
 // If the operation has not completed it will return an error.
 func (future *IscsiServersBackupNowFuture) Result(client IscsiServersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.IscsiServersBackupNowFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3194,8 +3162,8 @@ func (future *IscsiServersBackupNowFuture) Result(client IscsiServersClient) (ar
 	return
 }
 
-// IscsiServersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// IscsiServersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type IscsiServersCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -3204,7 +3172,7 @@ type IscsiServersCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *IscsiServersCreateOrUpdateFuture) Result(client IscsiServersClient) (is ISCSIServer, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.IscsiServersCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3223,8 +3191,7 @@ func (future *IscsiServersCreateOrUpdateFuture) Result(client IscsiServersClient
 	return
 }
 
-// IscsiServersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// IscsiServersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type IscsiServersDeleteFuture struct {
 	azure.Future
 }
@@ -3233,7 +3200,7 @@ type IscsiServersDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *IscsiServersDeleteFuture) Result(client IscsiServersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.IscsiServersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3267,11 +3234,11 @@ type Job struct {
 	Error *JobErrorDetails `json:"error,omitempty"`
 	// JobProperties - Other properties of the job
 	*JobProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3295,6 +3262,15 @@ func (j Job) MarshalJSON() ([]byte, error) {
 	}
 	if j.JobProperties != nil {
 		objectMap["properties"] = j.JobProperties
+	}
+	if j.ID != nil {
+		objectMap["id"] = j.ID
+	}
+	if j.Name != nil {
+		objectMap["name"] = j.Name
+	}
+	if j.Type != nil {
+		objectMap["type"] = j.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3440,37 +3416,20 @@ type JobListIterator struct {
 	page JobListPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobListIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobListIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobListIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobListIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -3492,11 +3451,6 @@ func (iter JobListIterator) Value() Job {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobListIterator type.
-func NewJobListIterator(page JobListPage) JobListIterator {
-	return JobListIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jl JobList) IsEmpty() bool {
 	return jl.Value == nil || len(*jl.Value) == 0
@@ -3504,11 +3458,11 @@ func (jl JobList) IsEmpty() bool {
 
 // jobListPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jl JobList) jobListPreparer(ctx context.Context) (*http.Request, error) {
+func (jl JobList) jobListPreparer() (*http.Request, error) {
 	if jl.NextLink == nil || len(to.String(jl.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jl.NextLink)))
@@ -3516,36 +3470,19 @@ func (jl JobList) jobListPreparer(ctx context.Context) (*http.Request, error) {
 
 // JobListPage contains a page of Job values.
 type JobListPage struct {
-	fn func(context.Context, JobList) (JobList, error)
+	fn func(JobList) (JobList, error)
 	jl JobList
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobListPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobListPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jl)
+func (page *JobListPage) Next() error {
+	next, err := page.fn(page.jl)
 	if err != nil {
 		return err
 	}
 	page.jl = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobListPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -3564,11 +3501,6 @@ func (page JobListPage) Values() []Job {
 		return nil
 	}
 	return *page.jl.Value
-}
-
-// Creates a new instance of the JobListPage type.
-func NewJobListPage(getNextPage func(context.Context, JobList) (JobList, error)) JobListPage {
-	return JobListPage{fn: getNextPage}
 }
 
 // JobProperties properties for the job
@@ -3630,11 +3562,11 @@ type Manager struct {
 	*ManagerProperties `json:"properties,omitempty"`
 	// Etag - ETag of the Manager
 	Etag *string `json:"etag,omitempty"`
-	// ID - READ-ONLY; The Resource Id
+	// ID - The Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The Resource Name
+	// Name - The Resource Name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The Resource type
+	// Type - The Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - The Geo location of the Manager
 	Location *string `json:"location,omitempty"`
@@ -3650,6 +3582,15 @@ func (mVar Manager) MarshalJSON() ([]byte, error) {
 	}
 	if mVar.Etag != nil {
 		objectMap["etag"] = mVar.Etag
+	}
+	if mVar.ID != nil {
+		objectMap["id"] = mVar.ID
+	}
+	if mVar.Name != nil {
+		objectMap["name"] = mVar.Name
+	}
+	if mVar.Type != nil {
+		objectMap["type"] = mVar.Type
 	}
 	if mVar.Location != nil {
 		objectMap["location"] = mVar.Location
@@ -3745,11 +3686,11 @@ type ManagerExtendedInfo struct {
 	*ManagerExtendedInfoProperties `json:"properties,omitempty"`
 	// Etag - ETag of the Resource
 	Etag *string `json:"etag,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3761,6 +3702,15 @@ func (mei ManagerExtendedInfo) MarshalJSON() ([]byte, error) {
 	}
 	if mei.Etag != nil {
 		objectMap["etag"] = mei.Etag
+	}
+	if mei.ID != nil {
+		objectMap["id"] = mei.ID
+	}
+	if mei.Name != nil {
+		objectMap["name"] = mei.Name
+	}
+	if mei.Type != nil {
+		objectMap["type"] = mei.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3841,13 +3791,13 @@ type ManagerExtendedInfoProperties struct {
 	Algorithm *string `json:"algorithm,omitempty"`
 }
 
-// ManagerIntrinsicSettings intrinsic settings which refers to the type of the StorSimple manager
+// ManagerIntrinsicSettings intrinsic settings which refers to the type of the Storsimple manager
 type ManagerIntrinsicSettings struct {
 	// Type - Refers to the type of the StorSimple Manager. Possible values include: 'GardaV1', 'HelsinkiV1'
 	Type ManagerType `json:"type,omitempty"`
 }
 
-// ManagerList list of StorSimple Managers under a particular resourceGroup
+// ManagerList list of storsimple Managers under a particular resourceGroup
 type ManagerList struct {
 	autorest.Response `json:"-"`
 	// Value - List of Managers
@@ -3875,7 +3825,7 @@ type ManagerProperties struct {
 	CisIntrinsicSettings *ManagerIntrinsicSettings `json:"cisIntrinsicSettings,omitempty"`
 	// Sku - Specifies the Sku
 	Sku *ManagerSku `json:"sku,omitempty"`
-	// ProvisioningState - READ-ONLY; Specifies the state of the resource as it is getting provisioned. Value of "Succeeded" means the Manager was successfully created
+	// ProvisioningState - Specifies the state of the resource as it is getting provisioned. Value of "Succeeded" means the Manager was successfully created
 	ProvisioningState *string `json:"provisioningState,omitempty"`
 }
 
@@ -3891,8 +3841,8 @@ type Message struct {
 	Value    *string `json:"value,omitempty"`
 }
 
-// MetricAvailablity metric availability specifies the time grain (aggregation interval or frequency) and
-// the retention period for that time grain
+// MetricAvailablity metric availability specifies the time grain (aggregation interval or frequency) and the
+// retention period for that time grain
 type MetricAvailablity struct {
 	// TimeGrain - The time grain, specifies the aggregation interval for the metric.
 	TimeGrain *string `json:"timeGrain,omitempty"`
@@ -4025,11 +3975,11 @@ type NetworkSettings struct {
 	autorest.Response `json:"-"`
 	// NetworkSettingsProperties - Properties of the given NetworkSettings.
 	*NetworkSettingsProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4038,6 +3988,15 @@ func (ns NetworkSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ns.NetworkSettingsProperties != nil {
 		objectMap["properties"] = ns.NetworkSettingsProperties
+	}
+	if ns.ID != nil {
+		objectMap["id"] = ns.ID
+	}
+	if ns.Name != nil {
+		objectMap["name"] = ns.Name
+	}
+	if ns.Type != nil {
+		objectMap["type"] = ns.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4119,11 +4078,11 @@ type RawCertificateData struct {
 
 // Resource the Azure Resource.
 type Resource struct {
-	// ID - READ-ONLY; The Resource Id
+	// ID - The Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The Resource Name
+	// Name - The Resource Name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The Resource type
+	// Type - The Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - The Geo location of the Manager
 	Location *string `json:"location,omitempty"`
@@ -4134,6 +4093,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}
@@ -4167,9 +4135,9 @@ type ResourceCertificateAndAADDetails struct {
 	ValidFrom *date.Time `json:"validFrom,omitempty"`
 	// ValidTo - Certificate Validity End Date time
 	ValidTo *date.Time `json:"validTo,omitempty"`
-	// Thumbprint - Certificate thumbprint
+	// Thumbprint - Certificate thumbrprint
 	Thumbprint *string `json:"thumbprint,omitempty"`
-	// FriendlyName - Certificate friendly name
+	// FriendlyName - Certificate friendlyname
 	FriendlyName *string `json:"friendlyName,omitempty"`
 	// Issuer - Certificate issuer
 	Issuer *string `json:"issuer,omitempty"`
@@ -4179,11 +4147,11 @@ type ResourceCertificateAndAADDetails struct {
 type SecuritySettings struct {
 	// SecuritySettingsProperties - Properties of the SecuritySettings.
 	*SecuritySettingsProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4192,6 +4160,15 @@ func (ss SecuritySettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ss.SecuritySettingsProperties != nil {
 		objectMap["properties"] = ss.SecuritySettingsProperties
+	}
+	if ss.ID != nil {
+		objectMap["id"] = ss.ID
+	}
+	if ss.Name != nil {
+		objectMap["name"] = ss.Name
+	}
+	if ss.Type != nil {
+		objectMap["type"] = ss.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4264,11 +4241,11 @@ type StorageAccountCredential struct {
 	autorest.Response `json:"-"`
 	// StorageAccountCredentialProperties - Credential properties
 	*StorageAccountCredentialProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4277,6 +4254,15 @@ func (sac StorageAccountCredential) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sac.StorageAccountCredentialProperties != nil {
 		objectMap["properties"] = sac.StorageAccountCredentialProperties
+	}
+	if sac.ID != nil {
+		objectMap["id"] = sac.ID
+	}
+	if sac.Name != nil {
+		objectMap["name"] = sac.Name
+	}
+	if sac.Type != nil {
+		objectMap["type"] = sac.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4355,8 +4341,8 @@ type StorageAccountCredentialProperties struct {
 	AccessKey *AsymmetricEncryptedSecret `json:"accessKey,omitempty"`
 }
 
-// StorageAccountCredentialsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results
-// of a long-running operation.
+// StorageAccountCredentialsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type StorageAccountCredentialsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -4365,7 +4351,7 @@ type StorageAccountCredentialsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StorageAccountCredentialsCreateOrUpdateFuture) Result(client StorageAccountCredentialsClient) (sac StorageAccountCredential, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4384,8 +4370,8 @@ func (future *StorageAccountCredentialsCreateOrUpdateFuture) Result(client Stora
 	return
 }
 
-// StorageAccountCredentialsDeleteFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// StorageAccountCredentialsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type StorageAccountCredentialsDeleteFuture struct {
 	azure.Future
 }
@@ -4394,7 +4380,7 @@ type StorageAccountCredentialsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StorageAccountCredentialsDeleteFuture) Result(client StorageAccountCredentialsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4412,11 +4398,11 @@ type StorageDomain struct {
 	autorest.Response `json:"-"`
 	// StorageDomainProperties - The properties.
 	*StorageDomainProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4425,6 +4411,15 @@ func (sd StorageDomain) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sd.StorageDomainProperties != nil {
 		objectMap["properties"] = sd.StorageDomainProperties
+	}
+	if sd.ID != nil {
+		objectMap["id"] = sd.ID
+	}
+	if sd.Name != nil {
+		objectMap["name"] = sd.Name
+	}
+	if sd.Type != nil {
+		objectMap["type"] = sd.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4497,8 +4492,8 @@ type StorageDomainProperties struct {
 	EncryptionStatus EncryptionStatus `json:"encryptionStatus,omitempty"`
 }
 
-// StorageDomainsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// StorageDomainsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type StorageDomainsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -4507,7 +4502,7 @@ type StorageDomainsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StorageDomainsCreateOrUpdateFuture) Result(client StorageDomainsClient) (sd StorageDomain, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.StorageDomainsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4526,8 +4521,7 @@ func (future *StorageDomainsCreateOrUpdateFuture) Result(client StorageDomainsCl
 	return
 }
 
-// StorageDomainsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// StorageDomainsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type StorageDomainsDeleteFuture struct {
 	azure.Future
 }
@@ -4536,7 +4530,7 @@ type StorageDomainsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StorageDomainsDeleteFuture) Result(client StorageDomainsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.StorageDomainsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4550,9 +4544,9 @@ func (future *StorageDomainsDeleteFuture) Result(client StorageDomainsClient) (a
 }
 
 // SymmetricEncryptedSecret this class can be used as the Type for any secret entity represented as Value,
-// ValueCertificateThumbprint, EncryptionAlgorithm. In this case, "Value" is a secret and the
-// "valueThumbprint" represents the certificate thumbprint of the value. The algorithm field is mainly for
-// future usage to potentially allow different entities encrypted using different algorithms.
+// ValueCertificateThumbprint, EncryptionAlgorithm. In this case, "Value" is a secret and the "valueThumbprint"
+// represents the certificate thumbprint of the value. The algorithm field is mainly for future usage to
+// potentially allow different entities encrypted using different algorithms.
 type SymmetricEncryptedSecret struct {
 	autorest.Response `json:"-"`
 	// Value - The value of the secret itself. If the secret is in plaintext or null then EncryptionAlgorithm will be none
@@ -4576,11 +4570,11 @@ type TimeSettings struct {
 	autorest.Response `json:"-"`
 	// TimeSettingsProperties - Properties of the TimeSettings.
 	*TimeSettingsProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4589,6 +4583,15 @@ func (ts TimeSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ts.TimeSettingsProperties != nil {
 		objectMap["properties"] = ts.TimeSettingsProperties
+	}
+	if ts.ID != nil {
+		objectMap["id"] = ts.ID
+	}
+	if ts.Name != nil {
+		objectMap["name"] = ts.Name
+	}
+	if ts.Type != nil {
+		objectMap["type"] = ts.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4685,11 +4688,11 @@ type Updates struct {
 	autorest.Response `json:"-"`
 	// UpdatesProperties - Update properties.
 	*UpdatesProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4698,6 +4701,15 @@ func (u Updates) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if u.UpdatesProperties != nil {
 		objectMap["properties"] = u.UpdatesProperties
+	}
+	if u.ID != nil {
+		objectMap["id"] = u.ID
+	}
+	if u.Name != nil {
+		objectMap["name"] = u.Name
+	}
+	if u.Type != nil {
+		objectMap["type"] = u.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4761,7 +4773,7 @@ type UpdatesProperties struct {
 	DeviceLastScannedTime *date.Time `json:"deviceLastScannedTime,omitempty"`
 	// RegularUpdatesAvailable - Set to true if regular updates were detected for the current version of the device.
 	RegularUpdatesAvailable *bool `json:"regularUpdatesAvailable,omitempty"`
-	// RebootRequiredForInstall - Set to true if RegularUpdatesAvailable is true and if at least one of the updateItems detected has needs a reboot to install.
+	// RebootRequiredForInstall - Set to true if RegularUpdatesAvailable is true and if atleast one of the updateItems detected has needs a reboot to install.
 	RebootRequiredForInstall *bool `json:"rebootRequiredForInstall,omitempty"`
 	// TotalItemsPendingForDownload - The total number of items pending for download.
 	TotalItemsPendingForDownload *int32 `json:"totalItemsPendingForDownload,omitempty"`
@@ -4790,7 +4802,7 @@ type UpdatesProperties struct {
 // UploadCertificateRequest upload Certificate Request to IDM
 type UploadCertificateRequest struct {
 	*RawCertificateData `json:"properties,omitempty"`
-	// ContractVersion - READ-ONLY; Gets ContractVersion. Possible values include: 'InvalidVersion', 'V201109', 'V201202', 'V201205', 'V201212', 'V201304', 'V201310', 'V201311', 'V201404', 'V201406', 'V201407', 'V201409', 'V201410', 'V201412', 'V201501', 'V201502', 'V201504', 'V201505', 'V201506', 'V201507', 'V201508', 'V201510', 'V201512', 'V201601', 'V201602', 'V201604', 'V201605', 'V201607', 'V201608'
+	// ContractVersion - Gets ContractVersion. Possible values include: 'InvalidVersion', 'V201109', 'V201202', 'V201205', 'V201212', 'V201304', 'V201310', 'V201311', 'V201404', 'V201406', 'V201407', 'V201409', 'V201410', 'V201412', 'V201501', 'V201502', 'V201504', 'V201505', 'V201506', 'V201507', 'V201508', 'V201510', 'V201512', 'V201601', 'V201602', 'V201604', 'V201605', 'V201607', 'V201608'
 	ContractVersion ContractVersions `json:"contractVersion,omitempty"`
 }
 
@@ -4799,6 +4811,9 @@ func (ucr UploadCertificateRequest) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ucr.RawCertificateData != nil {
 		objectMap["properties"] = ucr.RawCertificateData
+	}
+	if ucr.ContractVersion != "" {
+		objectMap["contractVersion"] = ucr.ContractVersion
 	}
 	return json.Marshal(objectMap)
 }
@@ -4840,11 +4855,11 @@ func (ucr *UploadCertificateRequest) UnmarshalJSON(body []byte) error {
 type UploadCertificateResponse struct {
 	autorest.Response                 `json:"-"`
 	*ResourceCertificateAndAADDetails `json:"properties,omitempty"`
-	// ID - READ-ONLY; The identifier.
+	// ID - The identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name.
+	// Name - The name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type.
+	// Type - The type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4853,6 +4868,15 @@ func (ucr UploadCertificateResponse) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ucr.ResourceCertificateAndAADDetails != nil {
 		objectMap["properties"] = ucr.ResourceCertificateAndAADDetails
+	}
+	if ucr.ID != nil {
+		objectMap["id"] = ucr.ID
+	}
+	if ucr.Name != nil {
+		objectMap["name"] = ucr.Name
+	}
+	if ucr.Type != nil {
+		objectMap["type"] = ucr.Type
 	}
 	return json.Marshal(objectMap)
 }

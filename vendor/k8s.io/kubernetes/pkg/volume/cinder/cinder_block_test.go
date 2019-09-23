@@ -1,5 +1,3 @@
-// +build !providerless
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -20,7 +18,7 @@ package cinder
 
 import (
 	"os"
-	"path/filepath"
+	"path"
 	"testing"
 
 	"k8s.io/api/core/v1"
@@ -49,7 +47,7 @@ func TestGetVolumeSpecFromGlobalMapPath(t *testing.T) {
 	//deferred clean up
 	defer os.RemoveAll(tmpVDir)
 
-	expectedGlobalPath := filepath.Join(tmpVDir, testGlobalPath)
+	expectedGlobalPath := path.Join(tmpVDir, testGlobalPath)
 
 	//Bad Path
 	badspec, err := getVolumeSpecFromGlobalMapPath("")
@@ -104,8 +102,8 @@ func TestGetPodAndPluginMapPaths(t *testing.T) {
 	//deferred clean up
 	defer os.RemoveAll(tmpVDir)
 
-	expectedGlobalPath := filepath.Join(tmpVDir, testGlobalPath)
-	expectedPodPath := filepath.Join(tmpVDir, testPodPath)
+	expectedGlobalPath := path.Join(tmpVDir, testGlobalPath)
+	expectedPodPath := path.Join(tmpVDir, testPodPath)
 
 	spec := getTestVolume(false, true /*isBlock*/)
 	plugMgr := volume.VolumePluginMgr{}

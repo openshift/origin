@@ -10,12 +10,11 @@
 package glusterfs
 
 import (
+	"github.com/boltdb/bolt"
+	"github.com/heketi/tests"
 	"os"
 	"testing"
 	"time"
-
-	"github.com/boltdb/bolt"
-	"github.com/heketi/tests"
 )
 
 type testDbEntry struct {

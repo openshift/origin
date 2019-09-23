@@ -18,7 +18,6 @@ package framework
 
 import "sync"
 
-// CleanupActionHandle is an integer pointer type for handling cleanup action
 type CleanupActionHandle *int
 
 var cleanupActionsLock sync.Mutex

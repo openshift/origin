@@ -21,8 +21,12 @@ import (
 	"io/ioutil"
 	"os"
 
-	cmdsanity "k8s.io/kubectl/pkg/cmd/util/sanity"
 	"k8s.io/kubernetes/pkg/kubectl/cmd"
+	cmdsanity "k8s.io/kubernetes/pkg/kubectl/cmd/util/sanity"
+)
+
+var (
+	skip = []string{}
 )
 
 func main() {

@@ -11,8 +11,7 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
-	baremetalNoAuth "github.com/gophercloud/gophercloud/openstack/baremetal/noauth"
-	blockstorageNoAuth "github.com/gophercloud/gophercloud/openstack/blockstorage/noauth"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/noauth"
 )
 
 // AcceptanceTestChoices contains image and flavor selections for use by the acceptance tests.
@@ -200,7 +199,7 @@ func NewBlockStorageV3Client() (*gophercloud.ServiceClient, error) {
 // making calls to the OpenStack Block Storage v2 API. An error will be
 // returned if client creation was not possible.
 func NewBlockStorageV2NoAuthClient() (*gophercloud.ServiceClient, error) {
-	client, err := blockstorageNoAuth.NewClient(gophercloud.AuthOptions{
+	client, err := noauth.NewClient(gophercloud.AuthOptions{
 		Username:   os.Getenv("OS_USERNAME"),
 		TenantName: os.Getenv("OS_TENANT_NAME"),
 	})
@@ -210,7 +209,7 @@ func NewBlockStorageV2NoAuthClient() (*gophercloud.ServiceClient, error) {
 
 	client = configureDebug(client)
 
-	return blockstorageNoAuth.NewBlockStorageNoAuth(client, blockstorageNoAuth.EndpointOpts{
+	return noauth.NewBlockStorageNoAuth(client, noauth.EndpointOpts{
 		CinderEndpoint: os.Getenv("CINDER_ENDPOINT"),
 	})
 }
@@ -219,7 +218,7 @@ func NewBlockStorageV2NoAuthClient() (*gophercloud.ServiceClient, error) {
 // making calls to the OpenStack Block Storage v2 API. An error will be
 // returned if client creation was not possible.
 func NewBlockStorageV3NoAuthClient() (*gophercloud.ServiceClient, error) {
-	client, err := blockstorageNoAuth.NewClient(gophercloud.AuthOptions{
+	client, err := noauth.NewClient(gophercloud.AuthOptions{
 		Username:   os.Getenv("OS_USERNAME"),
 		TenantName: os.Getenv("OS_TENANT_NAME"),
 	})
@@ -229,7 +228,7 @@ func NewBlockStorageV3NoAuthClient() (*gophercloud.ServiceClient, error) {
 
 	client = configureDebug(client)
 
-	return blockstorageNoAuth.NewBlockStorageNoAuth(client, blockstorageNoAuth.EndpointOpts{
+	return noauth.NewBlockStorageNoAuth(client, noauth.EndpointOpts{
 		CinderEndpoint: os.Getenv("CINDER_ENDPOINT"),
 	})
 }
@@ -251,57 +250,6 @@ func NewComputeV2Client() (*gophercloud.ServiceClient, error) {
 	client = configureDebug(client)
 
 	return openstack.NewComputeV2(client, gophercloud.EndpointOpts{
-		Region: os.Getenv("OS_REGION_NAME"),
-	})
-}
-
-// NewBareMetalV1Client returns a *ServiceClient for making calls
-// to the OpenStack Bare Metal v1 API. An error will be returned
-// if authentication or client creation was not possible.
-func NewBareMetalV1Client() (*gophercloud.ServiceClient, error) {
-	ao, err := openstack.AuthOptionsFromEnv()
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := openstack.AuthenticatedClient(ao)
-	if err != nil {
-		return nil, err
-	}
-
-	client = configureDebug(client)
-
-	return openstack.NewBareMetalV1(client, gophercloud.EndpointOpts{
-		Region: os.Getenv("OS_REGION_NAME"),
-	})
-}
-
-// NewBareMetalV1NoAuthClient returns a *ServiceClient for making calls
-// to the OpenStack Bare Metal v1 API. An error will be returned
-// if authentication or client creation was not possible.
-func NewBareMetalV1NoAuthClient() (*gophercloud.ServiceClient, error) {
-	return baremetalNoAuth.NewBareMetalNoAuth(baremetalNoAuth.EndpointOpts{
-		IronicEndpoint: os.Getenv("IRONIC_ENDPOINT"),
-	})
-}
-
-// NewBareMetalIntrospectionV1Client returns a *ServiceClient for making calls
-// to the OpenStack Bare Metal Introspection v1 API. An error will be returned
-// if authentication or client creation was not possible.
-func NewBareMetalIntrospectionV1Client() (*gophercloud.ServiceClient, error) {
-	ao, err := openstack.AuthOptionsFromEnv()
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := openstack.AuthenticatedClient(ao)
-	if err != nil {
-		return nil, err
-	}
-
-	client = configureDebug(client)
-
-	return openstack.NewBareMetalIntrospectionV1(client, gophercloud.EndpointOpts{
 		Region: os.Getenv("OS_REGION_NAME"),
 	})
 }
@@ -610,8 +558,6 @@ func NewContainerV1Client() (*gophercloud.ServiceClient, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	client = configureDebug(client)
 
 	return openstack.NewContainerV1(client, gophercloud.EndpointOpts{
 		Region: os.Getenv("OS_REGION_NAME"),

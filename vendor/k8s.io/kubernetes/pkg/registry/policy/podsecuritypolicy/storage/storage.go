@@ -33,7 +33,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against PodSecurityPolicy objects.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &policy.PodSecurityPolicy{} },
 		NewListFunc:              func() runtime.Object { return &policy.PodSecurityPolicyList{} },
@@ -44,13 +44,13 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 		DeleteStrategy:      podsecuritypolicy.Strategy,
 		ReturnDeletedObject: true,
 
-		TableConvertor: printerstorage.TableConvertor{TableGenerator: printers.NewTableGenerator().With(printersinternal.AddHandlers)},
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, err
+		panic(err) // TODO: Propagate error up
 	}
-	return &REST{store}, nil
+	return &REST{store}
 }
 
 // ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.

@@ -50,7 +50,7 @@ func ExamplePhase() {
 			}
 
 			// implement your phase logic...
-			fmt.Printf("%v\n", d.Data())
+			fmt.Printf("%v", d.Data())
 			return nil
 		},
 	}
@@ -67,7 +67,7 @@ func ExamplePhase() {
 			}
 
 			// implement your phase logic...
-			fmt.Printf("%v\n", d.Data())
+			fmt.Printf("%v", d.Data())
 			return nil
 		},
 	}
@@ -91,7 +91,7 @@ func ExampleRunner_Run() {
 			}
 
 			// implement your phase logic...
-			fmt.Printf("%v\n", d.Data())
+			fmt.Printf("%v", d.Data())
 			return nil
 		},
 	}

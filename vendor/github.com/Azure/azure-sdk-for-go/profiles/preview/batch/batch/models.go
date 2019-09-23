@@ -19,12 +19,21 @@
 
 package batch
 
-import (
-	"context"
+import original "github.com/Azure/azure-sdk-for-go/services/batch/2018-08-01.7.0/batch"
 
-	original "github.com/Azure/azure-sdk-for-go/services/batch/2019-06-01.9.0/batch"
+type AccountClient = original.AccountClient
+type ApplicationClient = original.ApplicationClient
+type CertificateClient = original.CertificateClient
+
+const (
+	DefaultBaseURI = original.DefaultBaseURI
 )
 
+type BaseClient = original.BaseClient
+type ComputeNodeClient = original.ComputeNodeClient
+type FileClient = original.FileClient
+type JobClient = original.JobClient
+type JobScheduleClient = original.JobScheduleClient
 type AccessScope = original.AccessScope
 
 const (
@@ -136,13 +145,6 @@ const (
 	WaitingForStartTask ComputeNodeState = original.WaitingForStartTask
 )
 
-type ContainerWorkingDirectory = original.ContainerWorkingDirectory
-
-const (
-	ContainerImageDefault ContainerWorkingDirectory = original.ContainerImageDefault
-	TaskWorkingDirectory  ContainerWorkingDirectory = original.TaskWorkingDirectory
-)
-
 type DependencyAction = original.DependencyAction
 
 const (
@@ -164,13 +166,6 @@ const (
 	DisableJobOptionRequeue   DisableJobOption = original.DisableJobOptionRequeue
 	DisableJobOptionTerminate DisableJobOption = original.DisableJobOptionTerminate
 	DisableJobOptionWait      DisableJobOption = original.DisableJobOptionWait
-)
-
-type DynamicVNetAssignmentScope = original.DynamicVNetAssignmentScope
-
-const (
-	DynamicVNetAssignmentScopeJob  DynamicVNetAssignmentScope = original.DynamicVNetAssignmentScopeJob
-	DynamicVNetAssignmentScopeNone DynamicVNetAssignmentScope = original.DynamicVNetAssignmentScopeNone
 )
 
 type ElevationLevel = original.ElevationLevel
@@ -238,25 +233,11 @@ const (
 	JobStateTerminating JobState = original.JobStateTerminating
 )
 
-type LoginMode = original.LoginMode
-
-const (
-	Batch       LoginMode = original.Batch
-	Interactive LoginMode = original.Interactive
-)
-
 type NetworkSecurityGroupRuleAccess = original.NetworkSecurityGroupRuleAccess
 
 const (
 	Allow NetworkSecurityGroupRuleAccess = original.Allow
 	Deny  NetworkSecurityGroupRuleAccess = original.Deny
-)
-
-type OSType = original.OSType
-
-const (
-	Linux   OSType = original.Linux
-	Windows OSType = original.Windows
 )
 
 type OnAllTasksComplete = original.OnAllTasksComplete
@@ -271,6 +252,13 @@ type OnTaskFailure = original.OnTaskFailure
 const (
 	OnTaskFailureNoAction                    OnTaskFailure = original.OnTaskFailureNoAction
 	OnTaskFailurePerformExitOptionsJobAction OnTaskFailure = original.OnTaskFailurePerformExitOptionsJobAction
+)
+
+type OSType = original.OSType
+
+const (
+	Linux   OSType = original.Linux
+	Windows OSType = original.Windows
 )
 
 type OutputFileUploadCondition = original.OutputFileUploadCondition
@@ -291,8 +279,9 @@ const (
 type PoolState = original.PoolState
 
 const (
-	PoolStateActive   PoolState = original.PoolStateActive
-	PoolStateDeleting PoolState = original.PoolStateDeleting
+	PoolStateActive    PoolState = original.PoolStateActive
+	PoolStateDeleting  PoolState = original.PoolStateDeleting
+	PoolStateUpgrading PoolState = original.PoolStateUpgrading
 )
 
 type SchedulingState = original.SchedulingState
@@ -348,19 +337,10 @@ const (
 	TaskStateRunning   TaskState = original.TaskStateRunning
 )
 
-type VerificationType = original.VerificationType
-
-const (
-	Unverified VerificationType = original.Unverified
-	Verified   VerificationType = original.Verified
-)
-
-type AccountClient = original.AccountClient
-type AccountListSupportedImagesResult = original.AccountListSupportedImagesResult
-type AccountListSupportedImagesResultIterator = original.AccountListSupportedImagesResultIterator
-type AccountListSupportedImagesResultPage = original.AccountListSupportedImagesResultPage
+type AccountListNodeAgentSkusResult = original.AccountListNodeAgentSkusResult
+type AccountListNodeAgentSkusResultIterator = original.AccountListNodeAgentSkusResultIterator
+type AccountListNodeAgentSkusResultPage = original.AccountListNodeAgentSkusResultPage
 type AffinityInformation = original.AffinityInformation
-type ApplicationClient = original.ApplicationClient
 type ApplicationListResult = original.ApplicationListResult
 type ApplicationListResultIterator = original.ApplicationListResultIterator
 type ApplicationListResultPage = original.ApplicationListResultPage
@@ -371,10 +351,8 @@ type AutoPoolSpecification = original.AutoPoolSpecification
 type AutoScaleRun = original.AutoScaleRun
 type AutoScaleRunError = original.AutoScaleRunError
 type AutoUserSpecification = original.AutoUserSpecification
-type BaseClient = original.BaseClient
 type Certificate = original.Certificate
 type CertificateAddParameter = original.CertificateAddParameter
-type CertificateClient = original.CertificateClient
 type CertificateListResult = original.CertificateListResult
 type CertificateListResultIterator = original.CertificateListResultIterator
 type CertificateListResultPage = original.CertificateListResultPage
@@ -401,7 +379,6 @@ type CloudTaskListResultIterator = original.CloudTaskListResultIterator
 type CloudTaskListResultPage = original.CloudTaskListResultPage
 type CloudTaskListSubtasksResult = original.CloudTaskListSubtasksResult
 type ComputeNode = original.ComputeNode
-type ComputeNodeClient = original.ComputeNodeClient
 type ComputeNodeEndpointConfiguration = original.ComputeNodeEndpointConfiguration
 type ComputeNodeError = original.ComputeNodeError
 type ComputeNodeGetRemoteLoginSettingsResult = original.ComputeNodeGetRemoteLoginSettingsResult
@@ -422,19 +399,15 @@ type ExitCodeMapping = original.ExitCodeMapping
 type ExitCodeRangeMapping = original.ExitCodeRangeMapping
 type ExitConditions = original.ExitConditions
 type ExitOptions = original.ExitOptions
-type FileClient = original.FileClient
 type FileProperties = original.FileProperties
-type ImageInformation = original.ImageInformation
 type ImageReference = original.ImageReference
 type InboundEndpoint = original.InboundEndpoint
 type InboundNATPool = original.InboundNATPool
 type JobAddParameter = original.JobAddParameter
-type JobClient = original.JobClient
 type JobConstraints = original.JobConstraints
 type JobDisableParameter = original.JobDisableParameter
 type JobExecutionInformation = original.JobExecutionInformation
 type JobManagerTask = original.JobManagerTask
-type JobNetworkConfiguration = original.JobNetworkConfiguration
 type JobPatchParameter = original.JobPatchParameter
 type JobPreparationAndReleaseTaskExecutionInformation = original.JobPreparationAndReleaseTaskExecutionInformation
 type JobPreparationTask = original.JobPreparationTask
@@ -442,7 +415,6 @@ type JobPreparationTaskExecutionInformation = original.JobPreparationTaskExecuti
 type JobReleaseTask = original.JobReleaseTask
 type JobReleaseTaskExecutionInformation = original.JobReleaseTaskExecutionInformation
 type JobScheduleAddParameter = original.JobScheduleAddParameter
-type JobScheduleClient = original.JobScheduleClient
 type JobScheduleExecutionInformation = original.JobScheduleExecutionInformation
 type JobSchedulePatchParameter = original.JobSchedulePatchParameter
 type JobScheduleStatistics = original.JobScheduleStatistics
@@ -459,6 +431,7 @@ type NameValuePair = original.NameValuePair
 type NetworkConfiguration = original.NetworkConfiguration
 type NetworkSecurityGroupRule = original.NetworkSecurityGroupRule
 type NodeAgentInformation = original.NodeAgentInformation
+type NodeAgentSku = original.NodeAgentSku
 type NodeCounts = original.NodeCounts
 type NodeDisableSchedulingParameter = original.NodeDisableSchedulingParameter
 type NodeFile = original.NodeFile
@@ -469,12 +442,12 @@ type NodeRebootParameter = original.NodeRebootParameter
 type NodeReimageParameter = original.NodeReimageParameter
 type NodeRemoveParameter = original.NodeRemoveParameter
 type NodeUpdateUserParameter = original.NodeUpdateUserParameter
+type OSDisk = original.OSDisk
 type OutputFile = original.OutputFile
 type OutputFileBlobContainerDestination = original.OutputFileBlobContainerDestination
 type OutputFileDestination = original.OutputFileDestination
 type OutputFileUploadOptions = original.OutputFileUploadOptions
 type PoolAddParameter = original.PoolAddParameter
-type PoolClient = original.PoolClient
 type PoolEnableAutoScaleParameter = original.PoolEnableAutoScaleParameter
 type PoolEndpointConfiguration = original.PoolEndpointConfiguration
 type PoolEvaluateAutoScaleParameter = original.PoolEvaluateAutoScaleParameter
@@ -491,6 +464,7 @@ type PoolResizeParameter = original.PoolResizeParameter
 type PoolSpecification = original.PoolSpecification
 type PoolStatistics = original.PoolStatistics
 type PoolUpdatePropertiesParameter = original.PoolUpdatePropertiesParameter
+type PoolUpgradeOSParameter = original.PoolUpgradeOSParameter
 type PoolUsageMetrics = original.PoolUsageMetrics
 type ReadCloser = original.ReadCloser
 type RecentJob = original.RecentJob
@@ -505,7 +479,6 @@ type TaskAddCollectionParameter = original.TaskAddCollectionParameter
 type TaskAddCollectionResult = original.TaskAddCollectionResult
 type TaskAddParameter = original.TaskAddParameter
 type TaskAddResult = original.TaskAddResult
-type TaskClient = original.TaskClient
 type TaskConstraints = original.TaskConstraints
 type TaskContainerExecutionInformation = original.TaskContainerExecutionInformation
 type TaskContainerSettings = original.TaskContainerSettings
@@ -525,112 +498,56 @@ type UserAccount = original.UserAccount
 type UserIdentity = original.UserIdentity
 type VirtualMachineConfiguration = original.VirtualMachineConfiguration
 type WindowsConfiguration = original.WindowsConfiguration
-type WindowsUserConfiguration = original.WindowsUserConfiguration
+type PoolClient = original.PoolClient
+type TaskClient = original.TaskClient
 
-func New(batchURL string) BaseClient {
-	return original.New(batchURL)
+func NewAccountClient() AccountClient {
+	return original.NewAccountClient()
 }
-func NewAccountClient(batchURL string) AccountClient {
-	return original.NewAccountClient(batchURL)
+func NewAccountClientWithBaseURI(baseURI string) AccountClient {
+	return original.NewAccountClientWithBaseURI(baseURI)
 }
-func NewAccountListSupportedImagesResultIterator(page AccountListSupportedImagesResultPage) AccountListSupportedImagesResultIterator {
-	return original.NewAccountListSupportedImagesResultIterator(page)
+func NewApplicationClient() ApplicationClient {
+	return original.NewApplicationClient()
 }
-func NewAccountListSupportedImagesResultPage(getNextPage func(context.Context, AccountListSupportedImagesResult) (AccountListSupportedImagesResult, error)) AccountListSupportedImagesResultPage {
-	return original.NewAccountListSupportedImagesResultPage(getNextPage)
+func NewApplicationClientWithBaseURI(baseURI string) ApplicationClient {
+	return original.NewApplicationClientWithBaseURI(baseURI)
 }
-func NewApplicationClient(batchURL string) ApplicationClient {
-	return original.NewApplicationClient(batchURL)
+func NewCertificateClient() CertificateClient {
+	return original.NewCertificateClient()
 }
-func NewApplicationListResultIterator(page ApplicationListResultPage) ApplicationListResultIterator {
-	return original.NewApplicationListResultIterator(page)
+func NewCertificateClientWithBaseURI(baseURI string) CertificateClient {
+	return original.NewCertificateClientWithBaseURI(baseURI)
 }
-func NewApplicationListResultPage(getNextPage func(context.Context, ApplicationListResult) (ApplicationListResult, error)) ApplicationListResultPage {
-	return original.NewApplicationListResultPage(getNextPage)
+func New() BaseClient {
+	return original.New()
 }
-func NewCertificateClient(batchURL string) CertificateClient {
-	return original.NewCertificateClient(batchURL)
+func NewWithBaseURI(baseURI string) BaseClient {
+	return original.NewWithBaseURI(baseURI)
 }
-func NewCertificateListResultIterator(page CertificateListResultPage) CertificateListResultIterator {
-	return original.NewCertificateListResultIterator(page)
+func NewComputeNodeClient() ComputeNodeClient {
+	return original.NewComputeNodeClient()
 }
-func NewCertificateListResultPage(getNextPage func(context.Context, CertificateListResult) (CertificateListResult, error)) CertificateListResultPage {
-	return original.NewCertificateListResultPage(getNextPage)
+func NewComputeNodeClientWithBaseURI(baseURI string) ComputeNodeClient {
+	return original.NewComputeNodeClientWithBaseURI(baseURI)
 }
-func NewCloudJobListPreparationAndReleaseTaskStatusResultIterator(page CloudJobListPreparationAndReleaseTaskStatusResultPage) CloudJobListPreparationAndReleaseTaskStatusResultIterator {
-	return original.NewCloudJobListPreparationAndReleaseTaskStatusResultIterator(page)
+func NewFileClient() FileClient {
+	return original.NewFileClient()
 }
-func NewCloudJobListPreparationAndReleaseTaskStatusResultPage(getNextPage func(context.Context, CloudJobListPreparationAndReleaseTaskStatusResult) (CloudJobListPreparationAndReleaseTaskStatusResult, error)) CloudJobListPreparationAndReleaseTaskStatusResultPage {
-	return original.NewCloudJobListPreparationAndReleaseTaskStatusResultPage(getNextPage)
+func NewFileClientWithBaseURI(baseURI string) FileClient {
+	return original.NewFileClientWithBaseURI(baseURI)
 }
-func NewCloudJobListResultIterator(page CloudJobListResultPage) CloudJobListResultIterator {
-	return original.NewCloudJobListResultIterator(page)
+func NewJobClient() JobClient {
+	return original.NewJobClient()
 }
-func NewCloudJobListResultPage(getNextPage func(context.Context, CloudJobListResult) (CloudJobListResult, error)) CloudJobListResultPage {
-	return original.NewCloudJobListResultPage(getNextPage)
+func NewJobClientWithBaseURI(baseURI string) JobClient {
+	return original.NewJobClientWithBaseURI(baseURI)
 }
-func NewCloudJobScheduleListResultIterator(page CloudJobScheduleListResultPage) CloudJobScheduleListResultIterator {
-	return original.NewCloudJobScheduleListResultIterator(page)
+func NewJobScheduleClient() JobScheduleClient {
+	return original.NewJobScheduleClient()
 }
-func NewCloudJobScheduleListResultPage(getNextPage func(context.Context, CloudJobScheduleListResult) (CloudJobScheduleListResult, error)) CloudJobScheduleListResultPage {
-	return original.NewCloudJobScheduleListResultPage(getNextPage)
-}
-func NewCloudPoolListResultIterator(page CloudPoolListResultPage) CloudPoolListResultIterator {
-	return original.NewCloudPoolListResultIterator(page)
-}
-func NewCloudPoolListResultPage(getNextPage func(context.Context, CloudPoolListResult) (CloudPoolListResult, error)) CloudPoolListResultPage {
-	return original.NewCloudPoolListResultPage(getNextPage)
-}
-func NewCloudTaskListResultIterator(page CloudTaskListResultPage) CloudTaskListResultIterator {
-	return original.NewCloudTaskListResultIterator(page)
-}
-func NewCloudTaskListResultPage(getNextPage func(context.Context, CloudTaskListResult) (CloudTaskListResult, error)) CloudTaskListResultPage {
-	return original.NewCloudTaskListResultPage(getNextPage)
-}
-func NewComputeNodeClient(batchURL string) ComputeNodeClient {
-	return original.NewComputeNodeClient(batchURL)
-}
-func NewComputeNodeListResultIterator(page ComputeNodeListResultPage) ComputeNodeListResultIterator {
-	return original.NewComputeNodeListResultIterator(page)
-}
-func NewComputeNodeListResultPage(getNextPage func(context.Context, ComputeNodeListResult) (ComputeNodeListResult, error)) ComputeNodeListResultPage {
-	return original.NewComputeNodeListResultPage(getNextPage)
-}
-func NewFileClient(batchURL string) FileClient {
-	return original.NewFileClient(batchURL)
-}
-func NewJobClient(batchURL string) JobClient {
-	return original.NewJobClient(batchURL)
-}
-func NewJobScheduleClient(batchURL string) JobScheduleClient {
-	return original.NewJobScheduleClient(batchURL)
-}
-func NewNodeFileListResultIterator(page NodeFileListResultPage) NodeFileListResultIterator {
-	return original.NewNodeFileListResultIterator(page)
-}
-func NewNodeFileListResultPage(getNextPage func(context.Context, NodeFileListResult) (NodeFileListResult, error)) NodeFileListResultPage {
-	return original.NewNodeFileListResultPage(getNextPage)
-}
-func NewPoolClient(batchURL string) PoolClient {
-	return original.NewPoolClient(batchURL)
-}
-func NewPoolListUsageMetricsResultIterator(page PoolListUsageMetricsResultPage) PoolListUsageMetricsResultIterator {
-	return original.NewPoolListUsageMetricsResultIterator(page)
-}
-func NewPoolListUsageMetricsResultPage(getNextPage func(context.Context, PoolListUsageMetricsResult) (PoolListUsageMetricsResult, error)) PoolListUsageMetricsResultPage {
-	return original.NewPoolListUsageMetricsResultPage(getNextPage)
-}
-func NewPoolNodeCountsListResultIterator(page PoolNodeCountsListResultPage) PoolNodeCountsListResultIterator {
-	return original.NewPoolNodeCountsListResultIterator(page)
-}
-func NewPoolNodeCountsListResultPage(getNextPage func(context.Context, PoolNodeCountsListResult) (PoolNodeCountsListResult, error)) PoolNodeCountsListResultPage {
-	return original.NewPoolNodeCountsListResultPage(getNextPage)
-}
-func NewTaskClient(batchURL string) TaskClient {
-	return original.NewTaskClient(batchURL)
-}
-func NewWithoutDefaults(batchURL string) BaseClient {
-	return original.NewWithoutDefaults(batchURL)
+func NewJobScheduleClientWithBaseURI(baseURI string) JobScheduleClient {
+	return original.NewJobScheduleClientWithBaseURI(baseURI)
 }
 func PossibleAccessScopeValues() []AccessScope {
 	return original.PossibleAccessScopeValues()
@@ -671,9 +588,6 @@ func PossibleComputeNodeReimageOptionValues() []ComputeNodeReimageOption {
 func PossibleComputeNodeStateValues() []ComputeNodeState {
 	return original.PossibleComputeNodeStateValues()
 }
-func PossibleContainerWorkingDirectoryValues() []ContainerWorkingDirectory {
-	return original.PossibleContainerWorkingDirectoryValues()
-}
 func PossibleDependencyActionValues() []DependencyAction {
 	return original.PossibleDependencyActionValues()
 }
@@ -682,9 +596,6 @@ func PossibleDisableComputeNodeSchedulingOptionValues() []DisableComputeNodeSche
 }
 func PossibleDisableJobOptionValues() []DisableJobOption {
 	return original.PossibleDisableJobOptionValues()
-}
-func PossibleDynamicVNetAssignmentScopeValues() []DynamicVNetAssignmentScope {
-	return original.PossibleDynamicVNetAssignmentScopeValues()
 }
 func PossibleElevationLevelValues() []ElevationLevel {
 	return original.PossibleElevationLevelValues()
@@ -710,20 +621,17 @@ func PossibleJobScheduleStateValues() []JobScheduleState {
 func PossibleJobStateValues() []JobState {
 	return original.PossibleJobStateValues()
 }
-func PossibleLoginModeValues() []LoginMode {
-	return original.PossibleLoginModeValues()
-}
 func PossibleNetworkSecurityGroupRuleAccessValues() []NetworkSecurityGroupRuleAccess {
 	return original.PossibleNetworkSecurityGroupRuleAccessValues()
-}
-func PossibleOSTypeValues() []OSType {
-	return original.PossibleOSTypeValues()
 }
 func PossibleOnAllTasksCompleteValues() []OnAllTasksComplete {
 	return original.PossibleOnAllTasksCompleteValues()
 }
 func PossibleOnTaskFailureValues() []OnTaskFailure {
 	return original.PossibleOnTaskFailureValues()
+}
+func PossibleOSTypeValues() []OSType {
+	return original.PossibleOSTypeValues()
 }
 func PossibleOutputFileUploadConditionValues() []OutputFileUploadCondition {
 	return original.PossibleOutputFileUploadConditionValues()
@@ -755,8 +663,17 @@ func PossibleTaskExecutionResultValues() []TaskExecutionResult {
 func PossibleTaskStateValues() []TaskState {
 	return original.PossibleTaskStateValues()
 }
-func PossibleVerificationTypeValues() []VerificationType {
-	return original.PossibleVerificationTypeValues()
+func NewPoolClient() PoolClient {
+	return original.NewPoolClient()
+}
+func NewPoolClientWithBaseURI(baseURI string) PoolClient {
+	return original.NewPoolClientWithBaseURI(baseURI)
+}
+func NewTaskClient() TaskClient {
+	return original.NewTaskClient()
+}
+func NewTaskClientWithBaseURI(baseURI string) TaskClient {
+	return original.NewTaskClientWithBaseURI(baseURI)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

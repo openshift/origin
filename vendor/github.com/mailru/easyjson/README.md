@@ -53,12 +53,10 @@ Usage of easyjson:
         use lowerCamelCase instead of CamelCase by default
   -stubs
     	only generate stubs for marshaler/unmarshaler funcs
-  -disallow_unknown_fields
-        return error if some unknown field in json appeared
 ```
 
 Using `-all` will generate marshalers/unmarshalers for all Go structs in the
-file. If `-all` is not provided, then only those structs whose preceding
+file. If `-all` is not provided, then only those structs whose preceeding
 comment starts with `easyjson:json` will have marshalers/unmarshalers
 generated. For example:
 

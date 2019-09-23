@@ -13,8 +13,7 @@
   "batchPath": "batch",
   "description": "Transfers data from external data sources to a Google Cloud Storage bucket or between Google Cloud Storage buckets.",
   "discoveryVersion": "v1",
-  "documentationLink": "https://cloud.google.com/storage-transfer/docs",
-  "fullyEncodeReservedExpansion": true,
+  "documentationLink": "https://cloud.google.com/storage/transfer",
   "icons": {
     "x16": "http://www.google.com/images/icons/product/search-16.gif",
     "x32": "http://www.google.com/images/icons/product/search-32.gif"
@@ -115,7 +114,7 @@
           ],
           "parameters": {
             "projectId": {
-              "description": "Required. The ID of the Google Cloud Platform Console project that the\nGoogle service account is associated with.",
+              "description": "The ID of the Google Cloud Platform Console project that the Google service\naccount is associated with.\nRequired.",
               "location": "path",
               "required": true,
               "type": "string"
@@ -161,14 +160,14 @@
           ],
           "parameters": {
             "jobName": {
-              "description": "Required. The job to get.",
+              "description": "The job to get.\nRequired.",
               "location": "path",
               "pattern": "^transferJobs/.+$",
               "required": true,
               "type": "string"
             },
             "projectId": {
-              "description": "Required. The ID of the Google Cloud Platform Console project that owns the\njob.",
+              "description": "The ID of the Google Cloud Platform Console project that owns the job.\nRequired.",
               "location": "query",
               "type": "string"
             }
@@ -189,7 +188,7 @@
           "parameterOrder": [],
           "parameters": {
             "filter": {
-              "description": "Required. A list of query parameters specified as JSON text in the form of:\n{\"project_id\":\"my_project_id\",\n \"job_names\":[\"jobid1\",\"jobid2\",...],\n \"job_statuses\":[\"status1\",\"status2\",...]}.\nSince `job_names` and `job_statuses` support multiple values, their values\nmust be specified with array notation. `project_id` is required.\n`job_names` and `job_statuses` are optional.  The valid values for\n`job_statuses` are case-insensitive: `ENABLED`, `DISABLED`, and `DELETED`.",
+              "description": "A list of query parameters specified as JSON text in the form of\n{\"project_id\":\"my_project_id\",\n\"job_names\":[\"jobid1\",\"jobid2\",...],\n\"job_statuses\":[\"status1\",\"status2\",...]}.\nSince `job_names` and `job_statuses` support multiple values, their values\nmust be specified with array notation. `project_id` is required. `job_names`\nand `job_statuses` are optional.  The valid values for `job_statuses` are\ncase-insensitive: `ENABLED`, `DISABLED`, and `DELETED`.",
               "location": "query",
               "type": "string"
             },
@@ -223,7 +222,7 @@
           ],
           "parameters": {
             "jobName": {
-              "description": "Required. The name of job to update.",
+              "description": "The name of job to update.\nRequired.",
               "location": "path",
               "pattern": "^transferJobs/.+$",
               "required": true,
@@ -330,12 +329,12 @@
           ],
           "parameters": {
             "filter": {
-              "description": "Required. A list of query parameters specified as JSON text in the form of: {\"project_id\":\"my_project_id\",\n \"job_names\":[\"jobid1\",\"jobid2\",...],\n \"operation_names\":[\"opid1\",\"opid2\",...],\n \"transfer_statuses\":[\"status1\",\"status2\",...]}.\nSince `job_names`, `operation_names`, and `transfer_statuses` support multiple values, they must be specified with array notation. `project_id` is required. `job_names`, `operation_names`, and `transfer_statuses` are optional. The valid values for `transfer_statuses` are case-insensitive: `IN_PROGRESS`, `PAUSED`, `SUCCESS`, `FAILED`, and `ABORTED`.",
+              "description": "A list of query parameters specified as JSON text in the form of {\\\"project_id\\\" : \\\"my_project_id\\\", \\\"job_names\\\" : [\\\"jobid1\\\", \\\"jobid2\\\",...], \\\"operation_names\\\" : [\\\"opid1\\\", \\\"opid2\\\",...], \\\"transfer_statuses\\\":[\\\"status1\\\", \\\"status2\\\",...]}. Since `job_names`, `operation_names`, and `transfer_statuses` support multiple values, they must be specified with array notation. `job_names`, `operation_names`, and `transfer_statuses` are optional.",
               "location": "query",
               "type": "string"
             },
             "name": {
-              "description": "Required. The value `transferOperations`.",
+              "description": "The value `transferOperations`.",
               "location": "path",
               "pattern": "^transferOperations$",
               "required": true,
@@ -371,7 +370,7 @@
           ],
           "parameters": {
             "name": {
-              "description": "Required. The name of the transfer operation.",
+              "description": "The name of the transfer operation.\nRequired.",
               "location": "path",
               "pattern": "^transferOperations/.+$",
               "required": true,
@@ -399,7 +398,7 @@
           ],
           "parameters": {
             "name": {
-              "description": "Required. The name of the transfer operation.",
+              "description": "The name of the transfer operation.\nRequired.",
               "location": "path",
               "pattern": "^transferOperations/.+$",
               "required": true,
@@ -420,19 +419,19 @@
       }
     }
   },
-  "revision": "20190603",
+  "revision": "20180919",
   "rootUrl": "https://storagetransfer.googleapis.com/",
   "schemas": {
     "AwsAccessKey": {
-      "description": "AWS access key (see\n[AWS Security\nCredentials](http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html)).",
+      "description": "AWS access key (see\n[AWS Security Credentials](http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html)).",
       "id": "AwsAccessKey",
       "properties": {
         "accessKeyId": {
-          "description": "Required. AWS access key ID.",
+          "description": "AWS access key ID.\nRequired.",
           "type": "string"
         },
         "secretAccessKey": {
-          "description": "Required. AWS secret access key. This field is not returned in RPC\nresponses.",
+          "description": "AWS secret access key. This field is not returned in RPC responses.\nRequired.",
           "type": "string"
         }
       },
@@ -444,10 +443,10 @@
       "properties": {
         "awsAccessKey": {
           "$ref": "AwsAccessKey",
-          "description": "Required. AWS access key used to sign the API requests to the AWS S3\nbucket. Permissions on the bucket must be granted to the access ID of the\nAWS access key."
+          "description": "AWS access key used to sign the API requests to the AWS S3 bucket.\nPermissions on the bucket must be granted to the access ID of the\nAWS access key.\nRequired."
         },
         "bucketName": {
-          "description": "Required. S3 Bucket name (see\n[Creating a\nbucket](http://docs.aws.amazon.com/AmazonS3/latest/dev/create-bucket-get-location-example.html)).",
+          "description": "S3 Bucket name (see\n[Creating a bucket](http://docs.aws.amazon.com/AmazonS3/latest/dev/create-bucket-get-location-example.html)).\nRequired.",
           "type": "string"
         }
       },
@@ -493,7 +492,7 @@
           "type": "array"
         },
         "url": {
-          "description": "Required. A URL that refers to the target (a data source, a data sink,\nor an object) with which the error is associated.",
+          "description": "A URL that refers to the target (a data source, a data sink,\nor an object) with which the error is associated.\nRequired.",
           "type": "string"
         }
       },
@@ -540,18 +539,18 @@
             "The operation was attempted past the valid range.  E.g., seeking or\nreading past end-of-file.\n\nUnlike `INVALID_ARGUMENT`, this error indicates a problem that may\nbe fixed if the system state changes. For example, a 32-bit file\nsystem will generate `INVALID_ARGUMENT` if asked to read at an\noffset that is not in the range [0,2^32-1], but it will generate\n`OUT_OF_RANGE` if asked to read from an offset past the current\nfile size.\n\nThere is a fair bit of overlap between `FAILED_PRECONDITION` and\n`OUT_OF_RANGE`.  We recommend using `OUT_OF_RANGE` (the more specific\nerror) when it applies so that callers who are iterating through\na space can easily look for an `OUT_OF_RANGE` error to detect when\nthey are done.\n\nHTTP Mapping: 400 Bad Request",
             "The operation is not implemented or is not supported/enabled in this\nservice.\n\nHTTP Mapping: 501 Not Implemented",
             "Internal errors.  This means that some invariants expected by the\nunderlying system have been broken.  This error code is reserved\nfor serious errors.\n\nHTTP Mapping: 500 Internal Server Error",
-            "The service is currently unavailable.  This is most likely a\ntransient condition, which can be corrected by retrying with\na backoff. Note that it is not always safe to retry\nnon-idempotent operations.\n\nSee the guidelines above for deciding between `FAILED_PRECONDITION`,\n`ABORTED`, and `UNAVAILABLE`.\n\nHTTP Mapping: 503 Service Unavailable",
+            "The service is currently unavailable.  This is most likely a\ntransient condition, which can be corrected by retrying with\na backoff.\n\nSee the guidelines above for deciding between `FAILED_PRECONDITION`,\n`ABORTED`, and `UNAVAILABLE`.\n\nHTTP Mapping: 503 Service Unavailable",
             "Unrecoverable data loss or corruption.\n\nHTTP Mapping: 500 Internal Server Error"
           ],
           "type": "string"
         },
         "errorCount": {
-          "description": "Required. Count of this type of error.",
+          "description": "Count of this type of error.\nRequired.",
           "format": "int64",
           "type": "string"
         },
         "errorLogEntries": {
-          "description": "Error samples.\n\nNo more than 100 error log entries may be recorded for a given\nerror code for a single task.",
+          "description": "Error samples.",
           "items": {
             "$ref": "ErrorLogEntry"
           },
@@ -565,7 +564,7 @@
       "id": "GcsData",
       "properties": {
         "bucketName": {
-          "description": "Required. Google Cloud Storage bucket name (see\n[Bucket Name\nRequirements](https://cloud.google.com/storage/docs/naming#requirements)).",
+          "description": "Google Cloud Storage bucket name (see\n[Bucket Name\nRequirements](https://cloud.google.com/storage/docs/naming#requirements)).\nRequired.",
           "type": "string"
         }
       },
@@ -576,7 +575,7 @@
       "id": "GoogleServiceAccount",
       "properties": {
         "accountEmail": {
-          "description": "Email address of the service account.",
+          "description": "Required.",
           "type": "string"
         }
       },
@@ -587,7 +586,7 @@
       "id": "HttpData",
       "properties": {
         "listUrl": {
-          "description": "Required. The URL that points to the file that stores the object list\nentries. This file must allow public access.  Currently, only URLs with\nHTTP and HTTPS schemes are supported.",
+          "description": "The URL that points to the file that stores the object list entries.\nThis file must allow public access.  Currently, only URLs with HTTP and\nHTTPS schemes are supported.\nRequired.",
           "type": "string"
         }
       },
@@ -630,7 +629,7 @@
       "type": "object"
     },
     "ObjectConditions": {
-      "description": "Conditions that determine which objects will be transferred. Applies only\nto S3 and GCS objects.",
+      "description": "Conditions that determine which objects will be transferred.",
       "id": "ObjectConditions",
       "properties": {
         "excludePrefixes": {
@@ -641,19 +640,19 @@
           "type": "array"
         },
         "includePrefixes": {
-          "description": "If `includePrefixes` is specified, objects that satisfy the object\nconditions must have names that start with one of the `includePrefixes`\nand that do not start with any of the `excludePrefixes`. If\n`includePrefixes` is not specified, all objects except those that have\nnames starting with one of the `excludePrefixes` must satisfy the object\nconditions.\n\nRequirements:\n\n  * Each include-prefix and exclude-prefix can contain any sequence of\n    Unicode characters, of max length 1024 bytes when UTF8-encoded, and\n    must not contain Carriage Return or Line Feed characters.  Wildcard\n    matching and regular expression matching are not supported.\n\n  * Each include-prefix and exclude-prefix must omit the leading slash.\n    For example, to include the `requests.gz` object in a transfer from\n    `s3://my-aws-bucket/logs/y=2015/requests.gz`, specify the include\n    prefix as `logs/y=2015/requests.gz`.\n\n  * None of the include-prefix or the exclude-prefix values can be empty,\n    if specified.\n\n  * Each include-prefix must include a distinct portion of the object\n    namespace, i.e., no include-prefix may be a prefix of another\n    include-prefix.\n\n  * Each exclude-prefix must exclude a distinct portion of the object\n    namespace, i.e., no exclude-prefix may be a prefix of another\n    exclude-prefix.\n\n  * If `includePrefixes` is specified, then each exclude-prefix must start\n    with the value of a path explicitly included by `includePrefixes`.\n\nThe max size of `includePrefixes` is 1000.",
+          "description": "If `includePrefixes` is specified, objects that satisfy the object\nconditions must have names that start with one of the `includePrefixes`\nand that do not start with any of the `excludePrefixes`. If `includePrefixes`\nis not specified, all objects except those that have names starting with\none of the `excludePrefixes` must satisfy the object conditions.\n\nRequirements:\n\n  * Each include-prefix and exclude-prefix can contain any sequence of\n    Unicode characters, of max length 1024 bytes when UTF8-encoded, and\n    must not contain Carriage Return or Line Feed characters.  Wildcard\n    matching and regular expression matching are not supported.\n\n  * Each include-prefix and exclude-prefix must omit the leading slash.\n    For example, to include the `requests.gz` object in a transfer from\n    `s3://my-aws-bucket/logs/y=2015/requests.gz`, specify the include\n    prefix as `logs/y=2015/requests.gz`.\n\n  * None of the include-prefix or the exclude-prefix values can be empty,\n    if specified.\n\n  * Each include-prefix must include a distinct portion of the object\n    namespace, i.e., no include-prefix may be a prefix of another\n    include-prefix.\n\n  * Each exclude-prefix must exclude a distinct portion of the object\n    namespace, i.e., no exclude-prefix may be a prefix of another\n    exclude-prefix.\n\n  * If `includePrefixes` is specified, then each exclude-prefix must start\n    with the value of a path explicitly included by `includePrefixes`.\n\nThe max size of `includePrefixes` is 1000.",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "maxTimeElapsedSinceLastModification": {
-          "description": "If specified, only objects with a `lastModificationTime` on or after\n`NOW` - `maxTimeElapsedSinceLastModification` and objects that don't have\na `lastModificationTime` are transferred.\n\nNote that, for each `TransferOperation` started by this `TransferJob`,\n`NOW` refers to the `start_time` of the 'TransferOperation`. Also,\n`lastModificationTime` refers to the time of the last change to the\nobject's content or metadata - specifically, this would be the `updated`\nproperty of GCS objects and the `LastModified` field of S3 objects.",
+          "description": "`maxTimeElapsedSinceLastModification` is the complement to\n`minTimeElapsedSinceLastModification`.",
           "format": "google-duration",
           "type": "string"
         },
         "minTimeElapsedSinceLastModification": {
-          "description": "If specified, only objects with a `lastModificationTime` before\n`NOW` - `minTimeElapsedSinceLastModification` and objects that don't have a\n`lastModificationTime` are transferred.\n\nNote that, for each `TransferOperation` started by this `TransferJob`,\n`NOW` refers to the `start_time` of the 'TransferOperation`. Also,\n`lastModificationTime` refers to the time of the last change to the\nobject's content or metadata - specifically, this would be the `updated`\nproperty of GCS objects and the `LastModified` field of S3 objects.",
+          "description": "If unspecified, `minTimeElapsedSinceLastModification` takes a zero value\nand `maxTimeElapsedSinceLastModification` takes the maximum possible\nvalue of Duration. Objects that satisfy the object conditions\nmust either have a `lastModificationTime` greater or equal to\n`NOW` - `maxTimeElapsedSinceLastModification` and less than\n`NOW` - `minTimeElapsedSinceLastModification`, or not have a\n`lastModificationTime`.",
           "format": "google-duration",
           "type": "string"
         }
@@ -717,7 +716,7 @@
         },
         "scheduleStartDate": {
           "$ref": "Date",
-          "description": "Required. The first day the recurring transfer is scheduled to run. If\n`scheduleStartDate` is in the past, the transfer will run for the first\ntime on the following day."
+          "description": "The first day the recurring transfer is scheduled to run. If\n`scheduleStartDate` is in the past, the transfer will run for the first\ntime on the following day.\nRequired."
         },
         "startTimeOfDay": {
           "$ref": "TimeOfDay",
@@ -727,7 +726,7 @@
       "type": "object"
     },
     "Status": {
-      "description": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). Each `Status` message contains\nthree pieces of data: error code, error message, and error details.\n\nYou can find out more about this error model and how to work with it in the\n[API Design Guide](https://cloud.google.com/apis/design/errors).",
+      "description": "The `Status` type defines a logical error model that is suitable for different\nprogramming environments, including REST APIs and RPC APIs. It is used by\n[gRPC](https://github.com/grpc). The error model is designed to be:\n\n- Simple to use and understand for most users\n- Flexible enough to meet unexpected needs\n\n# Overview\n\nThe `Status` message contains three pieces of data: error code, error message,\nand error details. The error code should be an enum value of\ngoogle.rpc.Code, but it may accept additional error codes if needed.  The\nerror message should be a developer-facing English message that helps\ndevelopers *understand* and *resolve* the error. If a localized user-facing\nerror message is needed, put the localized message in the error details or\nlocalize it in the client. The optional error details may contain arbitrary\ninformation about the error. There is a predefined set of error detail types\nin the package `google.rpc` that can be used for common error conditions.\n\n# Language mapping\n\nThe `Status` message is the logical representation of the error model, but it\nis not necessarily the actual wire format. When the `Status` message is\nexposed in different client libraries and different wire protocols, it can be\nmapped differently. For example, it will likely be mapped to some exceptions\nin Java, but more likely mapped to some error codes in C.\n\n# Other uses\n\nThe error model and the `Status` message can be used in a variety of\nenvironments, either with or without APIs, to provide a\nconsistent developer experience across different environments.\n\nExample uses of this error model include:\n\n- Partial errors. If a service needs to return partial errors to the client,\n    it may embed the `Status` in the normal response to indicate the partial\n    errors.\n\n- Workflow errors. A typical workflow has multiple steps. Each step may\n    have a `Status` message for error reporting.\n\n- Batch operations. If a client uses batch request and batch response, the\n    `Status` message should be used directly inside batch response, one for\n    each error sub-response.\n\n- Asynchronous operations. If an API call embeds asynchronous operation\n    results in its response, the status of those operations should be\n    represented directly using the `Status` message.\n\n- Logging. If some API errors are stored in logs, the message `Status` could\n    be used directly after any stripping needed for security/privacy reasons.",
       "id": "Status",
       "properties": {
         "code": {
@@ -872,12 +871,12 @@
       "id": "TransferJob",
       "properties": {
         "creationTime": {
-          "description": "Output only. The time that the transfer job was created.",
+          "description": "This field cannot be changed by user requests.",
           "format": "google-datetime",
           "type": "string"
         },
         "deletionTime": {
-          "description": "Output only. The time that the transfer job was deleted.",
+          "description": "This field cannot be changed by user requests.",
           "format": "google-datetime",
           "type": "string"
         },
@@ -886,7 +885,7 @@
           "type": "string"
         },
         "lastModificationTime": {
-          "description": "Output only. The time that the transfer job was last modified.",
+          "description": "This field cannot be changed by user requests.",
           "format": "google-datetime",
           "type": "string"
         },
@@ -895,7 +894,7 @@
           "type": "string"
         },
         "projectId": {
-          "description": "The ID of the Google Cloud Platform Project that owns the job.",
+          "description": "The ID of the Google Cloud Platform Console project that owns the job.",
           "type": "string"
         },
         "schedule": {
@@ -950,7 +949,7 @@
           "type": "string"
         },
         "projectId": {
-          "description": "The ID of the Google Cloud Platform Project that owns the operation.",
+          "description": "The ID of the Google Cloud Platform Console project that owns the operation.\nRequired.",
           "type": "string"
         },
         "startTime": {
@@ -984,7 +983,7 @@
         },
         "transferSpec": {
           "$ref": "TransferSpec",
-          "description": "Transfer specification."
+          "description": "Transfer specification.\nRequired."
         }
       },
       "type": "object"
@@ -1044,12 +1043,12 @@
       "id": "UpdateTransferJobRequest",
       "properties": {
         "projectId": {
-          "description": "Required. The ID of the Google Cloud Platform Console project that owns the\njob.",
+          "description": "The ID of the Google Cloud Platform Console project that owns the job.\nRequired.",
           "type": "string"
         },
         "transferJob": {
           "$ref": "TransferJob",
-          "description": "Required. The job to update. `transferJob` is expected to specify only\nthree fields: `description`, `transferSpec`, and `status`.  An\nUpdateTransferJobRequest that specifies other fields will be rejected with\nan error `INVALID_ARGUMENT`."
+          "description": "The job to update. `transferJob` is expected to specify only three fields:\n`description`, `transferSpec`, and `status`.  An UpdateTransferJobRequest\nthat specifies other fields will be rejected with an error\n`INVALID_ARGUMENT`.\nRequired."
         },
         "updateTransferJobFieldMask": {
           "description": "The field mask of the fields in `transferJob` that are to be updated in\nthis request.  Fields in `transferJob` that can be updated are:\n`description`, `transferSpec`, and `status`.  To update the `transferSpec`\nof the job, a complete transfer specification has to be provided. An\nincomplete specification which misses any required fields will be rejected\nwith the error `INVALID_ARGUMENT`.",

@@ -64,22 +64,20 @@ func TestMultipleAppliersSet(t *testing.T) {
 				- name: c
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-one": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _KBF("name", _SV("a"))),
 						_P("list", _KBF("name", _SV("a")), "name"),
 					),
-					"v3",
-					false,
-				),
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v3",
+				},
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _KBF("name", _SV("c"))),
 						_P("list", _KBF("name", _SV("c")), "name"),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"same_value_no_conflict": {
@@ -109,24 +107,22 @@ func TestMultipleAppliersSet(t *testing.T) {
 				  value: 0
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-one": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _KBF("name", _SV("a"))),
 						_P("list", _KBF("name", _SV("a")), "name"),
 						_P("list", _KBF("name", _SV("a")), "value"),
 					),
-					"v1",
-					false,
-				),
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v1",
+				},
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _KBF("name", _SV("a"))),
 						_P("list", _KBF("name", _SV("a")), "name"),
 						_P("list", _KBF("name", _SV("a")), "value"),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"change_value_yes_conflict": {
@@ -159,15 +155,14 @@ func TestMultipleAppliersSet(t *testing.T) {
 				  value: 0
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-one": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _KBF("name", _SV("a"))),
 						_P("list", _KBF("name", _SV("a")), "name"),
 						_P("list", _KBF("name", _SV("a")), "value"),
 					),
-					"v1",
-					false,
-				),
+					APIVersion: "v1",
+				},
 			},
 		},
 		"remove_one_keep_one": {
@@ -207,24 +202,22 @@ func TestMultipleAppliersSet(t *testing.T) {
 				- name: d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-one": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _KBF("name", _SV("a"))),
 						_P("list", _KBF("name", _SV("a")), "name"),
 					),
-					"v3",
-					false,
-				),
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v3",
+				},
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _KBF("name", _SV("c"))),
 						_P("list", _KBF("name", _SV("d"))),
 						_P("list", _KBF("name", _SV("c")), "name"),
 						_P("list", _KBF("name", _SV("d")), "name"),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 	}
@@ -280,23 +273,21 @@ func TestMultipleAppliersNestedType(t *testing.T) {
 				  - d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-one": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("a"))),
 						_P("listOfLists", _KBF("name", _SV("a")), "name"),
 					),
-					"v3",
-					false,
-				),
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v3",
+				},
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("b"))),
 						_P("listOfLists", _KBF("name", _SV("b")), "name"),
 						_P("listOfLists", _KBF("name", _SV("b")), "value", _SV("d")),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"remove_one_keep_one_with_dangling_subitem": {
@@ -353,30 +344,27 @@ func TestMultipleAppliersNestedType(t *testing.T) {
 				  - e
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-one": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("a"))),
 						_P("listOfLists", _KBF("name", _SV("a")), "name"),
 					),
-					"v3",
-					false,
-				),
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v3",
+				},
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("b"))),
 						_P("listOfLists", _KBF("name", _SV("b")), "name"),
 						_P("listOfLists", _KBF("name", _SV("b")), "value", _SV("d")),
 					),
-					"v2",
-					false,
-				),
-				"controller": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v2",
+				},
+				"controller": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("b")), "value", _SV("e")),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"remove_one_with_dangling_subitem_keep_one": {
@@ -432,23 +420,21 @@ func TestMultipleAppliersNestedType(t *testing.T) {
 				  - b
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-one": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("a"))),
 						_P("listOfLists", _KBF("name", _SV("a")), "name"),
 					),
-					"v3",
-					false,
-				),
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v3",
+				},
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("a"))),
 						_P("listOfLists", _KBF("name", _SV("a")), "name"),
 						_P("listOfLists", _KBF("name", _SV("a")), "value", _SV("b")),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"remove_one_with_managed_subitem_keep_one": {
@@ -504,23 +490,21 @@ func TestMultipleAppliersNestedType(t *testing.T) {
 				  - b
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-one": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("a"))),
 						_P("listOfLists", _KBF("name", _SV("a")), "name"),
 					),
-					"v3",
-					false,
-				),
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v3",
+				},
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("a"))),
 						_P("listOfLists", _KBF("name", _SV("a")), "name"),
 						_P("listOfLists", _KBF("name", _SV("a")), "value", _SV("b")),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"remove_one_keep_one_with_sub_item": {
@@ -563,23 +547,21 @@ func TestMultipleAppliersNestedType(t *testing.T) {
 				  - d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-one": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("a"))),
 						_P("listOfLists", _KBF("name", _SV("a")), "name"),
 					),
-					"v3",
-					false,
-				),
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v3",
+				},
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("listOfLists", _KBF("name", _SV("b"))),
 						_P("listOfLists", _KBF("name", _SV("b")), "name"),
 						_P("listOfLists", _KBF("name", _SV("b")), "value", _SV("d")),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"multiple_appliers_recursive_map": {
@@ -668,30 +650,27 @@ func TestMultipleAppliersNestedType(t *testing.T) {
 				          g:
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("mapOfMapsRecursive", "a"),
 						_P("mapOfMapsRecursive", "c"),
 						_P("mapOfMapsRecursive", "c", "d"),
 					),
-					"v2",
-					false,
-				),
-				"controller-one": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v2",
+				},
+				"controller-one": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("mapOfMapsRecursive", "c", "d", "e"),
 						_P("mapOfMapsRecursive", "c", "d", "e", "f", "g"),
 					),
-					"v3",
-					false,
-				),
-				"controller-two": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v3",
+				},
+				"controller-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("mapOfMapsRecursive", "c", "d", "e", "f"),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 	}
@@ -699,123 +678,6 @@ func TestMultipleAppliersNestedType(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			if err := test.Test(nestedTypeParser); err != nil {
-				t.Fatal(err)
-			}
-		})
-	}
-}
-
-func TestMultipleAppliersDeducedType(t *testing.T) {
-	tests := map[string]TestCase{
-		"multiple_appliers_recursive_map_deduced": {
-			Ops: []Operation{
-				Apply{
-					Manager: "apply-one",
-					Object: `
-						a:
-						  b:
-						c:
-						  d:
-					`,
-					APIVersion: "v1",
-				},
-				Apply{
-					Manager: "apply-two",
-					Object: `
-						a:
-						c:
-						  d:
-					`,
-					APIVersion: "v2",
-				},
-				Update{
-					Manager: "controller-one",
-					Object: `
-						a:
-						  b:
-						    c:
-						c:
-						  d:
-						    e:
-					`,
-					APIVersion: "v3",
-				},
-				Update{
-					Manager: "controller-two",
-					Object: `
-						a:
-						  b:
-						    c:
-						      d:
-						c:
-						  d:
-						    e:
-						      f:
-					`,
-					APIVersion: "v2",
-				},
-				Update{
-					Manager: "controller-one",
-					Object: `
-						a:
-						  b:
-						    c:
-						      d:
-						        e:
-						c:
-						  d:
-						    e:
-						      f:
-						        g:
-					`,
-					APIVersion: "v3",
-				},
-				Apply{
-					Manager:    "apply-one",
-					Object:     ``,
-					APIVersion: "v4",
-				},
-			},
-			Object: `
-				a:
-				c:
-				  d:
-				    e:
-				      f:
-				        g:
-			`,
-			Managed: fieldpath.ManagedFields{
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
-						_P("a"),
-						_P("c"),
-						_P("c", "d"),
-					),
-					"v2",
-					false,
-				),
-				"controller-one": fieldpath.NewVersionedSet(
-					_NS(
-						_P("c", "d", "e"),
-						_P("c", "d", "e", "f", "g"),
-					),
-					"v3",
-					false,
-				),
-				"controller-two": fieldpath.NewVersionedSet(
-					_NS(
-						_P("c", "d", "e", "f"),
-					),
-					"v2",
-					false,
-				),
-			},
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			if err := test.Test(typed.DeducedParseableType); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -879,23 +741,21 @@ func TestMultipleAppliersRealConversion(t *testing.T) {
 				        ffff:
 			`,
 			Managed: fieldpath.ManagedFields{
-				"apply-two": fieldpath.NewVersionedSet(
-					_NS(
+				"apply-two": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("mapOfMapsRecursive", "aa"),
 						_P("mapOfMapsRecursive", "cc"),
 						_P("mapOfMapsRecursive", "cc", "dd"),
 					),
-					"v2",
-					false,
-				),
-				"controller": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v2",
+				},
+				"controller": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("mapOfMapsRecursive", "ccc", "ddd", "eee"),
 						_P("mapOfMapsRecursive", "ccc", "ddd", "eee", "fff"),
 					),
-					"v3",
-					false,
-				),
+					APIVersion: "v3",
+				},
 			},
 		},
 		"appliers_remove_from_controller_real_conversion": {
@@ -937,22 +797,20 @@ func TestMultipleAppliersRealConversion(t *testing.T) {
 				  ccc:
 			`,
 			Managed: fieldpath.ManagedFields{
-				"controller": fieldpath.NewVersionedSet(
-					_NS(
+				"controller": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("mapOfMapsRecursive"),
 						_P("mapOfMapsRecursive", "a"),
 					),
-					"v1",
-					false,
-				),
-				"apply": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v1",
+				},
+				"apply": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("mapOfMapsRecursive", "aaa"),
 						_P("mapOfMapsRecursive", "ccc"),
 					),
-					"v3",
-					false,
-				),
+					APIVersion: "v3",
+				},
 			},
 		},
 	}
@@ -967,7 +825,7 @@ func TestMultipleAppliersRealConversion(t *testing.T) {
 }
 
 // repeatingConverter repeats a single letterkey v times, where v is the version.
-type repeatingConverter struct {
+type repeatingConverter struct{
 	typed.ParseableType
 }
 
@@ -976,7 +834,7 @@ var _ merge.Converter = repeatingConverter{}
 var missingVersionError error = fmt.Errorf("cannot convert to invalid version")
 
 // Convert implements merge.Converter
-func (r repeatingConverter) Convert(v *typed.TypedValue, version fieldpath.APIVersion) (*typed.TypedValue, error) {
+func (r repeatingConverter) Convert(v typed.TypedValue, version fieldpath.APIVersion) (typed.TypedValue, error) {
 	if len(version) < 2 || string(version)[0] != 'v' {
 		return nil, missingVersionError
 	}
@@ -998,7 +856,7 @@ func (r repeatingConverter) Convert(v *typed.TypedValue, version fieldpath.APIVe
 			if len(spaces) == 0 {
 				break
 			}
-			c := line[len(spaces) : len(spaces)+1]
+			c := line[len(spaces):len(spaces)+1]
 			c = strings.Repeat(c, versionNumber)
 			str2 = fmt.Sprintf("%v\n%v%v:", str2, spaces, c)
 		}
@@ -1011,108 +869,18 @@ func (r repeatingConverter) Convert(v *typed.TypedValue, version fieldpath.APIVe
 }
 
 func countLeadingSpace(line string) int {
-	spaces := 0
-	for _, letter := range line {
-		if letter == ' ' {
-			spaces++
-		} else {
-			break
-		}
-	}
-	return spaces
+        spaces := 0
+        for _, letter := range line {
+                if letter == ' ' {
+                        spaces++
+                } else {
+                        break
+                }
+        }
+        return spaces
 }
 
 // Convert implements merge.Converter
 func (r repeatingConverter) IsMissingVersionError(err error) bool {
 	return err == missingVersionError
-}
-
-func BenchmarkMultipleApplierRecursiveRealConversion(b *testing.B) {
-	test := TestCase{
-		Ops: []Operation{
-			Apply{
-				Manager: "apply-one",
-				Object: `
-					mapOfMapsRecursive:
-					  a:
-					    b:
-					  c:
-					    d:
-				`,
-				APIVersion: "v1",
-			},
-			Apply{
-				Manager: "apply-two",
-				Object: `
-					mapOfMapsRecursive:
-					  aa:
-					  cc:
-					    dd:
-				`,
-				APIVersion: "v2",
-			},
-			Update{
-				Manager: "controller",
-				Object: `
-					mapOfMapsRecursive:
-					  aaa:
-					    bbb:
-					      ccc:
-					        ddd:
-					  ccc:
-					    ddd:
-					      eee:
-					        fff:
-					`,
-				APIVersion: "v3",
-			},
-			Apply{
-				Manager: "apply-one",
-				Object: `
-					mapOfMapsRecursive:
-				`,
-				APIVersion: "v4",
-			},
-		},
-		Object: `
-			mapOfMapsRecursive:
-			  aaaa:
-			  cccc:
-			    dddd:
-			      eeee:
-			        ffff:
-		`,
-		Managed: fieldpath.ManagedFields{
-			"apply-two": fieldpath.NewVersionedSet(
-				_NS(
-					_P("mapOfMapsRecursive", "aa"),
-					_P("mapOfMapsRecursive", "cc"),
-					_P("mapOfMapsRecursive", "cc", "dd"),
-				),
-				"v2",
-				false,
-			),
-			"controller": fieldpath.NewVersionedSet(
-				_NS(
-					_P("mapOfMapsRecursive", "ccc", "ddd", "eee"),
-					_P("mapOfMapsRecursive", "ccc", "ddd", "eee", "fff"),
-				),
-				"v3",
-				false,
-			),
-		},
-	}
-
-	// Make sure this passes...
-	if err := test.TestWithConverter(nestedTypeParser, repeatingConverter{nestedTypeParser}); err != nil {
-		b.Fatal(err)
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		if err := test.BenchWithConverter(nestedTypeParser, repeatingConverter{nestedTypeParser}); err != nil {
-			b.Fatal(err)
-		}
-	}
 }

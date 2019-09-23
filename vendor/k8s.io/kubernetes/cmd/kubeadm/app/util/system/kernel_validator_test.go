@@ -31,7 +31,7 @@ func TestValidateKernelVersion(t *testing.T) {
 	// they may be different.
 	// This is fine, because the test mainly tests the kernel version validation logic,
 	// not the DefaultSysSpec. The DefaultSysSpec should be tested with node e2e.
-	testRegex := []string{`^3\.[1-9][0-9].*$`, `^([4-9]|[1-9][0-9]+)\.([0-9]+)\.([0-9]+).*$`}
+	testRegex := []string{`3\.[1-9][0-9].*`, `4\..*`}
 	for _, test := range []struct {
 		name    string
 		version string
@@ -53,19 +53,9 @@ func TestValidateKernelVersion(t *testing.T) {
 			err:     true,
 		},
 		{
-			name:    "5.0.0 one of version regexes matches",
+			name:    "5.0.0 no version regex matches",
 			version: "5.0.0",
-			err:     false,
-		},
-		{
-			name:    "10.21.1 one of version regexes matches",
-			version: "10.21.1",
-			err:     false,
-		},
-		{
-			name:    "99.12.12 one of version regexes matches",
-			version: "99.12.12",
-			err:     false,
+			err:     true,
 		},
 		{
 			name:    "3.9.0 no version regex matches",
@@ -183,7 +173,7 @@ func TestValidateCachedKernelConfig(t *testing.T) {
 			// Add kernel config prefix.
 			for k, v := range test.config {
 				delete(test.config, k)
-				test.config[kernelConfigPrefix+k] = v
+				test.config[kConfigPrefix+k] = v
 			}
 			err := v.validateCachedKernelConfig(test.config, testKernelSpec)
 			if !test.err {

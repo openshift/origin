@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,39 +44,27 @@ func NewUserSubscriptionClientWithBaseURI(baseURI string, subscriptionID string)
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // serviceName - the name of the API Management service.
-// userID - user identifier. Must be unique in the current API Management service instance.
-// filter - | Field       | Supported operators    | Supported functions               |
-// |-------------|------------------------|-----------------------------------|
-//
-// |name | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |displayName | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |stateComment | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |ownerId | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |scope | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |userId | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |productId | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
+// UID - user identifier. Must be unique in the current API Management service instance.
+// filter - | Field        | Supported operators    | Supported functions                         |
+// |--------------|------------------------|---------------------------------------------|
+// | id           | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | name         | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | stateComment | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | userId       | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | productId    | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | state        | eq                     |                                             |
 // top - number of records to return.
 // skip - number of records to skip.
-func (client UserSubscriptionClient) List(ctx context.Context, resourceGroupName string, serviceName string, userID string, filter string, top *int32, skip *int32) (result SubscriptionCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/UserSubscriptionClient.List")
-		defer func() {
-			sc := -1
-			if result.sc.Response.Response != nil {
-				sc = result.sc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client UserSubscriptionClient) List(ctx context.Context, resourceGroupName string, serviceName string, UID string, filter string, top *int32, skip *int32) (result SubscriptionCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "serviceName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "serviceName", Name: validation.Pattern, Rule: `^[a-zA-Z](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$`, Chain: nil}}},
-		{TargetValue: userID,
-			Constraints: []validation.Constraint{{Target: "userID", Name: validation.MaxLength, Rule: 80, Chain: nil},
-				{Target: "userID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "userID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
+		{TargetValue: UID,
+			Constraints: []validation.Constraint{{Target: "UID", Name: validation.MaxLength, Rule: 80, Chain: nil},
+				{Target: "UID", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "UID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "top", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}},
@@ -88,7 +75,7 @@ func (client UserSubscriptionClient) List(ctx context.Context, resourceGroupName
 	}
 
 	result.fn = client.listNextResults
-	req, err := client.ListPreparer(ctx, resourceGroupName, serviceName, userID, filter, top, skip)
+	req, err := client.ListPreparer(ctx, resourceGroupName, serviceName, UID, filter, top, skip)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.UserSubscriptionClient", "List", nil, "Failure preparing request")
 		return
@@ -110,12 +97,12 @@ func (client UserSubscriptionClient) List(ctx context.Context, resourceGroupName
 }
 
 // ListPreparer prepares the List request.
-func (client UserSubscriptionClient) ListPreparer(ctx context.Context, resourceGroupName string, serviceName string, userID string, filter string, top *int32, skip *int32) (*http.Request, error) {
+func (client UserSubscriptionClient) ListPreparer(ctx context.Context, resourceGroupName string, serviceName string, UID string, filter string, top *int32, skip *int32) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"serviceName":       autorest.Encode("path", serviceName),
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-		"userId":            autorest.Encode("path", userID),
+		"uid":               autorest.Encode("path", UID),
 	}
 
 	const APIVersion = "2018-06-01-preview"
@@ -135,7 +122,7 @@ func (client UserSubscriptionClient) ListPreparer(ctx context.Context, resourceG
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ApiManagement/service/{serviceName}/users/{userId}/subscriptions", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ApiManagement/service/{serviceName}/users/{uid}/subscriptions", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -143,8 +130,8 @@ func (client UserSubscriptionClient) ListPreparer(ctx context.Context, resourceG
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserSubscriptionClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -161,8 +148,8 @@ func (client UserSubscriptionClient) ListResponder(resp *http.Response) (result 
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client UserSubscriptionClient) listNextResults(ctx context.Context, lastResults SubscriptionCollection) (result SubscriptionCollection, err error) {
-	req, err := lastResults.subscriptionCollectionPreparer(ctx)
+func (client UserSubscriptionClient) listNextResults(lastResults SubscriptionCollection) (result SubscriptionCollection, err error) {
+	req, err := lastResults.subscriptionCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.UserSubscriptionClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -182,17 +169,7 @@ func (client UserSubscriptionClient) listNextResults(ctx context.Context, lastRe
 }
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
-func (client UserSubscriptionClient) ListComplete(ctx context.Context, resourceGroupName string, serviceName string, userID string, filter string, top *int32, skip *int32) (result SubscriptionCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/UserSubscriptionClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	result.page, err = client.List(ctx, resourceGroupName, serviceName, userID, filter, top, skip)
+func (client UserSubscriptionClient) ListComplete(ctx context.Context, resourceGroupName string, serviceName string, UID string, filter string, top *int32, skip *int32) (result SubscriptionCollectionIterator, err error) {
+	result.page, err = client.List(ctx, resourceGroupName, serviceName, UID, filter, top, skip)
 	return
 }

@@ -24,12 +24,10 @@ import (
 )
 
 const (
-	// HypervIsolationAnnotationKey is used to run windows containers with hyperv isolation.
+	// HypervIsolationAnnotationKey and HypervIsolationValue are used to run windows containers with hyperv isolation.
 	// Refer https://aka.ms/hyperv-container.
 	HypervIsolationAnnotationKey = "experimental.windows.kubernetes.io/isolation-type"
-	// HypervIsolationValue is used to run windows containers with hyperv isolation.
-	// Refer https://aka.ms/hyperv-container.
-	HypervIsolationValue = "hyperv"
+	HypervIsolationValue         = "hyperv"
 )
 
 // ShouldIsolatedByHyperV returns true if a windows container should be run with hyperv isolation.

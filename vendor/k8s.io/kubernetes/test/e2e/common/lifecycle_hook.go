@@ -17,8 +17,6 @@ limitations under the License.
 package common
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"k8s.io/api/core/v1"
@@ -27,8 +25,8 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = framework.KubeDescribe("Container Lifecycle Hook", func() {
@@ -39,8 +37,8 @@ var _ = framework.KubeDescribe("Container Lifecycle Hook", func() {
 		postStartWaitTimeout = 2 * time.Minute
 		preStopWaitTimeout   = 30 * time.Second
 	)
-	ginkgo.Context("when create a pod with lifecycle hook", func() {
-		var targetIP, targetURL string
+	Context("when create a pod with lifecycle hook", func() {
+		var targetIP string
 		podHandleHookRequest := &v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "pod-handle-http-request",
@@ -49,8 +47,7 @@ var _ = framework.KubeDescribe("Container Lifecycle Hook", func() {
 				Containers: []v1.Container{
 					{
 						Name:  "pod-handle-http-request",
-						Image: imageutils.GetE2EImage(imageutils.Agnhost),
-						Args:  []string{"netexec"},
+						Image: imageutils.GetE2EImage(imageutils.Netexec),
 						Ports: []v1.ContainerPort{
 							{
 								ContainerPort: 8080,
@@ -61,34 +58,30 @@ var _ = framework.KubeDescribe("Container Lifecycle Hook", func() {
 				},
 			},
 		}
-		ginkgo.BeforeEach(func() {
+		BeforeEach(func() {
 			podClient = f.PodClient()
-			ginkgo.By("create the container to handle the HTTPGet hook request.")
+			By("create the container to handle the HTTPGet hook request.")
 			newPod := podClient.CreateSync(podHandleHookRequest)
 			targetIP = newPod.Status.PodIP
-			targetURL = targetIP
-			if strings.Contains(targetIP, ":") {
-				targetURL = fmt.Sprintf("[%s]", targetIP)
-			}
 		})
 		testPodWithHook := func(podWithHook *v1.Pod) {
-			ginkgo.By("create the pod with lifecycle hook")
+			By("create the pod with lifecycle hook")
 			podClient.CreateSync(podWithHook)
 			if podWithHook.Spec.Containers[0].Lifecycle.PostStart != nil {
-				ginkgo.By("check poststart hook")
-				gomega.Eventually(func() error {
+				By("check poststart hook")
+				Eventually(func() error {
 					return podClient.MatchContainerOutput(podHandleHookRequest.Name, podHandleHookRequest.Spec.Containers[0].Name,
 						`GET /echo\?msg=poststart`)
-				}, postStartWaitTimeout, podCheckInterval).Should(gomega.BeNil())
+				}, postStartWaitTimeout, podCheckInterval).Should(BeNil())
 			}
-			ginkgo.By("delete the pod with lifecycle hook")
+			By("delete the pod with lifecycle hook")
 			podClient.DeleteSync(podWithHook.Name, metav1.NewDeleteOptions(15), framework.DefaultPodDeletionTimeout)
 			if podWithHook.Spec.Containers[0].Lifecycle.PreStop != nil {
-				ginkgo.By("check prestop hook")
-				gomega.Eventually(func() error {
+				By("check prestop hook")
+				Eventually(func() error {
 					return podClient.MatchContainerOutput(podHandleHookRequest.Name, podHandleHookRequest.Spec.Containers[0].Name,
 						`GET /echo\?msg=prestop`)
-				}, preStopWaitTimeout, podCheckInterval).Should(gomega.BeNil())
+				}, preStopWaitTimeout, podCheckInterval).Should(BeNil())
 			}
 		}
 		/*
@@ -100,11 +93,11 @@ var _ = framework.KubeDescribe("Container Lifecycle Hook", func() {
 			lifecycle := &v1.Lifecycle{
 				PostStart: &v1.Handler{
 					Exec: &v1.ExecAction{
-						Command: []string{"sh", "-c", "curl http://" + targetURL + ":8080/echo?msg=poststart"},
+						Command: []string{"sh", "-c", "curl http://" + targetIP + ":8080/echo?msg=poststart"},
 					},
 				},
 			}
-			podWithHook := getPodWithHook("pod-with-poststart-exec-hook", imageutils.GetE2EImage(imageutils.Agnhost), lifecycle)
+			podWithHook := getPodWithHook("pod-with-poststart-exec-hook", imageutils.GetE2EImage(imageutils.Hostexec), lifecycle)
 			testPodWithHook(podWithHook)
 		})
 		/*
@@ -116,11 +109,11 @@ var _ = framework.KubeDescribe("Container Lifecycle Hook", func() {
 			lifecycle := &v1.Lifecycle{
 				PreStop: &v1.Handler{
 					Exec: &v1.ExecAction{
-						Command: []string{"sh", "-c", "curl http://" + targetURL + ":8080/echo?msg=prestop"},
+						Command: []string{"sh", "-c", "curl http://" + targetIP + ":8080/echo?msg=prestop"},
 					},
 				},
 			}
-			podWithHook := getPodWithHook("pod-with-prestop-exec-hook", imageutils.GetE2EImage(imageutils.Agnhost), lifecycle)
+			podWithHook := getPodWithHook("pod-with-prestop-exec-hook", imageutils.GetE2EImage(imageutils.Hostexec), lifecycle)
 			testPodWithHook(podWithHook)
 		})
 		/*

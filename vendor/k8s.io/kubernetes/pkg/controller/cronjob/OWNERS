@@ -1,8 +1,12 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-- sig-apps-approvers
+- erictune
+- janetkuo
+- soltysh
 reviewers:
-- sig-apps-reviewers
+- erictune
+- janetkuo
+- soltysh
 labels:
 - sig/apps

@@ -18,20 +18,21 @@ package upgrades
 
 import (
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 
-	appsv1 "k8s.io/api/apps/v1"
+	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/version"
 
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2esset "k8s.io/kubernetes/test/e2e/framework/statefulset"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 )
 
 // StatefulSetUpgradeTest implements an upgrade test harness for StatefulSet upgrade testing.
 type StatefulSetUpgradeTest struct {
+	tester  *framework.StatefulSetTester
 	service *v1.Service
-	set     *appsv1.StatefulSet
+	set     *apps.StatefulSet
 }
 
 // Name returns the tracking name of the test.
@@ -60,55 +61,56 @@ func (t *StatefulSetUpgradeTest) Setup(f *framework.Framework) {
 	statefulPodMounts := []v1.VolumeMount{{Name: "datadir", MountPath: "/data/"}}
 	podMounts := []v1.VolumeMount{{Name: "home", MountPath: "/home"}}
 	ns := f.Namespace.Name
-	t.set = e2esset.NewStatefulSet(ssName, ns, headlessSvcName, 2, statefulPodMounts, podMounts, labels)
-	t.service = e2esset.CreateStatefulSetService(ssName, labels)
+	t.set = framework.NewStatefulSet(ssName, ns, headlessSvcName, 2, statefulPodMounts, podMounts, labels)
+	t.service = framework.CreateStatefulSetService(ssName, labels)
 	*(t.set.Spec.Replicas) = 3
-	e2esset.PauseNewPods(t.set)
+	t.tester = framework.NewStatefulSetTester(f.ClientSet)
+	t.tester.PauseNewPods(t.set)
 
 	ginkgo.By("Creating service " + headlessSvcName + " in namespace " + ns)
 	_, err := f.ClientSet.CoreV1().Services(ns).Create(t.service)
-	framework.ExpectNoError(err)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	ginkgo.By("Creating statefulset " + ssName + " in namespace " + ns)
 	*(t.set.Spec.Replicas) = 3
 	_, err = f.ClientSet.AppsV1().StatefulSets(ns).Create(t.set)
-	framework.ExpectNoError(err)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	ginkgo.By("Saturating stateful set " + t.set.Name)
-	e2esset.Saturate(f.ClientSet, t.set)
-	t.verify(f)
-	t.restart(f)
-	t.verify(f)
+	t.tester.Saturate(t.set)
+	t.verify()
+	t.restart()
+	t.verify()
 }
 
 // Test waits for the upgrade to complete and verifies the StatefulSet basic functionality
 func (t *StatefulSetUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	<-done
-	t.verify(f)
+	t.verify()
 }
 
 // Teardown deletes all StatefulSets
 func (t *StatefulSetUpgradeTest) Teardown(f *framework.Framework) {
-	e2esset.DeleteAllStatefulSets(f.ClientSet, t.set.Name)
+	framework.DeleteAllStatefulSets(f.ClientSet, t.set.Name)
 }
 
-func (t *StatefulSetUpgradeTest) verify(f *framework.Framework) {
+func (t *StatefulSetUpgradeTest) verify() {
 	ginkgo.By("Verifying statefulset mounted data directory is usable")
-	framework.ExpectNoError(e2esset.CheckMount(f.ClientSet, t.set, "/data"))
+	framework.ExpectNoError(t.tester.CheckMount(t.set, "/data"))
 
 	ginkgo.By("Verifying statefulset provides a stable hostname for each pod")
-	framework.ExpectNoError(e2esset.CheckHostname(f.ClientSet, t.set))
+	framework.ExpectNoError(t.tester.CheckHostname(t.set))
 
 	ginkgo.By("Verifying statefulset set proper service name")
-	framework.ExpectNoError(e2esset.CheckServiceName(t.set, t.set.Spec.ServiceName))
+	framework.ExpectNoError(t.tester.CheckServiceName(t.set, t.set.Spec.ServiceName))
 
 	cmd := "echo $(hostname) > /data/hostname; sync;"
 	ginkgo.By("Running " + cmd + " in all stateful pods")
-	framework.ExpectNoError(e2esset.ExecInStatefulPods(f.ClientSet, t.set, cmd))
+	framework.ExpectNoError(t.tester.ExecInStatefulPods(t.set, cmd))
 }
 
-func (t *StatefulSetUpgradeTest) restart(f *framework.Framework) {
+func (t *StatefulSetUpgradeTest) restart() {
 	ginkgo.By("Restarting statefulset " + t.set.Name)
-	e2esset.Restart(f.ClientSet, t.set)
-	e2esset.WaitForRunningAndReady(f.ClientSet, *t.set.Spec.Replicas, t.set)
+	t.tester.Restart(t.set)
+	t.tester.WaitForRunningAndReady(*t.set.Spec.Replicas, t.set)
 }

@@ -29,7 +29,7 @@ type Normal struct {
 
 // CDF computes the value of the cumulative density function at x.
 func (n Normal) CDF(x float64) float64 {
-	return 0.5 * math.Erfc(-(x-n.Mu)/(n.Sigma*math.Sqrt2))
+	return 0.5 * (1 + math.Erf((x-n.Mu)/(n.Sigma*math.Sqrt2)))
 }
 
 // ConjugateUpdate updates the parameters of the distribution from the sufficient

@@ -18,7 +18,7 @@ type function interface {
 }
 
 type gradient interface {
-	Grad(grad, x []float64) []float64
+	Grad(grad, x []float64)
 }
 
 // minimumer is an objective function that can also provide information about

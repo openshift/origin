@@ -2,12 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+// +build darwin dragonfly freebsd linux netbsd openbsd solaris
 
 package unix_test
 
 import (
-	"runtime"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -24,14 +23,9 @@ func TestMmap(t *testing.T) {
 
 	b[0] = 42
 
-	if runtime.GOOS == "aix" {
-		t.Skip("msync returns invalid argument for AIX, skipping msync test")
-	} else {
-		if err := unix.Msync(b, unix.MS_SYNC); err != nil {
-			t.Fatalf("Msync: %v", err)
-		}
+	if err := unix.Msync(b, unix.MS_SYNC); err != nil {
+		t.Fatalf("Msync: %v", err)
 	}
-
 	if err := unix.Madvise(b, unix.MADV_DONTNEED); err != nil {
 		t.Fatalf("Madvise: %v", err)
 	}

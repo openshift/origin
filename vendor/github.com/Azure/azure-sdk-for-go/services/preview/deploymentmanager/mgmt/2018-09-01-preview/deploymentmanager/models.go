@@ -18,16 +18,12 @@ package deploymentmanager
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/deploymentmanager/mgmt/2018-09-01-preview/deploymentmanager"
 
 // DeploymentMode enumerates the values for deployment mode.
 type DeploymentMode string
@@ -74,20 +70,20 @@ func PossibleTypeValues() []Type {
 	return []Type{TypeAuthentication, TypeSas}
 }
 
-// ArtifactSource the resource that defines the source location where the artifacts are located.
+// ArtifactSource the resource that define the source location where the artifacts are located.
 type ArtifactSource struct {
 	autorest.Response `json:"-"`
-	// ArtifactSourceProperties - The properties that define the artifact source.
+	// ArtifactSourceProperties - Defines the properties that make up an artifact source.
 	*ArtifactSourceProperties `json:"properties,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -102,6 +98,15 @@ func (as ArtifactSource) MarshalJSON() ([]byte, error) {
 	}
 	if as.Location != nil {
 		objectMap["location"] = as.Location
+	}
+	if as.ID != nil {
+		objectMap["id"] = as.ID
+	}
+	if as.Name != nil {
+		objectMap["name"] = as.Name
+	}
+	if as.Type != nil {
+		objectMap["type"] = as.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -175,11 +180,11 @@ func (as *ArtifactSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ArtifactSourceProperties the properties that define the artifact source.
+// ArtifactSourceProperties defines the properties that make up an artifact source.
 type ArtifactSourceProperties struct {
 	// SourceType - The type of artifact source used.
 	SourceType *string `json:"sourceType,omitempty"`
-	// ArtifactRoot - The path from the location that the 'authentication' property [say, a SAS URI to the blob container] refers to, to the location of the artifacts. This can be used to differentiate different versions of the artifacts. Or, different types of artifacts like binaries or templates. The location referenced by the authentication property concatenated with this optional artifactRoot path forms the artifact source location where the artifacts are expected to be found.
+	// ArtifactRoot - The root folder under which all artifacts for all environments are expected to be organized.
 	ArtifactRoot *string `json:"artifactRoot,omitempty"`
 	// Authentication - The authentication method to use to access the artifact source.
 	Authentication BasicAuthentication `json:"authentication,omitempty"`
@@ -226,12 +231,11 @@ func (as *ArtifactSourceProperties) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ArtifactSourcePropertiesModel the properties that define the source location where the artifacts are
-// located.
+// ArtifactSourcePropertiesModel the properties that define the source location where the artifacts are located.
 type ArtifactSourcePropertiesModel struct {
 	// SourceType - The type of artifact source used.
 	SourceType *string `json:"sourceType,omitempty"`
-	// ArtifactRoot - The path from the location that the 'authentication' property [say, a SAS URI to the blob container] refers to, to the location of the artifacts. This can be used to differentiate different versions of the artifacts. Or, different types of artifacts like binaries or templates. The location referenced by the authentication property concatenated with this optional artifactRoot path forms the artifact source location where the artifacts are expected to be found.
+	// ArtifactRoot - The root folder under which all artifacts for all environments are expected to be organized.
 	ArtifactRoot *string `json:"artifactRoot,omitempty"`
 	// Authentication - The authentication method to use to access the artifact source.
 	Authentication BasicAuthentication `json:"authentication,omitempty"`
@@ -354,13 +358,13 @@ func (a Authentication) AsBasicAuthentication() (BasicAuthentication, bool) {
 
 // AzureEntityResource the resource model definition for a Azure Resource Manager resource with an etag.
 type AzureEntityResource struct {
-	// Etag - READ-ONLY; Resource Etag.
+	// Etag - Resource Etag.
 	Etag *string `json:"etag,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -372,9 +376,9 @@ type CloudError struct {
 
 // CloudErrorBody detailed error information of any failure.
 type CloudErrorBody struct {
-	// Code - READ-ONLY; Error code string.
+	// Code - Error code string.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; Descriptive error information.
+	// Message - Descriptive error information.
 	Message *string `json:"message,omitempty"`
 	// Target - Error target
 	Target *string `json:"target,omitempty"`
@@ -398,9 +402,9 @@ type ListOperation struct {
 
 // Message supplementary contextual messages during a rollout.
 type Message struct {
-	// TimeStamp - READ-ONLY; Time in UTC this message was provided.
+	// TimeStamp - Time in UTC this message was provided.
 	TimeStamp *date.Time `json:"timeStamp,omitempty"`
-	// Message - READ-ONLY; The actual message text.
+	// Message - The actual message text.
 	Message *string `json:"message,omitempty"`
 }
 
@@ -430,48 +434,48 @@ type OperationDetail struct {
 
 // PrePostStep the properties that define a step.
 type PrePostStep struct {
-	// StepID - The resource Id of the step to be run.
+	// StepID - The reference to the ARM resource Id of a step.
 	StepID *string `json:"stepId,omitempty"`
 }
 
 // ProxyResource the resource model definition for a ARM proxy resource. It will have everything other than
 // required location and tags
 type ProxyResource struct {
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
 // Resource ...
 type Resource struct {
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
-// ResourceOperation individual resource operation information.
+// ResourceOperation individial resource operation information.
 type ResourceOperation struct {
 	// ResourceName - Name of the resource as specified in the artifacts. For ARM resources, this is the name of the resource specified in the template.
 	ResourceName *string `json:"resourceName,omitempty"`
-	// OperationID - READ-ONLY; Unique identifier of the operation. For ARM resources, this is the operationId obtained from ARM service.
+	// OperationID - Unique identifier of the operation. For ARM resources, this is the operationId obtained from ARM service.
 	OperationID *string `json:"operationId,omitempty"`
 	// ResourceType - Type of the resource as specified in the artifacts. For ARM resources, this is the type of the resource specified in the template.
 	ResourceType *string `json:"resourceType,omitempty"`
-	// ProvisioningState - READ-ONLY; State of the resource deployment. For ARM resources, this is the current provisioning state of the resource.
+	// ProvisioningState - State of the resource deployment. For ARM resources, this is the current provisioning state of the resource.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
-	// StatusMessage - READ-ONLY; Descriptive information of the resource operation.
+	// StatusMessage - Descriptive information of the resource operation.
 	StatusMessage *string `json:"statusMessage,omitempty"`
-	// StatusCode - READ-ONLY; Http status code of the operation.
+	// StatusCode - Http status code of the operation.
 	StatusCode *string `json:"statusCode,omitempty"`
 }
 
-// Rollout defines the rollout.
+// Rollout defines the rollout resource.
 type Rollout struct {
 	autorest.Response `json:"-"`
 	// Identity - Identity for the resource.
@@ -482,11 +486,11 @@ type Rollout struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -504,6 +508,15 @@ func (r Rollout) MarshalJSON() ([]byte, error) {
 	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
+	}
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -588,15 +601,15 @@ func (r *Rollout) UnmarshalJSON(body []byte) error {
 
 // RolloutOperationInfo detailed runtime information of the rollout.
 type RolloutOperationInfo struct {
-	// RetryAttempt - READ-ONLY; The ordinal count of the number of retry attempts on a rollout. 0 if no retries of the rollout have been performed. If the rollout is updated with a PUT, this count is reset to 0.
+	// RetryAttempt - The ordinal count of retry attempt. 0 if no retries of the rollout have been performed.
 	RetryAttempt *int32 `json:"retryAttempt,omitempty"`
-	// SkipSucceededOnRetry - READ-ONLY; True, if all steps that succeeded on the previous run/attempt were chosen to be skipped in this retry attempt. False, otherwise.
+	// SkipSucceededOnRetry - True if skipping all successful steps in the given retry attempt was chosen. False otherwise.
 	SkipSucceededOnRetry *bool `json:"skipSucceededOnRetry,omitempty"`
-	// StartTime - READ-ONLY; The start time of the rollout in UTC.
+	// StartTime - The start time of the rollout in UTC.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; The start time of the rollout in UTC. This property will not be set if the rollout has not completed yet.
+	// EndTime - The start time of the rollout in UTC. This property will not be set if the rollout has not completed yet.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// Error - READ-ONLY; The detailed error information for any failure.
+	// Error - The detailed error information for any failure.
 	Error *CloudErrorBody `json:"error,omitempty"`
 }
 
@@ -604,35 +617,35 @@ type RolloutOperationInfo struct {
 type RolloutProperties struct {
 	// BuildVersion - The version of the build being deployed.
 	BuildVersion *string `json:"buildVersion,omitempty"`
-	// ArtifactSourceID - The reference to the artifact source resource Id where the payload is located.
+	// ArtifactSourceID - The reference to the ARM resource Id where the payload is located.
 	ArtifactSourceID *string `json:"artifactSourceId,omitempty"`
-	// TargetServiceTopologyID - The resource Id of the service topology from which service units are being referenced in step groups to be deployed.
+	// TargetServiceTopologyID - The reference to the resource Id of the service topology from which services are chosen to be deployed.
 	TargetServiceTopologyID *string `json:"targetServiceTopologyId,omitempty"`
-	// StepGroups - The list of step groups that define the orchestration.
+	// StepGroups - The list of steps that define the orchestration.
 	StepGroups *[]Step `json:"stepGroups,omitempty"`
-	// Status - READ-ONLY; The current status of the rollout.
+	// Status - The current status of the rollout.
 	Status *string `json:"status,omitempty"`
-	// TotalRetryAttempts - READ-ONLY; The cardinal count of total number of retries performed on the rollout at a given time.
+	// TotalRetryAttempts - The cardinal count of total number of retries performed on the rollout at a given time.
 	TotalRetryAttempts *int32 `json:"totalRetryAttempts,omitempty"`
-	// OperationInfo - READ-ONLY; Operational information of the rollout.
+	// OperationInfo - Operational information of the rollout.
 	OperationInfo *RolloutOperationInfo `json:"operationInfo,omitempty"`
-	// Services - READ-ONLY; The detailed information on the services being deployed.
+	// Services - Set of detailed step result information on target resource groups.
 	Services *[]Service `json:"services,omitempty"`
 }
 
 // RolloutPropertiesModel defines the properties of a rollout.
 type RolloutPropertiesModel struct {
-	// Status - READ-ONLY; The current status of the rollout.
+	// Status - The current status of the rollout.
 	Status *string `json:"status,omitempty"`
-	// TotalRetryAttempts - READ-ONLY; The cardinal count of total number of retries performed on the rollout at a given time.
+	// TotalRetryAttempts - The cardinal count of total number of retries performed on the rollout at a given time.
 	TotalRetryAttempts *int32 `json:"totalRetryAttempts,omitempty"`
-	// OperationInfo - READ-ONLY; Operational information of the rollout.
+	// OperationInfo - Operational information of the rollout.
 	OperationInfo *RolloutOperationInfo `json:"operationInfo,omitempty"`
-	// Services - READ-ONLY; The detailed information on the services being deployed.
+	// Services - Set of detailed step result information on target resource groups.
 	Services *[]Service `json:"services,omitempty"`
 }
 
-// RolloutRequest defines the PUT rollout request body.
+// RolloutRequest defines the resource format for creating a rollout.
 type RolloutRequest struct {
 	autorest.Response `json:"-"`
 	// Identity - Identity for the resource.
@@ -643,11 +656,11 @@ type RolloutRequest struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -665,6 +678,15 @@ func (rr RolloutRequest) MarshalJSON() ([]byte, error) {
 	}
 	if rr.Location != nil {
 		objectMap["location"] = rr.Location
+	}
+	if rr.ID != nil {
+		objectMap["id"] = rr.ID
+	}
+	if rr.Name != nil {
+		objectMap["name"] = rr.Name
+	}
+	if rr.Type != nil {
+		objectMap["type"] = rr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -751,11 +773,11 @@ func (rr *RolloutRequest) UnmarshalJSON(body []byte) error {
 type RolloutRequestProperties struct {
 	// BuildVersion - The version of the build being deployed.
 	BuildVersion *string `json:"buildVersion,omitempty"`
-	// ArtifactSourceID - The reference to the artifact source resource Id where the payload is located.
+	// ArtifactSourceID - The reference to the ARM resource Id where the payload is located.
 	ArtifactSourceID *string `json:"artifactSourceId,omitempty"`
-	// TargetServiceTopologyID - The resource Id of the service topology from which service units are being referenced in step groups to be deployed.
+	// TargetServiceTopologyID - The reference to the resource Id of the service topology from which services are chosen to be deployed.
 	TargetServiceTopologyID *string `json:"targetServiceTopologyId,omitempty"`
-	// StepGroups - The list of step groups that define the orchestration.
+	// StepGroups - The list of steps that define the orchestration.
 	StepGroups *[]Step `json:"stepGroups,omitempty"`
 }
 
@@ -769,7 +791,7 @@ type RolloutsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *RolloutsCreateOrUpdateFuture) Result(client RolloutsClient) (rr RolloutRequest, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "deploymentmanager.RolloutsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -790,21 +812,21 @@ func (future *RolloutsCreateOrUpdateFuture) Result(client RolloutsClient) (rr Ro
 
 // RolloutStep defines a specific step on a target service unit.
 type RolloutStep struct {
-	// Name - Name of the step.
+	// Name - Name of the step as specified in the rollout specification input artifact.
 	Name *string `json:"name,omitempty"`
-	// Status - READ-ONLY; Current state of the step.
+	// Status - Current state of the step.
 	Status *string `json:"status,omitempty"`
 	// StepGroup - The step group the current step is part of.
 	StepGroup *string `json:"stepGroup,omitempty"`
-	// OperationInfo - READ-ONLY; Detailed information of specific action execution.
+	// OperationInfo - Detailed information of specific action execution.
 	OperationInfo *StepOperationInfo `json:"operationInfo,omitempty"`
-	// ResourceOperations - READ-ONLY; Set of resource operations that were performed, if any, on an Azure resource.
+	// ResourceOperations - Set of resource operations that were performed on the Azure resource that the action acted upon.
 	ResourceOperations *[]ResourceOperation `json:"resourceOperations,omitempty"`
-	// Messages - READ-ONLY; Supplementary informative messages during rollout.
+	// Messages - Supplementary informative messages during rollout.
 	Messages *[]Message `json:"messages,omitempty"`
 }
 
-// SasAuthentication defines the properties to access the artifacts using an Azure Storage SAS URI.
+// SasAuthentication defines the authentication properties to access the artifacts using Azure Storage SAS URI.
 type SasAuthentication struct {
 	// SasProperties - The SAS properties
 	*SasProperties `json:"properties,omitempty"`
@@ -875,7 +897,7 @@ func (sa *SasAuthentication) UnmarshalJSON(body []byte) error {
 
 // SasProperties the properties that define SAS authentication.
 type SasProperties struct {
-	// SasURI - The SAS URI to the Azure Storage blob container. Any offset from the root of the container to where the artifacts are located can be defined in the artifactRoot.
+	// SasURI - The complete SAS URI to the location of the artifacts.
 	SasURI *string `json:"sasUri,omitempty"`
 }
 
@@ -885,34 +907,34 @@ type Service struct {
 	Name *string `json:"name,omitempty"`
 	// ServiceUnits - The detailed information about the units that make up the service.
 	ServiceUnits *[]ServiceUnit `json:"serviceUnits,omitempty"`
-	// TargetLocation - The Azure location to which the resources in the service belong to or should be deployed to.
+	// TargetLocation - The Azure location to which the resources in the service belong to.
 	TargetLocation *string `json:"targetLocation,omitempty"`
-	// TargetSubscriptionID - The subscription to which the resources in the service belong to or should be deployed to.
+	// TargetSubscriptionID - The subscription to which the resources in the service belong to.
 	TargetSubscriptionID *string `json:"targetSubscriptionId,omitempty"`
 }
 
 // ServiceProperties the properties of a service.
 type ServiceProperties struct {
-	// TargetLocation - The Azure location to which the resources in the service belong to or should be deployed to.
+	// TargetLocation - The Azure location to which the resources in the service belong to.
 	TargetLocation *string `json:"targetLocation,omitempty"`
-	// TargetSubscriptionID - The subscription to which the resources in the service belong to or should be deployed to.
+	// TargetSubscriptionID - The subscription to which the resources in the service belong to.
 	TargetSubscriptionID *string `json:"targetSubscriptionId,omitempty"`
 }
 
-// ServiceResource the resource representation of a service in a service topology.
+// ServiceResource the resource representation of a service in a topology.
 type ServiceResource struct {
 	autorest.Response `json:"-"`
-	// ServiceResourceProperties - The properties that define a service in a service topology.
+	// ServiceResourceProperties - The properties that define a service in a topology.
 	*ServiceResourceProperties `json:"properties,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -927,6 +949,15 @@ func (sr ServiceResource) MarshalJSON() ([]byte, error) {
 	}
 	if sr.Location != nil {
 		objectMap["location"] = sr.Location
+	}
+	if sr.ID != nil {
+		objectMap["id"] = sr.ID
+	}
+	if sr.Name != nil {
+		objectMap["name"] = sr.Name
+	}
+	if sr.Type != nil {
+		objectMap["type"] = sr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1000,34 +1031,34 @@ func (sr *ServiceResource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ServiceResourceProperties the properties that define a service in a service topology.
+// ServiceResourceProperties the properties that define a service in a topology.
 type ServiceResourceProperties struct {
-	// TargetLocation - The Azure location to which the resources in the service belong to or should be deployed to.
+	// TargetLocation - The Azure location to which the resources in the service belong to.
 	TargetLocation *string `json:"targetLocation,omitempty"`
-	// TargetSubscriptionID - The subscription to which the resources in the service belong to or should be deployed to.
+	// TargetSubscriptionID - The subscription to which the resources in the service belong to.
 	TargetSubscriptionID *string `json:"targetSubscriptionId,omitempty"`
 }
 
 // ServiceTopologyProperties the properties of a service topology.
 type ServiceTopologyProperties struct {
-	// ArtifactSourceID - The resource Id of the artifact source that contains the artifacts that can be referenced in the service units.
+	// ArtifactSourceID - The artifact source that contains the artifacts that can be referenced in the service units.
 	ArtifactSourceID *string `json:"artifactSourceId,omitempty"`
 }
 
 // ServiceTopologyResource the resource representation of a service topology.
 type ServiceTopologyResource struct {
 	autorest.Response `json:"-"`
-	// ServiceTopologyResourceProperties - The properties that define the service topology.
+	// ServiceTopologyResourceProperties - The properties that define the service.
 	*ServiceTopologyResourceProperties `json:"properties,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1042,6 +1073,15 @@ func (str ServiceTopologyResource) MarshalJSON() ([]byte, error) {
 	}
 	if str.Location != nil {
 		objectMap["location"] = str.Location
+	}
+	if str.ID != nil {
+		objectMap["id"] = str.ID
+	}
+	if str.Name != nil {
+		objectMap["name"] = str.Name
+	}
+	if str.Type != nil {
+		objectMap["type"] = str.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1115,9 +1155,9 @@ func (str *ServiceTopologyResource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ServiceTopologyResourceProperties the properties that define the service topology.
+// ServiceTopologyResourceProperties the properties that define the service.
 type ServiceTopologyResourceProperties struct {
-	// ArtifactSourceID - The resource Id of the artifact source that contains the artifacts that can be referenced in the service units.
+	// ArtifactSourceID - The artifact source that contains the artifacts that can be referenced in the service units.
 	ArtifactSourceID *string `json:"artifactSourceId,omitempty"`
 }
 
@@ -1127,7 +1167,7 @@ type ServiceUnit struct {
 	Name *string `json:"name,omitempty"`
 	// Steps - Detailed step information, if present.
 	Steps *[]RolloutStep `json:"steps,omitempty"`
-	// TargetResourceGroup - The Azure Resource Group to which the resources in the service unit belong to or should be deployed to.
+	// TargetResourceGroup - The Azure Resource Group to which the resources in the service unit belong to.
 	TargetResourceGroup *string `json:"targetResourceGroup,omitempty"`
 	// DeploymentMode - Describes the type of ARM deployment to be performed on the resource. Possible values include: 'Incremental', 'Complete'
 	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
@@ -1149,7 +1189,7 @@ type ServiceUnitArtifacts struct {
 
 // ServiceUnitProperties defines the properties of a service unit.
 type ServiceUnitProperties struct {
-	// TargetResourceGroup - The Azure Resource Group to which the resources in the service unit belong to or should be deployed to.
+	// TargetResourceGroup - The Azure Resource Group to which the resources in the service unit belong to.
 	TargetResourceGroup *string `json:"targetResourceGroup,omitempty"`
 	// DeploymentMode - Describes the type of ARM deployment to be performed on the resource. Possible values include: 'Incremental', 'Complete'
 	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
@@ -1166,11 +1206,11 @@ type ServiceUnitResource struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1185,6 +1225,15 @@ func (sur ServiceUnitResource) MarshalJSON() ([]byte, error) {
 	}
 	if sur.Location != nil {
 		objectMap["location"] = sur.Location
+	}
+	if sur.ID != nil {
+		objectMap["id"] = sur.ID
+	}
+	if sur.Name != nil {
+		objectMap["name"] = sur.Name
+	}
+	if sur.Type != nil {
+		objectMap["type"] = sur.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1260,7 +1309,7 @@ func (sur *ServiceUnitResource) UnmarshalJSON(body []byte) error {
 
 // ServiceUnitResourceProperties the properties that define the service unit.
 type ServiceUnitResourceProperties struct {
-	// TargetResourceGroup - The Azure Resource Group to which the resources in the service unit belong to or should be deployed to.
+	// TargetResourceGroup - The Azure Resource Group to which the resources in the service unit belong to.
 	TargetResourceGroup *string `json:"targetResourceGroup,omitempty"`
 	// DeploymentMode - Describes the type of ARM deployment to be performed on the resource. Possible values include: 'Incremental', 'Complete'
 	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
@@ -1268,8 +1317,8 @@ type ServiceUnitResourceProperties struct {
 	Artifacts *ServiceUnitArtifacts `json:"artifacts,omitempty"`
 }
 
-// ServiceUnitsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// ServiceUnitsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type ServiceUnitsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -1278,7 +1327,7 @@ type ServiceUnitsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServiceUnitsCreateOrUpdateFuture) Result(client ServiceUnitsClient) (sur ServiceUnitResource, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "deploymentmanager.ServiceUnitsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1299,29 +1348,29 @@ func (future *ServiceUnitsCreateOrUpdateFuture) Result(client ServiceUnitsClient
 
 // Step the properties that define an Azure Deployment Manager step.
 type Step struct {
-	// Name - The name of the step group.
+	// Name - The name of the step.
 	Name *string `json:"name,omitempty"`
-	// DependsOnStepGroups - The list of step group names on which this step group depends on.
-	DependsOnStepGroups *[]string `json:"dependsOnStepGroups,omitempty"`
-	// PreDeploymentSteps - The list of steps to be run before deploying the target.
+	// DependsOnStepGroup - The list of step names on which this step depends.
+	DependsOnStepGroup *[]string `json:"dependsOnStepGroup,omitempty"`
+	// PreDeploymentSteps - The list of step names to be run before deploying the target.
 	PreDeploymentSteps *[]PrePostStep `json:"preDeploymentSteps,omitempty"`
-	// DeploymentTargetID - The resource Id of service unit to be deployed. The service unit should be from the service topology referenced in targetServiceTopologyId
+	// DeploymentTargetID - The reference to the ARM service unit resource to be deployed.
 	DeploymentTargetID *string `json:"deploymentTargetId,omitempty"`
-	// PostDeploymentSteps - The list of steps to be run after deploying the target.
+	// PostDeploymentSteps - The list of step names to be run after deploying the target.
 	PostDeploymentSteps *[]PrePostStep `json:"postDeploymentSteps,omitempty"`
 }
 
-// StepOperationInfo detailed information of a specific step run.
+// StepOperationInfo detailed information of specific step execution.
 type StepOperationInfo struct {
-	// DeploymentName - READ-ONLY; The name of the ARM deployment initiated as part of the step.
+	// DeploymentName - The name of the Azure Resource Manager deployment initiated as part of the step.
 	DeploymentName *string `json:"deploymentName,omitempty"`
-	// CorrelationID - READ-ONLY; Unique identifier to track the request for ARM-based resources.
+	// CorrelationID - Unique identifier to track the request for ARM-based resources.
 	CorrelationID *string `json:"correlationId,omitempty"`
-	// StartTime - READ-ONLY; Start time of the action in UTC.
+	// StartTime - Start time of the action in UTC.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; End time of the action in UTC.
+	// EndTime - End time of the action in UTC.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// LastUpdatedTime - READ-ONLY; Last time in UTC this operation was updated.
+	// LastUpdatedTime - Last time in UTC this operation was updated.
 	LastUpdatedTime *date.Time `json:"lastUpdatedTime,omitempty"`
 	// Error - The errors, if any, for the action.
 	Error *CloudErrorBody `json:"error,omitempty"`
@@ -1401,20 +1450,20 @@ func (sp StepProperties) AsBasicStepProperties() (BasicStepProperties, bool) {
 	return &sp, true
 }
 
-// StepResource the resource representation of a rollout step.
+// StepResource the resource representation of a deployment step.
 type StepResource struct {
 	autorest.Response `json:"-"`
-	// Properties - The properties that define the step.
+	// Properties - The properties for the resource.
 	Properties BasicStepProperties `json:"properties,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1427,6 +1476,15 @@ func (sr StepResource) MarshalJSON() ([]byte, error) {
 	}
 	if sr.Location != nil {
 		objectMap["location"] = sr.Location
+	}
+	if sr.ID != nil {
+		objectMap["id"] = sr.ID
+	}
+	if sr.Name != nil {
+		objectMap["name"] = sr.Name
+	}
+	if sr.Type != nil {
+		objectMap["type"] = sr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1505,11 +1563,11 @@ type TrackedResource struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
+	// Type - The type of the resource. Ex- Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1521,6 +1579,15 @@ func (tr TrackedResource) MarshalJSON() ([]byte, error) {
 	}
 	if tr.Location != nil {
 		objectMap["location"] = tr.Location
+	}
+	if tr.ID != nil {
+		objectMap["id"] = tr.ID
+	}
+	if tr.Name != nil {
+		objectMap["name"] = tr.Name
+	}
+	if tr.Type != nil {
+		objectMap["type"] = tr.Type
 	}
 	return json.Marshal(objectMap)
 }

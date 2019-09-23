@@ -28,7 +28,7 @@ import (
 func (in *List) DeepCopyInto(out *List) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]runtime.Object, len(*in))

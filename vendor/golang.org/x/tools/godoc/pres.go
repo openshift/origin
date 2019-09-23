@@ -33,11 +33,12 @@ type Presentation struct {
 	ImplementsHTML,
 	MethodSetHTML,
 	PackageHTML,
-	PackageRootHTML,
+	PackageText,
 	SearchHTML,
 	SearchDocHTML,
 	SearchCodeHTML,
 	SearchTxtHTML,
+	SearchText,
 	SearchDescXML *template.Template
 
 	// TabWidth optionally specifies the tab width.
@@ -45,7 +46,13 @@ type Presentation struct {
 
 	ShowTimestamps bool
 	ShowPlayground bool
+	ShowExamples   bool
 	DeclLinks      bool
+
+	// SrcMode outputs source code instead of documentation in command-line mode.
+	SrcMode bool
+	// HTMLMode outputs HTML instead of plain text in command-line mode.
+	HTMLMode bool
 
 	// NotesRx optionally specifies a regexp to match
 	// notes to render in the output.
@@ -82,10 +89,6 @@ type Presentation struct {
 	// body for displaying search results.
 	SearchResults []SearchResultFunc
 
-	// GoogleAnalytics optionally adds Google Analytics via the provided
-	// tracking ID to each page.
-	GoogleAnalytics string
-
 	initFuncMapOnce sync.Once
 	funcMap         template.FuncMap
 	templateFuncs   template.FuncMap
@@ -103,8 +106,9 @@ func NewPresentation(c *Corpus) *Presentation {
 		mux:        http.NewServeMux(),
 		fileServer: http.FileServer(httpfs.New(c.fs)),
 
-		TabWidth:  4,
-		DeclLinks: true,
+		TabWidth:     4,
+		ShowExamples: true,
+		DeclLinks:    true,
 		SearchResults: []SearchResultFunc{
 			(*Presentation).SearchResultDoc,
 			(*Presentation).SearchResultCode,

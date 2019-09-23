@@ -113,7 +113,7 @@ type Laplacian struct {
 // degree of each node and A is the graph adjacency matrix of the input graph.
 // If g contains self edges, NewLaplacian will panic.
 func NewLaplacian(g graph.Undirected) Laplacian {
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	indexOf := make(map[int64]int, len(nodes))
 	for i, n := range nodes {
 		id := n.ID()
@@ -123,7 +123,7 @@ func NewLaplacian(g graph.Undirected) Laplacian {
 	l := mat.NewSymDense(len(nodes), nil)
 	for j, u := range nodes {
 		uid := u.ID()
-		to := graph.NodesOf(g.From(uid))
+		to := g.From(uid)
 		l.SetSym(j, j, float64(len(to)))
 		for _, v := range to {
 			vid := v.ID()
@@ -146,7 +146,7 @@ func NewLaplacian(g graph.Undirected) Laplacian {
 // matrix of the input graph.
 // If g contains self edges, NewSymNormLaplacian will panic.
 func NewSymNormLaplacian(g graph.Undirected) Laplacian {
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	indexOf := make(map[int64]int, len(nodes))
 	for i, n := range nodes {
 		id := n.ID()
@@ -156,7 +156,7 @@ func NewSymNormLaplacian(g graph.Undirected) Laplacian {
 	l := mat.NewSymDense(len(nodes), nil)
 	for j, u := range nodes {
 		uid := u.ID()
-		to := graph.NodesOf(g.From(uid))
+		to := g.From(uid)
 		if len(to) == 0 {
 			continue
 		}
@@ -168,7 +168,7 @@ func NewSymNormLaplacian(g graph.Undirected) Laplacian {
 				panic("network: self edge in graph")
 			}
 			if uid < vid {
-				l.SetSym(indexOf[vid], j, -1/(squdeg*math.Sqrt(float64(g.From(vid).Len()))))
+				l.SetSym(indexOf[vid], j, -1/(squdeg*math.Sqrt(float64(len(g.From(vid))))))
 			}
 		}
 	}
@@ -183,7 +183,7 @@ func NewSymNormLaplacian(g graph.Undirected) Laplacian {
 // graph.
 // If g contains self edges, NewRandomWalkLaplacian will panic.
 func NewRandomWalkLaplacian(g graph.Graph, damp float64) Laplacian {
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	indexOf := make(map[int64]int, len(nodes))
 	for i, n := range nodes {
 		id := n.ID()
@@ -193,7 +193,7 @@ func NewRandomWalkLaplacian(g graph.Graph, damp float64) Laplacian {
 	l := mat.NewDense(len(nodes), len(nodes), nil)
 	for j, u := range nodes {
 		uid := u.ID()
-		to := graph.NodesOf(g.From(uid))
+		to := g.From(uid)
 		if len(to) == 0 {
 			continue
 		}

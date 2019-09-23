@@ -22,16 +22,16 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
-	settingsv1alpha1 "k8s.io/api/settings/v1alpha1"
+	settings "k8s.io/api/settings/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/watch"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
@@ -50,12 +50,12 @@ var _ = SIGDescribe("[Feature:PodPreset] PodPreset", func() {
 	ginkgo.It("should create a pod preset", func() {
 		ginkgo.By("Creating a pod preset")
 
-		pip := &settingsv1alpha1.PodPreset{
+		pip := &settings.PodPreset{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "hello",
 				Namespace: f.Namespace.Name,
 			},
-			Spec: settingsv1alpha1.PodPresetSpec{
+			Spec: settings.PodPresetSpec{
 				Selector: metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{
@@ -77,7 +77,7 @@ var _ = SIGDescribe("[Feature:PodPreset] PodPreset", func() {
 		if errors.IsNotFound(err) {
 			framework.Skipf("podpresets requires k8s.io/api/settings/v1alpha1 to be enabled")
 		}
-		framework.ExpectNoError(err)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		ginkgo.By("creating the pod")
 		name := "pod-preset-pod"
@@ -113,14 +113,14 @@ var _ = SIGDescribe("[Feature:PodPreset] PodPreset", func() {
 		selector := labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
 		options := metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err := podClient.List(options)
-		framework.ExpectNoError(err, "failed to query for pod")
-		framework.ExpectEqual(len(pods.Items), 0)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to query for pod")
+		gomega.Expect(len(pods.Items)).To(gomega.Equal(0))
 		options = metav1.ListOptions{
 			LabelSelector:   selector.String(),
 			ResourceVersion: pods.ListMeta.ResourceVersion,
 		}
 		w, err := podClient.Watch(options)
-		framework.ExpectNoError(err, "failed to set up watch")
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to set up watch")
 
 		ginkgo.By("submitting the pod to kubernetes")
 		podClient.Create(pod)
@@ -129,17 +129,17 @@ var _ = SIGDescribe("[Feature:PodPreset] PodPreset", func() {
 		selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
 		options = metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err = podClient.List(options)
-		framework.ExpectNoError(err, "failed to query for pod")
-		framework.ExpectEqual(len(pods.Items), 1)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to query for pod")
+		gomega.Expect(len(pods.Items)).To(gomega.Equal(1))
 
 		ginkgo.By("verifying pod creation was observed")
 		select {
 		case event, _ := <-w.ResultChan():
 			if event.Type != watch.Added {
-				e2elog.Failf("Failed to observe pod creation: %v", event)
+				framework.Failf("Failed to observe pod creation: %v", event)
 			}
 		case <-time.After(framework.PodStartTimeout):
-			e2elog.Failf("Timeout while waiting for pod creation")
+			framework.Failf("Timeout while waiting for pod creation")
 		}
 
 		// We need to wait for the pod to be running, otherwise the deletion
@@ -149,31 +149,31 @@ var _ = SIGDescribe("[Feature:PodPreset] PodPreset", func() {
 		ginkgo.By("ensuring pod is modified")
 		// save the running pod
 		pod, err = podClient.Get(pod.Name, metav1.GetOptions{})
-		framework.ExpectNoError(err, "failed to GET scheduled pod")
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to GET scheduled pod")
 
 		// check the annotation is there
 		if _, ok := pod.Annotations["podpreset.admission.kubernetes.io/podpreset-hello"]; !ok {
-			e2elog.Failf("Annotation not found in pod annotations: \n%v\n", pod.Annotations)
+			framework.Failf("Annotation not found in pod annotations: \n%v\n", pod.Annotations)
 		}
 
 		// verify the env is the same
 		if !reflect.DeepEqual(pip.Spec.Env, pod.Spec.Containers[0].Env) {
-			e2elog.Failf("env of pod container does not match the env of the pip: expected %#v, got: %#v", pip.Spec.Env, pod.Spec.Containers[0].Env)
+			framework.Failf("env of pod container does not match the env of the pip: expected %#v, got: %#v", pip.Spec.Env, pod.Spec.Containers[0].Env)
 		}
 		if !reflect.DeepEqual(pip.Spec.Env, pod.Spec.InitContainers[0].Env) {
-			e2elog.Failf("env of pod init container does not match the env of the pip: expected %#v, got: %#v", pip.Spec.Env, pod.Spec.InitContainers[0].Env)
+			framework.Failf("env of pod init container does not match the env of the pip: expected %#v, got: %#v", pip.Spec.Env, pod.Spec.InitContainers[0].Env)
 		}
 	})
 
 	ginkgo.It("should not modify the pod on conflict", func() {
 		ginkgo.By("Creating a pod preset")
 
-		pip := &settingsv1alpha1.PodPreset{
+		pip := &settings.PodPreset{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "hello",
 				Namespace: f.Namespace.Name,
 			},
-			Spec: settingsv1alpha1.PodPresetSpec{
+			Spec: settings.PodPresetSpec{
 				Selector: metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{
@@ -195,7 +195,7 @@ var _ = SIGDescribe("[Feature:PodPreset] PodPreset", func() {
 		if errors.IsNotFound(err) {
 			framework.Skipf("podpresets requires k8s.io/api/settings/v1alpha1 to be enabled")
 		}
-		framework.ExpectNoError(err)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		ginkgo.By("creating the pod")
 		name := "pod-preset-pod"
@@ -233,14 +233,14 @@ var _ = SIGDescribe("[Feature:PodPreset] PodPreset", func() {
 		selector := labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
 		options := metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err := podClient.List(options)
-		framework.ExpectNoError(err, "failed to query for pod")
-		framework.ExpectEqual(len(pods.Items), 0)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to query for pod")
+		gomega.Expect(len(pods.Items)).To(gomega.Equal(0))
 		options = metav1.ListOptions{
 			LabelSelector:   selector.String(),
 			ResourceVersion: pods.ListMeta.ResourceVersion,
 		}
 		w, err := podClient.Watch(options)
-		framework.ExpectNoError(err, "failed to set up watch")
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to set up watch")
 
 		ginkgo.By("submitting the pod to kubernetes")
 		podClient.Create(originalPod)
@@ -249,17 +249,17 @@ var _ = SIGDescribe("[Feature:PodPreset] PodPreset", func() {
 		selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
 		options = metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err = podClient.List(options)
-		framework.ExpectNoError(err, "failed to query for pod")
-		framework.ExpectEqual(len(pods.Items), 1)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to query for pod")
+		gomega.Expect(len(pods.Items)).To(gomega.Equal(1))
 
 		ginkgo.By("verifying pod creation was observed")
 		select {
 		case event, _ := <-w.ResultChan():
 			if event.Type != watch.Added {
-				e2elog.Failf("Failed to observe pod creation: %v", event)
+				framework.Failf("Failed to observe pod creation: %v", event)
 			}
 		case <-time.After(framework.PodStartTimeout):
-			e2elog.Failf("Timeout while waiting for pod creation")
+			framework.Failf("Timeout while waiting for pod creation")
 		}
 
 		// We need to wait for the pod to be running, otherwise the deletion
@@ -269,24 +269,36 @@ var _ = SIGDescribe("[Feature:PodPreset] PodPreset", func() {
 		ginkgo.By("ensuring pod is modified")
 		// save the running pod
 		pod, err := podClient.Get(originalPod.Name, metav1.GetOptions{})
-		framework.ExpectNoError(err, "failed to GET scheduled pod")
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to GET scheduled pod")
 
 		// check the annotation is not there
 		if _, ok := pod.Annotations["podpreset.admission.kubernetes.io/podpreset-hello"]; ok {
-			e2elog.Failf("Annotation found in pod annotations and should not be: \n%v\n", pod.Annotations)
+			framework.Failf("Annotation found in pod annotations and should not be: \n%v\n", pod.Annotations)
 		}
 
 		// verify the env is the same
 		if !reflect.DeepEqual(originalPod.Spec.Containers[0].Env, pod.Spec.Containers[0].Env) {
-			e2elog.Failf("env of pod container does not match the env of the original pod: expected %#v, got: %#v", originalPod.Spec.Containers[0].Env, pod.Spec.Containers[0].Env)
+			framework.Failf("env of pod container does not match the env of the original pod: expected %#v, got: %#v", originalPod.Spec.Containers[0].Env, pod.Spec.Containers[0].Env)
 		}
 		if !reflect.DeepEqual(originalPod.Spec.InitContainers[0].Env, pod.Spec.InitContainers[0].Env) {
-			e2elog.Failf("env of pod init container does not match the env of the original pod: expected %#v, got: %#v", originalPod.Spec.InitContainers[0].Env, pod.Spec.InitContainers[0].Env)
+			framework.Failf("env of pod init container does not match the env of the original pod: expected %#v, got: %#v", originalPod.Spec.InitContainers[0].Env, pod.Spec.InitContainers[0].Env)
 		}
 
 	})
 })
 
-func createPodPreset(c clientset.Interface, ns string, job *settingsv1alpha1.PodPreset) (*settingsv1alpha1.PodPreset, error) {
+func getPodPreset(c clientset.Interface, ns, name string) (*settings.PodPreset, error) {
+	return c.SettingsV1alpha1().PodPresets(ns).Get(name, metav1.GetOptions{})
+}
+
+func createPodPreset(c clientset.Interface, ns string, job *settings.PodPreset) (*settings.PodPreset, error) {
 	return c.SettingsV1alpha1().PodPresets(ns).Create(job)
+}
+
+func updatePodPreset(c clientset.Interface, ns string, job *settings.PodPreset) (*settings.PodPreset, error) {
+	return c.SettingsV1alpha1().PodPresets(ns).Update(job)
+}
+
+func deletePodPreset(c clientset.Interface, ns, name string) error {
+	return c.SettingsV1alpha1().PodPresets(ns).Delete(name, nil)
 }

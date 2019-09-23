@@ -30,7 +30,7 @@ import (
 
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,15 +40,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/metadata"
-	"k8s.io/client-go/metadata/metadatainformer"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/controller"
 )
 
 type testRESTMapper struct {
@@ -61,7 +59,7 @@ func TestGarbageCollectorConstruction(t *testing.T) {
 	config := &restclient.Config{}
 	tweakableRM := meta.NewDefaultRESTMapper(nil)
 	rm := &testRESTMapper{meta.MultiRESTMapper{tweakableRM, testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme)}}
-	metadataClient, err := metadata.NewForConfig(config)
+	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,15 +72,13 @@ func TestGarbageCollectorConstruction(t *testing.T) {
 		{Group: "tpr.io", Version: "v1", Resource: "unknown"}: {},
 	}
 	client := fake.NewSimpleClientset()
-
 	sharedInformers := informers.NewSharedInformerFactory(client, 0)
-	metadataInformers := metadatainformer.NewSharedInformerFactory(metadataClient, 0)
+
 	// No monitor will be constructed for the non-core resource, but the GC
 	// construction will not fail.
 	alwaysStarted := make(chan struct{})
 	close(alwaysStarted)
-	gc, err := NewGarbageCollector(metadataClient, rm, twoResources, map[schema.GroupResource]struct{}{},
-		controller.NewInformerFactory(sharedInformers, metadataInformers), alwaysStarted)
+	gc, err := NewGarbageCollector(dynamicClient, rm, twoResources, map[schema.GroupResource]struct{}{}, sharedInformers, alwaysStarted)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +152,7 @@ func (f *fakeActionHandler) ServeHTTP(response http.ResponseWriter, request *htt
 		fakeResponse, ok := f.response[request.Method+request.URL.Path]
 		if !ok {
 			fakeResponse.statusCode = 200
-			fakeResponse.content = []byte(`{"apiVersion": "v1", "kind": "List"}`)
+			fakeResponse.content = []byte("{\"kind\": \"List\"}")
 		}
 		response.Header().Set("Content-Type", "application/json")
 		response.WriteHeader(fakeResponse.statusCode)
@@ -193,7 +189,7 @@ type garbageCollector struct {
 }
 
 func setupGC(t *testing.T, config *restclient.Config) garbageCollector {
-	metadataClient, err := metadata.NewForConfig(config)
+	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +199,7 @@ func setupGC(t *testing.T, config *restclient.Config) garbageCollector {
 	sharedInformers := informers.NewSharedInformerFactory(client, 0)
 	alwaysStarted := make(chan struct{})
 	close(alwaysStarted)
-	gc, err := NewGarbageCollector(metadataClient, &testRESTMapper{testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme)}, podResource, ignoredResources, sharedInformers, alwaysStarted)
+	gc, err := NewGarbageCollector(dynamicClient, &testRESTMapper{testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme)}, podResource, ignoredResources, sharedInformers, alwaysStarted)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +217,6 @@ func getPod(podName string, ownerReferences []metav1.OwnerReference) *v1.Pod {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            podName,
 			Namespace:       "ns1",
-			UID:             "456",
 			OwnerReferences: ownerReferences,
 		},
 	}
@@ -432,6 +427,36 @@ func TestDependentsRace(t *testing.T) {
 			gc.attemptToOrphanWorker()
 		}
 	}()
+}
+
+// test the list and watch functions correctly converts the ListOptions
+func TestGCListWatcher(t *testing.T) {
+	testHandler := &fakeActionHandler{}
+	srv, clientConfig := testServerAndClientConfig(testHandler.ServeHTTP)
+	defer srv.Close()
+	podResource := schema.GroupVersionResource{Version: "v1", Resource: "pods"}
+	dynamicClient, err := dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lw := listWatcher(dynamicClient, podResource)
+	lw.DisableChunking = true
+	if _, err := lw.Watch(metav1.ListOptions{ResourceVersion: "1"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := lw.List(metav1.ListOptions{ResourceVersion: "1"}); err != nil {
+		t.Fatal(err)
+	}
+	if e, a := 2, len(testHandler.actions); e != a {
+		t.Errorf("expect %d requests, got %d", e, a)
+	}
+	if e, a := "resourceVersion=1&watch=true", testHandler.actions[0].query; e != a {
+		t.Errorf("expect %s, got %s", e, a)
+	}
+	if e, a := "resourceVersion=1", testHandler.actions[1].query; e != a {
+		t.Errorf("expect %s, got %s", e, a)
+	}
 }
 
 func podToGCNode(pod *v1.Pod) *node {
@@ -812,7 +837,7 @@ func TestGarbageCollectorSync(t *testing.T) {
 	}
 
 	rm := &testRESTMapper{testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme)}
-	metadataClient, err := metadata.NewForConfig(clientConfig)
+	dynamicClient, err := dynamic.NewForConfig(clientConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -823,7 +848,7 @@ func TestGarbageCollectorSync(t *testing.T) {
 	sharedInformers := informers.NewSharedInformerFactory(client, 0)
 	alwaysStarted := make(chan struct{})
 	close(alwaysStarted)
-	gc, err := NewGarbageCollector(metadataClient, rm, podResource, map[schema.GroupResource]struct{}{}, sharedInformers, alwaysStarted)
+	gc, err := NewGarbageCollector(dynamicClient, rm, podResource, map[schema.GroupResource]struct{}{}, sharedInformers, alwaysStarted)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -837,7 +862,7 @@ func TestGarbageCollectorSync(t *testing.T) {
 	//        wait.PollImmediateUntil() loops with 100ms (hardcode) util the `stopCh` is closed:
 	//            GetDeletableResources()
 	//            gc.resyncMonitors()
-	//            cache.WaitForNamedCacheSync() loops with `syncedPollPeriod` (hardcoded to 100ms), until either its stop channel is closed after `period`, or all caches synced.
+	//            controller.WaitForCacheSync() loops with `syncedPollPeriod` (hardcoded to 100ms), until either its stop channel is closed after `period`, or all caches synced.
 	//
 	// Setting the period to 200ms allows the WaitForCacheSync() to check
 	// for cache sync ~2 times in every wait.PollImmediateUntil() loop.
@@ -857,7 +882,7 @@ func TestGarbageCollectorSync(t *testing.T) {
 
 	// Simulate the discovery client returning an error
 	fakeDiscoveryClient.setPreferredResources(nil)
-	fakeDiscoveryClient.setError(fmt.Errorf("error calling discoveryClient.ServerPreferredResources()"))
+	fakeDiscoveryClient.setError(fmt.Errorf("Error calling discoveryClient.ServerPreferredResources()"))
 
 	// Wait until sync discovers the change
 	time.Sleep(1 * time.Second)

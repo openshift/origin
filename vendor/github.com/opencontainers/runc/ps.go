@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -29,12 +28,9 @@ var psCommand = cli.Command{
 		if err := checkArgs(context, 1, minArgs); err != nil {
 			return err
 		}
-		rootlessCg, err := shouldUseRootlessCgroupManager(context)
-		if err != nil {
-			return err
-		}
-		if rootlessCg {
-			logrus.Warn("runc ps may fail if you don't have the full access to cgroups")
+		// XXX: Currently not supported with rootless containers.
+		if isRootless() {
+			return fmt.Errorf("runc ps requires root")
 		}
 
 		container, err := getContainer(context)

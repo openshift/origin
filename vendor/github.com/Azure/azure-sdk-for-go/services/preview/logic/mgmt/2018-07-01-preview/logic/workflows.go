@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewWorkflowsClientWithBaseURI(baseURI string, subscriptionID string) Workfl
 // workflowName - the workflow name.
 // workflow - the workflow.
 func (client WorkflowsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, workflowName string, workflow Workflow) (result Workflow, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, workflowName, workflow)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -103,8 +92,8 @@ func (client WorkflowsClient) CreateOrUpdatePreparer(ctx context.Context, resour
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -125,16 +114,6 @@ func (client WorkflowsClient) CreateOrUpdateResponder(resp *http.Response) (resu
 // resourceGroupName - the resource group name.
 // workflowName - the workflow name.
 func (client WorkflowsClient) Delete(ctx context.Context, resourceGroupName string, workflowName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, workflowName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "Delete", nil, "Failure preparing request")
@@ -180,8 +159,8 @@ func (client WorkflowsClient) DeletePreparer(ctx context.Context, resourceGroupN
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -201,16 +180,6 @@ func (client WorkflowsClient) DeleteResponder(resp *http.Response) (result autor
 // resourceGroupName - the resource group name.
 // workflowName - the workflow name.
 func (client WorkflowsClient) Disable(ctx context.Context, resourceGroupName string, workflowName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.Disable")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DisablePreparer(ctx, resourceGroupName, workflowName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "Disable", nil, "Failure preparing request")
@@ -256,8 +225,8 @@ func (client WorkflowsClient) DisablePreparer(ctx context.Context, resourceGroup
 // DisableSender sends the Disable request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) DisableSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DisableResponder handles the response to the Disable request. The method always
@@ -277,16 +246,6 @@ func (client WorkflowsClient) DisableResponder(resp *http.Response) (result auto
 // resourceGroupName - the resource group name.
 // workflowName - the workflow name.
 func (client WorkflowsClient) Enable(ctx context.Context, resourceGroupName string, workflowName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.Enable")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.EnablePreparer(ctx, resourceGroupName, workflowName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "Enable", nil, "Failure preparing request")
@@ -332,8 +291,8 @@ func (client WorkflowsClient) EnablePreparer(ctx context.Context, resourceGroupN
 // EnableSender sends the Enable request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) EnableSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // EnableResponder handles the response to the Enable request. The method always
@@ -354,16 +313,6 @@ func (client WorkflowsClient) EnableResponder(resp *http.Response) (result autor
 // workflowName - the workflow name.
 // parameters - parameters for generating an upgraded definition.
 func (client WorkflowsClient) GenerateUpgradedDefinition(ctx context.Context, resourceGroupName string, workflowName string, parameters GenerateUpgradedDefinitionParameters) (result SetObject, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.GenerateUpgradedDefinition")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GenerateUpgradedDefinitionPreparer(ctx, resourceGroupName, workflowName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "GenerateUpgradedDefinition", nil, "Failure preparing request")
@@ -411,8 +360,8 @@ func (client WorkflowsClient) GenerateUpgradedDefinitionPreparer(ctx context.Con
 // GenerateUpgradedDefinitionSender sends the GenerateUpgradedDefinition request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) GenerateUpgradedDefinitionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GenerateUpgradedDefinitionResponder handles the response to the GenerateUpgradedDefinition request. The method always
@@ -433,16 +382,6 @@ func (client WorkflowsClient) GenerateUpgradedDefinitionResponder(resp *http.Res
 // resourceGroupName - the resource group name.
 // workflowName - the workflow name.
 func (client WorkflowsClient) Get(ctx context.Context, resourceGroupName string, workflowName string) (result Workflow, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, workflowName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "Get", nil, "Failure preparing request")
@@ -488,8 +427,8 @@ func (client WorkflowsClient) GetPreparer(ctx context.Context, resourceGroupName
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -512,16 +451,6 @@ func (client WorkflowsClient) GetResponder(resp *http.Response) (result Workflow
 // filter - the filter to apply on the operation. Options for filters include: State, Trigger, and
 // ReferencedResourceId.
 func (client WorkflowsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, top *int32, filter string) (result WorkflowListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.wlr.Response.Response != nil {
-				sc = result.wlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, top, filter)
 	if err != nil {
@@ -573,8 +502,8 @@ func (client WorkflowsClient) ListByResourceGroupPreparer(ctx context.Context, r
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -591,8 +520,8 @@ func (client WorkflowsClient) ListByResourceGroupResponder(resp *http.Response) 
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client WorkflowsClient) listByResourceGroupNextResults(ctx context.Context, lastResults WorkflowListResult) (result WorkflowListResult, err error) {
-	req, err := lastResults.workflowListResultPreparer(ctx)
+func (client WorkflowsClient) listByResourceGroupNextResults(lastResults WorkflowListResult) (result WorkflowListResult, err error) {
+	req, err := lastResults.workflowListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "logic.WorkflowsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -613,16 +542,6 @@ func (client WorkflowsClient) listByResourceGroupNextResults(ctx context.Context
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client WorkflowsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, top *int32, filter string) (result WorkflowListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, top, filter)
 	return
 }
@@ -633,16 +552,6 @@ func (client WorkflowsClient) ListByResourceGroupComplete(ctx context.Context, r
 // filter - the filter to apply on the operation. Options for filters include: State, Trigger, and
 // ReferencedResourceId.
 func (client WorkflowsClient) ListBySubscription(ctx context.Context, top *int32, filter string) (result WorkflowListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.ListBySubscription")
-		defer func() {
-			sc := -1
-			if result.wlr.Response.Response != nil {
-				sc = result.wlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listBySubscriptionNextResults
 	req, err := client.ListBySubscriptionPreparer(ctx, top, filter)
 	if err != nil {
@@ -693,8 +602,8 @@ func (client WorkflowsClient) ListBySubscriptionPreparer(ctx context.Context, to
 // ListBySubscriptionSender sends the ListBySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
@@ -711,8 +620,8 @@ func (client WorkflowsClient) ListBySubscriptionResponder(resp *http.Response) (
 }
 
 // listBySubscriptionNextResults retrieves the next set of results, if any.
-func (client WorkflowsClient) listBySubscriptionNextResults(ctx context.Context, lastResults WorkflowListResult) (result WorkflowListResult, err error) {
-	req, err := lastResults.workflowListResultPreparer(ctx)
+func (client WorkflowsClient) listBySubscriptionNextResults(lastResults WorkflowListResult) (result WorkflowListResult, err error) {
+	req, err := lastResults.workflowListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "logic.WorkflowsClient", "listBySubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -733,16 +642,6 @@ func (client WorkflowsClient) listBySubscriptionNextResults(ctx context.Context,
 
 // ListBySubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client WorkflowsClient) ListBySubscriptionComplete(ctx context.Context, top *int32, filter string) (result WorkflowListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.ListBySubscription")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListBySubscription(ctx, top, filter)
 	return
 }
@@ -753,16 +652,6 @@ func (client WorkflowsClient) ListBySubscriptionComplete(ctx context.Context, to
 // workflowName - the workflow name.
 // listCallbackURL - which callback url to list.
 func (client WorkflowsClient) ListCallbackURL(ctx context.Context, resourceGroupName string, workflowName string, listCallbackURL GetCallbackURLParameters) (result WorkflowTriggerCallbackURL, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.ListCallbackURL")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListCallbackURLPreparer(ctx, resourceGroupName, workflowName, listCallbackURL)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "ListCallbackURL", nil, "Failure preparing request")
@@ -810,8 +699,8 @@ func (client WorkflowsClient) ListCallbackURLPreparer(ctx context.Context, resou
 // ListCallbackURLSender sends the ListCallbackURL request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) ListCallbackURLSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListCallbackURLResponder handles the response to the ListCallbackURL request. The method always
@@ -832,16 +721,6 @@ func (client WorkflowsClient) ListCallbackURLResponder(resp *http.Response) (res
 // resourceGroupName - the resource group name.
 // workflowName - the workflow name.
 func (client WorkflowsClient) ListSwagger(ctx context.Context, resourceGroupName string, workflowName string) (result SetObject, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.ListSwagger")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListSwaggerPreparer(ctx, resourceGroupName, workflowName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "ListSwagger", nil, "Failure preparing request")
@@ -887,8 +766,8 @@ func (client WorkflowsClient) ListSwaggerPreparer(ctx context.Context, resourceG
 // ListSwaggerSender sends the ListSwagger request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) ListSwaggerSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListSwaggerResponder handles the response to the ListSwagger request. The method always
@@ -910,16 +789,6 @@ func (client WorkflowsClient) ListSwaggerResponder(resp *http.Response) (result 
 // workflowName - the workflow name.
 // move - the workflow to move.
 func (client WorkflowsClient) Move(ctx context.Context, resourceGroupName string, workflowName string, move Workflow) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.Move")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.MovePreparer(ctx, resourceGroupName, workflowName, move)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "Move", nil, "Failure preparing request")
@@ -967,8 +836,8 @@ func (client WorkflowsClient) MovePreparer(ctx context.Context, resourceGroupNam
 // MoveSender sends the Move request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) MoveSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // MoveResponder handles the response to the Move request. The method always
@@ -989,16 +858,6 @@ func (client WorkflowsClient) MoveResponder(resp *http.Response) (result autores
 // workflowName - the workflow name.
 // keyType - the access key type.
 func (client WorkflowsClient) RegenerateAccessKey(ctx context.Context, resourceGroupName string, workflowName string, keyType RegenerateActionParameter) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.RegenerateAccessKey")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.RegenerateAccessKeyPreparer(ctx, resourceGroupName, workflowName, keyType)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "RegenerateAccessKey", nil, "Failure preparing request")
@@ -1046,8 +905,8 @@ func (client WorkflowsClient) RegenerateAccessKeyPreparer(ctx context.Context, r
 // RegenerateAccessKeySender sends the RegenerateAccessKey request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) RegenerateAccessKeySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // RegenerateAccessKeyResponder handles the response to the RegenerateAccessKey request. The method always
@@ -1068,16 +927,6 @@ func (client WorkflowsClient) RegenerateAccessKeyResponder(resp *http.Response) 
 // workflowName - the workflow name.
 // workflow - the workflow.
 func (client WorkflowsClient) Update(ctx context.Context, resourceGroupName string, workflowName string, workflow Workflow) (result Workflow, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, workflowName, workflow)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "Update", nil, "Failure preparing request")
@@ -1125,8 +974,8 @@ func (client WorkflowsClient) UpdatePreparer(ctx context.Context, resourceGroupN
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always
@@ -1149,16 +998,6 @@ func (client WorkflowsClient) UpdateResponder(resp *http.Response) (result Workf
 // workflowName - the workflow name.
 // workflow - the workflow definition.
 func (client WorkflowsClient) ValidateByLocation(ctx context.Context, resourceGroupName string, location string, workflowName string, workflow Workflow) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.ValidateByLocation")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ValidateByLocationPreparer(ctx, resourceGroupName, location, workflowName, workflow)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "ValidateByLocation", nil, "Failure preparing request")
@@ -1207,8 +1046,8 @@ func (client WorkflowsClient) ValidateByLocationPreparer(ctx context.Context, re
 // ValidateByLocationSender sends the ValidateByLocation request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) ValidateByLocationSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ValidateByLocationResponder handles the response to the ValidateByLocation request. The method always
@@ -1229,16 +1068,6 @@ func (client WorkflowsClient) ValidateByLocationResponder(resp *http.Response) (
 // workflowName - the workflow name.
 // validate - the workflow.
 func (client WorkflowsClient) ValidateByResourceGroup(ctx context.Context, resourceGroupName string, workflowName string, validate Workflow) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowsClient.ValidateByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ValidateByResourceGroupPreparer(ctx, resourceGroupName, workflowName, validate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsClient", "ValidateByResourceGroup", nil, "Failure preparing request")
@@ -1286,8 +1115,8 @@ func (client WorkflowsClient) ValidateByResourceGroupPreparer(ctx context.Contex
 // ValidateByResourceGroupSender sends the ValidateByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowsClient) ValidateByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ValidateByResourceGroupResponder handles the response to the ValidateByResourceGroup request. The method always

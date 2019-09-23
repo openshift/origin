@@ -146,7 +146,7 @@ func testDgehd2(t *testing.T, impl Dgehd2er, n, extra int, rnd *rand.Rand) {
 		copy(qCopy.Data, q.Data)
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, qCopy, h, 0, q)
 	}
-	if !isOrthogonal(q) {
+	if !isOrthonormal(q) {
 		t.Errorf("%v: Q is not orthogonal\nQ=%v", prefix, q)
 	}
 

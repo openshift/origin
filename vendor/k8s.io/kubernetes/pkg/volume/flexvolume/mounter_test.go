@@ -23,7 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/util/mount"
-	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/test/utils/harness"
 )
 
@@ -47,7 +46,7 @@ func TestSetUpAt(tt *testing.T) {
 	plugin, rootDir := testPlugin(t)
 	plugin.unsupportedCommands = []string{"unsupportedCmd"}
 	plugin.runner = fakeRunner(
-		// first call without mounterArgs.FsGroup
+		// first call without fsGroup
 		assertDriverCall(t, successOutput(), mountCmd, rootDir+"/mount-dir",
 			specJSON(plugin, spec, map[string]string{
 				optionKeyPodName:            "my-pod",
@@ -56,7 +55,7 @@ func TestSetUpAt(tt *testing.T) {
 				optionKeyServiceAccountName: "my-sa",
 			})),
 
-		// second test has mounterArgs.FsGroup
+		// second test has fsGroup
 		assertDriverCall(t, notSupportedOutput(), mountCmd, rootDir+"/mount-dir",
 			specJSON(plugin, spec, map[string]string{
 				optionFSGroup:               "42",
@@ -70,10 +69,8 @@ func TestSetUpAt(tt *testing.T) {
 	)
 
 	m, _ := plugin.newMounterInternal(spec, pod, mounter, plugin.runner)
-	var mounterArgs volume.MounterArgs
-	m.SetUpAt(rootDir+"/mount-dir", mounterArgs)
+	m.SetUpAt(rootDir+"/mount-dir", nil)
 
-	group := int64(42)
-	mounterArgs.FsGroup = &group
-	m.SetUpAt(rootDir+"/mount-dir", mounterArgs)
+	fsGroup := int64(42)
+	m.SetUpAt(rootDir+"/mount-dir", &fsGroup)
 }

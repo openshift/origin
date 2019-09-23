@@ -17,13 +17,13 @@ import (
 )
 
 type Dtrexcer interface {
-	Dtrexc(compq lapack.UpdateSchurComp, n int, t []float64, ldt int, q []float64, ldq int, ifst, ilst int, work []float64) (ifstOut, ilstOut int, ok bool)
+	Dtrexc(compq lapack.EVComp, n int, t []float64, ldt int, q []float64, ldq int, ifst, ilst int, work []float64) (ifstOut, ilstOut int, ok bool)
 }
 
 func DtrexcTest(t *testing.T, impl Dtrexcer) {
 	rnd := rand.New(rand.NewSource(1))
 
-	for _, compq := range []lapack.UpdateSchurComp{lapack.UpdateSchurNone, lapack.UpdateSchur} {
+	for _, compq := range []lapack.EVComp{lapack.None, lapack.UpdateSchur} {
 		for _, n := range []int{1, 2, 3, 4, 5, 6, 10, 18, 31, 53} {
 			for _, extra := range []int{0, 1, 11} {
 				for cas := 0; cas < 100; cas++ {
@@ -36,7 +36,7 @@ func DtrexcTest(t *testing.T, impl Dtrexcer) {
 		}
 	}
 
-	for _, compq := range []lapack.UpdateSchurComp{lapack.UpdateSchurNone, lapack.UpdateSchur} {
+	for _, compq := range []lapack.EVComp{lapack.None, lapack.UpdateSchur} {
 		for _, extra := range []int{0, 1, 11} {
 			tmat := randomSchurCanonical(0, extra, rnd)
 			testDtrexc(t, impl, compq, tmat, 0, 0, extra, rnd)
@@ -44,7 +44,7 @@ func DtrexcTest(t *testing.T, impl Dtrexcer) {
 	}
 }
 
-func testDtrexc(t *testing.T, impl Dtrexcer, compq lapack.UpdateSchurComp, tmat blas64.General, ifst, ilst, extra int, rnd *rand.Rand) {
+func testDtrexc(t *testing.T, impl Dtrexcer, compq lapack.EVComp, tmat blas64.General, ifst, ilst, extra int, rnd *rand.Rand) {
 	const tol = 1e-13
 
 	n := tmat.Rows
@@ -63,7 +63,7 @@ func testDtrexc(t *testing.T, impl Dtrexcer, compq lapack.UpdateSchurComp, tmat 
 
 	work := nanSlice(n)
 
-	ifstGot, ilstGot, ok := impl.Dtrexc(compq, n, tmat.Data, tmat.Stride, q.Data, max(1, q.Stride), ifst, ilst, work)
+	ifstGot, ilstGot, ok := impl.Dtrexc(compq, n, tmat.Data, tmat.Stride, q.Data, q.Stride, ifst, ilst, work)
 
 	prefix := fmt.Sprintf("Case compq=%v, n=%v, ifst=%v, nbf=%v, ilst=%v, nbl=%v, extra=%v",
 		compq, n, ifst, fstSize, ilst, lstSize, extra)
@@ -195,7 +195,7 @@ func testDtrexc(t *testing.T, impl Dtrexcer, compq lapack.UpdateSchurComp, tmat 
 		return
 	}
 
-	if !isOrthogonal(q) {
+	if !isOrthonormal(q) {
 		t.Errorf("%v: Q is not orthogonal", prefix)
 	}
 	// Check that Q is unchanged outside of columns [modMin,modMax].

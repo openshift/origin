@@ -1,4 +1,4 @@
-// Copyright 2016 Google LLC
+// Copyright 2016 Google Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,31 +15,53 @@
 package pubsub
 
 import (
-	"context"
-	"fmt"
+	"errors"
+	"reflect"
 	"testing"
-	"time"
 
-	"cloud.google.com/go/internal/testutil"
-	"google.golang.org/api/iterator"
-	"google.golang.org/api/option"
-	pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"golang.org/x/net/context"
 )
 
-func checkTopicListing(t *testing.T, c *Client, want []string) {
+type topicListCall struct {
+	inTok, outTok string
+	topics        []string
+	err           error
+}
+
+type topicListService struct {
+	service
+	calls []topicListCall
+
+	t *testing.T // for error logging.
+}
+
+func (s *topicListService) listProjectTopics(ctx context.Context, projName, pageTok string) (*stringsPage, error) {
+	if len(s.calls) == 0 || projName != "projects/projid" {
+		s.t.Errorf("unexpected call: projName: %q, pageTok: %q", projName, pageTok)
+		return nil, errors.New("bang")
+	}
+
+	call := s.calls[0]
+	s.calls = s.calls[1:]
+	if call.inTok != pageTok {
+		s.t.Errorf("page token: got: %v, want: %v", pageTok, call.inTok)
+	}
+	return &stringsPage{call.topics, call.outTok}, call.err
+}
+
+func checkTopicListing(t *testing.T, calls []topicListCall, want []string) {
+	s := &topicListService{calls: calls, t: t}
+	c := &Client{projectID: "projid", s: s}
 	topics, err := slurpTopics(c.Topics(context.Background()))
 	if err != nil {
-		t.Fatalf("error listing topics: %v", err)
+		t.Errorf("error listing topics: %v", err)
 	}
-	var got []string
-	for _, topic := range topics {
-		got = append(got, topic.ID())
-	}
-	if !testutil.Equal(got, want) {
+	got := topicNames(topics)
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("topic list: got: %v, want: %v", got, want)
+	}
+	if len(s.calls) != 0 {
+		t.Errorf("outstanding calls: %v", s.calls)
 	}
 }
 
@@ -50,7 +72,7 @@ func slurpTopics(it *TopicIterator) ([]*Topic, error) {
 		switch topic, err := it.Next(); err {
 		case nil:
 			topics = append(topics, topic)
-		case iterator.Done:
+		case Done:
 			return topics, nil
 		default:
 			return nil, err
@@ -58,138 +80,62 @@ func slurpTopics(it *TopicIterator) ([]*Topic, error) {
 	}
 }
 
-func TestTopicID(t *testing.T) {
-	const id = "id"
-	c, srv := newFake(t)
-	defer c.Close()
-	defer srv.Close()
-
-	s := c.Topic(id)
-	if got, want := s.ID(), id; got != want {
-		t.Errorf("Token.ID() = %q; want %q", got, want)
-	}
-}
-
 func TestListTopics(t *testing.T) {
-	c, srv := newFake(t)
-	defer c.Close()
-	defer srv.Close()
-
-	var ids []string
-	for i := 1; i <= 4; i++ {
-		id := fmt.Sprintf("t%d", i)
-		ids = append(ids, id)
-		mustCreateTopic(t, c, id)
+	calls := []topicListCall{
+		{
+			topics: []string{"t1", "t2"},
+			outTok: "a",
+		},
+		{
+			inTok:  "a",
+			topics: []string{"t3"},
+			outTok: "b",
+		},
+		{
+			inTok:  "b",
+			topics: []string{},
+			outTok: "c",
+		},
+		{
+			inTok:  "c",
+			topics: []string{"t4"},
+			outTok: "",
+		},
 	}
-	checkTopicListing(t, c, ids)
+	checkTopicListing(t, calls, []string{"t1", "t2", "t3", "t4"})
 }
 
 func TestListCompletelyEmptyTopics(t *testing.T) {
-	c, srv := newFake(t)
-	defer c.Close()
-	defer srv.Close()
-
-	checkTopicListing(t, c, nil)
+	calls := []topicListCall{
+		{
+			outTok: "",
+		},
+	}
+	var want []string
+	checkTopicListing(t, calls, want)
 }
 
-func TestStopPublishOrder(t *testing.T) {
-	// Check that Stop doesn't panic if called before Publish.
-	// Also that Publish after Stop returns the right error.
-	ctx := context.Background()
-	c := &Client{projectID: "projid"}
-	topic := c.Topic("t")
-	topic.Stop()
-	r := topic.Publish(ctx, &Message{})
-	_, err := r.Get(ctx)
-	if err != errTopicStopped {
-		t.Errorf("got %v, want errTopicStopped", err)
+func TestListFinalEmptyPage(t *testing.T) {
+	calls := []topicListCall{
+		{
+			topics: []string{"t1", "t2"},
+			outTok: "a",
+		},
+		{
+			inTok:  "a",
+			topics: []string{},
+			outTok: "",
+		},
 	}
+	checkTopicListing(t, calls, []string{"t1", "t2"})
 }
 
-func TestPublishTimeout(t *testing.T) {
-	ctx := context.Background()
-	serv, err := testutil.NewServer()
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubsubpb.RegisterPublisherServer(serv.Gsrv, &alwaysFailPublish{})
-	conn, err := grpc.Dial(serv.Addr, grpc.WithInsecure())
-	if err != nil {
-		t.Fatal(err)
-	}
-	c, err := NewClient(ctx, "projectID", option.WithGRPCConn(conn))
-	if err != nil {
-		t.Fatal(err)
-	}
-	topic := c.Topic("t")
-	topic.PublishSettings.Timeout = 3 * time.Second
-	r := topic.Publish(ctx, &Message{})
-	defer topic.Stop()
-	select {
-	case <-r.Ready():
-		_, err = r.Get(ctx)
-		if err != context.DeadlineExceeded {
-			t.Fatalf("got %v, want context.DeadlineExceeded", err)
-		}
-	case <-time.After(2 * topic.PublishSettings.Timeout):
-		t.Fatal("timed out")
-	}
-}
+func topicNames(topics []*Topic) []string {
+	var names []string
 
-func TestUpdateTopic(t *testing.T) {
-	ctx := context.Background()
-	client, srv := newFake(t)
-	defer client.Close()
-	defer srv.Close()
+	for _, topic := range topics {
+		names = append(names, topic.name)
 
-	topic := mustCreateTopic(t, client, "T")
-	config, err := topic.Config(ctx)
-	if err != nil {
-		t.Fatal(err)
 	}
-	want := TopicConfig{}
-	if !testutil.Equal(config, want) {
-		t.Errorf("got %+v, want %+v", config, want)
-	}
-
-	// replace labels
-	labels := map[string]string{"label": "value"}
-	config2, err := topic.Update(ctx, TopicConfigToUpdate{Labels: labels})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want = TopicConfig{
-		Labels:               labels,
-		MessageStoragePolicy: MessageStoragePolicy{[]string{"US"}},
-	}
-	if !testutil.Equal(config2, want) {
-		t.Errorf("got %+v, want %+v", config2, want)
-	}
-
-	// delete all labels
-	labels = map[string]string{}
-	config3, err := topic.Update(ctx, TopicConfigToUpdate{Labels: labels})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want.Labels = nil
-	if !testutil.Equal(config3, want) {
-		t.Errorf("got %+v, want %+v", config3, want)
-	}
-}
-
-type alwaysFailPublish struct {
-	pubsubpb.PublisherServer
-}
-
-func (s *alwaysFailPublish) Publish(ctx context.Context, req *pubsubpb.PublishRequest) (*pubsubpb.PublishResponse, error) {
-	return nil, status.Errorf(codes.Unavailable, "try again")
-}
-
-func mustCreateTopic(t *testing.T, c *Client, id string) *Topic {
-	topic, err := c.CreateTopic(context.Background(), id)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return topic
+	return names
 }

@@ -21,7 +21,7 @@ type LogNormal struct {
 
 // CDF computes the value of the cumulative density function at x.
 func (l LogNormal) CDF(x float64) float64 {
-	return 0.5 * math.Erfc(-(math.Log(x)-l.Mu)/(math.Sqrt2*l.Sigma))
+	return 0.5 + 0.5*math.Erf((math.Log(x)-l.Mu)/(math.Sqrt2*l.Sigma))
 }
 
 // Entropy returns the differential entropy of the distribution.

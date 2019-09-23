@@ -114,15 +114,6 @@ func TestLayer3ExternalRouterCreateDelete(t *testing.T) {
 	th.AssertEquals(t, newRouter.Description, newDescription)
 	th.AssertEquals(t, *newRouter.GatewayInfo.EnableSNAT, enableSNAT)
 	th.AssertDeepEquals(t, newRouter.GatewayInfo.ExternalFixedIPs, efi)
-
-	// Test Gateway removal
-	updateOpts = routers.UpdateOpts{
-		GatewayInfo: &routers.GatewayInfo{},
-	}
-
-	newRouter, err = routers.Update(client, router.ID, updateOpts).Extract()
-	th.AssertNoErr(t, err)
-	th.AssertDeepEquals(t, newRouter.GatewayInfo, routers.GatewayInfo{})
 }
 
 func TestLayer3RouterInterface(t *testing.T) {

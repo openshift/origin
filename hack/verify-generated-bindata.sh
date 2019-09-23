@@ -14,6 +14,5 @@ TMP_GENERATED_BOOTSTRAP_DIR="_output/verify-bindata"
 
 os::test::junit::declare_suite_start "verify/bindata"
 os::cmd::expect_success "OUTPUT_ROOT=${TMP_GENERATED_BOOTSTRAP_DIR} ${OS_ROOT}/hack/update-generated-bindata.sh"
-os::cmd::expect_success "git diff --quiet vendor/k8s.io/kubernetes/staging/src/k8s.io/kubectl/pkg/generated/bindata.go"
-os::cmd::expect_success "git diff --quiet vendor/k8s.io/kubernetes/test/e2e/generated/bindata.go"
+os::cmd::expect_success "diff -Naup ${OS_ROOT}/test/extended/testdata/bindata.go ${TMP_GENERATED_BOOTSTRAP_DIR}/test/extended/testdata/bindata.go"
 os::test::junit::declare_suite_end

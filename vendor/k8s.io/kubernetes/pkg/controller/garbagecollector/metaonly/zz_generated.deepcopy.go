@@ -54,7 +54,7 @@ func (in *MetadataOnlyObject) DeepCopyObject() runtime.Object {
 func (in *MetadataOnlyObjectList) DeepCopyInto(out *MetadataOnlyObjectList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]MetadataOnlyObject, len(*in))

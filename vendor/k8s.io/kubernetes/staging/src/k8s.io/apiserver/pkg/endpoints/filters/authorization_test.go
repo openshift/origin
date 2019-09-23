@@ -169,7 +169,7 @@ func TestAuditAnnotation(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	negotiatedSerializer := serializer.NewCodecFactory(scheme).WithoutConversion()
+	negotiatedSerializer := serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme)}
 	for k, tc := range testcases {
 		audit := &auditinternal.Event{Level: auditinternal.LevelMetadata}
 		handler := WithAuthorization(&fakeHTTPHandler{}, tc.authorizer, negotiatedSerializer)

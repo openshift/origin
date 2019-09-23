@@ -149,13 +149,7 @@ func getPersistentVolumeClaims(set *apps.StatefulSet, pod *v1.Pod) map[string]v1
 		claim := templates[i]
 		claim.Name = getPersistentVolumeClaimName(set, &claim, ordinal)
 		claim.Namespace = set.Namespace
-		if claim.Labels != nil {
-			for key, value := range set.Spec.Selector.MatchLabels {
-				claim.Labels[key] = value
-			}
-		} else {
-			claim.Labels = set.Spec.Selector.MatchLabels
-		}
+		claim.Labels = set.Spec.Selector.MatchLabels
 		claims[templates[i].Name] = claim
 	}
 	return claims
@@ -344,12 +338,11 @@ func ApplyRevision(set *apps.StatefulSet, revision *apps.ControllerRevision) (*a
 	if err != nil {
 		return nil, err
 	}
-	restoredSet := &apps.StatefulSet{}
-	err = json.Unmarshal(patched, restoredSet)
+	err = json.Unmarshal(patched, clone)
 	if err != nil {
 		return nil, err
 	}
-	return restoredSet, nil
+	return clone, nil
 }
 
 // nextRevision finds the next valid revision number based on revisions. If the length of revisions

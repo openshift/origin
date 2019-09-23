@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewServicesClientWithBaseURI(baseURI string, subscriptionID string) Service
 // serviceName - the name of the service resource in the format of {applicationName}~{serviceName}.
 // parameters - the service resource.
 func (client ServicesClient) Create(ctx context.Context, resourceGroupName string, clusterName string, applicationName string, serviceName string, parameters ServiceResource) (result ServicesCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServicesClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePreparer(ctx, resourceGroupName, clusterName, applicationName, serviceName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.ServicesClient", "Create", nil, "Failure preparing request")
@@ -101,9 +90,13 @@ func (client ServicesClient) CreatePreparer(ctx context.Context, resourceGroupNa
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServicesClient) CreateSender(req *http.Request) (future ServicesCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -131,16 +124,6 @@ func (client ServicesClient) CreateResponder(resp *http.Response) (result Servic
 // applicationName - the name of the application resource.
 // serviceName - the name of the service resource in the format of {applicationName}~{serviceName}.
 func (client ServicesClient) Delete(ctx context.Context, resourceGroupName string, clusterName string, applicationName string, serviceName string) (result ServicesDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServicesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, clusterName, applicationName, serviceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.ServicesClient", "Delete", nil, "Failure preparing request")
@@ -182,9 +165,13 @@ func (client ServicesClient) DeletePreparer(ctx context.Context, resourceGroupNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServicesClient) DeleteSender(req *http.Request) (future ServicesDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -212,16 +199,6 @@ func (client ServicesClient) DeleteResponder(resp *http.Response) (result autore
 // applicationName - the name of the application resource.
 // serviceName - the name of the service resource in the format of {applicationName}~{serviceName}.
 func (client ServicesClient) Get(ctx context.Context, resourceGroupName string, clusterName string, applicationName string, serviceName string) (result ServiceResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServicesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, clusterName, applicationName, serviceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.ServicesClient", "Get", nil, "Failure preparing request")
@@ -269,8 +246,8 @@ func (client ServicesClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServicesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -293,16 +270,6 @@ func (client ServicesClient) GetResponder(resp *http.Response) (result ServiceRe
 // clusterName - the name of the cluster resource.
 // applicationName - the name of the application resource.
 func (client ServicesClient) List(ctx context.Context, resourceGroupName string, clusterName string, applicationName string) (result ServiceResourceList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServicesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListPreparer(ctx, resourceGroupName, clusterName, applicationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.ServicesClient", "List", nil, "Failure preparing request")
@@ -349,8 +316,8 @@ func (client ServicesClient) ListPreparer(ctx context.Context, resourceGroupName
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServicesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -374,16 +341,6 @@ func (client ServicesClient) ListResponder(resp *http.Response) (result ServiceR
 // serviceName - the name of the service resource in the format of {applicationName}~{serviceName}.
 // parameters - the service resource for patch operations.
 func (client ServicesClient) Update(ctx context.Context, resourceGroupName string, clusterName string, applicationName string, serviceName string, parameters ServiceResourceUpdate) (result ServicesUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServicesClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, clusterName, applicationName, serviceName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.ServicesClient", "Update", nil, "Failure preparing request")
@@ -427,9 +384,13 @@ func (client ServicesClient) UpdatePreparer(ctx context.Context, resourceGroupNa
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServicesClient) UpdateSender(req *http.Request) (future ServicesUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -439,7 +400,7 @@ func (client ServicesClient) UpdateSender(req *http.Request) (future ServicesUpd
 
 // UpdateResponder handles the response to the Update request. The method always
 // closes the http.Response Body.
-func (client ServicesClient) UpdateResponder(resp *http.Response) (result ServiceResource, err error) {
+func (client ServicesClient) UpdateResponder(resp *http.Response) (result ServiceResourceUpdate, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),

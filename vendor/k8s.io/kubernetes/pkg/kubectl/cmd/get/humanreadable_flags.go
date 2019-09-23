@@ -21,7 +21,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/printers"
+	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
 )
 
 // HumanPrintFlags provides default flags necessary for printing.
@@ -36,8 +38,9 @@ type HumanPrintFlags struct {
 	// get.go-specific values
 	NoHeaders bool
 
-	Kind          schema.GroupKind
-	WithNamespace bool
+	Kind               schema.GroupKind
+	AbsoluteTimestamps bool
+	WithNamespace      bool
 }
 
 // SetKind sets the Kind option
@@ -70,6 +73,8 @@ func (f *HumanPrintFlags) ToPrinter(outputFormat string) (printers.ResourcePrint
 		return nil, genericclioptions.NoCompatiblePrinterError{Options: f, AllowedFormats: f.AllowedFormats()}
 	}
 
+	decoder := scheme.Codecs.UniversalDecoder()
+
 	showKind := false
 	if f.ShowKind != nil {
 		showKind = *f.ShowKind
@@ -85,7 +90,7 @@ func (f *HumanPrintFlags) ToPrinter(outputFormat string) (printers.ResourcePrint
 		columnLabels = *f.ColumnLabels
 	}
 
-	p := printers.NewTablePrinter(printers.PrintOptions{
+	p := printers.NewHumanReadablePrinter(decoder, printers.PrintOptions{
 		Kind:          f.Kind,
 		WithKind:      showKind,
 		NoHeaders:     f.NoHeaders,
@@ -94,6 +99,7 @@ func (f *HumanPrintFlags) ToPrinter(outputFormat string) (printers.ResourcePrint
 		ColumnLabels:  columnLabels,
 		ShowLabels:    showLabels,
 	})
+	printersinternal.AddHandlers(p)
 
 	// TODO(juanvallejo): handle sorting here
 
@@ -126,9 +132,10 @@ func NewHumanPrintFlags() *HumanPrintFlags {
 	columnLabels := []string{}
 
 	return &HumanPrintFlags{
-		NoHeaders:     false,
-		WithNamespace: false,
-		ColumnLabels:  &columnLabels,
+		NoHeaders:          false,
+		WithNamespace:      false,
+		AbsoluteTimestamps: false,
+		ColumnLabels:       &columnLabels,
 
 		Kind:       schema.GroupKind{},
 		ShowLabels: &showLabels,

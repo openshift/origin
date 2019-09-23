@@ -26,19 +26,19 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = framework.KubeDescribe("Docker features [Feature:Docker][Legacy:Docker]", func() {
 	f := framework.NewDefaultFramework("docker-feature-test")
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		framework.RunIfContainerRuntimeIs("docker")
 	})
 
-	ginkgo.Context("when live-restore is enabled [Serial] [Slow] [Disruptive]", func() {
-		ginkgo.It("containers should not be disrupted when the daemon shuts down and restarts", func() {
+	Context("when live-restore is enabled [Serial] [Slow] [Disruptive]", func() {
+		It("containers should not be disrupted when the daemon shuts down and restarts", func() {
 			const (
 				podName       = "live-restore-test-pod"
 				containerName = "live-restore-test-container"
@@ -55,7 +55,7 @@ var _ = framework.KubeDescribe("Docker features [Feature:Docker][Legacy:Docker]"
 				framework.Skipf("Docker live-restore is not enabled.")
 			}
 
-			ginkgo.By("Create the test pod.")
+			By("Create the test pod.")
 			pod := f.PodClient().CreateSync(&v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: podName},
 				Spec: v1.PodSpec{
@@ -66,44 +66,44 @@ var _ = framework.KubeDescribe("Docker features [Feature:Docker][Legacy:Docker]"
 				},
 			})
 
-			ginkgo.By("Ensure that the container is running before Docker is down.")
-			gomega.Eventually(func() bool {
+			By("Ensure that the container is running before Docker is down.")
+			Eventually(func() bool {
 				return isContainerRunning(pod.Status.PodIP)
-			}).Should(gomega.BeTrue())
+			}).Should(BeTrue())
 
 			startTime1, err := getContainerStartTime(f, podName, containerName)
 			framework.ExpectNoError(err)
 
-			ginkgo.By("Stop Docker daemon.")
+			By("Stop Docker daemon.")
 			framework.ExpectNoError(stopDockerDaemon())
 			isDockerDown := true
 			defer func() {
 				if isDockerDown {
-					ginkgo.By("Start Docker daemon.")
+					By("Start Docker daemon.")
 					framework.ExpectNoError(startDockerDaemon())
 				}
 			}()
 
-			ginkgo.By("Ensure that the container is running after Docker is down.")
-			gomega.Consistently(func() bool {
+			By("Ensure that the container is running after Docker is down.")
+			Consistently(func() bool {
 				return isContainerRunning(pod.Status.PodIP)
-			}).Should(gomega.BeTrue())
+			}).Should(BeTrue())
 
-			ginkgo.By("Start Docker daemon.")
+			By("Start Docker daemon.")
 			framework.ExpectNoError(startDockerDaemon())
 			isDockerDown = false
 
-			ginkgo.By("Ensure that the container is running after Docker has restarted.")
-			gomega.Consistently(func() bool {
+			By("Ensure that the container is running after Docker has restarted.")
+			Consistently(func() bool {
 				return isContainerRunning(pod.Status.PodIP)
-			}).Should(gomega.BeTrue())
+			}).Should(BeTrue())
 
-			ginkgo.By("Ensure that the container has not been restarted after Docker is restarted.")
-			gomega.Consistently(func() bool {
+			By("Ensure that the container has not been restarted after Docker is restarted.")
+			Consistently(func() bool {
 				startTime2, err := getContainerStartTime(f, podName, containerName)
 				framework.ExpectNoError(err)
 				return startTime1 == startTime2
-			}, 3*time.Second, time.Second).Should(gomega.BeTrue())
+			}, 3*time.Second, time.Second).Should(BeTrue())
 		})
 	})
 })

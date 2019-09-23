@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewProjectsClientWithBaseURI(baseURI string, subscriptionID string, acceptL
 // projectName - name of the Azure Migrate project.
 // project - new or Updated project object.
 func (client ProjectsClient) Create(ctx context.Context, resourceGroupName string, projectName string, project *Project) (result Project, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePreparer(ctx, resourceGroupName, projectName, project)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.ProjectsClient", "Create", nil, "Failure preparing request")
@@ -90,9 +79,6 @@ func (client ProjectsClient) CreatePreparer(ctx context.Context, resourceGroupNa
 		"api-version": APIVersion,
 	}
 
-	project.ID = nil
-	project.Name = nil
-	project.Type = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -113,8 +99,8 @@ func (client ProjectsClient) CreatePreparer(ctx context.Context, resourceGroupNa
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -135,16 +121,6 @@ func (client ProjectsClient) CreateResponder(resp *http.Response) (result Projec
 // resourceGroupName - name of the Azure Resource Group that project is part of.
 // projectName - name of the Azure Migrate project.
 func (client ProjectsClient) Delete(ctx context.Context, resourceGroupName string, projectName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, projectName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.ProjectsClient", "Delete", nil, "Failure preparing request")
@@ -194,8 +170,8 @@ func (client ProjectsClient) DeletePreparer(ctx context.Context, resourceGroupNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -215,16 +191,6 @@ func (client ProjectsClient) DeleteResponder(resp *http.Response) (result autore
 // resourceGroupName - name of the Azure Resource Group that project is part of.
 // projectName - name of the Azure Migrate project.
 func (client ProjectsClient) Get(ctx context.Context, resourceGroupName string, projectName string) (result Project, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, projectName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.ProjectsClient", "Get", nil, "Failure preparing request")
@@ -274,8 +240,8 @@ func (client ProjectsClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -296,16 +262,6 @@ func (client ProjectsClient) GetResponder(resp *http.Response) (result Project, 
 // resourceGroupName - name of the Azure Resource Group that project is part of.
 // projectName - name of the Azure Migrate project.
 func (client ProjectsClient) GetKeys(ctx context.Context, resourceGroupName string, projectName string) (result ProjectKey, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.GetKeys")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetKeysPreparer(ctx, resourceGroupName, projectName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.ProjectsClient", "GetKeys", nil, "Failure preparing request")
@@ -355,8 +311,8 @@ func (client ProjectsClient) GetKeysPreparer(ctx context.Context, resourceGroupN
 // GetKeysSender sends the GetKeys request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) GetKeysSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetKeysResponder handles the response to the GetKeys request. The method always
@@ -376,16 +332,6 @@ func (client ProjectsClient) GetKeysResponder(resp *http.Response) (result Proje
 // Parameters:
 // resourceGroupName - name of the Azure Resource Group that project is part of.
 func (client ProjectsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ProjectResultList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.ProjectsClient", "ListByResourceGroup", nil, "Failure preparing request")
@@ -434,8 +380,8 @@ func (client ProjectsClient) ListByResourceGroupPreparer(ctx context.Context, re
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -453,16 +399,6 @@ func (client ProjectsClient) ListByResourceGroupResponder(resp *http.Response) (
 
 // ListBySubscription get all the projects in the subscription.
 func (client ProjectsClient) ListBySubscription(ctx context.Context) (result ProjectResultList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.ListBySubscription")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListBySubscriptionPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.ProjectsClient", "ListBySubscription", nil, "Failure preparing request")
@@ -510,8 +446,8 @@ func (client ProjectsClient) ListBySubscriptionPreparer(ctx context.Context) (*h
 // ListBySubscriptionSender sends the ListBySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
@@ -533,16 +469,6 @@ func (client ProjectsClient) ListBySubscriptionResponder(resp *http.Response) (r
 // projectName - name of the Azure Migrate project.
 // project - updated project object.
 func (client ProjectsClient) Update(ctx context.Context, resourceGroupName string, projectName string, project *Project) (result Project, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, projectName, project)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.ProjectsClient", "Update", nil, "Failure preparing request")
@@ -577,9 +503,6 @@ func (client ProjectsClient) UpdatePreparer(ctx context.Context, resourceGroupNa
 		"api-version": APIVersion,
 	}
 
-	project.ID = nil
-	project.Name = nil
-	project.Type = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
@@ -600,8 +523,8 @@ func (client ProjectsClient) UpdatePreparer(ctx context.Context, resourceGroupNa
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

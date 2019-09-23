@@ -3,7 +3,6 @@ package hypervisors
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -28,38 +27,8 @@ type CPUInfo struct {
 // Service represents a Compute service running on the hypervisor.
 type Service struct {
 	Host           string `json:"host"`
-	ID             string `json:"-"`
+	ID             int    `json:"id"`
 	DisabledReason string `json:"disabled_reason"`
-}
-
-func (r *Service) UnmarshalJSON(b []byte) error {
-	type tmp Service
-	var s struct {
-		tmp
-		ID interface{} `json:"id"`
-	}
-
-	err := json.Unmarshal(b, &s)
-	if err != nil {
-		return err
-	}
-
-	*r = Service(s.tmp)
-
-	// OpenStack Compute service returns ID in string representation since
-	// 2.53 microversion API (Pike release).
-	switch t := s.ID.(type) {
-	case int:
-		r.ID = strconv.Itoa(t)
-	case float64:
-		r.ID = strconv.Itoa(int(t))
-	case string:
-		r.ID = t
-	default:
-		return fmt.Errorf("ID has unexpected type: %T", t)
-	}
-
-	return nil
 }
 
 // Hypervisor represents a hypervisor in the OpenStack cloud.
@@ -103,7 +72,7 @@ type Hypervisor struct {
 	HypervisorVersion int `json:"-"`
 
 	// ID is the unique ID of the hypervisor.
-	ID string `json:"-"`
+	ID int `json:"id"`
 
 	// LocalGB is the disk space in the hypervisor, measured in GB.
 	LocalGB int `json:"-"`
@@ -134,7 +103,6 @@ func (r *Hypervisor) UnmarshalJSON(b []byte) error {
 	type tmp Hypervisor
 	var s struct {
 		tmp
-		ID                interface{} `json:"id"`
 		CPUInfo           interface{} `json:"cpu_info"`
 		HypervisorVersion interface{} `json:"hypervisor_version"`
 		FreeDiskGB        interface{} `json:"free_disk_gb"`
@@ -165,11 +133,9 @@ func (r *Hypervisor) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("CPUInfo has unexpected type: %T", t)
 	}
 
-	if len(tmpb) != 0 {
-		err = json.Unmarshal(tmpb, &r.CPUInfo)
-		if err != nil {
-			return err
-		}
+	err = json.Unmarshal(tmpb, &r.CPUInfo)
+	if err != nil {
+		return err
 	}
 
 	// These fields may be returned as a scientific notation, so they need
@@ -180,7 +146,7 @@ func (r *Hypervisor) UnmarshalJSON(b []byte) error {
 	case float64:
 		r.HypervisorVersion = int(t)
 	default:
-		return fmt.Errorf("Hypervisor version has unexpected type: %T", t)
+		return fmt.Errorf("Hypervisor version of unexpected type")
 	}
 
 	switch t := s.FreeDiskGB.(type) {
@@ -189,7 +155,7 @@ func (r *Hypervisor) UnmarshalJSON(b []byte) error {
 	case float64:
 		r.FreeDiskGB = int(t)
 	default:
-		return fmt.Errorf("Free disk GB has unexpected type: %T", t)
+		return fmt.Errorf("Free disk GB of unexpected type")
 	}
 
 	switch t := s.LocalGB.(type) {
@@ -198,20 +164,7 @@ func (r *Hypervisor) UnmarshalJSON(b []byte) error {
 	case float64:
 		r.LocalGB = int(t)
 	default:
-		return fmt.Errorf("Local GB has unexpected type: %T", t)
-	}
-
-	// OpenStack Compute service returns ID in string representation since
-	// 2.53 microversion API (Pike release).
-	switch t := s.ID.(type) {
-	case int:
-		r.ID = strconv.Itoa(t)
-	case float64:
-		r.ID = strconv.Itoa(int(t))
-	case string:
-		r.ID = t
-	default:
-		return fmt.Errorf("ID has unexpected type: %T", t)
+		return fmt.Errorf("Local GB of unexpected type")
 	}
 
 	return nil
@@ -311,7 +264,7 @@ type Uptime struct {
 	HypervisorHostname string `json:"hypervisor_hostname"`
 
 	// The id of the hypervisor.
-	ID string `json:"-"`
+	ID int `json:"id"`
 
 	// The state of the hypervisor. One of up or down.
 	State string `json:"state"`
@@ -321,36 +274,6 @@ type Uptime struct {
 
 	// The total uptime of the hypervisor and information about average load.
 	Uptime string `json:"uptime"`
-}
-
-func (r *Uptime) UnmarshalJSON(b []byte) error {
-	type tmp Uptime
-	var s struct {
-		tmp
-		ID interface{} `json:"id"`
-	}
-
-	err := json.Unmarshal(b, &s)
-	if err != nil {
-		return err
-	}
-
-	*r = Uptime(s.tmp)
-
-	// OpenStack Compute service returns ID in string representation since
-	// 2.53 microversion API (Pike release).
-	switch t := s.ID.(type) {
-	case int:
-		r.ID = strconv.Itoa(t)
-	case float64:
-		r.ID = strconv.Itoa(int(t))
-	case string:
-		r.ID = t
-	default:
-		return fmt.Errorf("ID has unexpected type: %T", t)
-	}
-
-	return nil
 }
 
 type UptimeResult struct {

@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/lestrrat-go/jsref"
-	"github.com/lestrrat-go/jsref/provider"
-	"github.com/lestrrat-go/pdebug"
+	"github.com/lestrrat/go-jsref"
+	"github.com/lestrrat/go-jsref/provider"
+	"github.com/lestrrat/go-pdebug"
 	"github.com/pkg/errors"
 )
 

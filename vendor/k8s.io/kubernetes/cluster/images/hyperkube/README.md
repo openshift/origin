@@ -1,7 +1,6 @@
 ### hyperkube
 
-`hyperkube` is an all-in-one binary for the Kubernetes server components.
-
+`hyperkube` is an all-in-one binary for the Kubernetes server components
 `hyperkube` is built for multiple architectures and _the image is pushed automatically on every release._
 
 #### How to release by hand

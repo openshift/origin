@@ -41,7 +41,7 @@ func ExampleNewClient(serverPort int, resourceName string) {
 	if err != nil && err != io.EOF {
 		log.Printf("Read %d bytes, got err=%v", n, err)
 	}
-	log.Printf("read %q", buf.String())
+	log.Printf("read %q", string(buf.Bytes()))
 }
 
 func ExampleNewReader(serverPort int, resourceName string) {
@@ -61,7 +61,7 @@ func ExampleNewReader(serverPort int, resourceName string) {
 	if err != nil && err != io.EOF {
 		log.Printf("Read %d bytes, got err=%v", n, err)
 	}
-	log.Printf("read %q", buf.String())
+	log.Printf("read %q", string(buf.Bytes()))
 }
 
 func ExampleNewWriter(serverPort int, resourceName string) {

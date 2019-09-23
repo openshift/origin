@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewServiceEndpointPoliciesClientWithBaseURI(baseURI string, subscriptionID 
 // serviceEndpointPolicyName - the name of the service endpoint policy.
 // parameters - parameters supplied to the create or update service endpoint policy operation.
 func (client ServiceEndpointPoliciesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serviceEndpointPolicyName string, parameters ServiceEndpointPolicy) (result ServiceEndpointPoliciesCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceEndpointPoliciesClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, serviceEndpointPolicyName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ServiceEndpointPoliciesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -97,9 +86,9 @@ func (client ServiceEndpointPoliciesClient) CreateOrUpdatePreparer(ctx context.C
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceEndpointPoliciesClient) CreateOrUpdateSender(req *http.Request) (future ServiceEndpointPoliciesCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -125,16 +114,6 @@ func (client ServiceEndpointPoliciesClient) CreateOrUpdateResponder(resp *http.R
 // resourceGroupName - the name of the resource group.
 // serviceEndpointPolicyName - the name of the service endpoint policy.
 func (client ServiceEndpointPoliciesClient) Delete(ctx context.Context, resourceGroupName string, serviceEndpointPolicyName string) (result ServiceEndpointPoliciesDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceEndpointPoliciesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, serviceEndpointPolicyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ServiceEndpointPoliciesClient", "Delete", nil, "Failure preparing request")
@@ -174,9 +153,9 @@ func (client ServiceEndpointPoliciesClient) DeletePreparer(ctx context.Context, 
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceEndpointPoliciesClient) DeleteSender(req *http.Request) (future ServiceEndpointPoliciesDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -202,16 +181,6 @@ func (client ServiceEndpointPoliciesClient) DeleteResponder(resp *http.Response)
 // serviceEndpointPolicyName - the name of the service endpoint policy.
 // expand - expands referenced resources.
 func (client ServiceEndpointPoliciesClient) Get(ctx context.Context, resourceGroupName string, serviceEndpointPolicyName string, expand string) (result ServiceEndpointPolicy, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceEndpointPoliciesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, serviceEndpointPolicyName, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ServiceEndpointPoliciesClient", "Get", nil, "Failure preparing request")
@@ -260,8 +229,8 @@ func (client ServiceEndpointPoliciesClient) GetPreparer(ctx context.Context, res
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceEndpointPoliciesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -279,16 +248,6 @@ func (client ServiceEndpointPoliciesClient) GetResponder(resp *http.Response) (r
 
 // List gets all the service endpoint policies in a subscription.
 func (client ServiceEndpointPoliciesClient) List(ctx context.Context) (result ServiceEndpointPolicyListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceEndpointPoliciesClient.List")
-		defer func() {
-			sc := -1
-			if result.seplr.Response.Response != nil {
-				sc = result.seplr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -333,8 +292,8 @@ func (client ServiceEndpointPoliciesClient) ListPreparer(ctx context.Context) (*
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceEndpointPoliciesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -351,8 +310,8 @@ func (client ServiceEndpointPoliciesClient) ListResponder(resp *http.Response) (
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ServiceEndpointPoliciesClient) listNextResults(ctx context.Context, lastResults ServiceEndpointPolicyListResult) (result ServiceEndpointPolicyListResult, err error) {
-	req, err := lastResults.serviceEndpointPolicyListResultPreparer(ctx)
+func (client ServiceEndpointPoliciesClient) listNextResults(lastResults ServiceEndpointPolicyListResult) (result ServiceEndpointPolicyListResult, err error) {
+	req, err := lastResults.serviceEndpointPolicyListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.ServiceEndpointPoliciesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -373,16 +332,6 @@ func (client ServiceEndpointPoliciesClient) listNextResults(ctx context.Context,
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ServiceEndpointPoliciesClient) ListComplete(ctx context.Context) (result ServiceEndpointPolicyListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceEndpointPoliciesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -391,16 +340,6 @@ func (client ServiceEndpointPoliciesClient) ListComplete(ctx context.Context) (r
 // Parameters:
 // resourceGroupName - the name of the resource group.
 func (client ServiceEndpointPoliciesClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ServiceEndpointPolicyListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceEndpointPoliciesClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.seplr.Response.Response != nil {
-				sc = result.seplr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -446,8 +385,8 @@ func (client ServiceEndpointPoliciesClient) ListByResourceGroupPreparer(ctx cont
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceEndpointPoliciesClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -464,8 +403,8 @@ func (client ServiceEndpointPoliciesClient) ListByResourceGroupResponder(resp *h
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client ServiceEndpointPoliciesClient) listByResourceGroupNextResults(ctx context.Context, lastResults ServiceEndpointPolicyListResult) (result ServiceEndpointPolicyListResult, err error) {
-	req, err := lastResults.serviceEndpointPolicyListResultPreparer(ctx)
+func (client ServiceEndpointPoliciesClient) listByResourceGroupNextResults(lastResults ServiceEndpointPolicyListResult) (result ServiceEndpointPolicyListResult, err error) {
+	req, err := lastResults.serviceEndpointPolicyListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.ServiceEndpointPoliciesClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -486,16 +425,6 @@ func (client ServiceEndpointPoliciesClient) listByResourceGroupNextResults(ctx c
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ServiceEndpointPoliciesClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result ServiceEndpointPolicyListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceEndpointPoliciesClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
@@ -506,16 +435,6 @@ func (client ServiceEndpointPoliciesClient) ListByResourceGroupComplete(ctx cont
 // serviceEndpointPolicyName - the name of the service endpoint policy.
 // parameters - parameters supplied to update service endpoint policy tags.
 func (client ServiceEndpointPoliciesClient) Update(ctx context.Context, resourceGroupName string, serviceEndpointPolicyName string, parameters TagsObject) (result ServiceEndpointPoliciesUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceEndpointPoliciesClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, serviceEndpointPolicyName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ServiceEndpointPoliciesClient", "Update", nil, "Failure preparing request")
@@ -557,9 +476,9 @@ func (client ServiceEndpointPoliciesClient) UpdatePreparer(ctx context.Context, 
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceEndpointPoliciesClient) UpdateSender(req *http.Request) (future ServiceEndpointPoliciesUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}

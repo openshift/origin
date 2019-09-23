@@ -60,19 +60,5 @@ func TestClustersCRUD(t *testing.T) {
 	th.AssertNoErr(t, err)
 	th.AssertEquals(t, newCluster.UUID, clusterID)
 
-	allPagesDetail, err := clusters.ListDetail(client, nil).AllPages()
-	th.AssertNoErr(t, err)
-
-	allClustersDetail, err := clusters.ExtractClusters(allPagesDetail)
-	th.AssertNoErr(t, err)
-
-	var foundDetail bool
-	for _, v := range allClustersDetail {
-		if v.UUID == clusterID {
-			foundDetail = true
-		}
-	}
-	th.AssertEquals(t, foundDetail, true)
-
 	tools.PrintResource(t, newCluster)
 }

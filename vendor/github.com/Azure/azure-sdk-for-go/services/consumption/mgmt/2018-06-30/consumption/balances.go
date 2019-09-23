@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewBalancesClientWithBaseURI(baseURI string, subscriptionID string) Balance
 // Parameters:
 // billingAccountID - billingAccount ID
 func (client BalancesClient) GetByBillingAccount(ctx context.Context, billingAccountID string) (result Balance, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BalancesClient.GetByBillingAccount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetByBillingAccountPreparer(ctx, billingAccountID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.BalancesClient", "GetByBillingAccount", nil, "Failure preparing request")
@@ -99,8 +88,8 @@ func (client BalancesClient) GetByBillingAccountPreparer(ctx context.Context, bi
 // GetByBillingAccountSender sends the GetByBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client BalancesClient) GetByBillingAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetByBillingAccountResponder handles the response to the GetByBillingAccount request. The method always
@@ -122,16 +111,6 @@ func (client BalancesClient) GetByBillingAccountResponder(resp *http.Response) (
 // billingAccountID - billingAccount ID
 // billingPeriodName - billing Period Name.
 func (client BalancesClient) GetForBillingPeriodByBillingAccount(ctx context.Context, billingAccountID string, billingPeriodName string) (result Balance, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BalancesClient.GetForBillingPeriodByBillingAccount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetForBillingPeriodByBillingAccountPreparer(ctx, billingAccountID, billingPeriodName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.BalancesClient", "GetForBillingPeriodByBillingAccount", nil, "Failure preparing request")
@@ -176,8 +155,8 @@ func (client BalancesClient) GetForBillingPeriodByBillingAccountPreparer(ctx con
 // GetForBillingPeriodByBillingAccountSender sends the GetForBillingPeriodByBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client BalancesClient) GetForBillingPeriodByBillingAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetForBillingPeriodByBillingAccountResponder handles the response to the GetForBillingPeriodByBillingAccount request. The method always

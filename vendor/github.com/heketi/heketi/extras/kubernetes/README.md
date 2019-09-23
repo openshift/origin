@@ -1,6 +1,42 @@
 # Overview
-Historical & demonstration templates for deploying heketi in k8s.
-Unless you are a heketi developer, or plan to be, you almost certainly
-want to refer to [gluster-kubernetes](https://github.com/gluster/gluster-kubernetes)
-which is a complete tool for deploying glusterfs and heketi into
-k8s and openshift.
+Kubernetes templates for Heketi and Gluster. The following documentation is setup
+to deploy the containers in Kubernetes.  It is not a full setup.  For full
+documentation, please visit the Heketi wiki page. Some of the kubernetes artifacts have been moved to https://github.com/gluster/gluster-kubernetes.
+
+# Usage
+
+## Deploy Gluster
+
+* Get node name by running:
+
+```
+$ kubectl get nodes
+```
+
+* Deploy the GlusterFS DaemonSet
+
+```
+$ kubectl create -f glusterfs-daemonset.json
+```
+
+* Deploy gluster container onto specified node by setting the label
+`storagenode=glusterfs` on that node:
+
+```
+$ kubectl label node <...node...> storagenode=glusterfs
+```
+
+Repeat as needed.
+
+## Deploy Heketi
+
+First you will need to deploy the bootstrap Heketi container:
+
+```
+$ kubectl create -f deploy-heketi-deployment.json
+```
+
+This will deploy the a Heketi container used to bootstrap the Heketi
+database.  Please refer to the wiki Kubernetes Deployment page for
+more information
+

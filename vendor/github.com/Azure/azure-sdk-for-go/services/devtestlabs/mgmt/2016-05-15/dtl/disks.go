@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,16 +48,6 @@ func NewDisksClientWithBaseURI(baseURI string, subscriptionID string) DisksClien
 // name - the name of the disk.
 // attachDiskProperties - properties of the disk to attach.
 func (client DisksClient) Attach(ctx context.Context, resourceGroupName string, labName string, userName string, name string, attachDiskProperties AttachDiskProperties) (result DisksAttachFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DisksClient.Attach")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AttachPreparer(ctx, resourceGroupName, labName, userName, name, attachDiskProperties)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.DisksClient", "Attach", nil, "Failure preparing request")
@@ -102,9 +91,13 @@ func (client DisksClient) AttachPreparer(ctx context.Context, resourceGroupName 
 // AttachSender sends the Attach request. The method will close the
 // http.Response Body if it receives an error.
 func (client DisksClient) AttachSender(req *http.Request) (future DisksAttachFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -132,16 +125,6 @@ func (client DisksClient) AttachResponder(resp *http.Response) (result autorest.
 // name - the name of the disk.
 // disk - a Disk.
 func (client DisksClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, labName string, userName string, name string, disk Disk) (result DisksCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DisksClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: disk,
 			Constraints: []validation.Constraint{{Target: "disk.DiskProperties", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -191,9 +174,13 @@ func (client DisksClient) CreateOrUpdatePreparer(ctx context.Context, resourceGr
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client DisksClient) CreateOrUpdateSender(req *http.Request) (future DisksCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}
@@ -221,16 +208,6 @@ func (client DisksClient) CreateOrUpdateResponder(resp *http.Response) (result D
 // userName - the name of the user profile.
 // name - the name of the disk.
 func (client DisksClient) Delete(ctx context.Context, resourceGroupName string, labName string, userName string, name string) (result DisksDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DisksClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, labName, userName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.DisksClient", "Delete", nil, "Failure preparing request")
@@ -272,9 +249,13 @@ func (client DisksClient) DeletePreparer(ctx context.Context, resourceGroupName 
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client DisksClient) DeleteSender(req *http.Request) (future DisksDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -303,16 +284,6 @@ func (client DisksClient) DeleteResponder(resp *http.Response) (result autorest.
 // name - the name of the disk.
 // detachDiskProperties - properties of the disk to detach.
 func (client DisksClient) Detach(ctx context.Context, resourceGroupName string, labName string, userName string, name string, detachDiskProperties DetachDiskProperties) (result DisksDetachFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DisksClient.Detach")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DetachPreparer(ctx, resourceGroupName, labName, userName, name, detachDiskProperties)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.DisksClient", "Detach", nil, "Failure preparing request")
@@ -356,9 +327,13 @@ func (client DisksClient) DetachPreparer(ctx context.Context, resourceGroupName 
 // DetachSender sends the Detach request. The method will close the
 // http.Response Body if it receives an error.
 func (client DisksClient) DetachSender(req *http.Request) (future DisksDetachFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -386,16 +361,6 @@ func (client DisksClient) DetachResponder(resp *http.Response) (result autorest.
 // name - the name of the disk.
 // expand - specify the $expand query. Example: 'properties($select=diskType)'
 func (client DisksClient) Get(ctx context.Context, resourceGroupName string, labName string, userName string, name string, expand string) (result Disk, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DisksClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, labName, userName, name, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.DisksClient", "Get", nil, "Failure preparing request")
@@ -446,8 +411,8 @@ func (client DisksClient) GetPreparer(ctx context.Context, resourceGroupName str
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client DisksClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -473,16 +438,6 @@ func (client DisksClient) GetResponder(resp *http.Response) (result Disk, err er
 // top - the maximum number of resources to return from the operation.
 // orderby - the ordering expression for the results, using OData notation.
 func (client DisksClient) List(ctx context.Context, resourceGroupName string, labName string, userName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationDiskPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DisksClient.List")
-		defer func() {
-			sc := -1
-			if result.rwcd.Response.Response != nil {
-				sc = result.rwcd.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, labName, userName, expand, filter, top, orderby)
 	if err != nil {
@@ -542,8 +497,8 @@ func (client DisksClient) ListPreparer(ctx context.Context, resourceGroupName st
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client DisksClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -560,8 +515,8 @@ func (client DisksClient) ListResponder(resp *http.Response) (result ResponseWit
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client DisksClient) listNextResults(ctx context.Context, lastResults ResponseWithContinuationDisk) (result ResponseWithContinuationDisk, err error) {
-	req, err := lastResults.responseWithContinuationDiskPreparer(ctx)
+func (client DisksClient) listNextResults(lastResults ResponseWithContinuationDisk) (result ResponseWithContinuationDisk, err error) {
+	req, err := lastResults.responseWithContinuationDiskPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dtl.DisksClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -582,16 +537,6 @@ func (client DisksClient) listNextResults(ctx context.Context, lastResults Respo
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client DisksClient) ListComplete(ctx context.Context, resourceGroupName string, labName string, userName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationDiskIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DisksClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, labName, userName, expand, filter, top, orderby)
 	return
 }

@@ -130,8 +130,8 @@ func TestInnerSym(t *testing.T) {
 
 func makeVecDenseInc(inc int, f []float64) *VecDense {
 	v := &VecDense{
+		n: len(f),
 		mat: blas64.Vector{
-			N:    len(f),
 			Inc:  inc,
 			Data: make([]float64, (len(f)-1)*inc+1),
 		},

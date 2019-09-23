@@ -45,7 +45,7 @@ func TestAppAdvsettings(t *testing.T) {
 		BrickMaxSize, BrickMinSize, BrickMaxNum = bmax, bmin, bnum
 	}()
 
-	app, _ := NewApp(conf)
+	app := NewApp(conf)
 	defer app.Close()
 	tests.Assert(t, app != nil)
 	tests.Assert(t, app.conf.Executor == "mock")
@@ -77,7 +77,7 @@ func TestAppLogLevel(t *testing.T) {
 			Loglevel:  level,
 		}
 
-		app, _ := NewApp(conf)
+		app := NewApp(conf)
 		tests.Assert(t, app != nil, "expected app != nil, got:", app)
 
 		switch level {
@@ -106,7 +106,7 @@ func TestAppLogLevel(t *testing.T) {
 		Loglevel:  "blah",
 	}
 
-	app, _ := NewApp(conf)
+	app := NewApp(conf)
 	defer app.Close()
 	tests.Assert(t, app != nil)
 	tests.Assert(t, logger.Level() == logging.LEVEL_NOLOG)
@@ -122,7 +122,7 @@ func TestAppReadOnlyDb(t *testing.T) {
 		Executor: "mock",
 		DBfile:   dbfile,
 	}
-	app, _ := NewApp(conf)
+	app := NewApp(conf)
 	tests.Assert(t, app != nil)
 	tests.Assert(t, app.dbReadOnly == false)
 	app.Close()
@@ -136,7 +136,7 @@ func TestAppReadOnlyDb(t *testing.T) {
 	tests.Assert(t, db != nil)
 
 	// Now open it again and notice how it opened
-	app, _ = NewApp(conf)
+	app = NewApp(conf)
 	defer app.Close()
 	tests.Assert(t, app != nil)
 	tests.Assert(t, app.dbReadOnly == true)
@@ -183,7 +183,6 @@ func TestAppBlockSettings(t *testing.T) {
 		Executor:  "crazyexec",
 		Allocator: "simple",
 		DBfile:    "/path/to/nonexistent/heketi.db",
-		// this comment should make gofmt happy in versions >= 1.11 and <= 1.10
 		CreateBlockHostingVolumes: true,
 		BlockHostingVolumeSize:    500,
 	}
@@ -193,11 +192,72 @@ func TestAppBlockSettings(t *testing.T) {
 		CreateBlockHostingVolumes, BlockHostingVolumeSize = blockauto, blocksize
 	}()
 
-	app, _ := NewApp(conf)
+	app := NewApp(conf)
 	defer app.Close()
 	tests.Assert(t, app != nil)
 	tests.Assert(t, app.conf.Executor == "mock")
 	tests.Assert(t, app.conf.DBfile == dbfile)
 	tests.Assert(t, CreateBlockHostingVolumes == true)
 	tests.Assert(t, BlockHostingVolumeSize == 500)
+}
+
+func TestCannotStartWhenPendingOperations(t *testing.T) {
+	dbfile := tests.Tempfile()
+	defer os.Remove(dbfile)
+
+	// create a app that will only be used to set up the test
+	app := NewTestApp(dbfile)
+	tests.Assert(t, app != nil)
+
+	// populate the db with a "dummy" pending op entry. this should
+	// trigger a panic the next time an app is instantiated
+	err := app.db.Update(func(tx *bolt.Tx) error {
+		op := NewPendingOperationEntry(NEW_ID)
+		op.Type = OperationCreateVolume
+		op.Save(tx)
+		return nil
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	app.Close()
+
+	defer func() {
+		// check that we (a) panicked (b) had the right error message
+		r := recover()
+		tests.Assert(t, r != nil, "expected r != nil, got:", r)
+		tests.Assert(t,
+			strings.Contains(r.(error).Error(), "pending operations are present"),
+			`expected "pending operations are present" in r.Error(), got:`,
+			r.(error).Error())
+	}()
+	// now creating a new app should panic
+	app = NewTestApp(dbfile)
+
+	t.Fatalf("Test should not reach this line")
+}
+
+func TestCanStartWhenPendingOperationsIgnored(t *testing.T) {
+	dbfile := tests.Tempfile()
+	defer os.Remove(dbfile)
+
+	// create a app that will only be used to set up the test
+	app := NewTestApp(dbfile)
+	tests.Assert(t, app != nil)
+
+	// populate the db with a "dummy" pending op entry.
+	// without the environment var we're setting later
+	// this would trigger a panic
+	err := app.db.Update(func(tx *bolt.Tx) error {
+		op := NewPendingOperationEntry(NEW_ID)
+		op.Type = OperationCreateVolume
+		op.Save(tx)
+		return nil
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	app.Close()
+
+	// now creating a new app should NOT panic
+	os.Setenv("HEKETI_IGNORE_STALE_OPERATIONS", "1")
+	defer os.Unsetenv("HEKETI_IGNORE_STALE_OPERATIONS")
+	app = NewTestApp(dbfile)
+	tests.Assert(t, app != nil, "expected app != nil, got:", app)
 }

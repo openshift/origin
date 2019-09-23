@@ -143,7 +143,15 @@ func (grm *nestedPendingOperations) Run(
 		defer k8sRuntime.HandleCrash()
 		// Handle completion of and error, if any, from operationFunc()
 		defer grm.operationComplete(volumeName, podName, &detailedErr)
-		return generatedOperations.Run()
+		if generatedOperations.CompleteFunc != nil {
+			defer generatedOperations.CompleteFunc(&detailedErr)
+		}
+		if generatedOperations.EventRecorderFunc != nil {
+			defer generatedOperations.EventRecorderFunc(&eventErr)
+		}
+		// Handle panic, if any, from operationFunc()
+		defer k8sRuntime.RecoverFromPanic(&detailedErr)
+		return generatedOperations.OperationFunc()
 	}()
 
 	return nil

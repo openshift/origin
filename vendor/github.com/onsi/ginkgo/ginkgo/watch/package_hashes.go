@@ -2,22 +2,19 @@ package watch
 
 import (
 	"path/filepath"
-	"regexp"
 	"sync"
 )
 
 type PackageHashes struct {
 	PackageHashes map[string]*PackageHash
 	usedPaths     map[string]bool
-	watchRegExp   *regexp.Regexp
 	lock          *sync.Mutex
 }
 
-func NewPackageHashes(watchRegExp *regexp.Regexp) *PackageHashes {
+func NewPackageHashes() *PackageHashes {
 	return &PackageHashes{
 		PackageHashes: map[string]*PackageHash{},
 		usedPaths:     nil,
-		watchRegExp:   watchRegExp,
 		lock:          &sync.Mutex{},
 	}
 }
@@ -44,7 +41,7 @@ func (p *PackageHashes) Add(path string) *PackageHash {
 	path, _ = filepath.Abs(path)
 	_, ok := p.PackageHashes[path]
 	if !ok {
-		p.PackageHashes[path] = NewPackageHash(path, p.watchRegExp)
+		p.PackageHashes[path] = NewPackageHash(path)
 	}
 
 	if p.usedPaths != nil {

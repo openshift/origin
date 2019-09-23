@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/hcl/ast"
-	hcltoken "github.com/hashicorp/hcl/hcl/token"
 	"github.com/hashicorp/hcl/json/scanner"
 	"github.com/hashicorp/hcl/json/token"
 )
@@ -86,7 +85,6 @@ func (p *Parser) objectList() (*ast.ObjectList, error) {
 			break
 		}
 	}
-
 	return node, nil
 }
 
@@ -105,14 +103,6 @@ func (p *Parser) objectItem() (*ast.ObjectItem, error) {
 
 	switch p.tok.Type {
 	case token.COLON:
-		pos := p.tok.Pos
-		o.Assign = hcltoken.Pos{
-			Filename: pos.Filename,
-			Offset:   pos.Offset,
-			Line:     pos.Line,
-			Column:   pos.Column,
-		}
-
 		o.Val, err = p.objectValue()
 		if err != nil {
 			return nil, err
@@ -147,7 +137,7 @@ func (p *Parser) objectKey() ([]*ast.ObjectKey, error) {
 			// Done
 			return keys, nil
 		case token.ILLEGAL:
-			return nil, errors.New("illegal")
+			fmt.Println("illegal")
 		default:
 			return nil, fmt.Errorf("expected: STRING got: %s", p.tok.Type)
 		}

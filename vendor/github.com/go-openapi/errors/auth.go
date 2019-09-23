@@ -14,9 +14,7 @@
 
 package errors
 
-import "net/http"
-
 // Unauthenticated returns an unauthenticated error
 func Unauthenticated(scheme string) Error {
-	return New(http.StatusUnauthorized, "unauthenticated for %s", scheme)
+	return New(401, "unauthenticated for %s", scheme)
 }

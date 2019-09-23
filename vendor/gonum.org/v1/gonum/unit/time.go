@@ -10,10 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"unicode/utf8"
 )
 
-// Time represents a time in seconds.
+// Time represents a time in seconds
 type Time float64
 
 const (
@@ -77,18 +76,17 @@ func (t Time) Format(fs fmt.State, c rune) {
 	case 'e', 'E', 'f', 'F', 'g', 'G':
 		p, pOk := fs.Precision()
 		w, wOk := fs.Width()
-		const unit = " s"
 		switch {
 		case pOk && wOk:
-			fmt.Fprintf(fs, "%*.*"+string(c), pos(w-utf8.RuneCount([]byte(unit))), p, float64(t))
+			fmt.Fprintf(fs, "%*.*"+string(c), w, p, float64(t))
 		case pOk:
 			fmt.Fprintf(fs, "%.*"+string(c), p, float64(t))
 		case wOk:
-			fmt.Fprintf(fs, "%*"+string(c), pos(w-utf8.RuneCount([]byte(unit))), float64(t))
+			fmt.Fprintf(fs, "%*"+string(c), w, float64(t))
 		default:
 			fmt.Fprintf(fs, "%"+string(c), float64(t))
 		}
-		fmt.Fprint(fs, unit)
+		fmt.Fprint(fs, " s")
 	default:
 		fmt.Fprintf(fs, "%%!%c(%T=%g s)", c, t, float64(t))
 	}

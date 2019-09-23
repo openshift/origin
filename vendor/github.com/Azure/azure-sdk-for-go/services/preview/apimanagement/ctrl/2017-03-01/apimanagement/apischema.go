@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewAPISchemaClient() APISchemaClient {
 // ifMatch - the entity state (Etag) version of the Api Schema to update. A value of "*" can be used for
 // If-Match to unconditionally apply the operation.
 func (client APISchemaClient) CreateOrUpdate(ctx context.Context, apimBaseURL string, apiid string, schemaID string, parameters SchemaContract, ifMatch string) (result SchemaContract, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/APISchemaClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: apiid,
 			Constraints: []validation.Constraint{{Target: "apiid", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -122,8 +111,8 @@ func (client APISchemaClient) CreateOrUpdatePreparer(ctx context.Context, apimBa
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client APISchemaClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -148,16 +137,6 @@ func (client APISchemaClient) CreateOrUpdateResponder(resp *http.Response) (resu
 // ifMatch - the entity state (Etag) version of the Api schema to update. A value of "*" can be used for
 // If-Match to unconditionally apply the operation.
 func (client APISchemaClient) Delete(ctx context.Context, apimBaseURL string, apiid string, schemaID string, ifMatch string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/APISchemaClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: apiid,
 			Constraints: []validation.Constraint{{Target: "apiid", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -219,8 +198,8 @@ func (client APISchemaClient) DeletePreparer(ctx context.Context, apimBaseURL st
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client APISchemaClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -242,16 +221,6 @@ func (client APISchemaClient) DeleteResponder(resp *http.Response) (result autor
 // apiid - API identifier. Must be unique in the current API Management service instance.
 // schemaID - schema identifier within an API. Must be unique in the current API Management service instance.
 func (client APISchemaClient) Get(ctx context.Context, apimBaseURL string, apiid string, schemaID string) (result SchemaContract, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/APISchemaClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: apiid,
 			Constraints: []validation.Constraint{{Target: "apiid", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -312,8 +281,8 @@ func (client APISchemaClient) GetPreparer(ctx context.Context, apimBaseURL strin
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client APISchemaClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -335,16 +304,6 @@ func (client APISchemaClient) GetResponder(resp *http.Response) (result SchemaCo
 // https://myapimservice.management.azure-api.net.
 // apiid - API identifier. Must be unique in the current API Management service instance.
 func (client APISchemaClient) ListByAPI(ctx context.Context, apimBaseURL string, apiid string) (result SchemaCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/APISchemaClient.ListByAPI")
-		defer func() {
-			sc := -1
-			if result.sc.Response.Response != nil {
-				sc = result.sc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: apiid,
 			Constraints: []validation.Constraint{{Target: "apiid", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -401,8 +360,8 @@ func (client APISchemaClient) ListByAPIPreparer(ctx context.Context, apimBaseURL
 // ListByAPISender sends the ListByAPI request. The method will close the
 // http.Response Body if it receives an error.
 func (client APISchemaClient) ListByAPISender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListByAPIResponder handles the response to the ListByAPI request. The method always
@@ -419,8 +378,8 @@ func (client APISchemaClient) ListByAPIResponder(resp *http.Response) (result Sc
 }
 
 // listByAPINextResults retrieves the next set of results, if any.
-func (client APISchemaClient) listByAPINextResults(ctx context.Context, lastResults SchemaCollection) (result SchemaCollection, err error) {
-	req, err := lastResults.schemaCollectionPreparer(ctx)
+func (client APISchemaClient) listByAPINextResults(lastResults SchemaCollection) (result SchemaCollection, err error) {
+	req, err := lastResults.schemaCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.APISchemaClient", "listByAPINextResults", nil, "Failure preparing next results request")
 	}
@@ -441,16 +400,6 @@ func (client APISchemaClient) listByAPINextResults(ctx context.Context, lastResu
 
 // ListByAPIComplete enumerates all values, automatically crossing page boundaries as required.
 func (client APISchemaClient) ListByAPIComplete(ctx context.Context, apimBaseURL string, apiid string) (result SchemaCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/APISchemaClient.ListByAPI")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByAPI(ctx, apimBaseURL, apiid)
 	return
 }

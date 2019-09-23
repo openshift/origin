@@ -23,7 +23,7 @@ var _ = Describe("Verbose And Succinct Mode", func() {
 	Context("when running one package", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("ginkgo")
-			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
+			copyIn("passing_ginkgo_tests", pathToTest)
 		})
 
 		It("should default to non-succinct mode", func() {
@@ -38,9 +38,9 @@ var _ = Describe("Verbose And Succinct Mode", func() {
 	Context("when running more than one package", func() {
 		BeforeEach(func() {
 			pathToTest = tmpPath("ginkgo")
-			copyIn(fixturePath("passing_ginkgo_tests"), pathToTest, false)
+			copyIn("passing_ginkgo_tests", pathToTest)
 			otherPathToTest = tmpPath("more_ginkgo")
-			copyIn(fixturePath("more_ginkgo_tests"), otherPathToTest, false)
+			copyIn("more_ginkgo_tests", otherPathToTest)
 		})
 
 		Context("with no flags set", func() {

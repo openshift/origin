@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/registry/rest/resttest"
 	storagetesting "k8s.io/apiserver/pkg/storage/testing"
 )
@@ -169,7 +168,7 @@ func (t *Tester) createObject(ctx context.Context, obj runtime.Object) error {
 
 func (t *Tester) setObjectsForList(objects []runtime.Object) []runtime.Object {
 	key := t.storage.KeyRootFunc(t.tester.TestContext())
-	if _, err := t.storage.DeleteCollection(t.tester.TestContext(), rest.ValidateAllObjectFunc, nil, nil); err != nil {
+	if _, err := t.storage.DeleteCollection(t.tester.TestContext(), nil, nil); err != nil {
 		t.tester.Errorf("unable to clear collection: %v", err)
 		return nil
 	}
@@ -193,7 +192,7 @@ func (t *Tester) emitObject(obj runtime.Object, action string) error {
 		if err != nil {
 			return err
 		}
-		_, _, err = t.storage.Delete(ctx, accessor.GetName(), rest.ValidateAllObjectFunc, nil)
+		_, _, err = t.storage.Delete(ctx, accessor.GetName(), nil)
 	default:
 		err = fmt.Errorf("unexpected action: %v", action)
 	}

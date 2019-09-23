@@ -28,7 +28,7 @@ func init() {
 type spanningGraph interface {
 	graph.WeightedBuilder
 	graph.WeightedUndirected
-	WeightedEdges() graph.WeightedEdges
+	WeightedEdges() []graph.WeightedEdge
 }
 
 var spanningTreeTests = []struct {
@@ -254,7 +254,7 @@ func testMinumumSpanning(mst func(dst WeightedBuilder, g spanningGraph) float64,
 				test.name, w, test.want)
 		}
 		var got float64
-		for _, e := range graph.WeightedEdgesOf(dst.WeightedEdges()) {
+		for _, e := range dst.WeightedEdges() {
 			got += e.Weight()
 		}
 		if got != test.want {
@@ -262,7 +262,7 @@ func testMinumumSpanning(mst func(dst WeightedBuilder, g spanningGraph) float64,
 				test.name, got, test.want)
 		}
 
-		gotEdges := graph.EdgesOf(dst.Edges())
+		gotEdges := dst.Edges()
 		if len(gotEdges) != len(test.treeEdges) {
 			t.Errorf("unexpected number of spanning tree edges for %q: got: %d want: %d",
 				test.name, len(gotEdges), len(test.treeEdges))

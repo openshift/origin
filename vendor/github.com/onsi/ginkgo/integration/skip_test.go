@@ -11,7 +11,7 @@ var _ = Describe("Skipping Specs", func() {
 
 	BeforeEach(func() {
 		pathToTest = tmpPath("skipping")
-		copyIn(fixturePath("skip_fixture"), pathToTest, false)
+		copyIn("skip_fixture", pathToTest)
 	})
 
 	It("should skip in all the possible ways", func() {

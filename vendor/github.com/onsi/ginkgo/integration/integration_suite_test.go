@@ -19,7 +19,7 @@ var tmpDir string
 var pathToGinkgo string
 
 func TestIntegration(t *testing.T) {
-	SetDefaultEventuallyTimeout(30 * time.Second)
+	SetDefaultEventuallyTimeout(15 * time.Second)
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Integration Suite")
 }
@@ -51,62 +51,29 @@ func tmpPath(destination string) string {
 	return filepath.Join(tmpDir, destination)
 }
 
-func fixturePath(name string) string {
-	return filepath.Join("_fixtures", name)
-}
+func copyIn(fixture string, destination string) {
+	err := os.MkdirAll(destination, 0777)
+	Ω(err).ShouldNot(HaveOccurred())
 
-func copyIn(sourcePath, destinationPath string, recursive bool) {
-	err := os.MkdirAll(destinationPath, 0777)
-	Expect(err).NotTo(HaveOccurred())
-
-	files, err := ioutil.ReadDir(sourcePath)
-	Expect(err).NotTo(HaveOccurred())
-	for _, f := range files {
-		srcPath := filepath.Join(sourcePath, f.Name())
-		dstPath := filepath.Join(destinationPath, f.Name())
-		if f.IsDir() {
-			if recursive {
-				copyIn(srcPath, dstPath, recursive)
-			}
-			continue
+	filepath.Walk(filepath.Join("_fixtures", fixture), func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
 		}
 
-		src, err := os.Open(srcPath)
+		base := filepath.Base(path)
 
-		Expect(err).NotTo(HaveOccurred())
+		src, err := os.Open(path)
+		Ω(err).ShouldNot(HaveOccurred())
 		defer src.Close()
 
-		dst, err := os.Create(dstPath)
-		Expect(err).NotTo(HaveOccurred())
+		dst, err := os.Create(filepath.Join(destination, base))
+		Ω(err).ShouldNot(HaveOccurred())
 		defer dst.Close()
 
 		_, err = io.Copy(dst, src)
-		Expect(err).NotTo(HaveOccurred())
-	}
-}
-
-func sameFile(filePath, otherFilePath string) bool {
-	content, readErr := ioutil.ReadFile(filePath)
-	Expect(readErr).NotTo(HaveOccurred())
-	otherContent, readErr := ioutil.ReadFile(otherFilePath)
-	Expect(readErr).NotTo(HaveOccurred())
-	Expect(string(content)).To(Equal(string(otherContent)))
-	return true
-}
-
-func sameFolder(sourcePath, destinationPath string) bool {
-	files, err := ioutil.ReadDir(sourcePath)
-	Expect(err).NotTo(HaveOccurred())
-	for _, f := range files {
-		srcPath := filepath.Join(sourcePath, f.Name())
-		dstPath := filepath.Join(destinationPath, f.Name())
-		if f.IsDir() {
-			sameFolder(srcPath, dstPath)
-			continue
-		}
-		Expect(sameFile(srcPath, dstPath)).To(BeTrue())
-	}
-	return true
+		Ω(err).ShouldNot(HaveOccurred())
+		return nil
+	})
 }
 
 func ginkgoCommand(dir string, args ...string) *exec.Cmd {
@@ -121,9 +88,4 @@ func startGinkgo(dir string, args ...string) *gexec.Session {
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Ω(err).ShouldNot(HaveOccurred())
 	return session
-}
-
-func removeSuccessfully(path string) {
-	err := os.RemoveAll(path)
-	Expect(err).NotTo(HaveOccurred())
 }

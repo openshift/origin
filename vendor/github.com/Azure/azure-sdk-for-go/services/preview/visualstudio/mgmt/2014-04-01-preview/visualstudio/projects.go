@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -55,16 +54,6 @@ func NewProjectsClientWithBaseURI(baseURI string, subscriptionID string) Project
 // resourceName - name of the Team Services project.
 // validating - this parameter is ignored and should be set to an empty string.
 func (client ProjectsClient) Create(ctx context.Context, body ProjectResource, resourceGroupName string, rootResourceName string, resourceName string, validating string) (result ProjectsCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePreparer(ctx, body, resourceGroupName, rootResourceName, resourceName, validating)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "visualstudio.ProjectsClient", "Create", nil, "Failure preparing request")
@@ -110,9 +99,13 @@ func (client ProjectsClient) CreatePreparer(ctx context.Context, body ProjectRes
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) CreateSender(req *http.Request) (future ProjectsCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -139,16 +132,6 @@ func (client ProjectsClient) CreateResponder(resp *http.Response) (result Projec
 // rootResourceName - name of the Team Services account.
 // resourceName - name of the Team Services project.
 func (client ProjectsClient) Get(ctx context.Context, resourceGroupName string, rootResourceName string, resourceName string) (result ProjectResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, rootResourceName, resourceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "visualstudio.ProjectsClient", "Get", nil, "Failure preparing request")
@@ -195,8 +178,8 @@ func (client ProjectsClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -221,16 +204,6 @@ func (client ProjectsClient) GetResponder(resp *http.Response) (result ProjectRe
 // operation - the operation type. The only supported value is 'put'.
 // jobID - the job identifier.
 func (client ProjectsClient) GetJobStatus(ctx context.Context, resourceGroupName string, rootResourceName string, resourceName string, subContainerName string, operation string, jobID *uuid.UUID) (result ProjectResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.GetJobStatus")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetJobStatusPreparer(ctx, resourceGroupName, rootResourceName, resourceName, subContainerName, operation, jobID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "visualstudio.ProjectsClient", "GetJobStatus", nil, "Failure preparing request")
@@ -282,8 +255,8 @@ func (client ProjectsClient) GetJobStatusPreparer(ctx context.Context, resourceG
 // GetJobStatusSender sends the GetJobStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) GetJobStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetJobStatusResponder handles the response to the GetJobStatus request. The method always
@@ -305,16 +278,6 @@ func (client ProjectsClient) GetJobStatusResponder(resp *http.Response) (result 
 // resourceGroupName - name of the resource group within the Azure subscription.
 // rootResourceName - name of the Team Services account.
 func (client ProjectsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, rootResourceName string) (result ProjectResourceListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, rootResourceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "visualstudio.ProjectsClient", "ListByResourceGroup", nil, "Failure preparing request")
@@ -360,8 +323,8 @@ func (client ProjectsClient) ListByResourceGroupPreparer(ctx context.Context, re
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -384,16 +347,6 @@ func (client ProjectsClient) ListByResourceGroupResponder(resp *http.Response) (
 // rootResourceName - name of the Team Services account.
 // resourceName - name of the Team Services project.
 func (client ProjectsClient) Update(ctx context.Context, resourceGroupName string, body ProjectResource, rootResourceName string, resourceName string) (result ProjectResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProjectsClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, body, rootResourceName, resourceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "visualstudio.ProjectsClient", "Update", nil, "Failure preparing request")
@@ -442,8 +395,8 @@ func (client ProjectsClient) UpdatePreparer(ctx context.Context, resourceGroupNa
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProjectsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

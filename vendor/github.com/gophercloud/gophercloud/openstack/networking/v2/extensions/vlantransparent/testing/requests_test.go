@@ -142,9 +142,8 @@ func TestUpdate(t *testing.T) {
 	})
 
 	iFalse := false
-	name := "new_network_name"
 	networkUpdateOpts := networks.UpdateOpts{
-		Name:         &name,
+		Name:         "new_network_name",
 		AdminStateUp: &iFalse,
 	}
 

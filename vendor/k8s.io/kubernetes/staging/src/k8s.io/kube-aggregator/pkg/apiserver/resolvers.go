@@ -25,7 +25,7 @@ import (
 
 // A ServiceResolver knows how to get a URL given a service.
 type ServiceResolver interface {
-	ResolveEndpoint(namespace, name string, port int32) (*url.URL, error)
+	ResolveEndpoint(namespace, name string) (*url.URL, error)
 }
 
 // NewEndpointServiceResolver returns a ServiceResolver that chooses one of the
@@ -42,8 +42,8 @@ type aggregatorEndpointRouting struct {
 	endpoints listersv1.EndpointsLister
 }
 
-func (r *aggregatorEndpointRouting) ResolveEndpoint(namespace, name string, port int32) (*url.URL, error) {
-	return proxy.ResolveEndpoint(r.services, r.endpoints, namespace, name, port)
+func (r *aggregatorEndpointRouting) ResolveEndpoint(namespace, name string) (*url.URL, error) {
+	return proxy.ResolveEndpoint(r.services, r.endpoints, namespace, name)
 }
 
 // NewClusterIPServiceResolver returns a ServiceResolver that directly calls the
@@ -58,12 +58,11 @@ type aggregatorClusterRouting struct {
 	services listersv1.ServiceLister
 }
 
-func (r *aggregatorClusterRouting) ResolveEndpoint(namespace, name string, port int32) (*url.URL, error) {
-	return proxy.ResolveCluster(r.services, namespace, name, port)
+func (r *aggregatorClusterRouting) ResolveEndpoint(namespace, name string) (*url.URL, error) {
+	return proxy.ResolveCluster(r.services, namespace, name)
 }
 
-// NewLoopbackServiceResolver returns a ServiceResolver that routes
-// the kubernetes/default service with port 443 to loopback.
+// NewLoopbackServiceResolver returns a ServiceResolver that routes the kubernetes/default service to loopback.
 func NewLoopbackServiceResolver(delegate ServiceResolver, host *url.URL) ServiceResolver {
 	return &loopbackResolver{
 		delegate: delegate,
@@ -76,9 +75,9 @@ type loopbackResolver struct {
 	host     *url.URL
 }
 
-func (r *loopbackResolver) ResolveEndpoint(namespace, name string, port int32) (*url.URL, error) {
-	if namespace == "default" && name == "kubernetes" && port == 443 {
+func (r *loopbackResolver) ResolveEndpoint(namespace, name string) (*url.URL, error) {
+	if namespace == "default" && name == "kubernetes" {
 		return r.host, nil
 	}
-	return r.delegate.ResolveEndpoint(namespace, name, port)
+	return r.delegate.ResolveEndpoint(namespace, name)
 }

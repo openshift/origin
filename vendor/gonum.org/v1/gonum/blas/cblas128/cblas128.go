@@ -12,8 +12,7 @@ import (
 var cblas128 blas.Complex128 = gonum.Implementation{}
 
 // Use sets the BLAS complex128 implementation to be used by subsequent BLAS calls.
-// The default implementation is
-// gonum.org/v1/gonum/blas/gonum.Implementation.
+// The default implementation is cgo.Implementation.
 func Use(b blas.Complex128) {
 	cblas128 = b
 }

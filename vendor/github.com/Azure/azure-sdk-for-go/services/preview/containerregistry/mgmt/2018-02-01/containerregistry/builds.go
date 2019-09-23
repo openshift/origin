@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewBuildsClientWithBaseURI(baseURI string, subscriptionID string) BuildsCli
 // registryName - the name of the container registry.
 // buildID - the build ID.
 func (client BuildsClient) Cancel(ctx context.Context, resourceGroupName string, registryName string, buildID string) (result BuildsCancelFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BuildsClient.Cancel")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -105,9 +94,13 @@ func (client BuildsClient) CancelPreparer(ctx context.Context, resourceGroupName
 // CancelSender sends the Cancel request. The method will close the
 // http.Response Body if it receives an error.
 func (client BuildsClient) CancelSender(req *http.Request) (future BuildsCancelFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -133,16 +126,6 @@ func (client BuildsClient) CancelResponder(resp *http.Response) (result autorest
 // registryName - the name of the container registry.
 // buildID - the build ID.
 func (client BuildsClient) Get(ctx context.Context, resourceGroupName string, registryName string, buildID string) (result Build, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BuildsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -197,8 +180,8 @@ func (client BuildsClient) GetPreparer(ctx context.Context, resourceGroupName st
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client BuildsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -220,16 +203,6 @@ func (client BuildsClient) GetResponder(resp *http.Response) (result Build, err 
 // registryName - the name of the container registry.
 // buildID - the build ID.
 func (client BuildsClient) GetLogLink(ctx context.Context, resourceGroupName string, registryName string, buildID string) (result BuildGetLogResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BuildsClient.GetLogLink")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -284,8 +257,8 @@ func (client BuildsClient) GetLogLinkPreparer(ctx context.Context, resourceGroup
 // GetLogLinkSender sends the GetLogLink request. The method will close the
 // http.Response Body if it receives an error.
 func (client BuildsClient) GetLogLinkSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetLogLinkResponder handles the response to the GetLogLink request. The method always
@@ -310,16 +283,6 @@ func (client BuildsClient) GetLogLinkResponder(resp *http.Response) (result Buil
 // skipToken - $skipToken is supported on get list of builds, which provides the next page in the list of
 // builds.
 func (client BuildsClient) List(ctx context.Context, resourceGroupName string, registryName string, filter string, top *int32, skipToken string) (result BuildListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BuildsClient.List")
-		defer func() {
-			sc := -1
-			if result.blr.Response.Response != nil {
-				sc = result.blr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -383,8 +346,8 @@ func (client BuildsClient) ListPreparer(ctx context.Context, resourceGroupName s
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client BuildsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -401,8 +364,8 @@ func (client BuildsClient) ListResponder(resp *http.Response) (result BuildListR
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client BuildsClient) listNextResults(ctx context.Context, lastResults BuildListResult) (result BuildListResult, err error) {
-	req, err := lastResults.buildListResultPreparer(ctx)
+func (client BuildsClient) listNextResults(lastResults BuildListResult) (result BuildListResult, err error) {
+	req, err := lastResults.buildListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "containerregistry.BuildsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -423,16 +386,6 @@ func (client BuildsClient) listNextResults(ctx context.Context, lastResults Buil
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BuildsClient) ListComplete(ctx context.Context, resourceGroupName string, registryName string, filter string, top *int32, skipToken string) (result BuildListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BuildsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, registryName, filter, top, skipToken)
 	return
 }
@@ -444,16 +397,6 @@ func (client BuildsClient) ListComplete(ctx context.Context, resourceGroupName s
 // buildID - the build ID.
 // buildUpdateParameters - the build update properties.
 func (client BuildsClient) Update(ctx context.Context, resourceGroupName string, registryName string, buildID string, buildUpdateParameters BuildUpdateParameters) (result BuildsUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BuildsClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -504,9 +447,13 @@ func (client BuildsClient) UpdatePreparer(ctx context.Context, resourceGroupName
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client BuildsClient) UpdateSender(req *http.Request) (future BuildsUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}

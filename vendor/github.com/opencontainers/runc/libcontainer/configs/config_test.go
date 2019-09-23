@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 func TestUnmarshalHooks(t *testing.T) {
@@ -102,7 +101,7 @@ func TestMarshalUnmarshalHooks(t *testing.T) {
 }
 
 func TestMarshalHooksWithUnexpectedType(t *testing.T) {
-	fHook := configs.NewFunctionHook(func(*specs.State) error {
+	fHook := configs.NewFunctionHook(func(configs.HookState) error {
 		return nil
 	})
 	hook := configs.Hooks{
@@ -120,15 +119,14 @@ func TestMarshalHooksWithUnexpectedType(t *testing.T) {
 }
 
 func TestFuncHookRun(t *testing.T) {
-	state := &specs.State{
+	state := configs.HookState{
 		Version: "1",
 		ID:      "1",
-		Status:  "created",
 		Pid:     1,
 		Bundle:  "/bundle",
 	}
 
-	fHook := configs.NewFunctionHook(func(s *specs.State) error {
+	fHook := configs.NewFunctionHook(func(s configs.HookState) error {
 		if !reflect.DeepEqual(state, s) {
 			t.Errorf("Expected state %+v to equal %+v", state, s)
 		}
@@ -139,10 +137,9 @@ func TestFuncHookRun(t *testing.T) {
 }
 
 func TestCommandHookRun(t *testing.T) {
-	state := &specs.State{
+	state := configs.HookState{
 		Version: "1",
 		ID:      "1",
-		Status:  "created",
 		Pid:     1,
 		Bundle:  "/bundle",
 	}
@@ -163,10 +160,9 @@ func TestCommandHookRun(t *testing.T) {
 }
 
 func TestCommandHookRunTimeout(t *testing.T) {
-	state := &specs.State{
+	state := configs.HookState{
 		Version: "1",
 		ID:      "1",
-		Status:  "created",
 		Pid:     1,
 		Bundle:  "/bundle",
 	}

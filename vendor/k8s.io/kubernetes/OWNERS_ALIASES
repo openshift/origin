@@ -122,23 +122,6 @@ aliases:
     - mikedanese
     - WanLinghao
 
-  # SIG Release
-  sig-release-approvers:
-    - calebamiles # SIG Chair
-    - justaugustus # SIG Chair
-    - tpepper # SIG Chair
-  release-engineering-approvers:
-    - calebamiles # SIG Chair
-    - justaugustus # SIG Chair
-    - tpepper # SIG Chair / Patch Release Team
-  release-engineering-reviewers:
-    - aleksandra-malinowska # Patch Release Team
-    - calebamiles # SIG Chair
-    - feiskyer # Patch Release Team
-    - hoegaarden # Patch Release Team
-    - justaugustus # SIG Chair
-    - tpepper # SIG Chair / Patch Release Team
-
   sig-storage-reviewers:
     - saad-ali
     - childsb
@@ -149,17 +132,14 @@ aliases:
     - wojtek-t
     - ravisantoshgudimetla
     - Huang-Wei
-    - ahg-g
   sig-scheduling:
     - bsalamat
     - k82cn
     - resouer
     - ravisantoshgudimetla
+    - misterikkit
     - Huang-Wei
     - wgliang
-    - ahg-g
-    - draveness
-    - hex108
 
   sig-cli-maintainers:
     - adohe
@@ -222,7 +202,6 @@ aliases:
     - yifan-gu
     - yujuhong
     - krmayankk
-    - mattjmcnaughton
   sig-network-approvers:
     - bowei
     - caseydavenport
@@ -230,7 +209,6 @@ aliases:
     - dcbw
     - dnardo
     - freehan
-    - johnbelamaric
     - mrhohn
     - nicksardo
     - thockin
@@ -241,38 +219,30 @@ aliases:
     - dcbw
     - dnardo
     - freehan
-    - johnbelamaric
     - mrhohn
     - nicksardo
     - thockin
     - rramkumar1
-    - cmluciano
-    - m1093782566
-    - andrewsykim
-  sig-apps-approvers:
-    - kow3ns
-    - janetkuo
-    - soltysh
-    - tnozicka
-    - erictune
-    - smarterclayton
   sig-apps-reviewers:
     - enisoc
     - erictune
     - foxish
     - janetkuo
     - kow3ns
-    - mortent
+    - lukaszo
+    - mfojtik
     - smarterclayton
     - soltysh
     - tnozicka
-    - krmayankk
+  sig-apps-api-approvers:
+    - erictune
+    - smarterclayton
   sig-autoscaling-maintainers:
     - aleksandra-malinowska
     - bskiba
+    - DirectXMan12
     - MaciekPytel
     - mwielgus
-
   api-approvers:
     - erictune
     - lavalamp
@@ -280,63 +250,6 @@ aliases:
     - thockin
     - liggitt
     # - bgrant0607 # manual escalations only
-
-  # subsets of api-approvers by sig area to help focus approval requests to those with domain knowledge
-  sig-api-machinery-api-approvers:
-    - lavalamp
-    - liggitt
-    - smarterclayton
-
-  sig-apps-api-approvers:
-    - erictune
-    - lavalamp
-    - liggitt
-    - smarterclayton
-
-  sig-auth-api-approvers:
-    - liggitt
-    - smarterclayton
-
-  sig-cli-api-approvers:
-    - liggitt
-    - smarterclayton
-
-  sig-cloud-provider-api-approvers:
-    - liggitt
-    - thockin
-
-  sig-cluster-lifecycle-api-approvers:
-    - liggitt
-    - smarterclayton
-
-  sig-network-api-approvers:
-    - smarterclayton
-    - thockin
-
-  sig-network-api-reviewers:
-    - caseydavenport
-    - cmluciano
-    - danwinship
-    - thockin
-
-  sig-node-api-approvers:
-    - smarterclayton
-    - thockin
-
-  sig-scheduling-api-approvers:
-    - lavalamp
-    - smarterclayton
-    - thockin
-
-  sig-storage-api-approvers:
-    - liggitt
-    - thockin
-
-  sig-windows-api-approvers:
-    - smarterclayton
-    - thockin
-    - liggitt
-  
   api-reviewers:
     - erictune
     - lavalamp
@@ -363,6 +276,7 @@ aliases:
     - janetkuo
     - justinsb
     - pwittrock
+    - roberthbailey
     - ncdc
     - tallclair
     - yifan-gu
@@ -373,57 +287,6 @@ aliases:
     - piosz
     - jsafrane
     - jbeda
-
-  # api-reviewers targeted by sig area
-  # see https://git.k8s.io/community/sig-architecture/api-review-process.md#training-reviews
-  
-  sig-api-machinery-api-reviewers:
-    - caesarxuchao
-    - deads2k
-    - jpbetz
-    - sttts
-  
-  # sig-apps-api-reviewers:
-  #   - 
-  #   - 
-
-  sig-auth-api-reviewers:
-    - enj
-    - mikedanese
-
-  sig-cli-api-reviewers:
-    - pwittrock
-    - soltysh
-
-  sig-cloud-provider-api-reviewers:
-    - andrewsykim
-    - cheftako
-  
-  # sig-cluster-lifecycle-api-reviewers:
-  #   - 
-  #   -
-  
-  sig-node-api-reviewers:
-    - dchen1107
-    - derekwaynecarr
-    - tallclair
-    - yujuhong
-  
-  sig-scheduling-api-reviewers:
-      - bsalamat
-      - k82cn
-  
-  sig-storage-api-reviewers:
-    - saad-ali
-    - msau42
-    - jsafrane
-
-  
-  sig-windows-api-reviewers:
-    - patricklang
-    - ddebroy
-    - benmoss
-
   dep-approvers:
     - apelisse
     - BenTheElder
@@ -446,6 +309,7 @@ aliases:
     - deads2k         # API Machinery
     - derekwaynecarr  # Node
     - dghubble        # On Premise
+    - directxman12    # Autoscaling
     - jdumars         # Architecture, Cluster Ops, Release
     - kow3ns          # Apps
     - lavalamp        # API Machinery
@@ -460,7 +324,7 @@ aliases:
     - prydonius       # Apps
     - pwittrock       # CLI
     - quinton-hoole   # Multicluster
-    - justinsb        # Cluster Lifecycle
+    - roberthbailey   # Cluster Lifecycle
     - saad-ali        # Storage
     - seans3          # CLI
     - soltysh         # CLI

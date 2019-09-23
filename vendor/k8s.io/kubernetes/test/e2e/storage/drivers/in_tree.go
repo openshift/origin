@@ -43,10 +43,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
+	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,10 +54,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/auth"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	"k8s.io/kubernetes/test/e2e/framework/volume"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
@@ -89,9 +85,8 @@ var _ testsuites.DynamicPVTestDriver = &nfsDriver{}
 func InitNFSDriver() testsuites.TestDriver {
 	return &nfsDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "nfs",
-			InTreePluginName: "kubernetes.io/nfs",
-			MaxFileSize:      testpatterns.FileSizeLarge,
+			Name:        "nfs",
+			MaxFileSize: testpatterns.FileSizeLarge,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
@@ -100,8 +95,6 @@ func InitNFSDriver() testsuites.TestDriver {
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapExec:        true,
-				testsuites.CapRWX:         true,
-				testsuites.CapMultiPODs:   true,
 			},
 		},
 	}
@@ -116,7 +109,7 @@ func (n *nfsDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) {
 
 func (n *nfsDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	nv, ok := volume.(*nfsVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to NFS test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to NFS test volume")
 	return &v1.VolumeSource{
 		NFS: &v1.NFSVolumeSource{
 			Server:   nv.serverIP,
@@ -128,7 +121,7 @@ func (n *nfsDriver) GetVolumeSource(readOnly bool, fsType string, volume testsui
 
 func (n *nfsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	nv, ok := volume.(*nfsVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to NFS test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to NFS test volume")
 	return &v1.PersistentVolumeSource{
 		NFS: &v1.NFSVolumeSource{
 			Server:   nv.serverIP,
@@ -158,16 +151,15 @@ func (n *nfsDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestConf
 
 	// TODO(mkimuram): cluster-admin gives too much right but system:persistent-volume-provisioner
 	// is not enough. We should create new clusterrole for testing.
-	err := auth.BindClusterRole(cs.RbacV1(), "cluster-admin", ns.Name,
-		rbacv1.Subject{Kind: rbacv1.ServiceAccountKind, Namespace: ns.Name, Name: "default"})
-	framework.ExpectNoError(err)
+	framework.BindClusterRole(cs.RbacV1beta1(), "cluster-admin", ns.Name,
+		rbacv1beta1.Subject{Kind: rbacv1beta1.ServiceAccountKind, Namespace: ns.Name, Name: "default"})
 
-	err = auth.WaitForAuthorizationUpdate(cs.AuthorizationV1(),
+	err := framework.WaitForAuthorizationUpdate(cs.AuthorizationV1beta1(),
 		serviceaccount.MakeUsername(ns.Name, "default"),
 		"", "get", schema.GroupResource{Group: "storage.k8s.io", Resource: "storageclasses"}, true)
 	framework.ExpectNoError(err, "Failed to update authorization: %v", err)
 
-	ginkgo.By("creating an external dynamic provisioner pod")
+	By("creating an external dynamic provisioner pod")
 	n.externalProvisionerPod = utils.StartExternalProvisioner(cs, ns.Name, n.externalPluginName)
 
 	return &testsuites.PerTestConfig{
@@ -175,9 +167,9 @@ func (n *nfsDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestConf
 			Prefix:    "nfs",
 			Framework: f,
 		}, func() {
-			framework.ExpectNoError(e2epod.DeletePodWithWait(cs, n.externalProvisionerPod))
+			framework.ExpectNoError(framework.DeletePodWithWait(f, cs, n.externalProvisionerPod))
 			clusterRoleBindingName := ns.Name + "--" + "cluster-admin"
-			cs.RbacV1().ClusterRoleBindings().Delete(clusterRoleBindingName, metav1.NewDeleteOptions(0))
+			cs.RbacV1beta1().ClusterRoleBindings().Delete(clusterRoleBindingName, metav1.NewDeleteOptions(0))
 		}
 }
 
@@ -193,7 +185,7 @@ func (n *nfsDriver) CreateVolume(config *testsuites.PerTestConfig, volType testp
 	case testpatterns.InlineVolume:
 		fallthrough
 	case testpatterns.PreprovisionedPV:
-		c, serverPod, serverIP := volume.NewNFSServer(cs, ns.Name, []string{})
+		c, serverPod, serverIP := framework.NewNFSServer(cs, ns.Name, []string{})
 		config.ServerConfig = &c
 		return &nfsVolume{
 			serverIP:  serverIP,
@@ -203,13 +195,13 @@ func (n *nfsDriver) CreateVolume(config *testsuites.PerTestConfig, volType testp
 	case testpatterns.DynamicPV:
 		// Do nothing
 	default:
-		e2elog.Failf("Unsupported volType:%v is specified", volType)
+		framework.Failf("Unsupported volType:%v is specified", volType)
 	}
 	return nil
 }
 
 func (v *nfsVolume) DeleteVolume() {
-	volume.CleanUpVolumeServer(v.f, v.serverPod)
+	framework.CleanUpVolumeServer(v.f, v.serverPod)
 }
 
 // Gluster
@@ -232,17 +224,14 @@ var _ testsuites.PreprovisionedPVTestDriver = &glusterFSDriver{}
 func InitGlusterFSDriver() testsuites.TestDriver {
 	return &glusterFSDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "gluster",
-			InTreePluginName: "kubernetes.io/glusterfs",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "gluster",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapExec:        true,
-				testsuites.CapRWX:         true,
-				testsuites.CapMultiPODs:   true,
 			},
 		},
 	}
@@ -258,7 +247,7 @@ func (g *glusterFSDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) 
 
 func (g *glusterFSDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	gv, ok := volume.(*glusterVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to Gluster test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to Gluster test volume")
 
 	name := gv.prefix + "-server"
 	return &v1.VolumeSource{
@@ -273,7 +262,7 @@ func (g *glusterFSDriver) GetVolumeSource(readOnly bool, fsType string, volume t
 
 func (g *glusterFSDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	gv, ok := volume.(*glusterVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to Gluster test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to Gluster test volume")
 
 	name := gv.prefix + "-server"
 	return &v1.PersistentVolumeSource{
@@ -299,7 +288,7 @@ func (g *glusterFSDriver) CreateVolume(config *testsuites.PerTestConfig, volType
 	cs := f.ClientSet
 	ns := f.Namespace
 
-	c, serverPod, _ := volume.NewGlusterfsServer(cs, ns.Name)
+	c, serverPod, _ := framework.NewGlusterfsServer(cs, ns.Name)
 	config.ServerConfig = &c
 	return &glusterVolume{
 		prefix:    config.Prefix,
@@ -315,18 +304,18 @@ func (v *glusterVolume) DeleteVolume() {
 
 	name := v.prefix + "-server"
 
-	e2elog.Logf("Deleting Gluster endpoints %q...", name)
+	framework.Logf("Deleting Gluster endpoints %q...", name)
 	err := cs.CoreV1().Endpoints(ns.Name).Delete(name, nil)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			e2elog.Failf("Gluster delete endpoints failed: %v", err)
+			framework.Failf("Gluster delete endpoints failed: %v", err)
 		}
-		e2elog.Logf("Gluster endpoints %q not found, assuming deleted", name)
+		framework.Logf("Gluster endpoints %q not found, assuming deleted", name)
 	}
-	e2elog.Logf("Deleting Gluster server pod %q...", v.serverPod.Name)
-	err = e2epod.DeletePodWithWait(cs, v.serverPod)
+	framework.Logf("Deleting Gluster server pod %q...", v.serverPod.Name)
+	err = framework.DeletePodWithWait(f, cs, v.serverPod)
 	if err != nil {
-		e2elog.Failf("Gluster server pod delete failed: %v", err)
+		framework.Failf("Gluster server pod delete failed: %v", err)
 	}
 }
 
@@ -339,7 +328,6 @@ type iSCSIVolume struct {
 	serverPod *v1.Pod
 	serverIP  string
 	f         *framework.Framework
-	iqn       string
 }
 
 var _ testsuites.TestDriver = &iSCSIDriver{}
@@ -351,10 +339,9 @@ var _ testsuites.PreprovisionedPVTestDriver = &iSCSIDriver{}
 func InitISCSIDriver() testsuites.TestDriver {
 	return &iSCSIDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "iscsi",
-			InTreePluginName: "kubernetes.io/iscsi",
-			FeatureTag:       "[Feature:Volumes]",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "iscsi",
+			FeatureTag:  "[Feature:Volumes]",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 				"ext2",
@@ -367,7 +354,6 @@ func InitISCSIDriver() testsuites.TestDriver {
 				testsuites.CapFsGroup:     true,
 				testsuites.CapBlock:       true,
 				testsuites.CapExec:        true,
-				testsuites.CapMultiPODs:   true,
 			},
 		},
 	}
@@ -382,14 +368,15 @@ func (i *iSCSIDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) {
 
 func (i *iSCSIDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	iv, ok := volume.(*iSCSIVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to iSCSI test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to iSCSI test volume")
 
 	volSource := v1.VolumeSource{
 		ISCSI: &v1.ISCSIVolumeSource{
-			TargetPortal: "127.0.0.1:3260",
-			IQN:          iv.iqn,
-			Lun:          0,
-			ReadOnly:     readOnly,
+			TargetPortal: iv.serverIP + ":3260",
+			// from test/images/volume/iscsi/initiatorname.iscsi
+			IQN:      "iqn.2003-01.org.linux-iscsi.f21.x8664:sn.4b0aae584f7c",
+			Lun:      0,
+			ReadOnly: readOnly,
 		},
 	}
 	if fsType != "" {
@@ -400,12 +387,12 @@ func (i *iSCSIDriver) GetVolumeSource(readOnly bool, fsType string, volume tests
 
 func (i *iSCSIDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	iv, ok := volume.(*iSCSIVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to iSCSI test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to iSCSI test volume")
 
 	pvSource := v1.PersistentVolumeSource{
 		ISCSI: &v1.ISCSIPersistentVolumeSource{
-			TargetPortal: "127.0.0.1:3260",
-			IQN:          iv.iqn,
+			TargetPortal: iv.serverIP + ":3260",
+			IQN:          "iqn.2003-01.org.linux-iscsi.f21.x8664:sn.4b0aae584f7c",
 			Lun:          0,
 			ReadOnly:     readOnly,
 		},
@@ -429,19 +416,17 @@ func (i *iSCSIDriver) CreateVolume(config *testsuites.PerTestConfig, volType tes
 	cs := f.ClientSet
 	ns := f.Namespace
 
-	c, serverPod, serverIP, iqn := volume.NewISCSIServer(cs, ns.Name)
+	c, serverPod, serverIP := framework.NewISCSIServer(cs, ns.Name)
 	config.ServerConfig = &c
-	config.ClientNodeName = c.ClientNodeName
 	return &iSCSIVolume{
 		serverPod: serverPod,
 		serverIP:  serverIP,
-		iqn:       iqn,
 		f:         f,
 	}
 }
 
 func (v *iSCSIVolume) DeleteVolume() {
-	volume.CleanUpVolumeServer(v.f, v.serverPod)
+	framework.CleanUpVolumeServer(v.f, v.serverPod)
 }
 
 // Ceph RBD
@@ -465,10 +450,9 @@ var _ testsuites.PreprovisionedPVTestDriver = &rbdDriver{}
 func InitRbdDriver() testsuites.TestDriver {
 	return &rbdDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "rbd",
-			InTreePluginName: "kubernetes.io/rbd",
-			FeatureTag:       "[Feature:Volumes]",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "rbd",
+			FeatureTag:  "[Feature:Volumes]",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 				"ext2",
@@ -481,7 +465,6 @@ func InitRbdDriver() testsuites.TestDriver {
 				testsuites.CapFsGroup:     true,
 				testsuites.CapBlock:       true,
 				testsuites.CapExec:        true,
-				testsuites.CapMultiPODs:   true,
 			},
 		},
 	}
@@ -496,7 +479,7 @@ func (r *rbdDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) {
 
 func (r *rbdDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	rv, ok := volume.(*rbdVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to RBD test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to RBD test volume")
 
 	volSource := v1.VolumeSource{
 		RBD: &v1.RBDVolumeSource{
@@ -518,7 +501,7 @@ func (r *rbdDriver) GetVolumeSource(readOnly bool, fsType string, volume testsui
 
 func (r *rbdDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	rv, ok := volume.(*rbdVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to RBD test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to RBD test volume")
 
 	f := rv.f
 	ns := f.Namespace
@@ -555,7 +538,7 @@ func (r *rbdDriver) CreateVolume(config *testsuites.PerTestConfig, volType testp
 	cs := f.ClientSet
 	ns := f.Namespace
 
-	c, serverPod, secret, serverIP := volume.NewRBDServer(cs, ns.Name)
+	c, serverPod, secret, serverIP := framework.NewRBDServer(cs, ns.Name)
 	config.ServerConfig = &c
 	return &rbdVolume{
 		serverPod: serverPod,
@@ -566,7 +549,7 @@ func (r *rbdDriver) CreateVolume(config *testsuites.PerTestConfig, volType testp
 }
 
 func (v *rbdVolume) DeleteVolume() {
-	volume.CleanUpVolumeServerWithSecret(v.f, v.serverPod, v.secret)
+	framework.CleanUpVolumeServerWithSecret(v.f, v.serverPod, v.secret)
 }
 
 // Ceph
@@ -594,18 +577,15 @@ var _ testsuites.PreprovisionedPVTestDriver = &cephFSDriver{}
 func InitCephFSDriver() testsuites.TestDriver {
 	return &cephFSDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "ceph",
-			InTreePluginName: "kubernetes.io/cephfs",
-			FeatureTag:       "[Feature:Volumes]",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "ceph",
+			FeatureTag:  "[Feature:Volumes]",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapExec:        true,
-				testsuites.CapRWX:         true,
-				testsuites.CapMultiPODs:   true,
 			},
 		},
 	}
@@ -620,7 +600,7 @@ func (c *cephFSDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) {
 
 func (c *cephFSDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	cv, ok := volume.(*cephVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to Ceph test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to Ceph test volume")
 
 	return &v1.VolumeSource{
 		CephFS: &v1.CephFSVolumeSource{
@@ -636,7 +616,7 @@ func (c *cephFSDriver) GetVolumeSource(readOnly bool, fsType string, volume test
 
 func (c *cephFSDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	cv, ok := volume.(*cephVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to Ceph test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to Ceph test volume")
 
 	ns := cv.f.Namespace
 
@@ -666,7 +646,7 @@ func (c *cephFSDriver) CreateVolume(config *testsuites.PerTestConfig, volType te
 	cs := f.ClientSet
 	ns := f.Namespace
 
-	cfg, serverPod, secret, serverIP := volume.NewRBDServer(cs, ns.Name)
+	cfg, serverPod, secret, serverIP := framework.NewRBDServer(cs, ns.Name)
 	config.ServerConfig = &cfg
 	return &cephVolume{
 		serverPod: serverPod,
@@ -677,7 +657,7 @@ func (c *cephFSDriver) CreateVolume(config *testsuites.PerTestConfig, volType te
 }
 
 func (v *cephVolume) DeleteVolume() {
-	volume.CleanUpVolumeServerWithSecret(v.f, v.serverPod, v.secret)
+	framework.CleanUpVolumeServerWithSecret(v.f, v.serverPod, v.secret)
 }
 
 // Hostpath
@@ -695,15 +675,13 @@ var _ testsuites.InlineVolumeTestDriver = &hostPathDriver{}
 func InitHostPathDriver() testsuites.TestDriver {
 	return &hostPathDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "hostPath",
-			InTreePluginName: "kubernetes.io/host-path",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "hostPath",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
-				testsuites.CapMultiPODs:   true,
 			},
 		},
 	}
@@ -769,15 +747,13 @@ var _ testsuites.InlineVolumeTestDriver = &hostPathSymlinkDriver{}
 func InitHostPathSymlinkDriver() testsuites.TestDriver {
 	return &hostPathSymlinkDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "hostPathSymlink",
-			InTreePluginName: "kubernetes.io/host-path",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "hostPathSymlink",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
-				testsuites.CapMultiPODs:   true,
 			},
 		},
 	}
@@ -792,7 +768,7 @@ func (h *hostPathSymlinkDriver) SkipUnsupportedTest(pattern testpatterns.TestPat
 
 func (h *hostPathSymlinkDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	hv, ok := volume.(*hostPathSymlinkVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to Hostpath Symlink test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to Hostpath Symlink test volume")
 
 	// hostPathSymlink doesn't support readOnly volume
 	if readOnly {
@@ -867,13 +843,13 @@ func (h *hostPathSymlinkDriver) CreateVolume(config *testsuites.PerTestConfig, v
 	}
 	// h.prepPod will be reused in cleanupDriver.
 	pod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(prepPod)
-	framework.ExpectNoError(err, "while creating hostPath init pod")
+	Expect(err).ToNot(HaveOccurred(), "while creating hostPath init pod")
 
-	err = e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, pod.Namespace)
-	framework.ExpectNoError(err, "while waiting for hostPath init pod to succeed")
+	err = framework.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, pod.Namespace)
+	Expect(err).ToNot(HaveOccurred(), "while waiting for hostPath init pod to succeed")
 
-	err = e2epod.DeletePodWithWait(f.ClientSet, pod)
-	framework.ExpectNoError(err, "while deleting hostPath init pod")
+	err = framework.DeletePodWithWait(f, f.ClientSet, pod)
+	Expect(err).ToNot(HaveOccurred(), "while deleting hostPath init pod")
 	return &hostPathSymlinkVolume{
 		sourcePath: sourcePath,
 		targetPath: targetPath,
@@ -889,13 +865,13 @@ func (v *hostPathSymlinkVolume) DeleteVolume() {
 	v.prepPod.Spec.Containers[0].Command = []string{"/bin/sh", "-ec", cmd}
 
 	pod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(v.prepPod)
-	framework.ExpectNoError(err, "while creating hostPath teardown pod")
+	Expect(err).ToNot(HaveOccurred(), "while creating hostPath teardown pod")
 
-	err = e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, pod.Namespace)
-	framework.ExpectNoError(err, "while waiting for hostPath teardown pod to succeed")
+	err = framework.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, pod.Namespace)
+	Expect(err).ToNot(HaveOccurred(), "while waiting for hostPath teardown pod to succeed")
 
-	err = e2epod.DeletePodWithWait(f.ClientSet, pod)
-	framework.ExpectNoError(err, "while deleting hostPath teardown pod")
+	err = framework.DeletePodWithWait(f, f.ClientSet, pod)
+	Expect(err).ToNot(HaveOccurred(), "while deleting hostPath teardown pod")
 }
 
 // emptydir
@@ -911,9 +887,8 @@ var _ testsuites.InlineVolumeTestDriver = &emptydirDriver{}
 func InitEmptydirDriver() testsuites.TestDriver {
 	return &emptydirDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "emptydir",
-			InTreePluginName: "kubernetes.io/empty-dir",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "emptydir",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
@@ -977,9 +952,8 @@ var _ testsuites.DynamicPVTestDriver = &cinderDriver{}
 func InitCinderDriver() testsuites.TestDriver {
 	return &cinderDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "cinder",
-			InTreePluginName: "kubernetes.io/cinder",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "cinder",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 				"ext3",
@@ -989,9 +963,6 @@ func InitCinderDriver() testsuites.TestDriver {
 				testsuites.CapFsGroup:     true,
 				testsuites.CapExec:        true,
 				testsuites.CapBlock:       true,
-				// Cinder supports volume limits, but the test creates large
-				// number of volumes and times out test suites.
-				testsuites.CapVolumeLimits: false,
 			},
 		},
 	}
@@ -1007,7 +978,7 @@ func (c *cinderDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) {
 
 func (c *cinderDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	cv, ok := volume.(*cinderVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to Cinder test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to Cinder test volume")
 
 	volSource := v1.VolumeSource{
 		Cinder: &v1.CinderVolumeSource{
@@ -1023,7 +994,7 @@ func (c *cinderDriver) GetVolumeSource(readOnly bool, fsType string, volume test
 
 func (c *cinderDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	cv, ok := volume.(*cinderVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to Cinder test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to Cinder test volume")
 
 	pvSource := v1.PersistentVolumeSource{
 		Cinder: &v1.CinderPersistentVolumeSource{
@@ -1067,11 +1038,11 @@ func (c *cinderDriver) CreateVolume(config *testsuites.PerTestConfig, volType te
 
 	// We assume that namespace.Name is a random string
 	volumeName := ns.Name
-	ginkgo.By("creating a test Cinder volume")
+	By("creating a test Cinder volume")
 	output, err := exec.Command("cinder", "create", "--display-name="+volumeName, "1").CombinedOutput()
 	outputString := string(output[:])
-	e2elog.Logf("cinder output:\n%s", outputString)
-	framework.ExpectNoError(err)
+	framework.Logf("cinder output:\n%s", outputString)
+	Expect(err).NotTo(HaveOccurred())
 
 	// Parse 'id'' from stdout. Expected format:
 	// |     attachments     |                  []                  |
@@ -1090,8 +1061,8 @@ func (c *cinderDriver) CreateVolume(config *testsuites.PerTestConfig, volType te
 		volumeID = fields[3]
 		break
 	}
-	e2elog.Logf("Volume ID: %s", volumeID)
-	framework.ExpectNotEqual(volumeID, "")
+	framework.Logf("Volume ID: %s", volumeID)
+	Expect(volumeID).NotTo(Equal(""))
 	return &cinderVolume{
 		volumeName: volumeName,
 		volumeID:   volumeID,
@@ -1107,16 +1078,16 @@ func (v *cinderVolume) DeleteVolume() {
 	var err error
 	timeout := time.Second * 120
 
-	e2elog.Logf("Waiting up to %v for removal of cinder volume %s", timeout, name)
+	framework.Logf("Waiting up to %v for removal of cinder volume %s", timeout, name)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(5 * time.Second) {
 		output, err = exec.Command("cinder", "delete", name).CombinedOutput()
 		if err == nil {
-			e2elog.Logf("Cinder volume %s deleted", name)
+			framework.Logf("Cinder volume %s deleted", name)
 			return
 		}
-		e2elog.Logf("Failed to delete volume %s: %v", name, err)
+		framework.Logf("Failed to delete volume %s: %v", name, err)
 	}
-	e2elog.Logf("Giving up deleting volume %s: %v\n%s", name, err, string(output[:]))
+	framework.Logf("Giving up deleting volume %s: %v\n%s", name, err, string(output[:]))
 }
 
 // GCE
@@ -1151,21 +1122,14 @@ func InitGcePdDriver() testsuites.TestDriver {
 	return &gcePdDriver{
 		driverInfo: testsuites.DriverInfo{
 			Name:                 "gcepd",
-			InTreePluginName:     "kubernetes.io/gce-pd",
 			MaxFileSize:          testpatterns.FileSizeMedium,
 			SupportedFsType:      supportedTypes,
 			SupportedMountOption: sets.NewString("debug", "nouid32"),
 			Capabilities: map[testsuites.Capability]bool{
-				testsuites.CapPersistence:         true,
-				testsuites.CapFsGroup:             true,
-				testsuites.CapBlock:               true,
-				testsuites.CapExec:                true,
-				testsuites.CapMultiPODs:           true,
-				testsuites.CapControllerExpansion: true,
-				testsuites.CapNodeExpansion:       true,
-				// GCE supports volume limits, but the test creates large
-				// number of volumes and times out test suites.
-				testsuites.CapVolumeLimits: false,
+				testsuites.CapPersistence: true,
+				testsuites.CapFsGroup:     true,
+				testsuites.CapBlock:       true,
+				testsuites.CapExec:        true,
 			},
 		},
 	}
@@ -1184,7 +1148,7 @@ func (g *gcePdDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) {
 
 func (g *gcePdDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	gv, ok := volume.(*gcePdVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to GCE PD test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to GCE PD test volume")
 	volSource := v1.VolumeSource{
 		GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
 			PDName:   gv.volumeName,
@@ -1199,7 +1163,7 @@ func (g *gcePdDriver) GetVolumeSource(readOnly bool, fsType string, volume tests
 
 func (g *gcePdDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	gv, ok := volume.(*gcePdVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to GCE PD test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to GCE PD test volume")
 	pvSource := v1.PersistentVolumeSource{
 		GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
 			PDName:   gv.volumeName,
@@ -1220,12 +1184,11 @@ func (g *gcePdDriver) GetDynamicProvisionStorageClass(config *testsuites.PerTest
 	}
 	ns := config.Framework.Namespace.Name
 	suffix := fmt.Sprintf("%s-sc", g.driverInfo.Name)
-	delayedBinding := storagev1.VolumeBindingWaitForFirstConsumer
 
-	return testsuites.GetStorageClass(provisioner, parameters, &delayedBinding, ns, suffix)
+	return testsuites.GetStorageClass(provisioner, parameters, nil, ns, suffix)
 }
 
-func (g *gcePdDriver) GetClaimSize() string {
+func (h *gcePdDriver) GetClaimSize() string {
 	return "5Gi"
 }
 
@@ -1252,9 +1215,9 @@ func (g *gcePdDriver) CreateVolume(config *testsuites.PerTestConfig, volType tes
 			v1.LabelZoneFailureDomain: framework.TestContext.CloudConfig.Zone,
 		}
 	}
-	ginkgo.By("creating a test gce pd volume")
+	By("creating a test gce pd volume")
 	vname, err := framework.CreatePDWithRetry()
-	framework.ExpectNoError(err)
+	Expect(err).NotTo(HaveOccurred())
 	return &gcePdVolume{
 		volumeName: vname,
 	}
@@ -1284,9 +1247,8 @@ var _ testsuites.DynamicPVTestDriver = &vSphereDriver{}
 func InitVSphereDriver() testsuites.TestDriver {
 	return &vSphereDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "vSphere",
-			InTreePluginName: "kubernetes.io/vsphere-volume",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "vSphere",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 				"ext4",
@@ -1295,7 +1257,6 @@ func InitVSphereDriver() testsuites.TestDriver {
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapExec:        true,
-				testsuites.CapMultiPODs:   true,
 			},
 		},
 	}
@@ -1310,7 +1271,7 @@ func (v *vSphereDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) {
 
 func (v *vSphereDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	vsv, ok := volume.(*vSphereVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to vSphere test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to vSphere test volume")
 
 	// vSphere driver doesn't seem to support readOnly volume
 	// TODO: check if it is correct
@@ -1330,7 +1291,7 @@ func (v *vSphereDriver) GetVolumeSource(readOnly bool, fsType string, volume tes
 
 func (v *vSphereDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	vsv, ok := volume.(*vSphereVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to vSphere test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to vSphere test volume")
 
 	// vSphere driver doesn't seem to support readOnly volume
 	// TODO: check if it is correct
@@ -1377,7 +1338,7 @@ func (v *vSphereDriver) CreateVolume(config *testsuites.PerTestConfig, volType t
 	vspheretest.Bootstrap(f)
 	nodeInfo := vspheretest.GetReadySchedulableRandomNodeInfo()
 	volumePath, err := nodeInfo.VSphere.CreateVolume(&vspheretest.VolumeOptions{}, nodeInfo.DataCenterRef)
-	framework.ExpectNoError(err)
+	Expect(err).NotTo(HaveOccurred())
 	return &vSphereVolume{
 		volumePath: volumePath,
 		nodeInfo:   nodeInfo,
@@ -1407,9 +1368,8 @@ var _ testsuites.DynamicPVTestDriver = &azureDriver{}
 func InitAzureDriver() testsuites.TestDriver {
 	return &azureDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "azure",
-			InTreePluginName: "kubernetes.io/azure-file",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "azure",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 				"ext4",
@@ -1419,10 +1379,6 @@ func InitAzureDriver() testsuites.TestDriver {
 				testsuites.CapFsGroup:     true,
 				testsuites.CapBlock:       true,
 				testsuites.CapExec:        true,
-				testsuites.CapMultiPODs:   true,
-				// Azure supports volume limits, but the test creates large
-				// number of volumes and times out test suites.
-				testsuites.CapVolumeLimits: false,
 			},
 		},
 	}
@@ -1438,7 +1394,7 @@ func (a *azureDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) {
 
 func (a *azureDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
 	av, ok := volume.(*azureVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to Azure test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to Azure test volume")
 
 	diskName := av.volumeName[(strings.LastIndex(av.volumeName, "/") + 1):]
 
@@ -1457,7 +1413,7 @@ func (a *azureDriver) GetVolumeSource(readOnly bool, fsType string, volume tests
 
 func (a *azureDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	av, ok := volume.(*azureVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to Azure test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to Azure test volume")
 
 	diskName := av.volumeName[(strings.LastIndex(av.volumeName, "/") + 1):]
 
@@ -1499,9 +1455,9 @@ func (a *azureDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestCo
 }
 
 func (a *azureDriver) CreateVolume(config *testsuites.PerTestConfig, volType testpatterns.TestVolType) testsuites.TestVolume {
-	ginkgo.By("creating a test azure disk volume")
+	By("creating a test azure disk volume")
 	volumeName, err := framework.CreatePDWithRetry()
-	framework.ExpectNoError(err)
+	Expect(err).NotTo(HaveOccurred())
 	return &azureVolume{
 		volumeName: volumeName,
 	}
@@ -1513,47 +1469,35 @@ func (v *azureVolume) DeleteVolume() {
 
 // AWS
 type awsDriver struct {
-	driverInfo testsuites.DriverInfo
-}
-
-type awsVolume struct {
 	volumeName string
+
+	driverInfo testsuites.DriverInfo
 }
 
 var _ testsuites.TestDriver = &awsDriver{}
 
-var _ testsuites.PreprovisionedVolumeTestDriver = &awsDriver{}
-var _ testsuites.InlineVolumeTestDriver = &awsDriver{}
-var _ testsuites.PreprovisionedPVTestDriver = &awsDriver{}
+// TODO: Fix authorization error in attach operation and uncomment below
+//var _ testsuites.PreprovisionedVolumeTestDriver = &awsDriver{}
+//var _ testsuites.InlineVolumeTestDriver = &awsDriver{}
+//var _ testsuites.PreprovisionedPVTestDriver = &awsDriver{}
 var _ testsuites.DynamicPVTestDriver = &awsDriver{}
 
 // InitAwsDriver returns awsDriver that implements TestDriver interface
 func InitAwsDriver() testsuites.TestDriver {
 	return &awsDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:             "aws",
-			InTreePluginName: "kubernetes.io/aws-ebs",
-			MaxFileSize:      testpatterns.FileSizeMedium,
+			Name:        "aws",
+			MaxFileSize: testpatterns.FileSizeMedium,
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
-				"ext2",
 				"ext3",
-				"ext4",
-				"xfs",
-				"ntfs",
 			),
 			SupportedMountOption: sets.NewString("debug", "nouid32"),
 			Capabilities: map[testsuites.Capability]bool{
-				testsuites.CapPersistence:         true,
-				testsuites.CapFsGroup:             true,
-				testsuites.CapBlock:               true,
-				testsuites.CapExec:                true,
-				testsuites.CapMultiPODs:           true,
-				testsuites.CapControllerExpansion: true,
-				testsuites.CapNodeExpansion:       true,
-				// AWS supports volume limits, but the test creates large
-				// number of volumes and times out test suites.
-				testsuites.CapVolumeLimits: false,
+				testsuites.CapPersistence: true,
+				testsuites.CapFsGroup:     true,
+				testsuites.CapBlock:       true,
+				testsuites.CapExec:        true,
 			},
 		},
 	}
@@ -1567,12 +1511,12 @@ func (a *awsDriver) SkipUnsupportedTest(pattern testpatterns.TestPattern) {
 	framework.SkipUnlessProviderIs("aws")
 }
 
+// TODO: Fix authorization error in attach operation and uncomment below
+/*
 func (a *awsDriver) GetVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) *v1.VolumeSource {
-	av, ok := volume.(*awsVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to AWS test volume")
 	volSource := v1.VolumeSource{
 		AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
-			VolumeID: av.volumeName,
+			VolumeID: a.volumeName,
 			ReadOnly: readOnly,
 		},
 	}
@@ -1583,19 +1527,18 @@ func (a *awsDriver) GetVolumeSource(readOnly bool, fsType string, volume testsui
 }
 
 func (a *awsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
-	av, ok := volume.(*awsVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to AWS test volume")
 	pvSource := v1.PersistentVolumeSource{
 		AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
-			VolumeID: av.volumeName,
+			VolumeID: a.volumeName,
 			ReadOnly: readOnly,
 		},
 	}
 	if fsType != "" {
 		pvSource.AWSElasticBlockStore.FSType = fsType
 	}
-	return &pvSource, nil
+	return &pvSource
 }
+*/
 
 func (a *awsDriver) GetDynamicProvisionStorageClass(config *testsuites.PerTestConfig, fsType string) *storagev1.StorageClass {
 	provisioner := "kubernetes.io/aws-ebs"
@@ -1605,9 +1548,8 @@ func (a *awsDriver) GetDynamicProvisionStorageClass(config *testsuites.PerTestCo
 	}
 	ns := config.Framework.Namespace.Name
 	suffix := fmt.Sprintf("%s-sc", a.driverInfo.Name)
-	delayedBinding := storagev1.VolumeBindingWaitForFirstConsumer
 
-	return testsuites.GetStorageClass(provisioner, parameters, &delayedBinding, ns, suffix)
+	return testsuites.GetStorageClass(provisioner, parameters, nil, ns, suffix)
 }
 
 func (a *awsDriver) GetClaimSize() string {
@@ -1615,38 +1557,26 @@ func (a *awsDriver) GetClaimSize() string {
 }
 
 func (a *awsDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestConfig, func()) {
-	config := &testsuites.PerTestConfig{
+	return &testsuites.PerTestConfig{
 		Driver:    a,
 		Prefix:    "aws",
 		Framework: f,
-	}
-	if framework.NodeOSDistroIs("windows") {
-		config.ClientNodeSelector = map[string]string{
-			"beta.kubernetes.io/os": "windows",
-		}
-	}
-	return config, func() {}
+	}, func() {}
 }
 
+// TODO: Fix authorization error in attach operation and uncomment below
+/*
 func (a *awsDriver) CreateVolume(config *testsuites.PerTestConfig, volType testpatterns.TestVolType) testsuites.TestVolume {
-	if volType == testpatterns.InlineVolume {
-		// PD will be created in framework.TestContext.CloudConfig.Zone zone,
-		// so pods should be also scheduled there.
-		config.ClientNodeSelector = map[string]string{
-			v1.LabelZoneFailureDomain: framework.TestContext.CloudConfig.Zone,
-		}
-	}
-	ginkgo.By("creating a test aws volume")
-	vname, err := framework.CreatePDWithRetry()
-	framework.ExpectNoError(err)
-	return &awsVolume{
-		volumeName: vname,
-	}
+	By("creating a test aws volume")
+	var err error
+	a.volumeName, err = framework.CreatePDWithRetry()
+	Expect(err).NotTo(HaveOccurred())
 }
 
-func (v *awsVolume) DeleteVolume() {
-	framework.DeletePDWithRetry(v.volumeName)
+DeleteVolume() {
+	framework.DeletePDWithRetry(a.volumeName)
 }
+*/
 
 // local
 type localDriver struct {
@@ -1671,7 +1601,6 @@ var (
 		testsuites.CapFsGroup:     true,
 		testsuites.CapBlock:       false,
 		testsuites.CapExec:        true,
-		testsuites.CapMultiPODs:   true,
 	}
 	localVolumeCapabitilies = map[utils.LocalVolumeType]map[testsuites.Capability]bool{
 		utils.LocalVolumeBlock: {
@@ -1679,7 +1608,6 @@ var (
 			testsuites.CapFsGroup:     true,
 			testsuites.CapBlock:       true,
 			testsuites.CapExec:        true,
-			testsuites.CapMultiPODs:   true,
 		},
 	}
 	// fstype
@@ -1702,7 +1630,6 @@ var _ testsuites.TestDriver = &localDriver{}
 var _ testsuites.PreprovisionedVolumeTestDriver = &localDriver{}
 var _ testsuites.PreprovisionedPVTestDriver = &localDriver{}
 
-// InitLocalDriverWithVolumeType initializes the local driver based on the volume type.
 func InitLocalDriverWithVolumeType(volumeType utils.LocalVolumeType) func() testsuites.TestDriver {
 	maxFileSize := defaultLocalVolumeMaxFileSize
 	if maxFileSizeByVolType, ok := localVolumeMaxFileSizes[volumeType]; ok {
@@ -1725,12 +1652,11 @@ func InitLocalDriverWithVolumeType(volumeType utils.LocalVolumeType) func() test
 		}
 		return &localDriver{
 			driverInfo: testsuites.DriverInfo{
-				Name:             "local",
-				InTreePluginName: "kubernetes.io/local-volume",
-				FeatureTag:       featureTag,
-				MaxFileSize:      maxFileSize,
-				SupportedFsType:  supportedFsTypes,
-				Capabilities:     capabilities,
+				Name:            "local",
+				FeatureTag:      featureTag,
+				MaxFileSize:     maxFileSize,
+				SupportedFsType: supportedFsTypes,
+				Capabilities:    capabilities,
 			},
 			volumeType: volumeType,
 		}
@@ -1758,9 +1684,9 @@ func (l *localDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestCo
 		filesystemType := "fs"
 		ssdCmd := fmt.Sprintf("ls -1 /mnt/disks/by-uuid/google-local-ssds-%s-%s/ | wc -l", ssdInterface, filesystemType)
 		res, err := l.hostExec.IssueCommandWithResult(ssdCmd, l.node)
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 		num, err := strconv.Atoi(strings.TrimSpace(res))
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 		if num < 1 {
 			framework.Skipf("Requires at least 1 %s %s localSSD ", ssdInterface, filesystemType)
 		}
@@ -1787,7 +1713,7 @@ func (l *localDriver) CreateVolume(config *testsuites.PerTestConfig, volType tes
 			ltr:    l.ltrMgr.Create(node, l.volumeType, nil),
 		}
 	default:
-		e2elog.Failf("Unsupported volType: %v is specified", volType)
+		framework.Failf("Unsupported volType: %v is specified", volType)
 	}
 	return nil
 }
@@ -1799,11 +1725,11 @@ func (v *localVolume) DeleteVolume() {
 func (l *localDriver) nodeAffinityForNode(node *v1.Node) *v1.VolumeNodeAffinity {
 	nodeKey := "kubernetes.io/hostname"
 	if node.Labels == nil {
-		e2elog.Failf("Node does not have labels")
+		framework.Failf("Node does not have labels")
 	}
 	nodeValue, found := node.Labels[nodeKey]
 	if !found {
-		e2elog.Failf("Node does not have required label %q", nodeKey)
+		framework.Failf("Node does not have required label %q", nodeKey)
 	}
 	return &v1.VolumeNodeAffinity{
 		Required: &v1.NodeSelector{
@@ -1824,7 +1750,7 @@ func (l *localDriver) nodeAffinityForNode(node *v1.Node) *v1.VolumeNodeAffinity 
 
 func (l *localDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	lv, ok := volume.(*localVolume)
-	gomega.Expect(ok).To(gomega.BeTrue(), "Failed to cast test volume to local test volume")
+	Expect(ok).To(BeTrue(), "Failed to cast test volume to local test volume")
 	return &v1.PersistentVolumeSource{
 		Local: &v1.LocalVolumeSource{
 			Path:   lv.ltr.Path,

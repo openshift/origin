@@ -8,10 +8,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"strconv"
 	"testing"
-
-	"golang.org/x/exp/rand"
 
 	"gonum.org/v1/gonum/floats"
 )
@@ -576,7 +573,7 @@ and 0 data points above 1000. Since dividers has length 5, there will be 4 bins.
 	max := floats.Max(x)
 	// Increase the maximum divider so that the maximum value of x is contained
 	// within the last bucket.
-	max++
+	max += 1
 	floats.Span(dividers, min, max)
 	// Span includes the min and the max. Trim the dividers to create 10 buckets
 	hist = Histogram(nil, dividers, x, nil)
@@ -993,49 +990,6 @@ func TestLinearRegression(t *testing.T) {
 	}
 }
 
-func BenchmarkLinearRegression(b *testing.B) {
-	rnd := rand.New(rand.NewSource(1))
-	slope, offset := 2.0, 3.0
-
-	maxn := 10000
-	xs := make([]float64, maxn)
-	ys := make([]float64, maxn)
-	weights := make([]float64, maxn)
-	for i := range xs {
-		x := rnd.Float64()
-		xs[i] = x
-		ys[i] = slope*x + offset
-		weights[i] = rnd.Float64()
-	}
-
-	for _, n := range []int{10, 100, 1000, maxn} {
-		for _, weighted := range []bool{true, false} {
-			for _, origin := range []bool{true, false} {
-				name := "n" + strconv.Itoa(n)
-				if weighted {
-					name += "wt"
-				} else {
-					name += "wf"
-				}
-				if origin {
-					name += "ot"
-				} else {
-					name += "of"
-				}
-				b.Run(name, func(b *testing.B) {
-					for i := 0; i < b.N; i++ {
-						var ws []float64
-						if weighted {
-							ws = weights[:n]
-						}
-						LinearRegression(xs[:n], ys[:n], ws, origin)
-					}
-				})
-			}
-		}
-	}
-}
-
 func TestChiSquare(t *testing.T) {
 	for i, test := range []struct {
 		p   []float64
@@ -1423,10 +1377,7 @@ func TestCDF(t *testing.T) {
 }
 
 func TestQuantile(t *testing.T) {
-	cumulantKinds := []CumulantKind{
-		Empirical,
-		LinInterp,
-	}
+	cumulantKinds := []CumulantKind{Empirical}
 	for i, test := range []struct {
 		p   []float64
 		x   []float64
@@ -1434,39 +1385,21 @@ func TestQuantile(t *testing.T) {
 		ans [][]float64
 	}{
 		{
-			p: []float64{0, 0.05, 0.1, 0.15, 0.45, 0.5, 0.55, 0.85, 0.9, 0.95, 1},
-			x: []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-			w: nil,
-			ans: [][]float64{
-				{1, 1, 1, 2, 5, 5, 6, 9, 9, 10, 10},
-				{1, 1, 1, 1.5, 4.5, 5, 5.5, 8.5, 9, 9.5, 10},
-			},
+			p:   []float64{0, 0.05, 0.1, 0.15, 0.45, 0.5, 0.55, 0.85, 0.9, 0.95, 1},
+			x:   []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+			w:   nil,
+			ans: [][]float64{{1, 1, 1, 2, 5, 5, 6, 9, 9, 10, 10}},
 		},
 		{
-			p: []float64{0, 0.05, 0.1, 0.15, 0.45, 0.5, 0.55, 0.85, 0.9, 0.95, 1},
-			x: []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-			w: []float64{3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
-			ans: [][]float64{
-				{1, 1, 1, 2, 5, 5, 6, 9, 9, 10, 10},
-				{1, 1, 1, 1.5, 4.5, 5, 5.5, 8.5, 9, 9.5, 10},
-			},
+			p:   []float64{0, 0.05, 0.1, 0.15, 0.45, 0.5, 0.55, 0.85, 0.9, 0.95, 1},
+			x:   []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+			w:   []float64{3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
+			ans: [][]float64{{1, 1, 1, 2, 5, 5, 6, 9, 9, 10, 10}},
 		},
 		{
-			p: []float64{0, 0.05, 0.1, 0.15, 0.45, 0.5, 0.55, 0.85, 0.9, 0.95, 1},
-			x: []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-			w: []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
-			ans: [][]float64{
-				{1, 2, 3, 4, 7, 7, 8, 10, 10, 10, 10},
-				{1, 1.875, 2.833333333333333, 3.5625, 6.535714285714286, 6.928571428571429, 7.281250000000001, 9.175, 9.45, 9.725, 10},
-			},
-		},
-		{
-			p: []float64{0.5},
-			x: []float64{1, 2, 3, 4, 5, 6, 7, 8, math.NaN(), 10},
-			ans: [][]float64{
-				{math.NaN()},
-				{math.NaN()},
-			},
+			p:   []float64{0.5},
+			x:   []float64{1, 2, 3, 4, 5, 6, 7, 8, math.NaN(), 10},
+			ans: [][]float64{{math.NaN()}},
 		},
 	} {
 		copyX := make([]float64, len(test.x))
@@ -1491,54 +1424,52 @@ func TestQuantile(t *testing.T) {
 			}
 		}
 	}
-}
-
-func TestQuantileInvalidInput(t *testing.T) {
-	cumulantKinds := []CumulantKind{
-		Empirical,
-		LinInterp,
-	}
+	// panic cases
 	for _, test := range []struct {
 		name string
 		p    float64
+		c    CumulantKind
 		x    []float64
 		w    []float64
 	}{
 		{
 			name: "p < 0",
+			c:    Empirical,
 			p:    -1,
 		},
 		{
 			name: "p > 1",
+			c:    Empirical,
 			p:    2,
 		},
 		{
 			name: "p is NaN",
+			c:    Empirical,
 			p:    math.NaN(),
 		},
 		{
 			name: "len(x) != len(weights)",
+			c:    Empirical,
 			p:    .5,
 			x:    make([]float64, 4),
 			w:    make([]float64, 2),
 		},
 		{
 			name: "x not sorted",
+			c:    Empirical,
 			p:    .5,
 			x:    []float64{3, 2, 1},
 		},
+		{
+			name: "CumulantKind is unknown",
+			c:    CumulantKind(1000),
+			p:    .5,
+			x:    []float64{1, 2, 3},
+		},
 	} {
-		for _, kind := range cumulantKinds {
-			if !panics(func() { Quantile(test.p, kind, test.x, test.w) }) {
-				t.Errorf("Quantile did not panic when %s", test.name)
-			}
+		if !panics(func() { Quantile(test.p, test.c, test.x, test.w) }) {
+			t.Errorf("Quantile did not panic when %s", test.name)
 		}
-	}
-}
-
-func TestQuantileInvalidCumulantKind(t *testing.T) {
-	if !panics(func() { Quantile(0.5, CumulantKind(1000), []float64{1, 2, 3}, nil) }) {
-		t.Errorf("Quantile did not panic when CumulantKind is unknown")
 	}
 }
 

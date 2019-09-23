@@ -121,7 +121,6 @@ var _ = Describe("Suite", func() {
 			Ω(description.LineNumber).Should(BeNumerically(">", 50))
 			Ω(description.LineNumber).Should(BeNumerically("<", 150))
 			Ω(description.Failed).Should(BeFalse())
-			Ω(description.Duration).Should(BeNumerically(">", 0))
 		})
 
 		Measure("should run measurements", func(b Benchmarker) {
@@ -152,19 +151,6 @@ var _ = Describe("Suite", func() {
 				"top BE", "top JBE", "top IT", "top AE",
 				"AfterSuite",
 			}))
-		})
-		Context("when in an AfterEach block", func() {
-			AfterEach(func() {
-				description := CurrentGinkgoTestDescription()
-				Ω(description.IsMeasurement).Should(BeFalse())
-				Ω(description.FileName).Should(ContainSubstring("suite_test.go"))
-				Ω(description.Failed).Should(BeFalse())
-				Ω(description.Duration).Should(BeNumerically(">", 0))
-			})
-
-			It("still provides information about the current test", func() {
-				Ω(true).To(BeTrue())
-			})
 		})
 
 		Context("when told to randomize all specs", func() {

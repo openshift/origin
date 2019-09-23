@@ -18,14 +18,10 @@ package datacatalog
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/datacatalog/mgmt/2016-03-30/datacatalog"
 
 // SkuType enumerates the values for sku type.
 type SkuType string
@@ -47,11 +43,11 @@ type ADCCatalog struct {
 	autorest.Response `json:"-"`
 	// ADCCatalogProperties - Azure Data Catalog properties.
 	*ADCCatalogProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location
 	Location *string `json:"location,omitempty"`
@@ -66,6 +62,15 @@ func (ac ADCCatalog) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ac.ADCCatalogProperties != nil {
 		objectMap["properties"] = ac.ADCCatalogProperties
+	}
+	if ac.ID != nil {
+		objectMap["id"] = ac.ID
+	}
+	if ac.Name != nil {
+		objectMap["name"] = ac.Name
+	}
+	if ac.Type != nil {
+		objectMap["type"] = ac.Type
 	}
 	if ac.Location != nil {
 		objectMap["location"] = ac.Location
@@ -173,8 +178,7 @@ type ADCCatalogProperties struct {
 	EnableAutomaticUnitAdjustment *bool `json:"enableAutomaticUnitAdjustment,omitempty"`
 }
 
-// ADCCatalogsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ADCCatalogsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ADCCatalogsDeleteFuture struct {
 	azure.Future
 }
@@ -183,7 +187,7 @@ type ADCCatalogsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ADCCatalogsDeleteFuture) Result(client ADCCatalogsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "datacatalog.ADCCatalogsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -240,11 +244,11 @@ type Principals struct {
 
 // Resource the Resource model definition.
 type Resource struct {
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location
 	Location *string `json:"location,omitempty"`
@@ -257,6 +261,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}

@@ -22,32 +22,21 @@ import (
 //
 // Dorg2l is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dorg2l(m, n, k int, a []float64, lda int, tau, work []float64) {
-	switch {
-	case m < 0:
-		panic(mLT0)
-	case n < 0:
-		panic(nLT0)
-	case n > m:
-		panic(nGTM)
-	case k < 0:
-		panic(kLT0)
-	case k > n:
-		panic(kGTN)
-	case lda < max(1, n):
-		panic(badLdA)
+	checkMatrix(m, n, a, lda)
+	if len(tau) < k {
+		panic(badTau)
 	}
-
+	if len(work) < n {
+		panic(badWork)
+	}
+	if m < n {
+		panic(mLTN)
+	}
+	if k > n {
+		panic(kGTN)
+	}
 	if n == 0 {
 		return
-	}
-
-	switch {
-	case len(a) < (m-1)*lda+n:
-		panic(shortA)
-	case len(tau) < k:
-		panic(shortTau)
-	case len(work) < n:
-		panic(shortWork)
 	}
 
 	// Initialize columns 0:n-k to columns of the unit matrix.

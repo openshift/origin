@@ -38,12 +38,20 @@ Here are the current repositories for the gonum project.
 If code you want to contribute doesn't quite fit in any of them, then please start a discussion on the [mailing list](https://groups.google.com/forum/#!forum/gonum-dev).
 Code can be found at [github.com/gonum/](https://github.com/gonum/)\<repo\>, and documentation at godoc.org/github.com/gonum/\<repo\>.
 
-* [gonum](https://github.com/gonum/gonum) — The gonum repository contains the majority of Gonum packages
+* [matrix](https://github.com/gonum/matrix) — Implements data containers for matrix types (Dense, Symmetric), and higher-level operations using them (SVD, Linear solve)
 * [plot](https://github.com/gonum/plot) — A repository for plotting and visualizing data
-* [netlib](https://github.com/gonum/netlib) — The netlib repository contains Cgo wrappers for C implementations of BLAS and LAPACKE
-* [hdf5](https://github.com/gonum/hdf5) — The hdf5 repository contains a Cgo wrapper for the HDF5 data storage and access library
-* [exp](https://github.com/gonum/exp) — The exp repository contains experimental and incomplete package implementations
-* [tools](https://github.com/gonum/tools) — Tools for working with Go code
+* [stat](https://github.com/gonum/stat) — Contains statistics routines for linear and multi-dimensional data, univariate and multivariate sampling distributions, and advanced sampling routines
+* [blas](https://github.com/gonum/blas) — Native Go BLAS implementation for float64 and float32, and c-wrapper for external libraries
+* [lapack](https://github.com/gonum/lapack) — Native Go implementation of many LAPACK routines and c-wrapper for LAPACKE
+* [floats](https://github.com/gonum/floats) — Operations on slices of floats
+* [integrate](https://github.com/gonum/integrate) — Routines for numeric evaluation of integrals (quadrature)
+* [diff](https://github.com/gonum/diff) — Routines for computing derivatives
+* [graph](https://github.com/gonum/graph) — Implements types and interfaces for graphs (networks), and implements higher-level routines (A-star, Kruskal)
+* [optimize](https://github.com/gonum/optimize) — Package for searching for the optimal value of functions
+* [unit](https://github.com/gonum/unit) — Package for converting between scientific units
+* [mathext](https://github.com/gonum/mathext) — Implements basic elementary functions not included in the Go standard library
+* [internal](https://github.com/gonum/internal) — Internal routines for the gonum project
+* [license](https://github.com/gonum/license) — Master license, author, contributor etc information
 * [talks](https://github.com/gonum/talks) — Talks given about Go and Gonum delivered by Gonum developers
 * [gonum.github.io](https://github.com/gonum/gonum.github.io) — Gonum website
 
@@ -51,7 +59,16 @@ Code can be found at [github.com/gonum/](https://github.com/gonum/)\<repo\>, and
 
 ### Working Together
 
-When contributing or otherwise participating please follow the [Gonum community's conduct expectations](CONDUCT.md).
+When contributing or otherwise participating, please:
+
+- Be friendly and welcoming
+- Be patient
+- Be thoughtful
+- Be respectful
+- Be charitable
+- Avoid destructive behavior
+
+Excerpted from the [Go conduct document](https://golang.org/conduct).
 
 ### Reporting Bugs
 

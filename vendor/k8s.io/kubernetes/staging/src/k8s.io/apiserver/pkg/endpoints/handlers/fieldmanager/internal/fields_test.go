@@ -24,16 +24,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/structured-merge-diff/fieldpath"
-	"sigs.k8s.io/structured-merge-diff/value"
 )
 
 // TestFieldsRoundTrip tests that a fields trie can be round tripped as a path set
 func TestFieldsRoundTrip(t *testing.T) {
-	tests := []metav1.FieldsV1{
+	tests := []metav1.Fields{
 		{
-			Raw: []byte(`{"f:metadata":{"f:name":{},".":{}}}`),
+			Map: map[string]metav1.Fields{
+				"f:metadata": {
+					Map: map[string]metav1.Fields{
+						".":      newFields(),
+						"f:name": newFields(),
+					},
+				},
+			},
 		},
-		EmptyFields,
 	}
 
 	for _, test := range tests {
@@ -54,14 +59,21 @@ func TestFieldsRoundTrip(t *testing.T) {
 // TestFieldsToSetError tests that errors are picked up by FieldsToSet
 func TestFieldsToSetError(t *testing.T) {
 	tests := []struct {
-		fields    metav1.FieldsV1
+		fields    metav1.Fields
 		errString string
 	}{
 		{
-			fields: metav1.FieldsV1{
-				Raw: []byte(`{"k:{invalid json}":{"f:name":{},".":{}}}`),
+			fields: metav1.Fields{
+				Map: map[string]metav1.Fields{
+					"k:{invalid json}": {
+						Map: map[string]metav1.Fields{
+							".":      newFields(),
+							"f:name": newFields(),
+						},
+					},
+				},
 			},
-			errString: "ReadObjectCB",
+			errString: "invalid character",
 		},
 	}
 
@@ -84,7 +96,7 @@ func TestSetToFieldsError(t *testing.T) {
 	}{
 		{
 			set:       *fieldpath.NewSet(invalidPath),
-			errString: "invalid PathElement",
+			errString: "Invalid type of path element",
 		},
 	}
 
@@ -92,55 +104,6 @@ func TestSetToFieldsError(t *testing.T) {
 		_, err := SetToFields(test.set)
 		if err == nil || !strings.Contains(err.Error(), test.errString) {
 			t.Fatalf("Expected error to contain %q but got: %v", test.errString, err)
-		}
-	}
-}
-
-func BenchmarkSetToFields(b *testing.B) {
-	set := fieldpath.NewSet(
-		fieldpath.MakePathOrDie("foo", 0, "bar", "baz"),
-		fieldpath.MakePathOrDie("foo", 0, "bar", "zot"),
-		fieldpath.MakePathOrDie("foo", 0, "bar"),
-		fieldpath.MakePathOrDie("foo", 0),
-		fieldpath.MakePathOrDie("foo", 1, "bar", "baz"),
-		fieldpath.MakePathOrDie("foo", 1, "bar"),
-		fieldpath.MakePathOrDie("qux", fieldpath.KeyByFields("name", value.StringValue("first"))),
-		fieldpath.MakePathOrDie("qux", fieldpath.KeyByFields("name", value.StringValue("first")), "bar"),
-		fieldpath.MakePathOrDie("qux", fieldpath.KeyByFields("name", value.StringValue("second")), "bar"),
-	)
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		_, err := SetToFields(*set)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkFieldsToSet(b *testing.B) {
-	set := fieldpath.NewSet(
-		fieldpath.MakePathOrDie("foo", 0, "bar", "baz"),
-		fieldpath.MakePathOrDie("foo", 0, "bar", "zot"),
-		fieldpath.MakePathOrDie("foo", 0, "bar"),
-		fieldpath.MakePathOrDie("foo", 0),
-		fieldpath.MakePathOrDie("foo", 1, "bar", "baz"),
-		fieldpath.MakePathOrDie("foo", 1, "bar"),
-		fieldpath.MakePathOrDie("qux", fieldpath.KeyByFields("name", value.StringValue("first"))),
-		fieldpath.MakePathOrDie("qux", fieldpath.KeyByFields("name", value.StringValue("first")), "bar"),
-		fieldpath.MakePathOrDie("qux", fieldpath.KeyByFields("name", value.StringValue("second")), "bar"),
-	)
-	fields, err := SetToFields(*set)
-	if err != nil {
-		b.Fatal(err)
-	}
-	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		_, err := FieldsToSet(fields)
-		if err != nil {
-			b.Fatal(err)
 		}
 	}
 }

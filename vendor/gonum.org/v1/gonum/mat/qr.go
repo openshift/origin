@@ -13,8 +13,6 @@ import (
 	"gonum.org/v1/gonum/lapack/lapack64"
 )
 
-const badQR = "mat: invalid QR factorization"
-
 // QR is a type for creating and using the QR factorization of a matrix.
 type QR struct {
 	qr   *Dense
@@ -70,16 +68,11 @@ func (qr *QR) factorize(a Matrix, norm lapack.MatrixNorm) {
 	qr.updateCond(norm)
 }
 
-// isValid returns whether the receiver contains a factorization.
-func (qr *QR) isValid() bool {
-	return qr.qr != nil && !qr.qr.IsZero()
-}
-
 // Cond returns the condition number for the factorized matrix.
-// Cond will panic if the receiver does not contain a factorization.
+// Cond will panic if the receiver does not contain a successful factorization.
 func (qr *QR) Cond() float64 {
-	if !qr.isValid() {
-		panic(badQR)
+	if qr.qr == nil || qr.qr.IsZero() {
+		panic("qr: no decomposition computed")
 	}
 	return qr.cond
 }
@@ -89,12 +82,7 @@ func (qr *QR) Cond() float64 {
 
 // RTo extracts the m×n upper trapezoidal matrix from a QR decomposition.
 // If dst is nil, a new matrix is allocated. The resulting dst matrix is returned.
-// RTo will panic if the receiver does not contain a factorization.
 func (qr *QR) RTo(dst *Dense) *Dense {
-	if !qr.isValid() {
-		panic(badQR)
-	}
-
 	r, c := qr.qr.Dims()
 	if dst == nil {
 		dst = NewDense(r, c, nil)
@@ -125,12 +113,7 @@ func (qr *QR) RTo(dst *Dense) *Dense {
 
 // QTo extracts the m×m orthonormal matrix Q from a QR decomposition.
 // If dst is nil, a new matrix is allocated. The resulting Q matrix is returned.
-// QTo will panic if the receiver does not contain a factorization.
 func (qr *QR) QTo(dst *Dense) *Dense {
-	if !qr.isValid() {
-		panic(badQR)
-	}
-
 	r, _ := qr.qr.Dims()
 	if dst == nil {
 		dst = NewDense(r, r, nil)
@@ -153,7 +136,7 @@ func (qr *QR) QTo(dst *Dense) *Dense {
 	return dst
 }
 
-// SolveTo finds a minimum-norm solution to a system of linear equations defined
+// Solve finds a minimum-norm solution to a system of linear equations defined
 // by the matrices A and b, where A is an m×n matrix represented in its QR factorized
 // form. If A is singular or near-singular a Condition error is returned.
 // See the documentation for Condition for more information.
@@ -161,13 +144,8 @@ func (qr *QR) QTo(dst *Dense) *Dense {
 // The minimization problem solved depends on the input parameters.
 //  If trans == false, find X such that ||A*X - B||_2 is minimized.
 //  If trans == true, find the minimum norm solution of A^T * X = B.
-// The solution matrix, X, is stored in place into dst.
-// SolveTo will panic if the receiver does not contain a factorization.
-func (qr *QR) SolveTo(dst *Dense, trans bool, b Matrix) error {
-	if !qr.isValid() {
-		panic(badQR)
-	}
-
+// The solution matrix, X, is stored in place into m.
+func (qr *QR) Solve(x *Dense, trans bool, b Matrix) error {
 	r, c := qr.qr.Dims()
 	br, bc := b.Dims()
 
@@ -179,12 +157,12 @@ func (qr *QR) SolveTo(dst *Dense, trans bool, b Matrix) error {
 		if c != br {
 			panic(ErrShape)
 		}
-		dst.reuseAs(r, bc)
+		x.reuseAs(r, bc)
 	} else {
 		if r != br {
 			panic(ErrShape)
 		}
-		dst.reuseAs(c, bc)
+		x.reuseAs(c, bc)
 	}
 	// Do not need to worry about overlap between m and b because x has its own
 	// independent storage.
@@ -217,7 +195,7 @@ func (qr *QR) SolveTo(dst *Dense, trans bool, b Matrix) error {
 		}
 	}
 	// X was set above to be the correct size for the result.
-	dst.Copy(w)
+	x.Copy(w)
 	putWorkspace(w)
 	if qr.cond > ConditionTolerance {
 		return Condition(qr.cond)
@@ -225,15 +203,10 @@ func (qr *QR) SolveTo(dst *Dense, trans bool, b Matrix) error {
 	return nil
 }
 
-// SolveVecTo finds a minimum-norm solution to a system of linear equations,
+// SolveVec finds a minimum-norm solution to a system of linear equations,
 //  Ax = b.
-// See QR.SolveTo for the full documentation.
-// SolveVecTo will panic if the receiver does not contain a factorization.
-func (qr *QR) SolveVecTo(dst *VecDense, trans bool, b Vector) error {
-	if !qr.isValid() {
-		panic(badQR)
-	}
-
+// See QR.Solve for the full documentation.
+func (qr *QR) SolveVec(x *VecDense, trans bool, b Vector) error {
 	r, c := qr.qr.Dims()
 	if _, bc := b.Dims(); bc != 1 {
 		panic(ErrShape)
@@ -244,17 +217,17 @@ func (qr *QR) SolveVecTo(dst *VecDense, trans bool, b Vector) error {
 	bm := Matrix(b)
 	if rv, ok := b.(RawVectorer); ok {
 		bmat := rv.RawVector()
-		if dst != b {
-			dst.checkOverlap(bmat)
+		if x != b {
+			x.checkOverlap(bmat)
 		}
-		b := VecDense{mat: bmat}
+		b := VecDense{mat: bmat, n: b.Len()}
 		bm = b.asDense()
 	}
 	if trans {
-		dst.reuseAs(r)
+		x.reuseAs(r)
 	} else {
-		dst.reuseAs(c)
+		x.reuseAs(c)
 	}
-	return qr.SolveTo(dst.asDense(), trans, bm)
+	return qr.Solve(x.asDense(), trans, bm)
 
 }

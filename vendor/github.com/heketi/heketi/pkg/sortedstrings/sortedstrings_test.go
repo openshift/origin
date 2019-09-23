@@ -10,10 +10,9 @@
 package sortedstrings
 
 import (
+	"github.com/heketi/tests"
 	"sort"
 	"testing"
-
-	"github.com/heketi/tests"
 )
 
 func TestSortedStringsHas(t *testing.T) {

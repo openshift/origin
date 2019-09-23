@@ -11,6 +11,7 @@ go_library(
         "//cmd/kubeadm/app/phases/bootstraptoken/node:go_default_library",
         "//cmd/kubeadm/app/util/apiclient:go_default_library",
         "//cmd/kubeadm/app/util/crypto:go_default_library",
+        "//pkg/apis/rbac/v1:go_default_library",
         "//staging/src/k8s.io/api/core/v1:go_default_library",
         "//staging/src/k8s.io/api/rbac/v1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/api/errors:go_default_library",
@@ -46,14 +47,8 @@ go_test(
     deps = [
         "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
         "//cmd/kubeadm/app/constants:go_default_library",
-        "//cmd/kubeadm/app/phases/certs:go_default_library",
         "//cmd/kubeadm/app/util/crypto:go_default_library",
         "//cmd/kubeadm/test:go_default_library",
-        "//staging/src/k8s.io/api/core/v1:go_default_library",
-        "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
-        "//staging/src/k8s.io/client-go/kubernetes/fake:go_default_library",
-        "//staging/src/k8s.io/client-go/util/cert:go_default_library",
-        "//staging/src/k8s.io/client-go/util/keyutil:go_default_library",
         "//vendor/github.com/lithammer/dedent:go_default_library",
     ],
 )

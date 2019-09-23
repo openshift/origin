@@ -25,7 +25,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -59,16 +58,6 @@ func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 // Parameters:
 // request - name availability request.
 func (client BaseClient) CheckNameAvailability(ctx context.Context, request ResourceNameAvailabilityRequest) (result ResourceNameAvailability, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CheckNameAvailability")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: request,
 			Constraints: []validation.Constraint{{Target: "request.Name", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -120,8 +109,8 @@ func (client BaseClient) CheckNameAvailabilityPreparer(ctx context.Context, requ
 // CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always
@@ -139,16 +128,6 @@ func (client BaseClient) CheckNameAvailabilityResponder(resp *http.Response) (re
 
 // GetPublishingUser gets publishing user
 func (client BaseClient) GetPublishingUser(ctx context.Context) (result User, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetPublishingUser")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPublishingUserPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.BaseClient", "GetPublishingUser", nil, "Failure preparing request")
@@ -188,8 +167,8 @@ func (client BaseClient) GetPublishingUserPreparer(ctx context.Context) (*http.R
 // GetPublishingUserSender sends the GetPublishingUser request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetPublishingUserSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetPublishingUserResponder handles the response to the GetPublishingUser request. The method always
@@ -209,16 +188,6 @@ func (client BaseClient) GetPublishingUserResponder(resp *http.Response) (result
 // Parameters:
 // sourceControlType - type of source control
 func (client BaseClient) GetSourceControl(ctx context.Context, sourceControlType string) (result SourceControl, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetSourceControl")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetSourceControlPreparer(ctx, sourceControlType)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.BaseClient", "GetSourceControl", nil, "Failure preparing request")
@@ -262,8 +231,8 @@ func (client BaseClient) GetSourceControlPreparer(ctx context.Context, sourceCon
 // GetSourceControlSender sends the GetSourceControl request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetSourceControlSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetSourceControlResponder handles the response to the GetSourceControl request. The method always
@@ -281,16 +250,6 @@ func (client BaseClient) GetSourceControlResponder(resp *http.Response) (result 
 
 // GetSubscriptionDeploymentLocations gets list of available geo regions plus ministamps
 func (client BaseClient) GetSubscriptionDeploymentLocations(ctx context.Context) (result DeploymentLocations, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetSubscriptionDeploymentLocations")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetSubscriptionDeploymentLocationsPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.BaseClient", "GetSubscriptionDeploymentLocations", nil, "Failure preparing request")
@@ -334,8 +293,8 @@ func (client BaseClient) GetSubscriptionDeploymentLocationsPreparer(ctx context.
 // GetSubscriptionDeploymentLocationsSender sends the GetSubscriptionDeploymentLocations request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetSubscriptionDeploymentLocationsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetSubscriptionDeploymentLocationsResponder handles the response to the GetSubscriptionDeploymentLocations request. The method always
@@ -356,16 +315,6 @@ func (client BaseClient) GetSubscriptionDeploymentLocationsResponder(resp *http.
 // billingLocation - azure Location of billable resource
 // osType - app Service OS type meters used for
 func (client BaseClient) ListBillingMeters(ctx context.Context, billingLocation string, osType string) (result BillingMeterCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListBillingMeters")
-		defer func() {
-			sc := -1
-			if result.bmc.Response.Response != nil {
-				sc = result.bmc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listBillingMetersNextResults
 	req, err := client.ListBillingMetersPreparer(ctx, billingLocation, osType)
 	if err != nil {
@@ -416,8 +365,8 @@ func (client BaseClient) ListBillingMetersPreparer(ctx context.Context, billingL
 // ListBillingMetersSender sends the ListBillingMeters request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ListBillingMetersSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListBillingMetersResponder handles the response to the ListBillingMeters request. The method always
@@ -434,8 +383,8 @@ func (client BaseClient) ListBillingMetersResponder(resp *http.Response) (result
 }
 
 // listBillingMetersNextResults retrieves the next set of results, if any.
-func (client BaseClient) listBillingMetersNextResults(ctx context.Context, lastResults BillingMeterCollection) (result BillingMeterCollection, err error) {
-	req, err := lastResults.billingMeterCollectionPreparer(ctx)
+func (client BaseClient) listBillingMetersNextResults(lastResults BillingMeterCollection) (result BillingMeterCollection, err error) {
+	req, err := lastResults.billingMeterCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.BaseClient", "listBillingMetersNextResults", nil, "Failure preparing next results request")
 	}
@@ -456,16 +405,6 @@ func (client BaseClient) listBillingMetersNextResults(ctx context.Context, lastR
 
 // ListBillingMetersComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BaseClient) ListBillingMetersComplete(ctx context.Context, billingLocation string, osType string) (result BillingMeterCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListBillingMeters")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListBillingMeters(ctx, billingLocation, osType)
 	return
 }
@@ -477,21 +416,9 @@ func (client BaseClient) ListBillingMetersComplete(ctx context.Context, billingL
 // workers.
 // xenonWorkersEnabled - specify <code>true</code> if you want to filter to only regions that support Xenon
 // workers.
-// linuxDynamicWorkersEnabled - specify <code>true</code> if you want to filter to only regions that support
-// Linux Consumption Workers.
-func (client BaseClient) ListGeoRegions(ctx context.Context, sku SkuName, linuxWorkersEnabled *bool, xenonWorkersEnabled *bool, linuxDynamicWorkersEnabled *bool) (result GeoRegionCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListGeoRegions")
-		defer func() {
-			sc := -1
-			if result.grc.Response.Response != nil {
-				sc = result.grc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client BaseClient) ListGeoRegions(ctx context.Context, sku SkuName, linuxWorkersEnabled *bool, xenonWorkersEnabled *bool) (result GeoRegionCollectionPage, err error) {
 	result.fn = client.listGeoRegionsNextResults
-	req, err := client.ListGeoRegionsPreparer(ctx, sku, linuxWorkersEnabled, xenonWorkersEnabled, linuxDynamicWorkersEnabled)
+	req, err := client.ListGeoRegionsPreparer(ctx, sku, linuxWorkersEnabled, xenonWorkersEnabled)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.BaseClient", "ListGeoRegions", nil, "Failure preparing request")
 		return
@@ -513,7 +440,7 @@ func (client BaseClient) ListGeoRegions(ctx context.Context, sku SkuName, linuxW
 }
 
 // ListGeoRegionsPreparer prepares the ListGeoRegions request.
-func (client BaseClient) ListGeoRegionsPreparer(ctx context.Context, sku SkuName, linuxWorkersEnabled *bool, xenonWorkersEnabled *bool, linuxDynamicWorkersEnabled *bool) (*http.Request, error) {
+func (client BaseClient) ListGeoRegionsPreparer(ctx context.Context, sku SkuName, linuxWorkersEnabled *bool, xenonWorkersEnabled *bool) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
@@ -531,9 +458,6 @@ func (client BaseClient) ListGeoRegionsPreparer(ctx context.Context, sku SkuName
 	if xenonWorkersEnabled != nil {
 		queryParameters["xenonWorkersEnabled"] = autorest.Encode("query", *xenonWorkersEnabled)
 	}
-	if linuxDynamicWorkersEnabled != nil {
-		queryParameters["linuxDynamicWorkersEnabled"] = autorest.Encode("query", *linuxDynamicWorkersEnabled)
-	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
@@ -546,8 +470,8 @@ func (client BaseClient) ListGeoRegionsPreparer(ctx context.Context, sku SkuName
 // ListGeoRegionsSender sends the ListGeoRegions request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ListGeoRegionsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListGeoRegionsResponder handles the response to the ListGeoRegions request. The method always
@@ -564,8 +488,8 @@ func (client BaseClient) ListGeoRegionsResponder(resp *http.Response) (result Ge
 }
 
 // listGeoRegionsNextResults retrieves the next set of results, if any.
-func (client BaseClient) listGeoRegionsNextResults(ctx context.Context, lastResults GeoRegionCollection) (result GeoRegionCollection, err error) {
-	req, err := lastResults.geoRegionCollectionPreparer(ctx)
+func (client BaseClient) listGeoRegionsNextResults(lastResults GeoRegionCollection) (result GeoRegionCollection, err error) {
+	req, err := lastResults.geoRegionCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.BaseClient", "listGeoRegionsNextResults", nil, "Failure preparing next results request")
 	}
@@ -585,33 +509,13 @@ func (client BaseClient) listGeoRegionsNextResults(ctx context.Context, lastResu
 }
 
 // ListGeoRegionsComplete enumerates all values, automatically crossing page boundaries as required.
-func (client BaseClient) ListGeoRegionsComplete(ctx context.Context, sku SkuName, linuxWorkersEnabled *bool, xenonWorkersEnabled *bool, linuxDynamicWorkersEnabled *bool) (result GeoRegionCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListGeoRegions")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	result.page, err = client.ListGeoRegions(ctx, sku, linuxWorkersEnabled, xenonWorkersEnabled, linuxDynamicWorkersEnabled)
+func (client BaseClient) ListGeoRegionsComplete(ctx context.Context, sku SkuName, linuxWorkersEnabled *bool, xenonWorkersEnabled *bool) (result GeoRegionCollectionIterator, err error) {
+	result.page, err = client.ListGeoRegions(ctx, sku, linuxWorkersEnabled, xenonWorkersEnabled)
 	return
 }
 
 // ListPremierAddOnOffers list all premier add-on offers.
 func (client BaseClient) ListPremierAddOnOffers(ctx context.Context) (result PremierAddOnOfferCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListPremierAddOnOffers")
-		defer func() {
-			sc := -1
-			if result.paooc.Response.Response != nil {
-				sc = result.paooc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listPremierAddOnOffersNextResults
 	req, err := client.ListPremierAddOnOffersPreparer(ctx)
 	if err != nil {
@@ -656,8 +560,8 @@ func (client BaseClient) ListPremierAddOnOffersPreparer(ctx context.Context) (*h
 // ListPremierAddOnOffersSender sends the ListPremierAddOnOffers request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ListPremierAddOnOffersSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListPremierAddOnOffersResponder handles the response to the ListPremierAddOnOffers request. The method always
@@ -674,8 +578,8 @@ func (client BaseClient) ListPremierAddOnOffersResponder(resp *http.Response) (r
 }
 
 // listPremierAddOnOffersNextResults retrieves the next set of results, if any.
-func (client BaseClient) listPremierAddOnOffersNextResults(ctx context.Context, lastResults PremierAddOnOfferCollection) (result PremierAddOnOfferCollection, err error) {
-	req, err := lastResults.premierAddOnOfferCollectionPreparer(ctx)
+func (client BaseClient) listPremierAddOnOffersNextResults(lastResults PremierAddOnOfferCollection) (result PremierAddOnOfferCollection, err error) {
+	req, err := lastResults.premierAddOnOfferCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.BaseClient", "listPremierAddOnOffersNextResults", nil, "Failure preparing next results request")
 	}
@@ -696,16 +600,6 @@ func (client BaseClient) listPremierAddOnOffersNextResults(ctx context.Context, 
 
 // ListPremierAddOnOffersComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BaseClient) ListPremierAddOnOffersComplete(ctx context.Context) (result PremierAddOnOfferCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListPremierAddOnOffers")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListPremierAddOnOffers(ctx)
 	return
 }
@@ -714,16 +608,6 @@ func (client BaseClient) ListPremierAddOnOffersComplete(ctx context.Context) (re
 // Parameters:
 // nameIdentifier - hostname information.
 func (client BaseClient) ListSiteIdentifiersAssignedToHostName(ctx context.Context, nameIdentifier NameIdentifier) (result IdentifierCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListSiteIdentifiersAssignedToHostName")
-		defer func() {
-			sc := -1
-			if result.ic.Response.Response != nil {
-				sc = result.ic.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listSiteIdentifiersAssignedToHostNameNextResults
 	req, err := client.ListSiteIdentifiersAssignedToHostNamePreparer(ctx, nameIdentifier)
 	if err != nil {
@@ -770,8 +654,8 @@ func (client BaseClient) ListSiteIdentifiersAssignedToHostNamePreparer(ctx conte
 // ListSiteIdentifiersAssignedToHostNameSender sends the ListSiteIdentifiersAssignedToHostName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ListSiteIdentifiersAssignedToHostNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListSiteIdentifiersAssignedToHostNameResponder handles the response to the ListSiteIdentifiersAssignedToHostName request. The method always
@@ -788,8 +672,8 @@ func (client BaseClient) ListSiteIdentifiersAssignedToHostNameResponder(resp *ht
 }
 
 // listSiteIdentifiersAssignedToHostNameNextResults retrieves the next set of results, if any.
-func (client BaseClient) listSiteIdentifiersAssignedToHostNameNextResults(ctx context.Context, lastResults IdentifierCollection) (result IdentifierCollection, err error) {
-	req, err := lastResults.identifierCollectionPreparer(ctx)
+func (client BaseClient) listSiteIdentifiersAssignedToHostNameNextResults(lastResults IdentifierCollection) (result IdentifierCollection, err error) {
+	req, err := lastResults.identifierCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.BaseClient", "listSiteIdentifiersAssignedToHostNameNextResults", nil, "Failure preparing next results request")
 	}
@@ -810,32 +694,12 @@ func (client BaseClient) listSiteIdentifiersAssignedToHostNameNextResults(ctx co
 
 // ListSiteIdentifiersAssignedToHostNameComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BaseClient) ListSiteIdentifiersAssignedToHostNameComplete(ctx context.Context, nameIdentifier NameIdentifier) (result IdentifierCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListSiteIdentifiersAssignedToHostName")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListSiteIdentifiersAssignedToHostName(ctx, nameIdentifier)
 	return
 }
 
 // ListSkus list all SKUs.
 func (client BaseClient) ListSkus(ctx context.Context) (result SkuInfos, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListSkus")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListSkusPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.BaseClient", "ListSkus", nil, "Failure preparing request")
@@ -879,8 +743,8 @@ func (client BaseClient) ListSkusPreparer(ctx context.Context) (*http.Request, e
 // ListSkusSender sends the ListSkus request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ListSkusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListSkusResponder handles the response to the ListSkus request. The method always
@@ -898,16 +762,6 @@ func (client BaseClient) ListSkusResponder(resp *http.Response) (result SkuInfos
 
 // ListSourceControls gets the source controls available for Azure websites.
 func (client BaseClient) ListSourceControls(ctx context.Context) (result SourceControlCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListSourceControls")
-		defer func() {
-			sc := -1
-			if result.scc.Response.Response != nil {
-				sc = result.scc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listSourceControlsNextResults
 	req, err := client.ListSourceControlsPreparer(ctx)
 	if err != nil {
@@ -948,8 +802,8 @@ func (client BaseClient) ListSourceControlsPreparer(ctx context.Context) (*http.
 // ListSourceControlsSender sends the ListSourceControls request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ListSourceControlsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListSourceControlsResponder handles the response to the ListSourceControls request. The method always
@@ -966,8 +820,8 @@ func (client BaseClient) ListSourceControlsResponder(resp *http.Response) (resul
 }
 
 // listSourceControlsNextResults retrieves the next set of results, if any.
-func (client BaseClient) listSourceControlsNextResults(ctx context.Context, lastResults SourceControlCollection) (result SourceControlCollection, err error) {
-	req, err := lastResults.sourceControlCollectionPreparer(ctx)
+func (client BaseClient) listSourceControlsNextResults(lastResults SourceControlCollection) (result SourceControlCollection, err error) {
+	req, err := lastResults.sourceControlCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.BaseClient", "listSourceControlsNextResults", nil, "Failure preparing next results request")
 	}
@@ -988,16 +842,6 @@ func (client BaseClient) listSourceControlsNextResults(ctx context.Context, last
 
 // ListSourceControlsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BaseClient) ListSourceControlsComplete(ctx context.Context) (result SourceControlCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListSourceControls")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListSourceControls(ctx)
 	return
 }
@@ -1007,16 +851,6 @@ func (client BaseClient) ListSourceControlsComplete(ctx context.Context) (result
 // resourceGroupName - name of the resource group to which the resource belongs.
 // moveResourceEnvelope - object that represents the resource to move.
 func (client BaseClient) Move(ctx context.Context, resourceGroupName string, moveResourceEnvelope CsmMoveResourceEnvelope) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.Move")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1077,8 +911,8 @@ func (client BaseClient) MovePreparer(ctx context.Context, resourceGroupName str
 // MoveSender sends the Move request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) MoveSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // MoveResponder handles the response to the Move request. The method always
@@ -1097,16 +931,6 @@ func (client BaseClient) MoveResponder(resp *http.Response) (result autorest.Res
 // Parameters:
 // userDetails - details of publishing user
 func (client BaseClient) UpdatePublishingUser(ctx context.Context, userDetails User) (result User, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdatePublishingUser")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: userDetails,
 			Constraints: []validation.Constraint{{Target: "userDetails.UserProperties", Name: validation.Null, Rule: false,
@@ -1155,8 +979,8 @@ func (client BaseClient) UpdatePublishingUserPreparer(ctx context.Context, userD
 // UpdatePublishingUserSender sends the UpdatePublishingUser request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdatePublishingUserSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdatePublishingUserResponder handles the response to the UpdatePublishingUser request. The method always
@@ -1177,16 +1001,6 @@ func (client BaseClient) UpdatePublishingUserResponder(resp *http.Response) (res
 // sourceControlType - type of source control
 // requestMessage - source control token information
 func (client BaseClient) UpdateSourceControl(ctx context.Context, sourceControlType string, requestMessage SourceControl) (result SourceControl, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateSourceControl")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateSourceControlPreparer(ctx, sourceControlType, requestMessage)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.BaseClient", "UpdateSourceControl", nil, "Failure preparing request")
@@ -1232,8 +1046,8 @@ func (client BaseClient) UpdateSourceControlPreparer(ctx context.Context, source
 // UpdateSourceControlSender sends the UpdateSourceControl request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateSourceControlSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateSourceControlResponder handles the response to the UpdateSourceControl request. The method always
@@ -1254,16 +1068,6 @@ func (client BaseClient) UpdateSourceControlResponder(resp *http.Response) (resu
 // resourceGroupName - name of the resource group to which the resource belongs.
 // validateRequest - request with the resources to validate.
 func (client BaseClient) Validate(ctx context.Context, resourceGroupName string, validateRequest ValidateRequest) (result ValidateResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.Validate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1325,8 +1129,8 @@ func (client BaseClient) ValidatePreparer(ctx context.Context, resourceGroupName
 // ValidateSender sends the Validate request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ValidateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ValidateResponder handles the response to the Validate request. The method always
@@ -1342,106 +1146,11 @@ func (client BaseClient) ValidateResponder(resp *http.Response) (result Validate
 	return
 }
 
-// ValidateContainerSettings validate if the container settings are correct.
-// Parameters:
-// resourceGroupName - name of the resource group to which the resource belongs.
-func (client BaseClient) ValidateContainerSettings(ctx context.Context, validateContainerSettingsRequest ValidateContainerSettingsRequest, resourceGroupName string) (result SetObject, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ValidateContainerSettings")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	if err := validation.Validate([]validation.Validation{
-		{TargetValue: resourceGroupName,
-			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}}}); err != nil {
-		return result, validation.NewError("web.BaseClient", "ValidateContainerSettings", err.Error())
-	}
-
-	req, err := client.ValidateContainerSettingsPreparer(ctx, validateContainerSettingsRequest, resourceGroupName)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "web.BaseClient", "ValidateContainerSettings", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ValidateContainerSettingsSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "web.BaseClient", "ValidateContainerSettings", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ValidateContainerSettingsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "web.BaseClient", "ValidateContainerSettings", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ValidateContainerSettingsPreparer prepares the ValidateContainerSettings request.
-func (client BaseClient) ValidateContainerSettingsPreparer(ctx context.Context, validateContainerSettingsRequest ValidateContainerSettingsRequest, resourceGroupName string) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"resourceGroupName": autorest.Encode("path", resourceGroupName),
-		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-	}
-
-	const APIVersion = "2018-02-01"
-	queryParameters := map[string]interface{}{
-		"api-version": APIVersion,
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsContentType("application/json; charset=utf-8"),
-		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/validateContainerSettings", pathParameters),
-		autorest.WithJSON(validateContainerSettingsRequest),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ValidateContainerSettingsSender sends the ValidateContainerSettings request. The method will close the
-// http.Response Body if it receives an error.
-func (client BaseClient) ValidateContainerSettingsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ValidateContainerSettingsResponder handles the response to the ValidateContainerSettings request. The method always
-// closes the http.Response Body.
-func (client BaseClient) ValidateContainerSettingsResponder(resp *http.Response) (result SetObject, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
 // ValidateMove validate whether a resource can be moved.
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 // moveResourceEnvelope - object that represents the resource to move.
 func (client BaseClient) ValidateMove(ctx context.Context, resourceGroupName string, moveResourceEnvelope CsmMoveResourceEnvelope) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ValidateMove")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1502,8 +1211,8 @@ func (client BaseClient) ValidateMovePreparer(ctx context.Context, resourceGroup
 // ValidateMoveSender sends the ValidateMove request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ValidateMoveSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ValidateMoveResponder handles the response to the ValidateMove request. The method always
@@ -1523,16 +1232,6 @@ func (client BaseClient) ValidateMoveResponder(resp *http.Response) (result auto
 // Parameters:
 // parameters - VNET information
 func (client BaseClient) VerifyHostingEnvironmentVnet(ctx context.Context, parameters VnetParameters) (result VnetValidationFailureDetails, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.VerifyHostingEnvironmentVnet")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.VerifyHostingEnvironmentVnetPreparer(ctx, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.BaseClient", "VerifyHostingEnvironmentVnet", nil, "Failure preparing request")
@@ -1578,8 +1277,8 @@ func (client BaseClient) VerifyHostingEnvironmentVnetPreparer(ctx context.Contex
 // VerifyHostingEnvironmentVnetSender sends the VerifyHostingEnvironmentVnet request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) VerifyHostingEnvironmentVnetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // VerifyHostingEnvironmentVnetResponder handles the response to the VerifyHostingEnvironmentVnet request. The method always

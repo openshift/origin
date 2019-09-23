@@ -51,15 +51,7 @@ def openapi_deps():
     deps.extend([bazel_go_library(pkg) for pkg in tags_values_pkgs["openapi-gen"]["true"]])
     return deps
 
-def applies(pkg, prefixes, default):
-    if prefixes == None or len(prefixes) == 0:
-        return default
-    for prefix in prefixes:
-        if pkg == prefix or pkg.startswith(prefix + "/"):
-            return True
-    return False
-
-def gen_openapi(outs, output_pkg, include_pkgs=[], exclude_pkgs=[]):
+def gen_openapi(outs, output_pkg):
     """Calls openapi-gen to produce the zz_generated.openapi.go file,
     which should be provided in outs.
     output_pkg should be set to the full go package name for this generated file.
@@ -80,7 +72,7 @@ def gen_openapi(outs, output_pkg, include_pkgs=[], exclude_pkgs=[]):
             "--output-file-base zz_generated.openapi",
             "--output-package " + output_pkg,
             "--report-filename tmp_api_violations.report",
-            "--input-dirs " + ",".join([go_pkg(pkg) for pkg in tags_values_pkgs["openapi-gen"]["true"] if applies(pkg, include_pkgs, True) and not applies(pkg, exclude_pkgs, False)]),
+            "--input-dirs " + ",".join([go_pkg(pkg) for pkg in tags_values_pkgs["openapi-gen"]["true"]]),
             "&& cp $$GOPATH/src/" + output_pkg + "/zz_generated.openapi.go $$GO_GENRULE_EXECROOT/$(location :zz_generated.openapi.go)",
             "&& rm tmp_api_violations.report",
         ]),

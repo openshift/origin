@@ -33,7 +33,7 @@
   "description": "Accesses Tag Manager accounts and containers.",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/tag-manager/api/v1/",
-  "etag": "\"VPK3KBfpaEgZ16pozGOoMYfKc0U/zCKQQSYtFiBn9FkknoRWdzQYCqs\"",
+  "etag": "\"Zkyw9ACJZUvcYmlFaKGChzhmtnE/AcojO3_w-JnZ8yjEeHtkNaX66BU\"",
   "icons": {
     "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
     "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
@@ -450,6 +450,51 @@
                   "scopes": [
                     "https://www.googleapis.com/auth/tagmanager.edit.containers",
                     "https://www.googleapis.com/auth/tagmanager.readonly"
+                  ]
+                },
+                "patch": {
+                  "description": "Updates a GTM Environment. This method supports patch semantics.",
+                  "httpMethod": "PATCH",
+                  "id": "tagmanager.accounts.containers.environments.patch",
+                  "parameterOrder": [
+                    "accountId",
+                    "containerId",
+                    "environmentId"
+                  ],
+                  "parameters": {
+                    "accountId": {
+                      "description": "The GTM Account ID.",
+                      "location": "path",
+                      "required": true,
+                      "type": "string"
+                    },
+                    "containerId": {
+                      "description": "The GTM Container ID.",
+                      "location": "path",
+                      "required": true,
+                      "type": "string"
+                    },
+                    "environmentId": {
+                      "description": "The GTM Environment ID.",
+                      "location": "path",
+                      "required": true,
+                      "type": "string"
+                    },
+                    "fingerprint": {
+                      "description": "When provided, this fingerprint must match the fingerprint of the environment in storage.",
+                      "location": "query",
+                      "type": "string"
+                    }
+                  },
+                  "path": "accounts/{accountId}/containers/{containerId}/environments/{environmentId}",
+                  "request": {
+                    "$ref": "Environment"
+                  },
+                  "response": {
+                    "$ref": "Environment"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/tagmanager.edit.containers"
                   ]
                 },
                 "update": {
@@ -1849,7 +1894,7 @@
       }
     }
   },
-  "revision": "20190516",
+  "revision": "20171108",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "Account": {
@@ -2069,10 +2114,8 @@
               "language",
               "newHistoryFragment",
               "newHistoryState",
-              "newHistoryUrl",
               "oldHistoryFragment",
               "oldHistoryState",
-              "oldHistoryUrl",
               "osVersion",
               "pageHostname",
               "pagePath",
@@ -2095,8 +2138,6 @@
               "videoVisible"
             ],
             "enumDescriptions": [
-              "",
-              "",
               "",
               "",
               "",
@@ -2841,17 +2882,15 @@
               "tagmanager.accounts.containers.variables.update"
             ]
           },
-          "description": "The parameter type. Valid values are: \n- boolean: The value represents a boolean, represented as 'true' or 'false' \n- integer: The value represents a 64-bit signed integer value, in base 10 \n- list: A list of parameters should be specified \n- map: A map of parameters should be specified \n- template: The value represents any text; this can include variable references (even variable references that might return non-string types) \n- trigger_reference: The value represents a trigger, represented as the trigger id",
+          "description": "The parameter type. Valid values are: \n- boolean: The value represents a boolean, represented as 'true' or 'false' \n- integer: The value represents a 64-bit signed integer value, in base 10 \n- list: A list of parameters should be specified \n- map: A map of parameters should be specified \n- template: The value represents any text; this can include variable references (even variable references that might return non-string types)",
           "enum": [
             "boolean",
             "integer",
             "list",
             "map",
-            "template",
-            "triggerReference"
+            "template"
           ],
           "enumDescriptions": [
-            "",
             "",
             "",
             "",
@@ -3209,12 +3248,10 @@
             "pageview",
             "scrollDepth",
             "timer",
-            "triggerGroup",
             "windowLoaded",
             "youTubeVideo"
           ],
           "enumDescriptions": [
-            "",
             "",
             "",
             "",

@@ -17,10 +17,11 @@ limitations under the License.
 package system
 
 import (
-	"encoding/json"
-	"os/exec"
+	"context"
 	"regexp"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 )
 
@@ -31,15 +32,6 @@ type DockerValidator struct {
 	Reporter Reporter
 }
 
-// dockerInfo holds a local subset of the Info struct from
-// github.com/docker/docker/api/types.
-// The JSON output from 'docker info' should map to this struct.
-type dockerInfo struct {
-	Driver        string `json:"Driver"`
-	ServerVersion string `json:"ServerVersion"`
-}
-
-// Name is part of the system.Validator interface.
 func (d *DockerValidator) Name() string {
 	return "docker"
 }
@@ -49,7 +41,6 @@ const (
 	latestValidatedDockerVersion = "18.09"
 )
 
-// Validate is part of the system.Validator interface.
 // TODO(random-liu): Add more validating items.
 func (d *DockerValidator) Validate(spec SysSpec) (error, error) {
 	if spec.RuntimeSpec.DockerSpec == nil {
@@ -58,28 +49,18 @@ func (d *DockerValidator) Validate(spec SysSpec) (error, error) {
 		return nil, nil
 	}
 
-	// Run 'docker info' with a JSON output and unmarshal it into a dockerInfo object
-	info := dockerInfo{}
-	out, err := exec.Command("docker", "info", "--format", "{{json .}}").CombinedOutput()
+	c, err := client.NewClient(dockerEndpoint, "", nil, nil)
 	if err != nil {
-		return nil, errors.Errorf(`failed executing "docker info --format '{{json .}}'"\noutput: %s\nerror: %v`, string(out), err)
+		return nil, errors.Wrap(err, "failed to create docker client")
 	}
-	if err := d.unmarshalDockerInfo(out, &info); err != nil {
-		return nil, err
+	info, err := c.Info(context.Background())
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get docker info")
 	}
-
-	// validate the resulted docker info object against the spec
 	return d.validateDockerInfo(spec.RuntimeSpec.DockerSpec, info)
 }
 
-func (d *DockerValidator) unmarshalDockerInfo(b []byte, info *dockerInfo) error {
-	if err := json.Unmarshal(b, &info); err != nil {
-		return errors.Wrap(err, "could not unmarshal the JSON output of 'docker info'")
-	}
-	return nil
-}
-
-func (d *DockerValidator) validateDockerInfo(spec *DockerSpec, info dockerInfo) (error, error) {
+func (d *DockerValidator) validateDockerInfo(spec *DockerSpec, info types.Info) (error, error) {
 	// Validate docker version.
 	matched := false
 	for _, v := range spec.Version {

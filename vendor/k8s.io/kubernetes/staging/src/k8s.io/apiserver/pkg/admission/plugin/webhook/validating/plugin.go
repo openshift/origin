@@ -17,7 +17,6 @@ limitations under the License.
 package validating
 
 import (
-	"context"
 	"io"
 
 	"k8s.io/apiserver/pkg/admission"
@@ -52,16 +51,14 @@ var _ admission.ValidationInterface = &Plugin{}
 // NewValidatingAdmissionWebhook returns a generic admission webhook plugin.
 func NewValidatingAdmissionWebhook(configFile io.Reader) (*Plugin, error) {
 	handler := admission.NewHandler(admission.Connect, admission.Create, admission.Delete, admission.Update)
-	p := &Plugin{}
-	var err error
-	p.Webhook, err = generic.NewWebhook(handler, configFile, configuration.NewValidatingWebhookConfigurationManager, newValidatingDispatcher(p))
+	webhook, err := generic.NewWebhook(handler, configFile, configuration.NewValidatingWebhookConfigurationManager, newValidatingDispatcher)
 	if err != nil {
 		return nil, err
 	}
-	return p, nil
+	return &Plugin{webhook}, nil
 }
 
 // Validate makes an admission decision based on the request attributes.
-func (a *Plugin) Validate(ctx context.Context, attr admission.Attributes, o admission.ObjectInterfaces) error {
-	return a.Webhook.Dispatch(ctx, attr, o)
+func (a *Plugin) Validate(attr admission.Attributes, o admission.ObjectInterfaces) error {
+	return a.Webhook.Dispatch(attr, o)
 }

@@ -15,7 +15,6 @@ import (
 // Euclidean coordinates. TorgersonScaling places the coordinates in dst and
 // returns it and the number of positive Eigenvalues if successful.
 // If the scaling is not successful, dst is returned, but will not be a valid scaling.
-// When the scaling is successful, mds will be resized to k columns wide.
 // Eigenvalues will be copied into eigdst and returned as eig if it is provided.
 //
 // If dst is nil, a new mat.Dense is allocated. If dst is not a zero matrix,
@@ -59,11 +58,10 @@ func TorgersonScaling(dst *mat.Dense, eigdst []float64, dis mat.Symmetric) (k in
 	if !ok {
 		return 0, dst, eigdst
 	}
-	ed.VectorsTo(dst)
+	dst.EigenvectorsSym(&ed)
 	vals := ed.Values(nil)
 	reverse(vals, dst.RawMatrix())
 	copy(eigdst, vals)
-
 	for i, v := range vals {
 		if v < 0 {
 			vals[i] = 0
@@ -73,10 +71,9 @@ func TorgersonScaling(dst *mat.Dense, eigdst []float64, dis mat.Symmetric) (k in
 		vals[i] = math.Sqrt(v)
 	}
 
-	var tmp mat.Dense
-	tmp.Mul(dst, mat.NewDiagonalRect(n, k, vals[:k]))
-	dst = dst.Slice(0, n, 0, k).(*mat.Dense)
-	dst.Copy(&tmp)
+	// TODO(kortschak): Make use of the knowledge
+	// of k to avoid doing unnecessary work.
+	dst.Mul(dst, mat.NewDiagonal(len(vals), vals))
 
 	return k, dst, eigdst
 }
@@ -84,7 +81,9 @@ func TorgersonScaling(dst *mat.Dense, eigdst []float64, dis mat.Symmetric) (k in
 func reverse(values []float64, vectors blas64.General) {
 	for i, j := 0, len(values)-1; i < j; i, j = i+1, j-1 {
 		values[i], values[j] = values[j], values[i]
-		blas64.Swap(blas64.Vector{N: vectors.Rows, Inc: vectors.Stride, Data: vectors.Data[i:]},
-			blas64.Vector{N: vectors.Rows, Inc: vectors.Stride, Data: vectors.Data[j:]})
+		blas64.Swap(vectors.Rows,
+			blas64.Vector{Inc: vectors.Stride, Data: vectors.Data[i:]},
+			blas64.Vector{Inc: vectors.Stride, Data: vectors.Data[j:]},
+		)
 	}
 }

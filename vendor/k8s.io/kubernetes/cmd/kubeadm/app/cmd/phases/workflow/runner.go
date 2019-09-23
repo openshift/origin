@@ -18,13 +18,12 @@ package workflow
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
-	"k8s.io/kubernetes/cmd/kubeadm/app/util"
 )
 
 // phaseSeparator defines the separator to be used when concatenating nested
@@ -309,7 +308,7 @@ func (e *Runner) BindToCommand(cmd *cobra.Command) {
 	// adds the phases subcommand
 	phaseCommand := &cobra.Command{
 		Use:   "phase",
-		Short: fmt.Sprintf("Use this command to invoke single phase of the %s workflow", cmd.Name()),
+		Short: fmt.Sprintf("use this command to invoke single phase of the %s workflow", cmd.Name()),
 	}
 
 	cmd.AddCommand(phaseCommand)
@@ -347,7 +346,10 @@ func (e *Runner) BindToCommand(cmd *cobra.Command) {
 				// overrides the command triggering the Runner using the phaseCmd
 				e.runCmd = cmd
 				e.Options.FilterPhases = []string{phaseSelector}
-				util.CheckErr(e.Run(args))
+				if err := e.Run(args); err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				}
 			},
 		}
 
@@ -370,12 +372,6 @@ func (e *Runner) BindToCommand(cmd *cobra.Command) {
 		// if this phase has children (not a leaf) it doesn't accept any args
 		if len(p.Phases) > 0 {
 			phaseCmd.Args = cobra.NoArgs
-		} else {
-			if p.ArgsValidator == nil {
-				phaseCmd.Args = cmd.Args
-			} else {
-				phaseCmd.Args = p.ArgsValidator
-			}
 		}
 
 		// adds the command to parent

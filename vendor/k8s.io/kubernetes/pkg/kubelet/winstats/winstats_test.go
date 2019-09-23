@@ -56,7 +56,6 @@ func (f fakeWinNodeStatsClient) getMachineInfo() (*cadvisorapi.MachineInfo, erro
 		NumCores:       4,
 		MemoryCapacity: 1.6e+10,
 		MachineID:      "somehostname",
-		SystemUUID:     "E6C8AC43-582B-3575-4E1F-6DA170888906",
 	}, nil
 }
 
@@ -119,8 +118,7 @@ func TestWinMachineInfo(t *testing.T) {
 	assert.Equal(t, machineInfo, &cadvisorapi.MachineInfo{
 		NumCores:       4,
 		MemoryCapacity: 1.6e+10,
-		MachineID:      "somehostname",
-		SystemUUID:     "E6C8AC43-582B-3575-4E1F-6DA170888906"})
+		MachineID:      "somehostname"})
 }
 
 func TestWinVersionInfo(t *testing.T) {

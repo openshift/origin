@@ -61,5 +61,6 @@ func (d Dimless) Format(fs fmt.State, c rune) {
 		}
 	default:
 		fmt.Fprintf(fs, "%%!%c(%T=%g)", c, d, float64(d))
+		return
 	}
 }

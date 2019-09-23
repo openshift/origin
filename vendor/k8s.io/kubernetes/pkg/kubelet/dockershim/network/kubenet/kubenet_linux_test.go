@@ -18,15 +18,12 @@ package kubenet
 
 import (
 	"fmt"
-	"strings"
-	"testing"
 
-	"github.com/containernetworking/cni/libcni"
-	"github.com/containernetworking/cni/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	utilsets "k8s.io/apimachinery/pkg/util/sets"
+	"testing"
+
 	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network"
@@ -43,7 +40,7 @@ import (
 // test it fulfills the NetworkPlugin interface
 var _ network.NetworkPlugin = &kubenetNetworkPlugin{}
 
-func newFakeKubenetPlugin(initMap map[kubecontainer.ContainerID]utilsets.String, execer exec.Interface, host network.Host) *kubenetNetworkPlugin {
+func newFakeKubenetPlugin(initMap map[kubecontainer.ContainerID]string, execer exec.Interface, host network.Host) *kubenetNetworkPlugin {
 	return &kubenetNetworkPlugin{
 		podIPs: initMap,
 		execer: execer,
@@ -53,38 +50,31 @@ func newFakeKubenetPlugin(initMap map[kubecontainer.ContainerID]utilsets.String,
 }
 
 func TestGetPodNetworkStatus(t *testing.T) {
-	podIPMap := make(map[kubecontainer.ContainerID]utilsets.String)
-	podIPMap[kubecontainer.ContainerID{ID: "1"}] = utilsets.NewString("10.245.0.2")
-	podIPMap[kubecontainer.ContainerID{ID: "2"}] = utilsets.NewString("10.245.0.3")
-	podIPMap[kubecontainer.ContainerID{ID: "3"}] = utilsets.NewString("10.245.0.4", "2000::")
+	podIPMap := make(map[kubecontainer.ContainerID]string)
+	podIPMap[kubecontainer.ContainerID{ID: "1"}] = "10.245.0.2"
+	podIPMap[kubecontainer.ContainerID{ID: "2"}] = "10.245.0.3"
 
 	testCases := []struct {
 		id          string
 		expectError bool
-		expectIP    utilsets.String
+		expectIP    string
 	}{
 		//in podCIDR map
 		{
-			id:          "1",
-			expectError: false,
-			expectIP:    utilsets.NewString("10.245.0.2"),
+			"1",
+			false,
+			"10.245.0.2",
 		},
 		{
-			id:          "2",
-			expectError: false,
-			expectIP:    utilsets.NewString("10.245.0.3"),
+			"2",
+			false,
+			"10.245.0.3",
 		},
+		//not in podCIDR map
 		{
-			id:          "3",
-			expectError: false,
-			expectIP:    utilsets.NewString("10.245.0.4", "2000::"),
-		},
-
-		//not in podIP map
-		{
-			id:          "does-not-exist-map",
-			expectError: true,
-			expectIP:    nil,
+			"3",
+			true,
+			"",
 		},
 		//TODO: add test cases for retrieving ip inside container network namespace
 	}
@@ -95,12 +85,11 @@ func TestGetPodNetworkStatus(t *testing.T) {
 		fCmd := fakeexec.FakeCmd{
 			CombinedOutputScript: []fakeexec.FakeCombinedOutputAction{
 				func() ([]byte, error) {
-					ips, ok := podIPMap[kubecontainer.ContainerID{ID: t.id}]
+					ip, ok := podIPMap[kubecontainer.ContainerID{ID: t.id}]
 					if !ok {
 						return nil, fmt.Errorf("Pod IP %q not found", t.id)
 					}
-					ipsList := ips.UnsortedList()
-					return []byte(ipsList[0]), nil
+					return []byte(ip), nil
 				},
 			},
 		}
@@ -130,20 +119,9 @@ func TestGetPodNetworkStatus(t *testing.T) {
 				t.Errorf("Test case %d expects error but got error: %v", i, err)
 			}
 		}
-		seen := make(map[string]bool)
-		allExpected := tc.expectIP.UnsortedList()
-		for _, expectedIP := range allExpected {
-			for _, outIP := range out.IPs {
-				if expectedIP == outIP.String() {
-					seen[expectedIP] = true
-					break
-				}
-			}
-		}
-		if len(tc.expectIP) != len(seen) {
+		if tc.expectIP != out.IP.String() {
 			t.Errorf("Test case %d expects ip %s but got %s", i, tc.expectIP, out.IP.String())
 		}
-
 	}
 }
 
@@ -159,27 +137,20 @@ func TestTeardownCallsShaper(t *testing.T) {
 	fhost := nettest.NewFakeHost(nil)
 	fshaper := &bandwidth.FakeShaper{}
 	mockcni := &mock_cni.MockCNI{}
-	ips := make(map[kubecontainer.ContainerID]utilsets.String)
-	kubenet := newFakeKubenetPlugin(ips, fexec, fhost)
-	kubenet.loConfig = &libcni.NetworkConfig{
-		Network: &types.NetConf{
-			Name: "loopback-fake",
-			Type: "loopback",
-		},
-	}
+	kubenet := newFakeKubenetPlugin(map[kubecontainer.ContainerID]string{}, fexec, fhost)
 	kubenet.cniConfig = mockcni
 	kubenet.iptables = ipttest.NewFake()
 	kubenet.bandwidthShaper = fshaper
 	kubenet.hostportSyncer = hostporttest.NewFakeHostportSyncer()
 
-	mockcni.On("DelNetwork", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("*libcni.NetworkConfig"), mock.AnythingOfType("*libcni.RuntimeConf")).Return(nil)
+	mockcni.On("DelNetwork", mock.AnythingOfType("*libcni.NetworkConfig"), mock.AnythingOfType("*libcni.RuntimeConf")).Return(nil)
 
 	details := make(map[string]interface{})
 	details[network.NET_PLUGIN_EVENT_POD_CIDR_CHANGE_DETAIL_CIDR] = "10.0.0.1/24"
 	kubenet.Event(network.NET_PLUGIN_EVENT_POD_CIDR_CHANGE, details)
 
 	existingContainerID := kubecontainer.BuildContainerID("docker", "123")
-	kubenet.podIPs[existingContainerID] = utilsets.NewString("10.0.0.1")
+	kubenet.podIPs[existingContainerID] = "10.0.0.1"
 
 	if err := kubenet.TearDownPod("namespace", "name", existingContainerID); err != nil {
 		t.Fatalf("Unexpected error in TearDownPod: %v", err)
@@ -214,8 +185,7 @@ func TestInit_MTU(t *testing.T) {
 	}
 
 	fhost := nettest.NewFakeHost(nil)
-	ips := make(map[kubecontainer.ContainerID]utilsets.String)
-	kubenet := newFakeKubenetPlugin(ips, fexec, fhost)
+	kubenet := newFakeKubenetPlugin(map[kubecontainer.ContainerID]string{}, fexec, fhost)
 	kubenet.iptables = ipttest.NewFake()
 
 	sysctl := sysctltest.NewFake()
@@ -233,23 +203,22 @@ func TestInit_MTU(t *testing.T) {
 // This is how kubenet is invoked from the cri.
 func TestTearDownWithoutRuntime(t *testing.T) {
 	testCases := []struct {
-		podCIDR         []string
+		podCIDR         string
 		ip              string
-		expectedGateway []string
+		expectedGateway string
 	}{
 		{
-			podCIDR:         []string{"10.0.0.1/24"},
+			podCIDR:         "10.0.0.1/24",
 			ip:              "10.0.0.1",
-			expectedGateway: []string{"10.0.0.1"},
+			expectedGateway: "10.0.0.1",
 		},
 		{
-			podCIDR:         []string{"2001:beef::1/48"},
+			podCIDR:         "2001:beef::1/48",
 			ip:              "2001:beef::1",
-			expectedGateway: []string{"2001:beef::1"},
+			expectedGateway: "2001:beef::1",
 		},
 	}
 	for _, tc := range testCases {
-
 		fhost := nettest.NewFakeHost(nil)
 		fhost.Legacy = false
 		mockcni := &mock_cni.MockCNI{}
@@ -261,47 +230,24 @@ func TestTearDownWithoutRuntime(t *testing.T) {
 			},
 		}
 
-		ips := make(map[kubecontainer.ContainerID]utilsets.String)
-		kubenet := newFakeKubenetPlugin(ips, fexec, fhost)
-		kubenet.loConfig = &libcni.NetworkConfig{
-			Network: &types.NetConf{
-				Name: "loopback-fake",
-				Type: "loopback",
-			},
-		}
+		kubenet := newFakeKubenetPlugin(map[kubecontainer.ContainerID]string{}, fexec, fhost)
 		kubenet.cniConfig = mockcni
 		kubenet.iptables = ipttest.NewFake()
 
 		details := make(map[string]interface{})
-		details[network.NET_PLUGIN_EVENT_POD_CIDR_CHANGE_DETAIL_CIDR] = strings.Join(tc.podCIDR, ",")
+		details[network.NET_PLUGIN_EVENT_POD_CIDR_CHANGE_DETAIL_CIDR] = tc.podCIDR
 		kubenet.Event(network.NET_PLUGIN_EVENT_POD_CIDR_CHANGE, details)
 
-		if len(kubenet.podGateways) != len(tc.expectedGateway) {
-			t.Errorf("generated gateway: %q, expecting: %q are not of the same length", kubenet.podGateways, tc.expectedGateway)
-			continue
+		if kubenet.gateway.String() != tc.expectedGateway {
+			t.Errorf("generated gateway: %q, expecting: %q", kubenet.gateway.String(), tc.expectedGateway)
 		}
-
-		for idx := range tc.expectedGateway {
-			if kubenet.podGateways[idx].String() != tc.expectedGateway[idx] {
-				t.Errorf("generated gateway: %q, expecting: %q", kubenet.podGateways[idx].String(), tc.expectedGateway[idx])
-
-			}
+		if kubenet.podCidr != tc.podCIDR {
+			t.Errorf("generated podCidr: %q, expecting: %q", kubenet.podCidr, tc.podCIDR)
 		}
-
-		if len(kubenet.podCIDRs) != len(tc.podCIDR) {
-			t.Errorf("generated podCidr: %q, expecting: %q are not of the same length", kubenet.podCIDRs, tc.podCIDR)
-			continue
-		}
-		for idx := range tc.podCIDR {
-			if kubenet.podCIDRs[idx].String() != tc.podCIDR[idx] {
-				t.Errorf("generated podCidr: %q, expecting: %q", kubenet.podCIDRs[idx].String(), tc.podCIDR[idx])
-			}
-		}
-
 		existingContainerID := kubecontainer.BuildContainerID("docker", "123")
-		kubenet.podIPs[existingContainerID] = utilsets.NewString(tc.ip)
+		kubenet.podIPs[existingContainerID] = tc.ip
 
-		mockcni.On("DelNetwork", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("*libcni.NetworkConfig"), mock.AnythingOfType("*libcni.RuntimeConf")).Return(nil)
+		mockcni.On("DelNetwork", mock.AnythingOfType("*libcni.NetworkConfig"), mock.AnythingOfType("*libcni.RuntimeConf")).Return(nil)
 
 		if err := kubenet.TearDownPod("namespace", "name", existingContainerID); err != nil {
 			t.Fatalf("Unexpected error in TearDownPod: %v", err)

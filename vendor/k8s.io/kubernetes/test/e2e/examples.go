@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	rbacv1 "k8s.io/api/rbac/v1"
+	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
@@ -30,12 +30,10 @@ import (
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	commonutils "k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/auth"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -47,24 +45,23 @@ var _ = framework.KubeDescribe("[Feature:Example]", func() {
 
 	var c clientset.Interface
 	var ns string
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		c = f.ClientSet
 		ns = f.Namespace.Name
 
 		// this test wants powerful permissions.  Since the namespace names are unique, we can leave this
 		// lying around so we don't have to race any caches
-		err := auth.BindClusterRoleInNamespace(c.RbacV1(), "edit", f.Namespace.Name,
-			rbacv1.Subject{Kind: rbacv1.ServiceAccountKind, Namespace: f.Namespace.Name, Name: "default"})
-		framework.ExpectNoError(err)
+		framework.BindClusterRoleInNamespace(c.RbacV1beta1(), "edit", f.Namespace.Name,
+			rbacv1beta1.Subject{Kind: rbacv1beta1.ServiceAccountKind, Namespace: f.Namespace.Name, Name: "default"})
 
-		err = auth.WaitForAuthorizationUpdate(c.AuthorizationV1(),
+		err := framework.WaitForAuthorizationUpdate(c.AuthorizationV1beta1(),
 			serviceaccount.MakeUsername(f.Namespace.Name, "default"),
 			f.Namespace.Name, "create", schema.GroupResource{Resource: "pods"}, true)
 		framework.ExpectNoError(err)
 	})
 
 	framework.KubeDescribe("Liveness", func() {
-		ginkgo.It("liveness pods should be automatically restarted", func() {
+		It("liveness pods should be automatically restarted", func() {
 			test := "test/fixtures/doc-yaml/user-guide/liveness"
 			execYaml := readFile(test, "exec-liveness.yaml.in")
 			httpYaml := readFile(test, "http-liveness.yaml.in")
@@ -77,25 +74,25 @@ var _ = framework.KubeDescribe("[Feature:Example]", func() {
 			var wg sync.WaitGroup
 			passed := true
 			checkRestart := func(podName string, timeout time.Duration) {
-				err := e2epod.WaitForPodNameRunningInNamespace(c, podName, ns)
-				framework.ExpectNoError(err)
+				err := framework.WaitForPodNameRunningInNamespace(c, podName, ns)
+				Expect(err).NotTo(HaveOccurred())
 				for t := time.Now(); time.Since(t) < timeout; time.Sleep(framework.Poll) {
 					pod, err := c.CoreV1().Pods(ns).Get(podName, metav1.GetOptions{})
 					framework.ExpectNoError(err, fmt.Sprintf("getting pod %s", podName))
 					stat := podutil.GetExistingContainerStatus(pod.Status.ContainerStatuses, podName)
-					e2elog.Logf("Pod: %s, restart count:%d", stat.Name, stat.RestartCount)
+					framework.Logf("Pod: %s, restart count:%d", stat.Name, stat.RestartCount)
 					if stat.RestartCount > 0 {
-						e2elog.Logf("Saw %v restart, succeeded...", podName)
+						framework.Logf("Saw %v restart, succeeded...", podName)
 						wg.Done()
 						return
 					}
 				}
-				e2elog.Logf("Failed waiting for %v restart! ", podName)
+				framework.Logf("Failed waiting for %v restart! ", podName)
 				passed = false
 				wg.Done()
 			}
 
-			ginkgo.By("Check restarts")
+			By("Check restarts")
 
 			// Start the "actual test", and wait for both pods to complete.
 			// If 2 fail: Something is broken with the test (or maybe even with liveness).
@@ -106,13 +103,13 @@ var _ = framework.KubeDescribe("[Feature:Example]", func() {
 			}
 			wg.Wait()
 			if !passed {
-				e2elog.Failf("At least one liveness example failed.  See the logs above.")
+				framework.Failf("At least one liveness example failed.  See the logs above.")
 			}
 		})
 	})
 
 	framework.KubeDescribe("Secret", func() {
-		ginkgo.It("should create a pod that reads a secret", func() {
+		It("should create a pod that reads a secret", func() {
 			test := "test/fixtures/doc-yaml/user-guide/secrets"
 			secretYaml := readFile(test, "secret.yaml")
 			podYaml := readFile(test, "secret-pod.yaml.in")
@@ -120,40 +117,40 @@ var _ = framework.KubeDescribe("[Feature:Example]", func() {
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 			podName := "secret-test-pod"
 
-			ginkgo.By("creating secret and pod")
+			By("creating secret and pod")
 			framework.RunKubectlOrDieInput(secretYaml, "create", "-f", "-", nsFlag)
 			framework.RunKubectlOrDieInput(podYaml, "create", "-f", "-", nsFlag)
-			err := e2epod.WaitForPodNoLongerRunningInNamespace(c, podName, ns)
-			framework.ExpectNoError(err)
+			err := framework.WaitForPodNoLongerRunningInNamespace(c, podName, ns)
+			Expect(err).NotTo(HaveOccurred())
 
-			ginkgo.By("checking if secret was read correctly")
+			By("checking if secret was read correctly")
 			_, err = framework.LookForStringInLog(ns, "secret-test-pod", "test-container", "value-1", serverStartTimeout)
-			framework.ExpectNoError(err)
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
 	framework.KubeDescribe("Downward API", func() {
-		ginkgo.It("should create a pod that prints his name and namespace", func() {
+		It("should create a pod that prints his name and namespace", func() {
 			test := "test/fixtures/doc-yaml/user-guide/downward-api"
 			podYaml := readFile(test, "dapi-pod.yaml.in")
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 			podName := "dapi-test-pod"
 
-			ginkgo.By("creating the pod")
+			By("creating the pod")
 			framework.RunKubectlOrDieInput(podYaml, "create", "-f", "-", nsFlag)
-			err := e2epod.WaitForPodNoLongerRunningInNamespace(c, podName, ns)
-			framework.ExpectNoError(err)
+			err := framework.WaitForPodNoLongerRunningInNamespace(c, podName, ns)
+			Expect(err).NotTo(HaveOccurred())
 
-			ginkgo.By("checking if name and namespace were passed correctly")
+			By("checking if name and namespace were passed correctly")
 			_, err = framework.LookForStringInLog(ns, podName, "test-container", fmt.Sprintf("MY_POD_NAMESPACE=%v", ns), serverStartTimeout)
-			framework.ExpectNoError(err)
+			Expect(err).NotTo(HaveOccurred())
 			_, err = framework.LookForStringInLog(ns, podName, "test-container", fmt.Sprintf("MY_POD_NAME=%v", podName), serverStartTimeout)
-			framework.ExpectNoError(err)
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })
 
 func readFile(test, file string) string {
 	from := filepath.Join(test, file)
-	return commonutils.SubstituteImageName(string(testfiles.ReadOrDie(from)))
+	return commonutils.SubstituteImageName(string(testfiles.ReadOrDie(from, Fail)))
 }

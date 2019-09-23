@@ -135,8 +135,6 @@ func autoConvert_v1alpha1_LeaderElectionConfiguration_To_config_LeaderElectionCo
 	out.RenewDeadline = in.RenewDeadline
 	out.RetryPeriod = in.RetryPeriod
 	out.ResourceLock = in.ResourceLock
-	out.ResourceName = in.ResourceName
-	out.ResourceNamespace = in.ResourceNamespace
 	return nil
 }
 
@@ -148,7 +146,5 @@ func autoConvert_config_LeaderElectionConfiguration_To_v1alpha1_LeaderElectionCo
 	out.RenewDeadline = in.RenewDeadline
 	out.RetryPeriod = in.RetryPeriod
 	out.ResourceLock = in.ResourceLock
-	out.ResourceName = in.ResourceName
-	out.ResourceNamespace = in.ResourceNamespace
 	return nil
 }

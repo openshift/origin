@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewListManagementImageListsClient(endpoint string) ListManagementImageLists
 // contentType - the content type.
 // body - schema of the body.
 func (client ListManagementImageListsClient) Create(ctx context.Context, contentType string, body Body) (result ImageList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListManagementImageListsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePreparer(ctx, contentType, body)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ListManagementImageListsClient", "Create", nil, "Failure preparing request")
@@ -98,8 +87,8 @@ func (client ListManagementImageListsClient) CreatePreparer(ctx context.Context,
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ListManagementImageListsClient) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -119,16 +108,6 @@ func (client ListManagementImageListsClient) CreateResponder(resp *http.Response
 // Parameters:
 // listID - list Id of the image list.
 func (client ListManagementImageListsClient) Delete(ctx context.Context, listID string) (result String, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListManagementImageListsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, listID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ListManagementImageListsClient", "Delete", nil, "Failure preparing request")
@@ -170,8 +149,8 @@ func (client ListManagementImageListsClient) DeletePreparer(ctx context.Context,
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ListManagementImageListsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -189,16 +168,6 @@ func (client ListManagementImageListsClient) DeleteResponder(resp *http.Response
 
 // GetAllImageLists gets all the Image Lists.
 func (client ListManagementImageListsClient) GetAllImageLists(ctx context.Context) (result ListImageList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListManagementImageListsClient.GetAllImageLists")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetAllImageListsPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ListManagementImageListsClient", "GetAllImageLists", nil, "Failure preparing request")
@@ -236,8 +205,8 @@ func (client ListManagementImageListsClient) GetAllImageListsPreparer(ctx contex
 // GetAllImageListsSender sends the GetAllImageLists request. The method will close the
 // http.Response Body if it receives an error.
 func (client ListManagementImageListsClient) GetAllImageListsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetAllImageListsResponder handles the response to the GetAllImageLists request. The method always
@@ -257,16 +226,6 @@ func (client ListManagementImageListsClient) GetAllImageListsResponder(resp *htt
 // Parameters:
 // listID - list Id of the image list.
 func (client ListManagementImageListsClient) GetDetails(ctx context.Context, listID string) (result ImageList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListManagementImageListsClient.GetDetails")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetDetailsPreparer(ctx, listID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ListManagementImageListsClient", "GetDetails", nil, "Failure preparing request")
@@ -308,8 +267,8 @@ func (client ListManagementImageListsClient) GetDetailsPreparer(ctx context.Cont
 // GetDetailsSender sends the GetDetails request. The method will close the
 // http.Response Body if it receives an error.
 func (client ListManagementImageListsClient) GetDetailsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetDetailsResponder handles the response to the GetDetails request. The method always
@@ -329,16 +288,6 @@ func (client ListManagementImageListsClient) GetDetailsResponder(resp *http.Resp
 // Parameters:
 // listID - list Id of the image list.
 func (client ListManagementImageListsClient) RefreshIndexMethod(ctx context.Context, listID string) (result RefreshIndex, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListManagementImageListsClient.RefreshIndexMethod")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.RefreshIndexMethodPreparer(ctx, listID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ListManagementImageListsClient", "RefreshIndexMethod", nil, "Failure preparing request")
@@ -380,8 +329,8 @@ func (client ListManagementImageListsClient) RefreshIndexMethodPreparer(ctx cont
 // RefreshIndexMethodSender sends the RefreshIndexMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client ListManagementImageListsClient) RefreshIndexMethodSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // RefreshIndexMethodResponder handles the response to the RefreshIndexMethod request. The method always
@@ -403,16 +352,6 @@ func (client ListManagementImageListsClient) RefreshIndexMethodResponder(resp *h
 // contentType - the content type.
 // body - schema of the body.
 func (client ListManagementImageListsClient) Update(ctx context.Context, listID string, contentType string, body Body) (result ImageList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListManagementImageListsClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, listID, contentType, body)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.ListManagementImageListsClient", "Update", nil, "Failure preparing request")
@@ -457,8 +396,8 @@ func (client ListManagementImageListsClient) UpdatePreparer(ctx context.Context,
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ListManagementImageListsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

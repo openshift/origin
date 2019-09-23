@@ -10,7 +10,6 @@ import (
 	"go/build"
 	"go/token"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -203,7 +202,7 @@ func guessImportPath(filename string, buildContext *build.Context) (srcdir, impo
 		if d >= 0 && d < minD {
 			minD = d
 			srcdir = gopathDir
-			importPath = path.Join(segmentedAbsFileDir[len(segmentedAbsFileDir)-minD:]...)
+			importPath = strings.Join(segmentedAbsFileDir[len(segmentedAbsFileDir)-minD:], string(os.PathSeparator))
 		}
 	}
 	if srcdir == "" {

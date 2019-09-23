@@ -37,7 +37,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against pod disruption budgets.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &policyapi.PodDisruptionBudget{} },
 		NewListFunc:              func() runtime.Object { return &policyapi.PodDisruptionBudgetList{} },
@@ -47,16 +47,16 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, error) {
 		UpdateStrategy: poddisruptionbudget.Strategy,
 		DeleteStrategy: poddisruptionbudget.Strategy,
 
-		TableConvertor: printerstorage.TableConvertor{TableGenerator: printers.NewTableGenerator().With(printersinternal.AddHandlers)},
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, nil, err
+		panic(err) // TODO: Propagate error up
 	}
 
 	statusStore := *store
 	statusStore.UpdateStrategy = poddisruptionbudget.StatusStrategy
-	return &REST{store}, &StatusREST{store: &statusStore}, nil
+	return &REST{store}, &StatusREST{store: &statusStore}
 }
 
 // ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.

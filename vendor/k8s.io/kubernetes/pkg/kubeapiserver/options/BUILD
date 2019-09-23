@@ -43,7 +43,6 @@ go_library(
         "//plugin/pkg/admission/podtolerationrestriction:go_default_library",
         "//plugin/pkg/admission/priority:go_default_library",
         "//plugin/pkg/admission/resourcequota:go_default_library",
-        "//plugin/pkg/admission/runtimeclass:go_default_library",
         "//plugin/pkg/admission/security/podsecuritypolicy:go_default_library",
         "//plugin/pkg/admission/securitycontext/scdeny:go_default_library",
         "//plugin/pkg/admission/serviceaccount:go_default_library",

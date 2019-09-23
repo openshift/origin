@@ -1,19 +1,12 @@
-dist: xenial
 language: go
 go:
+  - 1.7.x
+  - 1.8.x
   - 1.9.x
   - 1.10.x
-  - 1.11.x
   - tip
 
 matrix:
-  include:
-    - go: 1.11.x
-      env:
-        - RUNC_USE_SYSTEMD=1
-      script:
-        - make BUILDTAGS="${BUILDTAGS}" all
-        - sudo PATH="$PATH" make localintegration RUNC_USE_SYSTEMD=1
   allow_failures:
     - go: tip
 
@@ -29,13 +22,14 @@ env:
     - BUILDTAGS="seccomp apparmor selinux ambient"
 
 before_install:
+  - echo "deb http://archive.ubuntu.com/ubuntu trusty-backports main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
   - sudo apt-get -qq update
-  - sudo apt-get install -y libseccomp-dev
-  - go get -u golang.org/x/lint/golint
+  - sudo apt-get install -y libseccomp-dev/trusty-backports
+  - go get -u github.com/golang/lint/golint
   - go get -u github.com/vbatts/git-validation
   - env | grep TRAVIS_
 
 script:
   - git-validation -run DCO,short-subject -v
   - make BUILDTAGS="${BUILDTAGS}"
-  - make BUILDTAGS="${BUILDTAGS}" clean ci cross
+  - make BUILDTAGS="${BUILDTAGS}" clean ci

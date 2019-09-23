@@ -26,7 +26,7 @@ import (
 
 const (
 	// DefaultBaseURI is the default URI used for the service Alertsmanagement
-	DefaultBaseURI = "https://management.azure.com"
+	DefaultBaseURI = ""
 )
 
 // BaseClient is the base client for Alertsmanagement.

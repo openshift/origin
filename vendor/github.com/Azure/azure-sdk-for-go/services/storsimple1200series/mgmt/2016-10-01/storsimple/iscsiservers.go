@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -41,23 +40,13 @@ func NewIscsiServersClientWithBaseURI(baseURI string, subscriptionID string) Isc
 	return IscsiServersClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// BackupNow backup the iSCSI server now.
+// BackupNow backup the iscsi server now.
 // Parameters:
 // deviceName - the device name.
-// iscsiServerName - the iSCSI server name.
+// iscsiServerName - the iscsi server name.
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client IscsiServersClient) BackupNow(ctx context.Context, deviceName string, iscsiServerName string, resourceGroupName string, managerName string) (result IscsiServersBackupNowFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IscsiServersClient.BackupNow")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -106,9 +95,13 @@ func (client IscsiServersClient) BackupNowPreparer(ctx context.Context, deviceNa
 // BackupNowSender sends the BackupNow request. The method will close the
 // http.Response Body if it receives an error.
 func (client IscsiServersClient) BackupNowSender(req *http.Request) (future IscsiServersBackupNowFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -128,24 +121,14 @@ func (client IscsiServersClient) BackupNowResponder(resp *http.Response) (result
 	return
 }
 
-// CreateOrUpdate creates or updates the iSCSI server.
+// CreateOrUpdate creates or updates the iscsi server.
 // Parameters:
 // deviceName - the device name.
-// iscsiServerName - the iSCSI server name.
-// iscsiServer - the iSCSI server.
+// iscsiServerName - the iscsi server name.
+// iscsiServer - the iscsi server.
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client IscsiServersClient) CreateOrUpdate(ctx context.Context, deviceName string, iscsiServerName string, iscsiServer ISCSIServer, resourceGroupName string, managerName string) (result IscsiServersCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IscsiServersClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: iscsiServer,
 			Constraints: []validation.Constraint{{Target: "iscsiServer.ISCSIServerProperties", Name: validation.Null, Rule: true,
@@ -201,9 +184,13 @@ func (client IscsiServersClient) CreateOrUpdatePreparer(ctx context.Context, dev
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client IscsiServersClient) CreateOrUpdateSender(req *http.Request) (future IscsiServersCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -224,23 +211,13 @@ func (client IscsiServersClient) CreateOrUpdateResponder(resp *http.Response) (r
 	return
 }
 
-// Delete deletes the iSCSI server.
+// Delete deletes the iscsi server.
 // Parameters:
 // deviceName - the device name.
-// iscsiServerName - the iSCSI server name.
+// iscsiServerName - the iscsi server name.
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client IscsiServersClient) Delete(ctx context.Context, deviceName string, iscsiServerName string, resourceGroupName string, managerName string) (result IscsiServersDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IscsiServersClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -289,9 +266,13 @@ func (client IscsiServersClient) DeletePreparer(ctx context.Context, deviceName 
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client IscsiServersClient) DeleteSender(req *http.Request) (future IscsiServersDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -311,23 +292,13 @@ func (client IscsiServersClient) DeleteResponder(resp *http.Response) (result au
 	return
 }
 
-// Get returns the properties of the specified iSCSI server name.
+// Get returns the properties of the specified iscsi server name.
 // Parameters:
 // deviceName - the device name.
-// iscsiServerName - the iSCSI server name.
+// iscsiServerName - the iscsi server name.
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client IscsiServersClient) Get(ctx context.Context, deviceName string, iscsiServerName string, resourceGroupName string, managerName string) (result ISCSIServer, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IscsiServersClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -382,8 +353,8 @@ func (client IscsiServersClient) GetPreparer(ctx context.Context, deviceName str
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client IscsiServersClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -399,22 +370,12 @@ func (client IscsiServersClient) GetResponder(resp *http.Response) (result ISCSI
 	return
 }
 
-// ListByDevice retrieves all the iSCSI in a device.
+// ListByDevice retrieves all the iscsi in a device.
 // Parameters:
 // deviceName - the device name.
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client IscsiServersClient) ListByDevice(ctx context.Context, deviceName string, resourceGroupName string, managerName string) (result ISCSIServerList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IscsiServersClient.ListByDevice")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -468,8 +429,8 @@ func (client IscsiServersClient) ListByDevicePreparer(ctx context.Context, devic
 // ListByDeviceSender sends the ListByDevice request. The method will close the
 // http.Response Body if it receives an error.
 func (client IscsiServersClient) ListByDeviceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByDeviceResponder handles the response to the ListByDevice request. The method always
@@ -485,21 +446,11 @@ func (client IscsiServersClient) ListByDeviceResponder(resp *http.Response) (res
 	return
 }
 
-// ListByManager retrieves all the iSCSI servers in a manager.
+// ListByManager retrieves all the iscsi servers in a manager.
 // Parameters:
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client IscsiServersClient) ListByManager(ctx context.Context, resourceGroupName string, managerName string) (result ISCSIServerList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IscsiServersClient.ListByManager")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -552,8 +503,8 @@ func (client IscsiServersClient) ListByManagerPreparer(ctx context.Context, reso
 // ListByManagerSender sends the ListByManager request. The method will close the
 // http.Response Body if it receives an error.
 func (client IscsiServersClient) ListByManagerSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByManagerResponder handles the response to the ListByManager request. The method always
@@ -569,23 +520,13 @@ func (client IscsiServersClient) ListByManagerResponder(resp *http.Response) (re
 	return
 }
 
-// ListMetricDefinition retrieves metric definitions for all metrics aggregated at iSCSI server.
+// ListMetricDefinition retrieves metric definitions for all metrics aggregated at iscsi server.
 // Parameters:
-// deviceName - the device name.
-// iscsiServerName - the iSCSI server name.
+// deviceName - the devie name.
+// iscsiServerName - the iscsi server name.
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client IscsiServersClient) ListMetricDefinition(ctx context.Context, deviceName string, iscsiServerName string, resourceGroupName string, managerName string) (result MetricDefinitionList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IscsiServersClient.ListMetricDefinition")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -640,8 +581,8 @@ func (client IscsiServersClient) ListMetricDefinitionPreparer(ctx context.Contex
 // ListMetricDefinitionSender sends the ListMetricDefinition request. The method will close the
 // http.Response Body if it receives an error.
 func (client IscsiServersClient) ListMetricDefinitionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListMetricDefinitionResponder handles the response to the ListMetricDefinition request. The method always
@@ -657,24 +598,14 @@ func (client IscsiServersClient) ListMetricDefinitionResponder(resp *http.Respon
 	return
 }
 
-// ListMetrics gets the iSCSI server metrics
+// ListMetrics gets the iscsi server metrics
 // Parameters:
-// deviceName - the device name.
-// iscsiServerName - the iSCSI server name.
+// deviceName - the devie name.
+// iscsiServerName - the iscsi server name.
 // resourceGroupName - the resource group name
 // managerName - the manager name
 // filter - oData Filter options
 func (client IscsiServersClient) ListMetrics(ctx context.Context, deviceName string, iscsiServerName string, resourceGroupName string, managerName string, filter string) (result MetricList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IscsiServersClient.ListMetrics")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -732,8 +663,8 @@ func (client IscsiServersClient) ListMetricsPreparer(ctx context.Context, device
 // ListMetricsSender sends the ListMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client IscsiServersClient) ListMetricsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListMetricsResponder handles the response to the ListMetrics request. The method always

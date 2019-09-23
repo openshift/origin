@@ -21,55 +21,41 @@ import (
 //
 // iwork is a temporary data slice of length at least n and Dpocon will panic otherwise.
 func (impl Implementation) Dpocon(uplo blas.Uplo, n int, a []float64, lda int, anorm float64, work []float64, iwork []int) float64 {
-	switch {
-	case uplo != blas.Upper && uplo != blas.Lower:
+	checkMatrix(n, n, a, lda)
+	if uplo != blas.Upper && uplo != blas.Lower {
 		panic(badUplo)
-	case n < 0:
-		panic(nLT0)
-	case lda < max(1, n):
-		panic(badLdA)
-	case anorm < 0:
-		panic(negANorm)
 	}
-
-	// Quick return if possible.
+	if len(work) < 3*n {
+		panic(badWork)
+	}
+	if len(iwork) < n {
+		panic(badWork)
+	}
+	var rcond float64
 	if n == 0 {
 		return 1
 	}
-
-	switch {
-	case len(a) < (n-1)*lda+n:
-		panic(shortA)
-	case len(work) < 3*n:
-		panic(shortWork)
-	case len(iwork) < n:
-		panic(shortIWork)
-	}
-
 	if anorm == 0 {
-		return 0
+		return rcond
 	}
 
 	bi := blas64.Implementation()
-
-	var (
-		smlnum = dlamchS
-		rcond  float64
-		sl, su float64
-		normin bool
-		ainvnm float64
-		kase   int
-		isave  [3]int
-	)
+	var ainvnm float64
+	smlnum := dlamchS
+	upper := uplo == blas.Upper
+	var kase int
+	var normin bool
+	isave := new([3]int)
+	var sl, su float64
 	for {
-		ainvnm, kase = impl.Dlacn2(n, work[n:], work, iwork, ainvnm, kase, &isave)
+		ainvnm, kase = impl.Dlacn2(n, work[n:], work, iwork, ainvnm, kase, isave)
 		if kase == 0 {
 			if ainvnm != 0 {
 				rcond = (1 / ainvnm) / anorm
 			}
 			return rcond
 		}
-		if uplo == blas.Upper {
+		if upper {
 			sl = impl.Dlatrs(blas.Upper, blas.Trans, blas.NonUnit, normin, n, a, lda, work, work[2*n:])
 			normin = true
 			su = impl.Dlatrs(blas.Upper, blas.NoTrans, blas.NonUnit, normin, n, a, lda, work, work[2*n:])

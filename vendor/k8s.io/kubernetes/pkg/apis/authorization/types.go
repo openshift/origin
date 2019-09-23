@@ -20,6 +20,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:noVerbs
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // SubjectAccessReview checks whether or not a user or group can perform an action.  Not filling in a
@@ -35,6 +38,9 @@ type SubjectAccessReview struct {
 	Status SubjectAccessReviewStatus
 }
 
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:noVerbs
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // SelfSubjectAccessReview checks whether or the current user can perform an action.  Not filling in a
@@ -51,6 +57,8 @@ type SelfSubjectAccessReview struct {
 	Status SubjectAccessReviewStatus
 }
 
+// +genclient
+// +genclient:noVerbs
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // LocalSubjectAccessReview checks whether or not a user or group can perform an action in a given namespace.
@@ -130,7 +138,7 @@ type SelfSubjectAccessReviewSpec struct {
 	NonResourceAttributes *NonResourceAttributes
 }
 
-// SubjectAccessReviewStatus represents the current state of a SubjectAccessReview.
+// SubjectAccessReviewStatus
 type SubjectAccessReviewStatus struct {
 	// Allowed is required. True if the action would be allowed, false otherwise.
 	Allowed bool
@@ -147,6 +155,9 @@ type SubjectAccessReviewStatus struct {
 	EvaluationError string
 }
 
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:noVerbs
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // SelfSubjectRulesReview enumerates the set of actions the current user can perform within a namespace.
@@ -166,7 +177,6 @@ type SelfSubjectRulesReview struct {
 	Status SubjectRulesReviewStatus
 }
 
-// SelfSubjectRulesReviewSpec defines the specification for SelfSubjectRulesReview.
 type SelfSubjectRulesReviewSpec struct {
 	// Namespace to evaluate rules for. Required.
 	Namespace string

@@ -19,31 +19,30 @@ package node
 import (
 	"k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = SIGDescribe("AppArmor", func() {
 	f := framework.NewDefaultFramework("apparmor")
 
-	ginkgo.Context("load AppArmor profiles", func() {
-		ginkgo.BeforeEach(func() {
+	Context("load AppArmor profiles", func() {
+		BeforeEach(func() {
 			common.SkipIfAppArmorNotSupported()
 			common.LoadAppArmorProfiles(f)
 		})
-		ginkgo.AfterEach(func() {
-			if !ginkgo.CurrentGinkgoTestDescription().Failed {
+		AfterEach(func() {
+			if !CurrentGinkgoTestDescription().Failed {
 				return
 			}
-			framework.LogFailedContainers(f.ClientSet, f.Namespace.Name, e2elog.Logf)
+			framework.LogFailedContainers(f.ClientSet, f.Namespace.Name, framework.Logf)
 		})
 
-		ginkgo.It("should enforce an AppArmor profile", func() {
+		It("should enforce an AppArmor profile", func() {
 			common.CreateAppArmorTestPod(f, false, true)
 		})
 
-		ginkgo.It("can disable an AppArmor profile, using unconfined", func() {
+		It("can disable an AppArmor profile, using unconfined", func() {
 			common.CreateAppArmorTestPod(f, true, true)
 		})
 	})

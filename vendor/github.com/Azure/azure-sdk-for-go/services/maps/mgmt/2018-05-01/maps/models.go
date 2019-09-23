@@ -22,9 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/maps/mgmt/2018-05-01/maps"
-
 // KeyType enumerates the values for key type.
 type KeyType string
 
@@ -43,25 +40,41 @@ func PossibleKeyTypeValues() []KeyType {
 // Account an Azure resource which represents access to a suite of Maps REST APIs.
 type Account struct {
 	autorest.Response `json:"-"`
-	// Location - READ-ONLY; The location of the resource.
+	// Location - The location of the resource.
 	Location *string `json:"location,omitempty"`
-	// Tags - READ-ONLY; Gets a list of key value pairs that describe the resource. These tags can be used in viewing and grouping this resource (across resource groups). A maximum of 15 tags can be provided for a resource. Each tag must have a key no greater than 128 characters and value no greater than 256 characters.
+	// Tags - Gets a list of key value pairs that describe the resource. These tags can be used in viewing and grouping this resource (across resource groups). A maximum of 15 tags can be provided for a resource. Each tag must have a key no greater than 128 characters and value no greater than 256 characters.
 	Tags map[string]*string `json:"tags"`
-	// Sku - READ-ONLY; The SKU of this account.
+	// Sku - The SKU of this account.
 	Sku *Sku `json:"sku,omitempty"`
-	// Properties - READ-ONLY; The map account properties.
-	Properties *AccountProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The fully qualified Maps Account resource identifier.
+	// ID - The fully qualified Maps Account resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the Maps Account, which is unique within a Resource Group.
+	// Name - The name of the Maps Account, which is unique within a Resource Group.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Azure resource type.
+	// Type - Azure resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for Account.
 func (a Account) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if a.Location != nil {
+		objectMap["location"] = a.Location
+	}
+	if a.Tags != nil {
+		objectMap["tags"] = a.Tags
+	}
+	if a.Sku != nil {
+		objectMap["sku"] = a.Sku
+	}
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -90,28 +103,22 @@ func (acp AccountCreateParameters) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// AccountKeys the set of keys which can be used to access the Maps REST APIs. Two keys are provided for
-// key rotation without interruption.
+// AccountKeys the set of keys which can be used to access the Maps REST APIs. Two keys are provided for key
+// rotation without interruption.
 type AccountKeys struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; The full Azure resource identifier of the Maps Account.
+	// ID - The full Azure resource identifier of the Maps Account.
 	ID *string `json:"id,omitempty"`
-	// PrimaryKey - READ-ONLY; The primary key for accessing the Maps REST APIs.
+	// PrimaryKey - The primary key for accessing the Maps REST APIs.
 	PrimaryKey *string `json:"primaryKey,omitempty"`
-	// SecondaryKey - READ-ONLY; The secondary key for accessing the Maps REST APIs.
+	// SecondaryKey - The secondary key for accessing the Maps REST APIs.
 	SecondaryKey *string `json:"secondaryKey,omitempty"`
-}
-
-// AccountProperties additional Map account properties
-type AccountProperties struct {
-	// XMsClientID - A unique identifier for the maps account
-	XMsClientID *string `json:"x-ms-client-id,omitempty"`
 }
 
 // Accounts a list of Maps Accounts.
 type Accounts struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; a Maps Account.
+	// Value - a Maps Account.
 	Value *[]Account `json:"value,omitempty"`
 }
 
@@ -145,23 +152,23 @@ func (aup AccountUpdateParameters) MarshalJSON() ([]byte, error) {
 
 // Error this object is returned when an error occurs in the Maps API
 type Error struct {
-	// Code - READ-ONLY; Error code.
+	// Code - Error code.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; If available, a human readable description of the error.
+	// Message - If available, a human readable description of the error.
 	Message *string `json:"message,omitempty"`
-	// Target - READ-ONLY; If available, the component generating the error.
+	// Target - If available, the component generating the error.
 	Target *string `json:"target,omitempty"`
-	// Details - READ-ONLY; If available, a list of additional details about the error.
+	// Details - If available, a list of additional details about the error.
 	Details *[]ErrorDetailsItem `json:"details,omitempty"`
 }
 
 // ErrorDetailsItem ...
 type ErrorDetailsItem struct {
-	// Code - READ-ONLY; Error code.
+	// Code - Error code.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; If available, a human readable description of the error.
+	// Message - If available, a human readable description of the error.
 	Message *string `json:"message,omitempty"`
-	// Target - READ-ONLY; If available, the component generating the error.
+	// Target - If available, the component generating the error.
 	Target *string `json:"target,omitempty"`
 }
 
@@ -174,39 +181,39 @@ type KeySpecification struct {
 // Operations the set of operations available for Maps.
 type Operations struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; An operation available for Maps.
+	// Value - An operation available for Maps.
 	Value *[]OperationsValueItem `json:"value,omitempty"`
 }
 
 // OperationsValueItem ...
 type OperationsValueItem struct {
-	// Name - READ-ONLY; Operation name: {provider}/{resource}/{operation}.
+	// Name - Operation name: {provider}/{resource}/{operation}.
 	Name *string `json:"name,omitempty"`
 	// Display - The human-readable description of the operation.
 	Display *OperationsValueItemDisplay `json:"display,omitempty"`
-	// Origin - READ-ONLY; The origin of the operation.
+	// Origin - The origin of the operation.
 	Origin *string `json:"origin,omitempty"`
 }
 
 // OperationsValueItemDisplay the human-readable description of the operation.
 type OperationsValueItemDisplay struct {
-	// Provider - READ-ONLY; Service provider: Microsoft Maps.
+	// Provider - Service provider: Microsoft Maps.
 	Provider *string `json:"provider,omitempty"`
-	// Resource - READ-ONLY; Resource on which the operation is performed.
+	// Resource - Resource on which the operation is performed.
 	Resource *string `json:"resource,omitempty"`
-	// Operation - READ-ONLY; The action that users can perform, based on their permission level.
+	// Operation - The action that users can perform, based on their permission level.
 	Operation *string `json:"operation,omitempty"`
-	// Description - READ-ONLY; The description of the operation.
+	// Description - The description of the operation.
 	Description *string `json:"description,omitempty"`
 }
 
 // Resource an Azure resource
 type Resource struct {
-	// ID - READ-ONLY; The fully qualified Maps Account resource identifier.
+	// ID - The fully qualified Maps Account resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the Maps Account, which is unique within a Resource Group.
+	// Name - The name of the Maps Account, which is unique within a Resource Group.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Azure resource type.
+	// Type - Azure resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -214,6 +221,6 @@ type Resource struct {
 type Sku struct {
 	// Name - The name of the SKU, in standard format (such as S0).
 	Name *string `json:"name,omitempty"`
-	// Tier - READ-ONLY; Gets the sku tier. This is based on the SKU name.
+	// Tier - Gets the sku tier. This is based on the SKU name.
 	Tier *string `json:"tier,omitempty"`
 }

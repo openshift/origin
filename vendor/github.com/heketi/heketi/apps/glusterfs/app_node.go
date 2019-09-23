@@ -431,11 +431,8 @@ func (a *App) NodeSetState(w http.ResponseWriter, r *http.Request) {
 	// and thus needs to be checked for operations throttle
 	// However, we don't want to block "cheap" changes like setting
 	// the item offline
-	var token string
 	if msg.State == api.EntryStateFailed {
-		var throttled bool
-		throttled, token = a.optracker.ThrottleOrToken()
-		if throttled {
+		if a.opcounter.ThrottleOrInc() {
 			OperationHttpErrorf(w, ErrTooManyOperations, "")
 			return
 		}
@@ -445,7 +442,7 @@ func (a *App) NodeSetState(w http.ResponseWriter, r *http.Request) {
 	a.asyncManager.AsyncHttpRedirectFunc(w, r, func() (string, error) {
 		defer func() {
 			if msg.State == api.EntryStateFailed {
-				a.optracker.Remove(token)
+				a.opcounter.Dec()
 			}
 		}()
 		err = node.SetState(a.db, a.executor, msg.State)

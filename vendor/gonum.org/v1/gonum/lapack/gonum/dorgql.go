@@ -33,25 +33,26 @@ import (
 // Dorgql is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dorgql(m, n, k int, a []float64, lda int, tau, work []float64, lwork int) {
 	switch {
-	case m < 0:
-		panic(mLT0)
 	case n < 0:
 		panic(nLT0)
-	case n > m:
-		panic(nGTM)
+	case m < n:
+		panic(mLTN)
 	case k < 0:
 		panic(kLT0)
 	case k > n:
 		panic(kGTN)
-	case lda < max(1, n):
-		panic(badLdA)
 	case lwork < max(1, n) && lwork != -1:
-		panic(badLWork)
-	case len(work) < max(1, lwork):
+		panic(badWork)
+	case len(work) < lwork:
 		panic(shortWork)
 	}
+	if lwork != -1 {
+		checkMatrix(m, n, a, lda)
+		if len(tau) < k {
+			panic(badTau)
+		}
+	}
 
-	// Quick return if possible.
 	if n == 0 {
 		work[0] = 1
 		return
@@ -63,17 +64,10 @@ func (impl Implementation) Dorgql(m, n, k int, a []float64, lda int, tau, work [
 		return
 	}
 
-	switch {
-	case len(a) < (m-1)*lda+n:
-		panic(shortA)
-	case len(tau) < k:
-		panic(shortTau)
-	}
-
 	nbmin := 2
 	var nx, ldwork int
 	iws := n
-	if 1 < nb && nb < k {
+	if nb > 1 && nb < k {
 		// Determine when to cross over from blocked to unblocked code.
 		nx = max(0, impl.Ilaenv(3, "DORGQL", " ", m, n, k, -1))
 		if nx < k {
@@ -90,7 +84,7 @@ func (impl Implementation) Dorgql(m, n, k int, a []float64, lda int, tau, work [
 	}
 
 	var kk int
-	if nbmin <= nb && nb < k && nx < k {
+	if nb >= nbmin && nb < k && nx < k {
 		// Use blocked code after the first block. The last kk columns are handled
 		// by the block method.
 		kk = min(k, ((k-nx+nb-1)/nb)*nb)

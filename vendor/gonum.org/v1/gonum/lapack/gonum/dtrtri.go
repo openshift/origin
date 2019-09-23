@@ -16,26 +16,18 @@ import (
 // Dtrtri will not perform the inversion if the matrix is singular, and returns
 // a boolean indicating whether the inversion was successful.
 func (impl Implementation) Dtrtri(uplo blas.Uplo, diag blas.Diag, n int, a []float64, lda int) (ok bool) {
-	switch {
-	case uplo != blas.Upper && uplo != blas.Lower:
+	checkMatrix(n, n, a, lda)
+	if uplo != blas.Upper && uplo != blas.Lower {
 		panic(badUplo)
-	case diag != blas.NonUnit && diag != blas.Unit:
+	}
+	if diag != blas.NonUnit && diag != blas.Unit {
 		panic(badDiag)
-	case n < 0:
-		panic(nLT0)
-	case lda < max(1, n):
-		panic(badLdA)
 	}
-
 	if n == 0 {
-		return true
+		return false
 	}
-
-	if len(a) < (n-1)*lda+n {
-		panic(shortA)
-	}
-
-	if diag == blas.NonUnit {
+	nonUnit := diag == blas.NonUnit
+	if nonUnit {
 		for i := 0; i < n; i++ {
 			if a[i*lda+i] == 0 {
 				return false

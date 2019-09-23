@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
-	"strings"
 	"testing"
 
 	fakeexec "k8s.io/utils/exec/testing"
@@ -84,7 +83,7 @@ func TestSafeFormatAndMount(t *testing.T) {
 			execScripts: []ExecArgs{
 				{"fsck", []string{"-a", "/dev/foo"}, "", &fakeexec.FakeExitError{Status: 4}},
 			},
-			expectedError: fmt.Errorf("'fsck' found errors on device /dev/foo but could not correct them"),
+			expectedError: fmt.Errorf("'fsck' found errors on device /dev/foo but could not correct them: ."),
 		},
 		{
 			description: "Test 'fsck' fails with exit status 1 (errors found and corrected)",
@@ -235,7 +234,7 @@ func TestSafeFormatAndMount(t *testing.T) {
 				t.Errorf("test \"%s\" the correct device was not mounted", test.description)
 			}
 		} else {
-			if err == nil || !strings.HasPrefix(err.Error(), test.expectedError.Error()) {
+			if err == nil || test.expectedError.Error() != err.Error() {
 				t.Errorf("test \"%s\" unexpected error: \n          [%v]. \nExpecting [%v]", test.description, err, test.expectedError)
 			}
 		}

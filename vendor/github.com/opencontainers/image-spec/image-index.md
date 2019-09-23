@@ -46,12 +46,12 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
     - **`architecture`** *string*
 
         This REQUIRED property specifies the CPU architecture.
-        Image indexes SHOULD use, and implementations SHOULD understand, values listed in the Go Language document for [`GOARCH`][go-environment2].
+        Image indexes SHOULD use, and implementations SHOULD understand, values [supported by runtime-spec's `platform.arch`][runtime-platform2].
 
     - **`os`** *string*
 
         This REQUIRED property specifies the operating system.
-        Image indexes SHOULD use, and implementations SHOULD understand, values listed in the Go Language document for [`GOOS`][go-environment2].
+        Image indexes SHOULD use, and implementations SHOULD understand, values [supported by runtime-spec's `platform.os`][runtime-platform2].
 
     - **`os.version`** *string*
 
@@ -61,12 +61,7 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
 
     - **`os.features`** *array of strings*
 
-        This OPTIONAL property specifies an array of strings, each specifying a mandatory OS feature.
-        When `os` is `windows`, image indexes SHOULD use, and implementations SHOULD understand the following values:
-
-        - `win32k`: image requires `win32k.sys` on the host (Note: `win32k.sys` is missing on Nano Server)
-
-        When `os` is not `windows`, values are implementation-defined and SHOULD be submitted to this specification for standardization.
+        This OPTIONAL property specifies an array of strings, each specifying a mandatory OS feature (for example on Windows `win32k`).
 
     - **`variant`** *string*
 
@@ -125,5 +120,5 @@ For the media type(s) that this document is compatible with, see the [matrix][ma
 }
 ```
 
-[go-environment2]: https://golang.org/doc/install/source#environment
+[runtime-platform2]: https://github.com/opencontainers/runtime-spec/blob/v1.0.0-rc3/config.md#platform
 [matrix]: media-types.md#compatibility-matrix

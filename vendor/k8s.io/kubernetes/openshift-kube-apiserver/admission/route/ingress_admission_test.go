@@ -1,7 +1,6 @@
 package admission
 
 import (
-	"context"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/apis/networking"
@@ -150,7 +149,7 @@ func TestAdmission(t *testing.T) {
 			oldIngress = nil
 		}
 
-		err := handler.Validate(context.TODO(), admission.NewAttributesRecord(newIngress, oldIngress, kextensions.Kind("ingresses").WithVersion("Version"), "namespace", newIngress.ObjectMeta.Name, kextensions.Resource("ingresses").WithVersion("version"), "", test.op, nil, false, nil), nil)
+		err := handler.Validate(admission.NewAttributesRecord(newIngress, oldIngress, kextensions.Kind("ingresses").WithVersion("Version"), "namespace", newIngress.ObjectMeta.Name, kextensions.Resource("ingresses").WithVersion("version"), "", test.op, false, nil), nil)
 		if test.admit && err != nil {
 			t.Errorf("%s: expected no error but got: %s", test.testName, err)
 		} else if !test.admit && err == nil {

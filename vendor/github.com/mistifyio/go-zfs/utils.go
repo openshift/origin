@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/pborman/uuid"
 )
 
 type command struct {
@@ -34,16 +36,17 @@ func (c *command) Run(arg ...string) ([][]string, error) {
 	}
 	cmd.Stderr = &stderr
 
-	debug := strings.Join([]string{cmd.Path, strings.Join(cmd.Args, " ")}, " ")
-	if logger != nil {
-		logger.Log(cmd.Args)
-	}
+	id := uuid.New()
+	joinedArgs := strings.Join(cmd.Args, " ")
+
+	logger.Log([]string{"ID:" + id, "START", joinedArgs})
 	err := cmd.Run()
+	logger.Log([]string{"ID:" + id, "FINISH"})
 
 	if err != nil {
 		return nil, &Error{
 			Err:    err,
-			Debug:  debug,
+			Debug:  strings.Join([]string{cmd.Path, joinedArgs}, " "),
 			Stderr: stderr.String(),
 		}
 	}

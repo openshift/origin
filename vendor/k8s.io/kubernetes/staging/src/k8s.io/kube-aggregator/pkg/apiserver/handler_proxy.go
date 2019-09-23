@@ -20,9 +20,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync/atomic"
-	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,15 +36,10 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 	"k8s.io/klog"
-	apiregistrationv1api "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
-	apiregistrationv1apihelper "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1/helper"
+	apiregistrationapi "k8s.io/kube-aggregator/pkg/apis/apiregistration"
 )
 
-const (
-	aggregatorComponent string = "aggregator"
-
-	aggregatedDiscoveryTimeout = 5 * time.Second
-)
+const aggregatorComponent string = "aggregator"
 
 type certFunc func() []byte
 
@@ -66,8 +59,6 @@ type proxyHandler struct {
 	serviceResolver ServiceResolver
 
 	handlingInfo atomic.Value
-
-	enableAggregatedDiscoveryTimeout bool
 }
 
 type proxyHandlingInfo struct {
@@ -89,8 +80,6 @@ type proxyHandlingInfo struct {
 	serviceNamespace string
 	// serviceAvailable indicates this APIService is available or not
 	serviceAvailable bool
-	// servicePort is the port of the service this handler proxies to
-	servicePort int32
 }
 
 func proxyError(w http.ResponseWriter, req *http.Request, error string, code int) {
@@ -149,7 +138,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// write a new location based on the existing request pointed at the target service
 	location := &url.URL{}
 	location.Scheme = "https"
-	rloc, err := r.serviceResolver.ResolveEndpoint(handlingInfo.serviceNamespace, handlingInfo.serviceName, handlingInfo.servicePort)
+	rloc, err := r.serviceResolver.ResolveEndpoint(handlingInfo.serviceNamespace, handlingInfo.serviceName)
 	if err != nil {
 		klog.Errorf("error resolving %s/%s: %v", handlingInfo.serviceNamespace, handlingInfo.serviceName, err)
 		proxyError(w, req, "service unavailable", http.StatusServiceUnavailable)
@@ -159,8 +148,11 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	location.Path = req.URL.Path
 	location.RawQuery = req.URL.Query().Encode()
 
-	newReq, cancelFn := newRequestForProxy(location, req, r.enableAggregatedDiscoveryTimeout)
-	defer cancelFn()
+	// WithContext creates a shallow clone of the request with the new context.
+	newReq := req.WithContext(context.Background())
+	newReq.Header = utilnet.CloneHeader(req.Header)
+	newReq.URL = location
+	newReq.Host = location.Host
 
 	if handlingInfo.proxyRoundTripper == nil {
 		proxyError(w, req, "", http.StatusNotFound)
@@ -185,31 +177,6 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	handler := proxy.NewUpgradeAwareHandler(location, proxyRoundTripper, true, upgrade, &responder{w: w})
 	handler.ServeHTTP(w, newReq)
-}
-
-// newRequestForProxy returns a shallow copy of the original request with a context that may include a timeout for discovery requests
-func newRequestForProxy(location *url.URL, req *http.Request, enableAggregatedDiscoveryTimeout bool) (*http.Request, context.CancelFunc) {
-	newCtx := req.Context()
-	cancelFn := func() {}
-
-	if requestInfo, ok := genericapirequest.RequestInfoFrom(req.Context()); ok {
-		// trim leading and trailing slashes. Then "/apis/group/version" requests are for discovery, so if we have exactly three
-		// segments that we are going to proxy, we have a discovery request.
-		if enableAggregatedDiscoveryTimeout && !requestInfo.IsResourceRequest && len(strings.Split(strings.Trim(requestInfo.Path, "/"), "/")) == 3 {
-			// discovery requests are used by kubectl and others to determine which resources a server has.  This is a cheap call that
-			// should be fast for every aggregated apiserver.  Latency for aggregation is expected to be low (as for all extensions)
-			// so forcing a short timeout here helps responsiveness of all clients.
-			newCtx, cancelFn = context.WithTimeout(newCtx, aggregatedDiscoveryTimeout)
-		}
-	}
-
-	// WithContext creates a shallow clone of the request with the same context.
-	newReq := req.WithContext(newCtx)
-	newReq.Header = utilnet.CloneHeader(req.Header)
-	newReq.URL = location
-	newReq.Host = location.Host
-
-	return newReq, cancelFn
 }
 
 // maybeWrapForConnectionUpgrades wraps the roundtripper for upgrades.  The bool indicates if it was wrapped
@@ -250,7 +217,7 @@ func (r *responder) Error(_ http.ResponseWriter, _ *http.Request, err error) {
 
 // these methods provide locked access to fields
 
-func (r *proxyHandler) updateAPIService(apiService *apiregistrationv1api.APIService) {
+func (r *proxyHandler) updateAPIService(apiService *apiregistrationapi.APIService) {
 	if apiService.Spec.Service == nil {
 		r.handlingInfo.Store(proxyHandlingInfo{local: true})
 		return
@@ -269,8 +236,7 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationv1api.APIServ
 		},
 		serviceName:      apiService.Spec.Service.Name,
 		serviceNamespace: apiService.Spec.Service.Namespace,
-		servicePort:      *apiService.Spec.Service.Port,
-		serviceAvailable: apiregistrationv1apihelper.IsAPIServiceConditionTrue(apiService, apiregistrationv1api.Available),
+		serviceAvailable: apiregistrationapi.IsAPIServiceConditionTrue(apiService, apiregistrationapi.Available),
 	}
 	if r.proxyTransport != nil && r.proxyTransport.DialContext != nil {
 		newInfo.restConfig.Dial = r.proxyTransport.DialContext

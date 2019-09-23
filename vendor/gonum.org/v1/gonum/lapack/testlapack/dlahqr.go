@@ -289,7 +289,7 @@ func testDlahqr(t *testing.T, impl Dlahqrer, test dlahqrTest) {
 	wr := nanSlice(ihi + 1)
 	wi := nanSlice(ihi + 1)
 
-	unconverged := impl.Dlahqr(wantt, wantz, n, ilo, ihi, h.Data, h.Stride, wr, wi, iloz, ihiz, z.Data, max(1, z.Stride))
+	unconverged := impl.Dlahqr(wantt, wantz, n, ilo, ihi, h.Data, h.Stride, wr, wi, iloz, ihiz, z.Data, z.Stride)
 
 	prefix := fmt.Sprintf("Case wantt=%v, wantz=%v, n=%v, ilo=%v, ihi=%v, iloz=%v, ihiz=%v, extra=%v",
 		wantt, wantz, n, ilo, ihi, iloz, ihiz, extra)
@@ -415,7 +415,7 @@ func testDlahqr(t *testing.T, impl Dlahqrer, test dlahqrTest) {
 	}
 
 	// Z should contain the orthogonal matrix U.
-	if !isOrthogonal(z) {
+	if !isOrthonormal(z) {
 		t.Errorf("%v: Z is not orthogonal", prefix)
 	}
 	// Z should have been modified only in the

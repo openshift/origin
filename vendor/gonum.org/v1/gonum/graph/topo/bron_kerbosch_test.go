@@ -9,7 +9,6 @@ import (
 	"sort"
 	"testing"
 
-	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/internal/ordered"
 	"gonum.org/v1/gonum/graph/simple"
 )
@@ -54,7 +53,7 @@ func TestDegeneracyOrdering(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -94,7 +93,7 @@ func TestKCore(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -127,14 +126,12 @@ func TestKCore(t *testing.T) {
 }
 
 var bronKerboschTests = []struct {
-	name string
 	g    []intset
 	want [][]int64
 }{
 	{
 		// This is the example given in the Bron-Kerbosch article on wikipedia (renumbered).
 		// http://en.wikipedia.org/w/index.php?title=Bron%E2%80%93Kerbosch_algorithm&oldid=656805858
-		name: "wikipedia example",
 		g: []intset{
 			0: linksTo(1, 4),
 			1: linksTo(2, 4),
@@ -152,8 +149,7 @@ var bronKerboschTests = []struct {
 		},
 	},
 	{
-		name: "Batagelj-Zaversnik Graph",
-		g:    batageljZaversnikGraph,
+		g: batageljZaversnikGraph,
 		want: [][]int64{
 			{0},
 			{1, 2},
@@ -175,11 +171,11 @@ var bronKerboschTests = []struct {
 }
 
 func TestBronKerbosch(t *testing.T) {
-	for _, test := range bronKerboschTests {
+	for i, test := range bronKerboschTests {
 		g := simple.NewUndirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -198,32 +194,7 @@ func TestBronKerbosch(t *testing.T) {
 		}
 		sort.Sort(ordered.BySliceValues(got))
 		if !reflect.DeepEqual(got, test.want) {
-			t.Errorf("unexpected cliques for test %q:\ngot: %v\nwant:%v", test.name, got, test.want)
+			t.Errorf("unexpected cliques for test %d:\ngot: %v\nwant:%v", i, got, test.want)
 		}
-	}
-}
-
-func BenchmarkBronKerbosch(b *testing.B) {
-	for _, test := range bronKerboschTests {
-		g := simple.NewUndirectedGraph()
-		for u, e := range test.g {
-			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
-				g.AddNode(simple.Node(u))
-			}
-			for v := range e {
-				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
-			}
-		}
-
-		b.Run(test.name, func(b *testing.B) {
-			var got [][]graph.Node
-			for i := 0; i < b.N; i++ {
-				got = BronKerbosch(g)
-			}
-			if len(got) != len(test.want) {
-				b.Errorf("unexpected cliques for test %q:\ngot: %v\nwant:%v", test.name, got, test.want)
-			}
-		})
 	}
 }

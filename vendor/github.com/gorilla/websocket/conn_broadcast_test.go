@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build go1.7
+
 package websocket
 
 import (
@@ -68,7 +70,7 @@ func (b *broadcastBench) makeConns(numConns int) {
 	conns := make([]*broadcastConn, numConns)
 
 	for i := 0; i < numConns; i++ {
-		c := newTestConn(nil, b.w, true)
+		c := newConn(fakeNetConn{Reader: nil, Writer: b.w}, true, 1024, 1024)
 		if b.compression {
 			c.enableWriteCompression = true
 			c.newCompressionWriter = compressNoContextTakeover

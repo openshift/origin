@@ -36,9 +36,6 @@ func RegisterDefaults(scheme *runtime.Scheme) error {
 
 func SetObjectDefaults_AuditSink(in *v1alpha1.AuditSink) {
 	SetDefaults_AuditSink(in)
-	if in.Spec.Webhook.ClientConfig.Service != nil {
-		SetDefaults_ServiceReference(in.Spec.Webhook.ClientConfig.Service)
-	}
 }
 
 func SetObjectDefaults_AuditSinkList(in *v1alpha1.AuditSinkList) {

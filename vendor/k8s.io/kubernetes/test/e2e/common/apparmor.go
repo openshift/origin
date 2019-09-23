@@ -19,13 +19,14 @@ package common
 import (
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	api "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/pkg/security/apparmor"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	imageutils "k8s.io/kubernetes/test/utils/image"
+
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -56,7 +57,7 @@ func LoadAppArmorProfiles(f *framework.Framework) {
 // CreateAppArmorTestPod creates a pod that tests apparmor profile enforcement. The pod exits with
 // an error code if the profile is incorrectly enforced. If runOnce is true the pod will exit after
 // a single test, otherwise it will repeat the test every 1 second until failure.
-func CreateAppArmorTestPod(f *framework.Framework, unconfined bool, runOnce bool) *v1.Pod {
+func CreateAppArmorTestPod(f *framework.Framework, unconfined bool, runOnce bool) *api.Pod {
 	profile := "localhost/" + appArmorProfilePrefix + f.Namespace.Name
 	testCmd := fmt.Sprintf(`
 if touch %[1]s; then
@@ -90,9 +91,9 @@ sleep 1
 done`, testCmd)
 	}
 
-	loaderAffinity := &v1.Affinity{
-		PodAffinity: &v1.PodAffinity{
-			RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{{
+	loaderAffinity := &api.Affinity{
+		PodAffinity: &api.PodAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []api.PodAffinityTerm{{
 				Namespaces: []string{f.Namespace.Name},
 				LabelSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{loaderLabelKey: loaderLabelValue},
@@ -102,7 +103,7 @@ done`, testCmd)
 		},
 	}
 
-	pod := &v1.Pod{
+	pod := &api.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-apparmor-",
 			Annotations: map[string]string{
@@ -112,20 +113,20 @@ done`, testCmd)
 				"test": "apparmor",
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: api.PodSpec{
 			Affinity: loaderAffinity,
-			Containers: []v1.Container{{
+			Containers: []api.Container{{
 				Name:    "test",
 				Image:   imageutils.GetE2EImage(imageutils.BusyBox),
 				Command: []string{"sh", "-c", testCmd},
 			}},
-			RestartPolicy: v1.RestartPolicyNever,
+			RestartPolicy: api.RestartPolicyNever,
 		},
 	}
 
 	if runOnce {
 		pod = f.PodClient().Create(pod)
-		framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(
+		framework.ExpectNoError(framework.WaitForPodSuccessInNamespace(
 			f.ClientSet, pod.Name, f.Namespace.Name))
 		var err error
 		pod, err = f.PodClient().Get(pod.Name, metav1.GetOptions{})
@@ -137,7 +138,7 @@ done`, testCmd)
 
 	// Verify Pod affinity colocated the Pods.
 	loader := getRunningLoaderPod(f)
-	framework.ExpectEqual(pod.Spec.NodeName, loader.Spec.NodeName)
+	Expect(pod.Spec.NodeName).To(Equal(loader.Spec.NodeName))
 
 	return pod
 }
@@ -155,7 +156,7 @@ profile %s flags=(attach_disconnected) {
 }
 `, profileName, appArmorDeniedPath, appArmorAllowedPath)
 
-	cm := &v1.ConfigMap{
+	cm := &api.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "apparmor-profiles",
 			Namespace: f.Namespace.Name,
@@ -171,26 +172,26 @@ profile %s flags=(attach_disconnected) {
 func createAppArmorProfileLoader(f *framework.Framework) {
 	True := true
 	One := int32(1)
-	loader := &v1.ReplicationController{
+	loader := &api.ReplicationController{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "apparmor-loader",
 			Namespace: f.Namespace.Name,
 		},
-		Spec: v1.ReplicationControllerSpec{
+		Spec: api.ReplicationControllerSpec{
 			Replicas: &One,
-			Template: &v1.PodTemplateSpec{
+			Template: &api.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{loaderLabelKey: loaderLabelValue},
 				},
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{{
+				Spec: api.PodSpec{
+					Containers: []api.Container{{
 						Name:  "apparmor-loader",
 						Image: imageutils.GetE2EImage(imageutils.AppArmorLoader),
 						Args:  []string{"-poll", "10s", "/profiles"},
-						SecurityContext: &v1.SecurityContext{
+						SecurityContext: &api.SecurityContext{
 							Privileged: &True,
 						},
-						VolumeMounts: []v1.VolumeMount{{
+						VolumeMounts: []api.VolumeMount{{
 							Name:      "sys",
 							MountPath: "/sys",
 							ReadOnly:  true,
@@ -204,25 +205,25 @@ func createAppArmorProfileLoader(f *framework.Framework) {
 							ReadOnly:  true,
 						}},
 					}},
-					Volumes: []v1.Volume{{
+					Volumes: []api.Volume{{
 						Name: "sys",
-						VolumeSource: v1.VolumeSource{
-							HostPath: &v1.HostPathVolumeSource{
+						VolumeSource: api.VolumeSource{
+							HostPath: &api.HostPathVolumeSource{
 								Path: "/sys",
 							},
 						},
 					}, {
 						Name: "apparmor-includes",
-						VolumeSource: v1.VolumeSource{
-							HostPath: &v1.HostPathVolumeSource{
+						VolumeSource: api.VolumeSource{
+							HostPath: &api.HostPathVolumeSource{
 								Path: "/etc/apparmor.d",
 							},
 						},
 					}, {
 						Name: "profiles",
-						VolumeSource: v1.VolumeSource{
-							ConfigMap: &v1.ConfigMapVolumeSource{
-								LocalObjectReference: v1.LocalObjectReference{
+						VolumeSource: api.VolumeSource{
+							ConfigMap: &api.ConfigMapVolumeSource{
+								LocalObjectReference: api.LocalObjectReference{
 									Name: "apparmor-profiles",
 								},
 							},
@@ -239,11 +240,11 @@ func createAppArmorProfileLoader(f *framework.Framework) {
 	getRunningLoaderPod(f)
 }
 
-func getRunningLoaderPod(f *framework.Framework) *v1.Pod {
+func getRunningLoaderPod(f *framework.Framework) *api.Pod {
 	label := labels.SelectorFromSet(labels.Set(map[string]string{loaderLabelKey: loaderLabelValue}))
-	pods, err := e2epod.WaitForPodsWithLabelScheduled(f.ClientSet, f.Namespace.Name, label)
+	pods, err := framework.WaitForPodsWithLabelScheduled(f.ClientSet, f.Namespace.Name, label)
 	framework.ExpectNoError(err, "Failed to schedule apparmor-loader Pod")
 	pod := &pods.Items[0]
-	framework.ExpectNoError(e2epod.WaitForPodRunningInNamespace(f.ClientSet, pod), "Failed to run apparmor-loader Pod")
+	framework.ExpectNoError(framework.WaitForPodRunningInNamespace(f.ClientSet, pod), "Failed to run apparmor-loader Pod")
 	return pod
 }

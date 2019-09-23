@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Run a docker container with network namespace set up by the
 # CNI plugins.

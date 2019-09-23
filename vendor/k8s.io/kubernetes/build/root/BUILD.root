@@ -89,28 +89,6 @@ filegroup(
         "//cmd:all-srcs",
         "//docs:all-srcs",
         "//hack:all-srcs",
-        "//openshift-kube-apiserver/admission/authorization/restrictusers:all-srcs",
-        "//openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride:all-srcs",
-        "//openshift-kube-apiserver/admission/autoscaling/apis/runonceduration:all-srcs",
-        "//openshift-kube-apiserver/admission/autoscaling/clusterresourceoverride:all-srcs",
-        "//openshift-kube-apiserver/admission/autoscaling/runonceduration:all-srcs",
-        "//openshift-kube-apiserver/admission/customresourcevalidation:all-srcs",
-        "//openshift-kube-apiserver/admission/namespaceconditions:all-srcs",
-        "//openshift-kube-apiserver/admission/network/apis/externalipranger:all-srcs",
-        "//openshift-kube-apiserver/admission/network/apis/restrictedendpoints:all-srcs",
-        "//openshift-kube-apiserver/admission/network/externalipranger:all-srcs",
-        "//openshift-kube-apiserver/admission/network/restrictedendpoints:all-srcs",
-        "//openshift-kube-apiserver/admission/route:all-srcs",
-        "//openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints:all-srcs",
-        "//openshift-kube-apiserver/admission/scheduler/nodeenv:all-srcs",
-        "//openshift-kube-apiserver/admission/scheduler/podnodeconstraints:all-srcs",
-        "//openshift-kube-apiserver/authentication/oauth:all-srcs",
-        "//openshift-kube-apiserver/authorization/browsersafe:all-srcs",
-        "//openshift-kube-apiserver/authorization/scopeauthorizer:all-srcs",
-        "//openshift-kube-apiserver/configdefault:all-srcs",
-        "//openshift-kube-apiserver/enablement:all-srcs",
-        "//openshift-kube-apiserver/kubeadmission:all-srcs",
-        "//openshift-kube-apiserver/openshiftkubeapiserver:all-srcs",
         "//pkg:all-srcs",
         "//plugin:all-srcs",
         "//staging:all-srcs",
@@ -127,21 +105,4 @@ genrule(
     outs = ["version"],
     cmd = "grep ^STABLE_BUILD_SCM_REVISION bazel-out/stable-status.txt | awk '{print $$2}' >$@",
     stamp = 1,
-)
-
-platform(
-    name = "rbe_with_network",
-    parents = ["@rbe_default//config:platform"],
-    # https://cloud.google.com/remote-build-execution/docs/remote-execution-environment#remote_execution_properties
-    remote_execution_properties = """
-      properties: {
-        name: "dockerNetwork"
-        value: "standard"
-      }
-      properties: {
-        name: "dockerPrivileged"
-        value: "true"
-      }
-      {PARENT_REMOTE_EXECUTION_PROPERTIES}
-    """,
 )

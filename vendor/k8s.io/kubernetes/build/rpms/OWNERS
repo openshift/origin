@@ -7,11 +7,9 @@ reviewers:
   - pipejakob
   - chuckha
   - timothysc
-  - release-engineering-reviewers
 approvers:
   - luxas
   - jbeda
   - mikedanese
   - pipejakob
   - timothysc
-  - release-engineering-approvers

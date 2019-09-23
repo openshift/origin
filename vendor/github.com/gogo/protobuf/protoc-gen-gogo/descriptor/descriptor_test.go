@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	tpb "github.com/gogo/protobuf/proto/test_proto"
+	tpb "github.com/gogo/protobuf/proto/testdata"
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 )
 
@@ -19,7 +19,7 @@ func TestMessage(t *testing.T) {
 	}
 }
 
-func Example_options() {
+func Example_Options() {
 	var msg *tpb.MyMessageSet
 	_, md := descriptor.ForMessage(msg)
 	if md.GetOptions().GetMessageSetWireFormat() {

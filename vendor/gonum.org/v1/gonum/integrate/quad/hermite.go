@@ -12,7 +12,7 @@ import (
 )
 
 // Hermite generates sample locations and weights for performing quadrature with
-// a squared-exponential weight
+// with a squared-exponential weight
 //  int_-inf^inf e^(-x^2) f(x) dx .
 type Hermite struct{}
 

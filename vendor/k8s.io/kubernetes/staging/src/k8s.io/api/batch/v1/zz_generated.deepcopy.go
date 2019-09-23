@@ -75,7 +75,7 @@ func (in *JobCondition) DeepCopy() *JobCondition {
 func (in *JobList) DeepCopyInto(out *JobList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Job, len(*in))

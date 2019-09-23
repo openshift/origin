@@ -22,9 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/trafficmanager/mgmt/2017-05-01/trafficmanager"
-
 // EndpointMonitorStatus enumerates the values for endpoint monitor status.
 type EndpointMonitorStatus string
 
@@ -135,8 +132,8 @@ func PossibleTrafficRoutingMethodValues() []TrafficRoutingMethod {
 	return []TrafficRoutingMethod{Geographic, Performance, Priority, Weighted}
 }
 
-// CheckTrafficManagerRelativeDNSNameAvailabilityParameters parameters supplied to check Traffic Manager
-// name operation.
+// CheckTrafficManagerRelativeDNSNameAvailabilityParameters parameters supplied to check Traffic Manager name
+// operation.
 type CheckTrafficManagerRelativeDNSNameAvailabilityParameters struct {
 	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
@@ -165,7 +162,7 @@ type CloudErrorBody struct {
 // DeleteOperationResult the result of the request or operation.
 type DeleteOperationResult struct {
 	autorest.Response `json:"-"`
-	// OperationResult - READ-ONLY; The result of the operation or request.
+	// OperationResult - The result of the operation or request.
 	OperationResult *bool `json:"boolean,omitempty"`
 }
 
@@ -173,7 +170,7 @@ type DeleteOperationResult struct {
 type DNSConfig struct {
 	// RelativeName - The relative DNS name provided by this Traffic Manager profile. This value is combined with the DNS domain name used by Azure Traffic Manager to form the fully-qualified domain name (FQDN) of the profile.
 	RelativeName *string `json:"relativeName,omitempty"`
-	// Fqdn - READ-ONLY; The fully-qualified domain name (FQDN) of the Traffic Manager profile. This is formed from the concatenation of the RelativeName with the DNS domain used by Azure Traffic Manager.
+	// Fqdn - The fully-qualified domain name (FQDN) of the Traffic Manager profile. This is formed from the concatenation of the RelativeName with the DNS domain used by Azure Traffic Manager.
 	Fqdn *string `json:"fqdn,omitempty"`
 	// TTL - The DNS Time-To-Live (TTL), in seconds. This informs the local DNS resolvers and DNS clients how long to cache DNS responses provided by this Traffic Manager profile.
 	TTL *int64 `json:"ttl,omitempty"`
@@ -184,11 +181,11 @@ type Endpoint struct {
 	autorest.Response `json:"-"`
 	// EndpointProperties - The properties of the Traffic Manager endpoint.
 	*EndpointProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -197,6 +194,15 @@ func (e Endpoint) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if e.EndpointProperties != nil {
 		objectMap["properties"] = e.EndpointProperties
+	}
+	if e.ID != nil {
+		objectMap["id"] = e.ID
+	}
+	if e.Name != nil {
+		objectMap["name"] = e.Name
+	}
+	if e.Type != nil {
+		objectMap["type"] = e.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -274,17 +280,16 @@ type EndpointProperties struct {
 	GeoMapping *[]string `json:"geoMapping,omitempty"`
 }
 
-// GeographicHierarchy class representing the Geographic hierarchy used with the Geographic traffic routing
-// method.
+// GeographicHierarchy class representing the Geographic hierarchy used with the Geographic traffic routing method.
 type GeographicHierarchy struct {
 	autorest.Response `json:"-"`
 	// GeographicHierarchyProperties - The properties of the Geographic Hierarchy resource.
 	*GeographicHierarchyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -293,6 +298,15 @@ func (gh GeographicHierarchy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if gh.GeographicHierarchyProperties != nil {
 		objectMap["properties"] = gh.GeographicHierarchyProperties
+	}
+	if gh.ID != nil {
+		objectMap["id"] = gh.ID
+	}
+	if gh.Name != nil {
+		objectMap["name"] = gh.Name
+	}
+	if gh.Type != nil {
+		objectMap["type"] = gh.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -348,8 +362,8 @@ func (gh *GeographicHierarchy) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// GeographicHierarchyProperties class representing the properties of the Geographic hierarchy used with
-// the Geographic traffic routing method.
+// GeographicHierarchyProperties class representing the properties of the Geographic hierarchy used with the
+// Geographic traffic routing method.
 type GeographicHierarchyProperties struct {
 	// GeographicHierarchy - The region at the root of the hierarchy from all the regions in the hierarchy can be retrieved.
 	GeographicHierarchy *Region `json:"geographicHierarchy,omitempty"`
@@ -397,11 +411,11 @@ type Profile struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The Azure Region where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -416,6 +430,15 @@ func (p Profile) MarshalJSON() ([]byte, error) {
 	}
 	if p.Location != nil {
 		objectMap["location"] = p.Location
+	}
+	if p.ID != nil {
+		objectMap["id"] = p.ID
+	}
+	if p.Name != nil {
+		objectMap["name"] = p.Name
+	}
+	if p.Type != nil {
+		objectMap["type"] = p.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -513,16 +536,15 @@ type ProfileProperties struct {
 // ProxyResource the resource model definition for a ARM proxy resource. It will have everything other than
 // required location and tags
 type ProxyResource struct {
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
-// Region class representing a region in the Geographic hierarchy used with the Geographic traffic routing
-// method.
+// Region class representing a region in the Geographic hierarchy used with the Geographic traffic routing method.
 type Region struct {
 	// Code - The code of the region
 	Code *string `json:"code,omitempty"`
@@ -534,11 +556,11 @@ type Region struct {
 
 // Resource the core properties of ARM resources
 type Resource struct {
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -548,11 +570,11 @@ type TrackedResource struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The Azure Region where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
+	// ID - Fully qualified resource Id for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/trafficManagerProfiles/{resourceName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -564,6 +586,15 @@ func (tr TrackedResource) MarshalJSON() ([]byte, error) {
 	}
 	if tr.Location != nil {
 		objectMap["location"] = tr.Location
+	}
+	if tr.ID != nil {
+		objectMap["id"] = tr.ID
+	}
+	if tr.Name != nil {
+		objectMap["name"] = tr.Name
+	}
+	if tr.Type != nil {
+		objectMap["type"] = tr.Type
 	}
 	return json.Marshal(objectMap)
 }

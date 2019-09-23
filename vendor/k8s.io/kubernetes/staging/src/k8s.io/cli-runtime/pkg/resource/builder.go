@@ -284,7 +284,7 @@ func (b *Builder) WithScheme(scheme *runtime.Scheme, decodingVersions ...schema.
 	// if you specified versions, you're specifying a desire for external types, which you don't want to round-trip through
 	// internal types
 	if len(decodingVersions) > 0 {
-		negotiatedSerializer = codecFactory.WithoutConversion()
+		negotiatedSerializer = &serializer.DirectCodecFactory{CodecFactory: codecFactory}
 	}
 	b.negotiatedSerializer = negotiatedSerializer
 

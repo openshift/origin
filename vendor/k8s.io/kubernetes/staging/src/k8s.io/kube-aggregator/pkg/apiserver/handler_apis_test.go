@@ -29,9 +29,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/tools/cache"
 
-	apiregistration "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
+	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	aggregatorscheme "k8s.io/kube-aggregator/pkg/apiserver/scheme"
-	listers "k8s.io/kube-aggregator/pkg/client/listers/apiregistration/v1"
+	listers "k8s.io/kube-aggregator/pkg/client/listers/apiregistration/internalversion"
 )
 
 func TestAPIs(t *testing.T) {

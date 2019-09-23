@@ -33,12 +33,12 @@ type NetworkInterfacer interface {
 type RealNetwork struct{}
 
 // Addrs wraps net.Interface.Addrs(), it's a part of NetworkInterfacer interface.
-func (RealNetwork) Addrs(intf *net.Interface) ([]net.Addr, error) {
+func (_ RealNetwork) Addrs(intf *net.Interface) ([]net.Addr, error) {
 	return intf.Addrs()
 }
 
 // Interfaces wraps net.Interfaces(), it's a part of NetworkInterfacer interface.
-func (RealNetwork) Interfaces() ([]net.Interface, error) {
+func (_ RealNetwork) Interfaces() ([]net.Interface, error) {
 	return net.Interfaces()
 }
 

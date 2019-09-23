@@ -33,9 +33,9 @@ var _ algorithm.NodeLister = &FakeNodeLister{}
 // FakeNodeLister implements NodeLister on a []string for test purposes.
 type FakeNodeLister []*v1.Node
 
-// ListNodes returns nodes as a []*v1.Node.
-func (f FakeNodeLister) ListNodes() []*v1.Node {
-	return f
+// List returns nodes as a []string.
+func (f FakeNodeLister) List() ([]*v1.Node, error) {
+	return f, nil
 }
 
 var _ algorithm.PodLister = &FakePodLister{}

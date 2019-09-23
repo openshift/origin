@@ -94,7 +94,6 @@ func TestAddFlags(t *testing.T) {
 		"--cloud-provider=azure",
 		"--cors-allowed-origins=10.10.10.100,10.10.10.200",
 		"--contention-profiling=true",
-		"--egress-selector-config-file=/var/run/kubernetes/egress-selector/connectivity.yaml",
 		"--enable-aggregator-routing=true",
 		"--enable-logs-handler=false",
 		"--endpoint-reconciler-type=" + string(reconcilers.LeaseEndpointReconcilerType),
@@ -118,7 +117,7 @@ func TestAddFlags(t *testing.T) {
 	// This is a snapshot of expected options parsed by args.
 	expected := &ServerRunOptions{
 		ServiceNodePortRange:   kubeoptions.DefaultServiceNodePortRange,
-		ServiceClusterIPRanges: kubeoptions.DefaultServiceIPCIDR.String(),
+		ServiceClusterIPRange:  kubeoptions.DefaultServiceIPCIDR,
 		MasterCount:            5,
 		EndpointReconcilerType: string(reconcilers.LeaseEndpointReconcilerType),
 		AllowPrivileged:        false,
@@ -151,7 +150,6 @@ func TestAddFlags(t *testing.T) {
 					CAFile:     "/var/run/kubernetes/etcdca.crt",
 					CertFile:   "/var/run/kubernetes/etcdce.crt",
 				},
-				Paging:                true,
 				Prefix:                "/registry",
 				CompactionInterval:    storagebackend.DefaultCompactInterval,
 				CountMetricPollPeriod: time.Minute,
@@ -187,7 +185,7 @@ func TestAddFlags(t *testing.T) {
 				string(kapi.NodeExternalDNS),
 				string(kapi.NodeExternalIP),
 			},
-			EnableHTTPS: true,
+			EnableHttps: true,
 			HTTPTimeout: time.Duration(5) * time.Second,
 			TLSClientConfig: restclient.TLSClientConfig{
 				CertFile: "/var/run/kubernetes/ceserver.crt",
@@ -293,9 +291,6 @@ func TestAddFlags(t *testing.T) {
 		},
 		APIEnablement: &apiserveroptions.APIEnablementOptions{
 			RuntimeConfig: cliflag.ConfigurationMap{},
-		},
-		EgressSelector: &apiserveroptions.EgressSelectorOptions{
-			ConfigFile: "/var/run/kubernetes/egress-selector/connectivity.yaml",
 		},
 		EnableLogsHandler:       false,
 		EnableAggregatorRouting: true,

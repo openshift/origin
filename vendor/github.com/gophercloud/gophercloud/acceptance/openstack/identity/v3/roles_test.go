@@ -116,7 +116,6 @@ func TestRolesFilterList(t *testing.T) {
 	clients.SkipRelease(t, "master")
 	clients.SkipRelease(t, "stable/queens")
 	clients.SkipRelease(t, "stable/rocky")
-	clients.SkipRelease(t, "stable/stein")
 
 	client, err := clients.NewIdentityV3Client()
 	th.AssertNoErr(t, err)

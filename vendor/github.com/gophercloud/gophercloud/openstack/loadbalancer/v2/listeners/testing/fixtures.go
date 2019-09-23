@@ -41,12 +41,7 @@ const ListenersListBody = `
 			"default_tls_container_ref": "2c433435-20de-4411-84ae-9cc8917def76",
 			"sni_container_refs": ["3d328d82-2547-4921-ac2f-61c3b452b5ff", "b3cfd7e3-8c19-455c-8ebb-d78dfd8f7e7d"],
 			"timeout_client_data": 50000,
-			"timeout_member_data": 50000,
-			"timeout_member_connect": 5000,
-			"timeout_tcp_inspect": 0,
-			"insert_headers": {
-				"X-Forwarded-For": "true"
-			}
+			"timeout_member_data": 50000
 		}
 	]
 }
@@ -69,12 +64,8 @@ const SingleListenerBody = `
 		"default_tls_container_ref": "2c433435-20de-4411-84ae-9cc8917def76",
 		"sni_container_refs": ["3d328d82-2547-4921-ac2f-61c3b452b5ff", "b3cfd7e3-8c19-455c-8ebb-d78dfd8f7e7d"],
 		"timeout_client_data": 50000,
-		"timeout_member_data": 50000,
-		"timeout_member_connect": 5000,
-		"timeout_tcp_inspect": 0,
-        	"insert_headers": {
-            		"X-Forwarded-For": "true"
-        	}
+		"timeout_member_data": 50000
+
 	}
 }
 `
@@ -96,9 +87,7 @@ const PostUpdateListenerBody = `
 		"default_tls_container_ref": "2c433435-20de-4411-84ae-9cc8917def76",
 		"sni_container_refs": ["3d328d82-2547-4921-ac2f-61c3b452b5ff", "b3cfd7e3-8c19-455c-8ebb-d78dfd8f7e7d"],
 		"timeout_client_data": 181000,
-		"timeout_member_data": 181000,
-		"timeout_member_connect": 181000,
-		"timeout_tcp_inspect": 181000
+		"timeout_member_data": 181000
 
 	}
 }
@@ -146,9 +135,6 @@ var (
 		SniContainerRefs:       []string{"3d328d82-2547-4921-ac2f-61c3b452b5ff", "b3cfd7e3-8c19-455c-8ebb-d78dfd8f7e7d"},
 		TimeoutClientData:      50000,
 		TimeoutMemberData:      50000,
-		TimeoutMemberConnect:   5000,
-		TimeoutTCPInspect:      0,
-		InsertHeaders:          map[string]string{"X-Forwarded-For": "true"},
 	}
 	ListenerUpdated = listeners.Listener{
 		ID:                     "36e08a3e-a78f-4b40-a229-1e7e23eee1ab",
@@ -165,8 +151,6 @@ var (
 		SniContainerRefs:       []string{"3d328d82-2547-4921-ac2f-61c3b452b5ff", "b3cfd7e3-8c19-455c-8ebb-d78dfd8f7e7d"},
 		TimeoutClientData:      181000,
 		TimeoutMemberData:      181000,
-		TimeoutMemberConnect:   181000,
-		TimeoutTCPInspect:      181000,
 	}
 	ListenerStatsTree = listeners.Stats{
 		ActiveConnections: 0,
@@ -211,10 +195,7 @@ func HandleListenerCreationSuccessfully(t *testing.T, response string) {
 			        "admin_state_up": true,
 			        "default_tls_container_ref": "2c433435-20de-4411-84ae-9cc8917def76",
 			        "default_pool_id": "41efe233-7591-43c5-9cf7-923964759f9e",
-			        "protocol_port": 3306,
-				"insert_headers": {
-					"X-Forwarded-For": "true"
-				}
+			        "protocol_port": 3306
 			    }
 		}`)
 
@@ -258,9 +239,7 @@ func HandleListenerUpdateSuccessfully(t *testing.T) {
 				"default_pool_id": null,
 				"connection_limit": 1001,
 				"timeout_client_data": 181000,
-				"timeout_member_data": 181000,
-				"timeout_member_connect": 181000,
-				"timeout_tcp_inspect": 181000
+				"timeout_member_data": 181000
 			}
 		}`)
 

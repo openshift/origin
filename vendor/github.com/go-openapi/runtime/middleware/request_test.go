@@ -25,8 +25,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
@@ -287,10 +285,8 @@ func TestRequestBindingForValid(t *testing.T) {
 
 		lval := []string{"one", "two", "three"}
 		var queryString string
-		var skipEscape bool
 		switch fmt {
 		case "multi":
-			skipEscape = true
 			queryString = strings.Join(lval, "&tags=")
 		case "ssv":
 			queryString = strings.Join(lval, " ")
@@ -301,19 +297,15 @@ func TestRequestBindingForValid(t *testing.T) {
 		default:
 			queryString = strings.Join(lval, ",")
 		}
-		if !skipEscape {
-			queryString = url.QueryEscape(queryString)
-		}
 
 		urlStr := "http://localhost:8002/hello/1?name=the-name&tags=" + queryString
 
-		req, err := http.NewRequest("POST", urlStr, bytes.NewBuffer([]byte(`{"name":"toby","age":32}`)))
-		require.NoError(t, err)
+		req, _ := http.NewRequest("POST", urlStr, bytes.NewBuffer([]byte(`{"name":"toby","age":32}`)))
 		req.Header.Set("Content-Type", "application/json;charset=utf-8")
 		req.Header.Set("X-Request-Id", "1325959595")
 
 		data := jsonRequestParams{}
-		err = binder.Bind(req, RouteParams([]RouteParam{{"id", "1"}}), runtime.JSONConsumer(), &data)
+		err := binder.Bind(req, RouteParams([]RouteParam{{"id", "1"}}), runtime.JSONConsumer(), &data)
 
 		expected := jsonRequestParams{
 			ID:        1,

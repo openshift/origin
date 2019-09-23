@@ -29,7 +29,7 @@ func newSignalHandler(enableSubreaper bool, notifySocket *notifySocket) *signalH
 		}
 	}
 	// ensure that we have a large buffer size so that we do not miss any signals
-	// in case we are not processing them fast enough.
+	// incase we are not processing them fast enough.
 	s := make(chan os.Signal, signalBufferSize)
 	// handle all signals for the process.
 	signal.Notify(s)
@@ -69,8 +69,9 @@ func (h *signalHandler) forward(process *libcontainer.Process, tty *tty, detach 
 		if detach {
 			h.notifySocket.run(pid1)
 			return 0, nil
+		} else {
+			go h.notifySocket.run(0)
 		}
-		go h.notifySocket.run(0)
 	}
 
 	// Perform the initial tty resize. Always ignore errors resizing because

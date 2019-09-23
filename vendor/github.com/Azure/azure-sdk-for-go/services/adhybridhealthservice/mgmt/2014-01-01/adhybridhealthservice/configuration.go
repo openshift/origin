@@ -21,11 +21,10 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
-// ConfigurationClient is the REST APIs for Azure Active Directory Connect Health
+// ConfigurationClient is the REST APIs for Azure Active Drectory Connect Health
 type ConfigurationClient struct {
 	BaseClient
 }
@@ -42,16 +41,6 @@ func NewConfigurationClientWithBaseURI(baseURI string) ConfigurationClient {
 
 // Add onboards a tenant in Azure Active Directory Connect Health.
 func (client ConfigurationClient) Add(ctx context.Context) (result Tenant, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ConfigurationClient.Add")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ConfigurationClient", "Add", nil, "Failure preparing request")
@@ -91,8 +80,8 @@ func (client ConfigurationClient) AddPreparer(ctx context.Context) (*http.Reques
 // AddSender sends the Add request. The method will close the
 // http.Response Body if it receives an error.
 func (client ConfigurationClient) AddSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddResponder handles the response to the Add request. The method always
@@ -110,16 +99,6 @@ func (client ConfigurationClient) AddResponder(resp *http.Response) (result Tena
 
 // Get gets the details of a tenant onboarded to Azure Active Directory Connect Health.
 func (client ConfigurationClient) Get(ctx context.Context) (result Tenant, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ConfigurationClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ConfigurationClient", "Get", nil, "Failure preparing request")
@@ -159,8 +138,8 @@ func (client ConfigurationClient) GetPreparer(ctx context.Context) (*http.Reques
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ConfigurationClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -181,16 +160,6 @@ func (client ConfigurationClient) GetResponder(resp *http.Response) (result Tena
 // serviceName - the name of the service.
 // grouping - the grouping for configurations.
 func (client ConfigurationClient) ListAddsConfigurations(ctx context.Context, serviceName string, grouping string) (result AddsConfigurationPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ConfigurationClient.ListAddsConfigurations")
-		defer func() {
-			sc := -1
-			if result.ac.Response.Response != nil {
-				sc = result.ac.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listAddsConfigurationsNextResults
 	req, err := client.ListAddsConfigurationsPreparer(ctx, serviceName, grouping)
 	if err != nil {
@@ -235,8 +204,8 @@ func (client ConfigurationClient) ListAddsConfigurationsPreparer(ctx context.Con
 // ListAddsConfigurationsSender sends the ListAddsConfigurations request. The method will close the
 // http.Response Body if it receives an error.
 func (client ConfigurationClient) ListAddsConfigurationsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListAddsConfigurationsResponder handles the response to the ListAddsConfigurations request. The method always
@@ -253,8 +222,8 @@ func (client ConfigurationClient) ListAddsConfigurationsResponder(resp *http.Res
 }
 
 // listAddsConfigurationsNextResults retrieves the next set of results, if any.
-func (client ConfigurationClient) listAddsConfigurationsNextResults(ctx context.Context, lastResults AddsConfiguration) (result AddsConfiguration, err error) {
-	req, err := lastResults.addsConfigurationPreparer(ctx)
+func (client ConfigurationClient) listAddsConfigurationsNextResults(lastResults AddsConfiguration) (result AddsConfiguration, err error) {
+	req, err := lastResults.addsConfigurationPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "adhybridhealthservice.ConfigurationClient", "listAddsConfigurationsNextResults", nil, "Failure preparing next results request")
 	}
@@ -275,16 +244,6 @@ func (client ConfigurationClient) listAddsConfigurationsNextResults(ctx context.
 
 // ListAddsConfigurationsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ConfigurationClient) ListAddsConfigurationsComplete(ctx context.Context, serviceName string, grouping string) (result AddsConfigurationIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ConfigurationClient.ListAddsConfigurations")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListAddsConfigurations(ctx, serviceName, grouping)
 	return
 }
@@ -293,16 +252,6 @@ func (client ConfigurationClient) ListAddsConfigurationsComplete(ctx context.Con
 // Parameters:
 // tenant - the tenant object with the properties set to the updated value.
 func (client ConfigurationClient) Update(ctx context.Context, tenant Tenant) (result Tenant, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ConfigurationClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, tenant)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ConfigurationClient", "Update", nil, "Failure preparing request")
@@ -344,8 +293,8 @@ func (client ConfigurationClient) UpdatePreparer(ctx context.Context, tenant Ten
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ConfigurationClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

@@ -1,9 +1,8 @@
 package jmespath
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestSlicePositiveStep(t *testing.T) {
@@ -46,7 +45,7 @@ func TestIsFalseWithUserDefinedStructs(t *testing.T) {
 
 func TestIsFalseWithNilInterface(t *testing.T) {
 	assert := assert.New(t)
-	var a *int
+	var a *int = nil
 	var nilInterface interface{}
 	nilInterface = a
 	assert.True(isFalse(nilInterface))

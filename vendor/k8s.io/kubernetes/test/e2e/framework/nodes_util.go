@@ -28,23 +28,26 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
-	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
-	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 )
 
-const etcdImage = "3.3.15-0"
-
-// EtcdUpgrade upgrades etcd on GCE.
-func EtcdUpgrade(targetStorage, targetVersion string) error {
+func EtcdUpgrade(target_storage, target_version string) error {
 	switch TestContext.Provider {
 	case "gce":
-		return etcdUpgradeGCE(targetStorage, targetVersion)
+		return etcdUpgradeGCE(target_storage, target_version)
 	default:
 		return fmt.Errorf("EtcdUpgrade() is not implemented for provider %s", TestContext.Provider)
 	}
 }
 
-// MasterUpgrade upgrades master node on GCE/GKE.
+func IngressUpgrade(isUpgrade bool) error {
+	switch TestContext.Provider {
+	case "gce":
+		return ingressUpgradeGCE(isUpgrade)
+	default:
+		return fmt.Errorf("IngressUpgrade() is not implemented for provider %s", TestContext.Provider)
+	}
+}
+
 func MasterUpgrade(v string) error {
 	switch TestContext.Provider {
 	case "gce":
@@ -58,18 +61,38 @@ func MasterUpgrade(v string) error {
 	}
 }
 
-func etcdUpgradeGCE(targetStorage, targetVersion string) error {
+func etcdUpgradeGCE(target_storage, target_version string) error {
 	env := append(
 		os.Environ(),
-		"TEST_ETCD_VERSION="+targetVersion,
-		"STORAGE_BACKEND="+targetStorage,
-		"TEST_ETCD_IMAGE="+etcdImage)
+		"TEST_ETCD_VERSION="+target_version,
+		"STORAGE_BACKEND="+target_storage,
+		"TEST_ETCD_IMAGE=3.3.10-0")
 
 	_, _, err := RunCmdEnv(env, gceUpgradeScript(), "-l", "-M")
 	return err
 }
 
-// MasterUpgradeGCEWithKubeProxyDaemonSet upgrades master node on GCE with enabling/disabling the daemon set of kube-proxy.
+func ingressUpgradeGCE(isUpgrade bool) error {
+	var command string
+	if isUpgrade {
+		// User specified image to upgrade to.
+		targetImage := TestContext.IngressUpgradeImage
+		if targetImage != "" {
+			command = fmt.Sprintf("sudo sed -i -re 's|(image:)(.*)|\\1 %s|' /etc/kubernetes/manifests/glbc.manifest", targetImage)
+		} else {
+			// Upgrade to latest HEAD image.
+			command = "sudo sed -i -re 's/(image:)(.*)/\\1 gcr.io\\/k8s-ingress-image-push\\/ingress-gce-e2e-glbc-amd64:master/' /etc/kubernetes/manifests/glbc.manifest"
+		}
+	} else {
+		// Downgrade to latest release image.
+		command = "sudo sed -i -re 's/(image:)(.*)/\\1 k8s.gcr.io\\/ingress-gce-glbc-amd64:v1.1.1/' /etc/kubernetes/manifests/glbc.manifest"
+	}
+	// Kubelet should restart glbc automatically.
+	sshResult, err := NodeExec(GetMasterHost(), command)
+	LogSSHResult(sshResult)
+	return err
+}
+
 // TODO(mrhohn): Remove this function when kube-proxy is run as a DaemonSet by default.
 func MasterUpgradeGCEWithKubeProxyDaemonSet(v string, enableKubeProxyDaemonSet bool) error {
 	return masterUpgradeGCE(v, enableKubeProxyDaemonSet)
@@ -83,7 +106,7 @@ func masterUpgradeGCE(rawV string, enableKubeProxyDaemonSet bool) error {
 		env = append(env,
 			"TEST_ETCD_VERSION="+TestContext.EtcdUpgradeVersion,
 			"STORAGE_BACKEND="+TestContext.EtcdUpgradeStorage,
-			"TEST_ETCD_IMAGE="+etcdImage)
+			"TEST_ETCD_IMAGE=3.3.10-0")
 	} else {
 		// In e2e tests, we skip the confirmation prompt about
 		// implicit etcd upgrades to simulate the user entering "y".
@@ -171,7 +194,6 @@ func masterUpgradeKubernetesAnywhere(v string) error {
 	return nil
 }
 
-// NodeUpgrade upgrades nodes on GCE/GKE.
 func NodeUpgrade(f *Framework, v string, img string) error {
 	// Perform the upgrade.
 	var err error
@@ -189,7 +211,6 @@ func NodeUpgrade(f *Framework, v string, img string) error {
 	return waitForNodesReadyAfterUpgrade(f)
 }
 
-// NodeUpgradeGCEWithKubeProxyDaemonSet upgrades nodes on GCE with enabling/disabling the daemon set of kube-proxy.
 // TODO(mrhohn): Remove this function when kube-proxy is run as a DaemonSet by default.
 func NodeUpgradeGCEWithKubeProxyDaemonSet(f *Framework, v string, img string, enableKubeProxyDaemonSet bool) error {
 	// Perform the upgrade.
@@ -204,12 +225,12 @@ func waitForNodesReadyAfterUpgrade(f *Framework) error {
 	//
 	// TODO(ihmccreery) We shouldn't have to wait for nodes to be ready in
 	// GKE; the operation shouldn't return until they all are.
-	numNodes, err := e2enode.TotalRegistered(f.ClientSet)
+	numNodes, err := NumberOfRegisteredNodes(f.ClientSet)
 	if err != nil {
 		return fmt.Errorf("couldn't detect number of nodes")
 	}
 	Logf("Waiting up to %v for all %d nodes to be ready after the upgrade", RestartNodeReadyAgainTimeout, numNodes)
-	if _, err := e2enode.CheckReady(f.ClientSet, numNodes, RestartNodeReadyAgainTimeout); err != nil {
+	if _, err := CheckNodesReady(f.ClientSet, numNodes, RestartNodeReadyAgainTimeout); err != nil {
 		return err
 	}
 	return nil
@@ -323,7 +344,6 @@ type NodeKiller struct {
 
 // NewNodeKiller creates new NodeKiller.
 func NewNodeKiller(config NodeKillerConfig, client clientset.Interface, provider string) *NodeKiller {
-	config.NodeKillerStopCh = make(chan struct{})
 	return &NodeKiller{config, client, provider}
 }
 
@@ -356,7 +376,7 @@ func (k *NodeKiller) kill(nodes []v1.Node) {
 			defer wg.Done()
 
 			Logf("Stopping docker and kubelet on %q to simulate failure", node.Name)
-			err := e2essh.IssueSSHCommand("sudo systemctl stop docker kubelet", k.provider, &node)
+			err := IssueSSHCommand("sudo systemctl stop docker kubelet", k.provider, &node)
 			if err != nil {
 				Logf("ERROR while stopping node %q: %v", node.Name, err)
 				return
@@ -365,7 +385,7 @@ func (k *NodeKiller) kill(nodes []v1.Node) {
 			time.Sleep(k.config.SimulatedDowntime)
 
 			Logf("Rebooting %q to repair the node", node.Name)
-			err = e2essh.IssueSSHCommand("sudo reboot", k.provider, &node)
+			err = IssueSSHCommand("sudo reboot", k.provider, &node)
 			if err != nil {
 				Logf("ERROR while rebooting node %q: %v", node.Name, err)
 				return
@@ -375,7 +395,6 @@ func (k *NodeKiller) kill(nodes []v1.Node) {
 	wg.Wait()
 }
 
-// DeleteNodeOnCloudProvider deletes the specified node.
 func DeleteNodeOnCloudProvider(node *v1.Node) error {
 	return TestContext.CloudConfig.Provider.DeleteNode(node)
 }

@@ -16,7 +16,7 @@ limitations under the License.
 
 package probe
 
-// Result is a string used to handle the results for probing container readiness/liveness
+// Result is a string used to handle the results for probing container readiness/livenss
 type Result string
 
 const (

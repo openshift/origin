@@ -65,7 +65,7 @@ func startStatefulSetController(ctx ControllerContext) (http.Handler, bool, erro
 		ctx.InformerFactory.Core().V1().PersistentVolumeClaims(),
 		ctx.InformerFactory.Apps().V1().ControllerRevisions(),
 		ctx.ClientBuilder.ClientOrDie("statefulset-controller"),
-	).Run(int(ctx.ComponentConfig.StatefulSetController.ConcurrentStatefulSetSyncs), ctx.Stop)
+	).Run(1, ctx.Stop)
 	return nil, true, nil
 }
 

@@ -33,14 +33,16 @@
 
 package testdata
 
+/*
+
 import (
 	"bytes"
 	"regexp"
 	"testing"
 
-	"github.com/gogo/protobuf/proto"
-	base "github.com/gogo/protobuf/protoc-gen-gogo/testdata/extension_base"
-	user "github.com/gogo/protobuf/protoc-gen-gogo/testdata/extension_user"
+	"github.com/golang/protobuf/proto"
+	base "extension_base.pb"
+	user "extension_user.pb"
 )
 
 func TestSingleFieldExtension(t *testing.T) {
@@ -50,12 +52,13 @@ func TestSingleFieldExtension(t *testing.T) {
 
 	// Use extension within scope of another type.
 	vol := proto.Uint32(11)
-	if err := proto.SetExtension(bm, user.E_LoudMessage_Volume, vol); err != nil {
+	err := proto.SetExtension(bm, user.E_LoudMessage_Volume, vol)
+	if err != nil {
 		t.Fatal("Failed setting extension:", err)
 	}
-	buf, berr := proto.Marshal(bm)
-	if berr != nil {
-		t.Fatal("Failed encoding message with extension:", berr)
+	buf, err := proto.Marshal(bm)
+	if err != nil {
+		t.Fatal("Failed encoding message with extension:", err)
 	}
 	bm_new := new(base.BaseMessage)
 	if err := proto.Unmarshal(buf, bm_new); err != nil {
@@ -87,12 +90,13 @@ func TestMessageExtension(t *testing.T) {
 		Name: proto.String("Dave"),
 		Rank: proto.String("Major"),
 	}
-	if err := proto.SetExtension(bm, user.E_LoginMessage_UserMessage, um); err != nil {
+	err := proto.SetExtension(bm, user.E_LoginMessage_UserMessage, um)
+	if err != nil {
 		t.Fatal("Failed setting extension:", err)
 	}
-	buf, berr := proto.Marshal(bm)
-	if berr != nil {
-		t.Fatal("Failed encoding message with extension:", berr)
+	buf, err := proto.Marshal(bm)
+	if err != nil {
+		t.Fatal("Failed encoding message with extension:", err)
 	}
 	bm_new := new(base.BaseMessage)
 	if err := proto.Unmarshal(buf, bm_new); err != nil {
@@ -123,12 +127,13 @@ func TestTopLevelExtension(t *testing.T) {
 	}
 
 	width := proto.Int32(17)
-	if err := proto.SetExtension(bm, user.E_Width, width); err != nil {
+	err := proto.SetExtension(bm, user.E_Width, width)
+	if err != nil {
 		t.Fatal("Failed setting extension:", err)
 	}
-	buf, berr := proto.Marshal(bm)
-	if berr != nil {
-		t.Fatal("Failed encoding message with extension:", berr)
+	buf, err := proto.Marshal(bm)
+	if err != nil {
+		t.Fatal("Failed encoding message with extension:", err)
 	}
 	bm_new := new(base.BaseMessage)
 	if err := proto.Unmarshal(buf, bm_new); err != nil {
@@ -157,13 +162,14 @@ func TestMessageSetWireFormat(t *testing.T) {
 		Height: proto.Int32(178),
 	}
 
-	if err := proto.SetExtension(osm, user.E_OldStyleParcel_MessageSetExtension, osp); err != nil {
+	err := proto.SetExtension(osm, user.E_OldStyleParcel_MessageSetExtension, osp)
+	if err != nil {
 		t.Fatal("Failed setting extension:", err)
 	}
 
-	buf, berr := proto.Marshal(osm)
-	if berr != nil {
-		t.Fatal("Failed encoding message:", berr)
+	buf, err := proto.Marshal(osm)
+	if err != nil {
+		t.Fatal("Failed encoding message:", err)
 	}
 
 	// Data generated from Python implementation.
@@ -200,3 +206,5 @@ func main() {
 		[]testing.InternalBenchmark{},
 		[]testing.InternalExample{})
 }
+
+*/

@@ -30,7 +30,7 @@ Removals are represented using "[whiteout](#whiteouts)" file entries (See [Repre
 
 ### File Types
 
-Throughout this document section, the use of word "files" or "entries" includes the following, where supported:
+Throughout this document section, the use of word "files" or "entries" includes:
 
 * regular files
 * directories
@@ -87,16 +87,6 @@ END FOR
 ```
 
 With this approach, the link map and links names of a directory could be compared against that of another directory to derive additions and changes to hardlinks.
-
-#### Platform-specific attributes
-
-Implementations on Windows MUST support these additional attributes, encoded in [PAX vendor
-extensions](https://github.com/libarchive/libarchive/wiki/ManPageTar5#pax-interchange-format) as follows:
-
-* [Windows file attributes](https://msdn.microsoft.com/en-us/library/windows/desktop/gg258117(v=vs.85).aspx) (`MSWINDOWS.fileattr`)
-* [Security descriptor](https://msdn.microsoft.com/en-us/library/cc230366.aspx) (`MSWINDOWS.rawsd`): base64-encoded self-relative binary security descriptor
-* Mount points (`MSWINDOWS.mountpoint`): if present on a directory symbolic link, then the link should be created as a [directory junction](https://en.wikipedia.org/wiki/NTFS_junction_point)
-* Creation time (`LIBARCHIVE.creationtime`)
 
 ## Creating
 

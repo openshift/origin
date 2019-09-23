@@ -93,8 +93,7 @@ type Threshold struct {
 // GetThresholdQuantity returns the expected quantity value for a thresholdValue
 func GetThresholdQuantity(value ThresholdValue, capacity *resource.Quantity) *resource.Quantity {
 	if value.Quantity != nil {
-		res := value.Quantity.DeepCopy()
-		return &res
+		return value.Quantity.Copy()
 	}
 	return resource.NewQuantity(int64(float64(capacity.Value())*float64(value.Percentage)), resource.BinarySI)
 }

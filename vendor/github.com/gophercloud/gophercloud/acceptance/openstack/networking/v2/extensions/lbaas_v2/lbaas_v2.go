@@ -15,8 +15,8 @@ import (
 	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
-const loadbalancerActiveTimeoutSeconds = 600
-const loadbalancerDeleteTimeoutSeconds = 600
+const loadbalancerActiveTimeoutSeconds = 300
+const loadbalancerDeleteTimeoutSeconds = 300
 
 // CreateListener will create a listener for a given load balancer on a random
 // port with a random name. An error will be returned if the listener could not

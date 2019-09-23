@@ -27,7 +27,7 @@ import (
 var setFieldsParser = func() typed.ParseableType {
 	parser, err := typed.NewParser(`types:
 - name: sets
-  map:
+  struct:
     fields:
     - name: list
       type:
@@ -74,16 +74,15 @@ func TestUpdateSet(t *testing.T) {
 				- d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("b")),
 						_P("list", _SV("c")),
 						_P("list", _SV("d")),
 					),
-					"v1",
-					false,
-				),
+					APIVersion: "v1",
+				},
 			},
 		},
 		"apply_update_apply_no_overlap": {
@@ -130,24 +129,22 @@ func TestUpdateSet(t *testing.T) {
 				- d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("aprime")),
 						_P("list", _SV("c")),
 						_P("list", _SV("cprime")),
 					),
-					"v1",
-					false,
-				),
-				"controller": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v1",
+				},
+				"controller": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("b")),
 						_P("list", _SV("d")),
 					),
-					"v1",
-					false,
-				),
+					APIVersion: "v1",
+				},
 			},
 		},
 		"apply_update_apply_no_overlap_and_different_version": {
@@ -194,24 +191,22 @@ func TestUpdateSet(t *testing.T) {
 				- d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("aprime")),
 						_P("list", _SV("c")),
 						_P("list", _SV("cprime")),
 					),
-					"v1",
-					false,
-				),
-				"controller": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v1",
+				},
+				"controller": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("b")),
 						_P("list", _SV("d")),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"apply_update_apply_with_overlap": {
@@ -255,23 +250,21 @@ func TestUpdateSet(t *testing.T) {
 				- d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("b")),
 						_P("list", _SV("c")),
 					),
-					"v1",
-					false,
-				),
-				"controller": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v1",
+				},
+				"controller": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("b")),
 						_P("list", _SV("d")),
 					),
-					"v1",
-					false,
-				),
+					APIVersion: "v1",
+				},
 			},
 		},
 		"apply_update_apply_with_overlap_and_different_version": {
@@ -315,23 +308,21 @@ func TestUpdateSet(t *testing.T) {
 				- d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("b")),
 						_P("list", _SV("c")),
 					),
-					"v1",
-					false,
-				),
-				"controller": fieldpath.NewVersionedSet(
-					_NS(
+					APIVersion: "v1",
+				},
+				"controller": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("b")),
 						_P("list", _SV("d")),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"apply_twice_reorder": {
@@ -367,16 +358,15 @@ func TestUpdateSet(t *testing.T) {
 				- b
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("b")),
 						_P("list", _SV("c")),
 						_P("list", _SV("d")),
 					),
-					"v1",
-					false,
-				),
+					APIVersion: "v1",
+				},
 			},
 		},
 		"apply_update_apply_reorder": {
@@ -423,16 +413,15 @@ func TestUpdateSet(t *testing.T) {
 				- d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("b")),
 						_P("list", _SV("c")),
 						_P("list", _SV("d")),
 					),
-					"v1",
-					false,
-				),
+					APIVersion: "v1",
+				},
 			},
 		},
 		"apply_update_apply_reorder_across_versions": {
@@ -479,16 +468,15 @@ func TestUpdateSet(t *testing.T) {
 				- d
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("b")),
 						_P("list", _SV("c")),
 						_P("list", _SV("d")),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 		"apply_twice_remove": {
@@ -520,14 +508,13 @@ func TestUpdateSet(t *testing.T) {
 				- c
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("c")),
 					),
-					"v1",
-					false,
-				),
+					APIVersion: "v1",
+				},
 			},
 		},
 		"apply_twice_remove_across_versions": {
@@ -561,15 +548,14 @@ func TestUpdateSet(t *testing.T) {
 				- e
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(
+				"default": &fieldpath.VersionedSet{
+					Set: _NS(
 						_P("list", _SV("a")),
 						_P("list", _SV("c")),
 						_P("list", _SV("e")),
 					),
-					"v2",
-					false,
-				),
+					APIVersion: "v2",
+				},
 			},
 		},
 	}

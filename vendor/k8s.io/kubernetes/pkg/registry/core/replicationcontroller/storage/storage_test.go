@@ -30,7 +30,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
 	"k8s.io/apiserver/pkg/registry/rest"
-	etcd3testing "k8s.io/apiserver/pkg/storage/etcd3/testing"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
@@ -41,7 +41,7 @@ const (
 	name      = "foo"
 )
 
-func newStorage(t *testing.T) (ControllerStorage, *etcd3testing.EtcdTestServer) {
+func newStorage(t *testing.T) (ControllerStorage, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
 	restOptions := generic.RESTOptions{
 		StorageConfig:           etcdStorage,
@@ -49,10 +49,7 @@ func newStorage(t *testing.T) (ControllerStorage, *etcd3testing.EtcdTestServer) 
 		DeleteCollectionWorkers: 1,
 		ResourcePrefix:          "replicationcontrollers",
 	}
-	storage, err := NewStorage(restOptions)
-	if err != nil {
-		t.Fatalf("unexpected error from REST storage: %v", err)
-	}
+	storage := NewStorage(restOptions)
 	return storage, server
 }
 
@@ -179,7 +176,7 @@ func TestGenerationNumber(t *testing.T) {
 	}
 
 	// Updates to spec should increment the generation number
-	controller.Spec.Replicas++
+	controller.Spec.Replicas += 1
 	if _, _, err := storage.Controller.Update(ctx, controller.Name, rest.DefaultUpdatedObjectInfo(controller), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, false, &metav1.UpdateOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -193,7 +190,7 @@ func TestGenerationNumber(t *testing.T) {
 	}
 
 	// Updates to status should not increment either spec or status generation numbers
-	controller.Status.Replicas++
+	controller.Status.Replicas += 1
 	if _, _, err := storage.Controller.Update(ctx, controller.Name, rest.DefaultUpdatedObjectInfo(controller), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, false, &metav1.UpdateOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

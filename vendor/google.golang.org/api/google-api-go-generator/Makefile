@@ -8,12 +8,12 @@ GENERATOR=./google-api-go-generator
 # Download all API specifications and rebuild Go bindings.
 # All downloaded files are cached in $TMPDIR for reuse with 'cached' below.
 all: $(GENERATOR)
-	$(GENERATOR) -cache=false -install -api=* -gendir=..
+	$(GENERATOR) -cache=false -install -api=*
 	go test . -v
 
 # Reuse cached API specifications in $TMPDIR and rebuild Go bindings.
 cached: $(GENERATOR)
-	$(GENERATOR) -cache=true -install -api=* -gendir=..
+	$(GENERATOR) -cache=true -install -api=*
 
 # Only rebuild Go bindings, do not modify API specifications.
 # For every existing */*/*-api.json file, */*/*-gen.go will be built.
@@ -23,7 +23,7 @@ local: $(API_JSON:-api.json=-gen.go)
 # Translates otherwise unnamed targets with a -gen.go suffix into the
 # matching input file with a -api.json suffix. $< is the input file.
 %-gen.go: %-api.json $(GENERATOR)
-	$(GENERATOR) -api_json_file=$< -output=$@
+	$(GENERATOR) -api_json_file=$<
 
 # Alias to rebuild and install $(GENERATOR)
 generator: $(GENERATOR)

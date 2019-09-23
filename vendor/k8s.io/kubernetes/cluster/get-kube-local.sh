@@ -107,6 +107,7 @@ function create_cluster {
       --address=0.0.0.0 \
       --kubeconfig=${KUBELET_KUBECONFIG} \
       --pod-manifest-path=/etc/kubernetes/manifests \
+      --allow-privileged=true \
       --cluster-dns=10.0.0.10 \
       --cluster-domain=cluster.local \
       --v=2"

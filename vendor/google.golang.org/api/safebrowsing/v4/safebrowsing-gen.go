@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2018 Google Inc. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,35 +6,13 @@
 
 // Package safebrowsing provides access to the Safe Browsing API.
 //
-// For product documentation, see: https://developers.google.com/safe-browsing/
-//
-// Creating a client
+// See https://developers.google.com/safe-browsing/
 //
 // Usage example:
 //
 //   import "google.golang.org/api/safebrowsing/v4"
 //   ...
-//   ctx := context.Background()
-//   safebrowsingService, err := safebrowsing.NewService(ctx)
-//
-// In this example, Google Application Default Credentials are used for authentication.
-//
-// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
-//
-// Other authentication options
-//
-// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
-//
-//   safebrowsingService, err := safebrowsing.NewService(ctx, option.WithAPIKey("AIza..."))
-//
-// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
-//
-//   config := &oauth2.Config{...}
-//   // ...
-//   token, err := config.Exchange(ctx, ...)
-//   safebrowsingService, err := safebrowsing.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
-//
-// See https://godoc.org/google.golang.org/api/option/ for details on options.
+//   safebrowsingService, err := safebrowsing.New(oauthHttpClient)
 package safebrowsing // import "google.golang.org/api/safebrowsing/v4"
 
 import (
@@ -51,8 +29,6 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
-	option "google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -74,27 +50,6 @@ const apiName = "safebrowsing"
 const apiVersion = "v4"
 const basePath = "https://safebrowsing.googleapis.com/"
 
-// NewService creates a new Service.
-func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
-	client, endpoint, err := htransport.NewClient(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	s, err := New(client)
-	if err != nil {
-		return nil, err
-	}
-	if endpoint != "" {
-		s.BasePath = endpoint
-	}
-	return s, nil
-}
-
-// New creates a new Service. It uses the provided http.Client for requests.
-//
-// Deprecated: please use NewService instead.
-// To provide a custom HTTP client, use option.WithHTTPClient.
-// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -661,8 +616,6 @@ type ListUpdateRequest struct {
 	// will not be shown for patterns from this list.
 	//   "SUSPICIOUS" - Entities that are suspected to present a threat.
 	//   "TRICK_TO_BILL" - Trick-to-bill threat list.
-	//   "HIGH_CONFIDENCE_ALLOWLIST" - Safe list to ship hashes of known
-	// safe URL expressions.
 	ThreatType string `json:"threatType,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Constraints") to
@@ -783,8 +736,6 @@ type ListUpdateResponse struct {
 	// will not be shown for patterns from this list.
 	//   "SUSPICIOUS" - Entities that are suspected to present a threat.
 	//   "TRICK_TO_BILL" - Trick-to-bill threat list.
-	//   "HIGH_CONFIDENCE_ALLOWLIST" - Safe list to ship hashes of known
-	// safe URL expressions.
 	ThreatType string `json:"threatType,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Additions") to
@@ -1155,8 +1106,6 @@ type ThreatHit struct {
 	// will not be shown for patterns from this list.
 	//   "SUSPICIOUS" - Entities that are suspected to present a threat.
 	//   "TRICK_TO_BILL" - Trick-to-bill threat list.
-	//   "HIGH_CONFIDENCE_ALLOWLIST" - Safe list to ship hashes of known
-	// safe URL expressions.
 	ThreatType string `json:"threatType,omitempty"`
 
 	// UserInfo: Details about the user that encountered the threat.
@@ -1245,8 +1194,6 @@ type ThreatInfo struct {
 	// will not be shown for patterns from this list.
 	//   "SUSPICIOUS" - Entities that are suspected to present a threat.
 	//   "TRICK_TO_BILL" - Trick-to-bill threat list.
-	//   "HIGH_CONFIDENCE_ALLOWLIST" - Safe list to ship hashes of known
-	// safe URL expressions.
 	ThreatTypes []string `json:"threatTypes,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "PlatformTypes") to
@@ -1331,8 +1278,6 @@ type ThreatListDescriptor struct {
 	// will not be shown for patterns from this list.
 	//   "SUSPICIOUS" - Entities that are suspected to present a threat.
 	//   "TRICK_TO_BILL" - Trick-to-bill threat list.
-	//   "HIGH_CONFIDENCE_ALLOWLIST" - Safe list to ship hashes of known
-	// safe URL expressions.
 	ThreatType string `json:"threatType,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "PlatformType") to
@@ -1425,8 +1370,6 @@ type ThreatMatch struct {
 	// will not be shown for patterns from this list.
 	//   "SUSPICIOUS" - Entities that are suspected to present a threat.
 	//   "TRICK_TO_BILL" - Trick-to-bill threat list.
-	//   "HIGH_CONFIDENCE_ALLOWLIST" - Safe list to ship hashes of known
-	// safe URL expressions.
 	ThreatType string `json:"threatType,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "CacheDuration") to

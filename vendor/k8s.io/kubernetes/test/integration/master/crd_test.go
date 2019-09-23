@@ -24,7 +24,6 @@ import (
 
 	"github.com/go-openapi/spec"
 
-	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -37,20 +36,15 @@ import (
 	kubeapiservertesting "k8s.io/kubernetes/cmd/kube-apiserver/app/testing"
 	"k8s.io/kubernetes/test/integration/etcd"
 	"k8s.io/kubernetes/test/integration/framework"
-	utilpointer "k8s.io/utils/pointer"
 )
 
 func TestCRDShadowGroup(t *testing.T) {
 	result := kubeapiservertesting.StartTestServerOrDie(t, nil, nil, framework.SharedEtcd())
 	defer result.TearDownFn()
 
-	testNamespace := "test-crd-shadow-group"
 	kubeclient, err := kubernetes.NewForConfig(result.ClientConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
-	}
-	if _, err := kubeclient.CoreV1().Namespaces().Create((&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})); err != nil {
-		t.Fatal(err)
 	}
 
 	apiextensionsclient, err := apiextensionsclientset.NewForConfig(result.ClientConfig)
@@ -59,8 +53,8 @@ func TestCRDShadowGroup(t *testing.T) {
 	}
 
 	t.Logf("Creating a NetworkPolicy")
-	nwPolicy, err := kubeclient.NetworkingV1().NetworkPolicies(testNamespace).Create(&networkingv1.NetworkPolicy{
-		ObjectMeta: metav1.ObjectMeta{Name: "abc", Namespace: testNamespace},
+	nwPolicy, err := kubeclient.NetworkingV1().NetworkPolicies("default").Create(&networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{Name: "abc", Namespace: metav1.NamespaceDefault},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			Ingress:     []networkingv1.NetworkPolicyIngressRule{},
@@ -106,15 +100,6 @@ func TestCRD(t *testing.T) {
 	result := kubeapiservertesting.StartTestServerOrDie(t, nil, nil, framework.SharedEtcd())
 	defer result.TearDownFn()
 
-	testNamespace := "test-crd"
-	kubeclient, err := kubernetes.NewForConfig(result.ClientConfig)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if _, err := kubeclient.CoreV1().Namespaces().Create((&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})); err != nil {
-		t.Fatal(err)
-	}
-
 	apiextensionsclient, err := apiextensionsclientset.NewForConfig(result.ClientConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -143,14 +128,14 @@ func TestCRD(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	fooResource := schema.GroupVersionResource{Group: "cr.bar.com", Version: "v1", Resource: "foos"}
-	_, err = dynamicClient.Resource(fooResource).Namespace(testNamespace).List(metav1.ListOptions{})
+	_, err = dynamicClient.Resource(fooResource).Namespace("default").List(metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("Failed to list foos.cr.bar.com instances: %v", err)
 	}
 }
 
 func TestCRDOpenAPI(t *testing.T) {
-	result := kubeapiservertesting.StartTestServerOrDie(t, nil, nil, framework.SharedEtcd())
+	result := kubeapiservertesting.StartTestServerOrDie(t, nil, []string{"--feature-gates=CustomResourcePublishOpenAPI=true"}, framework.SharedEtcd())
 	defer result.TearDownFn()
 	kubeclient, err := kubernetes.NewForConfig(result.ClientConfig)
 	if err != nil {
@@ -173,10 +158,8 @@ func TestCRDOpenAPI(t *testing.T) {
 				Plural: "foos",
 				Kind:   "Foo",
 			},
-			PreserveUnknownFields: utilpointer.BoolPtr(false),
 			Validation: &apiextensionsv1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &apiextensionsv1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]apiextensionsv1beta1.JSONSchemaProps{
 						"foo": {Type: "string"},
 					},

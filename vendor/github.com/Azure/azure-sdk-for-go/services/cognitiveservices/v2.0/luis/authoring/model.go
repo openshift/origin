@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -37,22 +36,13 @@ func NewModelClient(endpoint string) ModelClient {
 	return ModelClient{New(endpoint)}
 }
 
-// AddClosedList adds a list entity model to a version of the application.
+// AddClosedList adds a closed list model to the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// closedListModelCreateObject - a model containing the name and words for the new list entity extractor.
+// closedListModelCreateObject - a model containing the name and words for the new closed list entity
+// extractor.
 func (client ModelClient) AddClosedList(ctx context.Context, appID uuid.UUID, versionID string, closedListModelCreateObject ClosedListModelCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddClosedList")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddClosedListPreparer(ctx, appID, versionID, closedListModelCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddClosedList", nil, "Failure preparing request")
@@ -97,8 +87,8 @@ func (client ModelClient) AddClosedListPreparer(ctx context.Context, appID uuid.
 // AddClosedListSender sends the AddClosedList request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddClosedListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddClosedListResponder handles the response to the AddClosedList request. The method always
@@ -114,22 +104,12 @@ func (client ModelClient) AddClosedListResponder(resp *http.Response) (result UU
 	return
 }
 
-// AddCompositeEntity adds a composite entity extractor to a version of the application.
+// AddCompositeEntity adds a composite entity extractor to the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // compositeModelCreateObject - a model containing the name and children of the new entity extractor.
 func (client ModelClient) AddCompositeEntity(ctx context.Context, appID uuid.UUID, versionID string, compositeModelCreateObject CompositeEntityModel) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddCompositeEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddCompositeEntityPreparer(ctx, appID, versionID, compositeModelCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddCompositeEntity", nil, "Failure preparing request")
@@ -174,8 +154,8 @@ func (client ModelClient) AddCompositeEntityPreparer(ctx context.Context, appID 
 // AddCompositeEntitySender sends the AddCompositeEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddCompositeEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddCompositeEntityResponder handles the response to the AddCompositeEntity request. The method always
@@ -191,24 +171,13 @@ func (client ModelClient) AddCompositeEntityResponder(resp *http.Response) (resu
 	return
 }
 
-// AddCompositeEntityChild creates a single child in an existing composite entity model in a version of the
-// application.
+// AddCompositeEntityChild creates a single child in an existing composite entity model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // cEntityID - the composite entity extractor ID.
 // compositeChildModelCreateObject - a model object containing the name of the new composite child model.
 func (client ModelClient) AddCompositeEntityChild(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, compositeChildModelCreateObject CompositeChildModelCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddCompositeEntityChild")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddCompositeEntityChildPreparer(ctx, appID, versionID, cEntityID, compositeChildModelCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddCompositeEntityChild", nil, "Failure preparing request")
@@ -254,8 +223,8 @@ func (client ModelClient) AddCompositeEntityChildPreparer(ctx context.Context, a
 // AddCompositeEntityChildSender sends the AddCompositeEntityChild request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddCompositeEntityChildSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddCompositeEntityChildResponder handles the response to the AddCompositeEntityChild request. The method always
@@ -271,23 +240,12 @@ func (client ModelClient) AddCompositeEntityChildResponder(resp *http.Response) 
 	return
 }
 
-// AddCustomPrebuiltDomain adds a customizable prebuilt domain along with all of its intent and entity models in a
-// version of the application.
+// AddCustomPrebuiltDomain adds a customizable prebuilt domain along with all of its models to this application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // prebuiltDomainObject - a prebuilt domain create object containing the name of the domain.
 func (client ModelClient) AddCustomPrebuiltDomain(ctx context.Context, appID uuid.UUID, versionID string, prebuiltDomainObject PrebuiltDomainCreateBaseObject) (result ListUUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddCustomPrebuiltDomain")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddCustomPrebuiltDomainPreparer(ctx, appID, versionID, prebuiltDomainObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddCustomPrebuiltDomain", nil, "Failure preparing request")
@@ -332,8 +290,8 @@ func (client ModelClient) AddCustomPrebuiltDomainPreparer(ctx context.Context, a
 // AddCustomPrebuiltDomainSender sends the AddCustomPrebuiltDomain request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddCustomPrebuiltDomainSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddCustomPrebuiltDomainResponder handles the response to the AddCustomPrebuiltDomain request. The method always
@@ -349,23 +307,13 @@ func (client ModelClient) AddCustomPrebuiltDomainResponder(resp *http.Response) 
 	return
 }
 
-// AddCustomPrebuiltEntity adds a prebuilt entity model to a version of the application.
+// AddCustomPrebuiltEntity adds a custom prebuilt entity model to the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// prebuiltDomainModelCreateObject - a model object containing the name of the prebuilt entity and the name of
-// the domain to which this model belongs.
+// prebuiltDomainModelCreateObject - a model object containing the name of the custom prebuilt entity and the
+// name of the domain to which this model belongs.
 func (client ModelClient) AddCustomPrebuiltEntity(ctx context.Context, appID uuid.UUID, versionID string, prebuiltDomainModelCreateObject PrebuiltDomainModelCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddCustomPrebuiltEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddCustomPrebuiltEntityPreparer(ctx, appID, versionID, prebuiltDomainModelCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddCustomPrebuiltEntity", nil, "Failure preparing request")
@@ -410,8 +358,8 @@ func (client ModelClient) AddCustomPrebuiltEntityPreparer(ctx context.Context, a
 // AddCustomPrebuiltEntitySender sends the AddCustomPrebuiltEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddCustomPrebuiltEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddCustomPrebuiltEntityResponder handles the response to the AddCustomPrebuiltEntity request. The method always
@@ -427,23 +375,13 @@ func (client ModelClient) AddCustomPrebuiltEntityResponder(resp *http.Response) 
 	return
 }
 
-// AddCustomPrebuiltIntent adds a customizable prebuilt intent model to a version of the application.
+// AddCustomPrebuiltIntent adds a custom prebuilt intent model to the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// prebuiltDomainModelCreateObject - a model object containing the name of the customizable prebuilt intent and
-// the name of the domain to which this model belongs.
+// prebuiltDomainModelCreateObject - a model object containing the name of the custom prebuilt intent and the
+// name of the domain to which this model belongs.
 func (client ModelClient) AddCustomPrebuiltIntent(ctx context.Context, appID uuid.UUID, versionID string, prebuiltDomainModelCreateObject PrebuiltDomainModelCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddCustomPrebuiltIntent")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddCustomPrebuiltIntentPreparer(ctx, appID, versionID, prebuiltDomainModelCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddCustomPrebuiltIntent", nil, "Failure preparing request")
@@ -488,8 +426,8 @@ func (client ModelClient) AddCustomPrebuiltIntentPreparer(ctx context.Context, a
 // AddCustomPrebuiltIntentSender sends the AddCustomPrebuiltIntent request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddCustomPrebuiltIntentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddCustomPrebuiltIntentResponder handles the response to the AddCustomPrebuiltIntent request. The method always
@@ -505,22 +443,12 @@ func (client ModelClient) AddCustomPrebuiltIntentResponder(resp *http.Response) 
 	return
 }
 
-// AddEntity adds a simple entity extractor to a version of the application.
+// AddEntity adds an entity extractor to the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// modelCreateObject - a model object containing the name for the new simple entity extractor.
+// modelCreateObject - a model object containing the name for the new entity extractor.
 func (client ModelClient) AddEntity(ctx context.Context, appID uuid.UUID, versionID string, modelCreateObject ModelCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddEntityPreparer(ctx, appID, versionID, modelCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddEntity", nil, "Failure preparing request")
@@ -565,8 +493,8 @@ func (client ModelClient) AddEntityPreparer(ctx context.Context, appID uuid.UUID
 // AddEntitySender sends the AddEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddEntityResponder handles the response to the AddEntity request. The method always
@@ -589,16 +517,6 @@ func (client ModelClient) AddEntityResponder(resp *http.Response) (result UUID, 
 // entityID - the Pattern.Any entity extractor ID.
 // item - the new explicit list item.
 func (client ModelClient) AddExplicitListItem(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, item ExplicitListItemCreateObject) (result Int32, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddExplicitListItem")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddExplicitListItemPreparer(ctx, appID, versionID, entityID, item)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddExplicitListItem", nil, "Failure preparing request")
@@ -644,8 +562,8 @@ func (client ModelClient) AddExplicitListItemPreparer(ctx context.Context, appID
 // AddExplicitListItemSender sends the AddExplicitListItem request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddExplicitListItemSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddExplicitListItemResponder handles the response to the AddExplicitListItem request. The method always
@@ -661,22 +579,12 @@ func (client ModelClient) AddExplicitListItemResponder(resp *http.Response) (res
 	return
 }
 
-// AddHierarchicalEntity adds a hierarchical entity extractor to a version of the application.
+// AddHierarchicalEntity adds a hierarchical entity extractor to the application version.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // hierarchicalModelCreateObject - a model containing the name and children of the new entity extractor.
 func (client ModelClient) AddHierarchicalEntity(ctx context.Context, appID uuid.UUID, versionID string, hierarchicalModelCreateObject HierarchicalEntityModel) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddHierarchicalEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddHierarchicalEntityPreparer(ctx, appID, versionID, hierarchicalModelCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddHierarchicalEntity", nil, "Failure preparing request")
@@ -721,8 +629,8 @@ func (client ModelClient) AddHierarchicalEntityPreparer(ctx context.Context, app
 // AddHierarchicalEntitySender sends the AddHierarchicalEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddHierarchicalEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddHierarchicalEntityResponder handles the response to the AddHierarchicalEntity request. The method always
@@ -738,24 +646,13 @@ func (client ModelClient) AddHierarchicalEntityResponder(resp *http.Response) (r
 	return
 }
 
-// AddHierarchicalEntityChild creates a single child in an existing hierarchical entity model in a version of the
-// application.
+// AddHierarchicalEntityChild creates a single child in an existing hierarchical entity model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // hEntityID - the hierarchical entity extractor ID.
 // hierarchicalChildModelCreateObject - a model object containing the name of the new hierarchical child model.
 func (client ModelClient) AddHierarchicalEntityChild(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hierarchicalChildModelCreateObject HierarchicalChildModelCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddHierarchicalEntityChild")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddHierarchicalEntityChildPreparer(ctx, appID, versionID, hEntityID, hierarchicalChildModelCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddHierarchicalEntityChild", nil, "Failure preparing request")
@@ -801,8 +698,8 @@ func (client ModelClient) AddHierarchicalEntityChildPreparer(ctx context.Context
 // AddHierarchicalEntityChildSender sends the AddHierarchicalEntityChild request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddHierarchicalEntityChildSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddHierarchicalEntityChildResponder handles the response to the AddHierarchicalEntityChild request. The method always
@@ -818,22 +715,12 @@ func (client ModelClient) AddHierarchicalEntityChildResponder(resp *http.Respons
 	return
 }
 
-// AddIntent adds an intent to a version of the application.
+// AddIntent adds an intent classifier to the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// intentCreateObject - a model object containing the name of the new intent.
+// intentCreateObject - a model object containing the name of the new intent classifier.
 func (client ModelClient) AddIntent(ctx context.Context, appID uuid.UUID, versionID string, intentCreateObject ModelCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddIntent")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddIntentPreparer(ctx, appID, versionID, intentCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddIntent", nil, "Failure preparing request")
@@ -878,8 +765,8 @@ func (client ModelClient) AddIntentPreparer(ctx context.Context, appID uuid.UUID
 // AddIntentSender sends the AddIntent request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddIntentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddIntentResponder handles the response to the AddIntent request. The method always
@@ -895,22 +782,12 @@ func (client ModelClient) AddIntentResponder(resp *http.Response) (result UUID, 
 	return
 }
 
-// AddPrebuilt adds a list of prebuilt entities to a version of the application.
+// AddPrebuilt adds a list of prebuilt entity extractors to the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // prebuiltExtractorNames - an array of prebuilt entity extractor names.
 func (client ModelClient) AddPrebuilt(ctx context.Context, appID uuid.UUID, versionID string, prebuiltExtractorNames []string) (result ListPrebuiltEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddPrebuilt")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: prebuiltExtractorNames,
 			Constraints: []validation.Constraint{{Target: "prebuiltExtractorNames", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -961,8 +838,8 @@ func (client ModelClient) AddPrebuiltPreparer(ctx context.Context, appID uuid.UU
 // AddPrebuiltSender sends the AddPrebuilt request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddPrebuiltSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddPrebuiltResponder handles the response to the AddPrebuilt request. The method always
@@ -978,23 +855,13 @@ func (client ModelClient) AddPrebuiltResponder(resp *http.Response) (result List
 	return
 }
 
-// AddSubList adds a sublist to an existing list entity in a version of the application.
+// AddSubList adds a list to an existing closed list.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// clEntityID - the list entity extractor ID.
+// clEntityID - the closed list entity extractor ID.
 // wordListCreateObject - words list.
-func (client ModelClient) AddSubList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, wordListCreateObject WordListObject) (result Int64, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.AddSubList")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client ModelClient) AddSubList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, wordListCreateObject WordListObject) (result Int32, err error) {
 	req, err := client.AddSubListPreparer(ctx, appID, versionID, clEntityID, wordListCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "AddSubList", nil, "Failure preparing request")
@@ -1040,13 +907,13 @@ func (client ModelClient) AddSubListPreparer(ctx context.Context, appID uuid.UUI
 // AddSubListSender sends the AddSubList request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) AddSubListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddSubListResponder handles the response to the AddSubList request. The method always
 // closes the http.Response Body.
-func (client ModelClient) AddSubListResponder(resp *http.Response) (result Int64, err error) {
+func (client ModelClient) AddSubListResponder(resp *http.Response) (result Int32, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -1064,16 +931,6 @@ func (client ModelClient) AddSubListResponder(resp *http.Response) (result Int64
 // entityID - the entity model ID.
 // entityRoleCreateObject - an entity role object containing the name of role.
 func (client ModelClient) CreateClosedListEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreateClosedListEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateClosedListEntityRolePreparer(ctx, appID, versionID, entityID, entityRoleCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreateClosedListEntityRole", nil, "Failure preparing request")
@@ -1119,8 +976,8 @@ func (client ModelClient) CreateClosedListEntityRolePreparer(ctx context.Context
 // CreateClosedListEntityRoleSender sends the CreateClosedListEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreateClosedListEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateClosedListEntityRoleResponder handles the response to the CreateClosedListEntityRole request. The method always
@@ -1143,16 +1000,6 @@ func (client ModelClient) CreateClosedListEntityRoleResponder(resp *http.Respons
 // cEntityID - the composite entity extractor ID.
 // entityRoleCreateObject - an entity role object containing the name of role.
 func (client ModelClient) CreateCompositeEntityRole(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreateCompositeEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateCompositeEntityRolePreparer(ctx, appID, versionID, cEntityID, entityRoleCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreateCompositeEntityRole", nil, "Failure preparing request")
@@ -1198,8 +1045,8 @@ func (client ModelClient) CreateCompositeEntityRolePreparer(ctx context.Context,
 // CreateCompositeEntityRoleSender sends the CreateCompositeEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreateCompositeEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateCompositeEntityRoleResponder handles the response to the CreateCompositeEntityRole request. The method always
@@ -1222,16 +1069,6 @@ func (client ModelClient) CreateCompositeEntityRoleResponder(resp *http.Response
 // entityID - the entity model ID.
 // entityRoleCreateObject - an entity role object containing the name of role.
 func (client ModelClient) CreateCustomPrebuiltEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreateCustomPrebuiltEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateCustomPrebuiltEntityRolePreparer(ctx, appID, versionID, entityID, entityRoleCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreateCustomPrebuiltEntityRole", nil, "Failure preparing request")
@@ -1277,8 +1114,8 @@ func (client ModelClient) CreateCustomPrebuiltEntityRolePreparer(ctx context.Con
 // CreateCustomPrebuiltEntityRoleSender sends the CreateCustomPrebuiltEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreateCustomPrebuiltEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateCustomPrebuiltEntityRoleResponder handles the response to the CreateCustomPrebuiltEntityRole request. The method always
@@ -1301,16 +1138,6 @@ func (client ModelClient) CreateCustomPrebuiltEntityRoleResponder(resp *http.Res
 // entityID - the entity model ID.
 // entityRoleCreateObject - an entity role object containing the name of role.
 func (client ModelClient) CreateEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreateEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateEntityRolePreparer(ctx, appID, versionID, entityID, entityRoleCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreateEntityRole", nil, "Failure preparing request")
@@ -1356,8 +1183,8 @@ func (client ModelClient) CreateEntityRolePreparer(ctx context.Context, appID uu
 // CreateEntityRoleSender sends the CreateEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreateEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateEntityRoleResponder handles the response to the CreateEntityRole request. The method always
@@ -1380,16 +1207,6 @@ func (client ModelClient) CreateEntityRoleResponder(resp *http.Response) (result
 // hEntityID - the hierarchical entity extractor ID.
 // entityRoleCreateObject - an entity role object containing the name of role.
 func (client ModelClient) CreateHierarchicalEntityRole(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreateHierarchicalEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateHierarchicalEntityRolePreparer(ctx, appID, versionID, hEntityID, entityRoleCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreateHierarchicalEntityRole", nil, "Failure preparing request")
@@ -1435,8 +1252,8 @@ func (client ModelClient) CreateHierarchicalEntityRolePreparer(ctx context.Conte
 // CreateHierarchicalEntityRoleSender sends the CreateHierarchicalEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreateHierarchicalEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateHierarchicalEntityRoleResponder handles the response to the CreateHierarchicalEntityRole request. The method always
@@ -1459,16 +1276,6 @@ func (client ModelClient) CreateHierarchicalEntityRoleResponder(resp *http.Respo
 // extractorCreateObject - a model object containing the name and explicit list for the new Pattern.Any entity
 // extractor.
 func (client ModelClient) CreatePatternAnyEntityModel(ctx context.Context, appID uuid.UUID, versionID string, extractorCreateObject PatternAnyModelCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreatePatternAnyEntityModel")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePatternAnyEntityModelPreparer(ctx, appID, versionID, extractorCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreatePatternAnyEntityModel", nil, "Failure preparing request")
@@ -1513,8 +1320,8 @@ func (client ModelClient) CreatePatternAnyEntityModelPreparer(ctx context.Contex
 // CreatePatternAnyEntityModelSender sends the CreatePatternAnyEntityModel request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreatePatternAnyEntityModelSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreatePatternAnyEntityModelResponder handles the response to the CreatePatternAnyEntityModel request. The method always
@@ -1537,16 +1344,6 @@ func (client ModelClient) CreatePatternAnyEntityModelResponder(resp *http.Respon
 // entityID - the entity model ID.
 // entityRoleCreateObject - an entity role object containing the name of role.
 func (client ModelClient) CreatePatternAnyEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreatePatternAnyEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePatternAnyEntityRolePreparer(ctx, appID, versionID, entityID, entityRoleCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreatePatternAnyEntityRole", nil, "Failure preparing request")
@@ -1592,8 +1389,8 @@ func (client ModelClient) CreatePatternAnyEntityRolePreparer(ctx context.Context
 // CreatePatternAnyEntityRoleSender sends the CreatePatternAnyEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreatePatternAnyEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreatePatternAnyEntityRoleResponder handles the response to the CreatePatternAnyEntityRole request. The method always
@@ -1616,16 +1413,6 @@ func (client ModelClient) CreatePatternAnyEntityRoleResponder(resp *http.Respons
 // entityID - the entity model ID.
 // entityRoleCreateObject - an entity role object containing the name of role.
 func (client ModelClient) CreatePrebuiltEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreatePrebuiltEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePrebuiltEntityRolePreparer(ctx, appID, versionID, entityID, entityRoleCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreatePrebuiltEntityRole", nil, "Failure preparing request")
@@ -1671,8 +1458,8 @@ func (client ModelClient) CreatePrebuiltEntityRolePreparer(ctx context.Context, 
 // CreatePrebuiltEntityRoleSender sends the CreatePrebuiltEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreatePrebuiltEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreatePrebuiltEntityRoleResponder handles the response to the CreatePrebuiltEntityRole request. The method always
@@ -1692,19 +1479,9 @@ func (client ModelClient) CreatePrebuiltEntityRoleResponder(resp *http.Response)
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// regexEntityExtractorCreateObj - a model object containing the name and regex pattern for the new regular
-// expression entity extractor.
+// regexEntityExtractorCreateObj - a model object containing the name and regex pattern for the new regex
+// entity extractor.
 func (client ModelClient) CreateRegexEntityModel(ctx context.Context, appID uuid.UUID, versionID string, regexEntityExtractorCreateObj RegexModelCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreateRegexEntityModel")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateRegexEntityModelPreparer(ctx, appID, versionID, regexEntityExtractorCreateObj)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreateRegexEntityModel", nil, "Failure preparing request")
@@ -1749,8 +1526,8 @@ func (client ModelClient) CreateRegexEntityModelPreparer(ctx context.Context, ap
 // CreateRegexEntityModelSender sends the CreateRegexEntityModel request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreateRegexEntityModelSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateRegexEntityModelResponder handles the response to the CreateRegexEntityModel request. The method always
@@ -1773,16 +1550,6 @@ func (client ModelClient) CreateRegexEntityModelResponder(resp *http.Response) (
 // entityID - the entity model ID.
 // entityRoleCreateObject - an entity role object containing the name of role.
 func (client ModelClient) CreateRegexEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (result UUID, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.CreateRegexEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateRegexEntityRolePreparer(ctx, appID, versionID, entityID, entityRoleCreateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "CreateRegexEntityRole", nil, "Failure preparing request")
@@ -1828,8 +1595,8 @@ func (client ModelClient) CreateRegexEntityRolePreparer(ctx context.Context, app
 // CreateRegexEntityRoleSender sends the CreateRegexEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) CreateRegexEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateRegexEntityRoleResponder handles the response to the CreateRegexEntityRole request. The method always
@@ -1845,22 +1612,12 @@ func (client ModelClient) CreateRegexEntityRoleResponder(resp *http.Response) (r
 	return
 }
 
-// DeleteClosedList deletes a list entity model from a version of the application.
+// DeleteClosedList deletes a closed list model from the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// clEntityID - the list entity model ID.
+// clEntityID - the closed list model ID.
 func (client ModelClient) DeleteClosedList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteClosedList")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteClosedListPreparer(ctx, appID, versionID, clEntityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteClosedList", nil, "Failure preparing request")
@@ -1904,8 +1661,8 @@ func (client ModelClient) DeleteClosedListPreparer(ctx context.Context, appID uu
 // DeleteClosedListSender sends the DeleteClosedList request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteClosedListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteClosedListResponder handles the response to the DeleteClosedList request. The method always
@@ -1928,16 +1685,6 @@ func (client ModelClient) DeleteClosedListResponder(resp *http.Response) (result
 // entityID - the entity ID.
 // roleID - the entity role Id.
 func (client ModelClient) DeleteClosedListEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteClosedListEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteClosedListEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteClosedListEntityRole", nil, "Failure preparing request")
@@ -1982,8 +1729,8 @@ func (client ModelClient) DeleteClosedListEntityRolePreparer(ctx context.Context
 // DeleteClosedListEntityRoleSender sends the DeleteClosedListEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteClosedListEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteClosedListEntityRoleResponder handles the response to the DeleteClosedListEntityRole request. The method always
@@ -1999,22 +1746,12 @@ func (client ModelClient) DeleteClosedListEntityRoleResponder(resp *http.Respons
 	return
 }
 
-// DeleteCompositeEntity deletes a composite entity from a version of the application.
+// DeleteCompositeEntity deletes a composite entity extractor from the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // cEntityID - the composite entity extractor ID.
 func (client ModelClient) DeleteCompositeEntity(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteCompositeEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteCompositeEntityPreparer(ctx, appID, versionID, cEntityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteCompositeEntity", nil, "Failure preparing request")
@@ -2058,8 +1795,8 @@ func (client ModelClient) DeleteCompositeEntityPreparer(ctx context.Context, app
 // DeleteCompositeEntitySender sends the DeleteCompositeEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteCompositeEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteCompositeEntityResponder handles the response to the DeleteCompositeEntity request. The method always
@@ -2075,23 +1812,13 @@ func (client ModelClient) DeleteCompositeEntityResponder(resp *http.Response) (r
 	return
 }
 
-// DeleteCompositeEntityChild deletes a composite entity extractor child from a version of the application.
+// DeleteCompositeEntityChild deletes a composite entity extractor child from the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // cEntityID - the composite entity extractor ID.
 // cChildID - the hierarchical entity extractor child ID.
 func (client ModelClient) DeleteCompositeEntityChild(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, cChildID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteCompositeEntityChild")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteCompositeEntityChildPreparer(ctx, appID, versionID, cEntityID, cChildID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteCompositeEntityChild", nil, "Failure preparing request")
@@ -2136,8 +1863,8 @@ func (client ModelClient) DeleteCompositeEntityChildPreparer(ctx context.Context
 // DeleteCompositeEntityChildSender sends the DeleteCompositeEntityChild request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteCompositeEntityChildSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteCompositeEntityChildResponder handles the response to the DeleteCompositeEntityChild request. The method always
@@ -2160,16 +1887,6 @@ func (client ModelClient) DeleteCompositeEntityChildResponder(resp *http.Respons
 // cEntityID - the composite entity extractor ID.
 // roleID - the entity role Id.
 func (client ModelClient) DeleteCompositeEntityRole(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, roleID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteCompositeEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteCompositeEntityRolePreparer(ctx, appID, versionID, cEntityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteCompositeEntityRole", nil, "Failure preparing request")
@@ -2214,8 +1931,8 @@ func (client ModelClient) DeleteCompositeEntityRolePreparer(ctx context.Context,
 // DeleteCompositeEntityRoleSender sends the DeleteCompositeEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteCompositeEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteCompositeEntityRoleResponder handles the response to the DeleteCompositeEntityRole request. The method always
@@ -2238,16 +1955,6 @@ func (client ModelClient) DeleteCompositeEntityRoleResponder(resp *http.Response
 // entityID - the entity ID.
 // roleID - the entity role Id.
 func (client ModelClient) DeleteCustomEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteCustomEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteCustomEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteCustomEntityRole", nil, "Failure preparing request")
@@ -2292,8 +1999,8 @@ func (client ModelClient) DeleteCustomEntityRolePreparer(ctx context.Context, ap
 // DeleteCustomEntityRoleSender sends the DeleteCustomEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteCustomEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteCustomEntityRoleResponder handles the response to the DeleteCustomEntityRole request. The method always
@@ -2309,22 +2016,12 @@ func (client ModelClient) DeleteCustomEntityRoleResponder(resp *http.Response) (
 	return
 }
 
-// DeleteCustomPrebuiltDomain deletes a prebuilt domain's models in a version of the application.
+// DeleteCustomPrebuiltDomain deletes a prebuilt domain's models from the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // domainName - domain name.
 func (client ModelClient) DeleteCustomPrebuiltDomain(ctx context.Context, appID uuid.UUID, versionID string, domainName string) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteCustomPrebuiltDomain")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteCustomPrebuiltDomainPreparer(ctx, appID, versionID, domainName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteCustomPrebuiltDomain", nil, "Failure preparing request")
@@ -2368,8 +2065,8 @@ func (client ModelClient) DeleteCustomPrebuiltDomainPreparer(ctx context.Context
 // DeleteCustomPrebuiltDomainSender sends the DeleteCustomPrebuiltDomain request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteCustomPrebuiltDomainSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteCustomPrebuiltDomainResponder handles the response to the DeleteCustomPrebuiltDomain request. The method always
@@ -2385,22 +2082,12 @@ func (client ModelClient) DeleteCustomPrebuiltDomainResponder(resp *http.Respons
 	return
 }
 
-// DeleteEntity deletes an entity from a version of the application.
+// DeleteEntity deletes an entity extractor from the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // entityID - the entity extractor ID.
 func (client ModelClient) DeleteEntity(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteEntityPreparer(ctx, appID, versionID, entityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteEntity", nil, "Failure preparing request")
@@ -2444,8 +2131,8 @@ func (client ModelClient) DeleteEntityPreparer(ctx context.Context, appID uuid.U
 // DeleteEntitySender sends the DeleteEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteEntityResponder handles the response to the DeleteEntity request. The method always
@@ -2468,16 +2155,6 @@ func (client ModelClient) DeleteEntityResponder(resp *http.Response) (result Ope
 // entityID - the entity ID.
 // roleID - the entity role Id.
 func (client ModelClient) DeleteEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteEntityRole", nil, "Failure preparing request")
@@ -2522,8 +2199,8 @@ func (client ModelClient) DeleteEntityRolePreparer(ctx context.Context, appID uu
 // DeleteEntityRoleSender sends the DeleteEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteEntityRoleResponder handles the response to the DeleteEntityRole request. The method always
@@ -2546,16 +2223,6 @@ func (client ModelClient) DeleteEntityRoleResponder(resp *http.Response) (result
 // entityID - the pattern.any entity id.
 // itemID - the explicit list item which will be deleted.
 func (client ModelClient) DeleteExplicitListItem(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, itemID int64) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteExplicitListItem")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteExplicitListItemPreparer(ctx, appID, versionID, entityID, itemID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteExplicitListItem", nil, "Failure preparing request")
@@ -2600,8 +2267,8 @@ func (client ModelClient) DeleteExplicitListItemPreparer(ctx context.Context, ap
 // DeleteExplicitListItemSender sends the DeleteExplicitListItem request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteExplicitListItemSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteExplicitListItemResponder handles the response to the DeleteExplicitListItem request. The method always
@@ -2617,22 +2284,12 @@ func (client ModelClient) DeleteExplicitListItemResponder(resp *http.Response) (
 	return
 }
 
-// DeleteHierarchicalEntity deletes a hierarchical entity from a version of the application.
+// DeleteHierarchicalEntity deletes a hierarchical entity extractor from the application version.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // hEntityID - the hierarchical entity extractor ID.
 func (client ModelClient) DeleteHierarchicalEntity(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteHierarchicalEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteHierarchicalEntityPreparer(ctx, appID, versionID, hEntityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteHierarchicalEntity", nil, "Failure preparing request")
@@ -2676,8 +2333,8 @@ func (client ModelClient) DeleteHierarchicalEntityPreparer(ctx context.Context, 
 // DeleteHierarchicalEntitySender sends the DeleteHierarchicalEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteHierarchicalEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteHierarchicalEntityResponder handles the response to the DeleteHierarchicalEntity request. The method always
@@ -2693,23 +2350,13 @@ func (client ModelClient) DeleteHierarchicalEntityResponder(resp *http.Response)
 	return
 }
 
-// DeleteHierarchicalEntityChild deletes a hierarchical entity extractor child in a version of the application.
+// DeleteHierarchicalEntityChild deletes a hierarchical entity extractor child from the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // hEntityID - the hierarchical entity extractor ID.
 // hChildID - the hierarchical entity extractor child ID.
 func (client ModelClient) DeleteHierarchicalEntityChild(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hChildID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteHierarchicalEntityChild")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteHierarchicalEntityChildPreparer(ctx, appID, versionID, hEntityID, hChildID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteHierarchicalEntityChild", nil, "Failure preparing request")
@@ -2754,8 +2401,8 @@ func (client ModelClient) DeleteHierarchicalEntityChildPreparer(ctx context.Cont
 // DeleteHierarchicalEntityChildSender sends the DeleteHierarchicalEntityChild request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteHierarchicalEntityChildSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteHierarchicalEntityChildResponder handles the response to the DeleteHierarchicalEntityChild request. The method always
@@ -2778,16 +2425,6 @@ func (client ModelClient) DeleteHierarchicalEntityChildResponder(resp *http.Resp
 // hEntityID - the hierarchical entity extractor ID.
 // roleID - the entity role Id.
 func (client ModelClient) DeleteHierarchicalEntityRole(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, roleID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteHierarchicalEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteHierarchicalEntityRolePreparer(ctx, appID, versionID, hEntityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteHierarchicalEntityRole", nil, "Failure preparing request")
@@ -2832,8 +2469,8 @@ func (client ModelClient) DeleteHierarchicalEntityRolePreparer(ctx context.Conte
 // DeleteHierarchicalEntityRoleSender sends the DeleteHierarchicalEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteHierarchicalEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteHierarchicalEntityRoleResponder handles the response to the DeleteHierarchicalEntityRole request. The method always
@@ -2849,24 +2486,14 @@ func (client ModelClient) DeleteHierarchicalEntityRoleResponder(resp *http.Respo
 	return
 }
 
-// DeleteIntent deletes an intent from a version of the application.
+// DeleteIntent deletes an intent classifier from the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // intentID - the intent classifier ID.
-// deleteUtterances - if true, deletes the intent's example utterances. If false, moves the example utterances
-// to the None intent. The default value is false.
+// deleteUtterances - also delete the intent's utterances (true). Or move the utterances to the None intent
+// (false - the default value).
 func (client ModelClient) DeleteIntent(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, deleteUtterances *bool) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteIntent")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteIntentPreparer(ctx, appID, versionID, intentID, deleteUtterances)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteIntent", nil, "Failure preparing request")
@@ -2918,8 +2545,8 @@ func (client ModelClient) DeleteIntentPreparer(ctx context.Context, appID uuid.U
 // DeleteIntentSender sends the DeleteIntent request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteIntentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteIntentResponder handles the response to the DeleteIntent request. The method always
@@ -2941,16 +2568,6 @@ func (client ModelClient) DeleteIntentResponder(resp *http.Response) (result Ope
 // versionID - the version ID.
 // entityID - the Pattern.Any entity extractor ID.
 func (client ModelClient) DeletePatternAnyEntityModel(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeletePatternAnyEntityModel")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePatternAnyEntityModelPreparer(ctx, appID, versionID, entityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeletePatternAnyEntityModel", nil, "Failure preparing request")
@@ -2994,8 +2611,8 @@ func (client ModelClient) DeletePatternAnyEntityModelPreparer(ctx context.Contex
 // DeletePatternAnyEntityModelSender sends the DeletePatternAnyEntityModel request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeletePatternAnyEntityModelSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeletePatternAnyEntityModelResponder handles the response to the DeletePatternAnyEntityModel request. The method always
@@ -3018,16 +2635,6 @@ func (client ModelClient) DeletePatternAnyEntityModelResponder(resp *http.Respon
 // entityID - the entity ID.
 // roleID - the entity role Id.
 func (client ModelClient) DeletePatternAnyEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeletePatternAnyEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePatternAnyEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeletePatternAnyEntityRole", nil, "Failure preparing request")
@@ -3072,8 +2679,8 @@ func (client ModelClient) DeletePatternAnyEntityRolePreparer(ctx context.Context
 // DeletePatternAnyEntityRoleSender sends the DeletePatternAnyEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeletePatternAnyEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeletePatternAnyEntityRoleResponder handles the response to the DeletePatternAnyEntityRole request. The method always
@@ -3089,22 +2696,12 @@ func (client ModelClient) DeletePatternAnyEntityRoleResponder(resp *http.Respons
 	return
 }
 
-// DeletePrebuilt deletes a prebuilt entity extractor from a version of the application.
+// DeletePrebuilt deletes a prebuilt entity extractor from the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // prebuiltID - the prebuilt entity extractor ID.
 func (client ModelClient) DeletePrebuilt(ctx context.Context, appID uuid.UUID, versionID string, prebuiltID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeletePrebuilt")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePrebuiltPreparer(ctx, appID, versionID, prebuiltID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeletePrebuilt", nil, "Failure preparing request")
@@ -3148,8 +2745,8 @@ func (client ModelClient) DeletePrebuiltPreparer(ctx context.Context, appID uuid
 // DeletePrebuiltSender sends the DeletePrebuilt request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeletePrebuiltSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeletePrebuiltResponder handles the response to the DeletePrebuilt request. The method always
@@ -3172,16 +2769,6 @@ func (client ModelClient) DeletePrebuiltResponder(resp *http.Response) (result O
 // entityID - the entity ID.
 // roleID - the entity role Id.
 func (client ModelClient) DeletePrebuiltEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeletePrebuiltEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePrebuiltEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeletePrebuiltEntityRole", nil, "Failure preparing request")
@@ -3226,8 +2813,8 @@ func (client ModelClient) DeletePrebuiltEntityRolePreparer(ctx context.Context, 
 // DeletePrebuiltEntityRoleSender sends the DeletePrebuiltEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeletePrebuiltEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeletePrebuiltEntityRoleResponder handles the response to the DeletePrebuiltEntityRole request. The method always
@@ -3247,18 +2834,8 @@ func (client ModelClient) DeletePrebuiltEntityRoleResponder(resp *http.Response)
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// regexEntityID - the regular expression entity extractor ID.
+// regexEntityID - the regex entity extractor ID.
 func (client ModelClient) DeleteRegexEntityModel(ctx context.Context, appID uuid.UUID, versionID string, regexEntityID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteRegexEntityModel")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteRegexEntityModelPreparer(ctx, appID, versionID, regexEntityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteRegexEntityModel", nil, "Failure preparing request")
@@ -3302,8 +2879,8 @@ func (client ModelClient) DeleteRegexEntityModelPreparer(ctx context.Context, ap
 // DeleteRegexEntityModelSender sends the DeleteRegexEntityModel request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteRegexEntityModelSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteRegexEntityModelResponder handles the response to the DeleteRegexEntityModel request. The method always
@@ -3326,16 +2903,6 @@ func (client ModelClient) DeleteRegexEntityModelResponder(resp *http.Response) (
 // entityID - the entity ID.
 // roleID - the entity role Id.
 func (client ModelClient) DeleteRegexEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteRegexEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteRegexEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteRegexEntityRole", nil, "Failure preparing request")
@@ -3380,8 +2947,8 @@ func (client ModelClient) DeleteRegexEntityRolePreparer(ctx context.Context, app
 // DeleteRegexEntityRoleSender sends the DeleteRegexEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteRegexEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteRegexEntityRoleResponder handles the response to the DeleteRegexEntityRole request. The method always
@@ -3397,23 +2964,13 @@ func (client ModelClient) DeleteRegexEntityRoleResponder(resp *http.Response) (r
 	return
 }
 
-// DeleteSubList deletes a sublist of a specific list entity model from a version of the application.
+// DeleteSubList deletes a sublist of a specific closed list model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// clEntityID - the list entity extractor ID.
+// clEntityID - the closed list entity extractor ID.
 // subListID - the sublist ID.
-func (client ModelClient) DeleteSubList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int64) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.DeleteSubList")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client ModelClient) DeleteSubList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int32) (result OperationStatus, err error) {
 	req, err := client.DeleteSubListPreparer(ctx, appID, versionID, clEntityID, subListID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "DeleteSubList", nil, "Failure preparing request")
@@ -3436,7 +2993,7 @@ func (client ModelClient) DeleteSubList(ctx context.Context, appID uuid.UUID, ve
 }
 
 // DeleteSubListPreparer prepares the DeleteSubList request.
-func (client ModelClient) DeleteSubListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int64) (*http.Request, error) {
+func (client ModelClient) DeleteSubListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int32) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -3458,8 +3015,8 @@ func (client ModelClient) DeleteSubListPreparer(ctx context.Context, appID uuid.
 // DeleteSubListSender sends the DeleteSubList request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) DeleteSubListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteSubListResponder handles the response to the DeleteSubList request. The method always
@@ -3475,7 +3032,7 @@ func (client ModelClient) DeleteSubListResponder(resp *http.Response) (result Op
 	return
 }
 
-// ExamplesMethod gets the example utterances for the given intent or entity model in a version of the application.
+// ExamplesMethod gets the utterances for the given model in the given app version.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
@@ -3483,16 +3040,6 @@ func (client ModelClient) DeleteSubListResponder(resp *http.Response) (result Op
 // skip - the number of entries to skip. Default value is 0.
 // take - the number of entries to return. Maximum page size is 500. Default is 100.
 func (client ModelClient) ExamplesMethod(ctx context.Context, appID uuid.UUID, versionID string, modelID string, skip *int32, take *int32) (result ListLabelTextObject, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ExamplesMethod")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: skip,
 			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
@@ -3561,8 +3108,8 @@ func (client ModelClient) ExamplesMethodPreparer(ctx context.Context, appID uuid
 // ExamplesMethodSender sends the ExamplesMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ExamplesMethodSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ExamplesMethodResponder handles the response to the ExamplesMethod request. The method always
@@ -3578,22 +3125,12 @@ func (client ModelClient) ExamplesMethodResponder(resp *http.Response) (result L
 	return
 }
 
-// GetClosedList gets information about a list entity in a version of the application.
+// GetClosedList gets information of a closed list model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// clEntityID - the list model ID.
+// clEntityID - the closed list model ID.
 func (client ModelClient) GetClosedList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID) (result ClosedListEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetClosedList")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetClosedListPreparer(ctx, appID, versionID, clEntityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetClosedList", nil, "Failure preparing request")
@@ -3637,8 +3174,8 @@ func (client ModelClient) GetClosedListPreparer(ctx context.Context, appID uuid.
 // GetClosedListSender sends the GetClosedList request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetClosedListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetClosedListResponder handles the response to the GetClosedList request. The method always
@@ -3661,16 +3198,6 @@ func (client ModelClient) GetClosedListResponder(resp *http.Response) (result Cl
 // entityID - entity ID.
 // roleID - entity role ID.
 func (client ModelClient) GetClosedListEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result EntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetClosedListEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetClosedListEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetClosedListEntityRole", nil, "Failure preparing request")
@@ -3715,8 +3242,8 @@ func (client ModelClient) GetClosedListEntityRolePreparer(ctx context.Context, a
 // GetClosedListEntityRoleSender sends the GetClosedListEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetClosedListEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetClosedListEntityRoleResponder handles the response to the GetClosedListEntityRole request. The method always
@@ -3732,22 +3259,78 @@ func (client ModelClient) GetClosedListEntityRoleResponder(resp *http.Response) 
 	return
 }
 
-// GetCompositeEntity gets information about a composite entity in a version of the application.
+// GetClosedListEntityRoles sends the get closed list entity roles request.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// entityID - entity Id
+func (client ModelClient) GetClosedListEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
+	req, err := client.GetClosedListEntityRolesPreparer(ctx, appID, versionID, entityID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetClosedListEntityRoles", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetClosedListEntityRolesSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetClosedListEntityRoles", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetClosedListEntityRolesResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetClosedListEntityRoles", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetClosedListEntityRolesPreparer prepares the GetClosedListEntityRoles request.
+func (client ModelClient) GetClosedListEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"entityId":  autorest.Encode("path", entityID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{entityId}/roles", pathParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetClosedListEntityRolesSender sends the GetClosedListEntityRoles request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetClosedListEntityRolesSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetClosedListEntityRolesResponder handles the response to the GetClosedListEntityRoles request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetClosedListEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// GetCompositeEntity gets information about the composite entity model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // cEntityID - the composite entity extractor ID.
 func (client ModelClient) GetCompositeEntity(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID) (result CompositeEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetCompositeEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetCompositeEntityPreparer(ctx, appID, versionID, cEntityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetCompositeEntity", nil, "Failure preparing request")
@@ -3791,8 +3374,8 @@ func (client ModelClient) GetCompositeEntityPreparer(ctx context.Context, appID 
 // GetCompositeEntitySender sends the GetCompositeEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetCompositeEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetCompositeEntityResponder handles the response to the GetCompositeEntity request. The method always
@@ -3815,16 +3398,6 @@ func (client ModelClient) GetCompositeEntityResponder(resp *http.Response) (resu
 // cEntityID - the composite entity extractor ID.
 // roleID - entity role ID.
 func (client ModelClient) GetCompositeEntityRole(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, roleID uuid.UUID) (result EntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetCompositeEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetCompositeEntityRolePreparer(ctx, appID, versionID, cEntityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetCompositeEntityRole", nil, "Failure preparing request")
@@ -3869,8 +3442,8 @@ func (client ModelClient) GetCompositeEntityRolePreparer(ctx context.Context, ap
 // GetCompositeEntityRoleSender sends the GetCompositeEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetCompositeEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetCompositeEntityRoleResponder handles the response to the GetCompositeEntityRole request. The method always
@@ -3886,6 +3459,72 @@ func (client ModelClient) GetCompositeEntityRoleResponder(resp *http.Response) (
 	return
 }
 
+// GetCompositeEntityRoles sends the get composite entity roles request.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// cEntityID - the composite entity extractor ID.
+func (client ModelClient) GetCompositeEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID) (result ListEntityRole, err error) {
+	req, err := client.GetCompositeEntityRolesPreparer(ctx, appID, versionID, cEntityID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetCompositeEntityRoles", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetCompositeEntityRolesSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetCompositeEntityRoles", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetCompositeEntityRolesResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetCompositeEntityRoles", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetCompositeEntityRolesPreparer prepares the GetCompositeEntityRoles request.
+func (client ModelClient) GetCompositeEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"cEntityId": autorest.Encode("path", cEntityID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}/roles", pathParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetCompositeEntityRolesSender sends the GetCompositeEntityRoles request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetCompositeEntityRolesSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetCompositeEntityRolesResponder handles the response to the GetCompositeEntityRoles request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetCompositeEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // GetCustomEntityRole sends the get custom entity role request.
 // Parameters:
 // appID - the application ID.
@@ -3893,16 +3532,6 @@ func (client ModelClient) GetCompositeEntityRoleResponder(resp *http.Response) (
 // entityID - entity ID.
 // roleID - entity role ID.
 func (client ModelClient) GetCustomEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result EntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetCustomEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetCustomEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetCustomEntityRole", nil, "Failure preparing request")
@@ -3947,8 +3576,8 @@ func (client ModelClient) GetCustomEntityRolePreparer(ctx context.Context, appID
 // GetCustomEntityRoleSender sends the GetCustomEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetCustomEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetCustomEntityRoleResponder handles the response to the GetCustomEntityRole request. The method always
@@ -3964,22 +3593,78 @@ func (client ModelClient) GetCustomEntityRoleResponder(resp *http.Response) (res
 	return
 }
 
-// GetEntity gets information about an entity model in a version of the application.
+// GetCustomPrebuiltEntityRoles sends the get custom prebuilt entity roles request.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// entityID - entity Id
+func (client ModelClient) GetCustomPrebuiltEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
+	req, err := client.GetCustomPrebuiltEntityRolesPreparer(ctx, appID, versionID, entityID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetCustomPrebuiltEntityRoles", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetCustomPrebuiltEntityRolesSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetCustomPrebuiltEntityRoles", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetCustomPrebuiltEntityRolesResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetCustomPrebuiltEntityRoles", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetCustomPrebuiltEntityRolesPreparer prepares the GetCustomPrebuiltEntityRoles request.
+func (client ModelClient) GetCustomPrebuiltEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"entityId":  autorest.Encode("path", entityID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltentities/{entityId}/roles", pathParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetCustomPrebuiltEntityRolesSender sends the GetCustomPrebuiltEntityRoles request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetCustomPrebuiltEntityRolesSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetCustomPrebuiltEntityRolesResponder handles the response to the GetCustomPrebuiltEntityRoles request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetCustomPrebuiltEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// GetEntity gets information about the entity model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // entityID - the entity extractor ID.
 func (client ModelClient) GetEntity(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result EntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetEntityPreparer(ctx, appID, versionID, entityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetEntity", nil, "Failure preparing request")
@@ -4023,8 +3708,8 @@ func (client ModelClient) GetEntityPreparer(ctx context.Context, appID uuid.UUID
 // GetEntitySender sends the GetEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetEntityResponder handles the response to the GetEntity request. The method always
@@ -4047,16 +3732,6 @@ func (client ModelClient) GetEntityResponder(resp *http.Response) (result Entity
 // entityID - entity ID.
 // roleID - entity role ID.
 func (client ModelClient) GetEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result EntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetEntityRole", nil, "Failure preparing request")
@@ -4101,8 +3776,8 @@ func (client ModelClient) GetEntityRolePreparer(ctx context.Context, appID uuid.
 // GetEntityRoleSender sends the GetEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetEntityRoleResponder handles the response to the GetEntityRole request. The method always
@@ -4118,22 +3793,162 @@ func (client ModelClient) GetEntityRoleResponder(resp *http.Response) (result En
 	return
 }
 
+// GetEntityRoles sends the get entity roles request.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// entityID - entity Id
+func (client ModelClient) GetEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
+	req, err := client.GetEntityRolesPreparer(ctx, appID, versionID, entityID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetEntityRoles", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetEntityRolesSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetEntityRoles", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetEntityRolesResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetEntityRoles", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetEntityRolesPreparer prepares the GetEntityRoles request.
+func (client ModelClient) GetEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"entityId":  autorest.Encode("path", entityID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/roles", pathParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetEntityRolesSender sends the GetEntityRoles request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetEntityRolesSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetEntityRolesResponder handles the response to the GetEntityRoles request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// GetEntitySuggestions get suggestion examples that would improve the accuracy of the entity model.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// entityID - the target entity extractor model to enhance.
+// take - the number of entries to return. Maximum page size is 500. Default is 100.
+func (client ModelClient) GetEntitySuggestions(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, take *int32) (result ListEntitiesSuggestionExample, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: take,
+			Constraints: []validation.Constraint{{Target: "take", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "take", Name: validation.InclusiveMaximum, Rule: int64(500), Chain: nil},
+					{Target: "take", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewError("authoring.ModelClient", "GetEntitySuggestions", err.Error())
+	}
+
+	req, err := client.GetEntitySuggestionsPreparer(ctx, appID, versionID, entityID, take)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetEntitySuggestions", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetEntitySuggestionsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetEntitySuggestions", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetEntitySuggestionsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetEntitySuggestions", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetEntitySuggestionsPreparer prepares the GetEntitySuggestions request.
+func (client ModelClient) GetEntitySuggestionsPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"entityId":  autorest.Encode("path", entityID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	queryParameters := map[string]interface{}{}
+	if take != nil {
+		queryParameters["take"] = autorest.Encode("query", *take)
+	} else {
+		queryParameters["take"] = autorest.Encode("query", 100)
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/suggest", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetEntitySuggestionsSender sends the GetEntitySuggestions request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetEntitySuggestionsSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetEntitySuggestionsResponder handles the response to the GetEntitySuggestions request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetEntitySuggestionsResponder(resp *http.Response) (result ListEntitiesSuggestionExample, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // GetExplicitList sends the get explicit list request.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // entityID - the Pattern.Any entity id.
 func (client ModelClient) GetExplicitList(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListExplicitListItem, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetExplicitList")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetExplicitListPreparer(ctx, appID, versionID, entityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetExplicitList", nil, "Failure preparing request")
@@ -4177,8 +3992,8 @@ func (client ModelClient) GetExplicitListPreparer(ctx context.Context, appID uui
 // GetExplicitListSender sends the GetExplicitList request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetExplicitListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetExplicitListResponder handles the response to the GetExplicitList request. The method always
@@ -4201,16 +4016,6 @@ func (client ModelClient) GetExplicitListResponder(resp *http.Response) (result 
 // entityID - the Pattern.Any entity Id.
 // itemID - the explicit list item Id.
 func (client ModelClient) GetExplicitListItem(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, itemID int64) (result ExplicitListItem, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetExplicitListItem")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetExplicitListItemPreparer(ctx, appID, versionID, entityID, itemID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetExplicitListItem", nil, "Failure preparing request")
@@ -4255,8 +4060,8 @@ func (client ModelClient) GetExplicitListItemPreparer(ctx context.Context, appID
 // GetExplicitListItemSender sends the GetExplicitListItem request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetExplicitListItemSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetExplicitListItemResponder handles the response to the GetExplicitListItem request. The method always
@@ -4272,22 +4077,12 @@ func (client ModelClient) GetExplicitListItemResponder(resp *http.Response) (res
 	return
 }
 
-// GetHierarchicalEntity gets information about a hierarchical entity in a version of the application.
+// GetHierarchicalEntity gets information about the hierarchical entity model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // hEntityID - the hierarchical entity extractor ID.
 func (client ModelClient) GetHierarchicalEntity(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID) (result HierarchicalEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetHierarchicalEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetHierarchicalEntityPreparer(ctx, appID, versionID, hEntityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetHierarchicalEntity", nil, "Failure preparing request")
@@ -4331,8 +4126,8 @@ func (client ModelClient) GetHierarchicalEntityPreparer(ctx context.Context, app
 // GetHierarchicalEntitySender sends the GetHierarchicalEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetHierarchicalEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetHierarchicalEntityResponder handles the response to the GetHierarchicalEntity request. The method always
@@ -4348,24 +4143,13 @@ func (client ModelClient) GetHierarchicalEntityResponder(resp *http.Response) (r
 	return
 }
 
-// GetHierarchicalEntityChild gets information about the child's model contained in an hierarchical entity child model
-// in a version of the application.
+// GetHierarchicalEntityChild gets information about the hierarchical entity child model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // hEntityID - the hierarchical entity extractor ID.
 // hChildID - the hierarchical entity extractor child ID.
 func (client ModelClient) GetHierarchicalEntityChild(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hChildID uuid.UUID) (result HierarchicalChildEntity, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetHierarchicalEntityChild")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetHierarchicalEntityChildPreparer(ctx, appID, versionID, hEntityID, hChildID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetHierarchicalEntityChild", nil, "Failure preparing request")
@@ -4410,8 +4194,8 @@ func (client ModelClient) GetHierarchicalEntityChildPreparer(ctx context.Context
 // GetHierarchicalEntityChildSender sends the GetHierarchicalEntityChild request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetHierarchicalEntityChildSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetHierarchicalEntityChildResponder handles the response to the GetHierarchicalEntityChild request. The method always
@@ -4434,16 +4218,6 @@ func (client ModelClient) GetHierarchicalEntityChildResponder(resp *http.Respons
 // hEntityID - the hierarchical entity extractor ID.
 // roleID - entity role ID.
 func (client ModelClient) GetHierarchicalEntityRole(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, roleID uuid.UUID) (result EntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetHierarchicalEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetHierarchicalEntityRolePreparer(ctx, appID, versionID, hEntityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetHierarchicalEntityRole", nil, "Failure preparing request")
@@ -4488,8 +4262,8 @@ func (client ModelClient) GetHierarchicalEntityRolePreparer(ctx context.Context,
 // GetHierarchicalEntityRoleSender sends the GetHierarchicalEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetHierarchicalEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetHierarchicalEntityRoleResponder handles the response to the GetHierarchicalEntityRole request. The method always
@@ -4505,22 +4279,78 @@ func (client ModelClient) GetHierarchicalEntityRoleResponder(resp *http.Response
 	return
 }
 
-// GetIntent gets information about the intent model in a version of the application.
+// GetHierarchicalEntityRoles sends the get hierarchical entity roles request.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// hEntityID - the hierarchical entity extractor ID.
+func (client ModelClient) GetHierarchicalEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID) (result ListEntityRole, err error) {
+	req, err := client.GetHierarchicalEntityRolesPreparer(ctx, appID, versionID, hEntityID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetHierarchicalEntityRoles", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetHierarchicalEntityRolesSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetHierarchicalEntityRoles", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetHierarchicalEntityRolesResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetHierarchicalEntityRoles", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetHierarchicalEntityRolesPreparer prepares the GetHierarchicalEntityRoles request.
+func (client ModelClient) GetHierarchicalEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"hEntityId": autorest.Encode("path", hEntityID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/roles", pathParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetHierarchicalEntityRolesSender sends the GetHierarchicalEntityRoles request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetHierarchicalEntityRolesSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetHierarchicalEntityRolesResponder handles the response to the GetHierarchicalEntityRoles request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetHierarchicalEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// GetIntent gets information about the intent model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // intentID - the intent classifier ID.
 func (client ModelClient) GetIntent(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID) (result IntentClassifier, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetIntent")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetIntentPreparer(ctx, appID, versionID, intentID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetIntent", nil, "Failure preparing request")
@@ -4564,8 +4394,8 @@ func (client ModelClient) GetIntentPreparer(ctx context.Context, appID uuid.UUID
 // GetIntentSender sends the GetIntent request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetIntentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetIntentResponder handles the response to the GetIntent request. The method always
@@ -4581,22 +4411,96 @@ func (client ModelClient) GetIntentResponder(resp *http.Response) (result Intent
 	return
 }
 
+// GetIntentSuggestions suggests examples that would improve the accuracy of the intent model.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// intentID - the intent classifier ID.
+// take - the number of entries to return. Maximum page size is 500. Default is 100.
+func (client ModelClient) GetIntentSuggestions(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, take *int32) (result ListIntentsSuggestionExample, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: take,
+			Constraints: []validation.Constraint{{Target: "take", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "take", Name: validation.InclusiveMaximum, Rule: int64(500), Chain: nil},
+					{Target: "take", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewError("authoring.ModelClient", "GetIntentSuggestions", err.Error())
+	}
+
+	req, err := client.GetIntentSuggestionsPreparer(ctx, appID, versionID, intentID, take)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetIntentSuggestions", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetIntentSuggestionsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetIntentSuggestions", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetIntentSuggestionsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetIntentSuggestions", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetIntentSuggestionsPreparer prepares the GetIntentSuggestions request.
+func (client ModelClient) GetIntentSuggestionsPreparer(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"intentId":  autorest.Encode("path", intentID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	queryParameters := map[string]interface{}{}
+	if take != nil {
+		queryParameters["take"] = autorest.Encode("query", *take)
+	} else {
+		queryParameters["take"] = autorest.Encode("query", 100)
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/intents/{intentId}/suggest", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetIntentSuggestionsSender sends the GetIntentSuggestions request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetIntentSuggestionsSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetIntentSuggestionsResponder handles the response to the GetIntentSuggestions request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetIntentSuggestionsResponder(resp *http.Response) (result ListIntentsSuggestionExample, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // GetPatternAnyEntityInfo sends the get pattern any entity info request.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // entityID - the entity extractor ID.
 func (client ModelClient) GetPatternAnyEntityInfo(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result PatternAnyEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetPatternAnyEntityInfo")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPatternAnyEntityInfoPreparer(ctx, appID, versionID, entityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPatternAnyEntityInfo", nil, "Failure preparing request")
@@ -4640,8 +4544,8 @@ func (client ModelClient) GetPatternAnyEntityInfoPreparer(ctx context.Context, a
 // GetPatternAnyEntityInfoSender sends the GetPatternAnyEntityInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetPatternAnyEntityInfoSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetPatternAnyEntityInfoResponder handles the response to the GetPatternAnyEntityInfo request. The method always
@@ -4657,6 +4561,97 @@ func (client ModelClient) GetPatternAnyEntityInfoResponder(resp *http.Response) 
 	return
 }
 
+// GetPatternAnyEntityInfos sends the get pattern any entity infos request.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// skip - the number of entries to skip. Default value is 0.
+// take - the number of entries to return. Maximum page size is 500. Default is 100.
+func (client ModelClient) GetPatternAnyEntityInfos(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListPatternAnyEntityExtractor, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: skip,
+			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "skip", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil}}}}},
+		{TargetValue: take,
+			Constraints: []validation.Constraint{{Target: "take", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "take", Name: validation.InclusiveMaximum, Rule: int64(500), Chain: nil},
+					{Target: "take", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewError("authoring.ModelClient", "GetPatternAnyEntityInfos", err.Error())
+	}
+
+	req, err := client.GetPatternAnyEntityInfosPreparer(ctx, appID, versionID, skip, take)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPatternAnyEntityInfos", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetPatternAnyEntityInfosSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPatternAnyEntityInfos", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetPatternAnyEntityInfosResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPatternAnyEntityInfos", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetPatternAnyEntityInfosPreparer prepares the GetPatternAnyEntityInfos request.
+func (client ModelClient) GetPatternAnyEntityInfosPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	queryParameters := map[string]interface{}{}
+	if skip != nil {
+		queryParameters["skip"] = autorest.Encode("query", *skip)
+	} else {
+		queryParameters["skip"] = autorest.Encode("query", 0)
+	}
+	if take != nil {
+		queryParameters["take"] = autorest.Encode("query", *take)
+	} else {
+		queryParameters["take"] = autorest.Encode("query", 100)
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetPatternAnyEntityInfosSender sends the GetPatternAnyEntityInfos request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetPatternAnyEntityInfosSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetPatternAnyEntityInfosResponder handles the response to the GetPatternAnyEntityInfos request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetPatternAnyEntityInfosResponder(resp *http.Response) (result ListPatternAnyEntityExtractor, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // GetPatternAnyEntityRole sends the get pattern any entity role request.
 // Parameters:
 // appID - the application ID.
@@ -4664,16 +4659,6 @@ func (client ModelClient) GetPatternAnyEntityInfoResponder(resp *http.Response) 
 // entityID - entity ID.
 // roleID - entity role ID.
 func (client ModelClient) GetPatternAnyEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result EntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetPatternAnyEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPatternAnyEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPatternAnyEntityRole", nil, "Failure preparing request")
@@ -4718,8 +4703,8 @@ func (client ModelClient) GetPatternAnyEntityRolePreparer(ctx context.Context, a
 // GetPatternAnyEntityRoleSender sends the GetPatternAnyEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetPatternAnyEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetPatternAnyEntityRoleResponder handles the response to the GetPatternAnyEntityRole request. The method always
@@ -4735,22 +4720,78 @@ func (client ModelClient) GetPatternAnyEntityRoleResponder(resp *http.Response) 
 	return
 }
 
-// GetPrebuilt gets information about a prebuilt entity model in a version of the application.
+// GetPatternAnyEntityRoles sends the get pattern any entity roles request.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// entityID - entity Id
+func (client ModelClient) GetPatternAnyEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
+	req, err := client.GetPatternAnyEntityRolesPreparer(ctx, appID, versionID, entityID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPatternAnyEntityRoles", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetPatternAnyEntityRolesSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPatternAnyEntityRoles", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetPatternAnyEntityRolesResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPatternAnyEntityRoles", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetPatternAnyEntityRolesPreparer prepares the GetPatternAnyEntityRoles request.
+func (client ModelClient) GetPatternAnyEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"entityId":  autorest.Encode("path", entityID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/roles", pathParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetPatternAnyEntityRolesSender sends the GetPatternAnyEntityRoles request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetPatternAnyEntityRolesSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetPatternAnyEntityRolesResponder handles the response to the GetPatternAnyEntityRoles request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetPatternAnyEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// GetPrebuilt gets information about the prebuilt entity model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // prebuiltID - the prebuilt entity extractor ID.
 func (client ModelClient) GetPrebuilt(ctx context.Context, appID uuid.UUID, versionID string, prebuiltID uuid.UUID) (result PrebuiltEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetPrebuilt")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPrebuiltPreparer(ctx, appID, versionID, prebuiltID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPrebuilt", nil, "Failure preparing request")
@@ -4794,8 +4835,8 @@ func (client ModelClient) GetPrebuiltPreparer(ctx context.Context, appID uuid.UU
 // GetPrebuiltSender sends the GetPrebuilt request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetPrebuiltSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetPrebuiltResponder handles the response to the GetPrebuilt request. The method always
@@ -4818,16 +4859,6 @@ func (client ModelClient) GetPrebuiltResponder(resp *http.Response) (result Preb
 // entityID - entity ID.
 // roleID - entity role ID.
 func (client ModelClient) GetPrebuiltEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result EntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetPrebuiltEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPrebuiltEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPrebuiltEntityRole", nil, "Failure preparing request")
@@ -4872,8 +4903,8 @@ func (client ModelClient) GetPrebuiltEntityRolePreparer(ctx context.Context, app
 // GetPrebuiltEntityRoleSender sends the GetPrebuiltEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetPrebuiltEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetPrebuiltEntityRoleResponder handles the response to the GetPrebuiltEntityRole request. The method always
@@ -4889,22 +4920,78 @@ func (client ModelClient) GetPrebuiltEntityRoleResponder(resp *http.Response) (r
 	return
 }
 
+// GetPrebuiltEntityRoles sends the get prebuilt entity roles request.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// entityID - entity Id
+func (client ModelClient) GetPrebuiltEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
+	req, err := client.GetPrebuiltEntityRolesPreparer(ctx, appID, versionID, entityID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPrebuiltEntityRoles", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetPrebuiltEntityRolesSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPrebuiltEntityRoles", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetPrebuiltEntityRolesResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetPrebuiltEntityRoles", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetPrebuiltEntityRolesPreparer prepares the GetPrebuiltEntityRoles request.
+func (client ModelClient) GetPrebuiltEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"entityId":  autorest.Encode("path", entityID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts/{entityId}/roles", pathParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetPrebuiltEntityRolesSender sends the GetPrebuiltEntityRoles request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetPrebuiltEntityRolesSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetPrebuiltEntityRolesResponder handles the response to the GetPrebuiltEntityRoles request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetPrebuiltEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // GetRegexEntityEntityInfo sends the get regex entity entity info request.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// regexEntityID - the regular expression entity model ID.
+// regexEntityID - the regex entity model ID.
 func (client ModelClient) GetRegexEntityEntityInfo(ctx context.Context, appID uuid.UUID, versionID string, regexEntityID uuid.UUID) (result RegexEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetRegexEntityEntityInfo")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetRegexEntityEntityInfoPreparer(ctx, appID, versionID, regexEntityID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetRegexEntityEntityInfo", nil, "Failure preparing request")
@@ -4948,8 +5035,8 @@ func (client ModelClient) GetRegexEntityEntityInfoPreparer(ctx context.Context, 
 // GetRegexEntityEntityInfoSender sends the GetRegexEntityEntityInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetRegexEntityEntityInfoSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetRegexEntityEntityInfoResponder handles the response to the GetRegexEntityEntityInfo request. The method always
@@ -4965,6 +5052,97 @@ func (client ModelClient) GetRegexEntityEntityInfoResponder(resp *http.Response)
 	return
 }
 
+// GetRegexEntityInfos sends the get regex entity infos request.
+// Parameters:
+// appID - the application ID.
+// versionID - the version ID.
+// skip - the number of entries to skip. Default value is 0.
+// take - the number of entries to return. Maximum page size is 500. Default is 100.
+func (client ModelClient) GetRegexEntityInfos(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListRegexEntityExtractor, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: skip,
+			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "skip", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil}}}}},
+		{TargetValue: take,
+			Constraints: []validation.Constraint{{Target: "take", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "take", Name: validation.InclusiveMaximum, Rule: int64(500), Chain: nil},
+					{Target: "take", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewError("authoring.ModelClient", "GetRegexEntityInfos", err.Error())
+	}
+
+	req, err := client.GetRegexEntityInfosPreparer(ctx, appID, versionID, skip, take)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetRegexEntityInfos", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetRegexEntityInfosSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetRegexEntityInfos", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetRegexEntityInfosResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetRegexEntityInfos", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetRegexEntityInfosPreparer prepares the GetRegexEntityInfos request.
+func (client ModelClient) GetRegexEntityInfosPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
+	pathParameters := map[string]interface{}{
+		"appId":     autorest.Encode("path", appID),
+		"versionId": autorest.Encode("path", versionID),
+	}
+
+	queryParameters := map[string]interface{}{}
+	if skip != nil {
+		queryParameters["skip"] = autorest.Encode("query", *skip)
+	} else {
+		queryParameters["skip"] = autorest.Encode("query", 0)
+	}
+	if take != nil {
+		queryParameters["take"] = autorest.Encode("query", *take)
+	} else {
+		queryParameters["take"] = autorest.Encode("query", 100)
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetRegexEntityInfosSender sends the GetRegexEntityInfos request. The method will close the
+// http.Response Body if it receives an error.
+func (client ModelClient) GetRegexEntityInfosSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// GetRegexEntityInfosResponder handles the response to the GetRegexEntityInfos request. The method always
+// closes the http.Response Body.
+func (client ModelClient) GetRegexEntityInfosResponder(resp *http.Response) (result ListRegexEntityExtractor, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result.Value),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // GetRegexEntityRole sends the get regex entity role request.
 // Parameters:
 // appID - the application ID.
@@ -4972,16 +5150,6 @@ func (client ModelClient) GetRegexEntityEntityInfoResponder(resp *http.Response)
 // entityID - entity ID.
 // roleID - entity role ID.
 func (client ModelClient) GetRegexEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (result EntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.GetRegexEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetRegexEntityRolePreparer(ctx, appID, versionID, entityID, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetRegexEntityRole", nil, "Failure preparing request")
@@ -5026,8 +5194,8 @@ func (client ModelClient) GetRegexEntityRolePreparer(ctx context.Context, appID 
 // GetRegexEntityRoleSender sends the GetRegexEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) GetRegexEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetRegexEntityRoleResponder handles the response to the GetRegexEntityRole request. The method always
@@ -5043,45 +5211,35 @@ func (client ModelClient) GetRegexEntityRoleResponder(resp *http.Response) (resu
 	return
 }
 
-// ListClosedListEntityRoles sends the list closed list entity roles request.
+// GetRegexEntityRoles sends the get regex entity roles request.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // entityID - entity Id
-func (client ModelClient) ListClosedListEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListClosedListEntityRoles")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.ListClosedListEntityRolesPreparer(ctx, appID, versionID, entityID)
+func (client ModelClient) GetRegexEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
+	req, err := client.GetRegexEntityRolesPreparer(ctx, appID, versionID, entityID)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListClosedListEntityRoles", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetRegexEntityRoles", nil, "Failure preparing request")
 		return
 	}
 
-	resp, err := client.ListClosedListEntityRolesSender(req)
+	resp, err := client.GetRegexEntityRolesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListClosedListEntityRoles", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetRegexEntityRoles", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.ListClosedListEntityRolesResponder(resp)
+	result, err = client.GetRegexEntityRolesResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListClosedListEntityRoles", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "GetRegexEntityRoles", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// ListClosedListEntityRolesPreparer prepares the ListClosedListEntityRoles request.
-func (client ModelClient) ListClosedListEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+// GetRegexEntityRolesPreparer prepares the GetRegexEntityRoles request.
+func (client ModelClient) GetRegexEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -5095,20 +5253,20 @@ func (client ModelClient) ListClosedListEntityRolesPreparer(ctx context.Context,
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{entityId}/roles", pathParameters))
+		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{entityId}/roles", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
-// ListClosedListEntityRolesSender sends the ListClosedListEntityRoles request. The method will close the
+// GetRegexEntityRolesSender sends the GetRegexEntityRoles request. The method will close the
 // http.Response Body if it receives an error.
-func (client ModelClient) ListClosedListEntityRolesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+func (client ModelClient) GetRegexEntityRolesSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
-// ListClosedListEntityRolesResponder handles the response to the ListClosedListEntityRoles request. The method always
+// GetRegexEntityRolesResponder handles the response to the GetRegexEntityRoles request. The method always
 // closes the http.Response Body.
-func (client ModelClient) ListClosedListEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
+func (client ModelClient) GetRegexEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -5119,23 +5277,13 @@ func (client ModelClient) ListClosedListEntityRolesResponder(resp *http.Response
 	return
 }
 
-// ListClosedLists gets information about all the list entity models in a version of the application.
+// ListClosedLists gets information about the closedlist models.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // skip - the number of entries to skip. Default value is 0.
 // take - the number of entries to return. Maximum page size is 500. Default is 100.
 func (client ModelClient) ListClosedLists(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListClosedListEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListClosedLists")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: skip,
 			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
@@ -5203,8 +5351,8 @@ func (client ModelClient) ListClosedListsPreparer(ctx context.Context, appID uui
 // ListClosedListsSender sends the ListClosedLists request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListClosedListsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListClosedListsResponder handles the response to the ListClosedLists request. The method always
@@ -5220,23 +5368,13 @@ func (client ModelClient) ListClosedListsResponder(resp *http.Response) (result 
 	return
 }
 
-// ListCompositeEntities gets information about all the composite entity models in a version of the application.
+// ListCompositeEntities gets information about the composite entity models.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // skip - the number of entries to skip. Default value is 0.
 // take - the number of entries to return. Maximum page size is 500. Default is 100.
 func (client ModelClient) ListCompositeEntities(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListCompositeEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListCompositeEntities")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: skip,
 			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
@@ -5304,8 +5442,8 @@ func (client ModelClient) ListCompositeEntitiesPreparer(ctx context.Context, app
 // ListCompositeEntitiesSender sends the ListCompositeEntities request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListCompositeEntitiesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListCompositeEntitiesResponder handles the response to the ListCompositeEntities request. The method always
@@ -5321,97 +5459,11 @@ func (client ModelClient) ListCompositeEntitiesResponder(resp *http.Response) (r
 	return
 }
 
-// ListCompositeEntityRoles sends the list composite entity roles request.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// cEntityID - the composite entity extractor ID.
-func (client ModelClient) ListCompositeEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID) (result ListEntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListCompositeEntityRoles")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.ListCompositeEntityRolesPreparer(ctx, appID, versionID, cEntityID)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListCompositeEntityRoles", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListCompositeEntityRolesSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListCompositeEntityRoles", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListCompositeEntityRolesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListCompositeEntityRoles", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListCompositeEntityRolesPreparer prepares the ListCompositeEntityRoles request.
-func (client ModelClient) ListCompositeEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"cEntityId": autorest.Encode("path", cEntityID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}/roles", pathParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListCompositeEntityRolesSender sends the ListCompositeEntityRoles request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListCompositeEntityRolesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListCompositeEntityRolesResponder handles the response to the ListCompositeEntityRoles request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListCompositeEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListCustomPrebuiltEntities gets all prebuilt entities used in a version of the application.
+// ListCustomPrebuiltEntities gets all custom prebuilt entities information of this application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 func (client ModelClient) ListCustomPrebuiltEntities(ctx context.Context, appID uuid.UUID, versionID string) (result ListEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListCustomPrebuiltEntities")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListCustomPrebuiltEntitiesPreparer(ctx, appID, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListCustomPrebuiltEntities", nil, "Failure preparing request")
@@ -5454,8 +5506,8 @@ func (client ModelClient) ListCustomPrebuiltEntitiesPreparer(ctx context.Context
 // ListCustomPrebuiltEntitiesSender sends the ListCustomPrebuiltEntities request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListCustomPrebuiltEntitiesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListCustomPrebuiltEntitiesResponder handles the response to the ListCustomPrebuiltEntities request. The method always
@@ -5471,98 +5523,11 @@ func (client ModelClient) ListCustomPrebuiltEntitiesResponder(resp *http.Respons
 	return
 }
 
-// ListCustomPrebuiltEntityRoles sends the list custom prebuilt entity roles request.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// entityID - entity Id
-func (client ModelClient) ListCustomPrebuiltEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListCustomPrebuiltEntityRoles")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.ListCustomPrebuiltEntityRolesPreparer(ctx, appID, versionID, entityID)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListCustomPrebuiltEntityRoles", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListCustomPrebuiltEntityRolesSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListCustomPrebuiltEntityRoles", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListCustomPrebuiltEntityRolesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListCustomPrebuiltEntityRoles", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListCustomPrebuiltEntityRolesPreparer prepares the ListCustomPrebuiltEntityRoles request.
-func (client ModelClient) ListCustomPrebuiltEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"entityId":  autorest.Encode("path", entityID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltentities/{entityId}/roles", pathParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListCustomPrebuiltEntityRolesSender sends the ListCustomPrebuiltEntityRoles request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListCustomPrebuiltEntityRolesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListCustomPrebuiltEntityRolesResponder handles the response to the ListCustomPrebuiltEntityRoles request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListCustomPrebuiltEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListCustomPrebuiltIntents gets information about customizable prebuilt intents added to a version of the
-// application.
+// ListCustomPrebuiltIntents gets custom prebuilt intents information of this application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 func (client ModelClient) ListCustomPrebuiltIntents(ctx context.Context, appID uuid.UUID, versionID string) (result ListIntentClassifier, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListCustomPrebuiltIntents")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListCustomPrebuiltIntentsPreparer(ctx, appID, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListCustomPrebuiltIntents", nil, "Failure preparing request")
@@ -5605,8 +5570,8 @@ func (client ModelClient) ListCustomPrebuiltIntentsPreparer(ctx context.Context,
 // ListCustomPrebuiltIntentsSender sends the ListCustomPrebuiltIntents request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListCustomPrebuiltIntentsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListCustomPrebuiltIntentsResponder handles the response to the ListCustomPrebuiltIntents request. The method always
@@ -5622,22 +5587,11 @@ func (client ModelClient) ListCustomPrebuiltIntentsResponder(resp *http.Response
 	return
 }
 
-// ListCustomPrebuiltModels gets all prebuilt intent and entity model information used in a version of this
-// application.
+// ListCustomPrebuiltModels gets all custom prebuilt models information of this application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 func (client ModelClient) ListCustomPrebuiltModels(ctx context.Context, appID uuid.UUID, versionID string) (result ListCustomPrebuiltModel, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListCustomPrebuiltModels")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListCustomPrebuiltModelsPreparer(ctx, appID, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListCustomPrebuiltModels", nil, "Failure preparing request")
@@ -5680,8 +5634,8 @@ func (client ModelClient) ListCustomPrebuiltModelsPreparer(ctx context.Context, 
 // ListCustomPrebuiltModelsSender sends the ListCustomPrebuiltModels request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListCustomPrebuiltModelsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListCustomPrebuiltModelsResponder handles the response to the ListCustomPrebuiltModels request. The method always
@@ -5697,23 +5651,13 @@ func (client ModelClient) ListCustomPrebuiltModelsResponder(resp *http.Response)
 	return
 }
 
-// ListEntities gets information about all the simple entity models in a version of the application.
+// ListEntities gets information about the entity models.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // skip - the number of entries to skip. Default value is 0.
 // take - the number of entries to return. Maximum page size is 500. Default is 100.
 func (client ModelClient) ListEntities(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListEntities")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: skip,
 			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
@@ -5781,8 +5725,8 @@ func (client ModelClient) ListEntitiesPreparer(ctx context.Context, appID uuid.U
 // ListEntitiesSender sends the ListEntities request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListEntitiesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListEntitiesResponder handles the response to the ListEntities request. The method always
@@ -5798,194 +5742,13 @@ func (client ModelClient) ListEntitiesResponder(resp *http.Response) (result Lis
 	return
 }
 
-// ListEntityRoles sends the list entity roles request.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// entityID - entity Id
-func (client ModelClient) ListEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListEntityRoles")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.ListEntityRolesPreparer(ctx, appID, versionID, entityID)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListEntityRoles", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListEntityRolesSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListEntityRoles", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListEntityRolesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListEntityRoles", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListEntityRolesPreparer prepares the ListEntityRoles request.
-func (client ModelClient) ListEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"entityId":  autorest.Encode("path", entityID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/roles", pathParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListEntityRolesSender sends the ListEntityRoles request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListEntityRolesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListEntityRolesResponder handles the response to the ListEntityRoles request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListEntitySuggestions get suggested example utterances that would improve the accuracy of the entity model in a
-// version of the application.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// entityID - the target entity extractor model to enhance.
-// take - the number of entries to return. Maximum page size is 500. Default is 100.
-func (client ModelClient) ListEntitySuggestions(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, take *int32) (result ListEntitiesSuggestionExample, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListEntitySuggestions")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	if err := validation.Validate([]validation.Validation{
-		{TargetValue: take,
-			Constraints: []validation.Constraint{{Target: "take", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "take", Name: validation.InclusiveMaximum, Rule: int64(500), Chain: nil},
-					{Target: "take", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil},
-				}}}}}); err != nil {
-		return result, validation.NewError("authoring.ModelClient", "ListEntitySuggestions", err.Error())
-	}
-
-	req, err := client.ListEntitySuggestionsPreparer(ctx, appID, versionID, entityID, take)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListEntitySuggestions", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListEntitySuggestionsSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListEntitySuggestions", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListEntitySuggestionsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListEntitySuggestions", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListEntitySuggestionsPreparer prepares the ListEntitySuggestions request.
-func (client ModelClient) ListEntitySuggestionsPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, take *int32) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"entityId":  autorest.Encode("path", entityID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	queryParameters := map[string]interface{}{}
-	if take != nil {
-		queryParameters["take"] = autorest.Encode("query", *take)
-	} else {
-		queryParameters["take"] = autorest.Encode("query", 100)
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/suggest", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListEntitySuggestionsSender sends the ListEntitySuggestions request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListEntitySuggestionsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListEntitySuggestionsResponder handles the response to the ListEntitySuggestions request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListEntitySuggestionsResponder(resp *http.Response) (result ListEntitiesSuggestionExample, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListHierarchicalEntities gets information about all the hierarchical entity models in a version of the application.
+// ListHierarchicalEntities gets information about the hierarchical entity models.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // skip - the number of entries to skip. Default value is 0.
 // take - the number of entries to return. Maximum page size is 500. Default is 100.
 func (client ModelClient) ListHierarchicalEntities(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListHierarchicalEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListHierarchicalEntities")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: skip,
 			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
@@ -6053,8 +5816,8 @@ func (client ModelClient) ListHierarchicalEntitiesPreparer(ctx context.Context, 
 // ListHierarchicalEntitiesSender sends the ListHierarchicalEntities request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListHierarchicalEntitiesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListHierarchicalEntitiesResponder handles the response to the ListHierarchicalEntities request. The method always
@@ -6070,99 +5833,13 @@ func (client ModelClient) ListHierarchicalEntitiesResponder(resp *http.Response)
 	return
 }
 
-// ListHierarchicalEntityRoles sends the list hierarchical entity roles request.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// hEntityID - the hierarchical entity extractor ID.
-func (client ModelClient) ListHierarchicalEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID) (result ListEntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListHierarchicalEntityRoles")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.ListHierarchicalEntityRolesPreparer(ctx, appID, versionID, hEntityID)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListHierarchicalEntityRoles", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListHierarchicalEntityRolesSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListHierarchicalEntityRoles", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListHierarchicalEntityRolesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListHierarchicalEntityRoles", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListHierarchicalEntityRolesPreparer prepares the ListHierarchicalEntityRoles request.
-func (client ModelClient) ListHierarchicalEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"hEntityId": autorest.Encode("path", hEntityID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/roles", pathParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListHierarchicalEntityRolesSender sends the ListHierarchicalEntityRoles request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListHierarchicalEntityRolesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListHierarchicalEntityRolesResponder handles the response to the ListHierarchicalEntityRoles request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListHierarchicalEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListIntents gets information about the intent models in a version of the application.
+// ListIntents gets information about the intent models.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // skip - the number of entries to skip. Default value is 0.
 // take - the number of entries to return. Maximum page size is 500. Default is 100.
 func (client ModelClient) ListIntents(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListIntentClassifier, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListIntents")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: skip,
 			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
@@ -6230,8 +5907,8 @@ func (client ModelClient) ListIntentsPreparer(ctx context.Context, appID uuid.UU
 // ListIntentsSender sends the ListIntents request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListIntentsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListIntentsResponder handles the response to the ListIntents request. The method always
@@ -6247,118 +5924,13 @@ func (client ModelClient) ListIntentsResponder(resp *http.Response) (result List
 	return
 }
 
-// ListIntentSuggestions suggests example utterances that would improve the accuracy of the intent model in a version
-// of the application.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// intentID - the intent classifier ID.
-// take - the number of entries to return. Maximum page size is 500. Default is 100.
-func (client ModelClient) ListIntentSuggestions(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, take *int32) (result ListIntentsSuggestionExample, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListIntentSuggestions")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	if err := validation.Validate([]validation.Validation{
-		{TargetValue: take,
-			Constraints: []validation.Constraint{{Target: "take", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "take", Name: validation.InclusiveMaximum, Rule: int64(500), Chain: nil},
-					{Target: "take", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil},
-				}}}}}); err != nil {
-		return result, validation.NewError("authoring.ModelClient", "ListIntentSuggestions", err.Error())
-	}
-
-	req, err := client.ListIntentSuggestionsPreparer(ctx, appID, versionID, intentID, take)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListIntentSuggestions", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListIntentSuggestionsSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListIntentSuggestions", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListIntentSuggestionsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListIntentSuggestions", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListIntentSuggestionsPreparer prepares the ListIntentSuggestions request.
-func (client ModelClient) ListIntentSuggestionsPreparer(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, take *int32) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"intentId":  autorest.Encode("path", intentID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	queryParameters := map[string]interface{}{}
-	if take != nil {
-		queryParameters["take"] = autorest.Encode("query", *take)
-	} else {
-		queryParameters["take"] = autorest.Encode("query", 100)
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/intents/{intentId}/suggest", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListIntentSuggestionsSender sends the ListIntentSuggestions request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListIntentSuggestionsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListIntentSuggestionsResponder handles the response to the ListIntentSuggestions request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListIntentSuggestionsResponder(resp *http.Response) (result ListIntentsSuggestionExample, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListModels gets information about all the intent and entity models in a version of the application.
+// ListModels gets information about the application version models.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // skip - the number of entries to skip. Default value is 0.
 // take - the number of entries to return. Maximum page size is 500. Default is 100.
 func (client ModelClient) ListModels(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListModelInfoResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListModels")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: skip,
 			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
@@ -6426,8 +5998,8 @@ func (client ModelClient) ListModelsPreparer(ctx context.Context, appID uuid.UUI
 // ListModelsSender sends the ListModels request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListModelsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListModelsResponder handles the response to the ListModels request. The method always
@@ -6443,198 +6015,11 @@ func (client ModelClient) ListModelsResponder(resp *http.Response) (result ListM
 	return
 }
 
-// ListPatternAnyEntityInfos sends the list pattern any entity infos request.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// skip - the number of entries to skip. Default value is 0.
-// take - the number of entries to return. Maximum page size is 500. Default is 100.
-func (client ModelClient) ListPatternAnyEntityInfos(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListPatternAnyEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListPatternAnyEntityInfos")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	if err := validation.Validate([]validation.Validation{
-		{TargetValue: skip,
-			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "skip", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil}}}}},
-		{TargetValue: take,
-			Constraints: []validation.Constraint{{Target: "take", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "take", Name: validation.InclusiveMaximum, Rule: int64(500), Chain: nil},
-					{Target: "take", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil},
-				}}}}}); err != nil {
-		return result, validation.NewError("authoring.ModelClient", "ListPatternAnyEntityInfos", err.Error())
-	}
-
-	req, err := client.ListPatternAnyEntityInfosPreparer(ctx, appID, versionID, skip, take)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPatternAnyEntityInfos", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListPatternAnyEntityInfosSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPatternAnyEntityInfos", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListPatternAnyEntityInfosResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPatternAnyEntityInfos", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListPatternAnyEntityInfosPreparer prepares the ListPatternAnyEntityInfos request.
-func (client ModelClient) ListPatternAnyEntityInfosPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	queryParameters := map[string]interface{}{}
-	if skip != nil {
-		queryParameters["skip"] = autorest.Encode("query", *skip)
-	} else {
-		queryParameters["skip"] = autorest.Encode("query", 0)
-	}
-	if take != nil {
-		queryParameters["take"] = autorest.Encode("query", *take)
-	} else {
-		queryParameters["take"] = autorest.Encode("query", 100)
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListPatternAnyEntityInfosSender sends the ListPatternAnyEntityInfos request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListPatternAnyEntityInfosSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListPatternAnyEntityInfosResponder handles the response to the ListPatternAnyEntityInfos request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListPatternAnyEntityInfosResponder(resp *http.Response) (result ListPatternAnyEntityExtractor, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListPatternAnyEntityRoles sends the list pattern any entity roles request.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// entityID - entity Id
-func (client ModelClient) ListPatternAnyEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListPatternAnyEntityRoles")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.ListPatternAnyEntityRolesPreparer(ctx, appID, versionID, entityID)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPatternAnyEntityRoles", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListPatternAnyEntityRolesSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPatternAnyEntityRoles", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListPatternAnyEntityRolesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPatternAnyEntityRoles", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListPatternAnyEntityRolesPreparer prepares the ListPatternAnyEntityRoles request.
-func (client ModelClient) ListPatternAnyEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"entityId":  autorest.Encode("path", entityID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/roles", pathParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListPatternAnyEntityRolesSender sends the ListPatternAnyEntityRoles request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListPatternAnyEntityRolesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListPatternAnyEntityRolesResponder handles the response to the ListPatternAnyEntityRoles request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListPatternAnyEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListPrebuiltEntities gets all the available prebuilt entities in a version of the application.
+// ListPrebuiltEntities gets all the available prebuilt entity extractors for the application.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 func (client ModelClient) ListPrebuiltEntities(ctx context.Context, appID uuid.UUID, versionID string) (result ListAvailablePrebuiltEntityModel, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListPrebuiltEntities")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListPrebuiltEntitiesPreparer(ctx, appID, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPrebuiltEntities", nil, "Failure preparing request")
@@ -6677,8 +6062,8 @@ func (client ModelClient) ListPrebuiltEntitiesPreparer(ctx context.Context, appI
 // ListPrebuiltEntitiesSender sends the ListPrebuiltEntities request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListPrebuiltEntitiesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListPrebuiltEntitiesResponder handles the response to the ListPrebuiltEntities request. The method always
@@ -6694,99 +6079,13 @@ func (client ModelClient) ListPrebuiltEntitiesResponder(resp *http.Response) (re
 	return
 }
 
-// ListPrebuiltEntityRoles sends the list prebuilt entity roles request.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// entityID - entity Id
-func (client ModelClient) ListPrebuiltEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListPrebuiltEntityRoles")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.ListPrebuiltEntityRolesPreparer(ctx, appID, versionID, entityID)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPrebuiltEntityRoles", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListPrebuiltEntityRolesSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPrebuiltEntityRoles", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListPrebuiltEntityRolesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListPrebuiltEntityRoles", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListPrebuiltEntityRolesPreparer prepares the ListPrebuiltEntityRoles request.
-func (client ModelClient) ListPrebuiltEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"entityId":  autorest.Encode("path", entityID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts/{entityId}/roles", pathParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListPrebuiltEntityRolesSender sends the ListPrebuiltEntityRoles request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListPrebuiltEntityRolesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListPrebuiltEntityRolesResponder handles the response to the ListPrebuiltEntityRoles request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListPrebuiltEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListPrebuilts gets information about all the prebuilt entities in a version of the application.
+// ListPrebuilts gets information about the prebuilt entity models.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // skip - the number of entries to skip. Default value is 0.
 // take - the number of entries to return. Maximum page size is 500. Default is 100.
 func (client ModelClient) ListPrebuilts(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListPrebuiltEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListPrebuilts")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: skip,
 			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
@@ -6854,8 +6153,8 @@ func (client ModelClient) ListPrebuiltsPreparer(ctx context.Context, appID uuid.
 // ListPrebuiltsSender sends the ListPrebuilts request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) ListPrebuiltsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListPrebuiltsResponder handles the response to the ListPrebuilts request. The method always
@@ -6871,200 +6170,13 @@ func (client ModelClient) ListPrebuiltsResponder(resp *http.Response) (result Li
 	return
 }
 
-// ListRegexEntityInfos sends the list regex entity infos request.
+// PatchClosedList adds a batch of sublists to an existing closedlist.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// skip - the number of entries to skip. Default value is 0.
-// take - the number of entries to return. Maximum page size is 500. Default is 100.
-func (client ModelClient) ListRegexEntityInfos(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (result ListRegexEntityExtractor, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListRegexEntityInfos")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	if err := validation.Validate([]validation.Validation{
-		{TargetValue: skip,
-			Constraints: []validation.Constraint{{Target: "skip", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "skip", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil}}}}},
-		{TargetValue: take,
-			Constraints: []validation.Constraint{{Target: "take", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "take", Name: validation.InclusiveMaximum, Rule: int64(500), Chain: nil},
-					{Target: "take", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil},
-				}}}}}); err != nil {
-		return result, validation.NewError("authoring.ModelClient", "ListRegexEntityInfos", err.Error())
-	}
-
-	req, err := client.ListRegexEntityInfosPreparer(ctx, appID, versionID, skip, take)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListRegexEntityInfos", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListRegexEntityInfosSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListRegexEntityInfos", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListRegexEntityInfosResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListRegexEntityInfos", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListRegexEntityInfosPreparer prepares the ListRegexEntityInfos request.
-func (client ModelClient) ListRegexEntityInfosPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	queryParameters := map[string]interface{}{}
-	if skip != nil {
-		queryParameters["skip"] = autorest.Encode("query", *skip)
-	} else {
-		queryParameters["skip"] = autorest.Encode("query", 0)
-	}
-	if take != nil {
-		queryParameters["take"] = autorest.Encode("query", *take)
-	} else {
-		queryParameters["take"] = autorest.Encode("query", 100)
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListRegexEntityInfosSender sends the ListRegexEntityInfos request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListRegexEntityInfosSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListRegexEntityInfosResponder handles the response to the ListRegexEntityInfos request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListRegexEntityInfosResponder(resp *http.Response) (result ListRegexEntityExtractor, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListRegexEntityRoles sends the list regex entity roles request.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// entityID - entity Id
-func (client ModelClient) ListRegexEntityRoles(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (result ListEntityRole, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.ListRegexEntityRoles")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.ListRegexEntityRolesPreparer(ctx, appID, versionID, entityID)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListRegexEntityRoles", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.ListRegexEntityRolesSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListRegexEntityRoles", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.ListRegexEntityRolesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "ListRegexEntityRoles", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListRegexEntityRolesPreparer prepares the ListRegexEntityRoles request.
-func (client ModelClient) ListRegexEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
-	urlParameters := map[string]interface{}{
-		"Endpoint": client.Endpoint,
-	}
-
-	pathParameters := map[string]interface{}{
-		"appId":     autorest.Encode("path", appID),
-		"entityId":  autorest.Encode("path", entityID),
-		"versionId": autorest.Encode("path", versionID),
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
-		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{entityId}/roles", pathParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// ListRegexEntityRolesSender sends the ListRegexEntityRoles request. The method will close the
-// http.Response Body if it receives an error.
-func (client ModelClient) ListRegexEntityRolesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// ListRegexEntityRolesResponder handles the response to the ListRegexEntityRoles request. The method always
-// closes the http.Response Body.
-func (client ModelClient) ListRegexEntityRolesResponder(resp *http.Response) (result ListEntityRole, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// PatchClosedList adds a batch of sublists to an existing list entity in a version of the application.
-// Parameters:
-// appID - the application ID.
-// versionID - the version ID.
-// clEntityID - the list entity model ID.
+// clEntityID - the closed list model ID.
 // closedListModelPatchObject - a words list batch.
 func (client ModelClient) PatchClosedList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, closedListModelPatchObject ClosedListModelPatchObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.PatchClosedList")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.PatchClosedListPreparer(ctx, appID, versionID, clEntityID, closedListModelPatchObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "PatchClosedList", nil, "Failure preparing request")
@@ -7110,8 +6222,8 @@ func (client ModelClient) PatchClosedListPreparer(ctx context.Context, appID uui
 // PatchClosedListSender sends the PatchClosedList request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) PatchClosedListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // PatchClosedListResponder handles the response to the PatchClosedList request. The method always
@@ -7127,23 +6239,13 @@ func (client ModelClient) PatchClosedListResponder(resp *http.Response) (result 
 	return
 }
 
-// UpdateClosedList updates the list entity in a version of the application.
+// UpdateClosedList updates the closed list model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// clEntityID - the list model ID.
-// closedListModelUpdateObject - the new list entity name and words list.
+// clEntityID - the closed list model ID.
+// closedListModelUpdateObject - the new entity name and words list.
 func (client ModelClient) UpdateClosedList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, closedListModelUpdateObject ClosedListModelUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateClosedList")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateClosedListPreparer(ctx, appID, versionID, clEntityID, closedListModelUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateClosedList", nil, "Failure preparing request")
@@ -7189,8 +6291,8 @@ func (client ModelClient) UpdateClosedListPreparer(ctx context.Context, appID uu
 // UpdateClosedListSender sends the UpdateClosedList request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateClosedListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateClosedListResponder handles the response to the UpdateClosedList request. The method always
@@ -7214,16 +6316,6 @@ func (client ModelClient) UpdateClosedListResponder(resp *http.Response) (result
 // roleID - the entity role ID.
 // entityRoleUpdateObject - the new entity role.
 func (client ModelClient) UpdateClosedListEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateClosedListEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateClosedListEntityRolePreparer(ctx, appID, versionID, entityID, roleID, entityRoleUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateClosedListEntityRole", nil, "Failure preparing request")
@@ -7270,8 +6362,8 @@ func (client ModelClient) UpdateClosedListEntityRolePreparer(ctx context.Context
 // UpdateClosedListEntityRoleSender sends the UpdateClosedListEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateClosedListEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateClosedListEntityRoleResponder handles the response to the UpdateClosedListEntityRole request. The method always
@@ -7287,23 +6379,13 @@ func (client ModelClient) UpdateClosedListEntityRoleResponder(resp *http.Respons
 	return
 }
 
-// UpdateCompositeEntity updates a composite entity in a version of the application.
+// UpdateCompositeEntity updates the composite entity extractor.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // cEntityID - the composite entity extractor ID.
 // compositeModelUpdateObject - a model object containing the new entity extractor name and children.
 func (client ModelClient) UpdateCompositeEntity(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, compositeModelUpdateObject CompositeEntityModel) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateCompositeEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateCompositeEntityPreparer(ctx, appID, versionID, cEntityID, compositeModelUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateCompositeEntity", nil, "Failure preparing request")
@@ -7349,8 +6431,8 @@ func (client ModelClient) UpdateCompositeEntityPreparer(ctx context.Context, app
 // UpdateCompositeEntitySender sends the UpdateCompositeEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateCompositeEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateCompositeEntityResponder handles the response to the UpdateCompositeEntity request. The method always
@@ -7374,16 +6456,6 @@ func (client ModelClient) UpdateCompositeEntityResponder(resp *http.Response) (r
 // roleID - the entity role ID.
 // entityRoleUpdateObject - the new entity role.
 func (client ModelClient) UpdateCompositeEntityRole(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateCompositeEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateCompositeEntityRolePreparer(ctx, appID, versionID, cEntityID, roleID, entityRoleUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateCompositeEntityRole", nil, "Failure preparing request")
@@ -7430,8 +6502,8 @@ func (client ModelClient) UpdateCompositeEntityRolePreparer(ctx context.Context,
 // UpdateCompositeEntityRoleSender sends the UpdateCompositeEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateCompositeEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateCompositeEntityRoleResponder handles the response to the UpdateCompositeEntityRole request. The method always
@@ -7455,16 +6527,6 @@ func (client ModelClient) UpdateCompositeEntityRoleResponder(resp *http.Response
 // roleID - the entity role ID.
 // entityRoleUpdateObject - the new entity role.
 func (client ModelClient) UpdateCustomPrebuiltEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateCustomPrebuiltEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateCustomPrebuiltEntityRolePreparer(ctx, appID, versionID, entityID, roleID, entityRoleUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateCustomPrebuiltEntityRole", nil, "Failure preparing request")
@@ -7511,8 +6573,8 @@ func (client ModelClient) UpdateCustomPrebuiltEntityRolePreparer(ctx context.Con
 // UpdateCustomPrebuiltEntityRoleSender sends the UpdateCustomPrebuiltEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateCustomPrebuiltEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateCustomPrebuiltEntityRoleResponder handles the response to the UpdateCustomPrebuiltEntityRole request. The method always
@@ -7528,23 +6590,13 @@ func (client ModelClient) UpdateCustomPrebuiltEntityRoleResponder(resp *http.Res
 	return
 }
 
-// UpdateEntity updates the name of an entity in a version of the application.
+// UpdateEntity updates the name of an entity extractor.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // entityID - the entity extractor ID.
 // modelUpdateObject - a model object containing the new entity extractor name.
 func (client ModelClient) UpdateEntity(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, modelUpdateObject ModelUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateEntityPreparer(ctx, appID, versionID, entityID, modelUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateEntity", nil, "Failure preparing request")
@@ -7590,8 +6642,8 @@ func (client ModelClient) UpdateEntityPreparer(ctx context.Context, appID uuid.U
 // UpdateEntitySender sends the UpdateEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateEntityResponder handles the response to the UpdateEntity request. The method always
@@ -7615,16 +6667,6 @@ func (client ModelClient) UpdateEntityResponder(resp *http.Response) (result Ope
 // roleID - the entity role ID.
 // entityRoleUpdateObject - the new entity role.
 func (client ModelClient) UpdateEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateEntityRolePreparer(ctx, appID, versionID, entityID, roleID, entityRoleUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateEntityRole", nil, "Failure preparing request")
@@ -7671,8 +6713,8 @@ func (client ModelClient) UpdateEntityRolePreparer(ctx context.Context, appID uu
 // UpdateEntityRoleSender sends the UpdateEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateEntityRoleResponder handles the response to the UpdateEntityRole request. The method always
@@ -7696,16 +6738,6 @@ func (client ModelClient) UpdateEntityRoleResponder(resp *http.Response) (result
 // itemID - the explicit list item ID.
 // item - the new explicit list item.
 func (client ModelClient) UpdateExplicitListItem(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, itemID int64, item ExplicitListItemUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateExplicitListItem")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateExplicitListItemPreparer(ctx, appID, versionID, entityID, itemID, item)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateExplicitListItem", nil, "Failure preparing request")
@@ -7752,8 +6784,8 @@ func (client ModelClient) UpdateExplicitListItemPreparer(ctx context.Context, ap
 // UpdateExplicitListItemSender sends the UpdateExplicitListItem request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateExplicitListItemSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateExplicitListItemResponder handles the response to the UpdateExplicitListItem request. The method always
@@ -7769,24 +6801,13 @@ func (client ModelClient) UpdateExplicitListItemResponder(resp *http.Response) (
 	return
 }
 
-// UpdateHierarchicalEntity updates the name and children of a hierarchical entity model in a version of the
-// application.
+// UpdateHierarchicalEntity updates the name and children of a hierarchical entity model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // hEntityID - the hierarchical entity extractor ID.
 // hierarchicalModelUpdateObject - model containing names of the children of the hierarchical entity.
 func (client ModelClient) UpdateHierarchicalEntity(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hierarchicalModelUpdateObject HierarchicalEntityModel) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateHierarchicalEntity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateHierarchicalEntityPreparer(ctx, appID, versionID, hEntityID, hierarchicalModelUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateHierarchicalEntity", nil, "Failure preparing request")
@@ -7832,8 +6853,8 @@ func (client ModelClient) UpdateHierarchicalEntityPreparer(ctx context.Context, 
 // UpdateHierarchicalEntitySender sends the UpdateHierarchicalEntity request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateHierarchicalEntitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateHierarchicalEntityResponder handles the response to the UpdateHierarchicalEntity request. The method always
@@ -7849,8 +6870,7 @@ func (client ModelClient) UpdateHierarchicalEntityResponder(resp *http.Response)
 	return
 }
 
-// UpdateHierarchicalEntityChild renames a single child in an existing hierarchical entity model in a version of the
-// application.
+// UpdateHierarchicalEntityChild renames a single child in an existing hierarchical entity model.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
@@ -7858,16 +6878,6 @@ func (client ModelClient) UpdateHierarchicalEntityResponder(resp *http.Response)
 // hChildID - the hierarchical entity extractor child ID.
 // hierarchicalChildModelUpdateObject - model object containing new name of the hierarchical entity child.
 func (client ModelClient) UpdateHierarchicalEntityChild(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hChildID uuid.UUID, hierarchicalChildModelUpdateObject HierarchicalChildModelUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateHierarchicalEntityChild")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateHierarchicalEntityChildPreparer(ctx, appID, versionID, hEntityID, hChildID, hierarchicalChildModelUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateHierarchicalEntityChild", nil, "Failure preparing request")
@@ -7914,8 +6924,8 @@ func (client ModelClient) UpdateHierarchicalEntityChildPreparer(ctx context.Cont
 // UpdateHierarchicalEntityChildSender sends the UpdateHierarchicalEntityChild request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateHierarchicalEntityChildSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateHierarchicalEntityChildResponder handles the response to the UpdateHierarchicalEntityChild request. The method always
@@ -7939,16 +6949,6 @@ func (client ModelClient) UpdateHierarchicalEntityChildResponder(resp *http.Resp
 // roleID - the entity role ID.
 // entityRoleUpdateObject - the new entity role.
 func (client ModelClient) UpdateHierarchicalEntityRole(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateHierarchicalEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateHierarchicalEntityRolePreparer(ctx, appID, versionID, hEntityID, roleID, entityRoleUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateHierarchicalEntityRole", nil, "Failure preparing request")
@@ -7995,8 +6995,8 @@ func (client ModelClient) UpdateHierarchicalEntityRolePreparer(ctx context.Conte
 // UpdateHierarchicalEntityRoleSender sends the UpdateHierarchicalEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateHierarchicalEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateHierarchicalEntityRoleResponder handles the response to the UpdateHierarchicalEntityRole request. The method always
@@ -8012,23 +7012,13 @@ func (client ModelClient) UpdateHierarchicalEntityRoleResponder(resp *http.Respo
 	return
 }
 
-// UpdateIntent updates the name of an intent in a version of the application.
+// UpdateIntent updates the name of an intent classifier.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
 // intentID - the intent classifier ID.
-// modelUpdateObject - a model object containing the new intent name.
+// modelUpdateObject - a model object containing the new intent classifier name.
 func (client ModelClient) UpdateIntent(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, modelUpdateObject ModelUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateIntent")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateIntentPreparer(ctx, appID, versionID, intentID, modelUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateIntent", nil, "Failure preparing request")
@@ -8074,8 +7064,8 @@ func (client ModelClient) UpdateIntentPreparer(ctx context.Context, appID uuid.U
 // UpdateIntentSender sends the UpdateIntent request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateIntentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateIntentResponder handles the response to the UpdateIntent request. The method always
@@ -8098,16 +7088,6 @@ func (client ModelClient) UpdateIntentResponder(resp *http.Response) (result Ope
 // entityID - the Pattern.Any entity extractor ID.
 // patternAnyUpdateObject - an object containing the explicit list of the Pattern.Any entity.
 func (client ModelClient) UpdatePatternAnyEntityModel(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, patternAnyUpdateObject PatternAnyModelUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdatePatternAnyEntityModel")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePatternAnyEntityModelPreparer(ctx, appID, versionID, entityID, patternAnyUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdatePatternAnyEntityModel", nil, "Failure preparing request")
@@ -8153,8 +7133,8 @@ func (client ModelClient) UpdatePatternAnyEntityModelPreparer(ctx context.Contex
 // UpdatePatternAnyEntityModelSender sends the UpdatePatternAnyEntityModel request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdatePatternAnyEntityModelSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdatePatternAnyEntityModelResponder handles the response to the UpdatePatternAnyEntityModel request. The method always
@@ -8178,16 +7158,6 @@ func (client ModelClient) UpdatePatternAnyEntityModelResponder(resp *http.Respon
 // roleID - the entity role ID.
 // entityRoleUpdateObject - the new entity role.
 func (client ModelClient) UpdatePatternAnyEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdatePatternAnyEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePatternAnyEntityRolePreparer(ctx, appID, versionID, entityID, roleID, entityRoleUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdatePatternAnyEntityRole", nil, "Failure preparing request")
@@ -8234,8 +7204,8 @@ func (client ModelClient) UpdatePatternAnyEntityRolePreparer(ctx context.Context
 // UpdatePatternAnyEntityRoleSender sends the UpdatePatternAnyEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdatePatternAnyEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdatePatternAnyEntityRoleResponder handles the response to the UpdatePatternAnyEntityRole request. The method always
@@ -8259,16 +7229,6 @@ func (client ModelClient) UpdatePatternAnyEntityRoleResponder(resp *http.Respons
 // roleID - the entity role ID.
 // entityRoleUpdateObject - the new entity role.
 func (client ModelClient) UpdatePrebuiltEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdatePrebuiltEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePrebuiltEntityRolePreparer(ctx, appID, versionID, entityID, roleID, entityRoleUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdatePrebuiltEntityRole", nil, "Failure preparing request")
@@ -8315,8 +7275,8 @@ func (client ModelClient) UpdatePrebuiltEntityRolePreparer(ctx context.Context, 
 // UpdatePrebuiltEntityRoleSender sends the UpdatePrebuiltEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdatePrebuiltEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdatePrebuiltEntityRoleResponder handles the response to the UpdatePrebuiltEntityRole request. The method always
@@ -8336,19 +7296,9 @@ func (client ModelClient) UpdatePrebuiltEntityRoleResponder(resp *http.Response)
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// regexEntityID - the regular expression entity extractor ID.
+// regexEntityID - the regex entity extractor ID.
 // regexEntityUpdateObject - an object containing the new entity name and regex pattern.
 func (client ModelClient) UpdateRegexEntityModel(ctx context.Context, appID uuid.UUID, versionID string, regexEntityID uuid.UUID, regexEntityUpdateObject RegexModelUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateRegexEntityModel")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateRegexEntityModelPreparer(ctx, appID, versionID, regexEntityID, regexEntityUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateRegexEntityModel", nil, "Failure preparing request")
@@ -8394,8 +7344,8 @@ func (client ModelClient) UpdateRegexEntityModelPreparer(ctx context.Context, ap
 // UpdateRegexEntityModelSender sends the UpdateRegexEntityModel request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateRegexEntityModelSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateRegexEntityModelResponder handles the response to the UpdateRegexEntityModel request. The method always
@@ -8419,16 +7369,6 @@ func (client ModelClient) UpdateRegexEntityModelResponder(resp *http.Response) (
 // roleID - the entity role ID.
 // entityRoleUpdateObject - the new entity role.
 func (client ModelClient) UpdateRegexEntityRole(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateRegexEntityRole")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateRegexEntityRolePreparer(ctx, appID, versionID, entityID, roleID, entityRoleUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateRegexEntityRole", nil, "Failure preparing request")
@@ -8475,8 +7415,8 @@ func (client ModelClient) UpdateRegexEntityRolePreparer(ctx context.Context, app
 // UpdateRegexEntityRoleSender sends the UpdateRegexEntityRole request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateRegexEntityRoleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateRegexEntityRoleResponder handles the response to the UpdateRegexEntityRole request. The method always
@@ -8492,24 +7432,14 @@ func (client ModelClient) UpdateRegexEntityRoleResponder(resp *http.Response) (r
 	return
 }
 
-// UpdateSubList updates one of the list entity's sublists in a version of the application.
+// UpdateSubList updates one of the closed list's sublists.
 // Parameters:
 // appID - the application ID.
 // versionID - the version ID.
-// clEntityID - the list entity extractor ID.
+// clEntityID - the closed list entity extractor ID.
 // subListID - the sublist ID.
 // wordListBaseUpdateObject - a sublist update object containing the new canonical form and the list of words.
-func (client ModelClient) UpdateSubList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int64, wordListBaseUpdateObject WordListBaseUpdateObject) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ModelClient.UpdateSubList")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client ModelClient) UpdateSubList(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int32, wordListBaseUpdateObject WordListBaseUpdateObject) (result OperationStatus, err error) {
 	req, err := client.UpdateSubListPreparer(ctx, appID, versionID, clEntityID, subListID, wordListBaseUpdateObject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.ModelClient", "UpdateSubList", nil, "Failure preparing request")
@@ -8532,7 +7462,7 @@ func (client ModelClient) UpdateSubList(ctx context.Context, appID uuid.UUID, ve
 }
 
 // UpdateSubListPreparer prepares the UpdateSubList request.
-func (client ModelClient) UpdateSubListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int64, wordListBaseUpdateObject WordListBaseUpdateObject) (*http.Request, error) {
+func (client ModelClient) UpdateSubListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int32, wordListBaseUpdateObject WordListBaseUpdateObject) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -8556,8 +7486,8 @@ func (client ModelClient) UpdateSubListPreparer(ctx context.Context, appID uuid.
 // UpdateSubListSender sends the UpdateSubList request. The method will close the
 // http.Response Body if it receives an error.
 func (client ModelClient) UpdateSubListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateSubListResponder handles the response to the UpdateSubList request. The method always

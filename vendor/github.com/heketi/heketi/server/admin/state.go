@@ -10,7 +10,6 @@
 package admin
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/heketi/heketi/pkg/glusterfs/api"
@@ -37,19 +36,4 @@ func (s *ServerState) Get() api.AdminState {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.state
-}
-
-func (s *ServerState) SetString(v string) error {
-	if v == "" {
-		return nil // do nothing for empty string
-	}
-	state := api.AdminState(v)
-	if state == api.AdminStateNormal ||
-		state == api.AdminStateLocal ||
-		state == api.AdminStateReadOnly {
-
-		s.Set(state)
-		return nil
-	}
-	return fmt.Errorf("unknown admin state name: %v", v)
 }

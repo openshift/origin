@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package util holds utility functions.
+// Utility functions.
 package util // import "k8s.io/kubernetes/pkg/kubelet/util"

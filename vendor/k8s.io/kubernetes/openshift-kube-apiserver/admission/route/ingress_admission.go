@@ -3,7 +3,6 @@
 package admission
 
 import (
-	"context"
 	"fmt"
 	"io"
 
@@ -80,7 +79,7 @@ func (r *ingressAdmission) ValidateInitialization() error {
 	return nil
 }
 
-func (r *ingressAdmission) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) error {
+func (r *ingressAdmission) Validate(a admission.Attributes, _ admission.ObjectInterfaces) error {
 	if a.GetResource().GroupResource() == kextensions.Resource("ingresses") {
 		switch a.GetOperation() {
 		case admission.Create:

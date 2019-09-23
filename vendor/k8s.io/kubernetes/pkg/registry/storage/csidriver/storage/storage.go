@@ -35,7 +35,7 @@ type REST struct {
 }
 
 // NewStorage returns a RESTStorage object that will work against CSIDrivers
-func NewStorage(optsGetter generic.RESTOptionsGetter) (*CSIDriverStorage, error) {
+func NewStorage(optsGetter generic.RESTOptionsGetter) *CSIDriverStorage {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &storageapi.CSIDriver{} },
 		NewListFunc:              func() runtime.Object { return &storageapi.CSIDriverList{} },
@@ -48,10 +48,10 @@ func NewStorage(optsGetter generic.RESTOptionsGetter) (*CSIDriverStorage, error)
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, err
+		panic(err) // TODO: Propagate error up
 	}
 
 	return &CSIDriverStorage{
 		CSIDriver: &REST{store},
-	}, nil
+	}
 }

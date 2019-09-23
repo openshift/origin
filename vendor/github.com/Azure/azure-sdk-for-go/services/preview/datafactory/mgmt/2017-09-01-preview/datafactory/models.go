@@ -18,19 +18,14 @@ package datafactory
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/datafactory/mgmt/2017-09-01-preview/datafactory"
 
 // AuthenticationType enumerates the values for authentication type.
 type AuthenticationType string
@@ -68,6 +63,21 @@ func PossibleAuthorizationTypeValues() []AuthorizationType {
 	return []AuthorizationType{AuthorizationTypeKey, AuthorizationTypeLinkedIntegrationRuntimeProperties, AuthorizationTypeRBAC}
 }
 
+// AzureSearchIndexWriteBehaviorType enumerates the values for azure search index write behavior type.
+type AzureSearchIndexWriteBehaviorType string
+
+const (
+	// Merge ...
+	Merge AzureSearchIndexWriteBehaviorType = "Merge"
+	// Upload ...
+	Upload AzureSearchIndexWriteBehaviorType = "Upload"
+)
+
+// PossibleAzureSearchIndexWriteBehaviorTypeValues returns an array of possible values for the AzureSearchIndexWriteBehaviorType const type.
+func PossibleAzureSearchIndexWriteBehaviorTypeValues() []AzureSearchIndexWriteBehaviorType {
+	return []AzureSearchIndexWriteBehaviorType{Merge, Upload}
+}
+
 // BlobEventTypes enumerates the values for blob event types.
 type BlobEventTypes string
 
@@ -81,6 +91,69 @@ const (
 // PossibleBlobEventTypesValues returns an array of possible values for the BlobEventTypes const type.
 func PossibleBlobEventTypesValues() []BlobEventTypes {
 	return []BlobEventTypes{MicrosoftStorageBlobCreated, MicrosoftStorageBlobDeleted}
+}
+
+// CassandraSourceReadConsistencyLevels enumerates the values for cassandra source read consistency levels.
+type CassandraSourceReadConsistencyLevels string
+
+const (
+	// ALL ...
+	ALL CassandraSourceReadConsistencyLevels = "ALL"
+	// EACHQUORUM ...
+	EACHQUORUM CassandraSourceReadConsistencyLevels = "EACH_QUORUM"
+	// LOCALONE ...
+	LOCALONE CassandraSourceReadConsistencyLevels = "LOCAL_ONE"
+	// LOCALQUORUM ...
+	LOCALQUORUM CassandraSourceReadConsistencyLevels = "LOCAL_QUORUM"
+	// LOCALSERIAL ...
+	LOCALSERIAL CassandraSourceReadConsistencyLevels = "LOCAL_SERIAL"
+	// ONE ...
+	ONE CassandraSourceReadConsistencyLevels = "ONE"
+	// QUORUM ...
+	QUORUM CassandraSourceReadConsistencyLevels = "QUORUM"
+	// SERIAL ...
+	SERIAL CassandraSourceReadConsistencyLevels = "SERIAL"
+	// THREE ...
+	THREE CassandraSourceReadConsistencyLevels = "THREE"
+	// TWO ...
+	TWO CassandraSourceReadConsistencyLevels = "TWO"
+)
+
+// PossibleCassandraSourceReadConsistencyLevelsValues returns an array of possible values for the CassandraSourceReadConsistencyLevels const type.
+func PossibleCassandraSourceReadConsistencyLevelsValues() []CassandraSourceReadConsistencyLevels {
+	return []CassandraSourceReadConsistencyLevels{ALL, EACHQUORUM, LOCALONE, LOCALQUORUM, LOCALSERIAL, ONE, QUORUM, SERIAL, THREE, TWO}
+}
+
+// CopyBehaviorType enumerates the values for copy behavior type.
+type CopyBehaviorType string
+
+const (
+	// FlattenHierarchy ...
+	FlattenHierarchy CopyBehaviorType = "FlattenHierarchy"
+	// MergeFiles ...
+	MergeFiles CopyBehaviorType = "MergeFiles"
+	// PreserveHierarchy ...
+	PreserveHierarchy CopyBehaviorType = "PreserveHierarchy"
+)
+
+// PossibleCopyBehaviorTypeValues returns an array of possible values for the CopyBehaviorType const type.
+func PossibleCopyBehaviorTypeValues() []CopyBehaviorType {
+	return []CopyBehaviorType{FlattenHierarchy, MergeFiles, PreserveHierarchy}
+}
+
+// DatasetCompressionLevel enumerates the values for dataset compression level.
+type DatasetCompressionLevel string
+
+const (
+	// Fastest ...
+	Fastest DatasetCompressionLevel = "Fastest"
+	// Optimal ...
+	Optimal DatasetCompressionLevel = "Optimal"
+)
+
+// PossibleDatasetCompressionLevelValues returns an array of possible values for the DatasetCompressionLevel const type.
+func PossibleDatasetCompressionLevelValues() []DatasetCompressionLevel {
+	return []DatasetCompressionLevel{Fastest, Optimal}
 }
 
 // DayOfWeek enumerates the values for day of week.
@@ -363,21 +436,6 @@ func PossibleIntegrationRuntimeEditionValues() []IntegrationRuntimeEdition {
 	return []IntegrationRuntimeEdition{Enterprise, Standard}
 }
 
-// IntegrationRuntimeEntityReferenceType enumerates the values for integration runtime entity reference type.
-type IntegrationRuntimeEntityReferenceType string
-
-const (
-	// IntegrationRuntimeEntityReferenceTypeIntegrationRuntimeReference ...
-	IntegrationRuntimeEntityReferenceTypeIntegrationRuntimeReference IntegrationRuntimeEntityReferenceType = "IntegrationRuntimeReference"
-	// IntegrationRuntimeEntityReferenceTypeLinkedServiceReference ...
-	IntegrationRuntimeEntityReferenceTypeLinkedServiceReference IntegrationRuntimeEntityReferenceType = "LinkedServiceReference"
-)
-
-// PossibleIntegrationRuntimeEntityReferenceTypeValues returns an array of possible values for the IntegrationRuntimeEntityReferenceType const type.
-func PossibleIntegrationRuntimeEntityReferenceTypeValues() []IntegrationRuntimeEntityReferenceType {
-	return []IntegrationRuntimeEntityReferenceType{IntegrationRuntimeEntityReferenceTypeIntegrationRuntimeReference, IntegrationRuntimeEntityReferenceTypeLinkedServiceReference}
-}
-
 // IntegrationRuntimeInternalChannelEncryptionMode enumerates the values for integration runtime internal
 // channel encryption mode.
 type IntegrationRuntimeInternalChannelEncryptionMode string
@@ -409,6 +467,26 @@ const (
 // PossibleIntegrationRuntimeLicenseTypeValues returns an array of possible values for the IntegrationRuntimeLicenseType const type.
 func PossibleIntegrationRuntimeLicenseTypeValues() []IntegrationRuntimeLicenseType {
 	return []IntegrationRuntimeLicenseType{BasePrice, LicenseIncluded}
+}
+
+// IntegrationRuntimeSsisCatalogPricingTier enumerates the values for integration runtime ssis catalog pricing
+// tier.
+type IntegrationRuntimeSsisCatalogPricingTier string
+
+const (
+	// IntegrationRuntimeSsisCatalogPricingTierBasic ...
+	IntegrationRuntimeSsisCatalogPricingTierBasic IntegrationRuntimeSsisCatalogPricingTier = "Basic"
+	// IntegrationRuntimeSsisCatalogPricingTierPremium ...
+	IntegrationRuntimeSsisCatalogPricingTierPremium IntegrationRuntimeSsisCatalogPricingTier = "Premium"
+	// IntegrationRuntimeSsisCatalogPricingTierPremiumRS ...
+	IntegrationRuntimeSsisCatalogPricingTierPremiumRS IntegrationRuntimeSsisCatalogPricingTier = "PremiumRS"
+	// IntegrationRuntimeSsisCatalogPricingTierStandard ...
+	IntegrationRuntimeSsisCatalogPricingTierStandard IntegrationRuntimeSsisCatalogPricingTier = "Standard"
+)
+
+// PossibleIntegrationRuntimeSsisCatalogPricingTierValues returns an array of possible values for the IntegrationRuntimeSsisCatalogPricingTier const type.
+func PossibleIntegrationRuntimeSsisCatalogPricingTierValues() []IntegrationRuntimeSsisCatalogPricingTier {
+	return []IntegrationRuntimeSsisCatalogPricingTier{IntegrationRuntimeSsisCatalogPricingTierBasic, IntegrationRuntimeSsisCatalogPricingTierPremium, IntegrationRuntimeSsisCatalogPricingTierPremiumRS, IntegrationRuntimeSsisCatalogPricingTierStandard}
 }
 
 // IntegrationRuntimeState enumerates the values for integration runtime state.
@@ -644,6 +722,21 @@ func PossiblePipelineRunQueryOrderByFieldValues() []PipelineRunQueryOrderByField
 	return []PipelineRunQueryOrderByField{PipelineRunQueryOrderByFieldRunEnd, PipelineRunQueryOrderByFieldRunStart}
 }
 
+// PolybaseSettingsRejectType enumerates the values for polybase settings reject type.
+type PolybaseSettingsRejectType string
+
+const (
+	// Percentage ...
+	Percentage PolybaseSettingsRejectType = "percentage"
+	// Value ...
+	Value PolybaseSettingsRejectType = "value"
+)
+
+// PossiblePolybaseSettingsRejectTypeValues returns an array of possible values for the PolybaseSettingsRejectType const type.
+func PossiblePolybaseSettingsRejectTypeValues() []PolybaseSettingsRejectType {
+	return []PolybaseSettingsRejectType{Percentage, Value}
+}
+
 // PrestoAuthenticationType enumerates the values for presto authentication type.
 type PrestoAuthenticationType string
 
@@ -682,6 +775,51 @@ const (
 // PossibleRecurrenceFrequencyValues returns an array of possible values for the RecurrenceFrequency const type.
 func PossibleRecurrenceFrequencyValues() []RecurrenceFrequency {
 	return []RecurrenceFrequency{Day, Hour, Minute, Month, NotSpecified, Week, Year}
+}
+
+// SalesforceSinkWriteBehavior enumerates the values for salesforce sink write behavior.
+type SalesforceSinkWriteBehavior string
+
+const (
+	// Insert ...
+	Insert SalesforceSinkWriteBehavior = "Insert"
+	// Upsert ...
+	Upsert SalesforceSinkWriteBehavior = "Upsert"
+)
+
+// PossibleSalesforceSinkWriteBehaviorValues returns an array of possible values for the SalesforceSinkWriteBehavior const type.
+func PossibleSalesforceSinkWriteBehaviorValues() []SalesforceSinkWriteBehavior {
+	return []SalesforceSinkWriteBehavior{Insert, Upsert}
+}
+
+// SalesforceSourceReadBehavior enumerates the values for salesforce source read behavior.
+type SalesforceSourceReadBehavior string
+
+const (
+	// Query ...
+	Query SalesforceSourceReadBehavior = "Query"
+	// QueryAll ...
+	QueryAll SalesforceSourceReadBehavior = "QueryAll"
+)
+
+// PossibleSalesforceSourceReadBehaviorValues returns an array of possible values for the SalesforceSourceReadBehavior const type.
+func PossibleSalesforceSourceReadBehaviorValues() []SalesforceSourceReadBehavior {
+	return []SalesforceSourceReadBehavior{Query, QueryAll}
+}
+
+// SapCloudForCustomerSinkWriteBehavior enumerates the values for sap cloud for customer sink write behavior.
+type SapCloudForCustomerSinkWriteBehavior string
+
+const (
+	// SapCloudForCustomerSinkWriteBehaviorInsert ...
+	SapCloudForCustomerSinkWriteBehaviorInsert SapCloudForCustomerSinkWriteBehavior = "Insert"
+	// SapCloudForCustomerSinkWriteBehaviorUpdate ...
+	SapCloudForCustomerSinkWriteBehaviorUpdate SapCloudForCustomerSinkWriteBehavior = "Update"
+)
+
+// PossibleSapCloudForCustomerSinkWriteBehaviorValues returns an array of possible values for the SapCloudForCustomerSinkWriteBehavior const type.
+func PossibleSapCloudForCustomerSinkWriteBehaviorValues() []SapCloudForCustomerSinkWriteBehavior {
+	return []SapCloudForCustomerSinkWriteBehavior{SapCloudForCustomerSinkWriteBehaviorInsert, SapCloudForCustomerSinkWriteBehaviorUpdate}
 }
 
 // SapHanaAuthenticationType enumerates the values for sap hana authentication type.
@@ -808,19 +946,42 @@ func PossibleSparkThriftTransportProtocolValues() []SparkThriftTransportProtocol
 	return []SparkThriftTransportProtocol{SparkThriftTransportProtocolBinary, SparkThriftTransportProtocolHTTP, SparkThriftTransportProtocolSASL}
 }
 
-// SsisPackageLocationType enumerates the values for ssis package location type.
-type SsisPackageLocationType string
+// SSISExecutionRuntime enumerates the values for ssis execution runtime.
+type SSISExecutionRuntime string
 
 const (
-	// File ...
-	File SsisPackageLocationType = "File"
-	// SSISDB ...
-	SSISDB SsisPackageLocationType = "SSISDB"
+	// X64 ...
+	X64 SSISExecutionRuntime = "x64"
+	// X86 ...
+	X86 SSISExecutionRuntime = "x86"
 )
 
-// PossibleSsisPackageLocationTypeValues returns an array of possible values for the SsisPackageLocationType const type.
-func PossibleSsisPackageLocationTypeValues() []SsisPackageLocationType {
-	return []SsisPackageLocationType{File, SSISDB}
+// PossibleSSISExecutionRuntimeValues returns an array of possible values for the SSISExecutionRuntime const type.
+func PossibleSSISExecutionRuntimeValues() []SSISExecutionRuntime {
+	return []SSISExecutionRuntime{X64, X86}
+}
+
+// StoredProcedureParameterType enumerates the values for stored procedure parameter type.
+type StoredProcedureParameterType string
+
+const (
+	// Boolean ...
+	Boolean StoredProcedureParameterType = "Boolean"
+	// Date ...
+	Date StoredProcedureParameterType = "Date"
+	// Decimal ...
+	Decimal StoredProcedureParameterType = "Decimal"
+	// GUID ...
+	GUID StoredProcedureParameterType = "Guid"
+	// Int ...
+	Int StoredProcedureParameterType = "Int"
+	// String ...
+	String StoredProcedureParameterType = "String"
+)
+
+// PossibleStoredProcedureParameterTypeValues returns an array of possible values for the StoredProcedureParameterType const type.
+func PossibleStoredProcedureParameterTypeValues() []StoredProcedureParameterType {
+	return []StoredProcedureParameterType{Boolean, Date, Decimal, GUID, Int, String}
 }
 
 // SybaseAuthenticationType enumerates the values for sybase authentication type.
@@ -1132,6 +1293,21 @@ const (
 // PossibleTypeBasicCopySourceValues returns an array of possible values for the TypeBasicCopySource const type.
 func PossibleTypeBasicCopySourceValues() []TypeBasicCopySource {
 	return []TypeBasicCopySource{TypeAmazonMWSSource, TypeAmazonRedshiftSource, TypeAzureDataLakeStoreSource, TypeAzureMySQLSource, TypeAzurePostgreSQLSource, TypeAzureTableSource, TypeBlobSource, TypeCassandraSource, TypeConcurSource, TypeCopySource, TypeCouchbaseSource, TypeDocumentDbCollectionSource, TypeDrillSource, TypeDynamicsSource, TypeEloquaSource, TypeFileSystemSource, TypeGoogleBigQuerySource, TypeGreenplumSource, TypeHBaseSource, TypeHdfsSource, TypeHiveSource, TypeHTTPSource, TypeHubspotSource, TypeImpalaSource, TypeJiraSource, TypeMagentoSource, TypeMariaDBSource, TypeMarketoSource, TypeMongoDbSource, TypeNetezzaSource, TypeOracleSource, TypePaypalSource, TypePhoenixSource, TypePrestoSource, TypeQuickBooksSource, TypeRelationalSource, TypeResponsysSource, TypeSalesforceMarketingCloudSource, TypeSalesforceSource, TypeSapCloudForCustomerSource, TypeSapEccSource, TypeServiceNowSource, TypeShopifySource, TypeSparkSource, TypeSQLDWSource, TypeSQLSource, TypeSquareSource, TypeVerticaSource, TypeWebSource, TypeXeroSource, TypeZohoSource}
+}
+
+// TypeBasicCopyTranslator enumerates the values for type basic copy translator.
+type TypeBasicCopyTranslator string
+
+const (
+	// TypeCopyTranslator ...
+	TypeCopyTranslator TypeBasicCopyTranslator = "CopyTranslator"
+	// TypeTabularTranslator ...
+	TypeTabularTranslator TypeBasicCopyTranslator = "TabularTranslator"
+)
+
+// PossibleTypeBasicCopyTranslatorValues returns an array of possible values for the TypeBasicCopyTranslator const type.
+func PossibleTypeBasicCopyTranslatorValues() []TypeBasicCopyTranslator {
+	return []TypeBasicCopyTranslator{TypeCopyTranslator, TypeTabularTranslator}
 }
 
 // TypeBasicDataset enumerates the values for type basic dataset.
@@ -2012,12 +2188,8 @@ type ActivityPolicy struct {
 // MarshalJSON is the custom marshaler for ActivityPolicy.
 func (ap ActivityPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if ap.Timeout != nil {
-		objectMap["timeout"] = ap.Timeout
-	}
-	if ap.Retry != nil {
-		objectMap["retry"] = ap.Retry
-	}
+	objectMap["timeout"] = ap.Timeout
+	objectMap["retry"] = ap.Retry
 	if ap.RetryIntervalInSeconds != nil {
 		objectMap["retryIntervalInSeconds"] = ap.RetryIntervalInSeconds
 	}
@@ -2097,37 +2269,70 @@ func (ap *ActivityPolicy) UnmarshalJSON(body []byte) error {
 type ActivityRun struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// PipelineName - READ-ONLY; The name of the pipeline.
+	// PipelineName - The name of the pipeline.
 	PipelineName *string `json:"pipelineName,omitempty"`
-	// PipelineRunID - READ-ONLY; The id of the pipeline run.
+	// PipelineRunID - The id of the pipeline run.
 	PipelineRunID *string `json:"pipelineRunId,omitempty"`
-	// ActivityName - READ-ONLY; The name of the activity.
+	// ActivityName - The name of the activity.
 	ActivityName *string `json:"activityName,omitempty"`
-	// ActivityType - READ-ONLY; The type of the activity.
+	// ActivityType - The type of the activity.
 	ActivityType *string `json:"activityType,omitempty"`
-	// ActivityRunID - READ-ONLY; The id of the activity run.
+	// ActivityRunID - The id of the activity run.
 	ActivityRunID *string `json:"activityRunId,omitempty"`
-	// LinkedServiceName - READ-ONLY; The name of the compute linked service.
+	// LinkedServiceName - The name of the compute linked service.
 	LinkedServiceName *string `json:"linkedServiceName,omitempty"`
-	// Status - READ-ONLY; The status of the activity run.
+	// Status - The status of the activity run.
 	Status *string `json:"status,omitempty"`
-	// ActivityRunStart - READ-ONLY; The start time of the activity run in 'ISO 8601' format.
+	// ActivityRunStart - The start time of the activity run in 'ISO 8601' format.
 	ActivityRunStart *date.Time `json:"activityRunStart,omitempty"`
-	// ActivityRunEnd - READ-ONLY; The end time of the activity run in 'ISO 8601' format.
+	// ActivityRunEnd - The end time of the activity run in 'ISO 8601' format.
 	ActivityRunEnd *date.Time `json:"activityRunEnd,omitempty"`
-	// DurationInMs - READ-ONLY; The duration of the activity run.
+	// DurationInMs - The duration of the activity run.
 	DurationInMs *int32 `json:"durationInMs,omitempty"`
-	// Input - READ-ONLY; The input for the activity.
+	// Input - The input for the activity.
 	Input interface{} `json:"input,omitempty"`
-	// Output - READ-ONLY; The output for the activity.
+	// Output - The output for the activity.
 	Output interface{} `json:"output,omitempty"`
-	// Error - READ-ONLY; The error if any from the activity run.
+	// Error - The error if any from the activity run.
 	Error interface{} `json:"error,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ActivityRun.
 func (ar ActivityRun) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if ar.PipelineName != nil {
+		objectMap["pipelineName"] = ar.PipelineName
+	}
+	if ar.PipelineRunID != nil {
+		objectMap["pipelineRunId"] = ar.PipelineRunID
+	}
+	if ar.ActivityName != nil {
+		objectMap["activityName"] = ar.ActivityName
+	}
+	if ar.ActivityType != nil {
+		objectMap["activityType"] = ar.ActivityType
+	}
+	if ar.ActivityRunID != nil {
+		objectMap["activityRunId"] = ar.ActivityRunID
+	}
+	if ar.LinkedServiceName != nil {
+		objectMap["linkedServiceName"] = ar.LinkedServiceName
+	}
+	if ar.Status != nil {
+		objectMap["status"] = ar.Status
+	}
+	if ar.ActivityRunStart != nil {
+		objectMap["activityRunStart"] = ar.ActivityRunStart
+	}
+	if ar.ActivityRunEnd != nil {
+		objectMap["activityRunEnd"] = ar.ActivityRunEnd
+	}
+	if ar.DurationInMs != nil {
+		objectMap["durationInMs"] = ar.DurationInMs
+	}
+	objectMap["input"] = ar.Input
+	objectMap["output"] = ar.Output
+	objectMap["error"] = ar.Error
 	for k, v := range ar.AdditionalProperties {
 		objectMap[k] = v
 	}
@@ -2293,37 +2498,20 @@ type ActivityRunsListResponseIterator struct {
 	page ActivityRunsListResponsePage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ActivityRunsListResponseIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ActivityRunsListResponseIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ActivityRunsListResponseIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ActivityRunsListResponseIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2345,11 +2533,6 @@ func (iter ActivityRunsListResponseIterator) Value() ActivityRun {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ActivityRunsListResponseIterator type.
-func NewActivityRunsListResponseIterator(page ActivityRunsListResponsePage) ActivityRunsListResponseIterator {
-	return ActivityRunsListResponseIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (arlr ActivityRunsListResponse) IsEmpty() bool {
 	return arlr.Value == nil || len(*arlr.Value) == 0
@@ -2357,11 +2540,11 @@ func (arlr ActivityRunsListResponse) IsEmpty() bool {
 
 // activityRunsListResponsePreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (arlr ActivityRunsListResponse) activityRunsListResponsePreparer(ctx context.Context) (*http.Request, error) {
+func (arlr ActivityRunsListResponse) activityRunsListResponsePreparer() (*http.Request, error) {
 	if arlr.NextLink == nil || len(to.String(arlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(arlr.NextLink)))
@@ -2369,36 +2552,19 @@ func (arlr ActivityRunsListResponse) activityRunsListResponsePreparer(ctx contex
 
 // ActivityRunsListResponsePage contains a page of ActivityRun values.
 type ActivityRunsListResponsePage struct {
-	fn   func(context.Context, ActivityRunsListResponse) (ActivityRunsListResponse, error)
+	fn   func(ActivityRunsListResponse) (ActivityRunsListResponse, error)
 	arlr ActivityRunsListResponse
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ActivityRunsListResponsePage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ActivityRunsListResponsePage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.arlr)
+func (page *ActivityRunsListResponsePage) Next() error {
+	next, err := page.fn(page.arlr)
 	if err != nil {
 		return err
 	}
 	page.arlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ActivityRunsListResponsePage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2417,11 +2583,6 @@ func (page ActivityRunsListResponsePage) Values() []ActivityRun {
 		return nil
 	}
 	return *page.arlr.Value
-}
-
-// Creates a new instance of the ActivityRunsListResponsePage type.
-func NewActivityRunsListResponsePage(getNextPage func(context.Context, ActivityRunsListResponse) (ActivityRunsListResponse, error)) ActivityRunsListResponsePage {
-	return ActivityRunsListResponsePage{fn: getNextPage}
 }
 
 // AmazonMWSLinkedService amazon Marketplace Web Service linked service.
@@ -2915,7 +3076,7 @@ func (amls *AmazonMWSLinkedService) UnmarshalJSON(body []byte) error {
 type AmazonMWSLinkedServiceTypeProperties struct {
 	// Endpoint - The endpoint of the Amazon MWS server, (i.e. mws.amazonservices.com)
 	Endpoint interface{} `json:"endpoint,omitempty"`
-	// MarketplaceID - The Amazon Marketplace ID you want to retrieve data from. To retrieve data from multiple Marketplace IDs, separate them with a comma (,). (i.e. A2EUQ1WTGCTBG2)
+	// MarketplaceID - The Amazon Marketplace ID you want to retrieve data from. To retrive data from multiple Marketplace IDs, seperate them with a comma (,). (i.e. A2EUQ1WTGCTBG2)
 	MarketplaceID interface{} `json:"marketplaceID,omitempty"`
 	// SellerID - The Amazon seller ID.
 	SellerID interface{} `json:"sellerID,omitempty"`
@@ -3063,9 +3224,7 @@ func (amod AmazonMWSObjectDataset) MarshalJSON() ([]byte, error) {
 	if amod.Description != nil {
 		objectMap["description"] = amod.Description
 	}
-	if amod.Structure != nil {
-		objectMap["structure"] = amod.Structure
-	}
+	objectMap["structure"] = amod.Structure
 	if amod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = amod.LinkedServiceName
 	}
@@ -3458,15 +3617,9 @@ type AmazonMWSSource struct {
 func (ams AmazonMWSSource) MarshalJSON() ([]byte, error) {
 	ams.Type = TypeAmazonMWSSource
 	objectMap := make(map[string]interface{})
-	if ams.Query != nil {
-		objectMap["query"] = ams.Query
-	}
-	if ams.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ams.SourceRetryCount
-	}
-	if ams.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ams.SourceRetryWait
-	}
+	objectMap["query"] = ams.Query
+	objectMap["sourceRetryCount"] = ams.SourceRetryCount
+	objectMap["sourceRetryWait"] = ams.SourceRetryWait
 	if ams.Type != "" {
 		objectMap["type"] = ams.Type
 	}
@@ -4390,18 +4543,12 @@ type AmazonRedshiftSource struct {
 func (ars AmazonRedshiftSource) MarshalJSON() ([]byte, error) {
 	ars.Type = TypeAmazonRedshiftSource
 	objectMap := make(map[string]interface{})
-	if ars.Query != nil {
-		objectMap["query"] = ars.Query
-	}
+	objectMap["query"] = ars.Query
 	if ars.RedshiftUnloadSettings != nil {
 		objectMap["redshiftUnloadSettings"] = ars.RedshiftUnloadSettings
 	}
-	if ars.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ars.SourceRetryCount
-	}
-	if ars.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ars.SourceRetryWait
-	}
+	objectMap["sourceRetryCount"] = ars.SourceRetryCount
+	objectMap["sourceRetryWait"] = ars.SourceRetryWait
 	if ars.Type != "" {
 		objectMap["type"] = ars.Type
 	}
@@ -4773,9 +4920,7 @@ func (asd AmazonS3Dataset) MarshalJSON() ([]byte, error) {
 	if asd.Description != nil {
 		objectMap["description"] = asd.Description
 	}
-	if asd.Structure != nil {
-		objectMap["structure"] = asd.Structure
-	}
+	objectMap["structure"] = asd.Structure
 	if asd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = asd.LinkedServiceName
 	}
@@ -5796,12 +5941,8 @@ type AvroFormat struct {
 func (af AvroFormat) MarshalJSON() ([]byte, error) {
 	af.Type = TypeAvroFormat
 	objectMap := make(map[string]interface{})
-	if af.Serializer != nil {
-		objectMap["serializer"] = af.Serializer
-	}
-	if af.Deserializer != nil {
-		objectMap["deserializer"] = af.Deserializer
-	}
+	objectMap["serializer"] = af.Serializer
+	objectMap["deserializer"] = af.Deserializer
 	if af.Type != "" {
 		objectMap["type"] = af.Type
 	}
@@ -6501,9 +6642,7 @@ func (abd AzureBlobDataset) MarshalJSON() ([]byte, error) {
 	if abd.Description != nil {
 		objectMap["description"] = abd.Description
 	}
-	if abd.Structure != nil {
-		objectMap["structure"] = abd.Structure
-	}
+	objectMap["structure"] = abd.Structure
 	if abd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = abd.LinkedServiceName
 	}
@@ -7469,28 +7608,16 @@ type AzureDatabricksLinkedServiceTypeProperties struct {
 // MarshalJSON is the custom marshaler for AzureDatabricksLinkedServiceTypeProperties.
 func (adlstp AzureDatabricksLinkedServiceTypeProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if adlstp.Domain != nil {
-		objectMap["domain"] = adlstp.Domain
-	}
+	objectMap["domain"] = adlstp.Domain
 	objectMap["accessToken"] = adlstp.AccessToken
-	if adlstp.ExistingClusterID != nil {
-		objectMap["existingClusterId"] = adlstp.ExistingClusterID
-	}
-	if adlstp.NewClusterVersion != nil {
-		objectMap["newClusterVersion"] = adlstp.NewClusterVersion
-	}
-	if adlstp.NewClusterNumOfWorker != nil {
-		objectMap["newClusterNumOfWorker"] = adlstp.NewClusterNumOfWorker
-	}
-	if adlstp.NewClusterNodeType != nil {
-		objectMap["newClusterNodeType"] = adlstp.NewClusterNodeType
-	}
+	objectMap["existingClusterId"] = adlstp.ExistingClusterID
+	objectMap["newClusterVersion"] = adlstp.NewClusterVersion
+	objectMap["newClusterNumOfWorker"] = adlstp.NewClusterNumOfWorker
+	objectMap["newClusterNodeType"] = adlstp.NewClusterNodeType
 	if adlstp.NewClusterSparkConf != nil {
 		objectMap["newClusterSparkConf"] = adlstp.NewClusterSparkConf
 	}
-	if adlstp.EncryptedCredential != nil {
-		objectMap["encryptedCredential"] = adlstp.EncryptedCredential
-	}
+	objectMap["encryptedCredential"] = adlstp.EncryptedCredential
 	return json.Marshal(objectMap)
 }
 
@@ -8203,9 +8330,7 @@ func (adlsd AzureDataLakeStoreDataset) MarshalJSON() ([]byte, error) {
 	if adlsd.Description != nil {
 		objectMap["description"] = adlsd.Description
 	}
-	if adlsd.Structure != nil {
-		objectMap["structure"] = adlsd.Structure
-	}
+	objectMap["structure"] = adlsd.Structure
 	if adlsd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = adlsd.LinkedServiceName
 	}
@@ -9245,8 +9370,8 @@ func (adlslstp *AzureDataLakeStoreLinkedServiceTypeProperties) UnmarshalJSON(bod
 
 // AzureDataLakeStoreSink a copy activity Azure Data Lake Store sink.
 type AzureDataLakeStoreSink struct {
-	// CopyBehavior - The type of copy behavior for copy sink.
-	CopyBehavior interface{} `json:"copyBehavior,omitempty"`
+	// CopyBehavior - The type of copy behavior for copy sink. Possible values include: 'PreserveHierarchy', 'FlattenHierarchy', 'MergeFiles'
+	CopyBehavior CopyBehaviorType `json:"copyBehavior,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// WriteBatchSize - Write batch size. Type: integer (or Expression with resultType integer), minimum: 0.
@@ -9265,21 +9390,13 @@ type AzureDataLakeStoreSink struct {
 func (adlss AzureDataLakeStoreSink) MarshalJSON() ([]byte, error) {
 	adlss.Type = TypeAzureDataLakeStoreSink
 	objectMap := make(map[string]interface{})
-	if adlss.CopyBehavior != nil {
+	if adlss.CopyBehavior != "" {
 		objectMap["copyBehavior"] = adlss.CopyBehavior
 	}
-	if adlss.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = adlss.WriteBatchSize
-	}
-	if adlss.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = adlss.WriteBatchTimeout
-	}
-	if adlss.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = adlss.SinkRetryCount
-	}
-	if adlss.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = adlss.SinkRetryWait
-	}
+	objectMap["writeBatchSize"] = adlss.WriteBatchSize
+	objectMap["writeBatchTimeout"] = adlss.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = adlss.SinkRetryCount
+	objectMap["sinkRetryWait"] = adlss.SinkRetryWait
 	if adlss.Type != "" {
 		objectMap["type"] = adlss.Type
 	}
@@ -9380,7 +9497,7 @@ func (adlss *AzureDataLakeStoreSink) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "copyBehavior":
 			if v != nil {
-				var copyBehavior interface{}
+				var copyBehavior CopyBehaviorType
 				err = json.Unmarshal(*v, &copyBehavior)
 				if err != nil {
 					return err
@@ -9468,15 +9585,9 @@ type AzureDataLakeStoreSource struct {
 func (adlss AzureDataLakeStoreSource) MarshalJSON() ([]byte, error) {
 	adlss.Type = TypeAzureDataLakeStoreSource
 	objectMap := make(map[string]interface{})
-	if adlss.Recursive != nil {
-		objectMap["recursive"] = adlss.Recursive
-	}
-	if adlss.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = adlss.SourceRetryCount
-	}
-	if adlss.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = adlss.SourceRetryWait
-	}
+	objectMap["recursive"] = adlss.Recursive
+	objectMap["sourceRetryCount"] = adlss.SourceRetryCount
+	objectMap["sourceRetryWait"] = adlss.SourceRetryWait
 	if adlss.Type != "" {
 		objectMap["type"] = adlss.Type
 	}
@@ -10321,12 +10432,8 @@ func (akvsr AzureKeyVaultSecretReference) MarshalJSON() ([]byte, error) {
 	if akvsr.Store != nil {
 		objectMap["store"] = akvsr.Store
 	}
-	if akvsr.SecretName != nil {
-		objectMap["secretName"] = akvsr.SecretName
-	}
-	if akvsr.SecretVersion != nil {
-		objectMap["secretVersion"] = akvsr.SecretVersion
-	}
+	objectMap["secretName"] = akvsr.SecretName
+	objectMap["secretVersion"] = akvsr.SecretVersion
 	if akvsr.Type != "" {
 		objectMap["type"] = akvsr.Type
 	}
@@ -12052,15 +12159,9 @@ type AzureMySQLSource struct {
 func (amss AzureMySQLSource) MarshalJSON() ([]byte, error) {
 	amss.Type = TypeAzureMySQLSource
 	objectMap := make(map[string]interface{})
-	if amss.Query != nil {
-		objectMap["query"] = amss.Query
-	}
-	if amss.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = amss.SourceRetryCount
-	}
-	if amss.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = amss.SourceRetryWait
-	}
+	objectMap["query"] = amss.Query
+	objectMap["sourceRetryCount"] = amss.SourceRetryCount
+	objectMap["sourceRetryWait"] = amss.SourceRetryWait
 	if amss.Type != "" {
 		objectMap["type"] = amss.Type
 	}
@@ -12423,9 +12524,7 @@ func (amstd AzureMySQLTableDataset) MarshalJSON() ([]byte, error) {
 	if amstd.Description != nil {
 		objectMap["description"] = amstd.Description
 	}
-	if amstd.Structure != nil {
-		objectMap["structure"] = amstd.Structure
-	}
+	objectMap["structure"] = amstd.Structure
 	if amstd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = amstd.LinkedServiceName
 	}
@@ -13328,15 +13427,9 @@ type AzurePostgreSQLSource struct {
 func (apss AzurePostgreSQLSource) MarshalJSON() ([]byte, error) {
 	apss.Type = TypeAzurePostgreSQLSource
 	objectMap := make(map[string]interface{})
-	if apss.Query != nil {
-		objectMap["query"] = apss.Query
-	}
-	if apss.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = apss.SourceRetryCount
-	}
-	if apss.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = apss.SourceRetryWait
-	}
+	objectMap["query"] = apss.Query
+	objectMap["sourceRetryCount"] = apss.SourceRetryCount
+	objectMap["sourceRetryWait"] = apss.SourceRetryWait
 	if apss.Type != "" {
 		objectMap["type"] = apss.Type
 	}
@@ -13694,9 +13787,7 @@ func (apstd AzurePostgreSQLTableDataset) MarshalJSON() ([]byte, error) {
 	if apstd.Description != nil {
 		objectMap["description"] = apstd.Description
 	}
-	if apstd.Structure != nil {
-		objectMap["structure"] = apstd.Structure
-	}
+	objectMap["structure"] = apstd.Structure
 	if apstd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = apstd.LinkedServiceName
 	}
@@ -14091,18 +14182,10 @@ type AzureQueueSink struct {
 func (aqs AzureQueueSink) MarshalJSON() ([]byte, error) {
 	aqs.Type = TypeAzureQueueSink
 	objectMap := make(map[string]interface{})
-	if aqs.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = aqs.WriteBatchSize
-	}
-	if aqs.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = aqs.WriteBatchTimeout
-	}
-	if aqs.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = aqs.SinkRetryCount
-	}
-	if aqs.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = aqs.SinkRetryWait
-	}
+	objectMap["writeBatchSize"] = aqs.WriteBatchSize
+	objectMap["writeBatchTimeout"] = aqs.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = aqs.SinkRetryCount
+	objectMap["sinkRetryWait"] = aqs.SinkRetryWait
 	if aqs.Type != "" {
 		objectMap["type"] = aqs.Type
 	}
@@ -14294,9 +14377,7 @@ func (asid AzureSearchIndexDataset) MarshalJSON() ([]byte, error) {
 	if asid.Description != nil {
 		objectMap["description"] = asid.Description
 	}
-	if asid.Structure != nil {
-		objectMap["structure"] = asid.Structure
-	}
+	objectMap["structure"] = asid.Structure
 	if asid.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = asid.LinkedServiceName
 	}
@@ -14688,8 +14769,8 @@ type AzureSearchIndexDatasetTypeProperties struct {
 
 // AzureSearchIndexSink a copy activity Azure Search Index sink.
 type AzureSearchIndexSink struct {
-	// WriteBehavior - Specify the write behavior when upserting documents into Azure Search Index.
-	WriteBehavior interface{} `json:"writeBehavior,omitempty"`
+	// WriteBehavior - Specify the write behavior when upserting documents into Azure Search Index. Possible values include: 'Merge', 'Upload'
+	WriteBehavior AzureSearchIndexWriteBehaviorType `json:"writeBehavior,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// WriteBatchSize - Write batch size. Type: integer (or Expression with resultType integer), minimum: 0.
@@ -14708,21 +14789,13 @@ type AzureSearchIndexSink struct {
 func (asis AzureSearchIndexSink) MarshalJSON() ([]byte, error) {
 	asis.Type = TypeAzureSearchIndexSink
 	objectMap := make(map[string]interface{})
-	if asis.WriteBehavior != nil {
+	if asis.WriteBehavior != "" {
 		objectMap["writeBehavior"] = asis.WriteBehavior
 	}
-	if asis.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = asis.WriteBatchSize
-	}
-	if asis.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = asis.WriteBatchTimeout
-	}
-	if asis.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = asis.SinkRetryCount
-	}
-	if asis.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = asis.SinkRetryWait
-	}
+	objectMap["writeBatchSize"] = asis.WriteBatchSize
+	objectMap["writeBatchTimeout"] = asis.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = asis.SinkRetryCount
+	objectMap["sinkRetryWait"] = asis.SinkRetryWait
 	if asis.Type != "" {
 		objectMap["type"] = asis.Type
 	}
@@ -14823,7 +14896,7 @@ func (asis *AzureSearchIndexSink) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "writeBehavior":
 			if v != nil {
-				var writeBehavior interface{}
+				var writeBehavior AzureSearchIndexWriteBehaviorType
 				err = json.Unmarshal(*v, &writeBehavior)
 				if err != nil {
 					return err
@@ -16581,9 +16654,7 @@ func (asdtd AzureSQLDWTableDataset) MarshalJSON() ([]byte, error) {
 	if asdtd.Description != nil {
 		objectMap["description"] = asdtd.Description
 	}
-	if asdtd.Structure != nil {
-		objectMap["structure"] = asdtd.Structure
-	}
+	objectMap["structure"] = asdtd.Structure
 	if asdtd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = asdtd.LinkedServiceName
 	}
@@ -17003,9 +17074,7 @@ func (astd AzureSQLTableDataset) MarshalJSON() ([]byte, error) {
 	if astd.Description != nil {
 		objectMap["description"] = astd.Description
 	}
-	if astd.Structure != nil {
-		objectMap["structure"] = astd.Structure
-	}
+	objectMap["structure"] = astd.Structure
 	if astd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = astd.LinkedServiceName
 	}
@@ -17963,9 +18032,7 @@ func (atd AzureTableDataset) MarshalJSON() ([]byte, error) {
 	if atd.Description != nil {
 		objectMap["description"] = atd.Description
 	}
-	if atd.Structure != nil {
-		objectMap["structure"] = atd.Structure
-	}
+	objectMap["structure"] = atd.Structure
 	if atd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = atd.LinkedServiceName
 	}
@@ -18383,30 +18450,14 @@ type AzureTableSink struct {
 func (ats AzureTableSink) MarshalJSON() ([]byte, error) {
 	ats.Type = TypeAzureTableSink
 	objectMap := make(map[string]interface{})
-	if ats.AzureTableDefaultPartitionKeyValue != nil {
-		objectMap["azureTableDefaultPartitionKeyValue"] = ats.AzureTableDefaultPartitionKeyValue
-	}
-	if ats.AzureTablePartitionKeyName != nil {
-		objectMap["azureTablePartitionKeyName"] = ats.AzureTablePartitionKeyName
-	}
-	if ats.AzureTableRowKeyName != nil {
-		objectMap["azureTableRowKeyName"] = ats.AzureTableRowKeyName
-	}
-	if ats.AzureTableInsertType != nil {
-		objectMap["azureTableInsertType"] = ats.AzureTableInsertType
-	}
-	if ats.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = ats.WriteBatchSize
-	}
-	if ats.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = ats.WriteBatchTimeout
-	}
-	if ats.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = ats.SinkRetryCount
-	}
-	if ats.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = ats.SinkRetryWait
-	}
+	objectMap["azureTableDefaultPartitionKeyValue"] = ats.AzureTableDefaultPartitionKeyValue
+	objectMap["azureTablePartitionKeyName"] = ats.AzureTablePartitionKeyName
+	objectMap["azureTableRowKeyName"] = ats.AzureTableRowKeyName
+	objectMap["azureTableInsertType"] = ats.AzureTableInsertType
+	objectMap["writeBatchSize"] = ats.WriteBatchSize
+	objectMap["writeBatchTimeout"] = ats.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = ats.SinkRetryCount
+	objectMap["sinkRetryWait"] = ats.SinkRetryWait
 	if ats.Type != "" {
 		objectMap["type"] = ats.Type
 	}
@@ -18624,18 +18675,10 @@ type AzureTableSource struct {
 func (ats AzureTableSource) MarshalJSON() ([]byte, error) {
 	ats.Type = TypeAzureTableSource
 	objectMap := make(map[string]interface{})
-	if ats.AzureTableSourceQuery != nil {
-		objectMap["azureTableSourceQuery"] = ats.AzureTableSourceQuery
-	}
-	if ats.AzureTableSourceIgnoreTableNotFound != nil {
-		objectMap["azureTableSourceIgnoreTableNotFound"] = ats.AzureTableSourceIgnoreTableNotFound
-	}
-	if ats.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ats.SourceRetryCount
-	}
-	if ats.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ats.SourceRetryWait
-	}
+	objectMap["azureTableSourceQuery"] = ats.AzureTableSourceQuery
+	objectMap["azureTableSourceIgnoreTableNotFound"] = ats.AzureTableSourceIgnoreTableNotFound
+	objectMap["sourceRetryCount"] = ats.SourceRetryCount
+	objectMap["sourceRetryWait"] = ats.SourceRetryWait
 	if ats.Type != "" {
 		objectMap["type"] = ats.Type
 	}
@@ -18977,7 +19020,7 @@ func (ats *AzureTableSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobEventsTrigger trigger that runs every time a Blob event occurs.
+// BlobEventsTrigger trigger that runs everytime a Blob event occurs.
 type BlobEventsTrigger struct {
 	// BlobEventsTriggerTypeProperties - Blob Events Trigger properties.
 	*BlobEventsTriggerTypeProperties `json:"typeProperties,omitempty"`
@@ -18987,7 +19030,7 @@ type BlobEventsTrigger struct {
 	AdditionalProperties map[string]interface{} `json:""`
 	// Description - Trigger description.
 	Description *string `json:"description,omitempty"`
-	// RuntimeState - READ-ONLY; Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
+	// RuntimeState - Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
 	RuntimeState TriggerRuntimeState `json:"runtimeState,omitempty"`
 	// Type - Possible values include: 'TypeTrigger', 'TypeTumblingWindowTrigger', 'TypeBlobEventsTrigger', 'TypeBlobTrigger', 'TypeScheduleTrigger', 'TypeMultiplePipelineTrigger'
 	Type TypeBasicTrigger `json:"type,omitempty"`
@@ -19005,6 +19048,9 @@ func (bet BlobEventsTrigger) MarshalJSON() ([]byte, error) {
 	}
 	if bet.Description != nil {
 		objectMap["description"] = bet.Description
+	}
+	if bet.RuntimeState != "" {
+		objectMap["runtimeState"] = bet.RuntimeState
 	}
 	if bet.Type != "" {
 		objectMap["type"] = bet.Type
@@ -19147,8 +19193,8 @@ type BlobSink struct {
 	BlobWriterDateTimeFormat interface{} `json:"blobWriterDateTimeFormat,omitempty"`
 	// BlobWriterAddHeader - Blob writer add header. Type: boolean (or Expression with resultType boolean).
 	BlobWriterAddHeader interface{} `json:"blobWriterAddHeader,omitempty"`
-	// CopyBehavior - The type of copy behavior for copy sink.
-	CopyBehavior interface{} `json:"copyBehavior,omitempty"`
+	// CopyBehavior - The type of copy behavior for copy sink. Possible values include: 'PreserveHierarchy', 'FlattenHierarchy', 'MergeFiles'
+	CopyBehavior CopyBehaviorType `json:"copyBehavior,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// WriteBatchSize - Write batch size. Type: integer (or Expression with resultType integer), minimum: 0.
@@ -19167,30 +19213,16 @@ type BlobSink struct {
 func (bs BlobSink) MarshalJSON() ([]byte, error) {
 	bs.Type = TypeBlobSink
 	objectMap := make(map[string]interface{})
-	if bs.BlobWriterOverwriteFiles != nil {
-		objectMap["blobWriterOverwriteFiles"] = bs.BlobWriterOverwriteFiles
-	}
-	if bs.BlobWriterDateTimeFormat != nil {
-		objectMap["blobWriterDateTimeFormat"] = bs.BlobWriterDateTimeFormat
-	}
-	if bs.BlobWriterAddHeader != nil {
-		objectMap["blobWriterAddHeader"] = bs.BlobWriterAddHeader
-	}
-	if bs.CopyBehavior != nil {
+	objectMap["blobWriterOverwriteFiles"] = bs.BlobWriterOverwriteFiles
+	objectMap["blobWriterDateTimeFormat"] = bs.BlobWriterDateTimeFormat
+	objectMap["blobWriterAddHeader"] = bs.BlobWriterAddHeader
+	if bs.CopyBehavior != "" {
 		objectMap["copyBehavior"] = bs.CopyBehavior
 	}
-	if bs.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = bs.WriteBatchSize
-	}
-	if bs.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = bs.WriteBatchTimeout
-	}
-	if bs.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = bs.SinkRetryCount
-	}
-	if bs.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = bs.SinkRetryWait
-	}
+	objectMap["writeBatchSize"] = bs.WriteBatchSize
+	objectMap["writeBatchTimeout"] = bs.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = bs.SinkRetryCount
+	objectMap["sinkRetryWait"] = bs.SinkRetryWait
 	if bs.Type != "" {
 		objectMap["type"] = bs.Type
 	}
@@ -19318,7 +19350,7 @@ func (bs *BlobSink) UnmarshalJSON(body []byte) error {
 			}
 		case "copyBehavior":
 			if v != nil {
-				var copyBehavior interface{}
+				var copyBehavior CopyBehaviorType
 				err = json.Unmarshal(*v, &copyBehavior)
 				if err != nil {
 					return err
@@ -19410,21 +19442,11 @@ type BlobSource struct {
 func (bs BlobSource) MarshalJSON() ([]byte, error) {
 	bs.Type = TypeBlobSource
 	objectMap := make(map[string]interface{})
-	if bs.TreatEmptyAsNull != nil {
-		objectMap["treatEmptyAsNull"] = bs.TreatEmptyAsNull
-	}
-	if bs.SkipHeaderLineCount != nil {
-		objectMap["skipHeaderLineCount"] = bs.SkipHeaderLineCount
-	}
-	if bs.Recursive != nil {
-		objectMap["recursive"] = bs.Recursive
-	}
-	if bs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = bs.SourceRetryCount
-	}
-	if bs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = bs.SourceRetryWait
-	}
+	objectMap["treatEmptyAsNull"] = bs.TreatEmptyAsNull
+	objectMap["skipHeaderLineCount"] = bs.SkipHeaderLineCount
+	objectMap["recursive"] = bs.Recursive
+	objectMap["sourceRetryCount"] = bs.SourceRetryCount
+	objectMap["sourceRetryWait"] = bs.SourceRetryWait
 	if bs.Type != "" {
 		objectMap["type"] = bs.Type
 	}
@@ -19775,7 +19797,7 @@ func (bs *BlobSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobTrigger trigger that runs every time the selected Blob container changes.
+// BlobTrigger trigger that runs everytime the selected Blob container changes.
 type BlobTrigger struct {
 	// BlobTriggerTypeProperties - Blob Trigger properties.
 	*BlobTriggerTypeProperties `json:"typeProperties,omitempty"`
@@ -19785,7 +19807,7 @@ type BlobTrigger struct {
 	AdditionalProperties map[string]interface{} `json:""`
 	// Description - Trigger description.
 	Description *string `json:"description,omitempty"`
-	// RuntimeState - READ-ONLY; Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
+	// RuntimeState - Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
 	RuntimeState TriggerRuntimeState `json:"runtimeState,omitempty"`
 	// Type - Possible values include: 'TypeTrigger', 'TypeTumblingWindowTrigger', 'TypeBlobEventsTrigger', 'TypeBlobTrigger', 'TypeScheduleTrigger', 'TypeMultiplePipelineTrigger'
 	Type TypeBasicTrigger `json:"type,omitempty"`
@@ -19803,6 +19825,9 @@ func (bt BlobTrigger) MarshalJSON() ([]byte, error) {
 	}
 	if bt.Description != nil {
 		objectMap["description"] = bt.Description
+	}
+	if bt.RuntimeState != "" {
+		objectMap["runtimeState"] = bt.RuntimeState
 	}
 	if bt.Type != "" {
 		objectMap["type"] = bt.Type
@@ -20510,8 +20535,8 @@ func (clstp *CassandraLinkedServiceTypeProperties) UnmarshalJSON(body []byte) er
 type CassandraSource struct {
 	// Query - Database query. Should be a SQL-92 query expression or Cassandra Query Language (CQL) command. Type: string (or Expression with resultType string).
 	Query interface{} `json:"query,omitempty"`
-	// ConsistencyLevel - The consistency level specifies how many Cassandra servers must respond to a read request before returning data to the client application. Cassandra checks the specified number of Cassandra servers for data to satisfy the read request. Must be one of cassandraSourceReadConsistencyLevels. The default value is 'ONE'. It is case-insensitive.
-	ConsistencyLevel interface{} `json:"consistencyLevel,omitempty"`
+	// ConsistencyLevel - The consistency level specifies how many Cassandra servers must respond to a read request before returning data to the client application. Cassandra checks the specified number of Cassandra servers for data to satisfy the read request. Must be one of cassandraSourceReadConsistencyLevels. The default value is 'ONE'. It is case-insensitive. Possible values include: 'ALL', 'EACHQUORUM', 'QUORUM', 'LOCALQUORUM', 'ONE', 'TWO', 'THREE', 'LOCALONE', 'SERIAL', 'LOCALSERIAL'
+	ConsistencyLevel CassandraSourceReadConsistencyLevels `json:"consistencyLevel,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// SourceRetryCount - Source retry count. Type: integer (or Expression with resultType integer).
@@ -20526,18 +20551,12 @@ type CassandraSource struct {
 func (cs CassandraSource) MarshalJSON() ([]byte, error) {
 	cs.Type = TypeCassandraSource
 	objectMap := make(map[string]interface{})
-	if cs.Query != nil {
-		objectMap["query"] = cs.Query
-	}
-	if cs.ConsistencyLevel != nil {
+	objectMap["query"] = cs.Query
+	if cs.ConsistencyLevel != "" {
 		objectMap["consistencyLevel"] = cs.ConsistencyLevel
 	}
-	if cs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = cs.SourceRetryCount
-	}
-	if cs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = cs.SourceRetryWait
-	}
+	objectMap["sourceRetryCount"] = cs.SourceRetryCount
+	objectMap["sourceRetryWait"] = cs.SourceRetryWait
 	if cs.Type != "" {
 		objectMap["type"] = cs.Type
 	}
@@ -20827,7 +20846,7 @@ func (cs *CassandraSource) UnmarshalJSON(body []byte) error {
 			}
 		case "consistencyLevel":
 			if v != nil {
-				var consistencyLevel interface{}
+				var consistencyLevel CassandraSourceReadConsistencyLevels
 				err = json.Unmarshal(*v, &consistencyLevel)
 				if err != nil {
 					return err
@@ -20909,9 +20928,7 @@ func (ctd CassandraTableDataset) MarshalJSON() ([]byte, error) {
 	if ctd.Description != nil {
 		objectMap["description"] = ctd.Description
 	}
-	if ctd.Structure != nil {
-		objectMap["structure"] = ctd.Structure
-	}
+	objectMap["structure"] = ctd.Structure
 	if ctd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = ctd.LinkedServiceName
 	}
@@ -21303,9 +21320,9 @@ type CassandraTableDatasetTypeProperties struct {
 	Keyspace interface{} `json:"keyspace,omitempty"`
 }
 
-// ConcurLinkedService concur Service linked service.
+// ConcurLinkedService concur Serivce linked service.
 type ConcurLinkedService struct {
-	// ConcurLinkedServiceTypeProperties - Concur Service linked service properties.
+	// ConcurLinkedServiceTypeProperties - Concur Serivce linked service properties.
 	*ConcurLinkedServiceTypeProperties `json:"typeProperties,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -21790,7 +21807,7 @@ func (cls *ConcurLinkedService) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ConcurLinkedServiceTypeProperties concur Service linked service properties.
+// ConcurLinkedServiceTypeProperties concur Serivce linked service properties.
 type ConcurLinkedServiceTypeProperties struct {
 	// ClientID - Application client_id supplied by Concur App Management.
 	ClientID interface{} `json:"clientId,omitempty"`
@@ -21885,7 +21902,7 @@ func (clstp *ConcurLinkedServiceTypeProperties) UnmarshalJSON(body []byte) error
 	return nil
 }
 
-// ConcurObjectDataset concur Service dataset.
+// ConcurObjectDataset concur Serivce dataset.
 type ConcurObjectDataset struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -21910,9 +21927,7 @@ func (cod ConcurObjectDataset) MarshalJSON() ([]byte, error) {
 	if cod.Description != nil {
 		objectMap["description"] = cod.Description
 	}
-	if cod.Structure != nil {
-		objectMap["structure"] = cod.Structure
-	}
+	objectMap["structure"] = cod.Structure
 	if cod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = cod.LinkedServiceName
 	}
@@ -22287,7 +22302,7 @@ func (cod *ConcurObjectDataset) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ConcurSource a copy activity Concur Service source.
+// ConcurSource a copy activity Concur Serivce source.
 type ConcurSource struct {
 	// Query - A query to retrieve data from source. Type: string (or Expression with resultType string).
 	Query interface{} `json:"query,omitempty"`
@@ -22305,15 +22320,9 @@ type ConcurSource struct {
 func (cs ConcurSource) MarshalJSON() ([]byte, error) {
 	cs.Type = TypeConcurSource
 	objectMap := make(map[string]interface{})
-	if cs.Query != nil {
-		objectMap["query"] = cs.Query
-	}
-	if cs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = cs.SourceRetryCount
-	}
-	if cs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = cs.SourceRetryWait
-	}
+	objectMap["query"] = cs.Query
+	objectMap["sourceRetryCount"] = cs.SourceRetryCount
+	objectMap["sourceRetryWait"] = cs.SourceRetryWait
 	if cs.Type != "" {
 		objectMap["type"] = cs.Type
 	}
@@ -23268,8 +23277,8 @@ type CopyActivityTypeProperties struct {
 	Source BasicCopySource `json:"source,omitempty"`
 	// Sink - Copy activity sink.
 	Sink BasicCopySink `json:"sink,omitempty"`
-	// Translator - Copy activity translator. If not specified, tabular translator is used.
-	Translator interface{} `json:"translator,omitempty"`
+	// Translator - Copy activity translator. If not specificed, tabular translator is used.
+	Translator BasicCopyTranslator `json:"translator,omitempty"`
 	// EnableStaging - Specifies whether to copy data via an interim staging. Default value is false. Type: boolean (or Expression with resultType boolean).
 	EnableStaging interface{} `json:"enableStaging,omitempty"`
 	// StagingSettings - Specifies interim staging settings when EnableStaging is true.
@@ -23311,8 +23320,7 @@ func (catp *CopyActivityTypeProperties) UnmarshalJSON(body []byte) error {
 			}
 		case "translator":
 			if v != nil {
-				var translator interface{}
-				err = json.Unmarshal(*v, &translator)
+				translator, err := unmarshalBasicCopyTranslator(*v)
 				if err != nil {
 					return err
 				}
@@ -23506,18 +23514,10 @@ func unmarshalBasicCopySinkArray(body []byte) ([]BasicCopySink, error) {
 func (cs CopySink) MarshalJSON() ([]byte, error) {
 	cs.Type = TypeCopySink
 	objectMap := make(map[string]interface{})
-	if cs.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = cs.WriteBatchSize
-	}
-	if cs.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = cs.WriteBatchTimeout
-	}
-	if cs.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = cs.SinkRetryCount
-	}
-	if cs.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = cs.SinkRetryWait
-	}
+	objectMap["writeBatchSize"] = cs.WriteBatchSize
+	objectMap["writeBatchTimeout"] = cs.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = cs.SinkRetryCount
+	objectMap["sinkRetryWait"] = cs.SinkRetryWait
 	if cs.Type != "" {
 		objectMap["type"] = cs.Type
 	}
@@ -23983,12 +23983,8 @@ func unmarshalBasicCopySourceArray(body []byte) ([]BasicCopySource, error) {
 func (cs CopySource) MarshalJSON() ([]byte, error) {
 	cs.Type = TypeCopySource
 	objectMap := make(map[string]interface{})
-	if cs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = cs.SourceRetryCount
-	}
-	if cs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = cs.SourceRetryWait
-	}
+	objectMap["sourceRetryCount"] = cs.SourceRetryCount
+	objectMap["sourceRetryWait"] = cs.SourceRetryWait
 	if cs.Type != "" {
 		objectMap["type"] = cs.Type
 	}
@@ -24305,6 +24301,121 @@ func (cs *CopySource) UnmarshalJSON(body []byte) error {
 					return err
 				}
 				cs.Type = typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// BasicCopyTranslator a copy activity translator.
+type BasicCopyTranslator interface {
+	AsTabularTranslator() (*TabularTranslator, bool)
+	AsCopyTranslator() (*CopyTranslator, bool)
+}
+
+// CopyTranslator a copy activity translator.
+type CopyTranslator struct {
+	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
+	AdditionalProperties map[string]interface{} `json:""`
+	// Type - Possible values include: 'TypeCopyTranslator', 'TypeTabularTranslator'
+	Type TypeBasicCopyTranslator `json:"type,omitempty"`
+}
+
+func unmarshalBasicCopyTranslator(body []byte) (BasicCopyTranslator, error) {
+	var m map[string]interface{}
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return nil, err
+	}
+
+	switch m["type"] {
+	case string(TypeTabularTranslator):
+		var tt TabularTranslator
+		err := json.Unmarshal(body, &tt)
+		return tt, err
+	default:
+		var ct CopyTranslator
+		err := json.Unmarshal(body, &ct)
+		return ct, err
+	}
+}
+func unmarshalBasicCopyTranslatorArray(body []byte) ([]BasicCopyTranslator, error) {
+	var rawMessages []*json.RawMessage
+	err := json.Unmarshal(body, &rawMessages)
+	if err != nil {
+		return nil, err
+	}
+
+	ctArray := make([]BasicCopyTranslator, len(rawMessages))
+
+	for index, rawMessage := range rawMessages {
+		ct, err := unmarshalBasicCopyTranslator(*rawMessage)
+		if err != nil {
+			return nil, err
+		}
+		ctArray[index] = ct
+	}
+	return ctArray, nil
+}
+
+// MarshalJSON is the custom marshaler for CopyTranslator.
+func (ct CopyTranslator) MarshalJSON() ([]byte, error) {
+	ct.Type = TypeCopyTranslator
+	objectMap := make(map[string]interface{})
+	if ct.Type != "" {
+		objectMap["type"] = ct.Type
+	}
+	for k, v := range ct.AdditionalProperties {
+		objectMap[k] = v
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsTabularTranslator is the BasicCopyTranslator implementation for CopyTranslator.
+func (ct CopyTranslator) AsTabularTranslator() (*TabularTranslator, bool) {
+	return nil, false
+}
+
+// AsCopyTranslator is the BasicCopyTranslator implementation for CopyTranslator.
+func (ct CopyTranslator) AsCopyTranslator() (*CopyTranslator, bool) {
+	return &ct, true
+}
+
+// AsBasicCopyTranslator is the BasicCopyTranslator implementation for CopyTranslator.
+func (ct CopyTranslator) AsBasicCopyTranslator() (BasicCopyTranslator, bool) {
+	return &ct, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for CopyTranslator struct.
+func (ct *CopyTranslator) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		default:
+			if v != nil {
+				var additionalProperties interface{}
+				err = json.Unmarshal(*v, &additionalProperties)
+				if err != nil {
+					return err
+				}
+				if ct.AdditionalProperties == nil {
+					ct.AdditionalProperties = make(map[string]interface{})
+				}
+				ct.AdditionalProperties[k] = additionalProperties
+			}
+		case "type":
+			if v != nil {
+				var typeVar TypeBasicCopyTranslator
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				ct.Type = typeVar
 			}
 		}
 	}
@@ -25320,15 +25431,9 @@ type CouchbaseSource struct {
 func (cs CouchbaseSource) MarshalJSON() ([]byte, error) {
 	cs.Type = TypeCouchbaseSource
 	objectMap := make(map[string]interface{})
-	if cs.Query != nil {
-		objectMap["query"] = cs.Query
-	}
-	if cs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = cs.SourceRetryCount
-	}
-	if cs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = cs.SourceRetryWait
-	}
+	objectMap["query"] = cs.Query
+	objectMap["sourceRetryCount"] = cs.SourceRetryCount
+	objectMap["sourceRetryWait"] = cs.SourceRetryWait
 	if cs.Type != "" {
 		objectMap["type"] = cs.Type
 	}
@@ -25686,9 +25791,7 @@ func (ctd CouchbaseTableDataset) MarshalJSON() ([]byte, error) {
 	if ctd.Description != nil {
 		objectMap["description"] = ctd.Description
 	}
-	if ctd.Structure != nil {
-		objectMap["structure"] = ctd.Structure
-	}
+	objectMap["structure"] = ctd.Structure
 	if ctd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = ctd.LinkedServiceName
 	}
@@ -26376,15 +26479,11 @@ type CustomActivityTypeProperties struct {
 // MarshalJSON is the custom marshaler for CustomActivityTypeProperties.
 func (catp CustomActivityTypeProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if catp.Command != nil {
-		objectMap["command"] = catp.Command
-	}
+	objectMap["command"] = catp.Command
 	if catp.ResourceLinkedService != nil {
 		objectMap["resourceLinkedService"] = catp.ResourceLinkedService
 	}
-	if catp.FolderPath != nil {
-		objectMap["folderPath"] = catp.FolderPath
-	}
+	objectMap["folderPath"] = catp.FolderPath
 	if catp.ReferenceObjects != nil {
 		objectMap["referenceObjects"] = catp.ReferenceObjects
 	}
@@ -26418,15 +26517,11 @@ type CustomDataset struct {
 func (cd CustomDataset) MarshalJSON() ([]byte, error) {
 	cd.Type = TypeCustomDataset
 	objectMap := make(map[string]interface{})
-	if cd.TypeProperties != nil {
-		objectMap["typeProperties"] = cd.TypeProperties
-	}
+	objectMap["typeProperties"] = cd.TypeProperties
 	if cd.Description != nil {
 		objectMap["description"] = cd.Description
 	}
-	if cd.Structure != nil {
-		objectMap["structure"] = cd.Structure
-	}
+	objectMap["structure"] = cd.Structure
 	if cd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = cd.LinkedServiceName
 	}
@@ -26832,9 +26927,7 @@ type CustomDataSourceLinkedService struct {
 func (cdsls CustomDataSourceLinkedService) MarshalJSON() ([]byte, error) {
 	cdsls.Type = TypeCustomDataSource
 	objectMap := make(map[string]interface{})
-	if cdsls.TypeProperties != nil {
-		objectMap["typeProperties"] = cdsls.TypeProperties
-	}
+	objectMap["typeProperties"] = cdsls.TypeProperties
 	if cdsls.ConnectVia != nil {
 		objectMap["connectVia"] = cdsls.ConnectVia
 	}
@@ -27589,9 +27682,7 @@ type DatabricksNotebookActivityTypeProperties struct {
 // MarshalJSON is the custom marshaler for DatabricksNotebookActivityTypeProperties.
 func (dnatp DatabricksNotebookActivityTypeProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if dnatp.NotebookPath != nil {
-		objectMap["notebookPath"] = dnatp.NotebookPath
-	}
+	objectMap["notebookPath"] = dnatp.NotebookPath
 	if dnatp.BaseParameters != nil {
 		objectMap["baseParameters"] = dnatp.BaseParameters
 	}
@@ -27900,27 +27991,17 @@ type DataLakeAnalyticsUSQLActivityTypeProperties struct {
 // MarshalJSON is the custom marshaler for DataLakeAnalyticsUSQLActivityTypeProperties.
 func (dlauatp DataLakeAnalyticsUSQLActivityTypeProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if dlauatp.ScriptPath != nil {
-		objectMap["scriptPath"] = dlauatp.ScriptPath
-	}
+	objectMap["scriptPath"] = dlauatp.ScriptPath
 	if dlauatp.ScriptLinkedService != nil {
 		objectMap["scriptLinkedService"] = dlauatp.ScriptLinkedService
 	}
-	if dlauatp.DegreeOfParallelism != nil {
-		objectMap["degreeOfParallelism"] = dlauatp.DegreeOfParallelism
-	}
-	if dlauatp.Priority != nil {
-		objectMap["priority"] = dlauatp.Priority
-	}
+	objectMap["degreeOfParallelism"] = dlauatp.DegreeOfParallelism
+	objectMap["priority"] = dlauatp.Priority
 	if dlauatp.Parameters != nil {
 		objectMap["parameters"] = dlauatp.Parameters
 	}
-	if dlauatp.RuntimeVersion != nil {
-		objectMap["runtimeVersion"] = dlauatp.RuntimeVersion
-	}
-	if dlauatp.CompilationMode != nil {
-		objectMap["compilationMode"] = dlauatp.CompilationMode
-	}
+	objectMap["runtimeVersion"] = dlauatp.RuntimeVersion
+	objectMap["compilationMode"] = dlauatp.CompilationMode
 	return json.Marshal(objectMap)
 }
 
@@ -27983,8 +28064,8 @@ type BasicDataset interface {
 	AsDataset() (*Dataset, bool)
 }
 
-// Dataset the Azure Data Factory nested object which identifies data within different data stores, such as
-// tables, files, folders, and documents.
+// Dataset the Azure Data Factory nested object which identifies data within different data stores, such as tables,
+// files, folders, and documents.
 type Dataset struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -28254,9 +28335,7 @@ func (d Dataset) MarshalJSON() ([]byte, error) {
 	if d.Description != nil {
 		objectMap["description"] = d.Description
 	}
-	if d.Structure != nil {
-		objectMap["structure"] = d.Structure
-	}
+	objectMap["structure"] = d.Structure
 	if d.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = d.LinkedServiceName
 	}
@@ -28865,8 +28944,8 @@ func (dc *DatasetCompression) UnmarshalJSON(body []byte) error {
 
 // DatasetDeflateCompression the Deflate compression method used on a dataset.
 type DatasetDeflateCompression struct {
-	// Level - The Deflate compression level.
-	Level interface{} `json:"level,omitempty"`
+	// Level - The Deflate compression level. Possible values include: 'Optimal', 'Fastest'
+	Level DatasetCompressionLevel `json:"level,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// Type - Possible values include: 'TypeDatasetCompression', 'TypeZipDeflate', 'TypeDeflate', 'TypeGZip', 'TypeBZip2'
@@ -28877,7 +28956,7 @@ type DatasetDeflateCompression struct {
 func (ddc DatasetDeflateCompression) MarshalJSON() ([]byte, error) {
 	ddc.Type = TypeDeflate
 	objectMap := make(map[string]interface{})
-	if ddc.Level != nil {
+	if ddc.Level != "" {
 		objectMap["level"] = ddc.Level
 	}
 	if ddc.Type != "" {
@@ -28930,7 +29009,7 @@ func (ddc *DatasetDeflateCompression) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "level":
 			if v != nil {
-				var level interface{}
+				var level DatasetCompressionLevel
 				err = json.Unmarshal(*v, &level)
 				if err != nil {
 					return err
@@ -28966,8 +29045,8 @@ func (ddc *DatasetDeflateCompression) UnmarshalJSON(body []byte) error {
 
 // DatasetGZipCompression the GZip compression method used on a dataset.
 type DatasetGZipCompression struct {
-	// Level - The GZip compression level.
-	Level interface{} `json:"level,omitempty"`
+	// Level - The GZip compression level. Possible values include: 'Optimal', 'Fastest'
+	Level DatasetCompressionLevel `json:"level,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// Type - Possible values include: 'TypeDatasetCompression', 'TypeZipDeflate', 'TypeDeflate', 'TypeGZip', 'TypeBZip2'
@@ -28978,7 +29057,7 @@ type DatasetGZipCompression struct {
 func (dgzc DatasetGZipCompression) MarshalJSON() ([]byte, error) {
 	dgzc.Type = TypeGZip
 	objectMap := make(map[string]interface{})
-	if dgzc.Level != nil {
+	if dgzc.Level != "" {
 		objectMap["level"] = dgzc.Level
 	}
 	if dgzc.Type != "" {
@@ -29031,7 +29110,7 @@ func (dgzc *DatasetGZipCompression) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "level":
 			if v != nil {
-				var level interface{}
+				var level DatasetCompressionLevel
 				err = json.Unmarshal(*v, &level)
 				if err != nil {
 					return err
@@ -29080,37 +29159,20 @@ type DatasetListResponseIterator struct {
 	page DatasetListResponsePage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *DatasetListResponseIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatasetListResponseIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *DatasetListResponseIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *DatasetListResponseIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -29132,11 +29194,6 @@ func (iter DatasetListResponseIterator) Value() DatasetResource {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the DatasetListResponseIterator type.
-func NewDatasetListResponseIterator(page DatasetListResponsePage) DatasetListResponseIterator {
-	return DatasetListResponseIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (dlr DatasetListResponse) IsEmpty() bool {
 	return dlr.Value == nil || len(*dlr.Value) == 0
@@ -29144,11 +29201,11 @@ func (dlr DatasetListResponse) IsEmpty() bool {
 
 // datasetListResponsePreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (dlr DatasetListResponse) datasetListResponsePreparer(ctx context.Context) (*http.Request, error) {
+func (dlr DatasetListResponse) datasetListResponsePreparer() (*http.Request, error) {
 	if dlr.NextLink == nil || len(to.String(dlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(dlr.NextLink)))
@@ -29156,36 +29213,19 @@ func (dlr DatasetListResponse) datasetListResponsePreparer(ctx context.Context) 
 
 // DatasetListResponsePage contains a page of DatasetResource values.
 type DatasetListResponsePage struct {
-	fn  func(context.Context, DatasetListResponse) (DatasetListResponse, error)
+	fn  func(DatasetListResponse) (DatasetListResponse, error)
 	dlr DatasetListResponse
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *DatasetListResponsePage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatasetListResponsePage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.dlr)
+func (page *DatasetListResponsePage) Next() error {
+	next, err := page.fn(page.dlr)
 	if err != nil {
 		return err
 	}
 	page.dlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *DatasetListResponsePage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -29204,11 +29244,6 @@ func (page DatasetListResponsePage) Values() []DatasetResource {
 		return nil
 	}
 	return *page.dlr.Value
-}
-
-// Creates a new instance of the DatasetListResponsePage type.
-func NewDatasetListResponsePage(getNextPage func(context.Context, DatasetListResponse) (DatasetListResponse, error)) DatasetListResponsePage {
-	return DatasetListResponsePage{fn: getNextPage}
 }
 
 // DatasetReference dataset reference type.
@@ -29241,13 +29276,13 @@ type DatasetResource struct {
 	autorest.Response `json:"-"`
 	// Properties - Dataset properties.
 	Properties BasicDataset `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource identifier.
+	// ID - The resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
-	// Etag - READ-ONLY; Etag identifies change in the resource.
+	// Etag - Etag identifies change in the resource.
 	Etag *string `json:"etag,omitempty"`
 }
 
@@ -29389,12 +29424,8 @@ func unmarshalBasicDatasetStorageFormatArray(body []byte) ([]BasicDatasetStorage
 func (dsf DatasetStorageFormat) MarshalJSON() ([]byte, error) {
 	dsf.Type = TypeDatasetStorageFormat
 	objectMap := make(map[string]interface{})
-	if dsf.Serializer != nil {
-		objectMap["serializer"] = dsf.Serializer
-	}
-	if dsf.Deserializer != nil {
-		objectMap["deserializer"] = dsf.Deserializer
-	}
+	objectMap["serializer"] = dsf.Serializer
+	objectMap["deserializer"] = dsf.Deserializer
 	if dsf.Type != "" {
 		objectMap["type"] = dsf.Type
 	}
@@ -29495,8 +29526,8 @@ func (dsf *DatasetStorageFormat) UnmarshalJSON(body []byte) error {
 
 // DatasetZipDeflateCompression the ZipDeflate compression method used on a dataset.
 type DatasetZipDeflateCompression struct {
-	// Level - The ZipDeflate compression level.
-	Level interface{} `json:"level,omitempty"`
+	// Level - The ZipDeflate compression level. Possible values include: 'Optimal', 'Fastest'
+	Level DatasetCompressionLevel `json:"level,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// Type - Possible values include: 'TypeDatasetCompression', 'TypeZipDeflate', 'TypeDeflate', 'TypeGZip', 'TypeBZip2'
@@ -29507,7 +29538,7 @@ type DatasetZipDeflateCompression struct {
 func (dzdc DatasetZipDeflateCompression) MarshalJSON() ([]byte, error) {
 	dzdc.Type = TypeZipDeflate
 	objectMap := make(map[string]interface{})
-	if dzdc.Level != nil {
+	if dzdc.Level != "" {
 		objectMap["level"] = dzdc.Level
 	}
 	if dzdc.Type != "" {
@@ -29560,7 +29591,7 @@ func (dzdc *DatasetZipDeflateCompression) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "level":
 			if v != nil {
-				var level interface{}
+				var level DatasetCompressionLevel
 				err = json.Unmarshal(*v, &level)
 				if err != nil {
 					return err
@@ -30205,9 +30236,7 @@ func (ddcd DocumentDbCollectionDataset) MarshalJSON() ([]byte, error) {
 	if ddcd.Description != nil {
 		objectMap["description"] = ddcd.Description
 	}
-	if ddcd.Structure != nil {
-		objectMap["structure"] = ddcd.Structure
-	}
+	objectMap["structure"] = ddcd.Structure
 	if ddcd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = ddcd.LinkedServiceName
 	}
@@ -30619,21 +30648,11 @@ type DocumentDbCollectionSink struct {
 func (ddcs DocumentDbCollectionSink) MarshalJSON() ([]byte, error) {
 	ddcs.Type = TypeDocumentDbCollectionSink
 	objectMap := make(map[string]interface{})
-	if ddcs.NestingSeparator != nil {
-		objectMap["nestingSeparator"] = ddcs.NestingSeparator
-	}
-	if ddcs.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = ddcs.WriteBatchSize
-	}
-	if ddcs.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = ddcs.WriteBatchTimeout
-	}
-	if ddcs.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = ddcs.SinkRetryCount
-	}
-	if ddcs.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = ddcs.SinkRetryWait
-	}
+	objectMap["nestingSeparator"] = ddcs.NestingSeparator
+	objectMap["writeBatchSize"] = ddcs.WriteBatchSize
+	objectMap["writeBatchTimeout"] = ddcs.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = ddcs.SinkRetryCount
+	objectMap["sinkRetryWait"] = ddcs.SinkRetryWait
 	if ddcs.Type != "" {
 		objectMap["type"] = ddcs.Type
 	}
@@ -30824,18 +30843,10 @@ type DocumentDbCollectionSource struct {
 func (ddcs DocumentDbCollectionSource) MarshalJSON() ([]byte, error) {
 	ddcs.Type = TypeDocumentDbCollectionSource
 	objectMap := make(map[string]interface{})
-	if ddcs.Query != nil {
-		objectMap["query"] = ddcs.Query
-	}
-	if ddcs.NestingSeparator != nil {
-		objectMap["nestingSeparator"] = ddcs.NestingSeparator
-	}
-	if ddcs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ddcs.SourceRetryCount
-	}
-	if ddcs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ddcs.SourceRetryWait
-	}
+	objectMap["query"] = ddcs.Query
+	objectMap["nestingSeparator"] = ddcs.NestingSeparator
+	objectMap["sourceRetryCount"] = ddcs.SourceRetryCount
+	objectMap["sourceRetryWait"] = ddcs.SourceRetryWait
 	if ddcs.Type != "" {
 		objectMap["type"] = ddcs.Type
 	}
@@ -31690,15 +31701,9 @@ type DrillSource struct {
 func (ds DrillSource) MarshalJSON() ([]byte, error) {
 	ds.Type = TypeDrillSource
 	objectMap := make(map[string]interface{})
-	if ds.Query != nil {
-		objectMap["query"] = ds.Query
-	}
-	if ds.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ds.SourceRetryCount
-	}
-	if ds.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ds.SourceRetryWait
-	}
+	objectMap["query"] = ds.Query
+	objectMap["sourceRetryCount"] = ds.SourceRetryCount
+	objectMap["sourceRetryWait"] = ds.SourceRetryWait
 	if ds.Type != "" {
 		objectMap["type"] = ds.Type
 	}
@@ -32056,9 +32061,7 @@ func (dtd DrillTableDataset) MarshalJSON() ([]byte, error) {
 	if dtd.Description != nil {
 		objectMap["description"] = dtd.Description
 	}
-	if dtd.Structure != nil {
-		objectMap["structure"] = dtd.Structure
-	}
+	objectMap["structure"] = dtd.Structure
 	if dtd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = dtd.LinkedServiceName
 	}
@@ -32463,9 +32466,7 @@ func (ded DynamicsEntityDataset) MarshalJSON() ([]byte, error) {
 	if ded.Description != nil {
 		objectMap["description"] = ded.Description
 	}
-	if ded.Structure != nil {
-		objectMap["structure"] = ded.Structure
-	}
+	objectMap["structure"] = ded.Structure
 	if ded.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = ded.LinkedServiceName
 	}
@@ -33462,7 +33463,7 @@ func (dlstp *DynamicsLinkedServiceTypeProperties) UnmarshalJSON(body []byte) err
 // DynamicsSink a copy activity Dynamics sink.
 type DynamicsSink struct {
 	// WriteBehavior - The write behavior for the operation.
-	WriteBehavior interface{} `json:"writeBehavior,omitempty"`
+	WriteBehavior *string `json:"writeBehavior,omitempty"`
 	// IgnoreNullValues - The flag indicating whether ignore null values from input dataset (except key fields) during write operation. Default is false. Type: boolean (or Expression with resultType boolean).
 	IgnoreNullValues interface{} `json:"ignoreNullValues,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
@@ -33486,21 +33487,11 @@ func (ds DynamicsSink) MarshalJSON() ([]byte, error) {
 	if ds.WriteBehavior != nil {
 		objectMap["writeBehavior"] = ds.WriteBehavior
 	}
-	if ds.IgnoreNullValues != nil {
-		objectMap["ignoreNullValues"] = ds.IgnoreNullValues
-	}
-	if ds.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = ds.WriteBatchSize
-	}
-	if ds.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = ds.WriteBatchTimeout
-	}
-	if ds.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = ds.SinkRetryCount
-	}
-	if ds.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = ds.SinkRetryWait
-	}
+	objectMap["ignoreNullValues"] = ds.IgnoreNullValues
+	objectMap["writeBatchSize"] = ds.WriteBatchSize
+	objectMap["writeBatchTimeout"] = ds.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = ds.SinkRetryCount
+	objectMap["sinkRetryWait"] = ds.SinkRetryWait
 	if ds.Type != "" {
 		objectMap["type"] = ds.Type
 	}
@@ -33601,12 +33592,12 @@ func (ds *DynamicsSink) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "writeBehavior":
 			if v != nil {
-				var writeBehavior interface{}
+				var writeBehavior string
 				err = json.Unmarshal(*v, &writeBehavior)
 				if err != nil {
 					return err
 				}
-				ds.WriteBehavior = writeBehavior
+				ds.WriteBehavior = &writeBehavior
 			}
 		case "ignoreNullValues":
 			if v != nil {
@@ -33698,15 +33689,9 @@ type DynamicsSource struct {
 func (ds DynamicsSource) MarshalJSON() ([]byte, error) {
 	ds.Type = TypeDynamicsSource
 	objectMap := make(map[string]interface{})
-	if ds.Query != nil {
-		objectMap["query"] = ds.Query
-	}
-	if ds.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ds.SourceRetryCount
-	}
-	if ds.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ds.SourceRetryWait
-	}
+	objectMap["query"] = ds.Query
+	objectMap["sourceRetryCount"] = ds.SourceRetryCount
+	objectMap["sourceRetryWait"] = ds.SourceRetryWait
 	if ds.Type != "" {
 		objectMap["type"] = ds.Type
 	}
@@ -34646,9 +34631,7 @@ func (eod EloquaObjectDataset) MarshalJSON() ([]byte, error) {
 	if eod.Description != nil {
 		objectMap["description"] = eod.Description
 	}
-	if eod.Structure != nil {
-		objectMap["structure"] = eod.Structure
-	}
+	objectMap["structure"] = eod.Structure
 	if eod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = eod.LinkedServiceName
 	}
@@ -35041,15 +35024,9 @@ type EloquaSource struct {
 func (es EloquaSource) MarshalJSON() ([]byte, error) {
 	es.Type = TypeEloquaSource
 	objectMap := make(map[string]interface{})
-	if es.Query != nil {
-		objectMap["query"] = es.Query
-	}
-	if es.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = es.SourceRetryCount
-	}
-	if es.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = es.SourceRetryWait
-	}
+	objectMap["query"] = es.Query
+	objectMap["sourceRetryCount"] = es.SourceRetryCount
+	objectMap["sourceRetryWait"] = es.SourceRetryWait
 	if es.Type != "" {
 		objectMap["type"] = es.Type
 	}
@@ -35380,14 +35357,6 @@ func (es *EloquaSource) UnmarshalJSON(body []byte) error {
 	}
 
 	return nil
-}
-
-// EntityReference the entity reference.
-type EntityReference struct {
-	// Type - The type of this referenced entity. Possible values include: 'IntegrationRuntimeEntityReferenceTypeIntegrationRuntimeReference', 'IntegrationRuntimeEntityReferenceTypeLinkedServiceReference'
-	Type IntegrationRuntimeEntityReferenceType `json:"type,omitempty"`
-	// ReferenceName - The name of this referenced entity.
-	ReferenceName *string `json:"referenceName,omitempty"`
 }
 
 // ErrorResponse the object that defines the structure of an Azure Data Factory response.
@@ -35965,14 +35934,12 @@ func (espa *ExecuteSSISPackageActivity) UnmarshalJSON(body []byte) error {
 type ExecuteSSISPackageActivityTypeProperties struct {
 	// PackageLocation - SSIS package location.
 	PackageLocation *SSISPackageLocation `json:"packageLocation,omitempty"`
-	// Runtime - Specifies the runtime to execute SSIS package. The value should be "x86" or "x64". Type: string (or Expression with resultType string).
-	Runtime interface{} `json:"runtime,omitempty"`
-	// LoggingLevel - The logging level of SSIS package execution. Type: string (or Expression with resultType string).
-	LoggingLevel interface{} `json:"loggingLevel,omitempty"`
-	// EnvironmentPath - The environment path to execute the SSIS package. Type: string (or Expression with resultType string).
-	EnvironmentPath interface{} `json:"environmentPath,omitempty"`
-	// ExecutionCredential - The package execution credential.
-	ExecutionCredential *SSISExecutionCredential `json:"executionCredential,omitempty"`
+	// Runtime - Specifies the runtime to execute SSIS package. Possible values include: 'X64', 'X86'
+	Runtime SSISExecutionRuntime `json:"runtime,omitempty"`
+	// LoggingLevel - The logging level of SSIS package execution.
+	LoggingLevel *string `json:"loggingLevel,omitempty"`
+	// EnvironmentPath - The environment path to execute the SSIS package.
+	EnvironmentPath *string `json:"environmentPath,omitempty"`
 	// ConnectVia - The integration runtime reference.
 	ConnectVia *IntegrationRuntimeReference `json:"connectVia,omitempty"`
 	// ProjectParameters - The project level parameters to execute the SSIS package.
@@ -35985,8 +35952,6 @@ type ExecuteSSISPackageActivityTypeProperties struct {
 	PackageConnectionManagers map[string]map[string]*SSISExecutionParameter `json:"packageConnectionManagers"`
 	// PropertyOverrides - The property overrides to execute the SSIS package.
 	PropertyOverrides map[string]*SSISPropertyOverride `json:"propertyOverrides"`
-	// LogLocation - SSIS package execution log location.
-	LogLocation *SSISLogLocation `json:"logLocation,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ExecuteSSISPackageActivityTypeProperties.
@@ -35995,7 +35960,7 @@ func (espatp ExecuteSSISPackageActivityTypeProperties) MarshalJSON() ([]byte, er
 	if espatp.PackageLocation != nil {
 		objectMap["packageLocation"] = espatp.PackageLocation
 	}
-	if espatp.Runtime != nil {
+	if espatp.Runtime != "" {
 		objectMap["runtime"] = espatp.Runtime
 	}
 	if espatp.LoggingLevel != nil {
@@ -36003,9 +35968,6 @@ func (espatp ExecuteSSISPackageActivityTypeProperties) MarshalJSON() ([]byte, er
 	}
 	if espatp.EnvironmentPath != nil {
 		objectMap["environmentPath"] = espatp.EnvironmentPath
-	}
-	if espatp.ExecutionCredential != nil {
-		objectMap["executionCredential"] = espatp.ExecutionCredential
 	}
 	if espatp.ConnectVia != nil {
 		objectMap["connectVia"] = espatp.ConnectVia
@@ -36024,9 +35986,6 @@ func (espatp ExecuteSSISPackageActivityTypeProperties) MarshalJSON() ([]byte, er
 	}
 	if espatp.PropertyOverrides != nil {
 		objectMap["propertyOverrides"] = espatp.PropertyOverrides
-	}
-	if espatp.LogLocation != nil {
-		objectMap["logLocation"] = espatp.LogLocation
 	}
 	return json.Marshal(objectMap)
 }
@@ -36433,11 +36392,11 @@ type Factory struct {
 	Identity *FactoryIdentity `json:"identity,omitempty"`
 	// FactoryProperties - Properties of the factory.
 	*FactoryProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource identifier.
+	// ID - The resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -36453,6 +36412,15 @@ func (f Factory) MarshalJSON() ([]byte, error) {
 	}
 	if f.FactoryProperties != nil {
 		objectMap["properties"] = f.FactoryProperties
+	}
+	if f.ID != nil {
+		objectMap["id"] = f.ID
+	}
+	if f.Name != nil {
+		objectMap["name"] = f.Name
+	}
+	if f.Type != nil {
+		objectMap["type"] = f.Type
 	}
 	if f.Location != nil {
 		objectMap["location"] = f.Location
@@ -36560,9 +36528,9 @@ func (f *Factory) UnmarshalJSON(body []byte) error {
 type FactoryIdentity struct {
 	// Type - The identity type. Currently the only supported type is 'SystemAssigned'.
 	Type *string `json:"type,omitempty"`
-	// PrincipalID - READ-ONLY; The principal id of the identity.
+	// PrincipalID - The principal id of the identity.
 	PrincipalID *uuid.UUID `json:"principalId,omitempty"`
-	// TenantID - READ-ONLY; The client tenant id of the identity.
+	// TenantID - The client tenant id of the identity.
 	TenantID *uuid.UUID `json:"tenantId,omitempty"`
 }
 
@@ -36581,37 +36549,20 @@ type FactoryListResponseIterator struct {
 	page FactoryListResponsePage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *FactoryListResponseIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/FactoryListResponseIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *FactoryListResponseIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *FactoryListResponseIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -36633,11 +36584,6 @@ func (iter FactoryListResponseIterator) Value() Factory {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the FactoryListResponseIterator type.
-func NewFactoryListResponseIterator(page FactoryListResponsePage) FactoryListResponseIterator {
-	return FactoryListResponseIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (flr FactoryListResponse) IsEmpty() bool {
 	return flr.Value == nil || len(*flr.Value) == 0
@@ -36645,11 +36591,11 @@ func (flr FactoryListResponse) IsEmpty() bool {
 
 // factoryListResponsePreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (flr FactoryListResponse) factoryListResponsePreparer(ctx context.Context) (*http.Request, error) {
+func (flr FactoryListResponse) factoryListResponsePreparer() (*http.Request, error) {
 	if flr.NextLink == nil || len(to.String(flr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(flr.NextLink)))
@@ -36657,36 +36603,19 @@ func (flr FactoryListResponse) factoryListResponsePreparer(ctx context.Context) 
 
 // FactoryListResponsePage contains a page of Factory values.
 type FactoryListResponsePage struct {
-	fn  func(context.Context, FactoryListResponse) (FactoryListResponse, error)
+	fn  func(FactoryListResponse) (FactoryListResponse, error)
 	flr FactoryListResponse
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *FactoryListResponsePage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/FactoryListResponsePage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.flr)
+func (page *FactoryListResponsePage) Next() error {
+	next, err := page.fn(page.flr)
 	if err != nil {
 		return err
 	}
 	page.flr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *FactoryListResponsePage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -36707,18 +36636,13 @@ func (page FactoryListResponsePage) Values() []Factory {
 	return *page.flr.Value
 }
 
-// Creates a new instance of the FactoryListResponsePage type.
-func NewFactoryListResponsePage(getNextPage func(context.Context, FactoryListResponse) (FactoryListResponse, error)) FactoryListResponsePage {
-	return FactoryListResponsePage{fn: getNextPage}
-}
-
 // FactoryProperties factory resource properties.
 type FactoryProperties struct {
-	// ProvisioningState - READ-ONLY; Factory provisioning state, example Succeeded.
+	// ProvisioningState - Factory provisioning state, example Succeeded.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
-	// CreateTime - READ-ONLY; Time the factory was created in ISO8601 format.
+	// CreateTime - Time the factory was created in ISO8601 format.
 	CreateTime *date.Time `json:"createTime,omitempty"`
-	// Version - READ-ONLY; Version of the factory.
+	// Version - Version of the factory.
 	Version *string `json:"version,omitempty"`
 	// VstsConfiguration - VSTS repo information of the factory.
 	VstsConfiguration *FactoryVSTSConfiguration `json:"vstsConfiguration,omitempty"`
@@ -37351,9 +37275,7 @@ func (fsd FileShareDataset) MarshalJSON() ([]byte, error) {
 	if fsd.Description != nil {
 		objectMap["description"] = fsd.Description
 	}
-	if fsd.Structure != nil {
-		objectMap["structure"] = fsd.Structure
-	}
+	objectMap["structure"] = fsd.Structure
 	if fsd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = fsd.LinkedServiceName
 	}
@@ -37811,8 +37733,8 @@ func (fsdtp *FileShareDatasetTypeProperties) UnmarshalJSON(body []byte) error {
 
 // FileSystemSink a copy activity file system sink.
 type FileSystemSink struct {
-	// CopyBehavior - The type of copy behavior for copy sink.
-	CopyBehavior interface{} `json:"copyBehavior,omitempty"`
+	// CopyBehavior - The type of copy behavior for copy sink. Possible values include: 'PreserveHierarchy', 'FlattenHierarchy', 'MergeFiles'
+	CopyBehavior CopyBehaviorType `json:"copyBehavior,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// WriteBatchSize - Write batch size. Type: integer (or Expression with resultType integer), minimum: 0.
@@ -37831,21 +37753,13 @@ type FileSystemSink struct {
 func (fss FileSystemSink) MarshalJSON() ([]byte, error) {
 	fss.Type = TypeFileSystemSink
 	objectMap := make(map[string]interface{})
-	if fss.CopyBehavior != nil {
+	if fss.CopyBehavior != "" {
 		objectMap["copyBehavior"] = fss.CopyBehavior
 	}
-	if fss.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = fss.WriteBatchSize
-	}
-	if fss.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = fss.WriteBatchTimeout
-	}
-	if fss.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = fss.SinkRetryCount
-	}
-	if fss.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = fss.SinkRetryWait
-	}
+	objectMap["writeBatchSize"] = fss.WriteBatchSize
+	objectMap["writeBatchTimeout"] = fss.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = fss.SinkRetryCount
+	objectMap["sinkRetryWait"] = fss.SinkRetryWait
 	if fss.Type != "" {
 		objectMap["type"] = fss.Type
 	}
@@ -37946,7 +37860,7 @@ func (fss *FileSystemSink) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "copyBehavior":
 			if v != nil {
-				var copyBehavior interface{}
+				var copyBehavior CopyBehaviorType
 				err = json.Unmarshal(*v, &copyBehavior)
 				if err != nil {
 					return err
@@ -38034,15 +37948,9 @@ type FileSystemSource struct {
 func (fss FileSystemSource) MarshalJSON() ([]byte, error) {
 	fss.Type = TypeFileSystemSource
 	objectMap := make(map[string]interface{})
-	if fss.Recursive != nil {
-		objectMap["recursive"] = fss.Recursive
-	}
-	if fss.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = fss.SourceRetryCount
-	}
-	if fss.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = fss.SourceRetryWait
-	}
+	objectMap["recursive"] = fss.Recursive
+	objectMap["sourceRetryCount"] = fss.SourceRetryCount
+	objectMap["sourceRetryWait"] = fss.SourceRetryWait
 	if fss.Type != "" {
 		objectMap["type"] = fss.Type
 	}
@@ -38628,7 +38536,7 @@ func (fa *FilterActivity) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// FilterActivityTypeProperties filter activity properties.
+// FilterActivityTypeProperties fitler activity properties.
 type FilterActivityTypeProperties struct {
 	// Items - Input array on which filter should be applied.
 	Items *Expression `json:"items,omitempty"`
@@ -40493,9 +40401,7 @@ func (gbqod GoogleBigQueryObjectDataset) MarshalJSON() ([]byte, error) {
 	if gbqod.Description != nil {
 		objectMap["description"] = gbqod.Description
 	}
-	if gbqod.Structure != nil {
-		objectMap["structure"] = gbqod.Structure
-	}
+	objectMap["structure"] = gbqod.Structure
 	if gbqod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = gbqod.LinkedServiceName
 	}
@@ -40888,15 +40794,9 @@ type GoogleBigQuerySource struct {
 func (gbqs GoogleBigQuerySource) MarshalJSON() ([]byte, error) {
 	gbqs.Type = TypeGoogleBigQuerySource
 	objectMap := make(map[string]interface{})
-	if gbqs.Query != nil {
-		objectMap["query"] = gbqs.Query
-	}
-	if gbqs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = gbqs.SourceRetryCount
-	}
-	if gbqs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = gbqs.SourceRetryWait
-	}
+	objectMap["query"] = gbqs.Query
+	objectMap["sourceRetryCount"] = gbqs.SourceRetryCount
+	objectMap["sourceRetryWait"] = gbqs.SourceRetryWait
 	if gbqs.Type != "" {
 		objectMap["type"] = gbqs.Type
 	}
@@ -41742,15 +41642,9 @@ type GreenplumSource struct {
 func (gs GreenplumSource) MarshalJSON() ([]byte, error) {
 	gs.Type = TypeGreenplumSource
 	objectMap := make(map[string]interface{})
-	if gs.Query != nil {
-		objectMap["query"] = gs.Query
-	}
-	if gs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = gs.SourceRetryCount
-	}
-	if gs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = gs.SourceRetryWait
-	}
+	objectMap["query"] = gs.Query
+	objectMap["sourceRetryCount"] = gs.SourceRetryCount
+	objectMap["sourceRetryWait"] = gs.SourceRetryWait
 	if gs.Type != "" {
 		objectMap["type"] = gs.Type
 	}
@@ -42108,9 +42002,7 @@ func (gtd GreenplumTableDataset) MarshalJSON() ([]byte, error) {
 	if gtd.Description != nil {
 		objectMap["description"] = gtd.Description
 	}
-	if gtd.Structure != nil {
-		objectMap["structure"] = gtd.Structure
-	}
+	objectMap["structure"] = gtd.Structure
 	if gtd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = gtd.LinkedServiceName
 	}
@@ -43136,9 +43028,7 @@ func (hbod HBaseObjectDataset) MarshalJSON() ([]byte, error) {
 	if hbod.Description != nil {
 		objectMap["description"] = hbod.Description
 	}
-	if hbod.Structure != nil {
-		objectMap["structure"] = hbod.Structure
-	}
+	objectMap["structure"] = hbod.Structure
 	if hbod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = hbod.LinkedServiceName
 	}
@@ -43531,15 +43421,9 @@ type HBaseSource struct {
 func (hbs HBaseSource) MarshalJSON() ([]byte, error) {
 	hbs.Type = TypeHBaseSource
 	objectMap := make(map[string]interface{})
-	if hbs.Query != nil {
-		objectMap["query"] = hbs.Query
-	}
-	if hbs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = hbs.SourceRetryCount
-	}
-	if hbs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = hbs.SourceRetryWait
-	}
+	objectMap["query"] = hbs.Query
+	objectMap["sourceRetryCount"] = hbs.SourceRetryCount
+	objectMap["sourceRetryWait"] = hbs.SourceRetryWait
 	if hbs.Type != "" {
 		objectMap["type"] = hbs.Type
 	}
@@ -44452,18 +44336,12 @@ type HdfsSource struct {
 func (hs HdfsSource) MarshalJSON() ([]byte, error) {
 	hs.Type = TypeHdfsSource
 	objectMap := make(map[string]interface{})
-	if hs.Recursive != nil {
-		objectMap["recursive"] = hs.Recursive
-	}
+	objectMap["recursive"] = hs.Recursive
 	if hs.DistcpSettings != nil {
 		objectMap["distcpSettings"] = hs.DistcpSettings
 	}
-	if hs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = hs.SourceRetryCount
-	}
-	if hs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = hs.SourceRetryWait
-	}
+	objectMap["sourceRetryCount"] = hs.SourceRetryCount
+	objectMap["sourceRetryWait"] = hs.SourceRetryWait
 	if hs.Type != "" {
 		objectMap["type"] = hs.Type
 	}
@@ -45114,9 +44992,7 @@ func (hihatp HDInsightHiveActivityTypeProperties) MarshalJSON() ([]byte, error) 
 	if hihatp.GetDebugInfo != "" {
 		objectMap["getDebugInfo"] = hihatp.GetDebugInfo
 	}
-	if hihatp.ScriptPath != nil {
-		objectMap["scriptPath"] = hihatp.ScriptPath
-	}
+	objectMap["scriptPath"] = hihatp.ScriptPath
 	if hihatp.ScriptLinkedService != nil {
 		objectMap["scriptLinkedService"] = hihatp.ScriptLinkedService
 	}
@@ -46010,12 +45886,8 @@ func (himratp HDInsightMapReduceActivityTypeProperties) MarshalJSON() ([]byte, e
 	if himratp.GetDebugInfo != "" {
 		objectMap["getDebugInfo"] = himratp.GetDebugInfo
 	}
-	if himratp.ClassName != nil {
-		objectMap["className"] = himratp.ClassName
-	}
-	if himratp.JarFilePath != nil {
-		objectMap["jarFilePath"] = himratp.JarFilePath
-	}
+	objectMap["className"] = himratp.ClassName
+	objectMap["jarFilePath"] = himratp.JarFilePath
 	if himratp.JarLinkedService != nil {
 		objectMap["jarLinkedService"] = himratp.JarLinkedService
 	}
@@ -47170,9 +47042,7 @@ func (hipatp HDInsightPigActivityTypeProperties) MarshalJSON() ([]byte, error) {
 	if hipatp.GetDebugInfo != "" {
 		objectMap["getDebugInfo"] = hipatp.GetDebugInfo
 	}
-	if hipatp.ScriptPath != nil {
-		objectMap["scriptPath"] = hipatp.ScriptPath
-	}
+	objectMap["scriptPath"] = hipatp.ScriptPath
 	if hipatp.ScriptLinkedService != nil {
 		objectMap["scriptLinkedService"] = hipatp.ScriptLinkedService
 	}
@@ -47486,12 +47356,8 @@ type HDInsightSparkActivityTypeProperties struct {
 // MarshalJSON is the custom marshaler for HDInsightSparkActivityTypeProperties.
 func (hisatp HDInsightSparkActivityTypeProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if hisatp.RootPath != nil {
-		objectMap["rootPath"] = hisatp.RootPath
-	}
-	if hisatp.EntryFilePath != nil {
-		objectMap["entryFilePath"] = hisatp.EntryFilePath
-	}
+	objectMap["rootPath"] = hisatp.RootPath
+	objectMap["entryFilePath"] = hisatp.EntryFilePath
 	if hisatp.Arguments != nil {
 		objectMap["arguments"] = hisatp.Arguments
 	}
@@ -47504,9 +47370,7 @@ func (hisatp HDInsightSparkActivityTypeProperties) MarshalJSON() ([]byte, error)
 	if hisatp.ClassName != nil {
 		objectMap["className"] = hisatp.ClassName
 	}
-	if hisatp.ProxyUser != nil {
-		objectMap["proxyUser"] = hisatp.ProxyUser
-	}
+	objectMap["proxyUser"] = hisatp.ProxyUser
 	if hisatp.SparkConfig != nil {
 		objectMap["sparkConfig"] = hisatp.SparkConfig
 	}
@@ -47834,27 +47698,17 @@ func (hisatp HDInsightStreamingActivityTypeProperties) MarshalJSON() ([]byte, er
 	if hisatp.GetDebugInfo != "" {
 		objectMap["getDebugInfo"] = hisatp.GetDebugInfo
 	}
-	if hisatp.Mapper != nil {
-		objectMap["mapper"] = hisatp.Mapper
-	}
-	if hisatp.Reducer != nil {
-		objectMap["reducer"] = hisatp.Reducer
-	}
-	if hisatp.Input != nil {
-		objectMap["input"] = hisatp.Input
-	}
-	if hisatp.Output != nil {
-		objectMap["output"] = hisatp.Output
-	}
+	objectMap["mapper"] = hisatp.Mapper
+	objectMap["reducer"] = hisatp.Reducer
+	objectMap["input"] = hisatp.Input
+	objectMap["output"] = hisatp.Output
 	if hisatp.FilePaths != nil {
 		objectMap["filePaths"] = hisatp.FilePaths
 	}
 	if hisatp.FileLinkedService != nil {
 		objectMap["fileLinkedService"] = hisatp.FileLinkedService
 	}
-	if hisatp.Combiner != nil {
-		objectMap["combiner"] = hisatp.Combiner
-	}
+	objectMap["combiner"] = hisatp.Combiner
 	if hisatp.CommandEnvironment != nil {
 		objectMap["commandEnvironment"] = hisatp.CommandEnvironment
 	}
@@ -48581,9 +48435,7 @@ func (hod HiveObjectDataset) MarshalJSON() ([]byte, error) {
 	if hod.Description != nil {
 		objectMap["description"] = hod.Description
 	}
-	if hod.Structure != nil {
-		objectMap["structure"] = hod.Structure
-	}
+	objectMap["structure"] = hod.Structure
 	if hod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = hod.LinkedServiceName
 	}
@@ -48976,15 +48828,9 @@ type HiveSource struct {
 func (hs HiveSource) MarshalJSON() ([]byte, error) {
 	hs.Type = TypeHiveSource
 	objectMap := make(map[string]interface{})
-	if hs.Query != nil {
-		objectMap["query"] = hs.Query
-	}
-	if hs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = hs.SourceRetryCount
-	}
-	if hs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = hs.SourceRetryWait
-	}
+	objectMap["query"] = hs.Query
+	objectMap["sourceRetryCount"] = hs.SourceRetryCount
+	objectMap["sourceRetryWait"] = hs.SourceRetryWait
 	if hs.Type != "" {
 		objectMap["type"] = hs.Type
 	}
@@ -49347,9 +49193,7 @@ func (hd HTTPDataset) MarshalJSON() ([]byte, error) {
 	if hd.Description != nil {
 		objectMap["description"] = hd.Description
 	}
-	if hd.Structure != nil {
-		objectMap["structure"] = hd.Structure
-	}
+	objectMap["structure"] = hd.Structure
 	if hd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = hd.LinkedServiceName
 	}
@@ -50429,15 +50273,9 @@ type HTTPSource struct {
 func (hs HTTPSource) MarshalJSON() ([]byte, error) {
 	hs.Type = TypeHTTPSource
 	objectMap := make(map[string]interface{})
-	if hs.HTTPRequestTimeout != nil {
-		objectMap["httpRequestTimeout"] = hs.HTTPRequestTimeout
-	}
-	if hs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = hs.SourceRetryCount
-	}
-	if hs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = hs.SourceRetryWait
-	}
+	objectMap["httpRequestTimeout"] = hs.HTTPRequestTimeout
+	objectMap["sourceRetryCount"] = hs.SourceRetryCount
+	objectMap["sourceRetryWait"] = hs.SourceRetryWait
 	if hs.Type != "" {
 		objectMap["type"] = hs.Type
 	}
@@ -50770,9 +50608,9 @@ func (hs *HTTPSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// HubspotLinkedService hubspot Service linked service.
+// HubspotLinkedService hubspot Serivce linked service.
 type HubspotLinkedService struct {
-	// HubspotLinkedServiceTypeProperties - Hubspot Service linked service properties.
+	// HubspotLinkedServiceTypeProperties - Hubspot Serivce linked service properties.
 	*HubspotLinkedServiceTypeProperties `json:"typeProperties,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -51257,7 +51095,7 @@ func (hls *HubspotLinkedService) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// HubspotLinkedServiceTypeProperties hubspot Service linked service properties.
+// HubspotLinkedServiceTypeProperties hubspot Serivce linked service properties.
 type HubspotLinkedServiceTypeProperties struct {
 	// ClientID - The client ID associated with your Hubspot application.
 	ClientID interface{} `json:"clientId,omitempty"`
@@ -51361,7 +51199,7 @@ func (hlstp *HubspotLinkedServiceTypeProperties) UnmarshalJSON(body []byte) erro
 	return nil
 }
 
-// HubspotObjectDataset hubspot Service dataset.
+// HubspotObjectDataset hubspot Serivce dataset.
 type HubspotObjectDataset struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -51386,9 +51224,7 @@ func (hod HubspotObjectDataset) MarshalJSON() ([]byte, error) {
 	if hod.Description != nil {
 		objectMap["description"] = hod.Description
 	}
-	if hod.Structure != nil {
-		objectMap["structure"] = hod.Structure
-	}
+	objectMap["structure"] = hod.Structure
 	if hod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = hod.LinkedServiceName
 	}
@@ -51763,7 +51599,7 @@ func (hod *HubspotObjectDataset) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// HubspotSource a copy activity Hubspot Service source.
+// HubspotSource a copy activity Hubspot Serivce source.
 type HubspotSource struct {
 	// Query - A query to retrieve data from source. Type: string (or Expression with resultType string).
 	Query interface{} `json:"query,omitempty"`
@@ -51781,15 +51617,9 @@ type HubspotSource struct {
 func (hs HubspotSource) MarshalJSON() ([]byte, error) {
 	hs.Type = TypeHubspotSource
 	objectMap := make(map[string]interface{})
-	if hs.Query != nil {
-		objectMap["query"] = hs.Query
-	}
-	if hs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = hs.SourceRetryCount
-	}
-	if hs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = hs.SourceRetryWait
-	}
+	objectMap["query"] = hs.Query
+	objectMap["sourceRetryCount"] = hs.SourceRetryCount
+	objectMap["sourceRetryWait"] = hs.SourceRetryWait
 	if hs.Type != "" {
 		objectMap["type"] = hs.Type
 	}
@@ -52122,9 +51952,8 @@ func (hs *HubspotSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// IfConditionActivity this activity evaluates a boolean expression and executes either the activities
-// under the ifTrueActivities property or the ifFalseActivities property depending on the result of the
-// expression.
+// IfConditionActivity this activity evaluates a boolean expression and executes either the activities under the
+// ifTrueActivities property or the ifFalseActivities property depending on the result of the expression.
 type IfConditionActivity struct {
 	// IfConditionActivityTypeProperties - IfCondition activity properties.
 	*IfConditionActivityTypeProperties `json:"typeProperties,omitempty"`
@@ -53078,9 +52907,7 @@ func (iod ImpalaObjectDataset) MarshalJSON() ([]byte, error) {
 	if iod.Description != nil {
 		objectMap["description"] = iod.Description
 	}
-	if iod.Structure != nil {
-		objectMap["structure"] = iod.Structure
-	}
+	objectMap["structure"] = iod.Structure
 	if iod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = iod.LinkedServiceName
 	}
@@ -53473,15 +53300,9 @@ type ImpalaSource struct {
 func (is ImpalaSource) MarshalJSON() ([]byte, error) {
 	is.Type = TypeImpalaSource
 	objectMap := make(map[string]interface{})
-	if is.Query != nil {
-		objectMap["query"] = is.Query
-	}
-	if is.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = is.SourceRetryCount
-	}
-	if is.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = is.SourceRetryWait
-	}
+	objectMap["query"] = is.Query
+	objectMap["sourceRetryCount"] = is.SourceRetryCount
+	objectMap["sourceRetryWait"] = is.SourceRetryWait
 	if is.Type != "" {
 		objectMap["type"] = is.Type
 	}
@@ -54074,29 +53895,46 @@ func (ircp *IntegrationRuntimeComputeProperties) UnmarshalJSON(body []byte) erro
 	return nil
 }
 
-// IntegrationRuntimeConnectionInfo connection information for encrypting the on-premises data source
-// credentials.
+// IntegrationRuntimeConnectionInfo connection information for encrypting the on-premises data source credentials.
 type IntegrationRuntimeConnectionInfo struct {
 	autorest.Response `json:"-"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// ServiceToken - READ-ONLY; The token generated in service. Callers use this token to authenticate to integration runtime.
+	// ServiceToken - The token generated in service. Callers use this token to authenticate to integration runtime.
 	ServiceToken *string `json:"serviceToken,omitempty"`
-	// IdentityCertThumbprint - READ-ONLY; The integration runtime SSL certificate thumbprint. Click-Once application uses it to do server validation.
+	// IdentityCertThumbprint - The integration runtime SSL certificate thumbprint. Click-Once application uses it to do server validation.
 	IdentityCertThumbprint *string `json:"identityCertThumbprint,omitempty"`
-	// HostServiceURI - READ-ONLY; The on-premises integration runtime host URL.
+	// HostServiceURI - The on-premises integration runtime host URL.
 	HostServiceURI *string `json:"hostServiceUri,omitempty"`
-	// Version - READ-ONLY; The integration runtime version.
+	// Version - The integration runtime version.
 	Version *string `json:"version,omitempty"`
-	// PublicKey - READ-ONLY; The public key for encrypting a credential when transferring the credential to the integration runtime.
+	// PublicKey - The public key for encrypting a credential when transferring the credential to the integration runtime.
 	PublicKey *string `json:"publicKey,omitempty"`
-	// IsIdentityCertExprired - READ-ONLY; Whether the identity certificate is expired.
+	// IsIdentityCertExprired - Whether the identity certificate is expired.
 	IsIdentityCertExprired *bool `json:"isIdentityCertExprired,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for IntegrationRuntimeConnectionInfo.
 func (irci IntegrationRuntimeConnectionInfo) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if irci.ServiceToken != nil {
+		objectMap["serviceToken"] = irci.ServiceToken
+	}
+	if irci.IdentityCertThumbprint != nil {
+		objectMap["identityCertThumbprint"] = irci.IdentityCertThumbprint
+	}
+	if irci.HostServiceURI != nil {
+		objectMap["hostServiceUri"] = irci.HostServiceURI
+	}
+	if irci.Version != nil {
+		objectMap["version"] = irci.Version
+	}
+	if irci.PublicKey != nil {
+		objectMap["publicKey"] = irci.PublicKey
+	}
+	if irci.IsIdentityCertExprired != nil {
+		objectMap["isIdentityCertExprired"] = irci.IsIdentityCertExprired
+	}
 	for k, v := range irci.AdditionalProperties {
 		objectMap[k] = v
 	}
@@ -54184,23 +54022,13 @@ func (irci *IntegrationRuntimeConnectionInfo) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// IntegrationRuntimeCustomSetupScriptProperties custom setup script properties for a managed dedicated
-// integration runtime.
+// IntegrationRuntimeCustomSetupScriptProperties custom setup script properties for a managed dedicated integration
+// runtime.
 type IntegrationRuntimeCustomSetupScriptProperties struct {
 	// BlobContainerURI - The URI of the Azure blob container that contains the custom setup script.
 	BlobContainerURI *string `json:"blobContainerUri,omitempty"`
 	// SasToken - The SAS token of the Azure blob container.
 	SasToken *SecureString `json:"sasToken,omitempty"`
-}
-
-// IntegrationRuntimeDataProxyProperties data proxy properties for a managed dedicated integration runtime.
-type IntegrationRuntimeDataProxyProperties struct {
-	// ConnectVia - The self-hosted integration runtime reference.
-	ConnectVia *EntityReference `json:"connectVia,omitempty"`
-	// StagingLinkedService - The staging linked service reference.
-	StagingLinkedService *EntityReference `json:"stagingLinkedService,omitempty"`
-	// Path - The path to contain the staged data in the Blob storage.
-	Path *string `json:"path,omitempty"`
 }
 
 // IntegrationRuntimeListResponse a list of integration runtime resources.
@@ -54212,44 +54040,27 @@ type IntegrationRuntimeListResponse struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// IntegrationRuntimeListResponseIterator provides access to a complete listing of
-// IntegrationRuntimeResource values.
+// IntegrationRuntimeListResponseIterator provides access to a complete listing of IntegrationRuntimeResource
+// values.
 type IntegrationRuntimeListResponseIterator struct {
 	i    int
 	page IntegrationRuntimeListResponsePage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *IntegrationRuntimeListResponseIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationRuntimeListResponseIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *IntegrationRuntimeListResponseIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *IntegrationRuntimeListResponseIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -54271,11 +54082,6 @@ func (iter IntegrationRuntimeListResponseIterator) Value() IntegrationRuntimeRes
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the IntegrationRuntimeListResponseIterator type.
-func NewIntegrationRuntimeListResponseIterator(page IntegrationRuntimeListResponsePage) IntegrationRuntimeListResponseIterator {
-	return IntegrationRuntimeListResponseIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (irlr IntegrationRuntimeListResponse) IsEmpty() bool {
 	return irlr.Value == nil || len(*irlr.Value) == 0
@@ -54283,11 +54089,11 @@ func (irlr IntegrationRuntimeListResponse) IsEmpty() bool {
 
 // integrationRuntimeListResponsePreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (irlr IntegrationRuntimeListResponse) integrationRuntimeListResponsePreparer(ctx context.Context) (*http.Request, error) {
+func (irlr IntegrationRuntimeListResponse) integrationRuntimeListResponsePreparer() (*http.Request, error) {
 	if irlr.NextLink == nil || len(to.String(irlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(irlr.NextLink)))
@@ -54295,36 +54101,19 @@ func (irlr IntegrationRuntimeListResponse) integrationRuntimeListResponsePrepare
 
 // IntegrationRuntimeListResponsePage contains a page of IntegrationRuntimeResource values.
 type IntegrationRuntimeListResponsePage struct {
-	fn   func(context.Context, IntegrationRuntimeListResponse) (IntegrationRuntimeListResponse, error)
+	fn   func(IntegrationRuntimeListResponse) (IntegrationRuntimeListResponse, error)
 	irlr IntegrationRuntimeListResponse
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *IntegrationRuntimeListResponsePage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationRuntimeListResponsePage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.irlr)
+func (page *IntegrationRuntimeListResponsePage) Next() error {
+	next, err := page.fn(page.irlr)
 	if err != nil {
 		return err
 	}
 	page.irlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *IntegrationRuntimeListResponsePage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -54345,11 +54134,6 @@ func (page IntegrationRuntimeListResponsePage) Values() []IntegrationRuntimeReso
 	return *page.irlr.Value
 }
 
-// Creates a new instance of the IntegrationRuntimeListResponsePage type.
-func NewIntegrationRuntimeListResponsePage(getNextPage func(context.Context, IntegrationRuntimeListResponse) (IntegrationRuntimeListResponse, error)) IntegrationRuntimeListResponsePage {
-	return IntegrationRuntimeListResponsePage{fn: getNextPage}
-}
-
 // IntegrationRuntimeMonitoringData get monitoring data response.
 type IntegrationRuntimeMonitoringData struct {
 	autorest.Response `json:"-"`
@@ -54362,7 +54146,7 @@ type IntegrationRuntimeMonitoringData struct {
 // IntegrationRuntimeNodeIPAddress the IP address of self-hosted integration runtime node.
 type IntegrationRuntimeNodeIPAddress struct {
 	autorest.Response `json:"-"`
-	// IPAddress - READ-ONLY; The IP address of self-hosted integration runtime node.
+	// IPAddress - The IP address of self-hosted integration runtime node.
 	IPAddress *string `json:"ipAddress,omitempty"`
 }
 
@@ -54370,27 +54154,51 @@ type IntegrationRuntimeNodeIPAddress struct {
 type IntegrationRuntimeNodeMonitoringData struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// NodeName - READ-ONLY; Name of the integration runtime node.
+	// NodeName - Name of the integration runtime node.
 	NodeName *string `json:"nodeName,omitempty"`
-	// AvailableMemoryInMB - READ-ONLY; Available memory (MB) on the integration runtime node.
+	// AvailableMemoryInMB - Available memory (MB) on the integration runtime node.
 	AvailableMemoryInMB *int32 `json:"availableMemoryInMB,omitempty"`
-	// CPUUtilization - READ-ONLY; CPU percentage on the integration runtime node.
+	// CPUUtilization - CPU percentage on the integration runtime node.
 	CPUUtilization *float64 `json:"cpuUtilization,omitempty"`
-	// ConcurrentJobsLimit - READ-ONLY; Maximum concurrent jobs on the integration runtime node.
+	// ConcurrentJobsLimit - Maximum concurrent jobs on the integration runtime node.
 	ConcurrentJobsLimit *int32 `json:"concurrentJobsLimit,omitempty"`
-	// ConcurrentJobsRunning - READ-ONLY; The number of jobs currently running on the integration runtime node.
+	// ConcurrentJobsRunning - The number of jobs currently running on the integration runtime node.
 	ConcurrentJobsRunning *int32 `json:"concurrentJobsRunning,omitempty"`
-	// MaxConcurrentJobs - READ-ONLY; The maximum concurrent jobs in this integration runtime.
+	// MaxConcurrentJobs - The maximum concurrent jobs in this integration runtime.
 	MaxConcurrentJobs *int32 `json:"maxConcurrentJobs,omitempty"`
-	// SentBytes - READ-ONLY; Sent bytes on the integration runtime node.
+	// SentBytes - Sent bytes on the integration runtime node.
 	SentBytes *float64 `json:"sentBytes,omitempty"`
-	// ReceivedBytes - READ-ONLY; Received bytes on the integration runtime node.
+	// ReceivedBytes - Received bytes on the integration runtime node.
 	ReceivedBytes *float64 `json:"receivedBytes,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for IntegrationRuntimeNodeMonitoringData.
 func (irnmd IntegrationRuntimeNodeMonitoringData) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if irnmd.NodeName != nil {
+		objectMap["nodeName"] = irnmd.NodeName
+	}
+	if irnmd.AvailableMemoryInMB != nil {
+		objectMap["availableMemoryInMB"] = irnmd.AvailableMemoryInMB
+	}
+	if irnmd.CPUUtilization != nil {
+		objectMap["cpuUtilization"] = irnmd.CPUUtilization
+	}
+	if irnmd.ConcurrentJobsLimit != nil {
+		objectMap["concurrentJobsLimit"] = irnmd.ConcurrentJobsLimit
+	}
+	if irnmd.ConcurrentJobsRunning != nil {
+		objectMap["concurrentJobsRunning"] = irnmd.ConcurrentJobsRunning
+	}
+	if irnmd.MaxConcurrentJobs != nil {
+		objectMap["maxConcurrentJobs"] = irnmd.MaxConcurrentJobs
+	}
+	if irnmd.SentBytes != nil {
+		objectMap["sentBytes"] = irnmd.SentBytes
+	}
+	if irnmd.ReceivedBytes != nil {
+		objectMap["receivedBytes"] = irnmd.ReceivedBytes
+	}
 	for k, v := range irnmd.AdditionalProperties {
 		objectMap[k] = v
 	}
@@ -54588,13 +54396,13 @@ type IntegrationRuntimeResource struct {
 	autorest.Response `json:"-"`
 	// Properties - Integration runtime properties.
 	Properties BasicIntegrationRuntime `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource identifier.
+	// ID - The resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
-	// Etag - READ-ONLY; Etag identifies change in the resource.
+	// Etag - Etag identifies change in the resource.
 	Etag *string `json:"etag,omitempty"`
 }
 
@@ -54667,8 +54475,8 @@ type IntegrationRuntimeSsisCatalogInfo struct {
 	CatalogAdminUserName *string `json:"catalogAdminUserName,omitempty"`
 	// CatalogAdminPassword - The password of the administrator user account of the catalog database.
 	CatalogAdminPassword *SecureString `json:"catalogAdminPassword,omitempty"`
-	// CatalogPricingTier - The pricing tier for the catalog database. The valid values could be found in https://azure.microsoft.com/en-us/pricing/details/sql-database/
-	CatalogPricingTier *string `json:"catalogPricingTier,omitempty"`
+	// CatalogPricingTier - The pricing tier for the catalog database. The valid values could be found in https://azure.microsoft.com/en-us/pricing/details/sql-database/. Possible values include: 'IntegrationRuntimeSsisCatalogPricingTierBasic', 'IntegrationRuntimeSsisCatalogPricingTierStandard', 'IntegrationRuntimeSsisCatalogPricingTierPremium', 'IntegrationRuntimeSsisCatalogPricingTierPremiumRS'
+	CatalogPricingTier IntegrationRuntimeSsisCatalogPricingTier `json:"catalogPricingTier,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for IntegrationRuntimeSsisCatalogInfo.
@@ -54683,7 +54491,7 @@ func (irsci IntegrationRuntimeSsisCatalogInfo) MarshalJSON() ([]byte, error) {
 	if irsci.CatalogAdminPassword != nil {
 		objectMap["catalogAdminPassword"] = irsci.CatalogAdminPassword
 	}
-	if irsci.CatalogPricingTier != nil {
+	if irsci.CatalogPricingTier != "" {
 		objectMap["catalogPricingTier"] = irsci.CatalogPricingTier
 	}
 	for k, v := range irsci.AdditionalProperties {
@@ -54742,12 +54550,12 @@ func (irsci *IntegrationRuntimeSsisCatalogInfo) UnmarshalJSON(body []byte) error
 			}
 		case "catalogPricingTier":
 			if v != nil {
-				var catalogPricingTier string
+				var catalogPricingTier IntegrationRuntimeSsisCatalogPricingTier
 				err = json.Unmarshal(*v, &catalogPricingTier)
 				if err != nil {
 					return err
 				}
-				irsci.CatalogPricingTier = &catalogPricingTier
+				irsci.CatalogPricingTier = catalogPricingTier
 			}
 		}
 	}
@@ -54765,8 +54573,6 @@ type IntegrationRuntimeSsisProperties struct {
 	LicenseType IntegrationRuntimeLicenseType `json:"licenseType,omitempty"`
 	// CustomSetupScriptProperties - Custom setup script properties for a managed dedicated integration runtime.
 	CustomSetupScriptProperties *IntegrationRuntimeCustomSetupScriptProperties `json:"customSetupScriptProperties,omitempty"`
-	// DataProxyProperties - Data proxy properties for a managed dedicated integration runtime.
-	DataProxyProperties *IntegrationRuntimeDataProxyProperties `json:"dataProxyProperties,omitempty"`
 	// Edition - The edition for the SSIS Integration Runtime. Possible values include: 'Standard', 'Enterprise'
 	Edition IntegrationRuntimeEdition `json:"edition,omitempty"`
 }
@@ -54782,9 +54588,6 @@ func (irsp IntegrationRuntimeSsisProperties) MarshalJSON() ([]byte, error) {
 	}
 	if irsp.CustomSetupScriptProperties != nil {
 		objectMap["customSetupScriptProperties"] = irsp.CustomSetupScriptProperties
-	}
-	if irsp.DataProxyProperties != nil {
-		objectMap["dataProxyProperties"] = irsp.DataProxyProperties
 	}
 	if irsp.Edition != "" {
 		objectMap["edition"] = irsp.Edition
@@ -54843,15 +54646,6 @@ func (irsp *IntegrationRuntimeSsisProperties) UnmarshalJSON(body []byte) error {
 				}
 				irsp.CustomSetupScriptProperties = &customSetupScriptProperties
 			}
-		case "dataProxyProperties":
-			if v != nil {
-				var dataProxyProperties IntegrationRuntimeDataProxyProperties
-				err = json.Unmarshal(*v, &dataProxyProperties)
-				if err != nil {
-					return err
-				}
-				irsp.DataProxyProperties = &dataProxyProperties
-			}
 		case "edition":
 			if v != nil {
 				var edition IntegrationRuntimeEdition
@@ -54867,8 +54661,8 @@ func (irsp *IntegrationRuntimeSsisProperties) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// IntegrationRuntimesStartFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// IntegrationRuntimesStartFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type IntegrationRuntimesStartFuture struct {
 	azure.Future
 }
@@ -54877,7 +54671,7 @@ type IntegrationRuntimesStartFuture struct {
 // If the operation has not completed it will return an error.
 func (future *IntegrationRuntimesStartFuture) Result(client IntegrationRuntimesClient) (irsr IntegrationRuntimeStatusResponse, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "datafactory.IntegrationRuntimesStartFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -54906,7 +54700,7 @@ type IntegrationRuntimesStopFuture struct {
 // If the operation has not completed it will return an error.
 func (future *IntegrationRuntimesStopFuture) Result(client IntegrationRuntimesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "datafactory.IntegrationRuntimesStopFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -54930,9 +54724,9 @@ type BasicIntegrationRuntimeStatus interface {
 type IntegrationRuntimeStatus struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// DataFactoryName - READ-ONLY; The data factory name which the integration runtime belong to.
+	// DataFactoryName - The data factory name which the integration runtime belong to.
 	DataFactoryName *string `json:"dataFactoryName,omitempty"`
-	// State - READ-ONLY; The state of integration runtime. Possible values include: 'Initial', 'Stopped', 'Started', 'Starting', 'Stopping', 'NeedRegistration', 'Online', 'Limited', 'Offline'
+	// State - The state of integration runtime. Possible values include: 'Initial', 'Stopped', 'Started', 'Starting', 'Stopping', 'NeedRegistration', 'Online', 'Limited', 'Offline'
 	State IntegrationRuntimeState `json:"state,omitempty"`
 	// Type - Possible values include: 'TypeBasicIntegrationRuntimeStatusTypeIntegrationRuntimeStatus', 'TypeBasicIntegrationRuntimeStatusTypeSelfHosted', 'TypeBasicIntegrationRuntimeStatusTypeManaged'
 	Type TypeBasicIntegrationRuntimeStatus `json:"type,omitempty"`
@@ -54983,6 +54777,12 @@ func unmarshalBasicIntegrationRuntimeStatusArray(body []byte) ([]BasicIntegratio
 func (irs IntegrationRuntimeStatus) MarshalJSON() ([]byte, error) {
 	irs.Type = TypeBasicIntegrationRuntimeStatusTypeIntegrationRuntimeStatus
 	objectMap := make(map[string]interface{})
+	if irs.DataFactoryName != nil {
+		objectMap["dataFactoryName"] = irs.DataFactoryName
+	}
+	if irs.State != "" {
+		objectMap["state"] = irs.State
+	}
 	if irs.Type != "" {
 		objectMap["type"] = irs.Type
 	}
@@ -55077,7 +54877,7 @@ type IntegrationRuntimeStatusListResponse struct {
 // IntegrationRuntimeStatusResponse integration runtime status response.
 type IntegrationRuntimeStatusResponse struct {
 	autorest.Response `json:"-"`
-	// Name - READ-ONLY; The integration runtime name.
+	// Name - The integration runtime name.
 	Name *string `json:"name,omitempty"`
 	// Properties - Integration runtime properties.
 	Properties BasicIntegrationRuntimeStatus `json:"properties,omitempty"`
@@ -55185,9 +54985,9 @@ func (irvnp *IntegrationRuntimeVNetProperties) UnmarshalJSON(body []byte) error 
 	return nil
 }
 
-// JiraLinkedService jira Service linked service.
+// JiraLinkedService jira Serivce linked service.
 type JiraLinkedService struct {
-	// JiraLinkedServiceTypeProperties - Jira Service linked service properties.
+	// JiraLinkedServiceTypeProperties - Jira Serivce linked service properties.
 	*JiraLinkedServiceTypeProperties `json:"typeProperties,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -55672,7 +55472,7 @@ func (jls *JiraLinkedService) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// JiraLinkedServiceTypeProperties jira Service linked service properties.
+// JiraLinkedServiceTypeProperties jira Serivce linked service properties.
 type JiraLinkedServiceTypeProperties struct {
 	// Host - The IP address or host name of the Jira service. (e.g. jira.example.com)
 	Host interface{} `json:"host,omitempty"`
@@ -55778,7 +55578,7 @@ func (jlstp *JiraLinkedServiceTypeProperties) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// JiraObjectDataset jira Service dataset.
+// JiraObjectDataset jira Serivce dataset.
 type JiraObjectDataset struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -55803,9 +55603,7 @@ func (jod JiraObjectDataset) MarshalJSON() ([]byte, error) {
 	if jod.Description != nil {
 		objectMap["description"] = jod.Description
 	}
-	if jod.Structure != nil {
-		objectMap["structure"] = jod.Structure
-	}
+	objectMap["structure"] = jod.Structure
 	if jod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = jod.LinkedServiceName
 	}
@@ -56180,7 +55978,7 @@ func (jod *JiraObjectDataset) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// JiraSource a copy activity Jira Service source.
+// JiraSource a copy activity Jira Serivce source.
 type JiraSource struct {
 	// Query - A query to retrieve data from source. Type: string (or Expression with resultType string).
 	Query interface{} `json:"query,omitempty"`
@@ -56198,15 +55996,9 @@ type JiraSource struct {
 func (js JiraSource) MarshalJSON() ([]byte, error) {
 	js.Type = TypeJiraSource
 	objectMap := make(map[string]interface{})
-	if js.Query != nil {
-		objectMap["query"] = js.Query
-	}
-	if js.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = js.SourceRetryCount
-	}
-	if js.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = js.SourceRetryWait
-	}
+	objectMap["query"] = js.Query
+	objectMap["sourceRetryCount"] = js.SourceRetryCount
+	objectMap["sourceRetryWait"] = js.SourceRetryWait
 	if js.Type != "" {
 		objectMap["type"] = js.Type
 	}
@@ -56568,24 +56360,12 @@ func (jf JSONFormat) MarshalJSON() ([]byte, error) {
 	if jf.FilePattern != "" {
 		objectMap["filePattern"] = jf.FilePattern
 	}
-	if jf.NestingSeparator != nil {
-		objectMap["nestingSeparator"] = jf.NestingSeparator
-	}
-	if jf.EncodingName != nil {
-		objectMap["encodingName"] = jf.EncodingName
-	}
-	if jf.JSONNodeReference != nil {
-		objectMap["jsonNodeReference"] = jf.JSONNodeReference
-	}
-	if jf.JSONPathDefinition != nil {
-		objectMap["jsonPathDefinition"] = jf.JSONPathDefinition
-	}
-	if jf.Serializer != nil {
-		objectMap["serializer"] = jf.Serializer
-	}
-	if jf.Deserializer != nil {
-		objectMap["deserializer"] = jf.Deserializer
-	}
+	objectMap["nestingSeparator"] = jf.NestingSeparator
+	objectMap["encodingName"] = jf.EncodingName
+	objectMap["jsonNodeReference"] = jf.JSONNodeReference
+	objectMap["jsonPathDefinition"] = jf.JSONPathDefinition
+	objectMap["serializer"] = jf.Serializer
+	objectMap["deserializer"] = jf.Deserializer
 	if jf.Type != "" {
 		objectMap["type"] = jf.Type
 	}
@@ -56731,15 +56511,15 @@ func (jf *JSONFormat) UnmarshalJSON(body []byte) error {
 
 // LinkedIntegrationRuntime the linked integration runtime information.
 type LinkedIntegrationRuntime struct {
-	// Name - READ-ONLY; The name of the linked integration runtime.
+	// Name - The name of the linked integration runtime.
 	Name *string `json:"name,omitempty"`
-	// SubscriptionID - READ-ONLY; The subscription ID for which the linked integration runtime belong to.
+	// SubscriptionID - The subscription ID for which the linked integration runtime belong to.
 	SubscriptionID *string `json:"subscriptionId,omitempty"`
-	// DataFactoryName - READ-ONLY; The name of the data factory for which the linked integration runtime belong to.
+	// DataFactoryName - The name of the data factory for which the linked integration runtime belong to.
 	DataFactoryName *string `json:"dataFactoryName,omitempty"`
-	// DataFactoryLocation - READ-ONLY; The location of the data factory for which the linked integration runtime belong to.
+	// DataFactoryLocation - The location of the data factory for which the linked integration runtime belong to.
 	DataFactoryLocation *string `json:"dataFactoryLocation,omitempty"`
-	// CreateTime - READ-ONLY; The creating time of the linked integration runtime.
+	// CreateTime - The creating time of the linked integration runtime.
 	CreateTime *date.Time `json:"createTime,omitempty"`
 }
 
@@ -57013,8 +56793,8 @@ type BasicLinkedService interface {
 	AsLinkedService() (*LinkedService, bool)
 }
 
-// LinkedService the Azure Data Factory nested object which contains the information and credential which can
-// be used to connect with related store or compute resource.
+// LinkedService the Azure Data Factory nested object which contains the information and credential which can be
+// used to connect with related store or compute resource.
 type LinkedService struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -57815,37 +57595,20 @@ type LinkedServiceListResponseIterator struct {
 	page LinkedServiceListResponsePage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *LinkedServiceListResponseIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LinkedServiceListResponseIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *LinkedServiceListResponseIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *LinkedServiceListResponseIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -57867,11 +57630,6 @@ func (iter LinkedServiceListResponseIterator) Value() LinkedServiceResource {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the LinkedServiceListResponseIterator type.
-func NewLinkedServiceListResponseIterator(page LinkedServiceListResponsePage) LinkedServiceListResponseIterator {
-	return LinkedServiceListResponseIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (lslr LinkedServiceListResponse) IsEmpty() bool {
 	return lslr.Value == nil || len(*lslr.Value) == 0
@@ -57879,11 +57637,11 @@ func (lslr LinkedServiceListResponse) IsEmpty() bool {
 
 // linkedServiceListResponsePreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (lslr LinkedServiceListResponse) linkedServiceListResponsePreparer(ctx context.Context) (*http.Request, error) {
+func (lslr LinkedServiceListResponse) linkedServiceListResponsePreparer() (*http.Request, error) {
 	if lslr.NextLink == nil || len(to.String(lslr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(lslr.NextLink)))
@@ -57891,36 +57649,19 @@ func (lslr LinkedServiceListResponse) linkedServiceListResponsePreparer(ctx cont
 
 // LinkedServiceListResponsePage contains a page of LinkedServiceResource values.
 type LinkedServiceListResponsePage struct {
-	fn   func(context.Context, LinkedServiceListResponse) (LinkedServiceListResponse, error)
+	fn   func(LinkedServiceListResponse) (LinkedServiceListResponse, error)
 	lslr LinkedServiceListResponse
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *LinkedServiceListResponsePage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LinkedServiceListResponsePage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.lslr)
+func (page *LinkedServiceListResponsePage) Next() error {
+	next, err := page.fn(page.lslr)
 	if err != nil {
 		return err
 	}
 	page.lslr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *LinkedServiceListResponsePage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -57939,11 +57680,6 @@ func (page LinkedServiceListResponsePage) Values() []LinkedServiceResource {
 		return nil
 	}
 	return *page.lslr.Value
-}
-
-// Creates a new instance of the LinkedServiceListResponsePage type.
-func NewLinkedServiceListResponsePage(getNextPage func(context.Context, LinkedServiceListResponse) (LinkedServiceListResponse, error)) LinkedServiceListResponsePage {
-	return LinkedServiceListResponsePage{fn: getNextPage}
 }
 
 // LinkedServiceReference linked service reference type.
@@ -57976,13 +57712,13 @@ type LinkedServiceResource struct {
 	autorest.Response `json:"-"`
 	// Properties - Properties of linked service.
 	Properties BasicLinkedService `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource identifier.
+	// ID - The resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
-	// Etag - READ-ONLY; Etag identifies change in the resource.
+	// Etag - Etag identifies change in the resource.
 	Etag *string `json:"etag,omitempty"`
 }
 
@@ -58973,9 +58709,7 @@ func (mod MagentoObjectDataset) MarshalJSON() ([]byte, error) {
 	if mod.Description != nil {
 		objectMap["description"] = mod.Description
 	}
-	if mod.Structure != nil {
-		objectMap["structure"] = mod.Structure
-	}
+	objectMap["structure"] = mod.Structure
 	if mod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = mod.LinkedServiceName
 	}
@@ -59368,15 +59102,9 @@ type MagentoSource struct {
 func (ms MagentoSource) MarshalJSON() ([]byte, error) {
 	ms.Type = TypeMagentoSource
 	objectMap := make(map[string]interface{})
-	if ms.Query != nil {
-		objectMap["query"] = ms.Query
-	}
-	if ms.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ms.SourceRetryCount
-	}
-	if ms.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ms.SourceRetryWait
-	}
+	objectMap["query"] = ms.Query
+	objectMap["sourceRetryCount"] = ms.SourceRetryCount
+	objectMap["sourceRetryWait"] = ms.SourceRetryWait
 	if ms.Type != "" {
 		objectMap["type"] = ms.Type
 	}
@@ -59712,7 +59440,7 @@ func (ms *MagentoSource) UnmarshalJSON(body []byte) error {
 // ManagedIntegrationRuntime managed integration runtime, including managed elastic and managed dedicated
 // integration runtimes.
 type ManagedIntegrationRuntime struct {
-	// State - READ-ONLY; Integration runtime state, only valid for managed dedicated integration runtime. Possible values include: 'Initial', 'Stopped', 'Started', 'Starting', 'Stopping', 'NeedRegistration', 'Online', 'Limited', 'Offline'
+	// State - Integration runtime state, only valid for managed dedicated integration runtime. Possible values include: 'Initial', 'Stopped', 'Started', 'Starting', 'Stopping', 'NeedRegistration', 'Online', 'Limited', 'Offline'
 	State IntegrationRuntimeState `json:"state,omitempty"`
 	// ManagedIntegrationRuntimeTypeProperties - Managed integration runtime properties.
 	*ManagedIntegrationRuntimeTypeProperties `json:"typeProperties,omitempty"`
@@ -59728,6 +59456,9 @@ type ManagedIntegrationRuntime struct {
 func (mir ManagedIntegrationRuntime) MarshalJSON() ([]byte, error) {
 	mir.Type = TypeManaged
 	objectMap := make(map[string]interface{})
+	if mir.State != "" {
+		objectMap["state"] = mir.State
+	}
 	if mir.ManagedIntegrationRuntimeTypeProperties != nil {
 		objectMap["typeProperties"] = mir.ManagedIntegrationRuntimeTypeProperties
 	}
@@ -59828,21 +59559,21 @@ func (mir *ManagedIntegrationRuntime) UnmarshalJSON(body []byte) error {
 
 // ManagedIntegrationRuntimeError error definition for managed integration runtime.
 type ManagedIntegrationRuntimeError struct {
-	// Time - READ-ONLY; The time when the error occurred.
+	// Time - The time when the error occurred.
 	Time *date.Time `json:"time,omitempty"`
-	// Code - READ-ONLY; Error code.
+	// Code - Error code.
 	Code *string `json:"code,omitempty"`
-	// Parameters - READ-ONLY; Managed integration runtime error parameters.
+	// Parameters - Managed integration runtime error parameters.
 	Parameters *[]string `json:"parameters,omitempty"`
-	// Message - READ-ONLY; Error message.
+	// Message - Error message.
 	Message *string `json:"message,omitempty"`
 }
 
 // ManagedIntegrationRuntimeNode properties of integration runtime node.
 type ManagedIntegrationRuntimeNode struct {
-	// NodeID - READ-ONLY; The managed integration runtime node id.
+	// NodeID - The managed integration runtime node id.
 	NodeID *string `json:"nodeId,omitempty"`
-	// Status - READ-ONLY; The managed integration runtime node status. Possible values include: 'ManagedIntegrationRuntimeNodeStatusStarting', 'ManagedIntegrationRuntimeNodeStatusAvailable', 'ManagedIntegrationRuntimeNodeStatusRecycling', 'ManagedIntegrationRuntimeNodeStatusUnavailable'
+	// Status - The managed integration runtime node status. Possible values include: 'ManagedIntegrationRuntimeNodeStatusStarting', 'ManagedIntegrationRuntimeNodeStatusAvailable', 'ManagedIntegrationRuntimeNodeStatusRecycling', 'ManagedIntegrationRuntimeNodeStatusUnavailable'
 	Status ManagedIntegrationRuntimeNodeStatus `json:"status,omitempty"`
 	// Errors - The errors that occurred on this integration runtime node.
 	Errors *[]ManagedIntegrationRuntimeError `json:"errors,omitempty"`
@@ -59850,17 +59581,17 @@ type ManagedIntegrationRuntimeNode struct {
 
 // ManagedIntegrationRuntimeOperationResult properties of managed integration runtime operation result.
 type ManagedIntegrationRuntimeOperationResult struct {
-	// Type - READ-ONLY; The operation type. Could be start or stop.
+	// Type - The operation type. Could be start or stop.
 	Type *string `json:"type,omitempty"`
-	// StartTime - READ-ONLY; The start time of the operation.
+	// StartTime - The start time of the operation.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// Result - READ-ONLY; The operation result.
+	// Result - The operation result.
 	Result *string `json:"result,omitempty"`
-	// ErrorCode - READ-ONLY; The error code.
+	// ErrorCode - The error code.
 	ErrorCode *string `json:"errorCode,omitempty"`
-	// Parameters - READ-ONLY; Managed integration runtime error parameters.
+	// Parameters - Managed integration runtime error parameters.
 	Parameters *[]string `json:"parameters,omitempty"`
-	// ActivityID - READ-ONLY; The activity id for the operation request.
+	// ActivityID - The activity id for the operation request.
 	ActivityID *string `json:"activityId,omitempty"`
 }
 
@@ -59870,9 +59601,9 @@ type ManagedIntegrationRuntimeStatus struct {
 	*ManagedIntegrationRuntimeStatusTypeProperties `json:"typeProperties,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// DataFactoryName - READ-ONLY; The data factory name which the integration runtime belong to.
+	// DataFactoryName - The data factory name which the integration runtime belong to.
 	DataFactoryName *string `json:"dataFactoryName,omitempty"`
-	// State - READ-ONLY; The state of integration runtime. Possible values include: 'Initial', 'Stopped', 'Started', 'Starting', 'Stopping', 'NeedRegistration', 'Online', 'Limited', 'Offline'
+	// State - The state of integration runtime. Possible values include: 'Initial', 'Stopped', 'Started', 'Starting', 'Stopping', 'NeedRegistration', 'Online', 'Limited', 'Offline'
 	State IntegrationRuntimeState `json:"state,omitempty"`
 	// Type - Possible values include: 'TypeBasicIntegrationRuntimeStatusTypeIntegrationRuntimeStatus', 'TypeBasicIntegrationRuntimeStatusTypeSelfHosted', 'TypeBasicIntegrationRuntimeStatusTypeManaged'
 	Type TypeBasicIntegrationRuntimeStatus `json:"type,omitempty"`
@@ -59884,6 +59615,12 @@ func (mirs ManagedIntegrationRuntimeStatus) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if mirs.ManagedIntegrationRuntimeStatusTypeProperties != nil {
 		objectMap["typeProperties"] = mirs.ManagedIntegrationRuntimeStatusTypeProperties
+	}
+	if mirs.DataFactoryName != nil {
+		objectMap["dataFactoryName"] = mirs.DataFactoryName
+	}
+	if mirs.State != "" {
+		objectMap["state"] = mirs.State
 	}
 	if mirs.Type != "" {
 		objectMap["type"] = mirs.Type
@@ -59979,13 +59716,13 @@ func (mirs *ManagedIntegrationRuntimeStatus) UnmarshalJSON(body []byte) error {
 
 // ManagedIntegrationRuntimeStatusTypeProperties managed integration runtime status type properties.
 type ManagedIntegrationRuntimeStatusTypeProperties struct {
-	// CreateTime - READ-ONLY; The time at which the integration runtime was created, in ISO8601 format.
+	// CreateTime - The time at which the integration runtime was created, in ISO8601 format.
 	CreateTime *date.Time `json:"createTime,omitempty"`
-	// Nodes - READ-ONLY; The list of nodes for managed integration runtime.
+	// Nodes - The list of nodes for managed integration runtime.
 	Nodes *[]ManagedIntegrationRuntimeNode `json:"nodes,omitempty"`
-	// OtherErrors - READ-ONLY; The errors that occurred on this integration runtime.
+	// OtherErrors - The errors that occurred on this integration runtime.
 	OtherErrors *[]ManagedIntegrationRuntimeError `json:"otherErrors,omitempty"`
-	// LastOperation - READ-ONLY; The last operation result that occurred on this integration runtime.
+	// LastOperation - The last operation result that occurred on this integration runtime.
 	LastOperation *ManagedIntegrationRuntimeOperationResult `json:"lastOperation,omitempty"`
 }
 
@@ -60510,15 +60247,9 @@ type MariaDBSource struct {
 func (mds MariaDBSource) MarshalJSON() ([]byte, error) {
 	mds.Type = TypeMariaDBSource
 	objectMap := make(map[string]interface{})
-	if mds.Query != nil {
-		objectMap["query"] = mds.Query
-	}
-	if mds.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = mds.SourceRetryCount
-	}
-	if mds.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = mds.SourceRetryWait
-	}
+	objectMap["query"] = mds.Query
+	objectMap["sourceRetryCount"] = mds.SourceRetryCount
+	objectMap["sourceRetryWait"] = mds.SourceRetryWait
 	if mds.Type != "" {
 		objectMap["type"] = mds.Type
 	}
@@ -60876,9 +60607,7 @@ func (mdtd MariaDBTableDataset) MarshalJSON() ([]byte, error) {
 	if mdtd.Description != nil {
 		objectMap["description"] = mdtd.Description
 	}
-	if mdtd.Structure != nil {
-		objectMap["structure"] = mdtd.Structure
-	}
+	objectMap["structure"] = mdtd.Structure
 	if mdtd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = mdtd.LinkedServiceName
 	}
@@ -61860,9 +61589,7 @@ func (mod MarketoObjectDataset) MarshalJSON() ([]byte, error) {
 	if mod.Description != nil {
 		objectMap["description"] = mod.Description
 	}
-	if mod.Structure != nil {
-		objectMap["structure"] = mod.Structure
-	}
+	objectMap["structure"] = mod.Structure
 	if mod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = mod.LinkedServiceName
 	}
@@ -62255,15 +61982,9 @@ type MarketoSource struct {
 func (ms MarketoSource) MarshalJSON() ([]byte, error) {
 	ms.Type = TypeMarketoSource
 	objectMap := make(map[string]interface{})
-	if ms.Query != nil {
-		objectMap["query"] = ms.Query
-	}
-	if ms.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ms.SourceRetryCount
-	}
-	if ms.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ms.SourceRetryWait
-	}
+	objectMap["query"] = ms.Query
+	objectMap["sourceRetryCount"] = ms.SourceRetryCount
+	objectMap["sourceRetryWait"] = ms.SourceRetryWait
 	if ms.Type != "" {
 		objectMap["type"] = ms.Type
 	}
@@ -62626,9 +62347,7 @@ func (mdcd MongoDbCollectionDataset) MarshalJSON() ([]byte, error) {
 	if mdcd.Description != nil {
 		objectMap["description"] = mdcd.Description
 	}
-	if mdcd.Structure != nil {
-		objectMap["structure"] = mdcd.Structure
-	}
+	objectMap["structure"] = mdcd.Structure
 	if mdcd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = mdcd.LinkedServiceName
 	}
@@ -63651,15 +63370,9 @@ type MongoDbSource struct {
 func (mds MongoDbSource) MarshalJSON() ([]byte, error) {
 	mds.Type = TypeMongoDbSource
 	objectMap := make(map[string]interface{})
-	if mds.Query != nil {
-		objectMap["query"] = mds.Query
-	}
-	if mds.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = mds.SourceRetryCount
-	}
-	if mds.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = mds.SourceRetryWait
-	}
+	objectMap["query"] = mds.Query
+	objectMap["sourceRetryCount"] = mds.SourceRetryCount
+	objectMap["sourceRetryWait"] = mds.SourceRetryWait
 	if mds.Type != "" {
 		objectMap["type"] = mds.Type
 	}
@@ -64008,7 +63721,7 @@ type MultiplePipelineTrigger struct {
 	AdditionalProperties map[string]interface{} `json:""`
 	// Description - Trigger description.
 	Description *string `json:"description,omitempty"`
-	// RuntimeState - READ-ONLY; Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
+	// RuntimeState - Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
 	RuntimeState TriggerRuntimeState `json:"runtimeState,omitempty"`
 	// Type - Possible values include: 'TypeTrigger', 'TypeTumblingWindowTrigger', 'TypeBlobEventsTrigger', 'TypeBlobTrigger', 'TypeScheduleTrigger', 'TypeMultiplePipelineTrigger'
 	Type TypeBasicTrigger `json:"type,omitempty"`
@@ -64068,6 +63781,9 @@ func (mpt MultiplePipelineTrigger) MarshalJSON() ([]byte, error) {
 	}
 	if mpt.Description != nil {
 		objectMap["description"] = mpt.Description
+	}
+	if mpt.RuntimeState != "" {
+		objectMap["runtimeState"] = mpt.RuntimeState
 	}
 	if mpt.Type != "" {
 		objectMap["type"] = mpt.Type
@@ -65221,15 +64937,9 @@ type NetezzaSource struct {
 func (ns NetezzaSource) MarshalJSON() ([]byte, error) {
 	ns.Type = TypeNetezzaSource
 	objectMap := make(map[string]interface{})
-	if ns.Query != nil {
-		objectMap["query"] = ns.Query
-	}
-	if ns.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ns.SourceRetryCount
-	}
-	if ns.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ns.SourceRetryWait
-	}
+	objectMap["query"] = ns.Query
+	objectMap["sourceRetryCount"] = ns.SourceRetryCount
+	objectMap["sourceRetryWait"] = ns.SourceRetryWait
 	if ns.Type != "" {
 		objectMap["type"] = ns.Type
 	}
@@ -65587,9 +65297,7 @@ func (ntd NetezzaTableDataset) MarshalJSON() ([]byte, error) {
 	if ntd.Description != nil {
 		objectMap["description"] = ntd.Description
 	}
-	if ntd.Structure != nil {
-		objectMap["structure"] = ntd.Structure
-	}
+	objectMap["structure"] = ntd.Structure
 	if ntd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = ntd.LinkedServiceName
 	}
@@ -66554,9 +66262,7 @@ func (odrd ODataResourceDataset) MarshalJSON() ([]byte, error) {
 	if odrd.Description != nil {
 		objectMap["description"] = odrd.Description
 	}
-	if odrd.Structure != nil {
-		objectMap["structure"] = odrd.Structure
-	}
+	objectMap["structure"] = odrd.Structure
 	if odrd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = odrd.LinkedServiceName
 	}
@@ -67538,21 +67244,11 @@ type OdbcSink struct {
 func (osVar OdbcSink) MarshalJSON() ([]byte, error) {
 	osVar.Type = TypeOdbcSink
 	objectMap := make(map[string]interface{})
-	if osVar.PreCopyScript != nil {
-		objectMap["preCopyScript"] = osVar.PreCopyScript
-	}
-	if osVar.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = osVar.WriteBatchSize
-	}
-	if osVar.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = osVar.WriteBatchTimeout
-	}
-	if osVar.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = osVar.SinkRetryCount
-	}
-	if osVar.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = osVar.SinkRetryWait
-	}
+	objectMap["preCopyScript"] = osVar.PreCopyScript
+	objectMap["writeBatchSize"] = osVar.WriteBatchSize
+	objectMap["writeBatchTimeout"] = osVar.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = osVar.SinkRetryCount
+	objectMap["sinkRetryWait"] = osVar.SinkRetryWait
 	if osVar.Type != "" {
 		objectMap["type"] = osVar.Type
 	}
@@ -68396,21 +68092,11 @@ type OracleSink struct {
 func (osVar OracleSink) MarshalJSON() ([]byte, error) {
 	osVar.Type = TypeOracleSink
 	objectMap := make(map[string]interface{})
-	if osVar.PreCopyScript != nil {
-		objectMap["preCopyScript"] = osVar.PreCopyScript
-	}
-	if osVar.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = osVar.WriteBatchSize
-	}
-	if osVar.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = osVar.WriteBatchTimeout
-	}
-	if osVar.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = osVar.SinkRetryCount
-	}
-	if osVar.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = osVar.SinkRetryWait
-	}
+	objectMap["preCopyScript"] = osVar.PreCopyScript
+	objectMap["writeBatchSize"] = osVar.WriteBatchSize
+	objectMap["writeBatchTimeout"] = osVar.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = osVar.SinkRetryCount
+	objectMap["sinkRetryWait"] = osVar.SinkRetryWait
 	if osVar.Type != "" {
 		objectMap["type"] = osVar.Type
 	}
@@ -68601,18 +68287,10 @@ type OracleSource struct {
 func (osVar OracleSource) MarshalJSON() ([]byte, error) {
 	osVar.Type = TypeOracleSource
 	objectMap := make(map[string]interface{})
-	if osVar.OracleReaderQuery != nil {
-		objectMap["oracleReaderQuery"] = osVar.OracleReaderQuery
-	}
-	if osVar.QueryTimeout != nil {
-		objectMap["queryTimeout"] = osVar.QueryTimeout
-	}
-	if osVar.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = osVar.SourceRetryCount
-	}
-	if osVar.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = osVar.SourceRetryWait
-	}
+	objectMap["oracleReaderQuery"] = osVar.OracleReaderQuery
+	objectMap["queryTimeout"] = osVar.QueryTimeout
+	objectMap["sourceRetryCount"] = osVar.SourceRetryCount
+	objectMap["sourceRetryWait"] = osVar.SourceRetryWait
 	if osVar.Type != "" {
 		objectMap["type"] = osVar.Type
 	}
@@ -68984,9 +68662,7 @@ func (otd OracleTableDataset) MarshalJSON() ([]byte, error) {
 	if otd.Description != nil {
 		objectMap["description"] = otd.Description
 	}
-	if otd.Structure != nil {
-		objectMap["structure"] = otd.Structure
-	}
+	objectMap["structure"] = otd.Structure
 	if otd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = otd.LinkedServiceName
 	}
@@ -69392,12 +69068,8 @@ type OrcFormat struct {
 func (of OrcFormat) MarshalJSON() ([]byte, error) {
 	of.Type = TypeOrcFormat
 	objectMap := make(map[string]interface{})
-	if of.Serializer != nil {
-		objectMap["serializer"] = of.Serializer
-	}
-	if of.Deserializer != nil {
-		objectMap["deserializer"] = of.Deserializer
-	}
+	objectMap["serializer"] = of.Serializer
+	objectMap["deserializer"] = of.Deserializer
 	if of.Type != "" {
 		objectMap["type"] = of.Type
 	}
@@ -69520,12 +69192,8 @@ type ParquetFormat struct {
 func (pf ParquetFormat) MarshalJSON() ([]byte, error) {
 	pf.Type = TypeParquetFormat
 	objectMap := make(map[string]interface{})
-	if pf.Serializer != nil {
-		objectMap["serializer"] = pf.Serializer
-	}
-	if pf.Deserializer != nil {
-		objectMap["deserializer"] = pf.Deserializer
-	}
+	objectMap["serializer"] = pf.Serializer
+	objectMap["deserializer"] = pf.Deserializer
 	if pf.Type != "" {
 		objectMap["type"] = pf.Type
 	}
@@ -69624,9 +69292,9 @@ func (pf *ParquetFormat) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// PaypalLinkedService paypal Service linked service.
+// PaypalLinkedService paypal Serivce linked service.
 type PaypalLinkedService struct {
-	// PaypalLinkedServiceTypeProperties - Paypal Service linked service properties.
+	// PaypalLinkedServiceTypeProperties - Paypal Serivce linked service properties.
 	*PaypalLinkedServiceTypeProperties `json:"typeProperties,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -70111,7 +69779,7 @@ func (pls *PaypalLinkedService) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// PaypalLinkedServiceTypeProperties paypal Service linked service properties.
+// PaypalLinkedServiceTypeProperties paypal Serivce linked service properties.
 type PaypalLinkedServiceTypeProperties struct {
 	// Host - The URL of the PayPal instance. (i.e. api.sandbox.paypal.com)
 	Host interface{} `json:"host,omitempty"`
@@ -70206,7 +69874,7 @@ func (plstp *PaypalLinkedServiceTypeProperties) UnmarshalJSON(body []byte) error
 	return nil
 }
 
-// PaypalObjectDataset paypal Service dataset.
+// PaypalObjectDataset paypal Serivce dataset.
 type PaypalObjectDataset struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -70231,9 +69899,7 @@ func (pod PaypalObjectDataset) MarshalJSON() ([]byte, error) {
 	if pod.Description != nil {
 		objectMap["description"] = pod.Description
 	}
-	if pod.Structure != nil {
-		objectMap["structure"] = pod.Structure
-	}
+	objectMap["structure"] = pod.Structure
 	if pod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = pod.LinkedServiceName
 	}
@@ -70608,7 +70274,7 @@ func (pod *PaypalObjectDataset) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// PaypalSource a copy activity Paypal Service source.
+// PaypalSource a copy activity Paypal Serivce source.
 type PaypalSource struct {
 	// Query - A query to retrieve data from source. Type: string (or Expression with resultType string).
 	Query interface{} `json:"query,omitempty"`
@@ -70626,15 +70292,9 @@ type PaypalSource struct {
 func (ps PaypalSource) MarshalJSON() ([]byte, error) {
 	ps.Type = TypePaypalSource
 	objectMap := make(map[string]interface{})
-	if ps.Query != nil {
-		objectMap["query"] = ps.Query
-	}
-	if ps.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ps.SourceRetryCount
-	}
-	if ps.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ps.SourceRetryWait
-	}
+	objectMap["query"] = ps.Query
+	objectMap["sourceRetryCount"] = ps.SourceRetryCount
+	objectMap["sourceRetryWait"] = ps.SourceRetryWait
 	if ps.Type != "" {
 		objectMap["type"] = ps.Type
 	}
@@ -71629,9 +71289,7 @@ func (pod PhoenixObjectDataset) MarshalJSON() ([]byte, error) {
 	if pod.Description != nil {
 		objectMap["description"] = pod.Description
 	}
-	if pod.Structure != nil {
-		objectMap["structure"] = pod.Structure
-	}
+	objectMap["structure"] = pod.Structure
 	if pod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = pod.LinkedServiceName
 	}
@@ -72024,15 +71682,9 @@ type PhoenixSource struct {
 func (ps PhoenixSource) MarshalJSON() ([]byte, error) {
 	ps.Type = TypePhoenixSource
 	objectMap := make(map[string]interface{})
-	if ps.Query != nil {
-		objectMap["query"] = ps.Query
-	}
-	if ps.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ps.SourceRetryCount
-	}
-	if ps.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ps.SourceRetryWait
-	}
+	objectMap["query"] = ps.Query
+	objectMap["sourceRetryCount"] = ps.SourceRetryCount
+	objectMap["sourceRetryWait"] = ps.SourceRetryWait
 	if ps.Type != "" {
 		objectMap["type"] = ps.Type
 	}
@@ -72474,37 +72126,20 @@ type PipelineListResponseIterator struct {
 	page PipelineListResponsePage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *PipelineListResponseIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelineListResponseIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *PipelineListResponseIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *PipelineListResponseIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -72526,11 +72161,6 @@ func (iter PipelineListResponseIterator) Value() PipelineResource {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the PipelineListResponseIterator type.
-func NewPipelineListResponseIterator(page PipelineListResponsePage) PipelineListResponseIterator {
-	return PipelineListResponseIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (plr PipelineListResponse) IsEmpty() bool {
 	return plr.Value == nil || len(*plr.Value) == 0
@@ -72538,11 +72168,11 @@ func (plr PipelineListResponse) IsEmpty() bool {
 
 // pipelineListResponsePreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (plr PipelineListResponse) pipelineListResponsePreparer(ctx context.Context) (*http.Request, error) {
+func (plr PipelineListResponse) pipelineListResponsePreparer() (*http.Request, error) {
 	if plr.NextLink == nil || len(to.String(plr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(plr.NextLink)))
@@ -72550,36 +72180,19 @@ func (plr PipelineListResponse) pipelineListResponsePreparer(ctx context.Context
 
 // PipelineListResponsePage contains a page of PipelineResource values.
 type PipelineListResponsePage struct {
-	fn  func(context.Context, PipelineListResponse) (PipelineListResponse, error)
+	fn  func(PipelineListResponse) (PipelineListResponse, error)
 	plr PipelineListResponse
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *PipelineListResponsePage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelineListResponsePage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.plr)
+func (page *PipelineListResponsePage) Next() error {
+	next, err := page.fn(page.plr)
 	if err != nil {
 		return err
 	}
 	page.plr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *PipelineListResponsePage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -72600,11 +72213,6 @@ func (page PipelineListResponsePage) Values() []PipelineResource {
 	return *page.plr.Value
 }
 
-// Creates a new instance of the PipelineListResponsePage type.
-func NewPipelineListResponsePage(getNextPage func(context.Context, PipelineListResponse) (PipelineListResponse, error)) PipelineListResponsePage {
-	return PipelineListResponsePage{fn: getNextPage}
-}
-
 // PipelineReference pipeline reference type.
 type PipelineReference struct {
 	// Type - Pipeline reference type.
@@ -72622,13 +72230,13 @@ type PipelineResource struct {
 	AdditionalProperties map[string]interface{} `json:""`
 	// Pipeline - Properties of the pipeline.
 	*Pipeline `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource identifier.
+	// ID - The resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
-	// Etag - READ-ONLY; Etag identifies change in the resource.
+	// Etag - Etag identifies change in the resource.
 	Etag *string `json:"etag,omitempty"`
 }
 
@@ -72637,6 +72245,18 @@ func (pr PipelineResource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if pr.Pipeline != nil {
 		objectMap["properties"] = pr.Pipeline
+	}
+	if pr.ID != nil {
+		objectMap["id"] = pr.ID
+	}
+	if pr.Name != nil {
+		objectMap["name"] = pr.Name
+	}
+	if pr.Type != nil {
+		objectMap["type"] = pr.Type
+	}
+	if pr.Etag != nil {
+		objectMap["etag"] = pr.Etag
 	}
 	for k, v := range pr.AdditionalProperties {
 		objectMap[k] = v
@@ -72721,31 +72341,61 @@ type PipelineRun struct {
 	autorest.Response `json:"-"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// RunID - READ-ONLY; Identifier of a run.
+	// RunID - Identifier of a run.
 	RunID *string `json:"runId,omitempty"`
-	// PipelineName - READ-ONLY; The pipeline name.
+	// PipelineName - The pipeline name.
 	PipelineName *string `json:"pipelineName,omitempty"`
-	// Parameters - READ-ONLY; The full or partial list of parameter name, value pair used in the pipeline run.
+	// Parameters - The full or partial list of parameter name, value pair used in the pipeline run.
 	Parameters map[string]*string `json:"parameters"`
-	// InvokedBy - READ-ONLY; Entity that started the pipeline run.
+	// InvokedBy - Entity that started the pipeline run.
 	InvokedBy *PipelineRunInvokedBy `json:"invokedBy,omitempty"`
-	// LastUpdated - READ-ONLY; The last updated timestamp for the pipeline run event in ISO8601 format.
+	// LastUpdated - The last updated timestamp for the pipeline run event in ISO8601 format.
 	LastUpdated *date.Time `json:"lastUpdated,omitempty"`
-	// RunStart - READ-ONLY; The start time of a pipeline run in ISO8601 format.
+	// RunStart - The start time of a pipeline run in ISO8601 format.
 	RunStart *date.Time `json:"runStart,omitempty"`
-	// RunEnd - READ-ONLY; The end time of a pipeline run in ISO8601 format.
+	// RunEnd - The end time of a pipeline run in ISO8601 format.
 	RunEnd *date.Time `json:"runEnd,omitempty"`
-	// DurationInMs - READ-ONLY; The duration of a pipeline run.
+	// DurationInMs - The duration of a pipeline run.
 	DurationInMs *int32 `json:"durationInMs,omitempty"`
-	// Status - READ-ONLY; The status of a pipeline run.
+	// Status - The status of a pipeline run.
 	Status *string `json:"status,omitempty"`
-	// Message - READ-ONLY; The message from a pipeline run.
+	// Message - The message from a pipeline run.
 	Message *string `json:"message,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for PipelineRun.
 func (pr PipelineRun) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if pr.RunID != nil {
+		objectMap["runId"] = pr.RunID
+	}
+	if pr.PipelineName != nil {
+		objectMap["pipelineName"] = pr.PipelineName
+	}
+	if pr.Parameters != nil {
+		objectMap["parameters"] = pr.Parameters
+	}
+	if pr.InvokedBy != nil {
+		objectMap["invokedBy"] = pr.InvokedBy
+	}
+	if pr.LastUpdated != nil {
+		objectMap["lastUpdated"] = pr.LastUpdated
+	}
+	if pr.RunStart != nil {
+		objectMap["runStart"] = pr.RunStart
+	}
+	if pr.RunEnd != nil {
+		objectMap["runEnd"] = pr.RunEnd
+	}
+	if pr.DurationInMs != nil {
+		objectMap["durationInMs"] = pr.DurationInMs
+	}
+	if pr.Status != nil {
+		objectMap["status"] = pr.Status
+	}
+	if pr.Message != nil {
+		objectMap["message"] = pr.Message
+	}
 	for k, v := range pr.AdditionalProperties {
 		objectMap[k] = v
 	}
@@ -72885,9 +72535,9 @@ type PipelineRunFilterParameters struct {
 
 // PipelineRunInvokedBy provides entity name and id that started the pipeline run.
 type PipelineRunInvokedBy struct {
-	// Name - READ-ONLY; Name of the entity that started the pipeline run.
+	// Name - Name of the entity that started the pipeline run.
 	Name *string `json:"name,omitempty"`
-	// ID - READ-ONLY; The ID of the entity that started the run.
+	// ID - The ID of the entity that started the run.
 	ID *string `json:"id,omitempty"`
 }
 
@@ -72922,8 +72572,8 @@ type PipelineRunQueryResponse struct {
 type PolybaseSettings struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// RejectType - Reject type.
-	RejectType interface{} `json:"rejectType,omitempty"`
+	// RejectType - Reject type. Possible values include: 'Value', 'Percentage'
+	RejectType PolybaseSettingsRejectType `json:"rejectType,omitempty"`
 	// RejectValue - Specifies the value or the percentage of rows that can be rejected before the query fails. Type: number (or Expression with resultType number), minimum: 0.
 	RejectValue interface{} `json:"rejectValue,omitempty"`
 	// RejectSampleValue - Determines the number of rows to attempt to retrieve before the PolyBase recalculates the percentage of rejected rows. Type: integer (or Expression with resultType integer), minimum: 0.
@@ -72935,18 +72585,12 @@ type PolybaseSettings struct {
 // MarshalJSON is the custom marshaler for PolybaseSettings.
 func (ps PolybaseSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if ps.RejectType != nil {
+	if ps.RejectType != "" {
 		objectMap["rejectType"] = ps.RejectType
 	}
-	if ps.RejectValue != nil {
-		objectMap["rejectValue"] = ps.RejectValue
-	}
-	if ps.RejectSampleValue != nil {
-		objectMap["rejectSampleValue"] = ps.RejectSampleValue
-	}
-	if ps.UseTypeDefault != nil {
-		objectMap["useTypeDefault"] = ps.UseTypeDefault
-	}
+	objectMap["rejectValue"] = ps.RejectValue
+	objectMap["rejectSampleValue"] = ps.RejectSampleValue
+	objectMap["useTypeDefault"] = ps.UseTypeDefault
 	for k, v := range ps.AdditionalProperties {
 		objectMap[k] = v
 	}
@@ -72976,7 +72620,7 @@ func (ps *PolybaseSettings) UnmarshalJSON(body []byte) error {
 			}
 		case "rejectType":
 			if v != nil {
-				var rejectType interface{}
+				var rejectType PolybaseSettingsRejectType
 				err = json.Unmarshal(*v, &rejectType)
 				if err != nil {
 					return err
@@ -74227,9 +73871,7 @@ func (pod PrestoObjectDataset) MarshalJSON() ([]byte, error) {
 	if pod.Description != nil {
 		objectMap["description"] = pod.Description
 	}
-	if pod.Structure != nil {
-		objectMap["structure"] = pod.Structure
-	}
+	objectMap["structure"] = pod.Structure
 	if pod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = pod.LinkedServiceName
 	}
@@ -74622,15 +74264,9 @@ type PrestoSource struct {
 func (ps PrestoSource) MarshalJSON() ([]byte, error) {
 	ps.Type = TypePrestoSource
 	objectMap := make(map[string]interface{})
-	if ps.Query != nil {
-		objectMap["query"] = ps.Query
-	}
-	if ps.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ps.SourceRetryCount
-	}
-	if ps.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ps.SourceRetryWait
-	}
+	objectMap["query"] = ps.Query
+	objectMap["sourceRetryCount"] = ps.SourceRetryCount
+	objectMap["sourceRetryWait"] = ps.SourceRetryWait
 	if ps.Type != "" {
 		objectMap["type"] = ps.Type
 	}
@@ -75579,9 +75215,7 @@ func (qbod QuickBooksObjectDataset) MarshalJSON() ([]byte, error) {
 	if qbod.Description != nil {
 		objectMap["description"] = qbod.Description
 	}
-	if qbod.Structure != nil {
-		objectMap["structure"] = qbod.Structure
-	}
+	objectMap["structure"] = qbod.Structure
 	if qbod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = qbod.LinkedServiceName
 	}
@@ -75974,15 +75608,9 @@ type QuickBooksSource struct {
 func (qbs QuickBooksSource) MarshalJSON() ([]byte, error) {
 	qbs.Type = TypeQuickBooksSource
 	objectMap := make(map[string]interface{})
-	if qbs.Query != nil {
-		objectMap["query"] = qbs.Query
-	}
-	if qbs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = qbs.SourceRetryCount
-	}
-	if qbs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = qbs.SourceRetryWait
-	}
+	objectMap["query"] = qbs.Query
+	objectMap["sourceRetryCount"] = qbs.SourceRetryCount
+	objectMap["sourceRetryWait"] = qbs.SourceRetryWait
 	if qbs.Type != "" {
 		objectMap["type"] = qbs.Type
 	}
@@ -76427,7 +76055,7 @@ func (rs *RecurrenceSchedule) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// RecurrenceScheduleOccurrence the recurrence schedule occurrence.
+// RecurrenceScheduleOccurrence the recurrence schedule occurence.
 type RecurrenceScheduleOccurrence struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -76510,12 +76138,8 @@ type RedirectIncompatibleRowSettings struct {
 // MarshalJSON is the custom marshaler for RedirectIncompatibleRowSettings.
 func (rirs RedirectIncompatibleRowSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if rirs.LinkedServiceName != nil {
-		objectMap["linkedServiceName"] = rirs.LinkedServiceName
-	}
-	if rirs.Path != nil {
-		objectMap["path"] = rirs.Path
-	}
+	objectMap["linkedServiceName"] = rirs.LinkedServiceName
+	objectMap["path"] = rirs.Path
 	for k, v := range rirs.AdditionalProperties {
 		objectMap[k] = v
 	}
@@ -76567,9 +76191,9 @@ func (rirs *RedirectIncompatibleRowSettings) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// RedshiftUnloadSettings the Amazon S3 settings needed for the interim Amazon S3 when copying from Amazon
-// Redshift with unload. With this, data from Amazon Redshift source will be unloaded into S3 first and
-// then copied into the targeted sink from the interim S3.
+// RedshiftUnloadSettings the Amazon S3 settings needed for the interim Amazon S3 when copying from Amazon Redshift
+// with unload. With this, data from Amazon Redshift source will be unloaded into S3 first and then copied into the
+// targeted sink from the interim S3.
 type RedshiftUnloadSettings struct {
 	// S3LinkedServiceName - The name of the Amazon S3 linked service which will be used for the unload operation when copying from the Amazon Redshift source.
 	S3LinkedServiceName *LinkedServiceReference `json:"s3LinkedServiceName,omitempty"`
@@ -76595,15 +76219,9 @@ type RelationalSource struct {
 func (rs RelationalSource) MarshalJSON() ([]byte, error) {
 	rs.Type = TypeRelationalSource
 	objectMap := make(map[string]interface{})
-	if rs.Query != nil {
-		objectMap["query"] = rs.Query
-	}
-	if rs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = rs.SourceRetryCount
-	}
-	if rs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = rs.SourceRetryWait
-	}
+	objectMap["query"] = rs.Query
+	objectMap["sourceRetryCount"] = rs.SourceRetryCount
+	objectMap["sourceRetryWait"] = rs.SourceRetryWait
 	if rs.Type != "" {
 		objectMap["type"] = rs.Type
 	}
@@ -76966,9 +76584,7 @@ func (rtd RelationalTableDataset) MarshalJSON() ([]byte, error) {
 	if rtd.Description != nil {
 		objectMap["description"] = rtd.Description
 	}
-	if rtd.Structure != nil {
-		objectMap["structure"] = rtd.Structure
-	}
+	objectMap["structure"] = rtd.Structure
 	if rtd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = rtd.LinkedServiceName
 	}
@@ -77360,11 +76976,11 @@ type RelationalTableDatasetTypeProperties struct {
 
 // Resource azure Data Factory top-level resource.
 type Resource struct {
-	// ID - READ-ONLY; The resource identifier.
+	// ID - The resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -77375,6 +76991,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}
@@ -77991,9 +77616,7 @@ func (rod ResponsysObjectDataset) MarshalJSON() ([]byte, error) {
 	if rod.Description != nil {
 		objectMap["description"] = rod.Description
 	}
-	if rod.Structure != nil {
-		objectMap["structure"] = rod.Structure
-	}
+	objectMap["structure"] = rod.Structure
 	if rod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = rod.LinkedServiceName
 	}
@@ -78386,15 +78009,9 @@ type ResponsysSource struct {
 func (rs ResponsysSource) MarshalJSON() ([]byte, error) {
 	rs.Type = TypeResponsysSource
 	objectMap := make(map[string]interface{})
-	if rs.Query != nil {
-		objectMap["query"] = rs.Query
-	}
-	if rs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = rs.SourceRetryCount
-	}
-	if rs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = rs.SourceRetryWait
-	}
+	objectMap["query"] = rs.Query
+	objectMap["sourceRetryCount"] = rs.SourceRetryCount
+	objectMap["sourceRetryWait"] = rs.SourceRetryWait
 	if rs.Type != "" {
 		objectMap["type"] = rs.Type
 	}
@@ -79781,8 +79398,7 @@ func (smcls *SalesforceMarketingCloudLinkedService) UnmarshalJSON(body []byte) e
 	return nil
 }
 
-// SalesforceMarketingCloudLinkedServiceTypeProperties salesforce Marketing Cloud linked service
-// properties.
+// SalesforceMarketingCloudLinkedServiceTypeProperties salesforce Marketing Cloud linked service properties.
 type SalesforceMarketingCloudLinkedServiceTypeProperties struct {
 	// ClientID - The client ID associated with the Salesforce Marketing Cloud application. Type: string (or Expression with resultType string).
 	ClientID interface{} `json:"clientId,omitempty"`
@@ -79891,9 +79507,7 @@ func (smcod SalesforceMarketingCloudObjectDataset) MarshalJSON() ([]byte, error)
 	if smcod.Description != nil {
 		objectMap["description"] = smcod.Description
 	}
-	if smcod.Structure != nil {
-		objectMap["structure"] = smcod.Structure
-	}
+	objectMap["structure"] = smcod.Structure
 	if smcod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = smcod.LinkedServiceName
 	}
@@ -80286,15 +79900,9 @@ type SalesforceMarketingCloudSource struct {
 func (smcs SalesforceMarketingCloudSource) MarshalJSON() ([]byte, error) {
 	smcs.Type = TypeSalesforceMarketingCloudSource
 	objectMap := make(map[string]interface{})
-	if smcs.Query != nil {
-		objectMap["query"] = smcs.Query
-	}
-	if smcs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = smcs.SourceRetryCount
-	}
-	if smcs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = smcs.SourceRetryWait
-	}
+	objectMap["query"] = smcs.Query
+	objectMap["sourceRetryCount"] = smcs.SourceRetryCount
+	objectMap["sourceRetryWait"] = smcs.SourceRetryWait
 	if smcs.Type != "" {
 		objectMap["type"] = smcs.Type
 	}
@@ -80657,9 +80265,7 @@ func (sod SalesforceObjectDataset) MarshalJSON() ([]byte, error) {
 	if sod.Description != nil {
 		objectMap["description"] = sod.Description
 	}
-	if sod.Structure != nil {
-		objectMap["structure"] = sod.Structure
-	}
+	objectMap["structure"] = sod.Structure
 	if sod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = sod.LinkedServiceName
 	}
@@ -81051,8 +80657,8 @@ type SalesforceObjectDatasetTypeProperties struct {
 
 // SalesforceSink a copy activity Salesforce sink.
 type SalesforceSink struct {
-	// WriteBehavior - The write behavior for the operation. Default is Insert.
-	WriteBehavior interface{} `json:"writeBehavior,omitempty"`
+	// WriteBehavior - The write behavior for the operation. Default is Insert. Possible values include: 'Insert', 'Upsert'
+	WriteBehavior SalesforceSinkWriteBehavior `json:"writeBehavior,omitempty"`
 	// ExternalIDFieldName - The name of the external ID field for upsert operation. Default value is 'Id' column. Type: string (or Expression with resultType string).
 	ExternalIDFieldName interface{} `json:"externalIdFieldName,omitempty"`
 	// IgnoreNullValues - The flag indicating whether or not to ignore null values from input dataset (except key fields) during write operation. Default value is false. If set it to true, it means ADF will leave the data in the destination object unchanged when doing upsert/update operation and insert defined default value when doing insert operation, versus ADF will update the data in the destination object to NULL when doing upsert/update operation and insert NULL value when doing insert operation. Type: boolean (or Expression with resultType boolean).
@@ -81075,27 +80681,15 @@ type SalesforceSink struct {
 func (ss SalesforceSink) MarshalJSON() ([]byte, error) {
 	ss.Type = TypeSalesforceSink
 	objectMap := make(map[string]interface{})
-	if ss.WriteBehavior != nil {
+	if ss.WriteBehavior != "" {
 		objectMap["writeBehavior"] = ss.WriteBehavior
 	}
-	if ss.ExternalIDFieldName != nil {
-		objectMap["externalIdFieldName"] = ss.ExternalIDFieldName
-	}
-	if ss.IgnoreNullValues != nil {
-		objectMap["ignoreNullValues"] = ss.IgnoreNullValues
-	}
-	if ss.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = ss.WriteBatchSize
-	}
-	if ss.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = ss.WriteBatchTimeout
-	}
-	if ss.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = ss.SinkRetryCount
-	}
-	if ss.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = ss.SinkRetryWait
-	}
+	objectMap["externalIdFieldName"] = ss.ExternalIDFieldName
+	objectMap["ignoreNullValues"] = ss.IgnoreNullValues
+	objectMap["writeBatchSize"] = ss.WriteBatchSize
+	objectMap["writeBatchTimeout"] = ss.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = ss.SinkRetryCount
+	objectMap["sinkRetryWait"] = ss.SinkRetryWait
 	if ss.Type != "" {
 		objectMap["type"] = ss.Type
 	}
@@ -81196,7 +80790,7 @@ func (ss *SalesforceSink) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "writeBehavior":
 			if v != nil {
-				var writeBehavior interface{}
+				var writeBehavior SalesforceSinkWriteBehavior
 				err = json.Unmarshal(*v, &writeBehavior)
 				if err != nil {
 					return err
@@ -81288,8 +80882,8 @@ func (ss *SalesforceSink) UnmarshalJSON(body []byte) error {
 type SalesforceSource struct {
 	// Query - Database query. Type: string (or Expression with resultType string).
 	Query interface{} `json:"query,omitempty"`
-	// ReadBehavior - The read behavior for the operation. Default is Query.
-	ReadBehavior interface{} `json:"readBehavior,omitempty"`
+	// ReadBehavior - The read behavior for the operation. Default is Query. Possible values include: 'Query', 'QueryAll'
+	ReadBehavior SalesforceSourceReadBehavior `json:"readBehavior,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// SourceRetryCount - Source retry count. Type: integer (or Expression with resultType integer).
@@ -81304,18 +80898,12 @@ type SalesforceSource struct {
 func (ss SalesforceSource) MarshalJSON() ([]byte, error) {
 	ss.Type = TypeSalesforceSource
 	objectMap := make(map[string]interface{})
-	if ss.Query != nil {
-		objectMap["query"] = ss.Query
-	}
-	if ss.ReadBehavior != nil {
+	objectMap["query"] = ss.Query
+	if ss.ReadBehavior != "" {
 		objectMap["readBehavior"] = ss.ReadBehavior
 	}
-	if ss.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ss.SourceRetryCount
-	}
-	if ss.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ss.SourceRetryWait
-	}
+	objectMap["sourceRetryCount"] = ss.SourceRetryCount
+	objectMap["sourceRetryWait"] = ss.SourceRetryWait
 	if ss.Type != "" {
 		objectMap["type"] = ss.Type
 	}
@@ -81605,7 +81193,7 @@ func (ss *SalesforceSource) UnmarshalJSON(body []byte) error {
 			}
 		case "readBehavior":
 			if v != nil {
-				var readBehavior interface{}
+				var readBehavior SalesforceSourceReadBehavior
 				err = json.Unmarshal(*v, &readBehavior)
 				if err != nil {
 					return err
@@ -82807,9 +82395,7 @@ func (scfcrd SapCloudForCustomerResourceDataset) MarshalJSON() ([]byte, error) {
 	if scfcrd.Description != nil {
 		objectMap["description"] = scfcrd.Description
 	}
-	if scfcrd.Structure != nil {
-		objectMap["structure"] = scfcrd.Structure
-	}
+	objectMap["structure"] = scfcrd.Structure
 	if scfcrd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = scfcrd.LinkedServiceName
 	}
@@ -83193,8 +82779,7 @@ func (scfcrd *SapCloudForCustomerResourceDataset) UnmarshalJSON(body []byte) err
 	return nil
 }
 
-// SapCloudForCustomerResourceDatasetTypeProperties sap Cloud For Customer OData resource dataset
-// properties.
+// SapCloudForCustomerResourceDatasetTypeProperties sap Cloud For Customer OData resource dataset properties.
 type SapCloudForCustomerResourceDatasetTypeProperties struct {
 	// Path - The path of the SAP Cloud for Customer OData entity. Type: string (or Expression with resultType string).
 	Path interface{} `json:"path,omitempty"`
@@ -83202,8 +82787,8 @@ type SapCloudForCustomerResourceDatasetTypeProperties struct {
 
 // SapCloudForCustomerSink a copy activity SAP Cloud for Customer sink.
 type SapCloudForCustomerSink struct {
-	// WriteBehavior - The write behavior for the operation. Default is 'Insert'.
-	WriteBehavior interface{} `json:"writeBehavior,omitempty"`
+	// WriteBehavior - The write behavior for the operation. Default is 'Insert'. Possible values include: 'SapCloudForCustomerSinkWriteBehaviorInsert', 'SapCloudForCustomerSinkWriteBehaviorUpdate'
+	WriteBehavior SapCloudForCustomerSinkWriteBehavior `json:"writeBehavior,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// WriteBatchSize - Write batch size. Type: integer (or Expression with resultType integer), minimum: 0.
@@ -83222,21 +82807,13 @@ type SapCloudForCustomerSink struct {
 func (scfcs SapCloudForCustomerSink) MarshalJSON() ([]byte, error) {
 	scfcs.Type = TypeSapCloudForCustomerSink
 	objectMap := make(map[string]interface{})
-	if scfcs.WriteBehavior != nil {
+	if scfcs.WriteBehavior != "" {
 		objectMap["writeBehavior"] = scfcs.WriteBehavior
 	}
-	if scfcs.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = scfcs.WriteBatchSize
-	}
-	if scfcs.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = scfcs.WriteBatchTimeout
-	}
-	if scfcs.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = scfcs.SinkRetryCount
-	}
-	if scfcs.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = scfcs.SinkRetryWait
-	}
+	objectMap["writeBatchSize"] = scfcs.WriteBatchSize
+	objectMap["writeBatchTimeout"] = scfcs.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = scfcs.SinkRetryCount
+	objectMap["sinkRetryWait"] = scfcs.SinkRetryWait
 	if scfcs.Type != "" {
 		objectMap["type"] = scfcs.Type
 	}
@@ -83337,7 +82914,7 @@ func (scfcs *SapCloudForCustomerSink) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "writeBehavior":
 			if v != nil {
-				var writeBehavior interface{}
+				var writeBehavior SapCloudForCustomerSinkWriteBehavior
 				err = json.Unmarshal(*v, &writeBehavior)
 				if err != nil {
 					return err
@@ -83425,15 +83002,9 @@ type SapCloudForCustomerSource struct {
 func (scfcs SapCloudForCustomerSource) MarshalJSON() ([]byte, error) {
 	scfcs.Type = TypeSapCloudForCustomerSource
 	objectMap := make(map[string]interface{})
-	if scfcs.Query != nil {
-		objectMap["query"] = scfcs.Query
-	}
-	if scfcs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = scfcs.SourceRetryCount
-	}
-	if scfcs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = scfcs.SourceRetryWait
-	}
+	objectMap["query"] = scfcs.Query
+	objectMap["sourceRetryCount"] = scfcs.SourceRetryCount
+	objectMap["sourceRetryWait"] = scfcs.SourceRetryWait
 	if scfcs.Type != "" {
 		objectMap["type"] = scfcs.Type
 	}
@@ -84345,9 +83916,7 @@ func (serd SapEccResourceDataset) MarshalJSON() ([]byte, error) {
 	if serd.Description != nil {
 		objectMap["description"] = serd.Description
 	}
-	if serd.Structure != nil {
-		objectMap["structure"] = serd.Structure
-	}
+	objectMap["structure"] = serd.Structure
 	if serd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = serd.LinkedServiceName
 	}
@@ -84734,13 +84303,13 @@ func (serd *SapEccResourceDataset) UnmarshalJSON(body []byte) error {
 // SapEccResourceDatasetTypeProperties sap ECC OData resource dataset properties.
 type SapEccResourceDatasetTypeProperties struct {
 	// Path - The path of the SAP ECC OData entity. Type: string (or Expression with resultType string).
-	Path interface{} `json:"path,omitempty"`
+	Path *string `json:"path,omitempty"`
 }
 
 // SapEccSource a copy activity source for SAP ECC source.
 type SapEccSource struct {
 	// Query - SAP ECC OData query. For example, "$top=1". Type: string (or Expression with resultType string).
-	Query interface{} `json:"query,omitempty"`
+	Query *string `json:"query,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
 	// SourceRetryCount - Source retry count. Type: integer (or Expression with resultType integer).
@@ -84758,12 +84327,8 @@ func (ses SapEccSource) MarshalJSON() ([]byte, error) {
 	if ses.Query != nil {
 		objectMap["query"] = ses.Query
 	}
-	if ses.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ses.SourceRetryCount
-	}
-	if ses.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ses.SourceRetryWait
-	}
+	objectMap["sourceRetryCount"] = ses.SourceRetryCount
+	objectMap["sourceRetryWait"] = ses.SourceRetryWait
 	if ses.Type != "" {
 		objectMap["type"] = ses.Type
 	}
@@ -85044,12 +84609,12 @@ func (ses *SapEccSource) UnmarshalJSON(body []byte) error {
 		switch k {
 		case "query":
 			if v != nil {
-				var query interface{}
+				var query string
 				err = json.Unmarshal(*v, &query)
 				if err != nil {
 					return err
 				}
-				ses.Query = query
+				ses.Query = &query
 			}
 		default:
 			if v != nil {
@@ -85666,7 +85231,7 @@ type ScheduleTrigger struct {
 	AdditionalProperties map[string]interface{} `json:""`
 	// Description - Trigger description.
 	Description *string `json:"description,omitempty"`
-	// RuntimeState - READ-ONLY; Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
+	// RuntimeState - Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
 	RuntimeState TriggerRuntimeState `json:"runtimeState,omitempty"`
 	// Type - Possible values include: 'TypeTrigger', 'TypeTumblingWindowTrigger', 'TypeBlobEventsTrigger', 'TypeBlobTrigger', 'TypeScheduleTrigger', 'TypeMultiplePipelineTrigger'
 	Type TypeBasicTrigger `json:"type,omitempty"`
@@ -85684,6 +85249,9 @@ func (st ScheduleTrigger) MarshalJSON() ([]byte, error) {
 	}
 	if st.Description != nil {
 		objectMap["description"] = st.Description
+	}
+	if st.RuntimeState != "" {
+		objectMap["runtimeState"] = st.RuntimeState
 	}
 	if st.Type != "" {
 		objectMap["type"] = st.Type
@@ -86022,8 +85590,8 @@ func (sb SecretBase) AsBasicSecretBase() (BasicSecretBase, bool) {
 	return &sb, true
 }
 
-// SecureString azure Data Factory secure string definition. The string value will be masked with asterisks
-// '*' during Get or List API calls.
+// SecureString azure Data Factory secure string definition. The string value will be masked with asterisks '*'
+// during Get or List API calls.
 type SecureString struct {
 	// Value - Value of secure string.
 	Value *string `json:"value,omitempty"`
@@ -86172,47 +85740,101 @@ func (shir *SelfHostedIntegrationRuntime) UnmarshalJSON(body []byte) error {
 // SelfHostedIntegrationRuntimeNode properties of Self-hosted integration runtime node.
 type SelfHostedIntegrationRuntimeNode struct {
 	autorest.Response `json:"-"`
-	// NodeName - READ-ONLY; Name of the integration runtime node.
+	// NodeName - Name of the integration runtime node.
 	NodeName *string `json:"nodeName,omitempty"`
-	// MachineName - READ-ONLY; Machine name of the integration runtime node.
+	// MachineName - Machine name of the integration runtime node.
 	MachineName *string `json:"machineName,omitempty"`
-	// HostServiceURI - READ-ONLY; URI for the host machine of the integration runtime.
+	// HostServiceURI - URI for the host machine of the integration runtime.
 	HostServiceURI *string `json:"hostServiceUri,omitempty"`
-	// Status - READ-ONLY; Status of the integration runtime node. Possible values include: 'SelfHostedIntegrationRuntimeNodeStatusNeedRegistration', 'SelfHostedIntegrationRuntimeNodeStatusOnline', 'SelfHostedIntegrationRuntimeNodeStatusLimited', 'SelfHostedIntegrationRuntimeNodeStatusOffline', 'SelfHostedIntegrationRuntimeNodeStatusUpgrading', 'SelfHostedIntegrationRuntimeNodeStatusInitializing', 'SelfHostedIntegrationRuntimeNodeStatusInitializeFailed'
+	// Status - Status of the integration runtime node. Possible values include: 'SelfHostedIntegrationRuntimeNodeStatusNeedRegistration', 'SelfHostedIntegrationRuntimeNodeStatusOnline', 'SelfHostedIntegrationRuntimeNodeStatusLimited', 'SelfHostedIntegrationRuntimeNodeStatusOffline', 'SelfHostedIntegrationRuntimeNodeStatusUpgrading', 'SelfHostedIntegrationRuntimeNodeStatusInitializing', 'SelfHostedIntegrationRuntimeNodeStatusInitializeFailed'
 	Status SelfHostedIntegrationRuntimeNodeStatus `json:"status,omitempty"`
-	// Capabilities - READ-ONLY; The integration runtime capabilities dictionary
+	// Capabilities - The integration runtime capabilities dictionary
 	Capabilities map[string]*string `json:"capabilities"`
-	// VersionStatus - READ-ONLY; Status of the integration runtime node version.
+	// VersionStatus - Status of the integration runtime node version.
 	VersionStatus *string `json:"versionStatus,omitempty"`
-	// Version - READ-ONLY; Version of the integration runtime node.
+	// Version - Version of the integration runtime node.
 	Version *string `json:"version,omitempty"`
-	// RegisterTime - READ-ONLY; The time at which the integration runtime node was registered in ISO8601 format.
+	// RegisterTime - The time at which the integration runtime node was registered in ISO8601 format.
 	RegisterTime *date.Time `json:"registerTime,omitempty"`
-	// LastConnectTime - READ-ONLY; The most recent time at which the integration runtime was connected in ISO8601 format.
+	// LastConnectTime - The most recent time at which the integration runtime was connected in ISO8601 format.
 	LastConnectTime *date.Time `json:"lastConnectTime,omitempty"`
-	// ExpiryTime - READ-ONLY; The time at which the integration runtime will expire in ISO8601 format.
+	// ExpiryTime - The time at which the integration runtime will expire in ISO8601 format.
 	ExpiryTime *date.Time `json:"expiryTime,omitempty"`
-	// LastStartTime - READ-ONLY; The time the node last started up.
+	// LastStartTime - The time the node last started up.
 	LastStartTime *date.Time `json:"lastStartTime,omitempty"`
-	// LastStopTime - READ-ONLY; The integration runtime node last stop time.
+	// LastStopTime - The integration runtime node last stop time.
 	LastStopTime *date.Time `json:"lastStopTime,omitempty"`
-	// LastUpdateResult - READ-ONLY; The result of the last integration runtime node update. Possible values include: 'Succeed', 'Fail'
+	// LastUpdateResult - The result of the last integration runtime node update. Possible values include: 'Succeed', 'Fail'
 	LastUpdateResult IntegrationRuntimeUpdateResult `json:"lastUpdateResult,omitempty"`
-	// LastStartUpdateTime - READ-ONLY; The last time for the integration runtime node update start.
+	// LastStartUpdateTime - The last time for the integration runtime node update start.
 	LastStartUpdateTime *date.Time `json:"lastStartUpdateTime,omitempty"`
-	// LastEndUpdateTime - READ-ONLY; The last time for the integration runtime node update end.
+	// LastEndUpdateTime - The last time for the integration runtime node update end.
 	LastEndUpdateTime *date.Time `json:"lastEndUpdateTime,omitempty"`
-	// IsActiveDispatcher - READ-ONLY; Indicates whether this node is the active dispatcher for integration runtime requests.
+	// IsActiveDispatcher - Indicates whether this node is the active dispatcher for integration runtime requests.
 	IsActiveDispatcher *bool `json:"isActiveDispatcher,omitempty"`
-	// ConcurrentJobsLimit - READ-ONLY; Maximum concurrent jobs on the integration runtime node.
+	// ConcurrentJobsLimit - Maximum concurrent jobs on the integration runtime node.
 	ConcurrentJobsLimit *int32 `json:"concurrentJobsLimit,omitempty"`
-	// MaxConcurrentJobs - READ-ONLY; The maximum concurrent jobs in this integration runtime.
+	// MaxConcurrentJobs - The maximum concurrent jobs in this integration runtime.
 	MaxConcurrentJobs *int32 `json:"maxConcurrentJobs,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for SelfHostedIntegrationRuntimeNode.
 func (shirn SelfHostedIntegrationRuntimeNode) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if shirn.NodeName != nil {
+		objectMap["nodeName"] = shirn.NodeName
+	}
+	if shirn.MachineName != nil {
+		objectMap["machineName"] = shirn.MachineName
+	}
+	if shirn.HostServiceURI != nil {
+		objectMap["hostServiceUri"] = shirn.HostServiceURI
+	}
+	if shirn.Status != "" {
+		objectMap["status"] = shirn.Status
+	}
+	if shirn.Capabilities != nil {
+		objectMap["capabilities"] = shirn.Capabilities
+	}
+	if shirn.VersionStatus != nil {
+		objectMap["versionStatus"] = shirn.VersionStatus
+	}
+	if shirn.Version != nil {
+		objectMap["version"] = shirn.Version
+	}
+	if shirn.RegisterTime != nil {
+		objectMap["registerTime"] = shirn.RegisterTime
+	}
+	if shirn.LastConnectTime != nil {
+		objectMap["lastConnectTime"] = shirn.LastConnectTime
+	}
+	if shirn.ExpiryTime != nil {
+		objectMap["expiryTime"] = shirn.ExpiryTime
+	}
+	if shirn.LastStartTime != nil {
+		objectMap["lastStartTime"] = shirn.LastStartTime
+	}
+	if shirn.LastStopTime != nil {
+		objectMap["lastStopTime"] = shirn.LastStopTime
+	}
+	if shirn.LastUpdateResult != "" {
+		objectMap["lastUpdateResult"] = shirn.LastUpdateResult
+	}
+	if shirn.LastStartUpdateTime != nil {
+		objectMap["lastStartUpdateTime"] = shirn.LastStartUpdateTime
+	}
+	if shirn.LastEndUpdateTime != nil {
+		objectMap["lastEndUpdateTime"] = shirn.LastEndUpdateTime
+	}
+	if shirn.IsActiveDispatcher != nil {
+		objectMap["isActiveDispatcher"] = shirn.IsActiveDispatcher
+	}
+	if shirn.ConcurrentJobsLimit != nil {
+		objectMap["concurrentJobsLimit"] = shirn.ConcurrentJobsLimit
+	}
+	if shirn.MaxConcurrentJobs != nil {
+		objectMap["maxConcurrentJobs"] = shirn.MaxConcurrentJobs
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -86222,9 +85844,9 @@ type SelfHostedIntegrationRuntimeStatus struct {
 	*SelfHostedIntegrationRuntimeStatusTypeProperties `json:"typeProperties,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// DataFactoryName - READ-ONLY; The data factory name which the integration runtime belong to.
+	// DataFactoryName - The data factory name which the integration runtime belong to.
 	DataFactoryName *string `json:"dataFactoryName,omitempty"`
-	// State - READ-ONLY; The state of integration runtime. Possible values include: 'Initial', 'Stopped', 'Started', 'Starting', 'Stopping', 'NeedRegistration', 'Online', 'Limited', 'Offline'
+	// State - The state of integration runtime. Possible values include: 'Initial', 'Stopped', 'Started', 'Starting', 'Stopping', 'NeedRegistration', 'Online', 'Limited', 'Offline'
 	State IntegrationRuntimeState `json:"state,omitempty"`
 	// Type - Possible values include: 'TypeBasicIntegrationRuntimeStatusTypeIntegrationRuntimeStatus', 'TypeBasicIntegrationRuntimeStatusTypeSelfHosted', 'TypeBasicIntegrationRuntimeStatusTypeManaged'
 	Type TypeBasicIntegrationRuntimeStatus `json:"type,omitempty"`
@@ -86236,6 +85858,12 @@ func (shirs SelfHostedIntegrationRuntimeStatus) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if shirs.SelfHostedIntegrationRuntimeStatusTypeProperties != nil {
 		objectMap["typeProperties"] = shirs.SelfHostedIntegrationRuntimeStatusTypeProperties
+	}
+	if shirs.DataFactoryName != nil {
+		objectMap["dataFactoryName"] = shirs.DataFactoryName
+	}
+	if shirs.State != "" {
+		objectMap["state"] = shirs.State
 	}
 	if shirs.Type != "" {
 		objectMap["type"] = shirs.Type
@@ -86331,29 +85959,29 @@ func (shirs *SelfHostedIntegrationRuntimeStatus) UnmarshalJSON(body []byte) erro
 
 // SelfHostedIntegrationRuntimeStatusTypeProperties self-hosted integration runtime status type properties.
 type SelfHostedIntegrationRuntimeStatusTypeProperties struct {
-	// CreateTime - READ-ONLY; The time at which the integration runtime was created, in ISO8601 format.
+	// CreateTime - The time at which the integration runtime was created, in ISO8601 format.
 	CreateTime *date.Time `json:"createTime,omitempty"`
-	// TaskQueueID - READ-ONLY; The task queue id of the integration runtime.
+	// TaskQueueID - The task queue id of the integration runtime.
 	TaskQueueID *string `json:"taskQueueId,omitempty"`
-	// InternalChannelEncryption - READ-ONLY; It is used to set the encryption mode for node-node communication channel (when more than 2 self-hosted integration runtime nodes exist). Possible values include: 'NotSet', 'SslEncrypted', 'NotEncrypted'
+	// InternalChannelEncryption - It is used to set the encryption mode for node-node communication channel (when more than 2 self-hosted integration runtime nodes exist). Possible values include: 'NotSet', 'SslEncrypted', 'NotEncrypted'
 	InternalChannelEncryption IntegrationRuntimeInternalChannelEncryptionMode `json:"internalChannelEncryption,omitempty"`
-	// Version - READ-ONLY; Version of the integration runtime.
+	// Version - Version of the integration runtime.
 	Version *string `json:"version,omitempty"`
 	// Nodes - The list of nodes for this integration runtime.
 	Nodes *[]SelfHostedIntegrationRuntimeNode `json:"nodes,omitempty"`
-	// ScheduledUpdateDate - READ-ONLY; The date at which the integration runtime will be scheduled to update, in ISO8601 format.
+	// ScheduledUpdateDate - The date at which the integration runtime will be scheduled to update, in ISO8601 format.
 	ScheduledUpdateDate *date.Time `json:"scheduledUpdateDate,omitempty"`
-	// UpdateDelayOffset - READ-ONLY; The time in the date scheduled by service to update the integration runtime, e.g., PT03H is 3 hours
+	// UpdateDelayOffset - The time in the date scheduled by service to update the integration runtime, e.g., PT03H is 3 hours
 	UpdateDelayOffset *string `json:"updateDelayOffset,omitempty"`
-	// LocalTimeZoneOffset - READ-ONLY; The local time zone offset in hours.
+	// LocalTimeZoneOffset - The local time zone offset in hours.
 	LocalTimeZoneOffset *string `json:"localTimeZoneOffset,omitempty"`
-	// Capabilities - READ-ONLY; Object with additional information about integration runtime capabilities.
+	// Capabilities - Object with additional information about integration runtime capabilities.
 	Capabilities map[string]*string `json:"capabilities"`
-	// ServiceUrls - READ-ONLY; The URLs for the services used in integration runtime backend service.
+	// ServiceUrls - The URLs for the services used in integration runtime backend service.
 	ServiceUrls *[]string `json:"serviceUrls,omitempty"`
-	// AutoUpdate - READ-ONLY; Whether Self-hosted integration runtime auto update has been turned on. Possible values include: 'On', 'Off'
+	// AutoUpdate - Whether Self-hosted integration runtime auto update has been turned on. Possible values include: 'On', 'Off'
 	AutoUpdate IntegrationRuntimeAutoUpdate `json:"autoUpdate,omitempty"`
-	// VersionStatus - READ-ONLY; Status of the integration runtime version.
+	// VersionStatus - Status of the integration runtime version.
 	VersionStatus *string `json:"versionStatus,omitempty"`
 	// Links - The list of linked integration runtimes that are created to share with this integration runtime.
 	Links *[]LinkedIntegrationRuntime `json:"links,omitempty"`
@@ -86362,8 +85990,41 @@ type SelfHostedIntegrationRuntimeStatusTypeProperties struct {
 // MarshalJSON is the custom marshaler for SelfHostedIntegrationRuntimeStatusTypeProperties.
 func (shirstp SelfHostedIntegrationRuntimeStatusTypeProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if shirstp.CreateTime != nil {
+		objectMap["createTime"] = shirstp.CreateTime
+	}
+	if shirstp.TaskQueueID != nil {
+		objectMap["taskQueueId"] = shirstp.TaskQueueID
+	}
+	if shirstp.InternalChannelEncryption != "" {
+		objectMap["internalChannelEncryption"] = shirstp.InternalChannelEncryption
+	}
+	if shirstp.Version != nil {
+		objectMap["version"] = shirstp.Version
+	}
 	if shirstp.Nodes != nil {
 		objectMap["nodes"] = shirstp.Nodes
+	}
+	if shirstp.ScheduledUpdateDate != nil {
+		objectMap["scheduledUpdateDate"] = shirstp.ScheduledUpdateDate
+	}
+	if shirstp.UpdateDelayOffset != nil {
+		objectMap["updateDelayOffset"] = shirstp.UpdateDelayOffset
+	}
+	if shirstp.LocalTimeZoneOffset != nil {
+		objectMap["localTimeZoneOffset"] = shirstp.LocalTimeZoneOffset
+	}
+	if shirstp.Capabilities != nil {
+		objectMap["capabilities"] = shirstp.Capabilities
+	}
+	if shirstp.ServiceUrls != nil {
+		objectMap["serviceUrls"] = shirstp.ServiceUrls
+	}
+	if shirstp.AutoUpdate != "" {
+		objectMap["autoUpdate"] = shirstp.AutoUpdate
+	}
+	if shirstp.VersionStatus != nil {
+		objectMap["versionStatus"] = shirstp.VersionStatus
 	}
 	if shirstp.Links != nil {
 		objectMap["links"] = shirstp.Links
@@ -87010,9 +86671,7 @@ func (snod ServiceNowObjectDataset) MarshalJSON() ([]byte, error) {
 	if snod.Description != nil {
 		objectMap["description"] = snod.Description
 	}
-	if snod.Structure != nil {
-		objectMap["structure"] = snod.Structure
-	}
+	objectMap["structure"] = snod.Structure
 	if snod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = snod.LinkedServiceName
 	}
@@ -87405,15 +87064,9 @@ type ServiceNowSource struct {
 func (sns ServiceNowSource) MarshalJSON() ([]byte, error) {
 	sns.Type = TypeServiceNowSource
 	objectMap := make(map[string]interface{})
-	if sns.Query != nil {
-		objectMap["query"] = sns.Query
-	}
-	if sns.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = sns.SourceRetryCount
-	}
-	if sns.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = sns.SourceRetryWait
-	}
+	objectMap["query"] = sns.Query
+	objectMap["sourceRetryCount"] = sns.SourceRetryCount
+	objectMap["sourceRetryWait"] = sns.SourceRetryWait
 	if sns.Type != "" {
 		objectMap["type"] = sns.Type
 	}
@@ -88370,9 +88023,9 @@ func (sslstp *SftpServerLinkedServiceTypeProperties) UnmarshalJSON(body []byte) 
 	return nil
 }
 
-// ShopifyLinkedService shopify Service linked service.
+// ShopifyLinkedService shopify Serivce linked service.
 type ShopifyLinkedService struct {
-	// ShopifyLinkedServiceTypeProperties - Shopify Service linked service properties.
+	// ShopifyLinkedServiceTypeProperties - Shopify Serivce linked service properties.
 	*ShopifyLinkedServiceTypeProperties `json:"typeProperties,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -88857,7 +88510,7 @@ func (sls *ShopifyLinkedService) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ShopifyLinkedServiceTypeProperties shopify Service linked service properties.
+// ShopifyLinkedServiceTypeProperties shopify Serivce linked service properties.
 type ShopifyLinkedServiceTypeProperties struct {
 	// Host - The endpoint of the Shopify server. (i.e. mystore.myshopify.com)
 	Host interface{} `json:"host,omitempty"`
@@ -88941,7 +88594,7 @@ func (slstp *ShopifyLinkedServiceTypeProperties) UnmarshalJSON(body []byte) erro
 	return nil
 }
 
-// ShopifyObjectDataset shopify Service dataset.
+// ShopifyObjectDataset shopify Serivce dataset.
 type ShopifyObjectDataset struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -88966,9 +88619,7 @@ func (sod ShopifyObjectDataset) MarshalJSON() ([]byte, error) {
 	if sod.Description != nil {
 		objectMap["description"] = sod.Description
 	}
-	if sod.Structure != nil {
-		objectMap["structure"] = sod.Structure
-	}
+	objectMap["structure"] = sod.Structure
 	if sod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = sod.LinkedServiceName
 	}
@@ -89343,7 +88994,7 @@ func (sod *ShopifyObjectDataset) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ShopifySource a copy activity Shopify Service source.
+// ShopifySource a copy activity Shopify Serivce source.
 type ShopifySource struct {
 	// Query - A query to retrieve data from source. Type: string (or Expression with resultType string).
 	Query interface{} `json:"query,omitempty"`
@@ -89361,15 +89012,9 @@ type ShopifySource struct {
 func (ss ShopifySource) MarshalJSON() ([]byte, error) {
 	ss.Type = TypeShopifySource
 	objectMap := make(map[string]interface{})
-	if ss.Query != nil {
-		objectMap["query"] = ss.Query
-	}
-	if ss.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ss.SourceRetryCount
-	}
-	if ss.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ss.SourceRetryWait
-	}
+	objectMap["query"] = ss.Query
+	objectMap["sourceRetryCount"] = ss.SourceRetryCount
+	objectMap["sourceRetryWait"] = ss.SourceRetryWait
 	if ss.Type != "" {
 		objectMap["type"] = ss.Type
 	}
@@ -90386,9 +90031,7 @@ func (sod SparkObjectDataset) MarshalJSON() ([]byte, error) {
 	if sod.Description != nil {
 		objectMap["description"] = sod.Description
 	}
-	if sod.Structure != nil {
-		objectMap["structure"] = sod.Structure
-	}
+	objectMap["structure"] = sod.Structure
 	if sod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = sod.LinkedServiceName
 	}
@@ -90781,15 +90424,9 @@ type SparkSource struct {
 func (ss SparkSource) MarshalJSON() ([]byte, error) {
 	ss.Type = TypeSparkSource
 	objectMap := make(map[string]interface{})
-	if ss.Query != nil {
-		objectMap["query"] = ss.Query
-	}
-	if ss.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ss.SourceRetryCount
-	}
-	if ss.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ss.SourceRetryWait
-	}
+	objectMap["query"] = ss.Query
+	objectMap["sourceRetryCount"] = ss.SourceRetryCount
+	objectMap["sourceRetryWait"] = ss.SourceRetryWait
 	if ss.Type != "" {
 		objectMap["type"] = ss.Type
 	}
@@ -91148,27 +90785,15 @@ type SQLDWSink struct {
 func (sds SQLDWSink) MarshalJSON() ([]byte, error) {
 	sds.Type = TypeSQLDWSink
 	objectMap := make(map[string]interface{})
-	if sds.PreCopyScript != nil {
-		objectMap["preCopyScript"] = sds.PreCopyScript
-	}
-	if sds.AllowPolyBase != nil {
-		objectMap["allowPolyBase"] = sds.AllowPolyBase
-	}
+	objectMap["preCopyScript"] = sds.PreCopyScript
+	objectMap["allowPolyBase"] = sds.AllowPolyBase
 	if sds.PolyBaseSettings != nil {
 		objectMap["polyBaseSettings"] = sds.PolyBaseSettings
 	}
-	if sds.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = sds.WriteBatchSize
-	}
-	if sds.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = sds.WriteBatchTimeout
-	}
-	if sds.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = sds.SinkRetryCount
-	}
-	if sds.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = sds.SinkRetryWait
-	}
+	objectMap["writeBatchSize"] = sds.WriteBatchSize
+	objectMap["writeBatchTimeout"] = sds.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = sds.SinkRetryCount
+	objectMap["sinkRetryWait"] = sds.SinkRetryWait
 	if sds.Type != "" {
 		objectMap["type"] = sds.Type
 	}
@@ -91379,21 +91004,11 @@ type SQLDWSource struct {
 func (sds SQLDWSource) MarshalJSON() ([]byte, error) {
 	sds.Type = TypeSQLDWSource
 	objectMap := make(map[string]interface{})
-	if sds.SQLReaderQuery != nil {
-		objectMap["sqlReaderQuery"] = sds.SQLReaderQuery
-	}
-	if sds.SQLReaderStoredProcedureName != nil {
-		objectMap["sqlReaderStoredProcedureName"] = sds.SQLReaderStoredProcedureName
-	}
-	if sds.StoredProcedureParameters != nil {
-		objectMap["storedProcedureParameters"] = sds.StoredProcedureParameters
-	}
-	if sds.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = sds.SourceRetryCount
-	}
-	if sds.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = sds.SourceRetryWait
-	}
+	objectMap["sqlReaderQuery"] = sds.SQLReaderQuery
+	objectMap["sqlReaderStoredProcedureName"] = sds.SQLReaderStoredProcedureName
+	objectMap["storedProcedureParameters"] = sds.StoredProcedureParameters
+	objectMap["sourceRetryCount"] = sds.SourceRetryCount
+	objectMap["sourceRetryWait"] = sds.SourceRetryWait
 	if sds.Type != "" {
 		objectMap["type"] = sds.Type
 	}
@@ -92585,9 +92200,7 @@ type SQLServerStoredProcedureActivityTypeProperties struct {
 // MarshalJSON is the custom marshaler for SQLServerStoredProcedureActivityTypeProperties.
 func (ssspatp SQLServerStoredProcedureActivityTypeProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if ssspatp.StoredProcedureName != nil {
-		objectMap["storedProcedureName"] = ssspatp.StoredProcedureName
-	}
+	objectMap["storedProcedureName"] = ssspatp.StoredProcedureName
 	if ssspatp.StoredProcedureParameters != nil {
 		objectMap["storedProcedureParameters"] = ssspatp.StoredProcedureParameters
 	}
@@ -92624,9 +92237,7 @@ func (sstd SQLServerTableDataset) MarshalJSON() ([]byte, error) {
 	if sstd.Description != nil {
 		objectMap["description"] = sstd.Description
 	}
-	if sstd.Structure != nil {
-		objectMap["structure"] = sstd.Structure
-	}
+	objectMap["structure"] = sstd.Structure
 	if sstd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = sstd.LinkedServiceName
 	}
@@ -93044,30 +92655,16 @@ type SQLSink struct {
 func (ss SQLSink) MarshalJSON() ([]byte, error) {
 	ss.Type = TypeSQLSink
 	objectMap := make(map[string]interface{})
-	if ss.SQLWriterStoredProcedureName != nil {
-		objectMap["sqlWriterStoredProcedureName"] = ss.SQLWriterStoredProcedureName
-	}
-	if ss.SQLWriterTableType != nil {
-		objectMap["sqlWriterTableType"] = ss.SQLWriterTableType
-	}
-	if ss.PreCopyScript != nil {
-		objectMap["preCopyScript"] = ss.PreCopyScript
-	}
+	objectMap["sqlWriterStoredProcedureName"] = ss.SQLWriterStoredProcedureName
+	objectMap["sqlWriterTableType"] = ss.SQLWriterTableType
+	objectMap["preCopyScript"] = ss.PreCopyScript
 	if ss.StoredProcedureParameters != nil {
 		objectMap["storedProcedureParameters"] = ss.StoredProcedureParameters
 	}
-	if ss.WriteBatchSize != nil {
-		objectMap["writeBatchSize"] = ss.WriteBatchSize
-	}
-	if ss.WriteBatchTimeout != nil {
-		objectMap["writeBatchTimeout"] = ss.WriteBatchTimeout
-	}
-	if ss.SinkRetryCount != nil {
-		objectMap["sinkRetryCount"] = ss.SinkRetryCount
-	}
-	if ss.SinkRetryWait != nil {
-		objectMap["sinkRetryWait"] = ss.SinkRetryWait
-	}
+	objectMap["writeBatchSize"] = ss.WriteBatchSize
+	objectMap["writeBatchTimeout"] = ss.WriteBatchTimeout
+	objectMap["sinkRetryCount"] = ss.SinkRetryCount
+	objectMap["sinkRetryWait"] = ss.SinkRetryWait
 	if ss.Type != "" {
 		objectMap["type"] = ss.Type
 	}
@@ -93287,21 +92884,13 @@ type SQLSource struct {
 func (ss SQLSource) MarshalJSON() ([]byte, error) {
 	ss.Type = TypeSQLSource
 	objectMap := make(map[string]interface{})
-	if ss.SQLReaderQuery != nil {
-		objectMap["sqlReaderQuery"] = ss.SQLReaderQuery
-	}
-	if ss.SQLReaderStoredProcedureName != nil {
-		objectMap["sqlReaderStoredProcedureName"] = ss.SQLReaderStoredProcedureName
-	}
+	objectMap["sqlReaderQuery"] = ss.SQLReaderQuery
+	objectMap["sqlReaderStoredProcedureName"] = ss.SQLReaderStoredProcedureName
 	if ss.StoredProcedureParameters != nil {
 		objectMap["storedProcedureParameters"] = ss.StoredProcedureParameters
 	}
-	if ss.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ss.SourceRetryCount
-	}
-	if ss.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ss.SourceRetryWait
-	}
+	objectMap["sourceRetryCount"] = ss.SourceRetryCount
+	objectMap["sourceRetryWait"] = ss.SourceRetryWait
 	if ss.Type != "" {
 		objectMap["type"] = ss.Type
 	}
@@ -93652,9 +93241,9 @@ func (ss *SQLSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// SquareLinkedService square Service linked service.
+// SquareLinkedService square Serivce linked service.
 type SquareLinkedService struct {
-	// SquareLinkedServiceTypeProperties - Square Service linked service properties.
+	// SquareLinkedServiceTypeProperties - Square Serivce linked service properties.
 	*SquareLinkedServiceTypeProperties `json:"typeProperties,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -94139,7 +93728,7 @@ func (sls *SquareLinkedService) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// SquareLinkedServiceTypeProperties square Service linked service properties.
+// SquareLinkedServiceTypeProperties square Serivce linked service properties.
 type SquareLinkedServiceTypeProperties struct {
 	// Host - The URL of the Square instance. (i.e. mystore.mysquare.com)
 	Host interface{} `json:"host,omitempty"`
@@ -94245,7 +93834,7 @@ func (slstp *SquareLinkedServiceTypeProperties) UnmarshalJSON(body []byte) error
 	return nil
 }
 
-// SquareObjectDataset square Service dataset.
+// SquareObjectDataset square Serivce dataset.
 type SquareObjectDataset struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -94270,9 +93859,7 @@ func (sod SquareObjectDataset) MarshalJSON() ([]byte, error) {
 	if sod.Description != nil {
 		objectMap["description"] = sod.Description
 	}
-	if sod.Structure != nil {
-		objectMap["structure"] = sod.Structure
-	}
+	objectMap["structure"] = sod.Structure
 	if sod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = sod.LinkedServiceName
 	}
@@ -94647,7 +94234,7 @@ func (sod *SquareObjectDataset) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// SquareSource a copy activity Square Service source.
+// SquareSource a copy activity Square Serivce source.
 type SquareSource struct {
 	// Query - A query to retrieve data from source. Type: string (or Expression with resultType string).
 	Query interface{} `json:"query,omitempty"`
@@ -94665,15 +94252,9 @@ type SquareSource struct {
 func (ss SquareSource) MarshalJSON() ([]byte, error) {
 	ss.Type = TypeSquareSource
 	objectMap := make(map[string]interface{})
-	if ss.Query != nil {
-		objectMap["query"] = ss.Query
-	}
-	if ss.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ss.SourceRetryCount
-	}
-	if ss.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ss.SourceRetryWait
-	}
+	objectMap["query"] = ss.Query
+	objectMap["sourceRetryCount"] = ss.SourceRetryCount
+	objectMap["sourceRetryWait"] = ss.SourceRetryWait
 	if ss.Type != "" {
 		objectMap["type"] = ss.Type
 	}
@@ -95006,264 +94587,16 @@ func (ss *SquareSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// SSISAccessCredential SSIS access credential.
-type SSISAccessCredential struct {
-	// Domain - Domain for windows authentication.
-	Domain interface{} `json:"domain,omitempty"`
-	// UserName - UseName for windows authentication.
-	UserName interface{} `json:"userName,omitempty"`
-	// Password - Password for windows authentication.
-	Password BasicSecretBase `json:"password,omitempty"`
-}
-
-// UnmarshalJSON is the custom unmarshaler for SSISAccessCredential struct.
-func (sac *SSISAccessCredential) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "domain":
-			if v != nil {
-				var domain interface{}
-				err = json.Unmarshal(*v, &domain)
-				if err != nil {
-					return err
-				}
-				sac.Domain = domain
-			}
-		case "userName":
-			if v != nil {
-				var userName interface{}
-				err = json.Unmarshal(*v, &userName)
-				if err != nil {
-					return err
-				}
-				sac.UserName = userName
-			}
-		case "password":
-			if v != nil {
-				password, err := unmarshalBasicSecretBase(*v)
-				if err != nil {
-					return err
-				}
-				sac.Password = password
-			}
-		}
-	}
-
-	return nil
-}
-
-// SSISExecutionCredential SSIS package execution credential.
-type SSISExecutionCredential struct {
-	// Domain - Domain for windows authentication.
-	Domain interface{} `json:"domain,omitempty"`
-	// UserName - UseName for windows authentication.
-	UserName interface{} `json:"userName,omitempty"`
-	// Password - Password for windows authentication.
-	Password *SecureString `json:"password,omitempty"`
-}
-
 // SSISExecutionParameter SSIS execution parameter.
 type SSISExecutionParameter struct {
 	// Value - SSIS package execution parameter value. Type: string (or Expression with resultType string).
 	Value interface{} `json:"value,omitempty"`
 }
 
-// SSISLogLocation SSIS package execution log location
-type SSISLogLocation struct {
-	// LogPath - The SSIS package execution log path. Type: string (or Expression with resultType string).
-	LogPath interface{} `json:"logPath,omitempty"`
-	// Type - The type of SSIS log location.
-	Type *string `json:"type,omitempty"`
-	// SSISLogLocationTypeProperties - SSIS package execution log location properties.
-	*SSISLogLocationTypeProperties `json:"typeProperties,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for SSISLogLocation.
-func (sll SSISLogLocation) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if sll.LogPath != nil {
-		objectMap["logPath"] = sll.LogPath
-	}
-	if sll.Type != nil {
-		objectMap["type"] = sll.Type
-	}
-	if sll.SSISLogLocationTypeProperties != nil {
-		objectMap["typeProperties"] = sll.SSISLogLocationTypeProperties
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for SSISLogLocation struct.
-func (sll *SSISLogLocation) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "logPath":
-			if v != nil {
-				var logPath interface{}
-				err = json.Unmarshal(*v, &logPath)
-				if err != nil {
-					return err
-				}
-				sll.LogPath = logPath
-			}
-		case "type":
-			if v != nil {
-				var typeVar string
-				err = json.Unmarshal(*v, &typeVar)
-				if err != nil {
-					return err
-				}
-				sll.Type = &typeVar
-			}
-		case "typeProperties":
-			if v != nil {
-				var sSISLogLocationTypeProperties SSISLogLocationTypeProperties
-				err = json.Unmarshal(*v, &sSISLogLocationTypeProperties)
-				if err != nil {
-					return err
-				}
-				sll.SSISLogLocationTypeProperties = &sSISLogLocationTypeProperties
-			}
-		}
-	}
-
-	return nil
-}
-
-// SSISLogLocationTypeProperties SSIS package execution log location properties.
-type SSISLogLocationTypeProperties struct {
-	// AccessCredential - The package execution log access credential.
-	AccessCredential *SSISAccessCredential `json:"accessCredential,omitempty"`
-	// LogRefreshInterval - Specifies the interval to refresh log. The default interval is 5 minutes. Type: string (or Expression with resultType string), pattern: ((\d+)\.)?(\d\d):(60|([0-5][0-9])):(60|([0-5][0-9])).
-	LogRefreshInterval interface{} `json:"logRefreshInterval,omitempty"`
-}
-
 // SSISPackageLocation SSIS package location.
 type SSISPackageLocation struct {
-	// PackagePath - The SSIS package path. Type: string (or Expression with resultType string).
-	PackagePath interface{} `json:"packagePath,omitempty"`
-	// Type - The type of SSIS package location. Possible values include: 'SSISDB', 'File'
-	Type SsisPackageLocationType `json:"type,omitempty"`
-	// SSISPackageLocationTypeProperties - SSIS package location properties.
-	*SSISPackageLocationTypeProperties `json:"typeProperties,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for SSISPackageLocation.
-func (spl SSISPackageLocation) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if spl.PackagePath != nil {
-		objectMap["packagePath"] = spl.PackagePath
-	}
-	if spl.Type != "" {
-		objectMap["type"] = spl.Type
-	}
-	if spl.SSISPackageLocationTypeProperties != nil {
-		objectMap["typeProperties"] = spl.SSISPackageLocationTypeProperties
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for SSISPackageLocation struct.
-func (spl *SSISPackageLocation) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "packagePath":
-			if v != nil {
-				var packagePath interface{}
-				err = json.Unmarshal(*v, &packagePath)
-				if err != nil {
-					return err
-				}
-				spl.PackagePath = packagePath
-			}
-		case "type":
-			if v != nil {
-				var typeVar SsisPackageLocationType
-				err = json.Unmarshal(*v, &typeVar)
-				if err != nil {
-					return err
-				}
-				spl.Type = typeVar
-			}
-		case "typeProperties":
-			if v != nil {
-				var sSISPackageLocationTypeProperties SSISPackageLocationTypeProperties
-				err = json.Unmarshal(*v, &sSISPackageLocationTypeProperties)
-				if err != nil {
-					return err
-				}
-				spl.SSISPackageLocationTypeProperties = &sSISPackageLocationTypeProperties
-			}
-		}
-	}
-
-	return nil
-}
-
-// SSISPackageLocationTypeProperties SSIS package location properties.
-type SSISPackageLocationTypeProperties struct {
-	// PackagePassword - Password of the package.
-	PackagePassword BasicSecretBase `json:"packagePassword,omitempty"`
-	// AccessCredential - The package access credential.
-	AccessCredential *SSISAccessCredential `json:"accessCredential,omitempty"`
-	// ConfigurationPath - The configuration file of the package execution. Type: string (or Expression with resultType string).
-	ConfigurationPath interface{} `json:"configurationPath,omitempty"`
-}
-
-// UnmarshalJSON is the custom unmarshaler for SSISPackageLocationTypeProperties struct.
-func (spltp *SSISPackageLocationTypeProperties) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "packagePassword":
-			if v != nil {
-				packagePassword, err := unmarshalBasicSecretBase(*v)
-				if err != nil {
-					return err
-				}
-				spltp.PackagePassword = packagePassword
-			}
-		case "accessCredential":
-			if v != nil {
-				var accessCredential SSISAccessCredential
-				err = json.Unmarshal(*v, &accessCredential)
-				if err != nil {
-					return err
-				}
-				spltp.AccessCredential = &accessCredential
-			}
-		case "configurationPath":
-			if v != nil {
-				var configurationPath interface{}
-				err = json.Unmarshal(*v, &configurationPath)
-				if err != nil {
-					return err
-				}
-				spltp.ConfigurationPath = configurationPath
-			}
-		}
-	}
-
-	return nil
+	// PackagePath - The SSIS package path.
+	PackagePath *string `json:"packagePath,omitempty"`
 }
 
 // SSISPropertyOverride SSIS property override.
@@ -95292,12 +94625,8 @@ func (ss StagingSettings) MarshalJSON() ([]byte, error) {
 	if ss.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = ss.LinkedServiceName
 	}
-	if ss.Path != nil {
-		objectMap["path"] = ss.Path
-	}
-	if ss.EnableCompression != nil {
-		objectMap["enableCompression"] = ss.EnableCompression
-	}
+	objectMap["path"] = ss.Path
+	objectMap["enableCompression"] = ss.EnableCompression
 	for k, v := range ss.AdditionalProperties {
 		objectMap[k] = v
 	}
@@ -95362,19 +94691,19 @@ func (ss *StagingSettings) UnmarshalJSON(body []byte) error {
 type StoredProcedureParameter struct {
 	// Value - Stored procedure parameter value. Type: string (or Expression with resultType string).
 	Value interface{} `json:"value,omitempty"`
-	// Type - Stored procedure parameter type.
-	Type interface{} `json:"type,omitempty"`
+	// Type - Stored procedure parameter type. Possible values include: 'String', 'Int', 'Decimal', 'GUID', 'Boolean', 'Date'
+	Type StoredProcedureParameterType `json:"type,omitempty"`
 }
 
 // SubResource azure Data Factory nested resource, which belongs to a factory.
 type SubResource struct {
-	// ID - READ-ONLY; The resource identifier.
+	// ID - The resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
-	// Etag - READ-ONLY; Etag identifies change in the resource.
+	// Etag - Etag identifies change in the resource.
 	Etag *string `json:"etag,omitempty"`
 }
 
@@ -95953,6 +95282,102 @@ func (slstp *SybaseLinkedServiceTypeProperties) UnmarshalJSON(body []byte) error
 					return err
 				}
 				slstp.EncryptedCredential = encryptedCredential
+			}
+		}
+	}
+
+	return nil
+}
+
+// TabularTranslator a copy activity tabular translator.
+type TabularTranslator struct {
+	// ColumnMappings - Column mappings. Example: "UserId: MyUserId, Group: MyGroup, Name: MyName" Type: string (or Expression with resultType string).
+	ColumnMappings interface{} `json:"columnMappings,omitempty"`
+	// SchemaMapping - The schema mapping to map between tabular data and hierarchical data. Example: {"Column1": "$.Column1", "Column2": "$.Column2.Property1", "Column3": "$.Column2.Property2"}. Type: object (or Expression with resultType object).
+	SchemaMapping interface{} `json:"schemaMapping,omitempty"`
+	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
+	AdditionalProperties map[string]interface{} `json:""`
+	// Type - Possible values include: 'TypeCopyTranslator', 'TypeTabularTranslator'
+	Type TypeBasicCopyTranslator `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for TabularTranslator.
+func (tt TabularTranslator) MarshalJSON() ([]byte, error) {
+	tt.Type = TypeTabularTranslator
+	objectMap := make(map[string]interface{})
+	objectMap["columnMappings"] = tt.ColumnMappings
+	objectMap["schemaMapping"] = tt.SchemaMapping
+	if tt.Type != "" {
+		objectMap["type"] = tt.Type
+	}
+	for k, v := range tt.AdditionalProperties {
+		objectMap[k] = v
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsTabularTranslator is the BasicCopyTranslator implementation for TabularTranslator.
+func (tt TabularTranslator) AsTabularTranslator() (*TabularTranslator, bool) {
+	return &tt, true
+}
+
+// AsCopyTranslator is the BasicCopyTranslator implementation for TabularTranslator.
+func (tt TabularTranslator) AsCopyTranslator() (*CopyTranslator, bool) {
+	return nil, false
+}
+
+// AsBasicCopyTranslator is the BasicCopyTranslator implementation for TabularTranslator.
+func (tt TabularTranslator) AsBasicCopyTranslator() (BasicCopyTranslator, bool) {
+	return &tt, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for TabularTranslator struct.
+func (tt *TabularTranslator) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "columnMappings":
+			if v != nil {
+				var columnMappings interface{}
+				err = json.Unmarshal(*v, &columnMappings)
+				if err != nil {
+					return err
+				}
+				tt.ColumnMappings = columnMappings
+			}
+		case "schemaMapping":
+			if v != nil {
+				var schemaMapping interface{}
+				err = json.Unmarshal(*v, &schemaMapping)
+				if err != nil {
+					return err
+				}
+				tt.SchemaMapping = schemaMapping
+			}
+		default:
+			if v != nil {
+				var additionalProperties interface{}
+				err = json.Unmarshal(*v, &additionalProperties)
+				if err != nil {
+					return err
+				}
+				if tt.AdditionalProperties == nil {
+					tt.AdditionalProperties = make(map[string]interface{})
+				}
+				tt.AdditionalProperties[k] = additionalProperties
+			}
+		case "type":
+			if v != nil {
+				var typeVar TypeBasicCopyTranslator
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				tt.Type = typeVar
 			}
 		}
 	}
@@ -96554,39 +95979,17 @@ type TextFormat struct {
 func (tf TextFormat) MarshalJSON() ([]byte, error) {
 	tf.Type = TypeTextFormat
 	objectMap := make(map[string]interface{})
-	if tf.ColumnDelimiter != nil {
-		objectMap["columnDelimiter"] = tf.ColumnDelimiter
-	}
-	if tf.RowDelimiter != nil {
-		objectMap["rowDelimiter"] = tf.RowDelimiter
-	}
-	if tf.EscapeChar != nil {
-		objectMap["escapeChar"] = tf.EscapeChar
-	}
-	if tf.QuoteChar != nil {
-		objectMap["quoteChar"] = tf.QuoteChar
-	}
-	if tf.NullValue != nil {
-		objectMap["nullValue"] = tf.NullValue
-	}
-	if tf.EncodingName != nil {
-		objectMap["encodingName"] = tf.EncodingName
-	}
-	if tf.TreatEmptyAsNull != nil {
-		objectMap["treatEmptyAsNull"] = tf.TreatEmptyAsNull
-	}
-	if tf.SkipLineCount != nil {
-		objectMap["skipLineCount"] = tf.SkipLineCount
-	}
-	if tf.FirstRowAsHeader != nil {
-		objectMap["firstRowAsHeader"] = tf.FirstRowAsHeader
-	}
-	if tf.Serializer != nil {
-		objectMap["serializer"] = tf.Serializer
-	}
-	if tf.Deserializer != nil {
-		objectMap["deserializer"] = tf.Deserializer
-	}
+	objectMap["columnDelimiter"] = tf.ColumnDelimiter
+	objectMap["rowDelimiter"] = tf.RowDelimiter
+	objectMap["escapeChar"] = tf.EscapeChar
+	objectMap["quoteChar"] = tf.QuoteChar
+	objectMap["nullValue"] = tf.NullValue
+	objectMap["encodingName"] = tf.EncodingName
+	objectMap["treatEmptyAsNull"] = tf.TreatEmptyAsNull
+	objectMap["skipLineCount"] = tf.SkipLineCount
+	objectMap["firstRowAsHeader"] = tf.FirstRowAsHeader
+	objectMap["serializer"] = tf.Serializer
+	objectMap["deserializer"] = tf.Deserializer
 	if tf.Type != "" {
 		objectMap["type"] = tf.Type
 	}
@@ -96783,7 +96186,7 @@ type Trigger struct {
 	AdditionalProperties map[string]interface{} `json:""`
 	// Description - Trigger description.
 	Description *string `json:"description,omitempty"`
-	// RuntimeState - READ-ONLY; Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
+	// RuntimeState - Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
 	RuntimeState TriggerRuntimeState `json:"runtimeState,omitempty"`
 	// Type - Possible values include: 'TypeTrigger', 'TypeTumblingWindowTrigger', 'TypeBlobEventsTrigger', 'TypeBlobTrigger', 'TypeScheduleTrigger', 'TypeMultiplePipelineTrigger'
 	Type TypeBasicTrigger `json:"type,omitempty"`
@@ -96848,6 +96251,9 @@ func (t Trigger) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if t.Description != nil {
 		objectMap["description"] = t.Description
+	}
+	if t.RuntimeState != "" {
+		objectMap["runtimeState"] = t.RuntimeState
 	}
 	if t.Type != "" {
 		objectMap["type"] = t.Type
@@ -96967,37 +96373,20 @@ type TriggerListResponseIterator struct {
 	page TriggerListResponsePage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *TriggerListResponseIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TriggerListResponseIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *TriggerListResponseIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *TriggerListResponseIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -97019,11 +96408,6 @@ func (iter TriggerListResponseIterator) Value() TriggerResource {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the TriggerListResponseIterator type.
-func NewTriggerListResponseIterator(page TriggerListResponsePage) TriggerListResponseIterator {
-	return TriggerListResponseIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (tlr TriggerListResponse) IsEmpty() bool {
 	return tlr.Value == nil || len(*tlr.Value) == 0
@@ -97031,11 +96415,11 @@ func (tlr TriggerListResponse) IsEmpty() bool {
 
 // triggerListResponsePreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (tlr TriggerListResponse) triggerListResponsePreparer(ctx context.Context) (*http.Request, error) {
+func (tlr TriggerListResponse) triggerListResponsePreparer() (*http.Request, error) {
 	if tlr.NextLink == nil || len(to.String(tlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(tlr.NextLink)))
@@ -97043,36 +96427,19 @@ func (tlr TriggerListResponse) triggerListResponsePreparer(ctx context.Context) 
 
 // TriggerListResponsePage contains a page of TriggerResource values.
 type TriggerListResponsePage struct {
-	fn  func(context.Context, TriggerListResponse) (TriggerListResponse, error)
+	fn  func(TriggerListResponse) (TriggerListResponse, error)
 	tlr TriggerListResponse
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *TriggerListResponsePage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TriggerListResponsePage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.tlr)
+func (page *TriggerListResponsePage) Next() error {
+	next, err := page.fn(page.tlr)
 	if err != nil {
 		return err
 	}
 	page.tlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *TriggerListResponsePage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -97091,11 +96458,6 @@ func (page TriggerListResponsePage) Values() []TriggerResource {
 		return nil
 	}
 	return *page.tlr.Value
-}
-
-// Creates a new instance of the TriggerListResponsePage type.
-func NewTriggerListResponsePage(getNextPage func(context.Context, TriggerListResponse) (TriggerListResponse, error)) TriggerListResponsePage {
-	return TriggerListResponsePage{fn: getNextPage}
 }
 
 // TriggerPipelineReference pipeline that needs to be triggered with the given parameters.
@@ -97123,13 +96485,13 @@ type TriggerResource struct {
 	autorest.Response `json:"-"`
 	// Properties - Properties of the trigger.
 	Properties BasicTrigger `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource identifier.
+	// ID - The resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
-	// Etag - READ-ONLY; Etag identifies change in the resource.
+	// Etag - Etag identifies change in the resource.
 	Etag *string `json:"etag,omitempty"`
 }
 
@@ -97196,27 +96558,51 @@ func (tr *TriggerResource) UnmarshalJSON(body []byte) error {
 type TriggerRun struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// TriggerRunID - READ-ONLY; Trigger run id.
+	// TriggerRunID - Trigger run id.
 	TriggerRunID *string `json:"triggerRunId,omitempty"`
-	// TriggerName - READ-ONLY; Trigger name.
+	// TriggerName - Trigger name.
 	TriggerName *string `json:"triggerName,omitempty"`
-	// TriggerType - READ-ONLY; Trigger type.
+	// TriggerType - Trigger type.
 	TriggerType *string `json:"triggerType,omitempty"`
-	// TriggerRunTimestamp - READ-ONLY; Trigger run start time.
+	// TriggerRunTimestamp - Trigger run start time.
 	TriggerRunTimestamp *date.Time `json:"triggerRunTimestamp,omitempty"`
-	// Status - READ-ONLY; Trigger run status. Possible values include: 'TriggerRunStatusSucceeded', 'TriggerRunStatusFailed', 'TriggerRunStatusInprogress'
+	// Status - Trigger run status. Possible values include: 'TriggerRunStatusSucceeded', 'TriggerRunStatusFailed', 'TriggerRunStatusInprogress'
 	Status TriggerRunStatus `json:"status,omitempty"`
-	// Message - READ-ONLY; Trigger error message.
+	// Message - Trigger error message.
 	Message *string `json:"message,omitempty"`
-	// Properties - READ-ONLY; List of property name and value related to trigger run. Name, value pair depends on type of trigger.
+	// Properties - List of property name and value related to trigger run. Name, value pair depends on type of trigger.
 	Properties map[string]*string `json:"properties"`
-	// TriggeredPipelines - READ-ONLY; List of pipeline name and run Id triggered by the trigger run.
+	// TriggeredPipelines - List of pipeline name and run Id triggered by the trigger run.
 	TriggeredPipelines map[string]*string `json:"triggeredPipelines"`
 }
 
 // MarshalJSON is the custom marshaler for TriggerRun.
 func (tr TriggerRun) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if tr.TriggerRunID != nil {
+		objectMap["triggerRunId"] = tr.TriggerRunID
+	}
+	if tr.TriggerName != nil {
+		objectMap["triggerName"] = tr.TriggerName
+	}
+	if tr.TriggerType != nil {
+		objectMap["triggerType"] = tr.TriggerType
+	}
+	if tr.TriggerRunTimestamp != nil {
+		objectMap["triggerRunTimestamp"] = tr.TriggerRunTimestamp
+	}
+	if tr.Status != "" {
+		objectMap["status"] = tr.Status
+	}
+	if tr.Message != nil {
+		objectMap["message"] = tr.Message
+	}
+	if tr.Properties != nil {
+		objectMap["properties"] = tr.Properties
+	}
+	if tr.TriggeredPipelines != nil {
+		objectMap["triggeredPipelines"] = tr.TriggeredPipelines
+	}
 	for k, v := range tr.AdditionalProperties {
 		objectMap[k] = v
 	}
@@ -97337,37 +96723,20 @@ type TriggerRunListResponseIterator struct {
 	page TriggerRunListResponsePage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *TriggerRunListResponseIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TriggerRunListResponseIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *TriggerRunListResponseIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *TriggerRunListResponseIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -97389,11 +96758,6 @@ func (iter TriggerRunListResponseIterator) Value() TriggerRun {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the TriggerRunListResponseIterator type.
-func NewTriggerRunListResponseIterator(page TriggerRunListResponsePage) TriggerRunListResponseIterator {
-	return TriggerRunListResponseIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (trlr TriggerRunListResponse) IsEmpty() bool {
 	return trlr.Value == nil || len(*trlr.Value) == 0
@@ -97401,11 +96765,11 @@ func (trlr TriggerRunListResponse) IsEmpty() bool {
 
 // triggerRunListResponsePreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (trlr TriggerRunListResponse) triggerRunListResponsePreparer(ctx context.Context) (*http.Request, error) {
+func (trlr TriggerRunListResponse) triggerRunListResponsePreparer() (*http.Request, error) {
 	if trlr.NextLink == nil || len(to.String(trlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(trlr.NextLink)))
@@ -97413,36 +96777,19 @@ func (trlr TriggerRunListResponse) triggerRunListResponsePreparer(ctx context.Co
 
 // TriggerRunListResponsePage contains a page of TriggerRun values.
 type TriggerRunListResponsePage struct {
-	fn   func(context.Context, TriggerRunListResponse) (TriggerRunListResponse, error)
+	fn   func(TriggerRunListResponse) (TriggerRunListResponse, error)
 	trlr TriggerRunListResponse
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *TriggerRunListResponsePage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TriggerRunListResponsePage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.trlr)
+func (page *TriggerRunListResponsePage) Next() error {
+	next, err := page.fn(page.trlr)
 	if err != nil {
 		return err
 	}
 	page.trlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *TriggerRunListResponsePage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -97463,13 +96810,7 @@ func (page TriggerRunListResponsePage) Values() []TriggerRun {
 	return *page.trlr.Value
 }
 
-// Creates a new instance of the TriggerRunListResponsePage type.
-func NewTriggerRunListResponsePage(getNextPage func(context.Context, TriggerRunListResponse) (TriggerRunListResponse, error)) TriggerRunListResponsePage {
-	return TriggerRunListResponsePage{fn: getNextPage}
-}
-
-// TriggersStartFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// TriggersStartFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type TriggersStartFuture struct {
 	azure.Future
 }
@@ -97478,7 +96819,7 @@ type TriggersStartFuture struct {
 // If the operation has not completed it will return an error.
 func (future *TriggersStartFuture) Result(client TriggersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "datafactory.TriggersStartFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -97500,7 +96841,7 @@ type TriggersStopFuture struct {
 // If the operation has not completed it will return an error.
 func (future *TriggersStopFuture) Result(client TriggersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "datafactory.TriggersStopFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -97513,8 +96854,8 @@ func (future *TriggersStopFuture) Result(client TriggersClient) (ar autorest.Res
 	return
 }
 
-// TumblingWindowTrigger trigger that schedules pipeline runs for all fixed time interval windows from a
-// start time without gaps and also supports backfill scenarios (when start time is in the past).
+// TumblingWindowTrigger trigger that schedules pipeline runs for all fixed time interval windows from a start time
+// without gaps and also supports backfill scenarios (when start time is in the past).
 type TumblingWindowTrigger struct {
 	// Pipeline - Pipeline for which runs are created when an event is fired for trigger window that is ready.
 	Pipeline *TriggerPipelineReference `json:"pipeline,omitempty"`
@@ -97524,7 +96865,7 @@ type TumblingWindowTrigger struct {
 	AdditionalProperties map[string]interface{} `json:""`
 	// Description - Trigger description.
 	Description *string `json:"description,omitempty"`
-	// RuntimeState - READ-ONLY; Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
+	// RuntimeState - Indicates if trigger is running or not. Updated when Start/Stop APIs are called on the Trigger. Possible values include: 'TriggerRuntimeStateStarted', 'TriggerRuntimeStateStopped', 'TriggerRuntimeStateDisabled'
 	RuntimeState TriggerRuntimeState `json:"runtimeState,omitempty"`
 	// Type - Possible values include: 'TypeTrigger', 'TypeTumblingWindowTrigger', 'TypeBlobEventsTrigger', 'TypeBlobTrigger', 'TypeScheduleTrigger', 'TypeMultiplePipelineTrigger'
 	Type TypeBasicTrigger `json:"type,omitempty"`
@@ -97542,6 +96883,9 @@ func (twt TumblingWindowTrigger) MarshalJSON() ([]byte, error) {
 	}
 	if twt.Description != nil {
 		objectMap["description"] = twt.Description
+	}
+	if twt.RuntimeState != "" {
+		objectMap["runtimeState"] = twt.RuntimeState
 	}
 	if twt.Type != "" {
 		objectMap["type"] = twt.Type
@@ -97682,8 +97026,8 @@ type TumblingWindowTriggerTypeProperties struct {
 	RetryPolicy *RetryPolicy `json:"retryPolicy,omitempty"`
 }
 
-// UntilActivity this activity executes inner activities until the specified boolean expression results to
-// true or timeout is reached, whichever is earlier.
+// UntilActivity this activity executes inner activities until the specified boolean expression results to true or
+// timeout is reached, whichever is earlier.
 type UntilActivity struct {
 	// UntilActivityTypeProperties - Until activity properties.
 	*UntilActivityTypeProperties `json:"typeProperties,omitempty"`
@@ -98514,15 +97858,9 @@ type VerticaSource struct {
 func (vs VerticaSource) MarshalJSON() ([]byte, error) {
 	vs.Type = TypeVerticaSource
 	objectMap := make(map[string]interface{})
-	if vs.Query != nil {
-		objectMap["query"] = vs.Query
-	}
-	if vs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = vs.SourceRetryCount
-	}
-	if vs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = vs.SourceRetryWait
-	}
+	objectMap["query"] = vs.Query
+	objectMap["sourceRetryCount"] = vs.SourceRetryCount
+	objectMap["sourceRetryWait"] = vs.SourceRetryWait
 	if vs.Type != "" {
 		objectMap["type"] = vs.Type
 	}
@@ -98880,9 +98218,7 @@ func (vtd VerticaTableDataset) MarshalJSON() ([]byte, error) {
 	if vtd.Description != nil {
 		objectMap["description"] = vtd.Description
 	}
-	if vtd.Structure != nil {
-		objectMap["structure"] = vtd.Structure
-	}
+	objectMap["structure"] = vtd.Structure
 	if vtd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = vtd.LinkedServiceName
 	}
@@ -99829,8 +99165,8 @@ type WebActivityTypeProperties struct {
 	LinkedServices *[]LinkedServiceReference `json:"linkedServices,omitempty"`
 }
 
-// WebAnonymousAuthentication a WebLinkedService that uses anonymous authentication to communicate with an
-// HTTP endpoint.
+// WebAnonymousAuthentication a WebLinkedService that uses anonymous authentication to communicate with an HTTP
+// endpoint.
 type WebAnonymousAuthentication struct {
 	// URL - The URL of the web service endpoint, e.g. http://www.microsoft.com . Type: string (or Expression with resultType string).
 	URL interface{} `json:"url,omitempty"`
@@ -99842,9 +99178,7 @@ type WebAnonymousAuthentication struct {
 func (waa WebAnonymousAuthentication) MarshalJSON() ([]byte, error) {
 	waa.AuthenticationType = AuthenticationTypeAnonymous
 	objectMap := make(map[string]interface{})
-	if waa.URL != nil {
-		objectMap["url"] = waa.URL
-	}
+	objectMap["url"] = waa.URL
 	if waa.AuthenticationType != "" {
 		objectMap["authenticationType"] = waa.AuthenticationType
 	}
@@ -99876,8 +99210,7 @@ func (waa WebAnonymousAuthentication) AsBasicWebLinkedServiceTypeProperties() (B
 	return &waa, true
 }
 
-// WebBasicAuthentication a WebLinkedService that uses basic authentication to communicate with an HTTP
-// endpoint.
+// WebBasicAuthentication a WebLinkedService that uses basic authentication to communicate with an HTTP endpoint.
 type WebBasicAuthentication struct {
 	// Username - User name for Basic authentication. Type: string (or Expression with resultType string).
 	Username interface{} `json:"username,omitempty"`
@@ -99893,13 +99226,9 @@ type WebBasicAuthentication struct {
 func (wba WebBasicAuthentication) MarshalJSON() ([]byte, error) {
 	wba.AuthenticationType = AuthenticationTypeBasic
 	objectMap := make(map[string]interface{})
-	if wba.Username != nil {
-		objectMap["username"] = wba.Username
-	}
+	objectMap["username"] = wba.Username
 	objectMap["password"] = wba.Password
-	if wba.URL != nil {
-		objectMap["url"] = wba.URL
-	}
+	objectMap["url"] = wba.URL
 	if wba.AuthenticationType != "" {
 		objectMap["authenticationType"] = wba.AuthenticationType
 	}
@@ -99981,9 +99310,9 @@ func (wba *WebBasicAuthentication) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// WebClientCertificateAuthentication a WebLinkedService that uses client certificate based authentication
-// to communicate with an HTTP endpoint. This scheme follows mutual authentication; the server must also
-// provide valid credentials to the client.
+// WebClientCertificateAuthentication a WebLinkedService that uses client certificate based authentication to
+// communicate with an HTTP endpoint. This scheme follows mutual authentication; the server must also provide valid
+// credentials to the client.
 type WebClientCertificateAuthentication struct {
 	// Pfx - Base64-encoded contents of a PFX file.
 	Pfx BasicSecretBase `json:"pfx,omitempty"`
@@ -100001,9 +99330,7 @@ func (wcca WebClientCertificateAuthentication) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	objectMap["pfx"] = wcca.Pfx
 	objectMap["password"] = wcca.Password
-	if wcca.URL != nil {
-		objectMap["url"] = wcca.URL
-	}
+	objectMap["url"] = wcca.URL
 	if wcca.AuthenticationType != "" {
 		objectMap["authenticationType"] = wcca.AuthenticationType
 	}
@@ -100635,9 +99962,7 @@ func unmarshalBasicWebLinkedServiceTypePropertiesArray(body []byte) ([]BasicWebL
 func (wlstp WebLinkedServiceTypeProperties) MarshalJSON() ([]byte, error) {
 	wlstp.AuthenticationType = AuthenticationTypeWebLinkedServiceTypeProperties
 	objectMap := make(map[string]interface{})
-	if wlstp.URL != nil {
-		objectMap["url"] = wlstp.URL
-	}
+	objectMap["url"] = wlstp.URL
 	if wlstp.AuthenticationType != "" {
 		objectMap["authenticationType"] = wlstp.AuthenticationType
 	}
@@ -100685,12 +100010,8 @@ type WebSource struct {
 func (ws WebSource) MarshalJSON() ([]byte, error) {
 	ws.Type = TypeWebSource
 	objectMap := make(map[string]interface{})
-	if ws.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = ws.SourceRetryCount
-	}
-	if ws.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = ws.SourceRetryWait
-	}
+	objectMap["sourceRetryCount"] = ws.SourceRetryCount
+	objectMap["sourceRetryWait"] = ws.SourceRetryWait
 	if ws.Type != "" {
 		objectMap["type"] = ws.Type
 	}
@@ -101044,9 +100365,7 @@ func (wtd WebTableDataset) MarshalJSON() ([]byte, error) {
 	if wtd.Description != nil {
 		objectMap["description"] = wtd.Description
 	}
-	if wtd.Structure != nil {
-		objectMap["structure"] = wtd.Structure
-	}
+	objectMap["structure"] = wtd.Structure
 	if wtd.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = wtd.LinkedServiceName
 	}
@@ -101438,9 +100757,9 @@ type WebTableDatasetTypeProperties struct {
 	Path interface{} `json:"path,omitempty"`
 }
 
-// XeroLinkedService xero Service linked service.
+// XeroLinkedService xero Serivce linked service.
 type XeroLinkedService struct {
-	// XeroLinkedServiceTypeProperties - Xero Service linked service properties.
+	// XeroLinkedServiceTypeProperties - Xero Serivce linked service properties.
 	*XeroLinkedServiceTypeProperties `json:"typeProperties,omitempty"`
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -101925,7 +101244,7 @@ func (xls *XeroLinkedService) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// XeroLinkedServiceTypeProperties xero Service linked service properties.
+// XeroLinkedServiceTypeProperties xero Serivce linked service properties.
 type XeroLinkedServiceTypeProperties struct {
 	// Host - The endpoint of the Xero server. (i.e. api.xero.com)
 	Host interface{} `json:"host,omitempty"`
@@ -102020,7 +101339,7 @@ func (xlstp *XeroLinkedServiceTypeProperties) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// XeroObjectDataset xero Service dataset.
+// XeroObjectDataset xero Serivce dataset.
 type XeroObjectDataset struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -102045,9 +101364,7 @@ func (xod XeroObjectDataset) MarshalJSON() ([]byte, error) {
 	if xod.Description != nil {
 		objectMap["description"] = xod.Description
 	}
-	if xod.Structure != nil {
-		objectMap["structure"] = xod.Structure
-	}
+	objectMap["structure"] = xod.Structure
 	if xod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = xod.LinkedServiceName
 	}
@@ -102422,7 +101739,7 @@ func (xod *XeroObjectDataset) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// XeroSource a copy activity Xero Service source.
+// XeroSource a copy activity Xero Serivce source.
 type XeroSource struct {
 	// Query - A query to retrieve data from source. Type: string (or Expression with resultType string).
 	Query interface{} `json:"query,omitempty"`
@@ -102440,15 +101757,9 @@ type XeroSource struct {
 func (xs XeroSource) MarshalJSON() ([]byte, error) {
 	xs.Type = TypeXeroSource
 	objectMap := make(map[string]interface{})
-	if xs.Query != nil {
-		objectMap["query"] = xs.Query
-	}
-	if xs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = xs.SourceRetryCount
-	}
-	if xs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = xs.SourceRetryWait
-	}
+	objectMap["query"] = xs.Query
+	objectMap["sourceRetryCount"] = xs.SourceRetryCount
+	objectMap["sourceRetryWait"] = xs.SourceRetryWait
 	if xs.Type != "" {
 		objectMap["type"] = xs.Type
 	}
@@ -103377,9 +102688,7 @@ func (zod ZohoObjectDataset) MarshalJSON() ([]byte, error) {
 	if zod.Description != nil {
 		objectMap["description"] = zod.Description
 	}
-	if zod.Structure != nil {
-		objectMap["structure"] = zod.Structure
-	}
+	objectMap["structure"] = zod.Structure
 	if zod.LinkedServiceName != nil {
 		objectMap["linkedServiceName"] = zod.LinkedServiceName
 	}
@@ -103772,15 +103081,9 @@ type ZohoSource struct {
 func (zs ZohoSource) MarshalJSON() ([]byte, error) {
 	zs.Type = TypeZohoSource
 	objectMap := make(map[string]interface{})
-	if zs.Query != nil {
-		objectMap["query"] = zs.Query
-	}
-	if zs.SourceRetryCount != nil {
-		objectMap["sourceRetryCount"] = zs.SourceRetryCount
-	}
-	if zs.SourceRetryWait != nil {
-		objectMap["sourceRetryWait"] = zs.SourceRetryWait
-	}
+	objectMap["query"] = zs.Query
+	objectMap["sourceRetryCount"] = zs.SourceRetryCount
+	objectMap["sourceRetryWait"] = zs.SourceRetryWait
 	if zs.Type != "" {
 		objectMap["type"] = zs.Type
 	}

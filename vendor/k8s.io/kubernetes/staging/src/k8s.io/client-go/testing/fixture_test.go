@@ -204,8 +204,7 @@ func TestWatchCallMultipleInvocation(t *testing.T) {
 					event := <-w.ResultChan()
 					accessor, err := meta.Accessor(event.Object)
 					if err != nil {
-						t.Errorf("unexpected error: %v", err)
-						break
+						t.Fatalf("unexpected error: %v", err)
 					}
 					assert.Equal(t, c.op, event.Type, "watch event mismatched")
 					assert.Equal(t, c.name, accessor.GetName(), "watched object mismatch")

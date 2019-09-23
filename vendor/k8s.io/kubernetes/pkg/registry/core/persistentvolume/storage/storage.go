@@ -36,7 +36,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against persistent volumes.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &api.PersistentVolume{} },
 		NewListFunc:              func() runtime.Object { return &api.PersistentVolumeList{} },
@@ -48,17 +48,17 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, error) {
 		DeleteStrategy:      persistentvolume.Strategy,
 		ReturnDeletedObject: true,
 
-		TableConvertor: printerstorage.TableConvertor{TableGenerator: printers.NewTableGenerator().With(printersinternal.AddHandlers)},
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: persistentvolume.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, nil, err
+		panic(err) // TODO: Propagate error up
 	}
 
 	statusStore := *store
 	statusStore.UpdateStrategy = persistentvolume.StatusStrategy
 
-	return &REST{store}, &StatusREST{store: &statusStore}, nil
+	return &REST{store}, &StatusREST{store: &statusStore}
 }
 
 // Implement ShortNamesProvider

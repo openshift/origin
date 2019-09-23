@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -44,16 +43,6 @@ func NewRecommendationsClientWithBaseURI(baseURI string, subscriptionID string) 
 // Generate initiates the recommendation generation or computation process for a subscription. This operation is
 // asynchronous. The generated recommendations are stored in a cache in the Advisor service.
 func (client RecommendationsClient) Generate(ctx context.Context) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.Generate")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GeneratePreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "advisor.RecommendationsClient", "Generate", nil, "Failure preparing request")
@@ -97,8 +86,8 @@ func (client RecommendationsClient) GeneratePreparer(ctx context.Context) (*http
 // GenerateSender sends the Generate request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) GenerateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GenerateResponder handles the response to the Generate request. The method always
@@ -119,16 +108,6 @@ func (client RecommendationsClient) GenerateResponder(resp *http.Response) (resu
 // recommendation applies.
 // recommendationID - the recommendation ID.
 func (client RecommendationsClient) Get(ctx context.Context, resourceURI string, recommendationID string) (result ResourceRecommendationBase, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceURI, recommendationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "advisor.RecommendationsClient", "Get", nil, "Failure preparing request")
@@ -173,8 +152,8 @@ func (client RecommendationsClient) GetPreparer(ctx context.Context, resourceURI
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -197,16 +176,6 @@ func (client RecommendationsClient) GetResponder(resp *http.Response) (result Re
 // operationID - the operation ID, which can be found from the Location field in the generate recommendation
 // response header.
 func (client RecommendationsClient) GetGenerateStatus(ctx context.Context, operationID uuid.UUID) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.GetGenerateStatus")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetGenerateStatusPreparer(ctx, operationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "advisor.RecommendationsClient", "GetGenerateStatus", nil, "Failure preparing request")
@@ -251,8 +220,8 @@ func (client RecommendationsClient) GetGenerateStatusPreparer(ctx context.Contex
 // GetGenerateStatusSender sends the GetGenerateStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) GetGenerateStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetGenerateStatusResponder handles the response to the GetGenerateStatus request. The method always
@@ -274,16 +243,6 @@ func (client RecommendationsClient) GetGenerateStatusResponder(resp *http.Respon
 // top - the number of recommendations per page if a paged version of this API is being used.
 // skipToken - the page-continuation token to use with a paged version of this API.
 func (client RecommendationsClient) List(ctx context.Context, filter string, top *int32, skipToken string) (result ResourceRecommendationBaseListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.List")
-		defer func() {
-			sc := -1
-			if result.rrblr.Response.Response != nil {
-				sc = result.rrblr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, filter, top, skipToken)
 	if err != nil {
@@ -337,8 +296,8 @@ func (client RecommendationsClient) ListPreparer(ctx context.Context, filter str
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -355,8 +314,8 @@ func (client RecommendationsClient) ListResponder(resp *http.Response) (result R
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client RecommendationsClient) listNextResults(ctx context.Context, lastResults ResourceRecommendationBaseListResult) (result ResourceRecommendationBaseListResult, err error) {
-	req, err := lastResults.resourceRecommendationBaseListResultPreparer(ctx)
+func (client RecommendationsClient) listNextResults(lastResults ResourceRecommendationBaseListResult) (result ResourceRecommendationBaseListResult, err error) {
+	req, err := lastResults.resourceRecommendationBaseListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "advisor.RecommendationsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -377,16 +336,6 @@ func (client RecommendationsClient) listNextResults(ctx context.Context, lastRes
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RecommendationsClient) ListComplete(ctx context.Context, filter string, top *int32, skipToken string) (result ResourceRecommendationBaseListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, filter, top, skipToken)
 	return
 }

@@ -23,7 +23,7 @@ go_library(
         "//staging/src/k8s.io/apiserver/pkg/authentication/authenticator:go_default_library",
         "//staging/src/k8s.io/apiserver/pkg/authentication/request/x509:go_default_library",
         "//staging/src/k8s.io/apiserver/pkg/authentication/user:go_default_library",
-        "//staging/src/k8s.io/apiserver/pkg/server/certs:go_default_library",
+        "//staging/src/k8s.io/client-go/util/cert:go_default_library",
     ],
 )
 

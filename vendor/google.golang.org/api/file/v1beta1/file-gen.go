@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2018 Google Inc. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,35 +6,13 @@
 
 // Package file provides access to the Cloud Filestore API.
 //
-// For product documentation, see: https://cloud.google.com/filestore/
-//
-// Creating a client
+// See https://cloud.google.com/filestore/
 //
 // Usage example:
 //
 //   import "google.golang.org/api/file/v1beta1"
 //   ...
-//   ctx := context.Background()
-//   fileService, err := file.NewService(ctx)
-//
-// In this example, Google Application Default Credentials are used for authentication.
-//
-// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
-//
-// Other authentication options
-//
-// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
-//
-//   fileService, err := file.NewService(ctx, option.WithAPIKey("AIza..."))
-//
-// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
-//
-//   config := &oauth2.Config{...}
-//   // ...
-//   token, err := config.Exchange(ctx, ...)
-//   fileService, err := file.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
-//
-// See https://godoc.org/google.golang.org/api/option/ for details on options.
+//   fileService, err := file.New(oauthHttpClient)
 package file // import "google.golang.org/api/file/v1beta1"
 
 import (
@@ -51,8 +29,6 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
-	option "google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -80,32 +56,6 @@ const (
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
-// NewService creates a new Service.
-func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
-	scopesOption := option.WithScopes(
-		"https://www.googleapis.com/auth/cloud-platform",
-	)
-	// NOTE: prepend, so we don't override user-specified scopes.
-	opts = append([]option.ClientOption{scopesOption}, opts...)
-	client, endpoint, err := htransport.NewClient(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	s, err := New(client)
-	if err != nil {
-		return nil, err
-	}
-	if endpoint != "" {
-		s.BasePath = endpoint
-	}
-	return s, nil
-}
-
-// New creates a new Service. It uses the provided http.Client for requests.
-//
-// Deprecated: please use NewService instead.
-// To provide a custom HTTP client, use option.WithHTTPClient.
-// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -226,538 +176,6 @@ type FileShareConfig struct {
 
 func (s *FileShareConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod FileShareConfig
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudSaasacceleratorManagementProvidersV1Instance: Instance
-// represents the interface for SLM services to actuate the state
-// of control plane resources.
-//
-// Example Instance in JSON, where
-//   consumer-project=snapchat,
-//   producer-project=cloud-sql:
-//
-// ```json
-// Instance:
-// {
-//   "name":
-//   "projects/snapchat/locations/us-east1/instances/prod-instance",
-//   "create_time": {
-//     "seconds": 1526406431,
-//   },
-//   "labels": {
-//     "env": "prod",
-//     "foo": "bar"
-//   },
-//   "state": READY,
-//   "software_versions": {
-//     "software_update": "cloud-sql-09-28-2018",
-//   },
-//   "maintenance_policy_names": {
-//     "UpdatePolicy":
-//
-// "projects/snapchat/locations/us-east1/maintenancePolicies/prod-update-
-// policy",
-//   }
-//   "rollout_metadata": {
-//
-// "projects/cloud-sql/locations/global/rolloutTypes/software_update":
-// {
-//       "release":
-//
-// "projects/cloud-sql/locations/global/releases/cloud-sql-09-28-2018",
-//       "rollout":
-//
-// "projects/cloud-sql/locations/us-east1/rollouts/cloud-sql-09-28-2018-c
-// anary",
-//     },
-//
-// "projects/cloud-sql/locations/global/rolloutTypes/instance_restart":
-// {
-//       "release":
-//
-// "projects/cloud-sql/locations/global/releases/cloud-sql-09-20-repair",
-//
-//       "rollout":
-//
-// "projects/cloud-sql/locations/us-east1/rollouts/cloud-sql-09-20-repair
-// -100-percent",
-//     }
-//   }
-//   "tenant_project_id": "cloud-sql-test-tenant",
-//   "producer_metadata": {
-//     "cloud-sql-tier": "basic",
-//     "cloud-sql-instance-size": "1G",
-//   },
-//   "provisioned_resources": [
-//     {
-//       "resource-type": "compute-instance",
-//       "resource-url":
-//
-// "https://www.googleapis.com/compute/v1/projects/cloud-sql/zones/us-eas
-// t1-b/instances/vm-1",
-//     }
-//   ],
-//   "maintenance_schedules": {
-//     "csa_rollout": {
-//        "start_time": {
-//           "seconds": 1526406431,
-//        },
-//        "end_time": {
-//           "seconds": 1535406431,
-//        },
-//     },
-//     "ncsa_rollout": {
-//        "start_time": {
-//           "seconds": 1526406431,
-//        },
-//        "end_time": {
-//           "seconds": 1535406431,
-//        },
-//     }
-//   }
-// }
-// ```
-type GoogleCloudSaasacceleratorManagementProvidersV1Instance struct {
-	// CreateTime: Output only. Timestamp when the resource was created.
-	CreateTime string `json:"createTime,omitempty"`
-
-	// Labels: Optional. Resource labels to represent user provided
-	// metadata. Each label
-	// is a key-value pair, where both the key and the value are arbitrary
-	// strings
-	// provided by the user.
-	Labels map[string]string `json:"labels,omitempty"`
-
-	// MaintenancePolicyNames: The MaintenancePolicies that have been
-	// attached to the instance.
-	// The key must be of the type name of the oneof policy name defined
-	// in
-	// MaintenancePolicy, and the referenced policy must define the same
-	// policy
-	// type. For complete details of MaintenancePolicy, please refer
-	// to
-	// go/cloud-saas-mw-ug.
-	MaintenancePolicyNames map[string]string `json:"maintenancePolicyNames,omitempty"`
-
-	// MaintenanceSchedules: The MaintenanceSchedule contains the scheduling
-	// information of published
-	// maintenance schedule.
-	MaintenanceSchedules map[string]GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSchedule `json:"maintenanceSchedules,omitempty"`
-
-	// Name: Unique name of the resource. It uses the form:
-	//
-	// `projects/{project_id}/locations/{location_id}/instances/{instance_id}
-	// `
-	Name string `json:"name,omitempty"`
-
-	// ProducerMetadata: Output only. Custom string attributes used
-	// primarily to expose
-	// producer-specific information in monitoring dashboards.
-	// See go/get-instance-metadata.
-	ProducerMetadata map[string]string `json:"producerMetadata,omitempty"`
-
-	// ProvisionedResources: Output only. The list of data plane resources
-	// provisioned for this
-	// instance, e.g. compute VMs. See go/get-instance-metadata.
-	ProvisionedResources []*GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource `json:"provisionedResources,omitempty"`
-
-	// RolloutMetadata: The map between RolloutType and the corresponding
-	// RolloutMetadata.
-	// This is only mutated by rollout service. For actuation
-	// implementation,
-	// this information is pass-through for Rollout management. Producer
-	// shall
-	// not modify by itself.
-	// For update of a single entry in this map, the update field mask
-	// shall
-	// follow this sementics: go/advanced-field-masks
-	RolloutMetadata map[string]GoogleCloudSaasacceleratorManagementProvidersV1RolloutMetadata `json:"rolloutMetadata,omitempty"`
-
-	// SloMetadata: Output only. SLO metadata for instance classification in
-	// the
-	// Standardized dataplane SLO platform.
-	// See go/cloud-ssa-standard-slo for feature description.
-	SloMetadata *GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata `json:"sloMetadata,omitempty"`
-
-	// SoftwareVersions: Software versions that are used to deploy this
-	// instance. This can be
-	// mutated by rollout services.
-	SoftwareVersions map[string]string `json:"softwareVersions,omitempty"`
-
-	// State: Output only. Current lifecycle state of the resource (e.g. if
-	// it's being
-	// created or ready to use).
-	//
-	// Possible values:
-	//   "STATE_UNSPECIFIED" - Unspecified state.
-	//   "CREATING" - Instance is being created.
-	//   "READY" - Instance has been created and is ready to use.
-	//   "UPDATING" - Instance is being updated.
-	//   "REPAIRING" - Instance is unheathy and under repair.
-	//   "DELETING" - Instance is being deleted.
-	State string `json:"state,omitempty"`
-
-	// TenantProjectId: Output only. ID of the associated GCP tenant
-	// project.
-	// See go/get-instance-metadata.
-	TenantProjectId string `json:"tenantProjectId,omitempty"`
-
-	// UpdateTime: Output only. Timestamp when the resource was last
-	// modified.
-	UpdateTime string `json:"updateTime,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "CreateTime") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "CreateTime") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudSaasacceleratorManagementProvidersV1Instance) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudSaasacceleratorManagementProvidersV1Instance
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSchedule:
-// Maintenance schedule which is exposed to customer and potentially end
-// user,
-// indicating published upcoming future maintenance schedule
-type GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSchedule struct {
-	// EndTime: The scheduled end time for the maintenance.
-	EndTime string `json:"endTime,omitempty"`
-
-	// StartTime: The scheduled start time for the maintenance.
-	StartTime string `json:"startTime,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "EndTime") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "EndTime") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSchedule) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSchedule
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudSaasacceleratorManagementProvidersV1NodeSloMetadata: Node
-// information for custom per-node SLO implementations.
-// SSA does not support per-node SLO, but producers can populate
-// per-node
-// information in SloMetadata for custom precomputations.
-// SSA Eligibility Exporter will emit per-node metric based on this
-// information.
-type GoogleCloudSaasacceleratorManagementProvidersV1NodeSloMetadata struct {
-	// Exclusions: By default node is eligible if instance is eligible.
-	// But individual node might be excluded from SLO by adding entry
-	// here.
-	// For semantic see SloMetadata.exclusions.
-	// If both instance and node level exclusions are present for time
-	// period,
-	// the node level's reason will be reported by Eligibility Exporter.
-	Exclusions []*GoogleCloudSaasacceleratorManagementProvidersV1SloExclusion `json:"exclusions,omitempty"`
-
-	// NodeId: The id of the node.
-	// This should be equal to SaasInstanceNode.node_id.
-	NodeId string `json:"nodeId,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Exclusions") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Exclusions") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudSaasacceleratorManagementProvidersV1NodeSloMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudSaasacceleratorManagementProvidersV1NodeSloMetadata
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudSaasacceleratorManagementProvidersV1NotificationMetadata:
-// NotificationMetadata is the notification state for an instance.
-type GoogleCloudSaasacceleratorManagementProvidersV1NotificationMetadata struct {
-	// Rescheduled: Whether the instance update has been rescheduled.
-	Rescheduled bool `json:"rescheduled,omitempty"`
-
-	// ScheduledEndTime: The scheduled end time for the maintenance window
-	// during which update
-	// can be performed on the instance.
-	ScheduledEndTime string `json:"scheduledEndTime,omitempty"`
-
-	// ScheduledStartTime: The scheduled start time for the maintenance
-	// window during which
-	// update can be performed on the instance.
-	ScheduledStartTime string `json:"scheduledStartTime,omitempty"`
-
-	// TargetRelease: The target release to be applied to the instance.
-	TargetRelease string `json:"targetRelease,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Rescheduled") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Rescheduled") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudSaasacceleratorManagementProvidersV1NotificationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudSaasacceleratorManagementProvidersV1NotificationMetadata
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource:
-// Describes provisioned dataplane resources.
-type GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource struct {
-	// ResourceType: Type of the resource. This can be either a GCP resource
-	// or a custom one
-	// (e.g. another cloud provider's VM). For GCP compute resources use
-	// singular
-	// form of the names listed in GCP compute API
-	// documentation
-	// (https://cloud.google.com/compute/docs/reference/rest/v1
-	// /), prefixed with
-	// 'compute-', for example: 'compute-instance',
-	// 'compute-disk',
-	// 'compute-autoscaler'.
-	ResourceType string `json:"resourceType,omitempty"`
-
-	// ResourceUrl: URL identifying the resource,
-	// e.g.
-	// "https://www.googleapis.com/compute/v1/projects/...)".
-	ResourceUrl string `json:"resourceUrl,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "ResourceType") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "ResourceType") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudSaasacceleratorManagementProvidersV1RolloutMetadata:
-// RolloutMetadata for an actuation instance. It maps to a single
-// RolloutType.
-type GoogleCloudSaasacceleratorManagementProvidersV1RolloutMetadata struct {
-	// Notification: Instance level notification metadata.
-	Notification *GoogleCloudSaasacceleratorManagementProvidersV1NotificationMetadata `json:"notification,omitempty"`
-
-	// ReleaseName: The last Release that has been applied to the instance.
-	ReleaseName string `json:"releaseName,omitempty"`
-
-	// RolloutName: The last rollout that has been applied to the instance.
-	RolloutName string `json:"rolloutName,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Notification") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Notification") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudSaasacceleratorManagementProvidersV1RolloutMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudSaasacceleratorManagementProvidersV1RolloutMetadata
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudSaasacceleratorManagementProvidersV1SloExclusion:
-// SloExclusion represents an excusion in SLI calculation applies to all
-// SLOs.
-type GoogleCloudSaasacceleratorManagementProvidersV1SloExclusion struct {
-	// ExclusionDuration: Exclusion duration. No restrictions on the
-	// possible values.
-	//
-	// When an ongoing operation is taking longer than initially
-	// expected,
-	// an existing entry in the exclusion list can be updated by extending
-	// the
-	// duration. This is supported by the subsystem exporting eligibility
-	// data
-	// as long as such extension is committed at least 10 minutes before
-	// the
-	// original exclusion expiration - otherwise it is possible that there
-	// will
-	// be "gaps" in the exclusion application in the exported timeseries.
-	ExclusionDuration string `json:"exclusionDuration,omitempty"`
-
-	// ExclusionStartTime: Start time of the exclusion. No alignment (e.g.
-	// to a full minute) needed.
-	ExclusionStartTime string `json:"exclusionStartTime,omitempty"`
-
-	// Reason: Human-readable reason for the exclusion.
-	// This should be a static string (e.g. "Disruptive update in
-	// progress")
-	// and should not contain dynamically generated data (e.g. instance
-	// name).
-	// Can be left empty.
-	Reason string `json:"reason,omitempty"`
-
-	// SliName: Name of an SLI that this exclusion applies to. Can be left
-	// empty,
-	// signaling that the instance should be excluded from all SLIs
-	// defined
-	// in the service SLO configuration.
-	SliName string `json:"sliName,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "ExclusionDuration")
-	// to unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "ExclusionDuration") to
-	// include in API requests with the JSON null value. By default, fields
-	// with empty values are omitted from API requests. However, any field
-	// with an empty value appearing in NullFields will be sent to the
-	// server as null. It is an error if a field in this list has a
-	// non-empty value. This may be used to include null fields in Patch
-	// requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudSaasacceleratorManagementProvidersV1SloExclusion) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudSaasacceleratorManagementProvidersV1SloExclusion
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata:
-// SloMetadata contains resources required for proper SLO classification
-// of the
-// instance.
-type GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata struct {
-	// Exclusions: List of SLO exclusion windows. When multiple entries in
-	// the list match
-	// (matching the exclusion time-window against current time point)
-	// the exclusion reason used in the first matching entry will be
-	// published.
-	//
-	// It is not needed to include expired exclusion in this list, as only
-	// the
-	// currently applicable exclusions are taken into account by the
-	// eligibility
-	// exporting subsystem (the historical state of exclusions will be
-	// reflected
-	// in the historically produced timeseries regardless of the current
-	// state).
-	//
-	// This field can be used to mark the instance as temporary
-	// ineligible
-	// for the purpose of SLO calculation. For permanent instance SLO
-	// exclusion,
-	// a dedicated tier name can be used that does not have targets
-	// specified
-	// in the service SLO configuration.
-	Exclusions []*GoogleCloudSaasacceleratorManagementProvidersV1SloExclusion `json:"exclusions,omitempty"`
-
-	// Nodes: Optional: list of nodes.
-	// Some producers need to use per-node metadata to calculate SLO.
-	// This field allows such producers to publish per-node SLO meta
-	// data,
-	// which will be consumed by SSA Eligibility Exporter and published in
-	// the
-	// form of per node metric to Monarch.
-	Nodes []*GoogleCloudSaasacceleratorManagementProvidersV1NodeSloMetadata `json:"nodes,omitempty"`
-
-	// Tier: Name of the SLO tier the Instance belongs to. This name will be
-	// expected to
-	// match the tiers specified in the service SLO configuration.
-	//
-	// Field is mandatory and must not be empty.
-	Tier string `json:"tier,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Exclusions") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Exclusions") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1036,8 +454,7 @@ type NetworkConfig struct {
 	// IPv4 addresses in the format
 	// {octet 1}.{octet 2}.{octet 3}.{octet 4} or IPv6 addresses in the
 	// format
-	// {block 1}:{block 2}:{block 3}:{block 4}:{block 5}:{block
-	// 6}:{block
+	// {block 1}:{block 2}:{block 3}:{block 4}:{block 5}:{block 6}:{block
 	// 7}:{block 8}.
 	IpAddresses []string `json:"ipAddresses,omitempty"`
 
@@ -1057,17 +474,14 @@ type NetworkConfig struct {
 	Network string `json:"network,omitempty"`
 
 	// ReservedIpRange: A /29 CIDR block in one of the
-	// [internal IP
-	// address
+	// [internal IP address
 	// ranges](https://www.arin.net/knowledge/address_filters.html)
-	// that
-	// identifies the range of IP addresses reserved for this instance.
-	// For
-	// example, 10.0.0.0/29 or 192.168.0.0/29. The range you specify can't
-	// overlap
-	// with either existing subnets or assigned IP address ranges for other
-	// Cloud
-	// Filestore instances in the selected VPC network.
+	// that identifies the range of IP addresses reserved for this
+	// instance. For example, 10.0.0.0/29 or 192.168.0.0/29. The range you
+	// specify
+	// can't overlap with either existing subnets or assigned IP address
+	// ranges
+	// for other Cloud Filestore instances in the selected VPC network.
 	ReservedIpRange string `json:"reservedIpRange,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "IpAddresses") to
@@ -1121,8 +535,7 @@ type Operation struct {
 	// service that
 	// originally returns it. If you use the default HTTP mapping,
 	// the
-	// `name` should be a resource name ending with
-	// `operations/{unique_id}`.
+	// `name` should have the format of `operations/some/unique/name`.
 	Name string `json:"name,omitempty"`
 
 	// Response: The normal response of the operation in case of success.
@@ -1225,20 +638,20 @@ func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
 }
 
 // Status: The `Status` type defines a logical error model that is
-// suitable for
-// different programming environments, including REST APIs and RPC APIs.
-// It is
-// used by [gRPC](https://github.com/grpc). The error model is designed
-// to be:
+// suitable for different
+// programming environments, including REST APIs and RPC APIs. It is
+// used by
+// [gRPC](https://github.com/grpc). The error model is designed to
+// be:
 //
 // - Simple to use and understand for most users
 // - Flexible enough to meet unexpected needs
 //
 // # Overview
 //
-// The `Status` message contains three pieces of data: error code,
-// error
-// message, and error details. The error code should be an enum value
+// The `Status` message contains three pieces of data: error code, error
+// message,
+// and error details. The error code should be an enum value
 // of
 // google.rpc.Code, but it may accept additional error codes if needed.
 // The

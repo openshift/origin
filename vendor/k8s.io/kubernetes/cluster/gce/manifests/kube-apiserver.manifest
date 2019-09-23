@@ -5,6 +5,7 @@
   "name":"kube-apiserver",
   "namespace": "kube-system",
   "annotations": {
+    "scheduler.alpha.kubernetes.io/critical-pod": "",
     "seccomp.security.alpha.kubernetes.io/pod": "docker/default"
   },
   "labels": {
@@ -13,12 +14,11 @@
   }
 },
 "spec":{
-"priorityClass": "system-node-critical",
 "hostNetwork": true,
 "containers":[
     {
     "name": "kube-apiserver",
-    "image": "{{pillar['kube_docker_registry']}}/kube-apiserver-amd64:{{pillar['kube-apiserver_docker_tag']}}",
+    "image": "{{pillar['kube_docker_registry']}}/kube-apiserver:{{pillar['kube-apiserver_docker_tag']}}",
     "resources": {
       "requests": {
         "cpu": "250m"
@@ -32,9 +32,8 @@
     {{container_env}}
     "livenessProbe": {
       "httpGet": {
-        "scheme": "HTTPS",
         "host": "127.0.0.1",
-        "port": {{secure_port}},
+        "port": 8080,
         "path": "/healthz?exclude=etcd"
       },
       "initialDelaySeconds": {{liveness_probe_initial_delay}},
@@ -42,20 +41,21 @@
     },
     "readinessProbe": {
       "httpGet": {
-        "scheme": "HTTPS",
         "host": "127.0.0.1",
-        "port": {{secure_port}},
+        "port": 8080,
         "path": "/healthz"
       },
       "periodSeconds": 1,
       "timeoutSeconds": 15
     },
     "ports":[
-      {{insecure_port_mapping}}
       { "name": "https",
-      "containerPort": {{secure_port}},
-      "hostPort": {{secure_port}}}
-    ],
+        "containerPort": {{secure_port}},
+        "hostPort": {{secure_port}}},{
+       "name": "local",
+        "containerPort": 8080,
+        "hostPort": 8080}
+        ],
     "volumeMounts": [
         {{kms_socket_mount}}
         {{encryption_provider_mount}}
@@ -63,10 +63,10 @@
         {{additional_cloud_config_mount}}
         {{webhook_config_mount}}
         {{webhook_authn_config_mount}}
-        {{csc_config_mount}}
         {{audit_policy_config_mount}}
         {{audit_webhook_config_mount}}
-	{{webhook_exec_auth_plugin_mount}}
+        {{admission_controller_config_mount}}
+        {{image_policy_webhook_config_mount}}
         { "name": "srvkube",
         "mountPath": "/etc/srv/kubernetes",
         "readOnly": true},
@@ -104,10 +104,10 @@
   {{additional_cloud_config_volume}}
   {{webhook_config_volume}}
   {{webhook_authn_config_volume}}
-  {{csc_config_volume}}
   {{audit_policy_config_volume}}
   {{audit_webhook_config_volume}}
-  {{webhook_exec_auth_plugin_volume}}
+  {{admission_controller_config_volume}}
+  {{image_policy_webhook_config_volume}}
   { "name": "srvkube",
     "hostPath": {
         "path": "/etc/srv/kubernetes"}

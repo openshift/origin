@@ -11,29 +11,6 @@ import (
 	"gonum.org/v1/gonum/lapack/lapack64"
 )
 
-// GSVDKind specifies the treatment of singular vectors during a GSVD
-// factorization.
-type GSVDKind int
-
-const (
-	// GSVDNone specifies that no singular vectors should be computed during
-	// the decomposition.
-	GSVDNone GSVDKind = 0
-
-	// GSVDU specifies that the U singular vectors should be computed during
-	// the decomposition.
-	GSVDU GSVDKind = 1 << iota
-	// GSVDV specifies that the V singular vectors should be computed during
-	// the decomposition.
-	GSVDV
-	// GSVDQ specifies that the Q singular vectors should be computed during
-	// the decomposition.
-	GSVDQ
-
-	// GSVDAll is a convenience value for computing all of the singular vectors.
-	GSVDAll = GSVDU | GSVDV | GSVDQ
-)
-
 // GSVD is a type for creating and using the Generalized Singular Value Decomposition
 // (GSVD) of a matrix.
 //
@@ -51,17 +28,12 @@ type GSVD struct {
 	iwork []int
 }
 
-// succFact returns whether the receiver contains a successful factorization.
-func (gsvd *GSVD) succFact() bool {
-	return gsvd.r != 0
-}
-
 // Factorize computes the generalized singular value decomposition (GSVD) of the input
 // the r×c matrix A and the p×c matrix B. The singular values of A and B are computed
 // in all cases, while the singular vectors are optionally computed depending on the
 // input kind.
 //
-// The full singular value decomposition (kind == GSVDAll) deconstructs A and B as
+// The full singular value decomposition (kind == GSVDU|GSVDV|GSVDQ) deconstructs A and B as
 //  A = U * Σ₁ * [ 0 R ] * Q^T
 //
 //  B = V * Σ₂ * [ 0 R ] * Q^T
@@ -77,10 +49,6 @@ func (gsvd *GSVD) succFact() bool {
 // Factorize returns whether the decomposition succeeded. If the decomposition
 // failed, routines that require a successful factorization will panic.
 func (gsvd *GSVD) Factorize(a, b Matrix, kind GSVDKind) (ok bool) {
-	// kill the previous decomposition
-	gsvd.r = 0
-	gsvd.kind = 0
-
 	r, c := a.Dims()
 	gsvd.r, gsvd.c = r, c
 	p, c := b.Dims()
@@ -96,7 +64,7 @@ func (gsvd *GSVD) Factorize(a, b Matrix, kind GSVDKind) (ok bool) {
 		jobU = lapack.GSVDNone
 		jobV = lapack.GSVDNone
 		jobQ = lapack.GSVDNone
-	case GSVDAll&kind != 0:
+	case (GSVDU|GSVDV|GSVDQ)&kind != 0:
 		if GSVDU&kind != 0 {
 			jobU = lapack.GSVDU
 			gsvd.u = blas64.General{
@@ -147,12 +115,9 @@ func (gsvd *GSVD) Factorize(a, b Matrix, kind GSVDKind) (ok bool) {
 	return ok
 }
 
-// Kind returns the GSVDKind of the decomposition. If no decomposition has been
-// computed, Kind returns -1.
+// Kind returns the matrix.GSVDKind of the decomposition. If no decomposition has been
+// computed, Kind returns 0.
 func (gsvd *GSVD) Kind() GSVDKind {
-	if !gsvd.succFact() {
-		return -1
-	}
 	return gsvd.kind
 }
 
@@ -169,8 +134,8 @@ func (gsvd *GSVD) Rank() (k, l int) {
 //
 // GeneralizedValues will panic if the receiver does not contain a successful factorization.
 func (gsvd *GSVD) GeneralizedValues(v []float64) []float64 {
-	if !gsvd.succFact() {
-		panic(badFact)
+	if gsvd.kind == 0 {
+		panic("gsvd: no decomposition computed")
 	}
 	r := gsvd.r
 	c := gsvd.c
@@ -194,8 +159,8 @@ func (gsvd *GSVD) GeneralizedValues(v []float64) []float64 {
 //
 // ValuesA will panic if the receiver does not contain a successful factorization.
 func (gsvd *GSVD) ValuesA(s []float64) []float64 {
-	if !gsvd.succFact() {
-		panic(badFact)
+	if gsvd.kind == 0 {
+		panic("gsvd: no decomposition computed")
 	}
 	r := gsvd.r
 	c := gsvd.c
@@ -219,8 +184,8 @@ func (gsvd *GSVD) ValuesA(s []float64) []float64 {
 //
 // ValuesB will panic if the receiver does not contain a successful factorization.
 func (gsvd *GSVD) ValuesB(s []float64) []float64 {
-	if !gsvd.succFact() {
-		panic(badFact)
+	if gsvd.kind == 0 {
+		panic("gsvd: no decomposition computed")
 	}
 	r := gsvd.r
 	c := gsvd.c
@@ -242,8 +207,8 @@ func (gsvd *GSVD) ValuesB(s []float64) []float64 {
 //
 // ZeroRTo will panic if the receiver does not contain a successful factorization.
 func (gsvd *GSVD) ZeroRTo(dst *Dense) *Dense {
-	if !gsvd.succFact() {
-		panic(badFact)
+	if gsvd.kind == 0 {
+		panic("gsvd: no decomposition computed")
 	}
 	r := gsvd.r
 	c := gsvd.c
@@ -280,8 +245,8 @@ func (gsvd *GSVD) ZeroRTo(dst *Dense) *Dense {
 //
 // SigmaATo will panic if the receiver does not contain a successful factorization.
 func (gsvd *GSVD) SigmaATo(dst *Dense) *Dense {
-	if !gsvd.succFact() {
-		panic(badFact)
+	if gsvd.kind == 0 {
+		panic("gsvd: no decomposition computed")
 	}
 	r := gsvd.r
 	k := gsvd.k
@@ -306,8 +271,8 @@ func (gsvd *GSVD) SigmaATo(dst *Dense) *Dense {
 //
 // SigmaBTo will panic if the receiver does not contain a successful factorization.
 func (gsvd *GSVD) SigmaBTo(dst *Dense) *Dense {
-	if !gsvd.succFact() {
-		panic(badFact)
+	if gsvd.kind == 0 {
+		panic("gsvd: no decomposition computed")
 	}
 	r := gsvd.r
 	p := gsvd.p
@@ -333,9 +298,6 @@ func (gsvd *GSVD) SigmaBTo(dst *Dense) *Dense {
 //
 // UTo will panic if the receiver does not contain a successful factorization.
 func (gsvd *GSVD) UTo(dst *Dense) *Dense {
-	if !gsvd.succFact() {
-		panic(badFact)
-	}
 	if gsvd.kind&GSVDU == 0 {
 		panic("mat: improper GSVD kind")
 	}
@@ -362,9 +324,6 @@ func (gsvd *GSVD) UTo(dst *Dense) *Dense {
 //
 // VTo will panic if the receiver does not contain a successful factorization.
 func (gsvd *GSVD) VTo(dst *Dense) *Dense {
-	if !gsvd.succFact() {
-		panic(badFact)
-	}
 	if gsvd.kind&GSVDV == 0 {
 		panic("mat: improper GSVD kind")
 	}
@@ -391,9 +350,6 @@ func (gsvd *GSVD) VTo(dst *Dense) *Dense {
 //
 // QTo will panic if the receiver does not contain a successful factorization.
 func (gsvd *GSVD) QTo(dst *Dense) *Dense {
-	if !gsvd.succFact() {
-		panic(badFact)
-	}
 	if gsvd.kind&GSVDQ == 0 {
 		panic("mat: improper GSVD kind")
 	}

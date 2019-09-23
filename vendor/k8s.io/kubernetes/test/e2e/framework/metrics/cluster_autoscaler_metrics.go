@@ -16,7 +16,7 @@ limitations under the License.
 
 package metrics
 
-// ClusterAutoscalerMetrics is metrics for cluster autoscaler
+// ClusterAutoscalerMetrics is metrics for cluster autoscaller
 type ClusterAutoscalerMetrics Metrics
 
 // Equal returns true if all metrics are the same as the arguments.

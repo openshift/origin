@@ -18,19 +18,14 @@ package media
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/mediaservices/mgmt/2018-07-01/media"
 
 // AacAudioProfile enumerates the values for aac audio profile.
 type AacAudioProfile string
@@ -47,21 +42,6 @@ const (
 // PossibleAacAudioProfileValues returns an array of possible values for the AacAudioProfile const type.
 func PossibleAacAudioProfileValues() []AacAudioProfile {
 	return []AacAudioProfile{AacLc, HeAacV1, HeAacV2}
-}
-
-// AnalysisResolution enumerates the values for analysis resolution.
-type AnalysisResolution string
-
-const (
-	// SourceResolution ...
-	SourceResolution AnalysisResolution = "SourceResolution"
-	// StandardDefinition ...
-	StandardDefinition AnalysisResolution = "StandardDefinition"
-)
-
-// PossibleAnalysisResolutionValues returns an array of possible values for the AnalysisResolution const type.
-func PossibleAnalysisResolutionValues() []AnalysisResolution {
-	return []AnalysisResolution{SourceResolution, StandardDefinition}
 }
 
 // AssetContainerPermission enumerates the values for asset container permission.
@@ -240,14 +220,9 @@ const (
 	// AdaptiveStreaming Produces a set of GOP aligned MP4 files with H.264 video and stereo AAC audio.
 	// Auto-generates a bitrate ladder based on the input resolution and bitrate. The auto-generated preset
 	// will never exceed the input resolution and bitrate. For example, if the input is 720p at 3 Mbps, output
-	// will remain 720p at best, and will start at rates lower than 3 Mbps. The output will have video and
+	// will remain 720p at best, and will start at rates lower than 3 Mbps. The output will will have video and
 	// audio in separate MP4 files, which is optimal for adaptive streaming.
 	AdaptiveStreaming EncoderNamedPreset = "AdaptiveStreaming"
-	// ContentAwareEncodingExperimental Exposes an experimental preset for content-aware encoding. Given any
-	// input content, the service attempts to automatically determine the optimal number of layers, appropriate
-	// bitrate and resolution settings for delivery by adaptive streaming. The underlying algorithms will
-	// continue to evolve over time. The output will contain MP4 files with video and audio interleaved.
-	ContentAwareEncodingExperimental EncoderNamedPreset = "ContentAwareEncodingExperimental"
 	// H264MultipleBitrate1080p Produces a set of 8 GOP-aligned MP4 files, ranging from 6000 kbps to 400 kbps,
 	// and stereo AAC audio. Resolution starts at 1080p and goes down to 360p.
 	H264MultipleBitrate1080p EncoderNamedPreset = "H264MultipleBitrate1080p"
@@ -270,7 +245,7 @@ const (
 
 // PossibleEncoderNamedPresetValues returns an array of possible values for the EncoderNamedPreset const type.
 func PossibleEncoderNamedPresetValues() []EncoderNamedPreset {
-	return []EncoderNamedPreset{AACGoodQualityAudio, AdaptiveStreaming, ContentAwareEncodingExperimental, H264MultipleBitrate1080p, H264MultipleBitrate720p, H264MultipleBitrateSD, H264SingleBitrate1080p, H264SingleBitrate720p, H264SingleBitrateSD}
+	return []EncoderNamedPreset{AACGoodQualityAudio, AdaptiveStreaming, H264MultipleBitrate1080p, H264MultipleBitrate720p, H264MultipleBitrateSD, H264SingleBitrate1080p, H264SingleBitrate720p, H264SingleBitrateSD}
 }
 
 // EncryptionScheme enumerates the values for encryption scheme.
@@ -514,15 +489,11 @@ const (
 	LiveEventEncodingTypeBasic LiveEventEncodingType = "Basic"
 	// LiveEventEncodingTypeNone ...
 	LiveEventEncodingTypeNone LiveEventEncodingType = "None"
-	// LiveEventEncodingTypePremium1080p ...
-	LiveEventEncodingTypePremium1080p LiveEventEncodingType = "Premium1080p"
-	// LiveEventEncodingTypeStandard ...
-	LiveEventEncodingTypeStandard LiveEventEncodingType = "Standard"
 )
 
 // PossibleLiveEventEncodingTypeValues returns an array of possible values for the LiveEventEncodingType const type.
 func PossibleLiveEventEncodingTypeValues() []LiveEventEncodingType {
-	return []LiveEventEncodingType{LiveEventEncodingTypeBasic, LiveEventEncodingTypeNone, LiveEventEncodingTypePremium1080p, LiveEventEncodingTypeStandard}
+	return []LiveEventEncodingType{LiveEventEncodingTypeBasic, LiveEventEncodingTypeNone}
 }
 
 // LiveEventInputProtocol enumerates the values for live event input protocol.
@@ -627,21 +598,6 @@ const (
 // PossibleOdataTypeValues returns an array of possible values for the OdataType const type.
 func PossibleOdataTypeValues() []OdataType {
 	return []OdataType{OdataTypeContentKeyPolicyPlayReadyContentKeyLocation, OdataTypeMicrosoftMediaContentKeyPolicyPlayReadyContentEncryptionKeyFromHeader, OdataTypeMicrosoftMediaContentKeyPolicyPlayReadyContentEncryptionKeyFromKeyIdentifier}
-}
-
-// OdataTypeBasicClipTime enumerates the values for odata type basic clip time.
-type OdataTypeBasicClipTime string
-
-const (
-	// OdataTypeClipTime ...
-	OdataTypeClipTime OdataTypeBasicClipTime = "ClipTime"
-	// OdataTypeMicrosoftMediaAbsoluteClipTime ...
-	OdataTypeMicrosoftMediaAbsoluteClipTime OdataTypeBasicClipTime = "#Microsoft.Media.AbsoluteClipTime"
-)
-
-// PossibleOdataTypeBasicClipTimeValues returns an array of possible values for the OdataTypeBasicClipTime const type.
-func PossibleOdataTypeBasicClipTimeValues() []OdataTypeBasicClipTime {
-	return []OdataTypeBasicClipTime{OdataTypeClipTime, OdataTypeMicrosoftMediaAbsoluteClipTime}
 }
 
 // OdataTypeBasicCodec enumerates the values for odata type basic codec.
@@ -846,8 +802,6 @@ const (
 	OdataTypeMicrosoftMediaAudioAnalyzerPreset OdataTypeBasicPreset = "#Microsoft.Media.AudioAnalyzerPreset"
 	// OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset ...
 	OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset OdataTypeBasicPreset = "#Microsoft.Media.BuiltInStandardEncoderPreset"
-	// OdataTypeMicrosoftMediaFaceDetectorPreset ...
-	OdataTypeMicrosoftMediaFaceDetectorPreset OdataTypeBasicPreset = "#Microsoft.Media.FaceDetectorPreset"
 	// OdataTypeMicrosoftMediaStandardEncoderPreset ...
 	OdataTypeMicrosoftMediaStandardEncoderPreset OdataTypeBasicPreset = "#Microsoft.Media.StandardEncoderPreset"
 	// OdataTypeMicrosoftMediaVideoAnalyzerPreset ...
@@ -858,7 +812,7 @@ const (
 
 // PossibleOdataTypeBasicPresetValues returns an array of possible values for the OdataTypeBasicPreset const type.
 func PossibleOdataTypeBasicPresetValues() []OdataTypeBasicPreset {
-	return []OdataTypeBasicPreset{OdataTypeMicrosoftMediaAudioAnalyzerPreset, OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset, OdataTypeMicrosoftMediaFaceDetectorPreset, OdataTypeMicrosoftMediaStandardEncoderPreset, OdataTypeMicrosoftMediaVideoAnalyzerPreset, OdataTypePreset}
+	return []OdataTypeBasicPreset{OdataTypeMicrosoftMediaAudioAnalyzerPreset, OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset, OdataTypeMicrosoftMediaStandardEncoderPreset, OdataTypeMicrosoftMediaVideoAnalyzerPreset, OdataTypePreset}
 }
 
 // OnErrorType enumerates the values for on error type.
@@ -1174,53 +1128,15 @@ func (aa AacAudio) AsBasicCodec() (BasicCodec, bool) {
 	return &aa, true
 }
 
-// AbsoluteClipTime specifies the clip time as an absolute time position in the media file.  The absolute
-// time can point to a different position depending on whether the media file starts from a timestamp of
-// zero or not.
-type AbsoluteClipTime struct {
-	// Time - The time position on the timeline of the input media. It is usually specified as an ISO8601 period. e.g PT30S for 30 seconds.
-	Time *string `json:"time,omitempty"`
-	// OdataType - Possible values include: 'OdataTypeClipTime', 'OdataTypeMicrosoftMediaAbsoluteClipTime'
-	OdataType OdataTypeBasicClipTime `json:"@odata.type,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for AbsoluteClipTime.
-func (act AbsoluteClipTime) MarshalJSON() ([]byte, error) {
-	act.OdataType = OdataTypeMicrosoftMediaAbsoluteClipTime
-	objectMap := make(map[string]interface{})
-	if act.Time != nil {
-		objectMap["time"] = act.Time
-	}
-	if act.OdataType != "" {
-		objectMap["@odata.type"] = act.OdataType
-	}
-	return json.Marshal(objectMap)
-}
-
-// AsAbsoluteClipTime is the BasicClipTime implementation for AbsoluteClipTime.
-func (act AbsoluteClipTime) AsAbsoluteClipTime() (*AbsoluteClipTime, bool) {
-	return &act, true
-}
-
-// AsClipTime is the BasicClipTime implementation for AbsoluteClipTime.
-func (act AbsoluteClipTime) AsClipTime() (*ClipTime, bool) {
-	return nil, false
-}
-
-// AsBasicClipTime is the BasicClipTime implementation for AbsoluteClipTime.
-func (act AbsoluteClipTime) AsBasicClipTime() (BasicClipTime, bool) {
-	return &act, true
-}
-
 // AccountFilter an Account Filter.
 type AccountFilter struct {
 	autorest.Response `json:"-"`
 	*FilterProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1229,6 +1145,15 @@ func (af AccountFilter) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if af.FilterProperties != nil {
 		objectMap["properties"] = af.FilterProperties
+	}
+	if af.ID != nil {
+		objectMap["id"] = af.ID
+	}
+	if af.Name != nil {
+		objectMap["name"] = af.Name
+	}
+	if af.Type != nil {
+		objectMap["type"] = af.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1299,37 +1224,20 @@ type AccountFilterCollectionIterator struct {
 	page AccountFilterCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AccountFilterCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountFilterCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AccountFilterCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AccountFilterCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1351,11 +1259,6 @@ func (iter AccountFilterCollectionIterator) Value() AccountFilter {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AccountFilterCollectionIterator type.
-func NewAccountFilterCollectionIterator(page AccountFilterCollectionPage) AccountFilterCollectionIterator {
-	return AccountFilterCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (afc AccountFilterCollection) IsEmpty() bool {
 	return afc.Value == nil || len(*afc.Value) == 0
@@ -1363,11 +1266,11 @@ func (afc AccountFilterCollection) IsEmpty() bool {
 
 // accountFilterCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (afc AccountFilterCollection) accountFilterCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (afc AccountFilterCollection) accountFilterCollectionPreparer() (*http.Request, error) {
 	if afc.OdataNextLink == nil || len(to.String(afc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(afc.OdataNextLink)))
@@ -1375,36 +1278,19 @@ func (afc AccountFilterCollection) accountFilterCollectionPreparer(ctx context.C
 
 // AccountFilterCollectionPage contains a page of AccountFilter values.
 type AccountFilterCollectionPage struct {
-	fn  func(context.Context, AccountFilterCollection) (AccountFilterCollection, error)
+	fn  func(AccountFilterCollection) (AccountFilterCollection, error)
 	afc AccountFilterCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AccountFilterCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountFilterCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.afc)
+func (page *AccountFilterCollectionPage) Next() error {
+	next, err := page.fn(page.afc)
 	if err != nil {
 		return err
 	}
 	page.afc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AccountFilterCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1423,11 +1309,6 @@ func (page AccountFilterCollectionPage) Values() []AccountFilter {
 		return nil
 	}
 	return *page.afc.Value
-}
-
-// Creates a new instance of the AccountFilterCollectionPage type.
-func NewAccountFilterCollectionPage(getNextPage func(context.Context, AccountFilterCollection) (AccountFilterCollection, error)) AccountFilterCollectionPage {
-	return AccountFilterCollectionPage{fn: getNextPage}
 }
 
 // AkamaiAccessControl akamai access control
@@ -1457,11 +1338,11 @@ type Asset struct {
 	autorest.Response `json:"-"`
 	// AssetProperties - The resource properties.
 	*AssetProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1470,6 +1351,15 @@ func (a Asset) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if a.AssetProperties != nil {
 		objectMap["properties"] = a.AssetProperties
+	}
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1540,37 +1430,20 @@ type AssetCollectionIterator struct {
 	page AssetCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AssetCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AssetCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AssetCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AssetCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1592,11 +1465,6 @@ func (iter AssetCollectionIterator) Value() Asset {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AssetCollectionIterator type.
-func NewAssetCollectionIterator(page AssetCollectionPage) AssetCollectionIterator {
-	return AssetCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (ac AssetCollection) IsEmpty() bool {
 	return ac.Value == nil || len(*ac.Value) == 0
@@ -1604,11 +1472,11 @@ func (ac AssetCollection) IsEmpty() bool {
 
 // assetCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (ac AssetCollection) assetCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (ac AssetCollection) assetCollectionPreparer() (*http.Request, error) {
 	if ac.OdataNextLink == nil || len(to.String(ac.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(ac.OdataNextLink)))
@@ -1616,36 +1484,19 @@ func (ac AssetCollection) assetCollectionPreparer(ctx context.Context) (*http.Re
 
 // AssetCollectionPage contains a page of Asset values.
 type AssetCollectionPage struct {
-	fn func(context.Context, AssetCollection) (AssetCollection, error)
+	fn func(AssetCollection) (AssetCollection, error)
 	ac AssetCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AssetCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AssetCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.ac)
+func (page *AssetCollectionPage) Next() error {
+	next, err := page.fn(page.ac)
 	if err != nil {
 		return err
 	}
 	page.ac = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AssetCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1664,11 +1515,6 @@ func (page AssetCollectionPage) Values() []Asset {
 		return nil
 	}
 	return *page.ac.Value
-}
-
-// Creates a new instance of the AssetCollectionPage type.
-func NewAssetCollectionPage(getNextPage func(context.Context, AssetCollection) (AssetCollection, error)) AssetCollectionPage {
-	return AssetCollectionPage{fn: getNextPage}
 }
 
 // AssetContainerSas the Asset Storage container SAS URLs.
@@ -1692,11 +1538,11 @@ type AssetFileEncryptionMetadata struct {
 type AssetFilter struct {
 	autorest.Response `json:"-"`
 	*FilterProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1705,6 +1551,15 @@ func (af AssetFilter) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if af.FilterProperties != nil {
 		objectMap["properties"] = af.FilterProperties
+	}
+	if af.ID != nil {
+		objectMap["id"] = af.ID
+	}
+	if af.Name != nil {
+		objectMap["name"] = af.Name
+	}
+	if af.Type != nil {
+		objectMap["type"] = af.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1775,37 +1630,20 @@ type AssetFilterCollectionIterator struct {
 	page AssetFilterCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AssetFilterCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AssetFilterCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AssetFilterCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AssetFilterCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1827,11 +1665,6 @@ func (iter AssetFilterCollectionIterator) Value() AssetFilter {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AssetFilterCollectionIterator type.
-func NewAssetFilterCollectionIterator(page AssetFilterCollectionPage) AssetFilterCollectionIterator {
-	return AssetFilterCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (afc AssetFilterCollection) IsEmpty() bool {
 	return afc.Value == nil || len(*afc.Value) == 0
@@ -1839,11 +1672,11 @@ func (afc AssetFilterCollection) IsEmpty() bool {
 
 // assetFilterCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (afc AssetFilterCollection) assetFilterCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (afc AssetFilterCollection) assetFilterCollectionPreparer() (*http.Request, error) {
 	if afc.OdataNextLink == nil || len(to.String(afc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(afc.OdataNextLink)))
@@ -1851,36 +1684,19 @@ func (afc AssetFilterCollection) assetFilterCollectionPreparer(ctx context.Conte
 
 // AssetFilterCollectionPage contains a page of AssetFilter values.
 type AssetFilterCollectionPage struct {
-	fn  func(context.Context, AssetFilterCollection) (AssetFilterCollection, error)
+	fn  func(AssetFilterCollection) (AssetFilterCollection, error)
 	afc AssetFilterCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AssetFilterCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AssetFilterCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.afc)
+func (page *AssetFilterCollectionPage) Next() error {
+	next, err := page.fn(page.afc)
 	if err != nil {
 		return err
 	}
 	page.afc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AssetFilterCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1901,18 +1717,13 @@ func (page AssetFilterCollectionPage) Values() []AssetFilter {
 	return *page.afc.Value
 }
 
-// Creates a new instance of the AssetFilterCollectionPage type.
-func NewAssetFilterCollectionPage(getNextPage func(context.Context, AssetFilterCollection) (AssetFilterCollection, error)) AssetFilterCollectionPage {
-	return AssetFilterCollectionPage{fn: getNextPage}
-}
-
 // AssetProperties the Asset properties.
 type AssetProperties struct {
-	// AssetID - READ-ONLY; The Asset ID.
+	// AssetID - The Asset ID.
 	AssetID *uuid.UUID `json:"assetId,omitempty"`
-	// Created - READ-ONLY; The creation date of the Asset.
+	// Created - The creation date of the Asset.
 	Created *date.Time `json:"created,omitempty"`
-	// LastModified - READ-ONLY; The last modified date of the Asset.
+	// LastModified - The last modified date of the Asset.
 	LastModified *date.Time `json:"lastModified,omitempty"`
 	// AlternateID - The alternate ID of the Asset.
 	AlternateID *string `json:"alternateId,omitempty"`
@@ -1922,27 +1733,27 @@ type AssetProperties struct {
 	Container *string `json:"container,omitempty"`
 	// StorageAccountName - The name of the storage account.
 	StorageAccountName *string `json:"storageAccountName,omitempty"`
-	// StorageEncryptionFormat - READ-ONLY; The Asset encryption format. One of None or MediaStorageEncryption. Possible values include: 'None', 'MediaStorageClientEncryption'
+	// StorageEncryptionFormat - The Asset encryption format. One of None or MediaStorageEncryption. Possible values include: 'None', 'MediaStorageClientEncryption'
 	StorageEncryptionFormat AssetStorageEncryptionFormat `json:"storageEncryptionFormat,omitempty"`
 }
 
 // AssetStreamingLocator properties of the Streaming Locator.
 type AssetStreamingLocator struct {
-	// Name - READ-ONLY; Streaming Locator name.
+	// Name - Streaming Locator name.
 	Name *string `json:"name,omitempty"`
-	// AssetName - READ-ONLY; Asset Name.
+	// AssetName - Asset Name.
 	AssetName *string `json:"assetName,omitempty"`
-	// Created - READ-ONLY; The creation time of the Streaming Locator.
+	// Created - The creation time of the Streaming Locator.
 	Created *date.Time `json:"created,omitempty"`
-	// StartTime - READ-ONLY; The start time of the Streaming Locator.
+	// StartTime - The start time of the Streaming Locator.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; The end time of the Streaming Locator.
+	// EndTime - The end time of the Streaming Locator.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// StreamingLocatorID - READ-ONLY; StreamingLocatorId of the Streaming Locator.
+	// StreamingLocatorID - StreamingLocatorId of the Streaming Locator.
 	StreamingLocatorID *uuid.UUID `json:"streamingLocatorId,omitempty"`
-	// StreamingPolicyName - READ-ONLY; Name of the Streaming Policy used by this Streaming Locator.
+	// StreamingPolicyName - Name of the Streaming Policy used by this Streaming Locator.
 	StreamingPolicyName *string `json:"streamingPolicyName,omitempty"`
-	// DefaultContentKeyPolicyName - READ-ONLY; Name of the default ContentKeyPolicy used by this Streaming Locator.
+	// DefaultContentKeyPolicyName - Name of the default ContentKeyPolicy used by this Streaming Locator.
 	DefaultContentKeyPolicyName *string `json:"defaultContentKeyPolicyName,omitempty"`
 }
 
@@ -2103,12 +1914,11 @@ type BasicAudioAnalyzerPreset interface {
 }
 
 // AudioAnalyzerPreset the Audio Analyzer preset applies a pre-defined set of AI-based analysis operations,
-// including speech transcription. Currently, the preset supports processing of content with a single audio
-// track.
+// including speech transcription. Currently, the preset supports processing of content with a single audio track.
 type AudioAnalyzerPreset struct {
-	// AudioLanguage - The language for the audio payload in the input using the BCP-47 format of 'language tag-region' (e.g: 'en-US').  The list of supported languages are English ('en-US' and 'en-GB'), Spanish ('es-ES' and 'es-MX'), French ('fr-FR'), Italian ('it-IT'), Japanese ('ja-JP'), Portuguese ('pt-BR'), Chinese ('zh-CN'), German ('de-DE'), Arabic ('ar-EG' and 'ar-SY'), Russian ('ru-RU'), Hindi ('hi-IN'), and Korean ('ko-KR'). If you know the language of your content, it is recommended that you specify it. If the language isn't specified or set to null, automatic language detection will choose the first language detected and process with the selected language for the duration of the file. This language detection feature currently supports English, Chinese, French, German, Italian, Japanese, Spanish, Russian, and Portuguese. It does not currently support dynamically switching between languages after the first language is detected. The automatic detection works best with audio recordings with clearly discernable speech. If automatic detection fails to find the language, transcription would fallback to 'en-US'."
+	// AudioLanguage - The language for the audio payload in the input using the BCP-47 format of 'language tag-region' (e.g: 'en-US'). The list of supported languages are, 'en-US', 'en-GB', 'es-ES', 'es-MX', 'fr-FR', 'it-IT', 'ja-JP', 'pt-BR', 'zh-CN', 'de-DE', 'ar-EG', 'ru-RU', 'hi-IN'. If not specified, automatic language detection would be employed. This feature currently supports English, Chinese, French, German, Italian, Japanese, Spanish, Russian, and Portuguese. The automatic detection works best with audio recordings with clearly discernable speech. If automatic detection fails to find the language, transcription would fallback to English.
 	AudioLanguage *string `json:"audioLanguage,omitempty"`
-	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaFaceDetectorPreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
+	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
 	OdataType OdataTypeBasicPreset `json:"@odata.type,omitempty"`
 }
 
@@ -2160,11 +1970,6 @@ func (aap AudioAnalyzerPreset) MarshalJSON() ([]byte, error) {
 		objectMap["@odata.type"] = aap.OdataType
 	}
 	return json.Marshal(objectMap)
-}
-
-// AsFaceDetectorPreset is the BasicPreset implementation for AudioAnalyzerPreset.
-func (aap AudioAnalyzerPreset) AsFaceDetectorPreset() (*FaceDetectorPreset, bool) {
-	return nil, false
 }
 
 // AsAudioAnalyzerPreset is the BasicPreset implementation for AudioAnalyzerPreset.
@@ -2268,12 +2073,11 @@ func (ao AudioOverlay) AsBasicOverlay() (BasicOverlay, bool) {
 	return &ao, true
 }
 
-// BuiltInStandardEncoderPreset describes a built-in preset for encoding the input video with the Standard
-// Encoder.
+// BuiltInStandardEncoderPreset describes a built-in preset for encoding the input video with the Standard Encoder.
 type BuiltInStandardEncoderPreset struct {
-	// PresetName - The built-in preset to be used for encoding videos. Possible values include: 'H264SingleBitrateSD', 'H264SingleBitrate720p', 'H264SingleBitrate1080p', 'AdaptiveStreaming', 'AACGoodQualityAudio', 'ContentAwareEncodingExperimental', 'H264MultipleBitrate1080p', 'H264MultipleBitrate720p', 'H264MultipleBitrateSD'
+	// PresetName - The built-in preset to be used for encoding videos. Possible values include: 'H264SingleBitrateSD', 'H264SingleBitrate720p', 'H264SingleBitrate1080p', 'AdaptiveStreaming', 'AACGoodQualityAudio', 'H264MultipleBitrate1080p', 'H264MultipleBitrate720p', 'H264MultipleBitrateSD'
 	PresetName EncoderNamedPreset `json:"presetName,omitempty"`
-	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaFaceDetectorPreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
+	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
 	OdataType OdataTypeBasicPreset `json:"@odata.type,omitempty"`
 }
 
@@ -2288,11 +2092,6 @@ func (bisep BuiltInStandardEncoderPreset) MarshalJSON() ([]byte, error) {
 		objectMap["@odata.type"] = bisep.OdataType
 	}
 	return json.Marshal(objectMap)
-}
-
-// AsFaceDetectorPreset is the BasicPreset implementation for BuiltInStandardEncoderPreset.
-func (bisep BuiltInStandardEncoderPreset) AsFaceDetectorPreset() (*FaceDetectorPreset, bool) {
-	return nil, false
 }
 
 // AsAudioAnalyzerPreset is the BasicPreset implementation for BuiltInStandardEncoderPreset.
@@ -2330,8 +2129,7 @@ func (bisep BuiltInStandardEncoderPreset) AsBasicPreset() (BasicPreset, bool) {
 	return &bisep, true
 }
 
-// CbcsDrmConfiguration class to specify DRM configurations of CommonEncryptionCbcs scheme in Streaming
-// Policy
+// CbcsDrmConfiguration class to specify DRM configurations of CommonEncryptionCbcs scheme in Streaming Policy
 type CbcsDrmConfiguration struct {
 	// FairPlay - FairPlay configurations
 	FairPlay *StreamingPolicyFairPlayConfiguration `json:"fairPlay,omitempty"`
@@ -2341,8 +2139,7 @@ type CbcsDrmConfiguration struct {
 	Widevine *StreamingPolicyWidevineConfiguration `json:"widevine,omitempty"`
 }
 
-// CencDrmConfiguration class to specify DRM configurations of CommonEncryptionCenc scheme in Streaming
-// Policy
+// CencDrmConfiguration class to specify DRM configurations of CommonEncryptionCenc scheme in Streaming Policy
 type CencDrmConfiguration struct {
 	// PlayReady - PlayReady configurations
 	PlayReady *StreamingPolicyPlayReadyConfiguration `json:"playReady,omitempty"`
@@ -2356,82 +2153,6 @@ type CheckNameAvailabilityInput struct {
 	Name *string `json:"name,omitempty"`
 	// Type - The account type. For a Media Services account, this should be 'MediaServices'.
 	Type *string `json:"type,omitempty"`
-}
-
-// BasicClipTime base class for specifying a clip time. Use sub classes of this class to specify the time position in
-// the media.
-type BasicClipTime interface {
-	AsAbsoluteClipTime() (*AbsoluteClipTime, bool)
-	AsClipTime() (*ClipTime, bool)
-}
-
-// ClipTime base class for specifying a clip time. Use sub classes of this class to specify the time position
-// in the media.
-type ClipTime struct {
-	// OdataType - Possible values include: 'OdataTypeClipTime', 'OdataTypeMicrosoftMediaAbsoluteClipTime'
-	OdataType OdataTypeBasicClipTime `json:"@odata.type,omitempty"`
-}
-
-func unmarshalBasicClipTime(body []byte) (BasicClipTime, error) {
-	var m map[string]interface{}
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	switch m["@odata.type"] {
-	case string(OdataTypeMicrosoftMediaAbsoluteClipTime):
-		var act AbsoluteClipTime
-		err := json.Unmarshal(body, &act)
-		return act, err
-	default:
-		var ct ClipTime
-		err := json.Unmarshal(body, &ct)
-		return ct, err
-	}
-}
-func unmarshalBasicClipTimeArray(body []byte) ([]BasicClipTime, error) {
-	var rawMessages []*json.RawMessage
-	err := json.Unmarshal(body, &rawMessages)
-	if err != nil {
-		return nil, err
-	}
-
-	ctArray := make([]BasicClipTime, len(rawMessages))
-
-	for index, rawMessage := range rawMessages {
-		ct, err := unmarshalBasicClipTime(*rawMessage)
-		if err != nil {
-			return nil, err
-		}
-		ctArray[index] = ct
-	}
-	return ctArray, nil
-}
-
-// MarshalJSON is the custom marshaler for ClipTime.
-func (ct ClipTime) MarshalJSON() ([]byte, error) {
-	ct.OdataType = OdataTypeClipTime
-	objectMap := make(map[string]interface{})
-	if ct.OdataType != "" {
-		objectMap["@odata.type"] = ct.OdataType
-	}
-	return json.Marshal(objectMap)
-}
-
-// AsAbsoluteClipTime is the BasicClipTime implementation for ClipTime.
-func (ct ClipTime) AsAbsoluteClipTime() (*AbsoluteClipTime, bool) {
-	return nil, false
-}
-
-// AsClipTime is the BasicClipTime implementation for ClipTime.
-func (ct ClipTime) AsClipTime() (*ClipTime, bool) {
-	return &ct, true
-}
-
-// AsBasicClipTime is the BasicClipTime implementation for ClipTime.
-func (ct ClipTime) AsBasicClipTime() (BasicClipTime, bool) {
-	return &ct, true
 }
 
 // BasicCodec describes the basic properties of all codecs.
@@ -2639,11 +2360,11 @@ type CommonEncryptionCenc struct {
 type ContentKeyPolicy struct {
 	autorest.Response           `json:"-"`
 	*ContentKeyPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2652,6 +2373,15 @@ func (ckp ContentKeyPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ckp.ContentKeyPolicyProperties != nil {
 		objectMap["properties"] = ckp.ContentKeyPolicyProperties
+	}
+	if ckp.ID != nil {
+		objectMap["id"] = ckp.ID
+	}
+	if ckp.Name != nil {
+		objectMap["name"] = ckp.Name
+	}
+	if ckp.Type != nil {
+		objectMap["type"] = ckp.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2773,37 +2503,20 @@ type ContentKeyPolicyCollectionIterator struct {
 	page ContentKeyPolicyCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ContentKeyPolicyCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ContentKeyPolicyCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ContentKeyPolicyCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ContentKeyPolicyCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2825,11 +2538,6 @@ func (iter ContentKeyPolicyCollectionIterator) Value() ContentKeyPolicy {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ContentKeyPolicyCollectionIterator type.
-func NewContentKeyPolicyCollectionIterator(page ContentKeyPolicyCollectionPage) ContentKeyPolicyCollectionIterator {
-	return ContentKeyPolicyCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (ckpc ContentKeyPolicyCollection) IsEmpty() bool {
 	return ckpc.Value == nil || len(*ckpc.Value) == 0
@@ -2837,11 +2545,11 @@ func (ckpc ContentKeyPolicyCollection) IsEmpty() bool {
 
 // contentKeyPolicyCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (ckpc ContentKeyPolicyCollection) contentKeyPolicyCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (ckpc ContentKeyPolicyCollection) contentKeyPolicyCollectionPreparer() (*http.Request, error) {
 	if ckpc.OdataNextLink == nil || len(to.String(ckpc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(ckpc.OdataNextLink)))
@@ -2849,36 +2557,19 @@ func (ckpc ContentKeyPolicyCollection) contentKeyPolicyCollectionPreparer(ctx co
 
 // ContentKeyPolicyCollectionPage contains a page of ContentKeyPolicy values.
 type ContentKeyPolicyCollectionPage struct {
-	fn   func(context.Context, ContentKeyPolicyCollection) (ContentKeyPolicyCollection, error)
+	fn   func(ContentKeyPolicyCollection) (ContentKeyPolicyCollection, error)
 	ckpc ContentKeyPolicyCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ContentKeyPolicyCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ContentKeyPolicyCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.ckpc)
+func (page *ContentKeyPolicyCollectionPage) Next() error {
+	next, err := page.fn(page.ckpc)
 	if err != nil {
 		return err
 	}
 	page.ckpc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ContentKeyPolicyCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2899,11 +2590,6 @@ func (page ContentKeyPolicyCollectionPage) Values() []ContentKeyPolicy {
 	return *page.ckpc.Value
 }
 
-// Creates a new instance of the ContentKeyPolicyCollectionPage type.
-func NewContentKeyPolicyCollectionPage(getNextPage func(context.Context, ContentKeyPolicyCollection) (ContentKeyPolicyCollection, error)) ContentKeyPolicyCollectionPage {
-	return ContentKeyPolicyCollectionPage{fn: getNextPage}
-}
-
 // BasicContentKeyPolicyConfiguration base class for Content Key Policy configuration. A derived class must be used to
 // create a configuration.
 type BasicContentKeyPolicyConfiguration interface {
@@ -2915,8 +2601,8 @@ type BasicContentKeyPolicyConfiguration interface {
 	AsContentKeyPolicyConfiguration() (*ContentKeyPolicyConfiguration, bool)
 }
 
-// ContentKeyPolicyConfiguration base class for Content Key Policy configuration. A derived class must be used
-// to create a configuration.
+// ContentKeyPolicyConfiguration base class for Content Key Policy configuration. A derived class must be used to
+// create a configuration.
 type ContentKeyPolicyConfiguration struct {
 	// OdataType - Possible values include: 'OdataTypeContentKeyPolicyConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyClearKeyConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyUnknownConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyWidevineConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyPlayReadyConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyFairPlayConfiguration'
 	OdataType OdataTypeBasicContentKeyPolicyConfiguration `json:"@odata.type,omitempty"`
@@ -3096,8 +2782,8 @@ func (ckpfpc ContentKeyPolicyFairPlayConfiguration) AsBasicContentKeyPolicyConfi
 	return &ckpfpc, true
 }
 
-// ContentKeyPolicyOpenRestriction represents an open restriction. License or key will be delivered on
-// every request.
+// ContentKeyPolicyOpenRestriction represents an open restriction. License or key will be delivered on every
+// request.
 type ContentKeyPolicyOpenRestriction struct {
 	// OdataType - Possible values include: 'OdataTypeContentKeyPolicyRestriction', 'OdataTypeMicrosoftMediaContentKeyPolicyOpenRestriction', 'OdataTypeMicrosoftMediaContentKeyPolicyUnknownRestriction', 'OdataTypeMicrosoftMediaContentKeyPolicyTokenRestriction'
 	OdataType OdataTypeBasicContentKeyPolicyRestriction `json:"@odata.type,omitempty"`
@@ -3140,7 +2826,7 @@ func (ckpor ContentKeyPolicyOpenRestriction) AsBasicContentKeyPolicyRestriction(
 
 // ContentKeyPolicyOption represents a policy option.
 type ContentKeyPolicyOption struct {
-	// PolicyOptionID - READ-ONLY; The legacy Policy Option ID.
+	// PolicyOptionID - The legacy Policy Option ID.
 	PolicyOptionID *uuid.UUID `json:"policyOptionId,omitempty"`
 	// Name - The Policy Option description.
 	Name *string `json:"name,omitempty"`
@@ -3260,8 +2946,8 @@ func (ckpprc ContentKeyPolicyPlayReadyConfiguration) AsBasicContentKeyPolicyConf
 	return &ckpprc, true
 }
 
-// ContentKeyPolicyPlayReadyContentEncryptionKeyFromHeader specifies that the content key ID is in the
-// PlayReady header.
+// ContentKeyPolicyPlayReadyContentEncryptionKeyFromHeader specifies that the content key ID is in the PlayReady
+// header.
 type ContentKeyPolicyPlayReadyContentEncryptionKeyFromHeader struct {
 	// OdataType - Possible values include: 'OdataTypeContentKeyPolicyPlayReadyContentKeyLocation', 'OdataTypeMicrosoftMediaContentKeyPolicyPlayReadyContentEncryptionKeyFromHeader', 'OdataTypeMicrosoftMediaContentKeyPolicyPlayReadyContentEncryptionKeyFromKeyIdentifier'
 	OdataType OdataType `json:"@odata.type,omitempty"`
@@ -3297,8 +2983,8 @@ func (ckpprcekfh ContentKeyPolicyPlayReadyContentEncryptionKeyFromHeader) AsBasi
 	return &ckpprcekfh, true
 }
 
-// ContentKeyPolicyPlayReadyContentEncryptionKeyFromKeyIdentifier specifies that the content key ID is
-// specified in the PlayReady configuration.
+// ContentKeyPolicyPlayReadyContentEncryptionKeyFromKeyIdentifier specifies that the content key ID is specified in
+// the PlayReady configuration.
 type ContentKeyPolicyPlayReadyContentEncryptionKeyFromKeyIdentifier struct {
 	// KeyID - The content key ID.
 	KeyID *uuid.UUID `json:"keyId,omitempty"`
@@ -3347,8 +3033,8 @@ type BasicContentKeyPolicyPlayReadyContentKeyLocation interface {
 	AsContentKeyPolicyPlayReadyContentKeyLocation() (*ContentKeyPolicyPlayReadyContentKeyLocation, bool)
 }
 
-// ContentKeyPolicyPlayReadyContentKeyLocation base class for content key ID location. A derived class must be
-// used to represent the location.
+// ContentKeyPolicyPlayReadyContentKeyLocation base class for content key ID location. A derived class must be used
+// to represent the location.
 type ContentKeyPolicyPlayReadyContentKeyLocation struct {
 	// OdataType - Possible values include: 'OdataTypeContentKeyPolicyPlayReadyContentKeyLocation', 'OdataTypeMicrosoftMediaContentKeyPolicyPlayReadyContentEncryptionKeyFromHeader', 'OdataTypeMicrosoftMediaContentKeyPolicyPlayReadyContentEncryptionKeyFromKeyIdentifier'
 	OdataType OdataType `json:"@odata.type,omitempty"`
@@ -3425,8 +3111,8 @@ func (ckpprckl ContentKeyPolicyPlayReadyContentKeyLocation) AsBasicContentKeyPol
 	return &ckpprckl, true
 }
 
-// ContentKeyPolicyPlayReadyExplicitAnalogTelevisionRestriction configures the Explicit Analog Television
-// Output Restriction control bits. For further details see the PlayReady Compliance Rules.
+// ContentKeyPolicyPlayReadyExplicitAnalogTelevisionRestriction configures the Explicit Analog Television Output
+// Restriction control bits. For further details see the PlayReady Compliance Rules.
 type ContentKeyPolicyPlayReadyExplicitAnalogTelevisionRestriction struct {
 	// BestEffort - Indicates whether this restriction is enforced on a Best Effort basis.
 	BestEffort *bool `json:"bestEffort,omitempty"`
@@ -3595,11 +3281,11 @@ type ContentKeyPolicyPlayReadyPlayRight struct {
 // ContentKeyPolicyProperties the properties of the Content Key Policy.
 type ContentKeyPolicyProperties struct {
 	autorest.Response `json:"-"`
-	// PolicyID - READ-ONLY; The legacy Policy ID.
+	// PolicyID - The legacy Policy ID.
 	PolicyID *uuid.UUID `json:"policyId,omitempty"`
-	// Created - READ-ONLY; The creation date of the Policy
+	// Created - The creation date of the Policy
 	Created *date.Time `json:"created,omitempty"`
-	// LastModified - READ-ONLY; The last modified date of the Policy
+	// LastModified - The last modified date of the Policy
 	LastModified *date.Time `json:"lastModified,omitempty"`
 	// Description - A description for the Policy.
 	Description *string `json:"description,omitempty"`
@@ -3712,8 +3398,8 @@ type BasicContentKeyPolicyRestrictionTokenKey interface {
 	AsContentKeyPolicyRestrictionTokenKey() (*ContentKeyPolicyRestrictionTokenKey, bool)
 }
 
-// ContentKeyPolicyRestrictionTokenKey base class for Content Key Policy key for token validation. A derived
-// class must be used to create a token key.
+// ContentKeyPolicyRestrictionTokenKey base class for Content Key Policy key for token validation. A derived class
+// must be used to create a token key.
 type ContentKeyPolicyRestrictionTokenKey struct {
 	// OdataType - Possible values include: 'OdataTypeContentKeyPolicyRestrictionTokenKey', 'OdataTypeMicrosoftMediaContentKeyPolicySymmetricTokenKey', 'OdataTypeMicrosoftMediaContentKeyPolicyRsaTokenKey', 'OdataTypeMicrosoftMediaContentKeyPolicyX509CertificateTokenKey'
 	OdataType OdataTypeBasicContentKeyPolicyRestrictionTokenKey `json:"@odata.type,omitempty"`
@@ -3904,8 +3590,8 @@ type ContentKeyPolicyTokenClaim struct {
 	ClaimValue *string `json:"claimValue,omitempty"`
 }
 
-// ContentKeyPolicyTokenRestriction represents a token restriction. Provided token must match these
-// requirements for successful license or key delivery.
+// ContentKeyPolicyTokenRestriction represents a token restriction. Provided token must match these requirements
+// for successful license or key delivery.
 type ContentKeyPolicyTokenRestriction struct {
 	// Issuer - The token issuer.
 	Issuer *string `json:"issuer,omitempty"`
@@ -4064,8 +3750,8 @@ func (ckptr *ContentKeyPolicyTokenRestriction) UnmarshalJSON(body []byte) error 
 	return nil
 }
 
-// ContentKeyPolicyUnknownConfiguration represents a ContentKeyPolicyConfiguration that is unavailable in
-// the current API version.
+// ContentKeyPolicyUnknownConfiguration represents a ContentKeyPolicyConfiguration that is unavailable in the
+// current API version.
 type ContentKeyPolicyUnknownConfiguration struct {
 	// OdataType - Possible values include: 'OdataTypeContentKeyPolicyConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyClearKeyConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyUnknownConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyWidevineConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyPlayReadyConfiguration', 'OdataTypeMicrosoftMediaContentKeyPolicyFairPlayConfiguration'
 	OdataType OdataTypeBasicContentKeyPolicyConfiguration `json:"@odata.type,omitempty"`
@@ -4116,8 +3802,8 @@ func (ckpuc ContentKeyPolicyUnknownConfiguration) AsBasicContentKeyPolicyConfigu
 	return &ckpuc, true
 }
 
-// ContentKeyPolicyUnknownRestriction represents a ContentKeyPolicyRestriction that is unavailable in the
-// current API version.
+// ContentKeyPolicyUnknownRestriction represents a ContentKeyPolicyRestriction that is unavailable in the current
+// API version.
 type ContentKeyPolicyUnknownRestriction struct {
 	// OdataType - Possible values include: 'OdataTypeContentKeyPolicyRestriction', 'OdataTypeMicrosoftMediaContentKeyPolicyOpenRestriction', 'OdataTypeMicrosoftMediaContentKeyPolicyUnknownRestriction', 'OdataTypeMicrosoftMediaContentKeyPolicyTokenRestriction'
 	OdataType OdataTypeBasicContentKeyPolicyRestriction `json:"@odata.type,omitempty"`
@@ -4497,70 +4183,8 @@ type EnvelopeEncryption struct {
 	ClearTracks *[]TrackSelection `json:"clearTracks,omitempty"`
 	// ContentKeys - Representing default content key for each encryption scheme and separate content keys for specific tracks
 	ContentKeys *StreamingPolicyContentKeys `json:"contentKeys,omitempty"`
-	// CustomKeyAcquisitionURLTemplate - Template for the URL of the custom service delivering keys to end user players.  Not required when using Azure Media Services for issuing keys.  The template supports replaceable tokens that the service will update at runtime with the value specific to the request.  The currently supported token values are {AlternativeMediaId}, which is replaced with the value of StreamingLocatorId.AlternativeMediaId, and {ContentKeyId}, which is replaced with the value of identifier of the key being requested.
+	// CustomKeyAcquisitionURLTemplate - KeyAcquistionUrlTemplate is used to point to user specified service to delivery content keys
 	CustomKeyAcquisitionURLTemplate *string `json:"customKeyAcquisitionUrlTemplate,omitempty"`
-}
-
-// FaceDetectorPreset describes all the settings to be used when analyzing a video in order to detect all
-// the faces present.
-type FaceDetectorPreset struct {
-	// Resolution - Specifies the maximum resolution at which your video is analyzed. The default behavior is "SourceResolution," which will keep the input video at its original resolution when analyzed. Using "StandardDefinition" will resize input videos to standard definition while preserving the appropriate aspect ratio. It will only resize if the video is of higher resolution. For example, a 1920x1080 input would be scaled to 640x360 before processing. Switching to "StandardDefinition" will reduce the time it takes to process high resolution video. It may also reduce the cost of using this component (see https://azure.microsoft.com/en-us/pricing/details/media-services/#analytics for details). However, faces that end up being too small in the resized video may not be detected. Possible values include: 'SourceResolution', 'StandardDefinition'
-	Resolution AnalysisResolution `json:"resolution,omitempty"`
-	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaFaceDetectorPreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
-	OdataType OdataTypeBasicPreset `json:"@odata.type,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for FaceDetectorPreset.
-func (fdp FaceDetectorPreset) MarshalJSON() ([]byte, error) {
-	fdp.OdataType = OdataTypeMicrosoftMediaFaceDetectorPreset
-	objectMap := make(map[string]interface{})
-	if fdp.Resolution != "" {
-		objectMap["resolution"] = fdp.Resolution
-	}
-	if fdp.OdataType != "" {
-		objectMap["@odata.type"] = fdp.OdataType
-	}
-	return json.Marshal(objectMap)
-}
-
-// AsFaceDetectorPreset is the BasicPreset implementation for FaceDetectorPreset.
-func (fdp FaceDetectorPreset) AsFaceDetectorPreset() (*FaceDetectorPreset, bool) {
-	return &fdp, true
-}
-
-// AsAudioAnalyzerPreset is the BasicPreset implementation for FaceDetectorPreset.
-func (fdp FaceDetectorPreset) AsAudioAnalyzerPreset() (*AudioAnalyzerPreset, bool) {
-	return nil, false
-}
-
-// AsBasicAudioAnalyzerPreset is the BasicPreset implementation for FaceDetectorPreset.
-func (fdp FaceDetectorPreset) AsBasicAudioAnalyzerPreset() (BasicAudioAnalyzerPreset, bool) {
-	return nil, false
-}
-
-// AsBuiltInStandardEncoderPreset is the BasicPreset implementation for FaceDetectorPreset.
-func (fdp FaceDetectorPreset) AsBuiltInStandardEncoderPreset() (*BuiltInStandardEncoderPreset, bool) {
-	return nil, false
-}
-
-// AsStandardEncoderPreset is the BasicPreset implementation for FaceDetectorPreset.
-func (fdp FaceDetectorPreset) AsStandardEncoderPreset() (*StandardEncoderPreset, bool) {
-	return nil, false
-}
-
-// AsVideoAnalyzerPreset is the BasicPreset implementation for FaceDetectorPreset.
-func (fdp FaceDetectorPreset) AsVideoAnalyzerPreset() (*VideoAnalyzerPreset, bool) {
-	return nil, false
-}
-
-// AsPreset is the BasicPreset implementation for FaceDetectorPreset.
-func (fdp FaceDetectorPreset) AsPreset() (*Preset, bool) {
-	return nil, false
-}
-
-// AsBasicPreset is the BasicPreset implementation for FaceDetectorPreset.
-func (fdp FaceDetectorPreset) AsBasicPreset() (BasicPreset, bool) {
-	return &fdp, true
 }
 
 // FilterProperties the Media Filter properties.
@@ -4573,8 +4197,8 @@ type FilterProperties struct {
 	Tracks *[]FilterTrackSelection `json:"tracks,omitempty"`
 }
 
-// Filters describes all the filtering operations, such as de-interlacing, rotation etc. that are to be
-// applied to the input media before encoding.
+// Filters describes all the filtering operations, such as de-interlacing, rotation etc. that are to be applied to
+// the input media before encoding.
 type Filters struct {
 	// Deinterlace - The de-interlacing settings.
 	Deinterlace *Deinterlace `json:"deinterlace,omitempty"`
@@ -4640,14 +4264,14 @@ func (f *Filters) UnmarshalJSON(body []byte) error {
 type FilterTrackPropertyCondition struct {
 	// Property - The track property type. Possible values include: 'FilterTrackPropertyTypeUnknown', 'FilterTrackPropertyTypeType', 'FilterTrackPropertyTypeName', 'FilterTrackPropertyTypeLanguage', 'FilterTrackPropertyTypeFourCC', 'FilterTrackPropertyTypeBitrate'
 	Property FilterTrackPropertyType `json:"property,omitempty"`
-	// Value - The track property value.
+	// Value - The track proprty value.
 	Value *string `json:"value,omitempty"`
 	// Operation - The track property condition operation. Possible values include: 'Equal', 'NotEqual'
 	Operation FilterTrackPropertyCompareOperation `json:"operation,omitempty"`
 }
 
-// FilterTrackSelection representing a list of FilterTrackPropertyConditions to select a track.  The
-// filters are combined using a logical AND operation.
+// FilterTrackSelection representing a list of FilterTrackPropertyConditions to select a track.  The filters are
+// combined using a logical AND operation.
 type FilterTrackSelection struct {
 	// TrackSelections - The track selections.
 	TrackSelections *[]FilterTrackPropertyCondition `json:"trackSelections,omitempty"`
@@ -4800,12 +4424,12 @@ func (f Format) AsBasicFormat() (BasicFormat, bool) {
 	return &f, true
 }
 
-// H264Layer describes the settings to be used when encoding the input video into a desired output bitrate
-// layer with the H.264 video codec.
+// H264Layer describes the settings to be used when encoding the input video into a desired output bitrate layer
+// with the H.264 video codec.
 type H264Layer struct {
-	// Profile - We currently support Baseline, Main, High, High422, High444. Default is Auto. Possible values include: 'H264VideoProfileAuto', 'H264VideoProfileBaseline', 'H264VideoProfileMain', 'H264VideoProfileHigh', 'H264VideoProfileHigh422', 'H264VideoProfileHigh444'
+	// Profile - Which profile of the H.264 standard should be used when encoding this layer. Default is Auto. Possible values include: 'H264VideoProfileAuto', 'H264VideoProfileBaseline', 'H264VideoProfileMain', 'H264VideoProfileHigh', 'H264VideoProfileHigh422', 'H264VideoProfileHigh444'
 	Profile H264VideoProfile `json:"profile,omitempty"`
-	// Level - We currently support Level up to 6.2. The value can be Auto, or a number that matches the H.264 profile. If not specified, the default is Auto, which lets the encoder choose the Level that is appropriate for this layer.
+	// Level - Which level of the H.264 standard should be used when encoding this layer. The value can be Auto, or a number that matches the H.264 profile. If not specified, the default is Auto, which lets the encoder choose the Level that is appropriate for this layer.
 	Level *string `json:"level,omitempty"`
 	// BufferWindow - The VBV buffer window length. The value should be in ISO 8601 format. The value should be in the range [0.1-100] seconds. The default is 5 seconds (for example, PT5S).
 	BufferWindow *string `json:"bufferWindow,omitempty"`
@@ -5343,17 +4967,17 @@ type IPRange struct {
 	SubnetPrefixLength *int32 `json:"subnetPrefixLength,omitempty"`
 }
 
-// Job a Job resource type. The progress and state can be obtained by polling a Job or subscribing to
-// events using EventGrid.
+// Job a Job resource type. The progress and state can be obtained by polling a Job or subscribing to events using
+// EventGrid.
 type Job struct {
 	autorest.Response `json:"-"`
 	// JobProperties - The resource properties.
 	*JobProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -5362,6 +4986,15 @@ func (j Job) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if j.JobProperties != nil {
 		objectMap["properties"] = j.JobProperties
+	}
+	if j.ID != nil {
+		objectMap["id"] = j.ID
+	}
+	if j.Name != nil {
+		objectMap["name"] = j.Name
+	}
+	if j.Type != nil {
+		objectMap["type"] = j.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -5432,37 +5065,20 @@ type JobCollectionIterator struct {
 	page JobCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -5484,11 +5100,6 @@ func (iter JobCollectionIterator) Value() Job {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobCollectionIterator type.
-func NewJobCollectionIterator(page JobCollectionPage) JobCollectionIterator {
-	return JobCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jc JobCollection) IsEmpty() bool {
 	return jc.Value == nil || len(*jc.Value) == 0
@@ -5496,11 +5107,11 @@ func (jc JobCollection) IsEmpty() bool {
 
 // jobCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jc JobCollection) jobCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (jc JobCollection) jobCollectionPreparer() (*http.Request, error) {
 	if jc.OdataNextLink == nil || len(to.String(jc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jc.OdataNextLink)))
@@ -5508,36 +5119,19 @@ func (jc JobCollection) jobCollectionPreparer(ctx context.Context) (*http.Reques
 
 // JobCollectionPage contains a page of Job values.
 type JobCollectionPage struct {
-	fn func(context.Context, JobCollection) (JobCollection, error)
+	fn func(JobCollection) (JobCollection, error)
 	jc JobCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jc)
+func (page *JobCollectionPage) Next() error {
+	next, err := page.fn(page.jc)
 	if err != nil {
 		return err
 	}
 	page.jc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -5558,30 +5152,25 @@ func (page JobCollectionPage) Values() []Job {
 	return *page.jc.Value
 }
 
-// Creates a new instance of the JobCollectionPage type.
-func NewJobCollectionPage(getNextPage func(context.Context, JobCollection) (JobCollection, error)) JobCollectionPage {
-	return JobCollectionPage{fn: getNextPage}
-}
-
 // JobError details of JobOutput errors.
 type JobError struct {
-	// Code - READ-ONLY; Error code describing the error. Possible values include: 'ServiceError', 'ServiceTransientError', 'DownloadNotAccessible', 'DownloadTransientError', 'UploadNotAccessible', 'UploadTransientError', 'ConfigurationUnsupported', 'ContentMalformed', 'ContentUnsupported'
+	// Code - Error code describing the error. Possible values include: 'ServiceError', 'ServiceTransientError', 'DownloadNotAccessible', 'DownloadTransientError', 'UploadNotAccessible', 'UploadTransientError', 'ConfigurationUnsupported', 'ContentMalformed', 'ContentUnsupported'
 	Code JobErrorCode `json:"code,omitempty"`
-	// Message - READ-ONLY; A human-readable language-dependent representation of the error.
+	// Message - A human-readable language-dependent representation of the error.
 	Message *string `json:"message,omitempty"`
-	// Category - READ-ONLY; Helps with categorization of errors. Possible values include: 'JobErrorCategoryService', 'JobErrorCategoryDownload', 'JobErrorCategoryUpload', 'JobErrorCategoryConfiguration', 'JobErrorCategoryContent'
+	// Category - Helps with categorization of errors. Possible values include: 'JobErrorCategoryService', 'JobErrorCategoryDownload', 'JobErrorCategoryUpload', 'JobErrorCategoryConfiguration', 'JobErrorCategoryContent'
 	Category JobErrorCategory `json:"category,omitempty"`
-	// Retry - READ-ONLY; Indicates that it may be possible to retry the Job. If retry is unsuccessful, please contact Azure support via Azure Portal. Possible values include: 'DoNotRetry', 'MayRetry'
+	// Retry - Indicates that it may be possible to retry the Job. If retry is unsuccessful, please contact Azure support via Azure Portal. Possible values include: 'DoNotRetry', 'MayRetry'
 	Retry JobRetry `json:"retry,omitempty"`
-	// Details - READ-ONLY; An array of details about specific errors that led to this reported error.
+	// Details - An array of details about specific errors that led to this reported error.
 	Details *[]JobErrorDetail `json:"details,omitempty"`
 }
 
 // JobErrorDetail details of JobOutput errors.
 type JobErrorDetail struct {
-	// Code - READ-ONLY; Code describing the error detail.
+	// Code - Code describing the error detail.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; A human-readable representation of the error.
+	// Message - A human-readable representation of the error.
 	Message *string `json:"message,omitempty"`
 }
 
@@ -5699,12 +5288,8 @@ func (ji JobInput) AsBasicJobInput() (BasicJobInput, bool) {
 type JobInputAsset struct {
 	// AssetName - The name of the input Asset.
 	AssetName *string `json:"assetName,omitempty"`
-	// Files - List of files. Required for JobInputHttp. Maximum of 4000 characters each.
+	// Files - List of files. Required for JobInputHttp.
 	Files *[]string `json:"files,omitempty"`
-	// Start - Defines a point on the timeline of the input media at which processing will start. Defaults to the beginning of the input media.
-	Start BasicClipTime `json:"start,omitempty"`
-	// End - Defines a point on the timeline of the input media at which processing will end. Defaults to the end of the input media.
-	End BasicClipTime `json:"end,omitempty"`
 	// Label - A label that is assigned to a JobInputClip, that is used to satisfy a reference used in the Transform. For example, a Transform can be authored so as to take an image file with the label 'xyz' and apply it as an overlay onto the input video before it is encoded. When submitting a Job, exactly one of the JobInputs should be the image file, and it should have the label 'xyz'.
 	Label *string `json:"label,omitempty"`
 	// OdataType - Possible values include: 'OdataTypeJobInput', 'OdataTypeMicrosoftMediaJobInputClip', 'OdataTypeMicrosoftMediaJobInputs', 'OdataTypeMicrosoftMediaJobInputAsset', 'OdataTypeMicrosoftMediaJobInputHTTP'
@@ -5721,8 +5306,6 @@ func (jia JobInputAsset) MarshalJSON() ([]byte, error) {
 	if jia.Files != nil {
 		objectMap["files"] = jia.Files
 	}
-	objectMap["start"] = jia.Start
-	objectMap["end"] = jia.End
 	if jia.Label != nil {
 		objectMap["label"] = jia.Label
 	}
@@ -5767,73 +5350,6 @@ func (jia JobInputAsset) AsBasicJobInput() (BasicJobInput, bool) {
 	return &jia, true
 }
 
-// UnmarshalJSON is the custom unmarshaler for JobInputAsset struct.
-func (jia *JobInputAsset) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "assetName":
-			if v != nil {
-				var assetName string
-				err = json.Unmarshal(*v, &assetName)
-				if err != nil {
-					return err
-				}
-				jia.AssetName = &assetName
-			}
-		case "files":
-			if v != nil {
-				var files []string
-				err = json.Unmarshal(*v, &files)
-				if err != nil {
-					return err
-				}
-				jia.Files = &files
-			}
-		case "start":
-			if v != nil {
-				start, err := unmarshalBasicClipTime(*v)
-				if err != nil {
-					return err
-				}
-				jia.Start = start
-			}
-		case "end":
-			if v != nil {
-				end, err := unmarshalBasicClipTime(*v)
-				if err != nil {
-					return err
-				}
-				jia.End = end
-			}
-		case "label":
-			if v != nil {
-				var label string
-				err = json.Unmarshal(*v, &label)
-				if err != nil {
-					return err
-				}
-				jia.Label = &label
-			}
-		case "@odata.type":
-			if v != nil {
-				var odataType OdataTypeBasicJobInput
-				err = json.Unmarshal(*v, &odataType)
-				if err != nil {
-					return err
-				}
-				jia.OdataType = odataType
-			}
-		}
-	}
-
-	return nil
-}
-
 // BasicJobInputClip represents input files for a Job.
 type BasicJobInputClip interface {
 	AsJobInputAsset() (*JobInputAsset, bool)
@@ -5843,12 +5359,8 @@ type BasicJobInputClip interface {
 
 // JobInputClip represents input files for a Job.
 type JobInputClip struct {
-	// Files - List of files. Required for JobInputHttp. Maximum of 4000 characters each.
+	// Files - List of files. Required for JobInputHttp.
 	Files *[]string `json:"files,omitempty"`
-	// Start - Defines a point on the timeline of the input media at which processing will start. Defaults to the beginning of the input media.
-	Start BasicClipTime `json:"start,omitempty"`
-	// End - Defines a point on the timeline of the input media at which processing will end. Defaults to the end of the input media.
-	End BasicClipTime `json:"end,omitempty"`
 	// Label - A label that is assigned to a JobInputClip, that is used to satisfy a reference used in the Transform. For example, a Transform can be authored so as to take an image file with the label 'xyz' and apply it as an overlay onto the input video before it is encoded. When submitting a Job, exactly one of the JobInputs should be the image file, and it should have the label 'xyz'.
 	Label *string `json:"label,omitempty"`
 	// OdataType - Possible values include: 'OdataTypeJobInput', 'OdataTypeMicrosoftMediaJobInputClip', 'OdataTypeMicrosoftMediaJobInputs', 'OdataTypeMicrosoftMediaJobInputAsset', 'OdataTypeMicrosoftMediaJobInputHTTP'
@@ -5903,8 +5415,6 @@ func (jic JobInputClip) MarshalJSON() ([]byte, error) {
 	if jic.Files != nil {
 		objectMap["files"] = jic.Files
 	}
-	objectMap["start"] = jic.Start
-	objectMap["end"] = jic.End
 	if jic.Label != nil {
 		objectMap["label"] = jic.Label
 	}
@@ -5949,74 +5459,12 @@ func (jic JobInputClip) AsBasicJobInput() (BasicJobInput, bool) {
 	return &jic, true
 }
 
-// UnmarshalJSON is the custom unmarshaler for JobInputClip struct.
-func (jic *JobInputClip) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "files":
-			if v != nil {
-				var files []string
-				err = json.Unmarshal(*v, &files)
-				if err != nil {
-					return err
-				}
-				jic.Files = &files
-			}
-		case "start":
-			if v != nil {
-				start, err := unmarshalBasicClipTime(*v)
-				if err != nil {
-					return err
-				}
-				jic.Start = start
-			}
-		case "end":
-			if v != nil {
-				end, err := unmarshalBasicClipTime(*v)
-				if err != nil {
-					return err
-				}
-				jic.End = end
-			}
-		case "label":
-			if v != nil {
-				var label string
-				err = json.Unmarshal(*v, &label)
-				if err != nil {
-					return err
-				}
-				jic.Label = &label
-			}
-		case "@odata.type":
-			if v != nil {
-				var odataType OdataTypeBasicJobInput
-				err = json.Unmarshal(*v, &odataType)
-				if err != nil {
-					return err
-				}
-				jic.OdataType = odataType
-			}
-		}
-	}
-
-	return nil
-}
-
 // JobInputHTTP represents HTTPS job input.
 type JobInputHTTP struct {
-	// BaseURI - Base URI for HTTPS job input. It will be concatenated with provided file names. If no base uri is given, then the provided file list is assumed to be fully qualified uris. Maximum length of 4000 characters.
+	// BaseURI - Base URI for HTTPS job input. It will be concatenated with provided file names.   If no base uri is given, then the provided file list is assumed to be fully qualified uris.
 	BaseURI *string `json:"baseUri,omitempty"`
-	// Files - List of files. Required for JobInputHttp. Maximum of 4000 characters each.
+	// Files - List of files. Required for JobInputHttp.
 	Files *[]string `json:"files,omitempty"`
-	// Start - Defines a point on the timeline of the input media at which processing will start. Defaults to the beginning of the input media.
-	Start BasicClipTime `json:"start,omitempty"`
-	// End - Defines a point on the timeline of the input media at which processing will end. Defaults to the end of the input media.
-	End BasicClipTime `json:"end,omitempty"`
 	// Label - A label that is assigned to a JobInputClip, that is used to satisfy a reference used in the Transform. For example, a Transform can be authored so as to take an image file with the label 'xyz' and apply it as an overlay onto the input video before it is encoded. When submitting a Job, exactly one of the JobInputs should be the image file, and it should have the label 'xyz'.
 	Label *string `json:"label,omitempty"`
 	// OdataType - Possible values include: 'OdataTypeJobInput', 'OdataTypeMicrosoftMediaJobInputClip', 'OdataTypeMicrosoftMediaJobInputs', 'OdataTypeMicrosoftMediaJobInputAsset', 'OdataTypeMicrosoftMediaJobInputHTTP'
@@ -6033,8 +5481,6 @@ func (jih JobInputHTTP) MarshalJSON() ([]byte, error) {
 	if jih.Files != nil {
 		objectMap["files"] = jih.Files
 	}
-	objectMap["start"] = jih.Start
-	objectMap["end"] = jih.End
 	if jih.Label != nil {
 		objectMap["label"] = jih.Label
 	}
@@ -6079,74 +5525,7 @@ func (jih JobInputHTTP) AsBasicJobInput() (BasicJobInput, bool) {
 	return &jih, true
 }
 
-// UnmarshalJSON is the custom unmarshaler for JobInputHTTP struct.
-func (jih *JobInputHTTP) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "baseUri":
-			if v != nil {
-				var baseURI string
-				err = json.Unmarshal(*v, &baseURI)
-				if err != nil {
-					return err
-				}
-				jih.BaseURI = &baseURI
-			}
-		case "files":
-			if v != nil {
-				var files []string
-				err = json.Unmarshal(*v, &files)
-				if err != nil {
-					return err
-				}
-				jih.Files = &files
-			}
-		case "start":
-			if v != nil {
-				start, err := unmarshalBasicClipTime(*v)
-				if err != nil {
-					return err
-				}
-				jih.Start = start
-			}
-		case "end":
-			if v != nil {
-				end, err := unmarshalBasicClipTime(*v)
-				if err != nil {
-					return err
-				}
-				jih.End = end
-			}
-		case "label":
-			if v != nil {
-				var label string
-				err = json.Unmarshal(*v, &label)
-				if err != nil {
-					return err
-				}
-				jih.Label = &label
-			}
-		case "@odata.type":
-			if v != nil {
-				var odataType OdataTypeBasicJobInput
-				err = json.Unmarshal(*v, &odataType)
-				if err != nil {
-					return err
-				}
-				jih.OdataType = odataType
-			}
-		}
-	}
-
-	return nil
-}
-
-// JobInputs describes a list of inputs to a Job.
+// JobInputs describes a list of of inputs to a Job.
 type JobInputs struct {
 	// Inputs - List of inputs to a Job.
 	Inputs *[]BasicJobInput `json:"inputs,omitempty"`
@@ -6242,11 +5621,11 @@ type BasicJobOutput interface {
 
 // JobOutput describes all the properties of a JobOutput.
 type JobOutput struct {
-	// Error - READ-ONLY; If the JobOutput is in the Error state, it contains the details of the error.
+	// Error - If the JobOutput is in the Error state, it contains the details of the error.
 	Error *JobError `json:"error,omitempty"`
-	// State - READ-ONLY; Describes the state of the JobOutput. Possible values include: 'Canceled', 'Canceling', 'Error', 'Finished', 'Processing', 'Queued', 'Scheduled'
+	// State - Describes the state of the JobOutput. Possible values include: 'Canceled', 'Canceling', 'Error', 'Finished', 'Processing', 'Queued', 'Scheduled'
 	State JobState `json:"state,omitempty"`
-	// Progress - READ-ONLY; If the JobOutput is in a Processing state, this contains the Job completion percentage. The value is an estimate and not intended to be used to predict Job completion times. To determine if the JobOutput is complete, use the State property.
+	// Progress - If the JobOutput is in a Processing state, this contains the Job completion percentage. The value is an estimate and not intended to be used to predict Job completion times. To determine if the JobOutput is complete, use the State property.
 	Progress *int32 `json:"progress,omitempty"`
 	// Label - A label that is assigned to a JobOutput in order to help uniquely identify it. This is useful when your Transform has more than one TransformOutput, whereby your Job has more than one JobOutput. In such cases, when you submit the Job, you will add two or more JobOutputs, in the same order as TransformOutputs in the Transform. Subsequently, when you retrieve the Job, either through events or on a GET request, you can use the label to easily identify the JobOutput. If a label is not provided, a default value of '{presetName}_{outputIndex}' will be used, where the preset name is the name of the preset in the corresponding TransformOutput and the output index is the relative index of the this JobOutput within the Job. Note that this index is the same as the relative index of the corresponding TransformOutput within its Transform.
 	Label *string `json:"label,omitempty"`
@@ -6295,6 +5674,15 @@ func unmarshalBasicJobOutputArray(body []byte) ([]BasicJobOutput, error) {
 func (jo JobOutput) MarshalJSON() ([]byte, error) {
 	jo.OdataType = OdataTypeJobOutput
 	objectMap := make(map[string]interface{})
+	if jo.Error != nil {
+		objectMap["error"] = jo.Error
+	}
+	if jo.State != "" {
+		objectMap["state"] = jo.State
+	}
+	if jo.Progress != nil {
+		objectMap["progress"] = jo.Progress
+	}
 	if jo.Label != nil {
 		objectMap["label"] = jo.Label
 	}
@@ -6323,11 +5711,11 @@ func (jo JobOutput) AsBasicJobOutput() (BasicJobOutput, bool) {
 type JobOutputAsset struct {
 	// AssetName - The name of the output Asset.
 	AssetName *string `json:"assetName,omitempty"`
-	// Error - READ-ONLY; If the JobOutput is in the Error state, it contains the details of the error.
+	// Error - If the JobOutput is in the Error state, it contains the details of the error.
 	Error *JobError `json:"error,omitempty"`
-	// State - READ-ONLY; Describes the state of the JobOutput. Possible values include: 'Canceled', 'Canceling', 'Error', 'Finished', 'Processing', 'Queued', 'Scheduled'
+	// State - Describes the state of the JobOutput. Possible values include: 'Canceled', 'Canceling', 'Error', 'Finished', 'Processing', 'Queued', 'Scheduled'
 	State JobState `json:"state,omitempty"`
-	// Progress - READ-ONLY; If the JobOutput is in a Processing state, this contains the Job completion percentage. The value is an estimate and not intended to be used to predict Job completion times. To determine if the JobOutput is complete, use the State property.
+	// Progress - If the JobOutput is in a Processing state, this contains the Job completion percentage. The value is an estimate and not intended to be used to predict Job completion times. To determine if the JobOutput is complete, use the State property.
 	Progress *int32 `json:"progress,omitempty"`
 	// Label - A label that is assigned to a JobOutput in order to help uniquely identify it. This is useful when your Transform has more than one TransformOutput, whereby your Job has more than one JobOutput. In such cases, when you submit the Job, you will add two or more JobOutputs, in the same order as TransformOutputs in the Transform. Subsequently, when you retrieve the Job, either through events or on a GET request, you can use the label to easily identify the JobOutput. If a label is not provided, a default value of '{presetName}_{outputIndex}' will be used, where the preset name is the name of the preset in the corresponding TransformOutput and the output index is the relative index of the this JobOutput within the Job. Note that this index is the same as the relative index of the corresponding TransformOutput within its Transform.
 	Label *string `json:"label,omitempty"`
@@ -6341,6 +5729,15 @@ func (joa JobOutputAsset) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if joa.AssetName != nil {
 		objectMap["assetName"] = joa.AssetName
+	}
+	if joa.Error != nil {
+		objectMap["error"] = joa.Error
+	}
+	if joa.State != "" {
+		objectMap["state"] = joa.State
+	}
+	if joa.Progress != nil {
+		objectMap["progress"] = joa.Progress
 	}
 	if joa.Label != nil {
 		objectMap["label"] = joa.Label
@@ -6368,31 +5765,40 @@ func (joa JobOutputAsset) AsBasicJobOutput() (BasicJobOutput, bool) {
 
 // JobProperties properties of the Job.
 type JobProperties struct {
-	// Created - READ-ONLY; The UTC date and time when the Job was created, in 'YYYY-MM-DDThh:mm:ssZ' format.
+	// Created - The UTC date and time when the Job was created, in 'YYYY-MM-DDThh:mm:ssZ' format.
 	Created *date.Time `json:"created,omitempty"`
-	// State - READ-ONLY; The current state of the job. Possible values include: 'Canceled', 'Canceling', 'Error', 'Finished', 'Processing', 'Queued', 'Scheduled'
+	// State - The current state of the job. Possible values include: 'Canceled', 'Canceling', 'Error', 'Finished', 'Processing', 'Queued', 'Scheduled'
 	State JobState `json:"state,omitempty"`
 	// Description - Optional customer supplied description of the Job.
 	Description *string `json:"description,omitempty"`
 	// Input - The inputs for the Job.
 	Input BasicJobInput `json:"input,omitempty"`
-	// LastModified - READ-ONLY; The UTC date and time when the Job was last updated, in 'YYYY-MM-DDThh:mm:ssZ' format.
+	// LastModified - The UTC date and time when the Job was last updated, in 'YYYY-MM-DDThh:mm:ssZ' format.
 	LastModified *date.Time `json:"lastModified,omitempty"`
 	// Outputs - The outputs for the Job.
 	Outputs *[]BasicJobOutput `json:"outputs,omitempty"`
 	// Priority - Priority with which the job should be processed. Higher priority jobs are processed before lower priority jobs. If not set, the default is normal. Possible values include: 'Low', 'Normal', 'High'
 	Priority Priority `json:"priority,omitempty"`
-	// CorrelationData - Customer provided key, value pairs that will be returned in Job and JobOutput state events.
+	// CorrelationData - Customer provided correlation data that will be returned in Job and JobOutput state events.
 	CorrelationData map[string]*string `json:"correlationData"`
 }
 
 // MarshalJSON is the custom marshaler for JobProperties.
 func (jp JobProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if jp.Created != nil {
+		objectMap["created"] = jp.Created
+	}
+	if jp.State != "" {
+		objectMap["state"] = jp.State
+	}
 	if jp.Description != nil {
 		objectMap["description"] = jp.Description
 	}
 	objectMap["input"] = jp.Input
+	if jp.LastModified != nil {
+		objectMap["lastModified"] = jp.LastModified
+	}
 	if jp.Outputs != nil {
 		objectMap["outputs"] = jp.Outputs
 	}
@@ -6766,8 +6172,8 @@ type BasicLayer interface {
 }
 
 // Layer the encoder can be configured to produce video and/or images (thumbnails) at different resolutions, by
-// specifying a layer for each desired resolution. A layer represents the properties for the video or image at
-// a resolution.
+// specifying a layer for each desired resolution. A layer represents the properties for the video or image at a
+// resolution.
 type Layer struct {
 	// Width - The width of the output video for this layer. The value can be absolute (in pixels) or relative (in percentage). For example 50% means the output video has half as many pixels in width as the input.
 	Width *string `json:"width,omitempty"`
@@ -6909,7 +6315,7 @@ type ListPathsResponse struct {
 // ListStreamingLocatorsResponse the Streaming Locators associated with this Asset.
 type ListStreamingLocatorsResponse struct {
 	autorest.Response `json:"-"`
-	// StreamingLocators - READ-ONLY; The list of Streaming Locators.
+	// StreamingLocators - The list of Streaming Locators.
 	StreamingLocators *[]AssetStreamingLocator `json:"streamingLocators,omitempty"`
 }
 
@@ -6922,11 +6328,11 @@ type LiveEvent struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The Azure Region of the resource.
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -6941,6 +6347,15 @@ func (le LiveEvent) MarshalJSON() ([]byte, error) {
 	}
 	if le.Location != nil {
 		objectMap["location"] = le.Location
+	}
+	if le.ID != nil {
+		objectMap["id"] = le.ID
+	}
+	if le.Name != nil {
+		objectMap["name"] = le.Name
+	}
+	if le.Type != nil {
+		objectMap["type"] = le.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -7022,7 +6437,7 @@ type LiveEventActionInput struct {
 
 // LiveEventEncoding the Live Event encoding.
 type LiveEventEncoding struct {
-	// EncodingType - The encoding type for Live Event.  This value is specified at creation time and cannot be updated. Possible values include: 'LiveEventEncodingTypeNone', 'LiveEventEncodingTypeBasic', 'LiveEventEncodingTypeStandard', 'LiveEventEncodingTypePremium1080p'
+	// EncodingType - The encoding type for Live Event.  This value is specified at creation time and cannot be updated. Possible values include: 'LiveEventEncodingTypeNone', 'LiveEventEncodingTypeBasic'
 	EncodingType LiveEventEncodingType `json:"encodingType,omitempty"`
 	// PresetName - The encoding preset name.  This value is specified at creation time and cannot be updated.
 	PresetName *string `json:"presetName,omitempty"`
@@ -7073,37 +6488,20 @@ type LiveEventListResultIterator struct {
 	page LiveEventListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *LiveEventListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *LiveEventListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *LiveEventListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -7125,11 +6523,6 @@ func (iter LiveEventListResultIterator) Value() LiveEvent {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the LiveEventListResultIterator type.
-func NewLiveEventListResultIterator(page LiveEventListResultPage) LiveEventListResultIterator {
-	return LiveEventListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (lelr LiveEventListResult) IsEmpty() bool {
 	return lelr.Value == nil || len(*lelr.Value) == 0
@@ -7137,11 +6530,11 @@ func (lelr LiveEventListResult) IsEmpty() bool {
 
 // liveEventListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (lelr LiveEventListResult) liveEventListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (lelr LiveEventListResult) liveEventListResultPreparer() (*http.Request, error) {
 	if lelr.OdataNextLink == nil || len(to.String(lelr.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(lelr.OdataNextLink)))
@@ -7149,36 +6542,19 @@ func (lelr LiveEventListResult) liveEventListResultPreparer(ctx context.Context)
 
 // LiveEventListResultPage contains a page of LiveEvent values.
 type LiveEventListResultPage struct {
-	fn   func(context.Context, LiveEventListResult) (LiveEventListResult, error)
+	fn   func(LiveEventListResult) (LiveEventListResult, error)
 	lelr LiveEventListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *LiveEventListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.lelr)
+func (page *LiveEventListResultPage) Next() error {
+	next, err := page.fn(page.lelr)
 	if err != nil {
 		return err
 	}
 	page.lelr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *LiveEventListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -7197,11 +6573,6 @@ func (page LiveEventListResultPage) Values() []LiveEvent {
 		return nil
 	}
 	return *page.lelr.Value
-}
-
-// Creates a new instance of the LiveEventListResultPage type.
-func NewLiveEventListResultPage(getNextPage func(context.Context, LiveEventListResult) (LiveEventListResult, error)) LiveEventListResultPage {
-	return LiveEventListResultPage{fn: getNextPage}
 }
 
 // LiveEventPreview the Live Event preview.
@@ -7234,9 +6605,9 @@ type LiveEventProperties struct {
 	Preview *LiveEventPreview `json:"preview,omitempty"`
 	// Encoding - The Live Event encoding.
 	Encoding *LiveEventEncoding `json:"encoding,omitempty"`
-	// ProvisioningState - READ-ONLY; The provisioning state of the Live Event.
+	// ProvisioningState - The provisioning state of the Live Event.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
-	// ResourceState - READ-ONLY; The resource state of the Live Event. Possible values include: 'Stopped', 'Starting', 'Running', 'Stopping', 'Deleting'
+	// ResourceState - The resource state of the Live Event. Possible values include: 'Stopped', 'Starting', 'Running', 'Stopping', 'Deleting'
 	ResourceState LiveEventResourceState `json:"resourceState,omitempty"`
 	// CrossSiteAccessPolicies - The Live Event access policies.
 	CrossSiteAccessPolicies *CrossSiteAccessPolicies `json:"crossSiteAccessPolicies,omitempty"`
@@ -7244,14 +6615,13 @@ type LiveEventProperties struct {
 	VanityURL *bool `json:"vanityUrl,omitempty"`
 	// StreamOptions - The options to use for the LiveEvent.  This value is specified at creation time and cannot be updated.
 	StreamOptions *[]StreamOptionsFlag `json:"streamOptions,omitempty"`
-	// Created - READ-ONLY; The exact time the Live Event was created.
+	// Created - The exact time the Live Event was created.
 	Created *date.Time `json:"created,omitempty"`
-	// LastModified - READ-ONLY; The exact time the Live Event was last modified.
+	// LastModified - The exact time the Live Event was last modified.
 	LastModified *date.Time `json:"lastModified,omitempty"`
 }
 
-// LiveEventsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// LiveEventsCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LiveEventsCreateFuture struct {
 	azure.Future
 }
@@ -7260,7 +6630,7 @@ type LiveEventsCreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *LiveEventsCreateFuture) Result(client LiveEventsClient) (le LiveEvent, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.LiveEventsCreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -7279,8 +6649,7 @@ func (future *LiveEventsCreateFuture) Result(client LiveEventsClient) (le LiveEv
 	return
 }
 
-// LiveEventsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// LiveEventsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LiveEventsDeleteFuture struct {
 	azure.Future
 }
@@ -7289,7 +6658,7 @@ type LiveEventsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *LiveEventsDeleteFuture) Result(client LiveEventsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.LiveEventsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -7302,8 +6671,7 @@ func (future *LiveEventsDeleteFuture) Result(client LiveEventsClient) (ar autore
 	return
 }
 
-// LiveEventsResetFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// LiveEventsResetFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LiveEventsResetFuture struct {
 	azure.Future
 }
@@ -7312,7 +6680,7 @@ type LiveEventsResetFuture struct {
 // If the operation has not completed it will return an error.
 func (future *LiveEventsResetFuture) Result(client LiveEventsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.LiveEventsResetFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -7325,8 +6693,7 @@ func (future *LiveEventsResetFuture) Result(client LiveEventsClient) (ar autores
 	return
 }
 
-// LiveEventsStartFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// LiveEventsStartFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LiveEventsStartFuture struct {
 	azure.Future
 }
@@ -7335,7 +6702,7 @@ type LiveEventsStartFuture struct {
 // If the operation has not completed it will return an error.
 func (future *LiveEventsStartFuture) Result(client LiveEventsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.LiveEventsStartFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -7348,8 +6715,7 @@ func (future *LiveEventsStartFuture) Result(client LiveEventsClient) (ar autores
 	return
 }
 
-// LiveEventsStopFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// LiveEventsStopFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LiveEventsStopFuture struct {
 	azure.Future
 }
@@ -7358,7 +6724,7 @@ type LiveEventsStopFuture struct {
 // If the operation has not completed it will return an error.
 func (future *LiveEventsStopFuture) Result(client LiveEventsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.LiveEventsStopFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -7371,8 +6737,7 @@ func (future *LiveEventsStopFuture) Result(client LiveEventsClient) (ar autorest
 	return
 }
 
-// LiveEventsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// LiveEventsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LiveEventsUpdateFuture struct {
 	azure.Future
 }
@@ -7381,7 +6746,7 @@ type LiveEventsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *LiveEventsUpdateFuture) Result(client LiveEventsClient) (le LiveEvent, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.LiveEventsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -7405,11 +6770,11 @@ type LiveOutput struct {
 	autorest.Response `json:"-"`
 	// LiveOutputProperties - The Live Output properties.
 	*LiveOutputProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -7418,6 +6783,15 @@ func (lo LiveOutput) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if lo.LiveOutputProperties != nil {
 		objectMap["properties"] = lo.LiveOutputProperties
+	}
+	if lo.ID != nil {
+		objectMap["id"] = lo.ID
+	}
+	if lo.Name != nil {
+		objectMap["name"] = lo.Name
+	}
+	if lo.Type != nil {
+		objectMap["type"] = lo.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -7490,37 +6864,20 @@ type LiveOutputListResultIterator struct {
 	page LiveOutputListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *LiveOutputListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveOutputListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *LiveOutputListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *LiveOutputListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -7542,11 +6899,6 @@ func (iter LiveOutputListResultIterator) Value() LiveOutput {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the LiveOutputListResultIterator type.
-func NewLiveOutputListResultIterator(page LiveOutputListResultPage) LiveOutputListResultIterator {
-	return LiveOutputListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (lolr LiveOutputListResult) IsEmpty() bool {
 	return lolr.Value == nil || len(*lolr.Value) == 0
@@ -7554,11 +6906,11 @@ func (lolr LiveOutputListResult) IsEmpty() bool {
 
 // liveOutputListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (lolr LiveOutputListResult) liveOutputListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (lolr LiveOutputListResult) liveOutputListResultPreparer() (*http.Request, error) {
 	if lolr.OdataNextLink == nil || len(to.String(lolr.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(lolr.OdataNextLink)))
@@ -7566,36 +6918,19 @@ func (lolr LiveOutputListResult) liveOutputListResultPreparer(ctx context.Contex
 
 // LiveOutputListResultPage contains a page of LiveOutput values.
 type LiveOutputListResultPage struct {
-	fn   func(context.Context, LiveOutputListResult) (LiveOutputListResult, error)
+	fn   func(LiveOutputListResult) (LiveOutputListResult, error)
 	lolr LiveOutputListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *LiveOutputListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveOutputListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.lolr)
+func (page *LiveOutputListResultPage) Next() error {
+	next, err := page.fn(page.lolr)
 	if err != nil {
 		return err
 	}
 	page.lolr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *LiveOutputListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -7616,11 +6951,6 @@ func (page LiveOutputListResultPage) Values() []LiveOutput {
 	return *page.lolr.Value
 }
 
-// Creates a new instance of the LiveOutputListResultPage type.
-func NewLiveOutputListResultPage(getNextPage func(context.Context, LiveOutputListResult) (LiveOutputListResult, error)) LiveOutputListResultPage {
-	return LiveOutputListResultPage{fn: getNextPage}
-}
-
 // LiveOutputProperties the JSON object that contains the properties required to create a Live Output.
 type LiveOutputProperties struct {
 	// Description - The description of the Live Output.
@@ -7635,18 +6965,17 @@ type LiveOutputProperties struct {
 	Hls *Hls `json:"hls,omitempty"`
 	// OutputSnapTime - The output snapshot time.
 	OutputSnapTime *int64 `json:"outputSnapTime,omitempty"`
-	// Created - READ-ONLY; The exact time the Live Output was created.
+	// Created - The exact time the Live Output was created.
 	Created *date.Time `json:"created,omitempty"`
-	// LastModified - READ-ONLY; The exact time the Live Output was last modified.
+	// LastModified - The exact time the Live Output was last modified.
 	LastModified *date.Time `json:"lastModified,omitempty"`
-	// ProvisioningState - READ-ONLY; The provisioning state of the Live Output.
+	// ProvisioningState - The provisioning state of the Live Output.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
-	// ResourceState - READ-ONLY; The resource state of the Live Output. Possible values include: 'LiveOutputResourceStateCreating', 'LiveOutputResourceStateRunning', 'LiveOutputResourceStateDeleting'
+	// ResourceState - The resource state of the Live Output. Possible values include: 'LiveOutputResourceStateCreating', 'LiveOutputResourceStateRunning', 'LiveOutputResourceStateDeleting'
 	ResourceState LiveOutputResourceState `json:"resourceState,omitempty"`
 }
 
-// LiveOutputsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// LiveOutputsCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LiveOutputsCreateFuture struct {
 	azure.Future
 }
@@ -7655,7 +6984,7 @@ type LiveOutputsCreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *LiveOutputsCreateFuture) Result(client LiveOutputsClient) (lo LiveOutput, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.LiveOutputsCreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -7674,8 +7003,7 @@ func (future *LiveOutputsCreateFuture) Result(client LiveOutputsClient) (lo Live
 	return
 }
 
-// LiveOutputsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// LiveOutputsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LiveOutputsDeleteFuture struct {
 	azure.Future
 }
@@ -7684,7 +7012,7 @@ type LiveOutputsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *LiveOutputsDeleteFuture) Result(client LiveOutputsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.LiveOutputsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -7704,33 +7032,33 @@ type Location struct {
 
 // Metric a metric emitted by service.
 type Metric struct {
-	// Name - READ-ONLY; The metric name.
+	// Name - The metric name.
 	Name *string `json:"name,omitempty"`
-	// DisplayName - READ-ONLY; The metric display name.
+	// DisplayName - The metric display name.
 	DisplayName *string `json:"displayName,omitempty"`
-	// DisplayDescription - READ-ONLY; The metric display description.
+	// DisplayDescription - The metric display description.
 	DisplayDescription *string `json:"displayDescription,omitempty"`
-	// Unit - READ-ONLY; The metric unit. Possible values include: 'MetricUnitBytes', 'MetricUnitCount', 'MetricUnitMilliseconds'
+	// Unit - The metric unit. Possible values include: 'MetricUnitBytes', 'MetricUnitCount', 'MetricUnitMilliseconds'
 	Unit MetricUnit `json:"unit,omitempty"`
-	// AggregationType - READ-ONLY; The metric aggregation type. Possible values include: 'Average', 'Count', 'Total'
+	// AggregationType - The metric aggregation type. Possible values include: 'Average', 'Count', 'Total'
 	AggregationType MetricAggregationType `json:"aggregationType,omitempty"`
-	// Dimensions - READ-ONLY; The metric dimensions.
+	// Dimensions - The metric dimensions.
 	Dimensions *[]MetricDimension `json:"dimensions,omitempty"`
 }
 
 // MetricDimension a metric dimension.
 type MetricDimension struct {
-	// Name - READ-ONLY; The metric dimension name.
+	// Name - The metric dimension name.
 	Name *string `json:"name,omitempty"`
-	// DisplayName - READ-ONLY; The display name for the dimension.
+	// DisplayName - The display name for the dimension.
 	DisplayName *string `json:"displayName,omitempty"`
-	// ToBeExportedForShoebox - READ-ONLY; Whether to export metric to shoebox.
+	// ToBeExportedForShoebox - Whether to export metric to shoebox.
 	ToBeExportedForShoebox *bool `json:"toBeExportedForShoebox,omitempty"`
 }
 
 // MetricProperties metric properties.
 type MetricProperties struct {
-	// ServiceSpecification - READ-ONLY; The service specifications.
+	// ServiceSpecification - The service specifications.
 	ServiceSpecification *ServiceSpecification `json:"serviceSpecification,omitempty"`
 }
 
@@ -7819,9 +7147,9 @@ type BasicMultiBitrateFormat interface {
 	AsMultiBitrateFormat() (*MultiBitrateFormat, bool)
 }
 
-// MultiBitrateFormat describes the properties for producing a collection of GOP aligned multi-bitrate files.
-// The default behavior is to produce one output file for each video layer which is muxed together with all the
-// audios. The exact output files produced can be controlled by specifying the outputFiles collection.
+// MultiBitrateFormat describes the properties for producing a collection of GOP aligned multi-bitrate files. The
+// default behavior is to produce one output file for each video layer which is muxed together with all the audios.
+// The exact output files produced can be controlled by specifying the outputFiles collection.
 type MultiBitrateFormat struct {
 	// OutputFiles - The list of output files to produce.  Each entry in the list is a set of audio and video layer labels to be muxed together .
 	OutputFiles *[]OutputFile `json:"outputFiles,omitempty"`
@@ -7983,37 +7311,20 @@ type OperationCollectionIterator struct {
 	page OperationCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OperationCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OperationCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -8035,11 +7346,6 @@ func (iter OperationCollectionIterator) Value() Operation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OperationCollectionIterator type.
-func NewOperationCollectionIterator(page OperationCollectionPage) OperationCollectionIterator {
-	return OperationCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (oc OperationCollection) IsEmpty() bool {
 	return oc.Value == nil || len(*oc.Value) == 0
@@ -8047,11 +7353,11 @@ func (oc OperationCollection) IsEmpty() bool {
 
 // operationCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (oc OperationCollection) operationCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (oc OperationCollection) operationCollectionPreparer() (*http.Request, error) {
 	if oc.OdataNextLink == nil || len(to.String(oc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(oc.OdataNextLink)))
@@ -8059,36 +7365,19 @@ func (oc OperationCollection) operationCollectionPreparer(ctx context.Context) (
 
 // OperationCollectionPage contains a page of Operation values.
 type OperationCollectionPage struct {
-	fn func(context.Context, OperationCollection) (OperationCollection, error)
+	fn func(OperationCollection) (OperationCollection, error)
 	oc OperationCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.oc)
+func (page *OperationCollectionPage) Next() error {
+	next, err := page.fn(page.oc)
 	if err != nil {
 		return err
 	}
 	page.oc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OperationCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -8107,11 +7396,6 @@ func (page OperationCollectionPage) Values() []Operation {
 		return nil
 	}
 	return *page.oc.Value
-}
-
-// Creates a new instance of the OperationCollectionPage type.
-func NewOperationCollectionPage(getNextPage func(context.Context, OperationCollection) (OperationCollection, error)) OperationCollectionPage {
-	return OperationCollectionPage{fn: getNextPage}
 }
 
 // OperationDisplay operation details.
@@ -8504,8 +7788,7 @@ func (pl PngLayer) AsBasicLayer() (BasicLayer, bool) {
 	return &pl, true
 }
 
-// PresentationTimeRange the presentation time range, this is asset related and not recommended for Account
-// Filter.
+// PresentationTimeRange the presentation time range, this is asset related and not recommended for Account Filter.
 type PresentationTimeRange struct {
 	// StartTimestamp - The absolute start time boundary.
 	StartTimestamp *int64 `json:"startTimestamp,omitempty"`
@@ -8517,14 +7800,13 @@ type PresentationTimeRange struct {
 	LiveBackoffDuration *int64 `json:"liveBackoffDuration,omitempty"`
 	// Timescale - The time scale of time stamps.
 	Timescale *int64 `json:"timescale,omitempty"`
-	// ForceEndTimestamp - The indicator of forcing existing of end time stamp.
+	// ForceEndTimestamp - The indicator of forcing exsiting of end time stamp.
 	ForceEndTimestamp *bool `json:"forceEndTimestamp,omitempty"`
 }
 
 // BasicPreset base type for all Presets, which define the recipe or instructions on how the input media files should
 // be processed.
 type BasicPreset interface {
-	AsFaceDetectorPreset() (*FaceDetectorPreset, bool)
 	AsAudioAnalyzerPreset() (*AudioAnalyzerPreset, bool)
 	AsBasicAudioAnalyzerPreset() (BasicAudioAnalyzerPreset, bool)
 	AsBuiltInStandardEncoderPreset() (*BuiltInStandardEncoderPreset, bool)
@@ -8533,10 +7815,10 @@ type BasicPreset interface {
 	AsPreset() (*Preset, bool)
 }
 
-// Preset base type for all Presets, which define the recipe or instructions on how the input media files
-// should be processed.
+// Preset base type for all Presets, which define the recipe or instructions on how the input media files should be
+// processed.
 type Preset struct {
-	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaFaceDetectorPreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
+	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
 	OdataType OdataTypeBasicPreset `json:"@odata.type,omitempty"`
 }
 
@@ -8548,10 +7830,6 @@ func unmarshalBasicPreset(body []byte) (BasicPreset, error) {
 	}
 
 	switch m["@odata.type"] {
-	case string(OdataTypeMicrosoftMediaFaceDetectorPreset):
-		var fdp FaceDetectorPreset
-		err := json.Unmarshal(body, &fdp)
-		return fdp, err
 	case string(OdataTypeMicrosoftMediaAudioAnalyzerPreset):
 		var aap AudioAnalyzerPreset
 		err := json.Unmarshal(body, &aap)
@@ -8603,11 +7881,6 @@ func (p Preset) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// AsFaceDetectorPreset is the BasicPreset implementation for Preset.
-func (p Preset) AsFaceDetectorPreset() (*FaceDetectorPreset, bool) {
-	return nil, false
-}
-
 // AsAudioAnalyzerPreset is the BasicPreset implementation for Preset.
 func (p Preset) AsAudioAnalyzerPreset() (*AudioAnalyzerPreset, bool) {
 	return nil, false
@@ -8651,16 +7924,15 @@ type Provider struct {
 
 // ProxyResource the resource model definition for a ARM proxy resource.
 type ProxyResource struct {
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
-// Rectangle describes the properties of a rectangular window applied to the input media before processing
-// it.
+// Rectangle describes the properties of a rectangular window applied to the input media before processing it.
 type Rectangle struct {
 	// Left - The number of pixels from the left-margin. This can be absolute pixel value (e.g 100), or relative to the size of the video (For example, 50%).
 	Left *string `json:"left,omitempty"`
@@ -8674,11 +7946,11 @@ type Rectangle struct {
 
 // Resource the core properties of ARM resources.
 type Resource struct {
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -8691,11 +7963,11 @@ type Service struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The Azure Region of the resource.
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -8710,6 +7982,15 @@ func (s Service) MarshalJSON() ([]byte, error) {
 	}
 	if s.Location != nil {
 		objectMap["location"] = s.Location
+	}
+	if s.ID != nil {
+		objectMap["id"] = s.ID
+	}
+	if s.Name != nil {
+		objectMap["name"] = s.Name
+	}
+	if s.Type != nil {
+		objectMap["type"] = s.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -8798,37 +8079,20 @@ type ServiceCollectionIterator struct {
 	page ServiceCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ServiceCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ServiceCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ServiceCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -8850,11 +8114,6 @@ func (iter ServiceCollectionIterator) Value() Service {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ServiceCollectionIterator type.
-func NewServiceCollectionIterator(page ServiceCollectionPage) ServiceCollectionIterator {
-	return ServiceCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sc ServiceCollection) IsEmpty() bool {
 	return sc.Value == nil || len(*sc.Value) == 0
@@ -8862,11 +8121,11 @@ func (sc ServiceCollection) IsEmpty() bool {
 
 // serviceCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sc ServiceCollection) serviceCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (sc ServiceCollection) serviceCollectionPreparer() (*http.Request, error) {
 	if sc.OdataNextLink == nil || len(to.String(sc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sc.OdataNextLink)))
@@ -8874,36 +8133,19 @@ func (sc ServiceCollection) serviceCollectionPreparer(ctx context.Context) (*htt
 
 // ServiceCollectionPage contains a page of Service values.
 type ServiceCollectionPage struct {
-	fn func(context.Context, ServiceCollection) (ServiceCollection, error)
+	fn func(ServiceCollection) (ServiceCollection, error)
 	sc ServiceCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ServiceCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sc)
+func (page *ServiceCollectionPage) Next() error {
+	next, err := page.fn(page.sc)
 	if err != nil {
 		return err
 	}
 	page.sc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ServiceCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -8924,14 +8166,9 @@ func (page ServiceCollectionPage) Values() []Service {
 	return *page.sc.Value
 }
 
-// Creates a new instance of the ServiceCollectionPage type.
-func NewServiceCollectionPage(getNextPage func(context.Context, ServiceCollection) (ServiceCollection, error)) ServiceCollectionPage {
-	return ServiceCollectionPage{fn: getNextPage}
-}
-
 // ServiceProperties properties of the Media Services account.
 type ServiceProperties struct {
-	// MediaServiceID - READ-ONLY; The Media Services account ID.
+	// MediaServiceID - The Media Services account ID.
 	MediaServiceID *uuid.UUID `json:"mediaServiceId,omitempty"`
 	// StorageAccounts - The storage accounts for this resource.
 	StorageAccounts *[]StorageAccount `json:"storageAccounts,omitempty"`
@@ -8939,12 +8176,12 @@ type ServiceProperties struct {
 
 // ServiceSpecification the service metric specifications.
 type ServiceSpecification struct {
-	// MetricSpecifications - READ-ONLY; List of metric specifications.
+	// MetricSpecifications - List of metric specifications.
 	MetricSpecifications *[]Metric `json:"metricSpecifications,omitempty"`
 }
 
-// StandardEncoderPreset describes all the settings to be used when encoding the input video with the
-// Standard Encoder.
+// StandardEncoderPreset describes all the settings to be used when encoding the input video with the Standard
+// Encoder.
 type StandardEncoderPreset struct {
 	// Filters - One or more filtering operations that are applied to the input media before encoding.
 	Filters *Filters `json:"filters,omitempty"`
@@ -8952,7 +8189,7 @@ type StandardEncoderPreset struct {
 	Codecs *[]BasicCodec `json:"codecs,omitempty"`
 	// Formats - The list of outputs to be produced by the encoder.
 	Formats *[]BasicFormat `json:"formats,omitempty"`
-	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaFaceDetectorPreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
+	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
 	OdataType OdataTypeBasicPreset `json:"@odata.type,omitempty"`
 }
 
@@ -8973,11 +8210,6 @@ func (sep StandardEncoderPreset) MarshalJSON() ([]byte, error) {
 		objectMap["@odata.type"] = sep.OdataType
 	}
 	return json.Marshal(objectMap)
-}
-
-// AsFaceDetectorPreset is the BasicPreset implementation for StandardEncoderPreset.
-func (sep StandardEncoderPreset) AsFaceDetectorPreset() (*FaceDetectorPreset, bool) {
-	return nil, false
 }
 
 // AsAudioAnalyzerPreset is the BasicPreset implementation for StandardEncoderPreset.
@@ -9072,8 +8304,7 @@ type StorageAccount struct {
 	Type StorageAccountType `json:"type,omitempty"`
 }
 
-// StorageEncryptedAssetDecryptionData data needed to decrypt asset files encrypted with legacy storage
-// encryption.
+// StorageEncryptedAssetDecryptionData data needed to decrypt asset files encrypted with legacy storage encryption.
 type StorageEncryptedAssetDecryptionData struct {
 	autorest.Response `json:"-"`
 	// Key - The Asset File storage encryption key.
@@ -9091,11 +8322,11 @@ type StreamingEndpoint struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The Azure Region of the resource.
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -9110,6 +8341,15 @@ func (se StreamingEndpoint) MarshalJSON() ([]byte, error) {
 	}
 	if se.Location != nil {
 		objectMap["location"] = se.Location
+	}
+	if se.ID != nil {
+		objectMap["id"] = se.ID
+	}
+	if se.Name != nil {
+		objectMap["name"] = se.Name
+	}
+	if se.Type != nil {
+		objectMap["type"] = se.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -9208,37 +8448,20 @@ type StreamingEndpointListResultIterator struct {
 	page StreamingEndpointListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *StreamingEndpointListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingEndpointListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *StreamingEndpointListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *StreamingEndpointListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -9260,11 +8483,6 @@ func (iter StreamingEndpointListResultIterator) Value() StreamingEndpoint {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the StreamingEndpointListResultIterator type.
-func NewStreamingEndpointListResultIterator(page StreamingEndpointListResultPage) StreamingEndpointListResultIterator {
-	return StreamingEndpointListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (selr StreamingEndpointListResult) IsEmpty() bool {
 	return selr.Value == nil || len(*selr.Value) == 0
@@ -9272,11 +8490,11 @@ func (selr StreamingEndpointListResult) IsEmpty() bool {
 
 // streamingEndpointListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (selr StreamingEndpointListResult) streamingEndpointListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (selr StreamingEndpointListResult) streamingEndpointListResultPreparer() (*http.Request, error) {
 	if selr.OdataNextLink == nil || len(to.String(selr.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(selr.OdataNextLink)))
@@ -9284,36 +8502,19 @@ func (selr StreamingEndpointListResult) streamingEndpointListResultPreparer(ctx 
 
 // StreamingEndpointListResultPage contains a page of StreamingEndpoint values.
 type StreamingEndpointListResultPage struct {
-	fn   func(context.Context, StreamingEndpointListResult) (StreamingEndpointListResult, error)
+	fn   func(StreamingEndpointListResult) (StreamingEndpointListResult, error)
 	selr StreamingEndpointListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *StreamingEndpointListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingEndpointListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.selr)
+func (page *StreamingEndpointListResultPage) Next() error {
+	next, err := page.fn(page.selr)
 	if err != nil {
 		return err
 	}
 	page.selr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *StreamingEndpointListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -9334,11 +8535,6 @@ func (page StreamingEndpointListResultPage) Values() []StreamingEndpoint {
 	return *page.selr.Value
 }
 
-// Creates a new instance of the StreamingEndpointListResultPage type.
-func NewStreamingEndpointListResultPage(getNextPage func(context.Context, StreamingEndpointListResult) (StreamingEndpointListResult, error)) StreamingEndpointListResultPage {
-	return StreamingEndpointListResultPage{fn: getNextPage}
-}
-
 // StreamingEndpointProperties the StreamingEndpoint properties.
 type StreamingEndpointProperties struct {
 	// Description - The StreamingEndpoint description.
@@ -9353,7 +8549,7 @@ type StreamingEndpointProperties struct {
 	MaxCacheAge *int64 `json:"maxCacheAge,omitempty"`
 	// CustomHostNames - The custom host names of the StreamingEndpoint
 	CustomHostNames *[]string `json:"customHostNames,omitempty"`
-	// HostName - READ-ONLY; The StreamingEndpoint host name.
+	// HostName - The StreamingEndpoint host name.
 	HostName *string `json:"hostName,omitempty"`
 	// CdnEnabled - The CDN enabled flag.
 	CdnEnabled *bool `json:"cdnEnabled,omitempty"`
@@ -9361,22 +8557,22 @@ type StreamingEndpointProperties struct {
 	CdnProvider *string `json:"cdnProvider,omitempty"`
 	// CdnProfile - The CDN profile name.
 	CdnProfile *string `json:"cdnProfile,omitempty"`
-	// ProvisioningState - READ-ONLY; The provisioning state of the StreamingEndpoint.
+	// ProvisioningState - The provisioning state of the StreamingEndpoint.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
-	// ResourceState - READ-ONLY; The resource state of the StreamingEndpoint. Possible values include: 'StreamingEndpointResourceStateStopped', 'StreamingEndpointResourceStateStarting', 'StreamingEndpointResourceStateRunning', 'StreamingEndpointResourceStateStopping', 'StreamingEndpointResourceStateDeleting', 'StreamingEndpointResourceStateScaling'
+	// ResourceState - The resource state of the StreamingEndpoint. Possible values include: 'StreamingEndpointResourceStateStopped', 'StreamingEndpointResourceStateStarting', 'StreamingEndpointResourceStateRunning', 'StreamingEndpointResourceStateStopping', 'StreamingEndpointResourceStateDeleting', 'StreamingEndpointResourceStateScaling'
 	ResourceState StreamingEndpointResourceState `json:"resourceState,omitempty"`
 	// CrossSiteAccessPolicies - The StreamingEndpoint access policies.
 	CrossSiteAccessPolicies *CrossSiteAccessPolicies `json:"crossSiteAccessPolicies,omitempty"`
-	// FreeTrialEndTime - READ-ONLY; The free trial expiration time.
+	// FreeTrialEndTime - The free trial expiration time.
 	FreeTrialEndTime *date.Time `json:"freeTrialEndTime,omitempty"`
-	// Created - READ-ONLY; The exact time the StreamingEndpoint was created.
+	// Created - The exact time the StreamingEndpoint was created.
 	Created *date.Time `json:"created,omitempty"`
-	// LastModified - READ-ONLY; The exact time the StreamingEndpoint was last modified.
+	// LastModified - The exact time the StreamingEndpoint was last modified.
 	LastModified *date.Time `json:"lastModified,omitempty"`
 }
 
-// StreamingEndpointsCreateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// StreamingEndpointsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type StreamingEndpointsCreateFuture struct {
 	azure.Future
 }
@@ -9385,7 +8581,7 @@ type StreamingEndpointsCreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingEndpointsCreateFuture) Result(client StreamingEndpointsClient) (se StreamingEndpoint, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.StreamingEndpointsCreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -9404,8 +8600,8 @@ func (future *StreamingEndpointsCreateFuture) Result(client StreamingEndpointsCl
 	return
 }
 
-// StreamingEndpointsDeleteFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// StreamingEndpointsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type StreamingEndpointsDeleteFuture struct {
 	azure.Future
 }
@@ -9414,7 +8610,7 @@ type StreamingEndpointsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingEndpointsDeleteFuture) Result(client StreamingEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.StreamingEndpointsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -9437,7 +8633,7 @@ type StreamingEndpointsScaleFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingEndpointsScaleFuture) Result(client StreamingEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.StreamingEndpointsScaleFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -9460,7 +8656,7 @@ type StreamingEndpointsStartFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingEndpointsStartFuture) Result(client StreamingEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.StreamingEndpointsStartFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -9483,7 +8679,7 @@ type StreamingEndpointsStopFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingEndpointsStopFuture) Result(client StreamingEndpointsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.StreamingEndpointsStopFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -9496,8 +8692,8 @@ func (future *StreamingEndpointsStopFuture) Result(client StreamingEndpointsClie
 	return
 }
 
-// StreamingEndpointsUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// StreamingEndpointsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type StreamingEndpointsUpdateFuture struct {
 	azure.Future
 }
@@ -9506,7 +8702,7 @@ type StreamingEndpointsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingEndpointsUpdateFuture) Result(client StreamingEndpointsClient) (se StreamingEndpoint, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.StreamingEndpointsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -9535,11 +8731,11 @@ type StreamingEntityScaleUnit struct {
 type StreamingLocator struct {
 	autorest.Response           `json:"-"`
 	*StreamingLocatorProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -9548,6 +8744,15 @@ func (sl StreamingLocator) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sl.StreamingLocatorProperties != nil {
 		objectMap["properties"] = sl.StreamingLocatorProperties
+	}
+	if sl.ID != nil {
+		objectMap["id"] = sl.ID
+	}
+	if sl.Name != nil {
+		objectMap["name"] = sl.Name
+	}
+	if sl.Type != nil {
+		objectMap["type"] = sl.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -9618,37 +8823,20 @@ type StreamingLocatorCollectionIterator struct {
 	page StreamingLocatorCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *StreamingLocatorCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingLocatorCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *StreamingLocatorCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *StreamingLocatorCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -9670,11 +8858,6 @@ func (iter StreamingLocatorCollectionIterator) Value() StreamingLocator {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the StreamingLocatorCollectionIterator type.
-func NewStreamingLocatorCollectionIterator(page StreamingLocatorCollectionPage) StreamingLocatorCollectionIterator {
-	return StreamingLocatorCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (slc StreamingLocatorCollection) IsEmpty() bool {
 	return slc.Value == nil || len(*slc.Value) == 0
@@ -9682,11 +8865,11 @@ func (slc StreamingLocatorCollection) IsEmpty() bool {
 
 // streamingLocatorCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (slc StreamingLocatorCollection) streamingLocatorCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (slc StreamingLocatorCollection) streamingLocatorCollectionPreparer() (*http.Request, error) {
 	if slc.OdataNextLink == nil || len(to.String(slc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(slc.OdataNextLink)))
@@ -9694,36 +8877,19 @@ func (slc StreamingLocatorCollection) streamingLocatorCollectionPreparer(ctx con
 
 // StreamingLocatorCollectionPage contains a page of StreamingLocator values.
 type StreamingLocatorCollectionPage struct {
-	fn  func(context.Context, StreamingLocatorCollection) (StreamingLocatorCollection, error)
+	fn  func(StreamingLocatorCollection) (StreamingLocatorCollection, error)
 	slc StreamingLocatorCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *StreamingLocatorCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingLocatorCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.slc)
+func (page *StreamingLocatorCollectionPage) Next() error {
+	next, err := page.fn(page.slc)
 	if err != nil {
 		return err
 	}
 	page.slc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *StreamingLocatorCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -9744,24 +8910,19 @@ func (page StreamingLocatorCollectionPage) Values() []StreamingLocator {
 	return *page.slc.Value
 }
 
-// Creates a new instance of the StreamingLocatorCollectionPage type.
-func NewStreamingLocatorCollectionPage(getNextPage func(context.Context, StreamingLocatorCollection) (StreamingLocatorCollection, error)) StreamingLocatorCollectionPage {
-	return StreamingLocatorCollectionPage{fn: getNextPage}
-}
-
 // StreamingLocatorContentKey class for content key in Streaming Locator
 type StreamingLocatorContentKey struct {
 	// ID - ID of Content Key
 	ID *uuid.UUID `json:"id,omitempty"`
-	// Type - READ-ONLY; Encryption type of Content Key. Possible values include: 'StreamingLocatorContentKeyTypeCommonEncryptionCenc', 'StreamingLocatorContentKeyTypeCommonEncryptionCbcs', 'StreamingLocatorContentKeyTypeEnvelopeEncryption'
+	// Type - Encryption type of Content Key. Possible values include: 'StreamingLocatorContentKeyTypeCommonEncryptionCenc', 'StreamingLocatorContentKeyTypeCommonEncryptionCbcs', 'StreamingLocatorContentKeyTypeEnvelopeEncryption'
 	Type StreamingLocatorContentKeyType `json:"type,omitempty"`
 	// LabelReferenceInStreamingPolicy - Label of Content Key as specified in the Streaming Policy
 	LabelReferenceInStreamingPolicy *string `json:"labelReferenceInStreamingPolicy,omitempty"`
-	// Value - Value of Content Key
+	// Value - Value of  of Content Key
 	Value *string `json:"value,omitempty"`
-	// PolicyName - READ-ONLY; ContentKeyPolicy used by Content Key
+	// PolicyName - ContentKeyPolicy used by Content Key
 	PolicyName *string `json:"policyName,omitempty"`
-	// Tracks - READ-ONLY; Tracks which use this Content Key
+	// Tracks - Tracks which use this Content Key
 	Tracks *[]TrackSelection `json:"tracks,omitempty"`
 }
 
@@ -9769,7 +8930,7 @@ type StreamingLocatorContentKey struct {
 type StreamingLocatorProperties struct {
 	// AssetName - Asset Name
 	AssetName *string `json:"assetName,omitempty"`
-	// Created - READ-ONLY; The creation time of the Streaming Locator.
+	// Created - The creation time of the Streaming Locator.
 	Created *date.Time `json:"created,omitempty"`
 	// StartTime - The start time of the Streaming Locator.
 	StartTime *date.Time `json:"startTime,omitempty"`
@@ -9785,8 +8946,6 @@ type StreamingLocatorProperties struct {
 	ContentKeys *[]StreamingLocatorContentKey `json:"contentKeys,omitempty"`
 	// AlternativeMediaID - Alternative Media ID of this Streaming Locator
 	AlternativeMediaID *string `json:"alternativeMediaId,omitempty"`
-	// Filters - A list of asset or account filters which apply to this streaming locator
-	Filters *[]string `json:"filters,omitempty"`
 }
 
 // StreamingPath class of paths for streaming
@@ -9803,11 +8962,11 @@ type StreamingPath struct {
 type StreamingPolicy struct {
 	autorest.Response          `json:"-"`
 	*StreamingPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -9816,6 +8975,15 @@ func (sp StreamingPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sp.StreamingPolicyProperties != nil {
 		objectMap["properties"] = sp.StreamingPolicyProperties
+	}
+	if sp.ID != nil {
+		objectMap["id"] = sp.ID
+	}
+	if sp.Name != nil {
+		objectMap["name"] = sp.Name
+	}
+	if sp.Type != nil {
+		objectMap["type"] = sp.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -9886,37 +9054,20 @@ type StreamingPolicyCollectionIterator struct {
 	page StreamingPolicyCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *StreamingPolicyCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingPolicyCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *StreamingPolicyCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *StreamingPolicyCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -9938,11 +9089,6 @@ func (iter StreamingPolicyCollectionIterator) Value() StreamingPolicy {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the StreamingPolicyCollectionIterator type.
-func NewStreamingPolicyCollectionIterator(page StreamingPolicyCollectionPage) StreamingPolicyCollectionIterator {
-	return StreamingPolicyCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (spc StreamingPolicyCollection) IsEmpty() bool {
 	return spc.Value == nil || len(*spc.Value) == 0
@@ -9950,11 +9096,11 @@ func (spc StreamingPolicyCollection) IsEmpty() bool {
 
 // streamingPolicyCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (spc StreamingPolicyCollection) streamingPolicyCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (spc StreamingPolicyCollection) streamingPolicyCollectionPreparer() (*http.Request, error) {
 	if spc.OdataNextLink == nil || len(to.String(spc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(spc.OdataNextLink)))
@@ -9962,36 +9108,19 @@ func (spc StreamingPolicyCollection) streamingPolicyCollectionPreparer(ctx conte
 
 // StreamingPolicyCollectionPage contains a page of StreamingPolicy values.
 type StreamingPolicyCollectionPage struct {
-	fn  func(context.Context, StreamingPolicyCollection) (StreamingPolicyCollection, error)
+	fn  func(StreamingPolicyCollection) (StreamingPolicyCollection, error)
 	spc StreamingPolicyCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *StreamingPolicyCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingPolicyCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.spc)
+func (page *StreamingPolicyCollectionPage) Next() error {
+	next, err := page.fn(page.spc)
 	if err != nil {
 		return err
 	}
 	page.spc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *StreamingPolicyCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -10010,11 +9139,6 @@ func (page StreamingPolicyCollectionPage) Values() []StreamingPolicy {
 		return nil
 	}
 	return *page.spc.Value
-}
-
-// Creates a new instance of the StreamingPolicyCollectionPage type.
-func NewStreamingPolicyCollectionPage(getNextPage func(context.Context, StreamingPolicyCollection) (StreamingPolicyCollection, error)) StreamingPolicyCollectionPage {
-	return StreamingPolicyCollectionPage{fn: getNextPage}
 }
 
 // StreamingPolicyContentKey class to specify properties of content key
@@ -10037,7 +9161,7 @@ type StreamingPolicyContentKeys struct {
 
 // StreamingPolicyFairPlayConfiguration class to specify configurations of FairPlay in Streaming Policy
 type StreamingPolicyFairPlayConfiguration struct {
-	// CustomLicenseAcquisitionURLTemplate - Template for the URL of the custom service delivering licenses to end user players.  Not required when using Azure Media Services for issuing licenses.  The template supports replaceable tokens that the service will update at runtime with the value specific to the request.  The currently supported token values are {AlternativeMediaId}, which is replaced with the value of StreamingLocatorId.AlternativeMediaId, and {ContentKeyId}, which is replaced with the value of identifier of the key being requested.
+	// CustomLicenseAcquisitionURLTemplate - The template for a customer service to deliver keys to end users.  Not needed when using Azure Media Services for issuing keys.
 	CustomLicenseAcquisitionURLTemplate *string `json:"customLicenseAcquisitionUrlTemplate,omitempty"`
 	// AllowPersistentLicense - All license to be persistent or not
 	AllowPersistentLicense *bool `json:"allowPersistentLicense,omitempty"`
@@ -10045,7 +9169,7 @@ type StreamingPolicyFairPlayConfiguration struct {
 
 // StreamingPolicyPlayReadyConfiguration class to specify configurations of PlayReady in Streaming Policy
 type StreamingPolicyPlayReadyConfiguration struct {
-	// CustomLicenseAcquisitionURLTemplate - Template for the URL of the custom service delivering licenses to end user players.  Not required when using Azure Media Services for issuing licenses.  The template supports replaceable tokens that the service will update at runtime with the value specific to the request.  The currently supported token values are {AlternativeMediaId}, which is replaced with the value of StreamingLocatorId.AlternativeMediaId, and {ContentKeyId}, which is replaced with the value of identifier of the key being requested.
+	// CustomLicenseAcquisitionURLTemplate - The template for a customer service to deliver keys to end users.  Not needed when using Azure Media Services for issuing keys.
 	CustomLicenseAcquisitionURLTemplate *string `json:"customLicenseAcquisitionUrlTemplate,omitempty"`
 	// PlayReadyCustomAttributes - Custom attributes for PlayReady
 	PlayReadyCustomAttributes *string `json:"playReadyCustomAttributes,omitempty"`
@@ -10053,7 +9177,7 @@ type StreamingPolicyPlayReadyConfiguration struct {
 
 // StreamingPolicyProperties class to specify properties of Streaming Policy
 type StreamingPolicyProperties struct {
-	// Created - READ-ONLY; Creation time of Streaming Policy
+	// Created - Creation time of Streaming Policy
 	Created *date.Time `json:"created,omitempty"`
 	// DefaultContentKeyPolicyName - Default ContentKey used by current Streaming Policy
 	DefaultContentKeyPolicyName *string `json:"defaultContentKeyPolicyName,omitempty"`
@@ -10069,7 +9193,7 @@ type StreamingPolicyProperties struct {
 
 // StreamingPolicyWidevineConfiguration class to specify configurations of Widevine in Streaming Policy
 type StreamingPolicyWidevineConfiguration struct {
-	// CustomLicenseAcquisitionURLTemplate - Template for the URL of the custom service delivering licenses to end user players.  Not required when using Azure Media Services for issuing licenses.  The template supports replaceable tokens that the service will update at runtime with the value specific to the request.  The currently supported token values are {AlternativeMediaId}, which is replaced with the value of StreamingLocatorId.AlternativeMediaId, and {ContentKeyId}, which is replaced with the value of identifier of the key being requested.
+	// CustomLicenseAcquisitionURLTemplate - The template for a customer service to deliver keys to end users.  Not needed when using Azure Media Services for issuing keys.
 	CustomLicenseAcquisitionURLTemplate *string `json:"customLicenseAcquisitionUrlTemplate,omitempty"`
 }
 
@@ -10082,11 +9206,11 @@ type SubscriptionMediaService struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The Azure Region of the resource.
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -10101,6 +9225,15 @@ func (sms SubscriptionMediaService) MarshalJSON() ([]byte, error) {
 	}
 	if sms.Location != nil {
 		objectMap["location"] = sms.Location
+	}
+	if sms.ID != nil {
+		objectMap["id"] = sms.ID
+	}
+	if sms.Name != nil {
+		objectMap["name"] = sms.Name
+	}
+	if sms.Type != nil {
+		objectMap["type"] = sms.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -10183,44 +9316,27 @@ type SubscriptionMediaServiceCollection struct {
 	OdataNextLink *string `json:"@odata.nextLink,omitempty"`
 }
 
-// SubscriptionMediaServiceCollectionIterator provides access to a complete listing of
-// SubscriptionMediaService values.
+// SubscriptionMediaServiceCollectionIterator provides access to a complete listing of SubscriptionMediaService
+// values.
 type SubscriptionMediaServiceCollectionIterator struct {
 	i    int
 	page SubscriptionMediaServiceCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SubscriptionMediaServiceCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SubscriptionMediaServiceCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SubscriptionMediaServiceCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SubscriptionMediaServiceCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -10242,11 +9358,6 @@ func (iter SubscriptionMediaServiceCollectionIterator) Value() SubscriptionMedia
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SubscriptionMediaServiceCollectionIterator type.
-func NewSubscriptionMediaServiceCollectionIterator(page SubscriptionMediaServiceCollectionPage) SubscriptionMediaServiceCollectionIterator {
-	return SubscriptionMediaServiceCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (smsc SubscriptionMediaServiceCollection) IsEmpty() bool {
 	return smsc.Value == nil || len(*smsc.Value) == 0
@@ -10254,11 +9365,11 @@ func (smsc SubscriptionMediaServiceCollection) IsEmpty() bool {
 
 // subscriptionMediaServiceCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (smsc SubscriptionMediaServiceCollection) subscriptionMediaServiceCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (smsc SubscriptionMediaServiceCollection) subscriptionMediaServiceCollectionPreparer() (*http.Request, error) {
 	if smsc.OdataNextLink == nil || len(to.String(smsc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(smsc.OdataNextLink)))
@@ -10266,36 +9377,19 @@ func (smsc SubscriptionMediaServiceCollection) subscriptionMediaServiceCollectio
 
 // SubscriptionMediaServiceCollectionPage contains a page of SubscriptionMediaService values.
 type SubscriptionMediaServiceCollectionPage struct {
-	fn   func(context.Context, SubscriptionMediaServiceCollection) (SubscriptionMediaServiceCollection, error)
+	fn   func(SubscriptionMediaServiceCollection) (SubscriptionMediaServiceCollection, error)
 	smsc SubscriptionMediaServiceCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SubscriptionMediaServiceCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SubscriptionMediaServiceCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.smsc)
+func (page *SubscriptionMediaServiceCollectionPage) Next() error {
+	next, err := page.fn(page.smsc)
 	if err != nil {
 		return err
 	}
 	page.smsc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SubscriptionMediaServiceCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -10316,11 +9410,6 @@ func (page SubscriptionMediaServiceCollectionPage) Values() []SubscriptionMediaS
 	return *page.smsc.Value
 }
 
-// Creates a new instance of the SubscriptionMediaServiceCollectionPage type.
-func NewSubscriptionMediaServiceCollectionPage(getNextPage func(context.Context, SubscriptionMediaServiceCollection) (SubscriptionMediaServiceCollection, error)) SubscriptionMediaServiceCollectionPage {
-	return SubscriptionMediaServiceCollectionPage{fn: getNextPage}
-}
-
 // SyncStorageKeysInput the input to the sync storage keys request.
 type SyncStorageKeysInput struct {
 	// ID - The ID of the storage account resource.
@@ -10333,11 +9422,11 @@ type TrackedResource struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The Azure Region of the resource.
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -10349,6 +9438,15 @@ func (tr TrackedResource) MarshalJSON() ([]byte, error) {
 	}
 	if tr.Location != nil {
 		objectMap["location"] = tr.Location
+	}
+	if tr.ID != nil {
+		objectMap["id"] = tr.ID
+	}
+	if tr.Name != nil {
+		objectMap["name"] = tr.Name
+	}
+	if tr.Type != nil {
+		objectMap["type"] = tr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -10369,18 +9467,18 @@ type TrackSelection struct {
 	TrackSelections *[]TrackPropertyCondition `json:"trackSelections,omitempty"`
 }
 
-// Transform a Transform encapsulates the rules or instructions for generating desired outputs from input
-// media, such as by transcoding or by extracting insights. After the Transform is created, it can be
-// applied to input media by creating Jobs.
+// Transform a Transform encapsulates the rules or instructions for generating desired outputs from input media,
+// such as by transcoding or by extracting insights. After the Transform is created, it can be applied to input
+// media by creating Jobs.
 type Transform struct {
 	autorest.Response `json:"-"`
 	// TransformProperties - The resource properties.
 	*TransformProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Fully qualified resource ID for the resource.
+	// ID - Fully qualified resource ID for the resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource.
+	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource.
+	// Type - The type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -10389,6 +9487,15 @@ func (t Transform) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if t.TransformProperties != nil {
 		objectMap["properties"] = t.TransformProperties
+	}
+	if t.ID != nil {
+		objectMap["id"] = t.ID
+	}
+	if t.Name != nil {
+		objectMap["name"] = t.Name
+	}
+	if t.Type != nil {
+		objectMap["type"] = t.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -10459,37 +9566,20 @@ type TransformCollectionIterator struct {
 	page TransformCollectionPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *TransformCollectionIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TransformCollectionIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *TransformCollectionIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *TransformCollectionIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -10511,11 +9601,6 @@ func (iter TransformCollectionIterator) Value() Transform {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the TransformCollectionIterator type.
-func NewTransformCollectionIterator(page TransformCollectionPage) TransformCollectionIterator {
-	return TransformCollectionIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (tc TransformCollection) IsEmpty() bool {
 	return tc.Value == nil || len(*tc.Value) == 0
@@ -10523,11 +9608,11 @@ func (tc TransformCollection) IsEmpty() bool {
 
 // transformCollectionPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (tc TransformCollection) transformCollectionPreparer(ctx context.Context) (*http.Request, error) {
+func (tc TransformCollection) transformCollectionPreparer() (*http.Request, error) {
 	if tc.OdataNextLink == nil || len(to.String(tc.OdataNextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(tc.OdataNextLink)))
@@ -10535,36 +9620,19 @@ func (tc TransformCollection) transformCollectionPreparer(ctx context.Context) (
 
 // TransformCollectionPage contains a page of Transform values.
 type TransformCollectionPage struct {
-	fn func(context.Context, TransformCollection) (TransformCollection, error)
+	fn func(TransformCollection) (TransformCollection, error)
 	tc TransformCollection
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *TransformCollectionPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TransformCollectionPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.tc)
+func (page *TransformCollectionPage) Next() error {
+	next, err := page.fn(page.tc)
 	if err != nil {
 		return err
 	}
 	page.tc = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *TransformCollectionPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -10583,11 +9651,6 @@ func (page TransformCollectionPage) Values() []Transform {
 		return nil
 	}
 	return *page.tc.Value
-}
-
-// Creates a new instance of the TransformCollectionPage type.
-func NewTransformCollectionPage(getNextPage func(context.Context, TransformCollection) (TransformCollection, error)) TransformCollectionPage {
-	return TransformCollectionPage{fn: getNextPage}
 }
 
 // TransformOutput describes the properties of a TransformOutput, which are the rules to be applied while
@@ -10644,18 +9707,18 @@ func (toVar *TransformOutput) UnmarshalJSON(body []byte) error {
 
 // TransformProperties a Transform.
 type TransformProperties struct {
-	// Created - READ-ONLY; The UTC date and time when the Transform was created, in 'YYYY-MM-DDThh:mm:ssZ' format.
+	// Created - The UTC date and time when the Transform was created, in 'YYYY-MM-DDThh:mm:ssZ' format.
 	Created *date.Time `json:"created,omitempty"`
 	// Description - An optional verbose description of the Transform.
 	Description *string `json:"description,omitempty"`
-	// LastModified - READ-ONLY; The UTC date and time when the Transform was last updated, in 'YYYY-MM-DDThh:mm:ssZ' format.
+	// LastModified - The UTC date and time when the Transform was last updated, in 'YYYY-MM-DDThh:mm:ssZ' format.
 	LastModified *date.Time `json:"lastModified,omitempty"`
 	// Outputs - An array of one or more TransformOutputs that the Transform should generate.
 	Outputs *[]TransformOutput `json:"outputs,omitempty"`
 }
 
-// TransportStreamFormat describes the properties for generating an MPEG-2 Transport Stream (ISO/IEC
-// 13818-1) output video file(s).
+// TransportStreamFormat describes the properties for generating an MPEG-2 Transport Stream (ISO/IEC 13818-1)
+// output video file(s).
 type TransportStreamFormat struct {
 	// OutputFiles - The list of output files to produce.  Each entry in the list is a set of audio and video layer labels to be muxed together .
 	OutputFiles *[]OutputFile `json:"outputFiles,omitempty"`
@@ -10891,14 +9954,14 @@ func (vVar Video) AsBasicCodec() (BasicCodec, bool) {
 	return &vVar, true
 }
 
-// VideoAnalyzerPreset a video analyzer preset that extracts insights (rich metadata) from both audio and
-// video, and outputs a JSON format file.
+// VideoAnalyzerPreset a video analyzer preset that extracts insights (rich metadata) from both audio and video,
+// and outputs a JSON format file.
 type VideoAnalyzerPreset struct {
-	// InsightsToExtract - Defines the type of insights that you want the service to generate. The allowed values are 'AudioInsightsOnly', 'VideoInsightsOnly', and 'AllInsights'. The default is AllInsights. If you set this to AllInsights and the input is audio only, then only audio insights are generated. Similarly if the input is video only, then only video insights are generated. It is recommended that you not use AudioInsightsOnly if you expect some of your inputs to be video only; or use VideoInsightsOnly if you expect some of your inputs to be audio only. Your Jobs in such conditions would error out. Possible values include: 'AudioInsightsOnly', 'VideoInsightsOnly', 'AllInsights'
+	// InsightsToExtract - The type of insights to be extracted. If not set then based on the content the type will selected.  If the content is audi only then only audio insights are extraced and if it is video only. Possible values include: 'AudioInsightsOnly', 'VideoInsightsOnly', 'AllInsights'
 	InsightsToExtract InsightsType `json:"insightsToExtract,omitempty"`
-	// AudioLanguage - The language for the audio payload in the input using the BCP-47 format of 'language tag-region' (e.g: 'en-US').  The list of supported languages are English ('en-US' and 'en-GB'), Spanish ('es-ES' and 'es-MX'), French ('fr-FR'), Italian ('it-IT'), Japanese ('ja-JP'), Portuguese ('pt-BR'), Chinese ('zh-CN'), German ('de-DE'), Arabic ('ar-EG' and 'ar-SY'), Russian ('ru-RU'), Hindi ('hi-IN'), and Korean ('ko-KR'). If you know the language of your content, it is recommended that you specify it. If the language isn't specified or set to null, automatic language detection will choose the first language detected and process with the selected language for the duration of the file. This language detection feature currently supports English, Chinese, French, German, Italian, Japanese, Spanish, Russian, and Portuguese. It does not currently support dynamically switching between languages after the first language is detected. The automatic detection works best with audio recordings with clearly discernable speech. If automatic detection fails to find the language, transcription would fallback to 'en-US'."
+	// AudioLanguage - The language for the audio payload in the input using the BCP-47 format of 'language tag-region' (e.g: 'en-US'). The list of supported languages are, 'en-US', 'en-GB', 'es-ES', 'es-MX', 'fr-FR', 'it-IT', 'ja-JP', 'pt-BR', 'zh-CN', 'de-DE', 'ar-EG', 'ru-RU', 'hi-IN'. If not specified, automatic language detection would be employed. This feature currently supports English, Chinese, French, German, Italian, Japanese, Spanish, Russian, and Portuguese. The automatic detection works best with audio recordings with clearly discernable speech. If automatic detection fails to find the language, transcription would fallback to English.
 	AudioLanguage *string `json:"audioLanguage,omitempty"`
-	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaFaceDetectorPreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
+	// OdataType - Possible values include: 'OdataTypePreset', 'OdataTypeMicrosoftMediaAudioAnalyzerPreset', 'OdataTypeMicrosoftMediaBuiltInStandardEncoderPreset', 'OdataTypeMicrosoftMediaStandardEncoderPreset', 'OdataTypeMicrosoftMediaVideoAnalyzerPreset'
 	OdataType OdataTypeBasicPreset `json:"@odata.type,omitempty"`
 }
 
@@ -10916,11 +9979,6 @@ func (vap VideoAnalyzerPreset) MarshalJSON() ([]byte, error) {
 		objectMap["@odata.type"] = vap.OdataType
 	}
 	return json.Marshal(objectMap)
-}
-
-// AsFaceDetectorPreset is the BasicPreset implementation for VideoAnalyzerPreset.
-func (vap VideoAnalyzerPreset) AsFaceDetectorPreset() (*FaceDetectorPreset, bool) {
-	return nil, false
 }
 
 // AsAudioAnalyzerPreset is the BasicPreset implementation for VideoAnalyzerPreset.
@@ -10964,8 +10022,7 @@ type BasicVideoLayer interface {
 	AsVideoLayer() (*VideoLayer, bool)
 }
 
-// VideoLayer describes the settings to be used when encoding the input video into a desired output bitrate
-// layer.
+// VideoLayer describes the settings to be used when encoding the input video into a desired output bitrate layer.
 type VideoLayer struct {
 	// Bitrate - The average bitrate in bits per second at which to encode the input video when generating this layer. This is a required field.
 	Bitrate *int32 `json:"bitrate,omitempty"`

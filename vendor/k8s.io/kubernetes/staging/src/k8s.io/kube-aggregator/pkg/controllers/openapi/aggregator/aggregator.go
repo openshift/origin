@@ -26,10 +26,9 @@ import (
 	restful "github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
 
-	"k8s.io/klog"
-
 	"k8s.io/apiserver/pkg/server"
-	v1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
+	"k8s.io/klog"
+	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	"k8s.io/kube-openapi/pkg/aggregator"
 	"k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
@@ -39,7 +38,7 @@ import (
 // SpecAggregator calls out to http handlers of APIServices and merges specs. It keeps state of the last
 // known specs including the http etag.
 type SpecAggregator interface {
-	AddUpdateAPIService(handler http.Handler, apiService *v1.APIService) error
+	AddUpdateAPIService(handler http.Handler, apiService *apiregistration.APIService) error
 	UpdateAPIServiceSpec(apiServiceName string, spec *spec.Swagger, etag string) error
 	RemoveAPIServiceSpec(apiServiceName string) error
 	GetAPIServiceInfo(apiServiceName string) (handler http.Handler, etag string, exists bool)
@@ -144,7 +143,7 @@ var _ SpecAggregator = &specAggregator{}
 
 // This function is not thread safe as it only being called on startup.
 func (s *specAggregator) addLocalSpec(spec *spec.Swagger, localHandler http.Handler, name, etag string) {
-	localAPIService := v1.APIService{}
+	localAPIService := apiregistration.APIService{}
 	localAPIService.Name = name
 	s.openAPISpecs[name] = &openAPISpecInfo{
 		etag:       etag,
@@ -157,7 +156,7 @@ func (s *specAggregator) addLocalSpec(spec *spec.Swagger, localHandler http.Hand
 // openAPISpecInfo is used to store OpenAPI spec with its priority.
 // It can be used to sort specs with their priorities.
 type openAPISpecInfo struct {
-	apiService v1.APIService
+	apiService apiregistration.APIService
 
 	// Specification of this API Service. If null then the spec is not loaded yet.
 	spec    *spec.Swagger
@@ -292,7 +291,7 @@ func (s *specAggregator) UpdateAPIServiceSpec(apiServiceName string, spec *spec.
 }
 
 // AddUpdateAPIService adds or updates the api service. It is thread safe.
-func (s *specAggregator) AddUpdateAPIService(handler http.Handler, apiService *v1.APIService) error {
+func (s *specAggregator) AddUpdateAPIService(handler http.Handler, apiService *apiregistration.APIService) error {
 	s.rwMutex.Lock()
 	defer s.rwMutex.Unlock()
 

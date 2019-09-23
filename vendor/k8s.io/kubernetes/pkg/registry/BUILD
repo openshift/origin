@@ -69,8 +69,6 @@ filegroup(
         "//pkg/registry/core/secret:all-srcs",
         "//pkg/registry/core/service:all-srcs",
         "//pkg/registry/core/serviceaccount:all-srcs",
-        "//pkg/registry/discovery/endpointslice:all-srcs",
-        "//pkg/registry/discovery/rest:all-srcs",
         "//pkg/registry/events/event:all-srcs",
         "//pkg/registry/events/rest:all-srcs",
         "//pkg/registry/extensions/controller/storage:all-srcs",

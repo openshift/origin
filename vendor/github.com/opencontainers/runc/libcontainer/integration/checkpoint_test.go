@@ -110,7 +110,6 @@ func testCheckpoint(t *testing.T, userns bool) {
 		Env:    standardEnvironment,
 		Stdin:  stdinR,
 		Stdout: &stdout,
-		Init:   true,
 	}
 
 	err = container.Run(&pconfig)
@@ -206,7 +205,6 @@ func testCheckpoint(t *testing.T, userns bool) {
 		Cwd:    "/",
 		Stdin:  restoreStdinR,
 		Stdout: &stdout,
-		Init:   true,
 	}
 
 	err = container.Restore(restoreProcessConfig, checkpointOpts)

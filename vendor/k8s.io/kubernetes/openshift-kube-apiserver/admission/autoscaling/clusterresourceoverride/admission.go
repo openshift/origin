@@ -1,7 +1,6 @@
 package clusterresourceoverride
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -152,16 +151,16 @@ func isExemptedNamespace(name string) bool {
 	return false
 }
 
-func (a *clusterResourceOverridePlugin) Admit(ctx context.Context, attr admission.Attributes, o admission.ObjectInterfaces) error {
-	return a.admit(ctx, attr, true, o)
+func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes, o admission.ObjectInterfaces) error {
+	return a.admit(attr, true, o)
 }
 
-func (a *clusterResourceOverridePlugin) Validate(ctx context.Context, attr admission.Attributes, o admission.ObjectInterfaces) error {
-	return a.admit(ctx, attr, false, o)
+func (a *clusterResourceOverridePlugin) Validate(attr admission.Attributes, o admission.ObjectInterfaces) error {
+	return a.admit(attr, false, o)
 }
 
 // TODO this will need to update when we have pod requests/limits
-func (a *clusterResourceOverridePlugin) admit(ctx context.Context, attr admission.Attributes, mutationAllowed bool, o admission.ObjectInterfaces) error {
+func (a *clusterResourceOverridePlugin) admit(attr admission.Attributes, mutationAllowed bool, o admission.ObjectInterfaces) error {
 	klog.V(6).Infof("%s admission controller is invoked", api.PluginName)
 	if a.config == nil || attr.GetResource().GroupResource() != coreapi.Resource("pods") || attr.GetSubresource() != "" {
 		return nil // not applicable
@@ -208,7 +207,7 @@ func (a *clusterResourceOverridePlugin) admit(ctx context.Context, attr admissio
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
 	// errors, assume that LimitRanger will run after this plugin to validate.
 	klog.V(5).Infof("%s: initial pod limits are: %#v", api.PluginName, pod.Spec)
-	if err := a.LimitRanger.Admit(ctx, attr, o); err != nil {
+	if err := a.LimitRanger.Admit(attr, o); err != nil {
 		klog.V(5).Infof("%s: error from LimitRanger: %#v", api.PluginName, err)
 	}
 	klog.V(5).Infof("%s: pod limits after LimitRanger: %#v", api.PluginName, pod.Spec)
@@ -246,13 +245,11 @@ func updateContainerResources(config *internalConfig, container *coreapi.Contain
 		}
 		q := resource.NewQuantity(int64(amount), memLimit.Format)
 		if memFloor.Cmp(*q) > 0 {
-			clone := memFloor.DeepCopy()
-			q = &clone
+			q = memFloor.Copy()
 		}
 		if nsMemFloor != nil && q.Cmp(*nsMemFloor) < 0 {
 			klog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, corev1.ResourceMemory, q.String(), nsMemFloor.String())
-			clone := nsMemFloor.DeepCopy()
-			q = &clone
+			q = nsMemFloor.Copy()
 		}
 		if err := applyQuantity(resources.Requests, corev1.ResourceMemory, *q, mutationAllowed); err != nil {
 			return fmt.Errorf("resources.requests.%s %v", corev1.ResourceMemory, err)
@@ -262,13 +259,11 @@ func updateContainerResources(config *internalConfig, container *coreapi.Contain
 		amount := float64(memLimit.Value()) * config.limitCPUToMemoryRatio * cpuBaseScaleFactor
 		q := resource.NewMilliQuantity(int64(amount), resource.DecimalSI)
 		if cpuFloor.Cmp(*q) > 0 {
-			clone := cpuFloor.DeepCopy()
-			q = &clone
+			q = cpuFloor.Copy()
 		}
 		if nsCPUFloor != nil && q.Cmp(*nsCPUFloor) < 0 {
 			klog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, corev1.ResourceCPU, q.String(), nsCPUFloor.String())
-			clone := nsCPUFloor.DeepCopy()
-			q = &clone
+			q = nsCPUFloor.Copy()
 		}
 		if err := applyQuantity(resources.Limits, corev1.ResourceCPU, *q, mutationAllowed); err != nil {
 			return fmt.Errorf("resources.limits.%s %v", corev1.ResourceCPU, err)
@@ -280,13 +275,11 @@ func updateContainerResources(config *internalConfig, container *coreapi.Contain
 		amount := float64(cpuLimit.MilliValue()) * config.cpuRequestToLimitRatio
 		q := resource.NewMilliQuantity(int64(amount), cpuLimit.Format)
 		if cpuFloor.Cmp(*q) > 0 {
-			clone := cpuFloor.DeepCopy()
-			q = &clone
+			q = cpuFloor.Copy()
 		}
 		if nsCPUFloor != nil && q.Cmp(*nsCPUFloor) < 0 {
 			klog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, corev1.ResourceCPU, q.String(), nsCPUFloor.String())
-			clone := nsCPUFloor.DeepCopy()
-			q = &clone
+			q = nsCPUFloor.Copy()
 		}
 		if err := applyQuantity(resources.Requests, corev1.ResourceCPU, *q, mutationAllowed); err != nil {
 			return fmt.Errorf("resources.requests.%s %v", corev1.ResourceCPU, err)
@@ -321,8 +314,7 @@ func minResourceLimits(limitRanges []*corev1.LimitRange, resourceName corev1.Res
 		for _, limit := range limitRange.Spec.Limits {
 			if limit.Type == corev1.LimitTypeContainer {
 				if limit, found := limit.Min[resourceName]; found {
-					clone := limit.DeepCopy()
-					limits = append(limits, &clone)
+					limits = append(limits, limit.Copy())
 				}
 			}
 		}
@@ -336,13 +328,13 @@ func minResourceLimits(limitRanges []*corev1.LimitRange, resourceName corev1.Res
 }
 
 func minQuantity(quantities []*resource.Quantity) *resource.Quantity {
-	min := quantities[0].DeepCopy()
+	min := quantities[0].Copy()
 
 	for i := range quantities {
-		if quantities[i].Cmp(min) < 0 {
-			min = quantities[i].DeepCopy()
+		if quantities[i].Cmp(*min) < 0 {
+			min = quantities[i].Copy()
 		}
 	}
 
-	return &min
+	return min
 }

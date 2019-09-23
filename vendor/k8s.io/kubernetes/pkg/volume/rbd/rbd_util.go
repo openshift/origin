@@ -23,11 +23,12 @@ package rbd
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -41,7 +42,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/node"
 	"k8s.io/kubernetes/pkg/volume"
-	volutil "k8s.io/kubernetes/pkg/volume/util"
 	utilpath "k8s.io/utils/path"
 )
 
@@ -86,7 +86,7 @@ func getRbdDevFromImageAndPool(pool string, image string) (string, bool) {
 			// https://github.com/torvalds/linux/blob/master/drivers/block/rbd.c
 			name := f.Name()
 			// First match pool, then match name.
-			poolFile := filepath.Join(sys_path, name, "pool")
+			poolFile := path.Join(sys_path, name, "pool")
 			poolBytes, err := ioutil.ReadFile(poolFile)
 			if err != nil {
 				klog.V(4).Infof("error reading %s: %v", poolFile, err)
@@ -96,7 +96,7 @@ func getRbdDevFromImageAndPool(pool string, image string) (string, bool) {
 				klog.V(4).Infof("device %s is not %q: %q", name, pool, string(poolBytes))
 				continue
 			}
-			imgFile := filepath.Join(sys_path, name, "name")
+			imgFile := path.Join(sys_path, name, "name")
 			imgBytes, err := ioutil.ReadFile(imgFile)
 			if err != nil {
 				klog.V(4).Infof("error reading %s: %v", imgFile, err)
@@ -166,12 +166,12 @@ func getNbdDevFromImageAndPool(pool string, image string) (string, bool) {
 			klog.V(4).Infof("error reading nbd info directory %s: %v", nbdPath, err)
 			continue
 		}
-		pidBytes, err := ioutil.ReadFile(filepath.Join(nbdPath, "pid"))
+		pidBytes, err := ioutil.ReadFile(path.Join(nbdPath, "pid"))
 		if err != nil {
 			klog.V(5).Infof("did not find valid pid file in dir %s: %v", nbdPath, err)
 			continue
 		}
-		cmdlineFileName := filepath.Join("/proc", strings.TrimSpace(string(pidBytes)), "cmdline")
+		cmdlineFileName := path.Join("/proc", strings.TrimSpace(string(pidBytes)), "cmdline")
 		rawCmdline, err := ioutil.ReadFile(cmdlineFileName)
 		if err != nil {
 			klog.V(4).Infof("failed to read cmdline file %s: %v", cmdlineFileName, err)
@@ -192,7 +192,7 @@ func getNbdDevFromImageAndPool(pool string, image string) (string, bool) {
 				nbdPath, imgPath, cmdlineArgs[2])
 			continue
 		}
-		devicePath := filepath.Join("/dev", "nbd"+strconv.Itoa(i))
+		devicePath := path.Join("/dev", "nbd"+strconv.Itoa(i))
 		if _, err := os.Lstat(devicePath); err != nil {
 			klog.Warningf("Stat device %s for imgpath %s failed %v", devicePath, imgPath, err)
 			continue
@@ -254,7 +254,7 @@ func checkRbdNbdTools(e mount.Exec) bool {
 // Make a directory like /var/lib/kubelet/plugins/kubernetes.io/rbd/mounts/pool-image-image.
 func makePDNameInternal(host volume.VolumeHost, pool string, image string) string {
 	// Backward compatibility for the deprecated format: /var/lib/kubelet/plugins/kubernetes.io/rbd/rbd/pool-image-image.
-	deprecatedDir := filepath.Join(host.GetPluginDir(rbdPluginName), "rbd", pool+"-image-"+image)
+	deprecatedDir := path.Join(host.GetPluginDir(rbdPluginName), "rbd", pool+"-image-"+image)
 	info, err := os.Stat(deprecatedDir)
 	if err == nil && info.IsDir() {
 		// The device mount path has already been created with the deprecated format, return it.
@@ -262,12 +262,12 @@ func makePDNameInternal(host volume.VolumeHost, pool string, image string) strin
 		return deprecatedDir
 	}
 	// Return the canonical format path.
-	return filepath.Join(host.GetPluginDir(rbdPluginName), volutil.MountsInGlobalPDPath, pool+"-image-"+image)
+	return path.Join(host.GetPluginDir(rbdPluginName), mount.MountsInGlobalPDPath, pool+"-image-"+image)
 }
 
 // Make a directory like /var/lib/kubelet/plugins/kubernetes.io/rbd/volumeDevices/pool-image-image.
 func makeVDPDNameInternal(host volume.VolumeHost, pool string, image string) string {
-	return filepath.Join(host.GetVolumeDevicePluginDir(rbdPluginName), pool+"-image-"+image)
+	return path.Join(host.GetVolumeDevicePluginDir(rbdPluginName), pool+"-image-"+image)
 }
 
 // RBDUtil implements diskManager interface.
@@ -295,7 +295,7 @@ func rbdErrors(runErr, resultErr error) error {
 // 'rbd' utility builds a comma-separated list of monitor addresses from '-m' /
 // '--mon_host` parameter (comma, semi-colon, or white-space delimited monitor
 // addresses) and send it to kernel rbd/libceph modules, which can accept
-// comma-separated list of monitor addresses (e.g. ip1[:port1][,ip2[:port2]...])
+// comma-seprated list of monitor addresses (e.g. ip1[:port1][,ip2[:port2]...])
 // in their first version in linux (see
 // https://github.com/torvalds/linux/blob/602adf400201636e95c3fed9f31fba54a3d7e844/net/ceph/ceph_common.c#L239).
 // Also, libceph module chooses monitor randomly, so we can simply pass all
@@ -378,7 +378,7 @@ func (util *RBDUtil) AttachDisk(b rbdMounter) (string, error) {
 		}
 	}
 
-	// Evaluate whether this device was mapped with rbd.
+	// Evalute whether this device was mapped with rbd.
 	devicePath, mapped := waitForPath(b.Pool, b.Image, 1 /*maxRetries*/, false /*useNbdDriver*/)
 
 	// If rbd-nbd tools are found, we will fallback to it should the default krbd driver fail.
@@ -491,8 +491,8 @@ func (util *RBDUtil) DetachDisk(plugin *rbdPlugin, deviceMountPath string, devic
 	klog.V(3).Infof("rbd: successfully unmap device %s", device)
 
 	// Currently, we don't persist rbd info on the disk, but for backward
-	// compatibility, we need to clean it if found.
-	rbdFile := filepath.Join(deviceMountPath, "rbd.json")
+	// compatbility, we need to clean it if found.
+	rbdFile := path.Join(deviceMountPath, "rbd.json")
 	exists, err := utilpath.Exists(utilpath.CheckFollowSymlink, rbdFile)
 	if err != nil {
 		return err
@@ -627,7 +627,7 @@ func (util *RBDUtil) DeleteImage(p *rbdVolumeDeleter) error {
 		return fmt.Errorf("error %v, rbd output: %v", err, rbdOutput)
 	}
 	if found {
-		klog.Infof("rbd %s is still being used ", p.rbdMounter.Image)
+		klog.Info("rbd is still being used ", p.rbdMounter.Image)
 		return fmt.Errorf("rbd image %s/%s is still being used, rbd output: %v", p.rbdMounter.Pool, p.rbdMounter.Image, rbdOutput)
 	}
 	// rbd rm.

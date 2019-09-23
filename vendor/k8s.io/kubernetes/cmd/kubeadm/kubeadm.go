@@ -17,10 +17,18 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"k8s.io/klog"
 	"k8s.io/kubernetes/cmd/kubeadm/app"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util"
 )
 
 func main() {
-	util.CheckErr(app.Run())
+	klog.InitFlags(nil)
+	if err := app.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	os.Exit(0)
 }

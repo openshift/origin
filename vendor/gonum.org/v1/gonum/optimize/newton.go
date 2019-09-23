@@ -12,11 +12,6 @@ import (
 
 const maxNewtonModifications = 20
 
-var (
-	_ Method      = (*Newton)(nil)
-	_ localMethod = (*Newton)(nil)
-)
-
 // Newton implements a modified Newton's method for Hessian-based unconstrained
 // minimization. It applies regularization when the Hessian is not positive
 // definite, and it can converge to a local minimum from any starting point.
@@ -50,10 +45,6 @@ type Newton struct {
 	// information in H.
 	// Increase must be greater than 1. If Increase is 0, it is defaulted to 5.
 	Increase float64
-	// GradStopThreshold sets the threshold for stopping if the gradient norm
-	// gets too small. If GradStopThreshold is 0 it is defaulted to 1e-12, and
-	// if it is NaN the setting is not used.
-	GradStopThreshold float64
 
 	status Status
 	err    error
@@ -69,10 +60,6 @@ func (n *Newton) Status() (Status, error) {
 	return n.status, n.err
 }
 
-func (*Newton) Uses(has Available) (uses Available, err error) {
-	return has.hessian()
-}
-
 func (n *Newton) Init(dim, tasks int) int {
 	n.status = NotTerminated
 	n.err = nil
@@ -80,7 +67,7 @@ func (n *Newton) Init(dim, tasks int) int {
 }
 
 func (n *Newton) Run(operation chan<- Task, result <-chan Task, tasks []Task) {
-	n.status, n.err = localOptimizer{}.run(n, n.GradStopThreshold, operation, result, tasks)
+	n.status, n.err = localOptimizer{}.run(n, operation, result, tasks)
 	close(operation)
 	return
 }
@@ -100,6 +87,7 @@ func (n *Newton) initLocal(loc *Location) (Operation, error) {
 	}
 	n.ls.Linesearcher = n.Linesearcher
 	n.ls.NextDirectioner = n
+
 	return n.ls.Init(loc)
 }
 
@@ -153,7 +141,7 @@ func (n *Newton) NextDirection(loc *Location, dir []float64) (stepSize float64) 
 		pd := n.chol.Factorize(n.hess)
 		if pd {
 			// Store the solution in d's backing array, dir.
-			n.chol.SolveVecTo(d, grad)
+			n.chol.SolveVec(d, grad)
 			d.ScaleVec(-1, d)
 			return 1
 		}
@@ -167,7 +155,7 @@ func (n *Newton) NextDirection(loc *Location, dir []float64) (stepSize float64) 
 	return 1
 }
 
-func (n *Newton) needs() struct {
+func (n *Newton) Needs() struct {
 	Gradient bool
 	Hessian  bool
 } {

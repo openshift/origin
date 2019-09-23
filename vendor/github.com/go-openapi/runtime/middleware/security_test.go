@@ -41,7 +41,6 @@ func TestSecurityMiddleware(t *testing.T) {
 
 	mw.ServeHTTP(recorder, request)
 	assert.Equal(t, 401, recorder.Code)
-	assert.NotEmpty(t, recorder.Header().Get("WWW-Authenticate"))
 
 	recorder = httptest.NewRecorder()
 	request, _ = http.NewRequest("GET", "/api/pets", nil)

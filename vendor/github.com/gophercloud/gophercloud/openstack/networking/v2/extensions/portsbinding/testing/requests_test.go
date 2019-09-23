@@ -165,10 +165,9 @@ func TestUpdate(t *testing.T) {
 		SecurityGroups: &[]string{"f0ac4394-7e4a-4409-9701-ba8be283dbc3"},
 	}
 
-	hostID := "HOST1"
 	updateOpts := portsbinding.UpdateOptsExt{
 		UpdateOptsBuilder: portUpdateOpts,
-		HostID:            &hostID,
+		HostID:            "HOST1",
 		VNICType:          "normal",
 	}
 

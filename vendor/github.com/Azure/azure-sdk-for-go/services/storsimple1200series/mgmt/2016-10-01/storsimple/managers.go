@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewManagersClientWithBaseURI(baseURI string, subscriptionID string) Manager
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) CreateExtendedInfo(ctx context.Context, managerExtendedInfo ManagerExtendedInfo, resourceGroupName string, managerName string) (result ManagerExtendedInfo, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.CreateExtendedInfo")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerExtendedInfo,
 			Constraints: []validation.Constraint{{Target: "managerExtendedInfo.ManagerExtendedInfoProperties", Name: validation.Null, Rule: true,
@@ -116,8 +105,8 @@ func (client ManagersClient) CreateExtendedInfoPreparer(ctx context.Context, man
 // CreateExtendedInfoSender sends the CreateExtendedInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) CreateExtendedInfoSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateExtendedInfoResponder handles the response to the CreateExtendedInfo request. The method always
@@ -139,16 +128,6 @@ func (client ManagersClient) CreateExtendedInfoResponder(resp *http.Response) (r
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) CreateOrUpdate(ctx context.Context, manager Manager, resourceGroupName string, managerName string) (result Manager, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: manager,
 			Constraints: []validation.Constraint{{Target: "manager.ManagerProperties", Name: validation.Null, Rule: false,
@@ -208,8 +187,8 @@ func (client ManagersClient) CreateOrUpdatePreparer(ctx context.Context, manager
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -230,16 +209,6 @@ func (client ManagersClient) CreateOrUpdateResponder(resp *http.Response) (resul
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) Delete(ctx context.Context, resourceGroupName string, managerName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -292,8 +261,8 @@ func (client ManagersClient) DeletePreparer(ctx context.Context, resourceGroupNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -313,16 +282,6 @@ func (client ManagersClient) DeleteResponder(resp *http.Response) (result autore
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) DeleteExtendedInfo(ctx context.Context, resourceGroupName string, managerName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.DeleteExtendedInfo")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -375,8 +334,8 @@ func (client ManagersClient) DeleteExtendedInfoPreparer(ctx context.Context, res
 // DeleteExtendedInfoSender sends the DeleteExtendedInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) DeleteExtendedInfoSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteExtendedInfoResponder handles the response to the DeleteExtendedInfo request. The method always
@@ -396,16 +355,6 @@ func (client ManagersClient) DeleteExtendedInfoResponder(resp *http.Response) (r
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) Get(ctx context.Context, resourceGroupName string, managerName string) (result Manager, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -458,8 +407,8 @@ func (client ManagersClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -480,16 +429,6 @@ func (client ManagersClient) GetResponder(resp *http.Response) (result Manager, 
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) GetEncryptionKey(ctx context.Context, resourceGroupName string, managerName string) (result SymmetricEncryptedSecret, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.GetEncryptionKey")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -542,8 +481,8 @@ func (client ManagersClient) GetEncryptionKeyPreparer(ctx context.Context, resou
 // GetEncryptionKeySender sends the GetEncryptionKey request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) GetEncryptionKeySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetEncryptionKeyResponder handles the response to the GetEncryptionKey request. The method always
@@ -564,16 +503,6 @@ func (client ManagersClient) GetEncryptionKeyResponder(resp *http.Response) (res
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) GetEncryptionSettings(ctx context.Context, resourceGroupName string, managerName string) (result EncryptionSettings, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.GetEncryptionSettings")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -626,8 +555,8 @@ func (client ManagersClient) GetEncryptionSettingsPreparer(ctx context.Context, 
 // GetEncryptionSettingsSender sends the GetEncryptionSettings request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) GetEncryptionSettingsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetEncryptionSettingsResponder handles the response to the GetEncryptionSettings request. The method always
@@ -648,16 +577,6 @@ func (client ManagersClient) GetEncryptionSettingsResponder(resp *http.Response)
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) GetExtendedInfo(ctx context.Context, resourceGroupName string, managerName string) (result ManagerExtendedInfo, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.GetExtendedInfo")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -710,8 +629,8 @@ func (client ManagersClient) GetExtendedInfoPreparer(ctx context.Context, resour
 // GetExtendedInfoSender sends the GetExtendedInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) GetExtendedInfoSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetExtendedInfoResponder handles the response to the GetExtendedInfo request. The method always
@@ -729,16 +648,6 @@ func (client ManagersClient) GetExtendedInfoResponder(resp *http.Response) (resu
 
 // List retrieves all the managers in a subscription.
 func (client ManagersClient) List(ctx context.Context) (result ManagerList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.ManagersClient", "List", nil, "Failure preparing request")
@@ -782,8 +691,8 @@ func (client ManagersClient) ListPreparer(ctx context.Context) (*http.Request, e
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -803,16 +712,6 @@ func (client ManagersClient) ListResponder(resp *http.Response) (result ManagerL
 // Parameters:
 // resourceGroupName - the resource group name
 func (client ManagersClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ManagerList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.ManagersClient", "ListByResourceGroup", nil, "Failure preparing request")
@@ -857,8 +756,8 @@ func (client ManagersClient) ListByResourceGroupPreparer(ctx context.Context, re
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -879,16 +778,6 @@ func (client ManagersClient) ListByResourceGroupResponder(resp *http.Response) (
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) ListMetricDefinition(ctx context.Context, resourceGroupName string, managerName string) (result MetricDefinitionList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.ListMetricDefinition")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -941,8 +830,8 @@ func (client ManagersClient) ListMetricDefinitionPreparer(ctx context.Context, r
 // ListMetricDefinitionSender sends the ListMetricDefinition request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) ListMetricDefinitionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListMetricDefinitionResponder handles the response to the ListMetricDefinition request. The method always
@@ -964,16 +853,6 @@ func (client ManagersClient) ListMetricDefinitionResponder(resp *http.Response) 
 // managerName - the manager name
 // filter - oData Filter options
 func (client ManagersClient) ListMetrics(ctx context.Context, resourceGroupName string, managerName string, filter string) (result MetricList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.ListMetrics")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -1029,8 +908,8 @@ func (client ManagersClient) ListMetricsPreparer(ctx context.Context, resourceGr
 // ListMetricsSender sends the ListMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) ListMetricsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListMetricsResponder handles the response to the ListMetrics request. The method always
@@ -1052,16 +931,6 @@ func (client ManagersClient) ListMetricsResponder(resp *http.Response) (result M
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) Update(ctx context.Context, parameters ManagerPatch, resourceGroupName string, managerName string) (result Manager, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -1116,8 +985,8 @@ func (client ManagersClient) UpdatePreparer(ctx context.Context, parameters Mana
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always
@@ -1140,16 +1009,6 @@ func (client ManagersClient) UpdateResponder(resp *http.Response) (result Manage
 // managerName - the manager name
 // ifMatch - pass the ETag of ExtendedInfo fetched from GET call
 func (client ManagersClient) UpdateExtendedInfo(ctx context.Context, managerExtendedInfo ManagerExtendedInfo, resourceGroupName string, managerName string, ifMatch string) (result ManagerExtendedInfo, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.UpdateExtendedInfo")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -1205,8 +1064,8 @@ func (client ManagersClient) UpdateExtendedInfoPreparer(ctx context.Context, man
 // UpdateExtendedInfoSender sends the UpdateExtendedInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) UpdateExtendedInfoSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateExtendedInfoResponder handles the response to the UpdateExtendedInfo request. The method always
@@ -1230,16 +1089,6 @@ func (client ManagersClient) UpdateExtendedInfoResponder(resp *http.Response) (r
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client ManagersClient) UploadRegistrationCertificate(ctx context.Context, certificateName string, uploadCertificateRequestrequest UploadCertificateRequest, resourceGroupName string, managerName string) (result UploadCertificateResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagersClient.UploadRegistrationCertificate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: uploadCertificateRequestrequest,
 			Constraints: []validation.Constraint{{Target: "uploadCertificateRequestrequest.RawCertificateData", Name: validation.Null, Rule: true,
@@ -1285,7 +1134,6 @@ func (client ManagersClient) UploadRegistrationCertificatePreparer(ctx context.C
 		"api-version": APIVersion,
 	}
 
-	uploadCertificateRequestrequest.ContractVersion = ""
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -1299,8 +1147,8 @@ func (client ManagersClient) UploadRegistrationCertificatePreparer(ctx context.C
 // UploadRegistrationCertificateSender sends the UploadRegistrationCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagersClient) UploadRegistrationCertificateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UploadRegistrationCertificateResponder handles the response to the UploadRegistrationCertificate request. The method always

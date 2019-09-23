@@ -59,7 +59,6 @@ func IsText(s []byte) bool {
 var textExt = map[string]bool{
 	".css": false, // must be served raw
 	".js":  false, // must be served raw
-	".svg": false, // must be served raw
 }
 
 // IsTextFile reports whether the file has a known extension indicating

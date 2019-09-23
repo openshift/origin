@@ -31,10 +31,7 @@ func TestAllocate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := NewPortAllocator(*pr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	r := NewPortAllocator(*pr)
 	if f := r.Free(); f != 201 {
 		t.Errorf("unexpected free %d", f)
 	}
@@ -132,10 +129,7 @@ func TestForEach(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		r, err := NewPortAllocator(*pr)
-		if err != nil {
-			t.Fatal(err)
-		}
+		r := NewPortAllocator(*pr)
 
 		for port := range tc {
 			if err := r.Allocate(port); err != nil {
@@ -164,10 +158,7 @@ func TestSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := NewPortAllocator(*pr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	r := NewPortAllocator(*pr)
 	ports := []int{}
 	for i := 0; i < 10; i++ {
 		port, err := r.AllocateNext()
@@ -196,17 +187,11 @@ func TestSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	other, err := NewPortAllocator(*otherPr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	other := NewPortAllocator(*otherPr)
 	if err := r.Restore(*otherPr, dst.Data); err != ErrMismatchedNetwork {
 		t.Fatal(err)
 	}
-	other, err = NewPortAllocator(*pr2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	other = NewPortAllocator(*pr2)
 	if err := other.Restore(*pr2, dst.Data); err != nil {
 		t.Fatal(err)
 	}
@@ -226,10 +211,7 @@ func TestNewFromSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := NewPortAllocator(*pr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	r := NewPortAllocator(*pr)
 	allocated := []int{}
 	for i := 0; i < 50; i++ {
 		p, err := r.AllocateNext()

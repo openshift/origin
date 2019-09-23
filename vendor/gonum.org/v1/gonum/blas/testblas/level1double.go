@@ -6,11 +6,13 @@ package testblas
 
 import (
 	"fmt"
-	"math"
-	"testing"
+	"log"
 
 	"gonum.org/v1/gonum/blas"
 	"gonum.org/v1/gonum/floats"
+
+	"math"
+	"testing"
 )
 
 type DoubleOneVectorCase struct {
@@ -1431,7 +1433,7 @@ func IdamaxTest(t *testing.T, blasser Idamaxer) {
 		if v != c.Idamax {
 			s := fmt.Sprintf("idamax: mismatch %v: expected %v, found %v", c.Name, c.Idamax, v)
 			if floats.HasNaN(c.X) {
-				t.Log(s)
+				log.Println(s)
 			} else {
 				t.Errorf(s)
 			}

@@ -27,6 +27,7 @@ import (
 	apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/version"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
@@ -121,7 +122,7 @@ func (f fakeEtcdClient) RemoveMember(id uint64) ([]etcdutil.Member, error) {
 	return []etcdutil.Member{}, nil
 }
 
-func getEtcdVersion(v *versionutil.Version) string {
+func getEtcdVersion(v *version.Version) string {
 	return constants.SupportedEtcdVersion[uint8(v.Minor())]
 }
 
@@ -186,7 +187,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    constants.MinimumControlPlaneVersion.WithPatch(3).String(),
 						KubeadmVersion: constants.MinimumControlPlaneVersion.WithPatch(3).String(),
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    getEtcdVersion(constants.MinimumControlPlaneVersion),
 					},
 				},
@@ -225,7 +226,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    constants.MinimumControlPlaneVersion.WithPatch(3).String(),
 						KubeadmVersion: constants.MinimumControlPlaneVersion.WithPatch(3).String(),
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    getEtcdVersion(constants.MinimumControlPlaneVersion),
 					},
 				},
@@ -264,7 +265,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    constants.CurrentKubernetesVersion.String(),
 						KubeadmVersion: constants.CurrentKubernetesVersion.String(),
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    getEtcdVersion(constants.CurrentKubernetesVersion),
 					},
 				},
@@ -303,7 +304,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    constants.MinimumControlPlaneVersion.WithPatch(5).String(),
 						KubeadmVersion: constants.MinimumControlPlaneVersion.WithPatch(5).String(), // Note: The kubeadm version mustn't be "downgraded" here
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    getEtcdVersion(constants.MinimumControlPlaneVersion),
 					},
 				},
@@ -323,7 +324,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    constants.CurrentKubernetesVersion.WithPatch(1).String(),
 						KubeadmVersion: constants.CurrentKubernetesVersion.WithPatch(1).String(),
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    getEtcdVersion(constants.CurrentKubernetesVersion),
 					},
 				},
@@ -382,7 +383,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    constants.CurrentKubernetesVersion.WithPreRelease("alpha.2").String(),
 						KubeadmVersion: constants.CurrentKubernetesVersion.WithPreRelease("alpha.2").String(),
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    getEtcdVersion(constants.CurrentKubernetesVersion),
 					},
 				},
@@ -422,7 +423,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    constants.CurrentKubernetesVersion.WithPreRelease("alpha.2").String(),
 						KubeadmVersion: constants.CurrentKubernetesVersion.WithPreRelease("alpha.2").String(),
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    getEtcdVersion(constants.CurrentKubernetesVersion),
 					},
 				},
@@ -463,7 +464,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    "v1.13.0-beta.1",
 						KubeadmVersion: "v1.13.0-beta.1",
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    "3.2.24",
 					},
 				},
@@ -504,7 +505,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    "v1.13.0-rc.1",
 						KubeadmVersion: "v1.13.0-rc.1",
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    "3.2.24",
 					},
 				},
@@ -545,7 +546,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    "v1.13.6-rc.1",
 						KubeadmVersion: "v1.13.6-rc.1",
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    "3.2.24",
 					},
 				},
@@ -586,7 +587,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    "v1.13.0-rc.1",
 						KubeadmVersion: "v1.13.0-rc.1",
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    "3.2.24",
 					},
 				},
@@ -606,7 +607,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    "v1.12.0-alpha.2",
 						KubeadmVersion: "v1.12.0-alpha.2",
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    "3.2.24",
 					},
 				},
@@ -659,7 +660,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    constants.CurrentKubernetesVersion.WithPatch(1).String(),
 						KubeadmVersion: constants.CurrentKubernetesVersion.WithPatch(1).String(),
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    getEtcdVersion(constants.CurrentKubernetesVersion),
 					},
 				},
@@ -696,7 +697,7 @@ func TestGetAvailableUpgrades(t *testing.T) {
 						KubeVersion:    constants.CurrentKubernetesVersion.String(),
 						KubeadmVersion: constants.CurrentKubernetesVersion.String(),
 						DNSType:        kubeadmapi.CoreDNS,
-						DNSVersion:     constants.CoreDNSVersion,
+						DNSVersion:     "1.3.1",
 						EtcdVersion:    getEtcdVersion(constants.CurrentKubernetesVersion),
 					},
 				},

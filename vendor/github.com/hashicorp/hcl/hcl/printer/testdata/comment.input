@@ -35,5 +35,3 @@ foo {
     bar = "fatih"       // line comment 2 
 }        // line comment 3
 
-multiline = // comment
-"assignment"

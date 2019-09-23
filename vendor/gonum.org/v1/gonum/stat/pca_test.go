@@ -183,9 +183,9 @@ tests:
 
 			// Check that the set of principal vectors is
 			// orthonormal by comparing V^T*V to the identity matrix.
-			I := mat.NewDiagDense(c, nil)
+			I := mat.NewDiagonal(c, nil)
 			for k := 0; k < c; k++ {
-				I.SetDiag(k, 1)
+				I.SetSymBand(k, k, 1)
 			}
 			var vv mat.Dense
 			vv.Mul(vecs.T(), vecs)

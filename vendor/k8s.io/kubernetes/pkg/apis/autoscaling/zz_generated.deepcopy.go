@@ -126,7 +126,7 @@ func (in *HorizontalPodAutoscalerCondition) DeepCopy() *HorizontalPodAutoscalerC
 func (in *HorizontalPodAutoscalerList) DeepCopyInto(out *HorizontalPodAutoscalerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]HorizontalPodAutoscaler, len(*in))

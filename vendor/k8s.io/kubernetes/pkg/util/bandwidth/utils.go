@@ -35,7 +35,6 @@ func validateBandwidthIsReasonable(rsrc *resource.Quantity) error {
 	return nil
 }
 
-// ExtractPodBandwidthResources extracts the ingress and egress from the given pod annotations
 func ExtractPodBandwidthResources(podAnnotations map[string]string) (ingress, egress *resource.Quantity, err error) {
 	if podAnnotations == nil {
 		return nil, nil, nil

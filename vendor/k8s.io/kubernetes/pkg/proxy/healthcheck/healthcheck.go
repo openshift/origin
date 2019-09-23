@@ -122,7 +122,7 @@ type server struct {
 	listener    Listener
 	httpFactory HTTPServerFactory
 
-	lock     sync.RWMutex
+	lock     sync.Mutex
 	services map[types.NamespacedName]*hcInstance
 }
 
@@ -199,15 +199,15 @@ type hcHandler struct {
 var _ http.Handler = hcHandler{}
 
 func (h hcHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	h.hcs.lock.RLock()
+	h.hcs.lock.Lock()
 	svc, ok := h.hcs.services[h.name]
 	if !ok || svc == nil {
-		h.hcs.lock.RUnlock()
+		h.hcs.lock.Unlock()
 		klog.Errorf("Received request for closed healthcheck %q", h.name.String())
 		return
 	}
 	count := svc.endpoints
-	h.hcs.lock.RUnlock()
+	h.hcs.lock.Unlock()
 
 	resp.Header().Set("Content-Type", "application/json")
 	if count == 0 {

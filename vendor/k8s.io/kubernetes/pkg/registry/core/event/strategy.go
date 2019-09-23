@@ -38,7 +38,7 @@ type eventStrategy struct {
 	names.NameGenerator
 }
 
-// Strategy is the default logic that applies when creating and updating
+// Strategy is the default logic that pplies when creating and updating
 // Event objects via the REST API.
 var Strategy = eventStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
@@ -84,11 +84,10 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	if !ok {
 		return nil, nil, fmt.Errorf("not an event")
 	}
-	return labels.Set(event.Labels), ToSelectableFields(event), nil
+	return labels.Set(event.Labels), EventToSelectableFields(event), nil
 }
 
-// Matcher returns a selection predicate for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
+func MatchEvent(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 	return storage.SelectionPredicate{
 		Label:    label,
 		Field:    field,
@@ -96,8 +95,8 @@ func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPred
 	}
 }
 
-// ToSelectableFields returns a field set that represents the object.
-func ToSelectableFields(event *api.Event) fields.Set {
+// EventToSelectableFields returns a field set that represents the object
+func EventToSelectableFields(event *api.Event) fields.Set {
 	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(&event.ObjectMeta, true)
 	specificFieldsSet := fields.Set{
 		"involvedObject.kind":            event.InvolvedObject.Kind,

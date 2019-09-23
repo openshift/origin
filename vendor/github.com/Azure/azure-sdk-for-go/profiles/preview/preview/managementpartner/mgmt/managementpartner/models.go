@@ -19,16 +19,13 @@
 
 package managementpartner
 
-import (
-	"context"
-
-	original "github.com/Azure/azure-sdk-for-go/services/preview/managementpartner/mgmt/2018-02-01/managementpartner"
-)
+import original "github.com/Azure/azure-sdk-for-go/services/preview/managementpartner/mgmt/2018-02-01/managementpartner"
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
+type BaseClient = original.BaseClient
 type Code = original.Code
 
 const (
@@ -44,46 +41,20 @@ const (
 	Deleted State = original.Deleted
 )
 
-type BaseClient = original.BaseClient
 type Error = original.Error
 type ExtendedErrorInfo = original.ExtendedErrorInfo
-type OperationClient = original.OperationClient
 type OperationDisplay = original.OperationDisplay
 type OperationList = original.OperationList
 type OperationListIterator = original.OperationListIterator
 type OperationListPage = original.OperationListPage
 type OperationResponse = original.OperationResponse
-type PartnerClient = original.PartnerClient
 type PartnerProperties = original.PartnerProperties
 type PartnerResponse = original.PartnerResponse
-type PartnersClient = original.PartnersClient
+type OperationClient = original.OperationClient
+type PartnerClient = original.PartnerClient
 
 func New() BaseClient {
 	return original.New()
-}
-func NewOperationClient() OperationClient {
-	return original.NewOperationClient()
-}
-func NewOperationClientWithBaseURI(baseURI string) OperationClient {
-	return original.NewOperationClientWithBaseURI(baseURI)
-}
-func NewOperationListIterator(page OperationListPage) OperationListIterator {
-	return original.NewOperationListIterator(page)
-}
-func NewOperationListPage(getNextPage func(context.Context, OperationList) (OperationList, error)) OperationListPage {
-	return original.NewOperationListPage(getNextPage)
-}
-func NewPartnerClient() PartnerClient {
-	return original.NewPartnerClient()
-}
-func NewPartnerClientWithBaseURI(baseURI string) PartnerClient {
-	return original.NewPartnerClientWithBaseURI(baseURI)
-}
-func NewPartnersClient() PartnersClient {
-	return original.NewPartnersClient()
-}
-func NewPartnersClientWithBaseURI(baseURI string) PartnersClient {
-	return original.NewPartnersClientWithBaseURI(baseURI)
 }
 func NewWithBaseURI(baseURI string) BaseClient {
 	return original.NewWithBaseURI(baseURI)
@@ -93,6 +64,18 @@ func PossibleCodeValues() []Code {
 }
 func PossibleStateValues() []State {
 	return original.PossibleStateValues()
+}
+func NewOperationClient() OperationClient {
+	return original.NewOperationClient()
+}
+func NewOperationClientWithBaseURI(baseURI string) OperationClient {
+	return original.NewOperationClientWithBaseURI(baseURI)
+}
+func NewPartnerClient() PartnerClient {
+	return original.NewPartnerClient()
+}
+func NewPartnerClientWithBaseURI(baseURI string) PartnerClient {
+	return original.NewPartnerClientWithBaseURI(baseURI)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

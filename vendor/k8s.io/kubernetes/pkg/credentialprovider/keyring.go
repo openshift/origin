@@ -36,18 +36,18 @@ import (
 //   most specific match for a given image
 // - iterating a map does not yield predictable results
 type DockerKeyring interface {
-	Lookup(image string) ([]AuthConfig, bool)
+	Lookup(image string) ([]LazyAuthConfiguration, bool)
 }
 
 // BasicDockerKeyring is a trivial map-backed implementation of DockerKeyring
 type BasicDockerKeyring struct {
 	index []string
-	creds map[string][]AuthConfig
+	creds map[string][]LazyAuthConfiguration
 }
 
-// providersDockerKeyring is an implementation of DockerKeyring that
+// lazyDockerKeyring is an implementation of DockerKeyring that lazily
 // materializes its dockercfg based on a set of dockerConfigProviders.
-type providersDockerKeyring struct {
+type lazyDockerKeyring struct {
 	Providers []DockerConfigProvider
 }
 
@@ -73,16 +73,38 @@ type AuthConfig struct {
 	RegistryToken string `json:"registrytoken,omitempty"`
 }
 
-func (dk *BasicDockerKeyring) Add(cfg DockerConfig) {
-	if dk.index == nil {
-		dk.index = make([]string, 0)
-		dk.creds = make(map[string][]AuthConfig)
-	}
-	for loc, ident := range cfg {
-		creds := AuthConfig{
+// LazyAuthConfiguration wraps dockertypes.AuthConfig, potentially deferring its
+// binding. If Provider is non-nil, it will be used to obtain new credentials
+// by calling LazyProvide() on it.
+type LazyAuthConfiguration struct {
+	AuthConfig
+	Provider DockerConfigProvider
+}
+
+func DockerConfigEntryToLazyAuthConfiguration(ident DockerConfigEntry) LazyAuthConfiguration {
+	return LazyAuthConfiguration{
+		AuthConfig: AuthConfig{
 			Username: ident.Username,
 			Password: ident.Password,
 			Email:    ident.Email,
+		},
+	}
+}
+
+func (dk *BasicDockerKeyring) Add(cfg DockerConfig) {
+	if dk.index == nil {
+		dk.index = make([]string, 0)
+		dk.creds = make(map[string][]LazyAuthConfiguration)
+	}
+	for loc, ident := range cfg {
+
+		var creds LazyAuthConfiguration
+		if ident.Provider != nil {
+			creds = LazyAuthConfiguration{
+				Provider: ident.Provider,
+			}
+		} else {
+			creds = DockerConfigEntryToLazyAuthConfiguration(ident)
 		}
 
 		value := loc
@@ -233,9 +255,9 @@ func urlsMatch(globUrl *url.URL, targetUrl *url.URL) (bool, error) {
 // Lookup implements the DockerKeyring method for fetching credentials based on image name.
 // Multiple credentials may be returned if there are multiple potentially valid credentials
 // available.  This allows for rotation.
-func (dk *BasicDockerKeyring) Lookup(image string) ([]AuthConfig, bool) {
+func (dk *BasicDockerKeyring) Lookup(image string) ([]LazyAuthConfiguration, bool) {
 	// range over the index as iterating over a map does not provide a predictable ordering
-	ret := []AuthConfig{}
+	ret := []LazyAuthConfiguration{}
 	for _, k := range dk.index {
 		// both k and image are schemeless URLs because even though schemes are allowed
 		// in the credential configurations, we remove them in Add.
@@ -255,12 +277,12 @@ func (dk *BasicDockerKeyring) Lookup(image string) ([]AuthConfig, bool) {
 		}
 	}
 
-	return []AuthConfig{}, false
+	return []LazyAuthConfiguration{}, false
 }
 
 // Lookup implements the DockerKeyring method for fetching credentials
 // based on image name.
-func (dk *providersDockerKeyring) Lookup(image string) ([]AuthConfig, bool) {
+func (dk *lazyDockerKeyring) Lookup(image string) ([]LazyAuthConfiguration, bool) {
 	keyring := &BasicDockerKeyring{}
 
 	for _, p := range dk.Providers {
@@ -271,19 +293,19 @@ func (dk *providersDockerKeyring) Lookup(image string) ([]AuthConfig, bool) {
 }
 
 type FakeKeyring struct {
-	auth []AuthConfig
+	auth []LazyAuthConfiguration
 	ok   bool
 }
 
-func (f *FakeKeyring) Lookup(image string) ([]AuthConfig, bool) {
+func (f *FakeKeyring) Lookup(image string) ([]LazyAuthConfiguration, bool) {
 	return f.auth, f.ok
 }
 
 // UnionDockerKeyring delegates to a set of keyrings.
 type UnionDockerKeyring []DockerKeyring
 
-func (k UnionDockerKeyring) Lookup(image string) ([]AuthConfig, bool) {
-	authConfigs := []AuthConfig{}
+func (k UnionDockerKeyring) Lookup(image string) ([]LazyAuthConfiguration, bool) {
+	authConfigs := []LazyAuthConfiguration{}
 	for _, subKeyring := range k {
 		if subKeyring == nil {
 			continue

@@ -10,7 +10,6 @@ import (
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/bound"
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/mat"
 )
@@ -62,14 +61,14 @@ func TestBhattacharyyaUniform(t *testing.T) {
 		tol     float64
 	}{
 		{
-			a:       NewUniform([]bound.Bound{{-3, 2}, {-5, 8}}, rnd),
-			b:       NewUniform([]bound.Bound{{-4, 1}, {-7, 10}}, rnd),
+			a:       NewUniform([]Bound{{-3, 2}, {-5, 8}}, rnd),
+			b:       NewUniform([]Bound{{-4, 1}, {-7, 10}}, rnd),
 			samples: 100000,
 			tol:     1e-2,
 		},
 		{
-			a:       NewUniform([]bound.Bound{{-3, 2}, {-5, 8}}, rnd),
-			b:       NewUniform([]bound.Bound{{-5, -4}, {-7, 10}}, rnd),
+			a:       NewUniform([]Bound{{-3, 2}, {-5, 8}}, rnd),
+			b:       NewUniform([]Bound{{-5, -4}, {-7, 10}}, rnd),
 			samples: 100000,
 			tol:     1e-2,
 		},
@@ -257,14 +256,14 @@ func TestKullbackLeiblerUniform(t *testing.T) {
 		tol     float64
 	}{
 		{
-			a:       NewUniform([]bound.Bound{{-5, 2}, {-7, 12}}, rnd),
-			b:       NewUniform([]bound.Bound{{-4, 1}, {-7, 10}}, rnd),
+			a:       NewUniform([]Bound{{-5, 2}, {-7, 12}}, rnd),
+			b:       NewUniform([]Bound{{-4, 1}, {-7, 10}}, rnd),
 			samples: 100000,
 			tol:     1e-2,
 		},
 		{
-			a:       NewUniform([]bound.Bound{{-5, 2}, {-7, 12}}, rnd),
-			b:       NewUniform([]bound.Bound{{-9, -6}, {-7, 10}}, rnd),
+			a:       NewUniform([]Bound{{-5, 2}, {-7, 12}}, rnd),
+			b:       NewUniform([]Bound{{-9, -6}, {-7, 10}}, rnd),
 			samples: 100000,
 			tol:     1e-2,
 		},

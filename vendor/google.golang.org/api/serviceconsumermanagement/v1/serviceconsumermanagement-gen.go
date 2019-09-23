@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2018 Google Inc. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,35 +6,13 @@
 
 // Package serviceconsumermanagement provides access to the Service Consumer Management API.
 //
-// For product documentation, see: https://cloud.google.com/service-consumer-management/docs/overview
-//
-// Creating a client
+// See https://cloud.google.com/service-consumer-management/docs/overview
 //
 // Usage example:
 //
 //   import "google.golang.org/api/serviceconsumermanagement/v1"
 //   ...
-//   ctx := context.Background()
-//   serviceconsumermanagementService, err := serviceconsumermanagement.NewService(ctx)
-//
-// In this example, Google Application Default Credentials are used for authentication.
-//
-// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
-//
-// Other authentication options
-//
-// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
-//
-//   serviceconsumermanagementService, err := serviceconsumermanagement.NewService(ctx, option.WithAPIKey("AIza..."))
-//
-// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
-//
-//   config := &oauth2.Config{...}
-//   // ...
-//   token, err := config.Exchange(ctx, ...)
-//   serviceconsumermanagementService, err := serviceconsumermanagement.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
-//
-// See https://godoc.org/google.golang.org/api/option/ for details on options.
+//   serviceconsumermanagementService, err := serviceconsumermanagement.New(oauthHttpClient)
 package serviceconsumermanagement // import "google.golang.org/api/serviceconsumermanagement/v1"
 
 import (
@@ -51,8 +29,6 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
-	option "google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -80,32 +56,6 @@ const (
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
-// NewService creates a new APIService.
-func NewService(ctx context.Context, opts ...option.ClientOption) (*APIService, error) {
-	scopesOption := option.WithScopes(
-		"https://www.googleapis.com/auth/cloud-platform",
-	)
-	// NOTE: prepend, so we don't override user-specified scopes.
-	opts = append([]option.ClientOption{scopesOption}, opts...)
-	client, endpoint, err := htransport.NewClient(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	s, err := New(client)
-	if err != nil {
-		return nil, err
-	}
-	if endpoint != "" {
-		s.BasePath = endpoint
-	}
-	return s, nil
-}
-
-// New creates a new APIService. It uses the provided http.Client for requests.
-//
-// Deprecated: please use NewService instead.
-// To provide a custom HTTP client, use option.WithHTTPClient.
-// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*APIService, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -167,8 +117,8 @@ type ServicesTenancyUnitsService struct {
 // configured tenant project to a tenancy
 // unit.
 type AddTenantProjectRequest struct {
-	// ProjectConfig: Configuration of the new tenant project to be added to
-	// tenancy unit
+	// ProjectConfig: Configuration of the new tenant project that will be
+	// added to tenancy unit
 	// resources.
 	ProjectConfig *TenantProjectConfig `json:"projectConfig,omitempty"`
 
@@ -336,16 +286,14 @@ func (s *ApplyTenantProjectConfigRequest) MarshalJSON() ([]byte, error) {
 type AttachTenantProjectRequest struct {
 	// ExternalResource: When attaching an external project, this is in the
 	// format of
-	// `projects/{project_number}`.
+	// `projects/{project_number}’.
 	ExternalResource string `json:"externalResource,omitempty"`
 
 	// ReservedResource: When attaching a reserved project already in
-	// tenancy units, this is the
-	// tag of a tenant resource under the tenancy unit for the managed
-	// service's
-	// service producer project. The reserved tenant resource must be in
-	// an
-	// active state.
+	// Tenancy Units, this is the
+	// tag of tenant resource under the tenancy unit for the service's
+	// producer
+	// project. The reserved tenant resource must be in active state.
 	ReservedResource string `json:"reservedResource,omitempty"`
 
 	// Tag: Tag of the tenant resource after attachment.
@@ -376,12 +324,11 @@ func (s *AttachTenantProjectRequest) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// AuthProvider: Configuration for an authentication provider, including
+// AuthProvider: Configuration for an anthentication provider, including
 // support for
-// [JSON Web
-// Token
-// (JWT)](https://tools.ietf.org/html/draft-ietf-oauth-json-web-tok
-// en-32).
+// [JSON Web Token
+// (JWT)](https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32)
+// .
 type AuthProvider struct {
 	// Audiences: The list of
 	// JWT
@@ -428,21 +375,18 @@ type AuthProvider struct {
 	Issuer string `json:"issuer,omitempty"`
 
 	// JwksUri: URL of the provider's public key set to validate signature
-	// of the JWT.
-	// See
+	// of the JWT. See
 	// [OpenID
-	// Discovery](https://openid.net/specs/openid-connect-discove
-	// ry-1_0.html#ProviderMetadata).
+	// Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html#
+	// ProviderMetadata).
 	// Optional if the key set document:
 	//  - can be retrieved from
 	//    [OpenID
-	//
 	// Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html
-	// of
-	//    the issuer.
-	//  - can be inferred from the email domain of the issuer (e.g. a
-	// Google
-	//  service account).
+	//
+	//    of the issuer.
+	//  - can be inferred from the email domain of the issuer (e.g. a Google
+	// service account).
 	//
 	// Example: https://www.googleapis.com/oauth2/v1/certs
 	JwksUri string `json:"jwksUri,omitempty"`
@@ -472,10 +416,9 @@ func (s *AuthProvider) MarshalJSON() ([]byte, error) {
 
 // AuthRequirement: User-defined authentication requirements, including
 // support for
-// [JSON Web
-// Token
-// (JWT)](https://tools.ietf.org/html/draft-ietf-oauth-json-web-tok
-// en-32).
+// [JSON Web Token
+// (JWT)](https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32)
+// .
 type AuthRequirement struct {
 	// Audiences: NOTE: This will be deprecated soon, once
 	// AuthProvider.audiences is
@@ -637,6 +580,46 @@ func (s *AuthenticationRule) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// AuthorizationConfig: Configuration of authorization.
+//
+// This section determines the authorization provider, if unspecified,
+// then no
+// authorization check will be done.
+//
+// Example:
+//
+//     experimental:
+//       authorization:
+//         provider: firebaserules.googleapis.com
+type AuthorizationConfig struct {
+	// Provider: The name of the authorization provider, such
+	// as
+	// firebaserules.googleapis.com.
+	Provider string `json:"provider,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Provider") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Provider") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *AuthorizationConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod AuthorizationConfig
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // Backend: `Backend` defines the backend configuration for a service.
 type Backend struct {
 	// Rules: A list of API backend rules that apply to individual API
@@ -681,10 +664,6 @@ type BackendRule struct {
 	// seconds.
 	Deadline float64 `json:"deadline,omitempty"`
 
-	// JwtAudience: The JWT audience is used when generating a JWT id token
-	// for the backend.
-	JwtAudience string `json:"jwtAudience,omitempty"`
-
 	// MinDeadline: Minimum deadline in seconds needed for this method.
 	// Calls having deadline
 	// value lower than this will be rejected.
@@ -694,64 +673,6 @@ type BackendRule struct {
 	// of a long running
 	// operation. The default is no deadline.
 	OperationDeadline float64 `json:"operationDeadline,omitempty"`
-
-	// Possible values:
-	//   "PATH_TRANSLATION_UNSPECIFIED"
-	//   "CONSTANT_ADDRESS" - Use the backend address as-is, with no
-	// modification to the path. If the
-	// URL pattern contains variables, the variable names and values will
-	// be
-	// appended to the query string. If a query string parameter and a
-	// URL
-	// pattern variable have the same name, this may result in duplicate
-	// keys in
-	// the query string.
-	//
-	// # Examples
-	//
-	// Given the following operation config:
-	//
-	//     Method path:        /api/company/{cid}/user/{uid}
-	//     Backend address:
-	// https://example.cloudfunctions.net/getUser
-	//
-	// Requests to the following request paths will call the backend at
-	// the
-	// translated path:
-	//
-	//     Request path: /api/company/widgetworks/user/johndoe
-	//     Translated:
-	//
-	// https://example.cloudfunctions.net/getUser?cid=widgetworks&uid=johndoe
-	//
-	//     Request path: /api/company/widgetworks/user/johndoe?timezone=EST
-	//     Translated:
-	//
-	// https://example.cloudfunctions.net/getUser?timezone=EST&cid=widgetworks&uid=johndoe
-	//   "APPEND_PATH_TO_ADDRESS" - The request path will be appended to the
-	// backend address.
-	//
-	// # Examples
-	//
-	// Given the following operation config:
-	//
-	//     Method path:        /api/company/{cid}/user/{uid}
-	//     Backend address:    https://example.appspot.com
-	//
-	// Requests to the following request paths will call the backend at
-	// the
-	// translated path:
-	//
-	//     Request path: /api/company/widgetworks/user/johndoe
-	//     Translated:
-	//
-	// https://example.appspot.com/api/company/widgetworks/user/johndoe
-	//
-	//     Request path: /api/company/widgetworks/user/johndoe?timezone=EST
-	//     Translated:
-	//
-	// https://example.appspot.com/api/company/widgetworks/user/johndoe?timezone=EST
-	PathTranslation string `json:"pathTranslation,omitempty"`
 
 	// Selector: Selects the methods to which this rule applies.
 	//
@@ -857,7 +778,7 @@ func (s *Billing) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// BillingConfig: Describes the billing configuration for a new tenant
+// BillingConfig: Describes billing configuration for a new tenant
 // project.
 type BillingConfig struct {
 	// BillingAccount: Name of the billing account.
@@ -1093,21 +1014,19 @@ func (s *Control) MarshalJSON() ([]byte, error) {
 }
 
 // CreateTenancyUnitRequest: Request to create a tenancy unit for a
-// service consumer of a managed service.
+// consumer of a service.
 type CreateTenancyUnitRequest struct {
-	// TenancyUnitId: Optional service producer-provided identifier of the
-	// tenancy unit.
+	// TenancyUnitId: Optional producer provided identifier of the tenancy
+	// unit.
 	// Must be no longer than 40 characters and preferably URI friendly.
-	// If it isn't provided, a UID for the tenancy unit is
-	// automatically
-	// generated. The identifier must be unique across a managed service.
-	// If the tenancy unit already exists for the managed service and
-	// service
-	// consumer pair, calling `CreateTenancyUnit` returns the existing
-	// tenancy
-	// unit if the provided identifier is identical or empty, otherwise the
-	// call
-	// fails.
+	// If it is not provided, a UID for the tenancy unit will be auto
+	// generated.
+	// It must be unique across a service.
+	// If the tenancy unit already exists for the service and consumer
+	// pair,
+	// `CreateTenancyUnit` will return the existing tenancy unit if the
+	// provided
+	// identifier is identical or empty, otherwise the call will fail.
 	TenancyUnitId string `json:"tenancyUnitId,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "TenancyUnitId") to
@@ -1248,35 +1167,6 @@ func (s *CustomHttpPattern) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// DeleteTenantProjectRequest: Request message to delete tenant project
-// resource from the tenancy unit.
-type DeleteTenantProjectRequest struct {
-	// Tag: Tag of the resource within the tenancy unit.
-	Tag string `json:"tag,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Tag") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Tag") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *DeleteTenantProjectRequest) MarshalJSON() ([]byte, error) {
-	type NoMethod DeleteTenantProjectRequest
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
 // Documentation: `Documentation` provides the information for
 // describing a service.
 //
@@ -1407,8 +1297,8 @@ func (s *Documentation) MarshalJSON() ([]byte, error) {
 // individual API elements.
 type DocumentationRule struct {
 	// DeprecationDescription: Deprecation description of the selected
-	// element(s). It can be provided if
-	// an element is marked as `deprecated`.
+	// element(s). It can be provided if an
+	// element is marked as `deprecated`.
 	DeprecationDescription string `json:"deprecationDescription,omitempty"`
 
 	// Description: Description of the selected API(s).
@@ -1421,10 +1311,10 @@ type DocumentationRule struct {
 	// Wildcards are only allowed at the end and for a whole component of
 	// the
 	// qualified name, i.e. "foo.*" is ok, but not "foo.b*" or "foo.*.bar".
-	// A
-	// wildcard will match one or more components. To specify a default for
-	// all
-	// applicable elements, the whole pattern "*" is used.
+	// To
+	// specify a default for all applicable elements, the whole pattern
+	// "*"
+	// is used.
 	Selector string `json:"selector,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g.
@@ -1522,13 +1412,11 @@ type Endpoint struct {
 
 	// Target: The specification of an Internet routable address of API
 	// frontend that will
-	// handle requests to this
-	// [API
-	// Endpoint](https://cloud.google.com/apis/design/glossary). It should
-	// be
-	// either a valid IPv4 address or a fully-qualified domain name. For
-	// example,
-	// "8.8.8.8" or "myservice.appspot.com".
+	// handle requests to this [API
+	// Endpoint](https://cloud.google.com/apis/design/glossary).
+	// It should be either a valid IPv4 address or a fully-qualified domain
+	// name.
+	// For example, "8.8.8.8" or "myservice.appspot.com".
 	Target string `json:"target,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Aliases") to
@@ -1632,6 +1520,36 @@ func (s *EnumValue) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// Experimental: Experimental service configuration. These configuration
+// options can
+// only be used by whitelisted users.
+type Experimental struct {
+	// Authorization: Authorization configuration.
+	Authorization *AuthorizationConfig `json:"authorization,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Authorization") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Authorization") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Experimental) MarshalJSON() ([]byte, error) {
+	type NoMethod Experimental
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // Field: A single field of a message type.
 type Field struct {
 	// Cardinality: The field cardinality.
@@ -1726,7 +1644,7 @@ func (s *Field) MarshalJSON() ([]byte, error) {
 // HttpRule, each specifying the mapping of an RPC method
 // to one or more HTTP REST API methods.
 type Http struct {
-	// FullyDecodeReservedExpansion: When set to true, URL path parameters
+	// FullyDecodeReservedExpansion: When set to true, URL path parmeters
 	// will be fully URI-decoded except in
 	// cases of single segment matches in reserved expansion, where "%2F"
 	// will be
@@ -1857,11 +1775,9 @@ func (s *Http) MarshalJSON() ([]byte, error) {
 //
 // HTTP | gRPC
 // -----|-----
-// `GET /v1/messages/123456?revision=2&sub.subfield=foo`
-// |
+// `GET /v1/messages/123456?revision=2&sub.subfield=foo` |
 // `GetMessage(message_id: "123456" revision: 2 sub:
-// SubMessage(subfield:
-// "foo"))`
+// SubMessage(subfield: "foo"))`
 //
 // Note that fields which are mapped to URL query parameters must have
 // a
@@ -1902,8 +1818,7 @@ func (s *Http) MarshalJSON() ([]byte, error) {
 // HTTP | gRPC
 // -----|-----
 // `PATCH /v1/messages/123456 { "text": "Hi!" }` |
-// `UpdateMessage(message_id:
-// "123456" message { text: "Hi!" })`
+// `UpdateMessage(message_id: "123456" message { text: "Hi!" })`
 //
 // The special name `*` can be used in the body mapping to define
 // that
@@ -1932,8 +1847,7 @@ func (s *Http) MarshalJSON() ([]byte, error) {
 // HTTP | gRPC
 // -----|-----
 // `PATCH /v1/messages/123456 { "text": "Hi!" }` |
-// `UpdateMessage(message_id:
-// "123456" text: "Hi!")`
+// `UpdateMessage(message_id: "123456" text: "Hi!")`
 //
 // Note that when using `*` in the body mapping, it is not possible
 // to
@@ -1970,8 +1884,7 @@ func (s *Http) MarshalJSON() ([]byte, error) {
 // -----|-----
 // `GET /v1/messages/123456` | `GetMessage(message_id: "123456")`
 // `GET /v1/users/me/messages/123456` | `GetMessage(user_id: "me"
-// message_id:
-// "123456")`
+// message_id: "123456")`
 //
 // ## Rules for HTTP mapping
 //
@@ -2034,9 +1947,9 @@ func (s *Http) MarshalJSON() ([]byte, error) {
 // server side does the reverse decoding. Such variables show up in
 // the
 // [Discovery
-// Document](https://developers.google.com/discovery/v1/re
-// ference/apis) as
-// `{var}`.
+// Document](https://developers.google.com/discovery/v1/reference/apis)
+// a
+// s `{var}`.
 //
 // If a variable contains multiple path segments, such as
 // "{var=foo/*}"
@@ -2046,12 +1959,11 @@ func (s *Http) MarshalJSON() ([]byte, error) {
 // percent-encoded.
 // The server side does the reverse decoding, except "%2F" and "%2f" are
 // left
-// unchanged. Such variables show up in
-// the
+// unchanged. Such variables show up in the
 // [Discovery
-// Document](https://developers.google.com/discovery/v1/re
-// ference/apis) as
-// `{+var}`.
+// Document](https://developers.google.com/discovery/v1/reference/apis)
+// a
+// s `{+var}`.
 //
 // ## Using gRPC API Service Configuration
 //
@@ -2576,58 +2488,6 @@ type MetricDescriptor struct {
 	// for responses that failed.
 	Labels []*LabelDescriptor `json:"labels,omitempty"`
 
-	// LaunchStage: Optional. The launch stage of the metric definition.
-	//
-	// Possible values:
-	//   "LAUNCH_STAGE_UNSPECIFIED" - Do not use this default value.
-	//   "EARLY_ACCESS" - Early Access features are limited to a closed
-	// group of testers. To use
-	// these features, you must sign up in advance and sign a Trusted
-	// Tester
-	// agreement (which includes confidentiality provisions). These features
-	// may
-	// be unstable, changed in backward-incompatible ways, and are
-	// not
-	// guaranteed to be released.
-	//   "ALPHA" - Alpha is a limited availability test for releases before
-	// they are cleared
-	// for widespread use. By Alpha, all significant design issues are
-	// resolved
-	// and we are in the process of verifying functionality. Alpha
-	// customers
-	// need to apply for access, agree to applicable terms, and have
-	// their
-	// projects whitelisted. Alpha releases don’t have to be feature
-	// complete,
-	// no SLAs are provided, and there are no technical support obligations,
-	// but
-	// they will be far enough along that customers can actually use them
-	// in
-	// test environments or for limited-use tests -- just like they would
-	// in
-	// normal production cases.
-	//   "BETA" - Beta is the point at which we are ready to open a release
-	// for any
-	// customer to use. There are no SLA or technical support obligations in
-	// a
-	// Beta release. Products will be complete from a feature perspective,
-	// but
-	// may have some open outstanding issues. Beta releases are suitable
-	// for
-	// limited production use cases.
-	//   "GA" - GA features are open to all developers and are considered
-	// stable and
-	// fully qualified for production use.
-	//   "DEPRECATED" - Deprecated features are scheduled to be shut down
-	// and removed. For more
-	// information, see the “Deprecation Policy” section of our [Terms
-	// of
-	// Service](https://cloud.google.com/terms/)
-	// and the [Google Cloud Platform Subject to the
-	// Deprecation
-	// Policy](https://cloud.google.com/terms/deprecation) documentation.
-	LaunchStage string `json:"launchStage,omitempty"`
-
 	// Metadata: Optional. Metadata which can be used to guide usage of the
 	// metric.
 	Metadata *MetricDescriptorMetadata `json:"metadata,omitempty"`
@@ -2786,9 +2646,7 @@ type MetricDescriptorMetadata struct {
 	// data loss due to errors.
 	IngestDelay string `json:"ingestDelay,omitempty"`
 
-	// LaunchStage: Deprecated. Please use the MetricDescriptor.launch_stage
-	// instead.
-	// The launch stage of the metric definition.
+	// LaunchStage: The launch stage of the metric definition.
 	//
 	// Possible values:
 	//   "LAUNCH_STAGE_UNSPECIFIED" - Do not use this default value.
@@ -3047,8 +2905,6 @@ func (s *Mixin) MarshalJSON() ([]byte, error) {
 // provide a `list` method that returns the monitored resource
 // descriptors used
 // by the API.
-//
-// Next ID: 10
 type MonitoredResourceDescriptor struct {
 	// Description: Optional. A detailed description of the monitored
 	// resource type that might
@@ -3069,59 +2925,6 @@ type MonitoredResourceDescriptor struct {
 	// is
 	// identified by values for the labels "database_id" and "zone".
 	Labels []*LabelDescriptor `json:"labels,omitempty"`
-
-	// LaunchStage: Optional. The launch stage of the monitored resource
-	// definition.
-	//
-	// Possible values:
-	//   "LAUNCH_STAGE_UNSPECIFIED" - Do not use this default value.
-	//   "EARLY_ACCESS" - Early Access features are limited to a closed
-	// group of testers. To use
-	// these features, you must sign up in advance and sign a Trusted
-	// Tester
-	// agreement (which includes confidentiality provisions). These features
-	// may
-	// be unstable, changed in backward-incompatible ways, and are
-	// not
-	// guaranteed to be released.
-	//   "ALPHA" - Alpha is a limited availability test for releases before
-	// they are cleared
-	// for widespread use. By Alpha, all significant design issues are
-	// resolved
-	// and we are in the process of verifying functionality. Alpha
-	// customers
-	// need to apply for access, agree to applicable terms, and have
-	// their
-	// projects whitelisted. Alpha releases don’t have to be feature
-	// complete,
-	// no SLAs are provided, and there are no technical support obligations,
-	// but
-	// they will be far enough along that customers can actually use them
-	// in
-	// test environments or for limited-use tests -- just like they would
-	// in
-	// normal production cases.
-	//   "BETA" - Beta is the point at which we are ready to open a release
-	// for any
-	// customer to use. There are no SLA or technical support obligations in
-	// a
-	// Beta release. Products will be complete from a feature perspective,
-	// but
-	// may have some open outstanding issues. Beta releases are suitable
-	// for
-	// limited production use cases.
-	//   "GA" - GA features are open to all developers and are considered
-	// stable and
-	// fully qualified for production use.
-	//   "DEPRECATED" - Deprecated features are scheduled to be shut down
-	// and removed. For more
-	// information, see the “Deprecation Policy” section of our [Terms
-	// of
-	// Service](https://cloud.google.com/terms/)
-	// and the [Google Cloud Platform Subject to the
-	// Deprecation
-	// Policy](https://cloud.google.com/terms/deprecation) documentation.
-	LaunchStage string `json:"launchStage,omitempty"`
 
 	// Name: Optional. The resource name of the monitored resource
 	// descriptor:
@@ -3389,8 +3192,7 @@ type Operation struct {
 	// service that
 	// originally returns it. If you use the default HTTP mapping,
 	// the
-	// `name` should be a resource name ending with
-	// `operations/{unique_id}`.
+	// `name` should have the format of `operations/some/unique/name`.
 	Name string `json:"name,omitempty"`
 
 	// Response: The normal response of the operation in case of success.
@@ -3487,8 +3289,8 @@ func (s *Option) MarshalJSON() ([]byte, error) {
 // nested documentation set structure.
 type Page struct {
 	// Content: The Markdown content of the page. You can use <code>&#40;==
-	// include {path}
-	// ==&#41;</code> to include content from a Markdown file.
+	// include {path} ==&#41;</code>
+	// to include content from a Markdown file.
 	Content string `json:"content,omitempty"`
 
 	// Name: The name of the page. It will be used as an identity of the
@@ -3545,7 +3347,7 @@ func (s *Page) MarshalJSON() ([]byte, error) {
 // this level)
 type PolicyBinding struct {
 	// Members: Uses the same format as in IAM policy.
-	// `member` must include both a prefix and ID. For example,
+	// `member` must include both prefix and ID. For example,
 	// `user:{emailId}`,
 	// `serviceAccount:{emailId}`, `group:{emailId}`.
 	Members []string `json:"members,omitempty"`
@@ -3582,7 +3384,7 @@ func (s *PolicyBinding) MarshalJSON() ([]byte, error) {
 // service
 // usage.
 //
-// The metric based quota configuration works this way:
+// The quota configuration works this way:
 // - The service configuration defines a set of metrics.
 // - For API calls, the quota.metric_rules maps methods to metrics with
 //   corresponding costs.
@@ -3631,8 +3433,6 @@ func (s *PolicyBinding) MarshalJSON() ([]byte, error) {
 //        display_name: Write requests
 //        metric_kind: DELTA
 //        value_type: INT64
-//
-//
 type Quota struct {
 	// Limits: List of `QuotaLimit` definitions for the service.
 	Limits []*QuotaLimit `json:"limits,omitempty"`
@@ -3806,8 +3606,8 @@ func (s *QuotaLimit) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// RemoveTenantProjectRequest: Request message to remove a tenant
-// project resource from the tenancy unit.
+// RemoveTenantProjectRequest: Request message to remove tenant project
+// resource from the tenancy unit.
 type RemoveTenantProjectRequest struct {
 	// Tag: Tag of the resource within the tenancy unit.
 	Tag string `json:"tag,omitempty"`
@@ -3959,6 +3759,9 @@ type Service struct {
 	//     - name: google.someapi.v1.SomeEnum
 	Enums []*Enum `json:"enums,omitempty"`
 
+	// Experimental: Experimental configuration.
+	Experimental *Experimental `json:"experimental,omitempty"`
+
 	// Http: HTTP configuration.
 	Http *Http `json:"http,omitempty"`
 
@@ -3986,12 +3789,8 @@ type Service struct {
 	// Monitoring: Monitoring configuration.
 	Monitoring *Monitoring `json:"monitoring,omitempty"`
 
-	// Name: The service name, which is a DNS-like logical identifier for
-	// the
-	// service, such as `calendar.googleapis.com`. The service
-	// name
-	// typically goes through DNS verification to make sure the owner
-	// of the service also owns the DNS name.
+	// Name: The DNS address at which this service is available,
+	// e.g. `calendar.googleapis.com`.
 	Name string `json:"name,omitempty"`
 
 	// ProducerProjectId: The Google project that owns this service.
@@ -4060,19 +3859,19 @@ func (s *Service) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// ServiceAccountConfig: Describes the service account configuration for
-// the tenant project.
+// ServiceAccountConfig: Describes service account configuration for the
+// tenant project.
 type ServiceAccountConfig struct {
 	// AccountId: ID of the IAM service account to be created in tenant
 	// project.
-	// The email format of the service account
-	// is
+	// The email format of the service account will
+	// be
 	// "<account-id>@<tenant-project-id>.iam.gserviceaccount.com".
-	// This account ID must be unique within tenant project and
-	// service
-	// producers have to guarantee it. The ID must be 6-30 characters long,
-	// and
-	// match the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])`.
+	// This account id has to be unique within tenant project and
+	// producers
+	// have to guarantee it. And it must be 6-30 characters long, and
+	// matches the
+	// regular expression `[a-z]([-a-z0-9]*[a-z0-9])`.
 	AccountId string `json:"accountId,omitempty"`
 
 	// TenantProjectRoles: Roles for the associated service account for the
@@ -4164,17 +3963,84 @@ func (s *SourceInfo) MarshalJSON() ([]byte, error) {
 }
 
 // Status: The `Status` type defines a logical error model that is
-// suitable for
-// different programming environments, including REST APIs and RPC APIs.
-// It is
-// used by [gRPC](https://github.com/grpc). Each `Status` message
-// contains
-// three pieces of data: error code, error message, and error
-// details.
+// suitable for different
+// programming environments, including REST APIs and RPC APIs. It is
+// used by
+// [gRPC](https://github.com/grpc). The error model is designed to
+// be:
 //
-// You can find out more about this error model and how to work with it
-// in the
-// [API Design Guide](https://cloud.google.com/apis/design/errors).
+// - Simple to use and understand for most users
+// - Flexible enough to meet unexpected needs
+//
+// # Overview
+//
+// The `Status` message contains three pieces of data: error code, error
+// message,
+// and error details. The error code should be an enum value
+// of
+// google.rpc.Code, but it may accept additional error codes if needed.
+// The
+// error message should be a developer-facing English message that
+// helps
+// developers *understand* and *resolve* the error. If a localized
+// user-facing
+// error message is needed, put the localized message in the error
+// details or
+// localize it in the client. The optional error details may contain
+// arbitrary
+// information about the error. There is a predefined set of error
+// detail types
+// in the package `google.rpc` that can be used for common error
+// conditions.
+//
+// # Language mapping
+//
+// The `Status` message is the logical representation of the error
+// model, but it
+// is not necessarily the actual wire format. When the `Status` message
+// is
+// exposed in different client libraries and different wire protocols,
+// it can be
+// mapped differently. For example, it will likely be mapped to some
+// exceptions
+// in Java, but more likely mapped to some error codes in C.
+//
+// # Other uses
+//
+// The error model and the `Status` message can be used in a variety
+// of
+// environments, either with or without APIs, to provide a
+// consistent developer experience across different
+// environments.
+//
+// Example uses of this error model include:
+//
+// - Partial errors. If a service needs to return partial errors to the
+// client,
+//     it may embed the `Status` in the normal response to indicate the
+// partial
+//     errors.
+//
+// - Workflow errors. A typical workflow has multiple steps. Each step
+// may
+//     have a `Status` message for error reporting.
+//
+// - Batch operations. If a client uses batch request and batch
+// response, the
+//     `Status` message should be used directly inside batch response,
+// one for
+//     each error sub-response.
+//
+// - Asynchronous operations. If an API call embeds asynchronous
+// operation
+//     results in its response, the status of those operations should
+// be
+//     represented directly using the `Status` message.
+//
+// - Logging. If some API errors are stored in logs, the message
+// `Status` could
+//     be used directly after any stripping needed for security/privacy
+// reasons.
 type Status struct {
 	// Code: The status code, which should be an enum value of
 	// google.rpc.Code.
@@ -4386,8 +4252,7 @@ type TenancyUnit struct {
 	// id}/tenancyUnits/{unit}"
 	Name string `json:"name,omitempty"`
 
-	// Service: Output only. Google Cloud API name of the managed service
-	// owning this
+	// Service: @OutputOnly Google Cloud API name of the service owning this
 	// tenancy unit.
 	// For example 'serviceconsumermanagement.googleapis.com'.
 	Service string `json:"service,omitempty"`
@@ -4425,20 +4290,21 @@ func (s *TenancyUnit) MarshalJSON() ([]byte, error) {
 
 // TenantProjectConfig: This structure defines a tenant project to be
 // added to the specified tenancy
-// unit and its initial configuration and properties. A project lien is
-// created
-// for the tenant project to prevent the tenant project from being
-// deleted
-// accidentally. The lien is deleted as part of tenant project removal.
+// unit and its initial configuration and properties. A project lien
+// will be
+// created for the tenant project to prevent the tenant project from
+// being
+// deleted accidentally. The lien will be deleted as part of tenant
+// project
+// removal.
 type TenantProjectConfig struct {
-	// BillingConfig: Billing account properties. The billing account must
-	// be specified.
+	// BillingConfig: Billing account properties.  Billing account must be
+	// specified.
 	BillingConfig *BillingConfig `json:"billingConfig,omitempty"`
 
 	// Folder: Folder where project in this tenancy unit must be
 	// located
-	// This folder must have been previously created with the
-	// required
+	// This folder must have been previously created with proper
 	// permissions for the caller to create and configure a project in
 	// it.
 	// Valid folder resource names have the format
@@ -4446,18 +4312,18 @@ type TenantProjectConfig struct {
 	// (for example, `folders/123456`).
 	Folder string `json:"folder,omitempty"`
 
-	// Labels: Labels that are applied to this project.
+	// Labels: Labels that will be applied to this project.
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// ServiceAccountConfig: Configuration for the IAM service account on
-	// the tenant project.
+	// ServiceAccountConfig: Configuration for IAM service account on tenant
+	// project.
 	ServiceAccountConfig *ServiceAccountConfig `json:"serviceAccountConfig,omitempty"`
 
-	// Services: Google Cloud API names of services that are activated on
-	// this project
-	// during provisioning.  If any of these services can't be
+	// Services: Google Cloud API names of services that will be activated
+	// on this project
+	// during provisioning.  If any of these services can not be
 	// activated,
-	// the request fails.
+	// request will fail.
 	// For example: 'compute.googleapis.com','cloudfunctions.googleapis.com'
 	Services []string `json:"services,omitempty"`
 
@@ -4499,9 +4365,9 @@ type TenantProjectPolicy struct {
 	// account.
 	// At least one binding must have the role `roles/owner`. Among the list
 	// of
-	// members for `roles/owner`, at least one of them must be either the
-	// `user`
-	// or `group` type.
+	// members for `roles/owner`, at least one of them must be either `user`
+	// or
+	// `group` type.
 	PolicyBindings []*PolicyBinding `json:"policyBindings,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "PolicyBindings") to
@@ -4617,36 +4483,6 @@ type Type struct {
 
 func (s *Type) MarshalJSON() ([]byte, error) {
 	type NoMethod Type
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// UndeleteTenantProjectRequest: Request message to undelete tenant
-// project resource previously deleted from
-// the tenancy unit.
-type UndeleteTenantProjectRequest struct {
-	// Tag: Tag of the resource within the tenancy unit.
-	Tag string `json:"tag,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Tag") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Tag") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *UndeleteTenantProjectRequest) MarshalJSON() ([]byte, error) {
-	type NoMethod UndeleteTenantProjectRequest
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -4780,343 +4616,6 @@ type UsageRule struct {
 
 func (s *UsageRule) MarshalJSON() ([]byte, error) {
 	type NoMethod UsageRule
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// V1AddVisibilityLabelsResponse: Response message for the
-// `AddVisibilityLabels` method.
-// This response message is assigned to the `response` field of the
-// returned
-// Operation when that operation is done.
-type V1AddVisibilityLabelsResponse struct {
-	// Labels: The updated set of visibility labels for this consumer on
-	// this service.
-	Labels []string `json:"labels,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Labels") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Labels") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *V1AddVisibilityLabelsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod V1AddVisibilityLabelsResponse
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// V1Beta1BatchCreateProducerOverridesResponse: Response message for
-// BatchCreateProducerOverrides
-type V1Beta1BatchCreateProducerOverridesResponse struct {
-	// Overrides: The overrides that were created.
-	Overrides []*V1Beta1QuotaOverride `json:"overrides,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Overrides") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Overrides") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *V1Beta1BatchCreateProducerOverridesResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod V1Beta1BatchCreateProducerOverridesResponse
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// V1Beta1DisableConsumerResponse: Response message for the
-// `DisableConsumer` method.
-// This response message is assigned to the `response` field of the
-// returned
-// Operation when that operation is done.
-type V1Beta1DisableConsumerResponse struct {
-}
-
-// V1Beta1EnableConsumerResponse: Response message for the
-// `EnableConsumer` method.
-// This response message is assigned to the `response` field of the
-// returned
-// Operation when that operation is done.
-type V1Beta1EnableConsumerResponse struct {
-}
-
-// V1Beta1ImportProducerOverridesResponse: Response message for
-// ImportProducerOverrides
-type V1Beta1ImportProducerOverridesResponse struct {
-	// Overrides: The overrides that were created from the imported data.
-	Overrides []*V1Beta1QuotaOverride `json:"overrides,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Overrides") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Overrides") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *V1Beta1ImportProducerOverridesResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod V1Beta1ImportProducerOverridesResponse
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// V1Beta1QuotaOverride: A quota override
-type V1Beta1QuotaOverride struct {
-	// Dimensions: If this map is nonempty, then this override applies only
-	// to specific values
-	// for dimensions defined in the limit unit.
-	//
-	// For example, an override on a limit with the unit
-	// 1/{project}/{region}
-	// could contain an entry with the key "region" and the value
-	// "us-east-1";
-	// the override is only applied to quota consumed in that region.
-	//
-	// This map has the following restrictions:
-	// - Keys that are not defined in the limit's unit are not valid keys.
-	//   Any string appearing in {brackets} in the unit (besides {project}
-	// or
-	//   {user}) is a defined key.
-	// - "project" is not a valid key; the project is already specified in
-	//   the parent resource name.
-	// - "user" is not a valid key; the API does not support quota
-	// overrides
-	//   that apply only to a specific user.
-	// - If "region" appears as a key, its value must be a valid Cloud
-	// region.
-	// - If "zone" appears as a key, its value must be a valid Cloud zone.
-	// - If any valid key other than "region" or "zone" appears in the map,
-	// then
-	//   all valid keys other than "region" or "zone" must also appear in
-	// the map.
-	Dimensions map[string]string `json:"dimensions,omitempty"`
-
-	// Metric: The name of the metric to which this override applies.
-	//
-	// An example name would be:
-	// `compute.googleapis.com/cpus`
-	Metric string `json:"metric,omitempty"`
-
-	// Name: The resource name of the producer override.
-	// An example name would
-	// be:
-	// `services/compute.googleapis.com/projects/123/consumerQuotaMetrics
-	// /compute.googleapis.com%2Fcpus/limits/%2Fproject%2Fregion/producerOver
-	// rides/4a3f2c1d`
-	Name string `json:"name,omitempty"`
-
-	// OverrideValue: The overriding quota limit value.
-	// Can be any nonnegative integer, or -1 (unlimited quota).
-	OverrideValue int64 `json:"overrideValue,omitempty,string"`
-
-	// Unit: The limit unit of the limit to which this override applies.
-	//
-	// An example unit would be:
-	// `1/{project}/{region}`
-	// Note that `{project}` and `{region}` are not placeholders in this
-	// example;
-	// the literal characters `{` and `}` occur in the string.
-	Unit string `json:"unit,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Dimensions") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Dimensions") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *V1Beta1QuotaOverride) MarshalJSON() ([]byte, error) {
-	type NoMethod V1Beta1QuotaOverride
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// V1Beta1RefreshConsumerResponse: Response message for the
-// `RefreshConsumer` method.
-// This response message is assigned to the `response` field of the
-// returned
-// Operation when that operation is done.
-type V1Beta1RefreshConsumerResponse struct {
-}
-
-// V1DisableConsumerResponse: Response message for the `DisableConsumer`
-// method.
-// This response message is assigned to the `response` field of the
-// returned
-// Operation when that operation is done.
-type V1DisableConsumerResponse struct {
-}
-
-// V1EnableConsumerResponse: Response message for the `EnableConsumer`
-// method.
-// This response message is assigned to the `response` field of the
-// returned
-// Operation when that operation is done.
-type V1EnableConsumerResponse struct {
-}
-
-// V1GenerateServiceAccountResponse: Response message for the
-// `GenerateServiceAccount` method.
-//
-// This response message is assigned to the `response` field of the
-// returned
-// Operation when that operation is done.
-type V1GenerateServiceAccountResponse struct {
-	// Account: ServiceAccount that was created or retrieved.
-	Account *V1ServiceAccount `json:"account,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Account") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Account") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *V1GenerateServiceAccountResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod V1GenerateServiceAccountResponse
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// V1RefreshConsumerResponse: Response message for the `RefreshConsumer`
-// method.
-// This response message is assigned to the `response` field of the
-// returned
-// Operation when that operation is done.
-type V1RefreshConsumerResponse struct {
-}
-
-// V1RemoveVisibilityLabelsResponse: Response message for the
-// `RemoveVisibilityLabels` method.
-// This response message is assigned to the `response` field of the
-// returned
-// Operation when that operation is done.
-type V1RemoveVisibilityLabelsResponse struct {
-	// Labels: The updated set of visibility labels for this consumer on
-	// this service.
-	Labels []string `json:"labels,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Labels") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Labels") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *V1RemoveVisibilityLabelsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod V1RemoveVisibilityLabelsResponse
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// V1ServiceAccount: A service account in the Identity and Access
-// Management API.
-type V1ServiceAccount struct {
-	// Email: The email address of the service account.
-	Email string `json:"email,omitempty"`
-
-	// IamAccountName: The IAM resource name of the service account in the
-	// following format:
-	// projects/{PROJECT_ID}/serviceAccounts/{ACCOUNT}.
-	IamAccountName string `json:"iamAccountName,omitempty"`
-
-	// Name: P4 SA resource name.
-	//
-	// An example name would
-	// be:
-	// `services/serviceconsumermanagement.googleapis.com/projects/123/se
-	// rviceAccounts/default`
-	Name string `json:"name,omitempty"`
-
-	// Tag: The P4 SA configuration tag. This must be defined in
-	// activation_grants.
-	// If not specified when creating the account, the tag is set to
-	// "default".
-	Tag string `json:"tag,omitempty"`
-
-	// UniqueId: The unique and stable id of the service account.
-	UniqueId string `json:"uniqueId,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Email") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Email") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *V1ServiceAccount) MarshalJSON() ([]byte, error) {
-	type NoMethod V1ServiceAccount
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -5787,7 +5286,7 @@ type ServicesSearchCall struct {
 	header_      http.Header
 }
 
-// Search: Search tenancy units for a managed service.
+// Search: Search tenancy units for a service.
 func (r *ServicesService) Search(parent string) *ServicesSearchCall {
 	c := &ServicesSearchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -5796,9 +5295,10 @@ func (r *ServicesService) Search(parent string) *ServicesSearchCall {
 
 // PageSize sets the optional parameter "pageSize": The maximum number
 // of results returned by this request. Currently, the
-// default maximum is set to 1000. If `page_size` isn't provided or the
+// default maximum is set to 1000. If page_size is not provided or the
 // size
-// provided is a number larger than 1000, it's automatically set to
+// provided is a number larger than 1000, it will be automatically set
+// to
 // 1000.
 func (c *ServicesSearchCall) PageSize(pageSize int64) *ServicesSearchCall {
 	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
@@ -5825,11 +5325,11 @@ func (c *ServicesSearchCall) PageToken(pageToken string) *ServicesSearchCall {
 //
 // For example, to search tenancy units that contain at least one
 // tenant
-// resource with a given tag 'xyz', use the query
+// resource with given tag 'xyz', use query
 // `tenant_resources.tag=xyz`.
 // To search tenancy units that contain at least one tenant resource
 // with
-// a given resource name 'projects/123456', use the
+// given resource name 'projects/123456', use
 // query
 // `tenant_resources.resource=projects/123456`.
 //
@@ -5942,7 +5442,7 @@ func (c *ServicesSearchCall) Do(opts ...googleapi.CallOption) (*SearchTenancyUni
 	}
 	return ret, nil
 	// {
-	//   "description": "Search tenancy units for a managed service.",
+	//   "description": "Search tenancy units for a service.",
 	//   "flatPath": "v1/services/{servicesId}:search",
 	//   "httpMethod": "GET",
 	//   "id": "serviceconsumermanagement.services.search",
@@ -5951,7 +5451,7 @@ func (c *ServicesSearchCall) Do(opts ...googleapi.CallOption) (*SearchTenancyUni
 	//   ],
 	//   "parameters": {
 	//     "pageSize": {
-	//       "description": "The maximum number of results returned by this request. Currently, the\ndefault maximum is set to 1000. If `page_size` isn't provided or the size\nprovided is a number larger than 1000, it's automatically set to 1000.\n\nOptional.",
+	//       "description": "The maximum number of results returned by this request. Currently, the\ndefault maximum is set to 1000. If page_size is not provided or the size\nprovided is a number larger than 1000, it will be automatically set to\n1000.\n\nOptional.",
 	//       "format": "int32",
 	//       "location": "query",
 	//       "type": "integer"
@@ -5969,7 +5469,7 @@ func (c *ServicesSearchCall) Do(opts ...googleapi.CallOption) (*SearchTenancyUni
 	//       "type": "string"
 	//     },
 	//     "query": {
-	//       "description": "Set a query `{expression}` for querying tenancy units. Your `{expression}`\nmust be in the format: `field_name=literal_string`. The `field_name` is the\nname of the field you want to compare. Supported fields are\n`tenant_resources.tag` and `tenant_resources.resource`.\n\nFor example, to search tenancy units that contain at least one tenant\nresource with a given tag 'xyz', use the query `tenant_resources.tag=xyz`.\nTo search tenancy units that contain at least one tenant resource with\na given resource name 'projects/123456', use the query\n`tenant_resources.resource=projects/123456`.\n\nMultiple expressions can be joined with `AND`s. Tenancy units must match\nall expressions to be included in the result set. For example,\n`tenant_resources.tag=xyz AND tenant_resources.resource=projects/123456`\n\nOptional.",
+	//       "description": "Set a query `{expression}` for querying tenancy units. Your `{expression}`\nmust be in the format: `field_name=literal_string`. The `field_name` is the\nname of the field you want to compare. Supported fields are\n`tenant_resources.tag` and `tenant_resources.resource`.\n\nFor example, to search tenancy units that contain at least one tenant\nresource with given tag 'xyz', use query `tenant_resources.tag=xyz`.\nTo search tenancy units that contain at least one tenant resource with\ngiven resource name 'projects/123456', use query\n`tenant_resources.resource=projects/123456`.\n\nMultiple expressions can be joined with `AND`s. Tenancy units must match\nall expressions to be included in the result set. For example,\n`tenant_resources.tag=xyz AND tenant_resources.resource=projects/123456`\n\nOptional.",
 	//       "location": "query",
 	//       "type": "string"
 	//     }
@@ -6018,13 +5518,12 @@ type ServicesTenancyUnitsAddProjectCall struct {
 }
 
 // AddProject: Add a new tenant project to the tenancy unit.
-// There can be a maximum of 512 tenant projects in a tenancy unit.
+// There can be at most 512 tenant projects in a tenancy unit.
 // If there are previously failed `AddTenantProject` calls, you might
 // need to
-// call `RemoveTenantProject` first to resolve them before you can
-// make
-// another call to `AddTenantProject` with the same
-// tag.
+// call `RemoveTenantProject` first to clean them before you can make
+// another
+// `AddTenantProject` with the same tag.
 // Operation<response: Empty>.
 func (r *ServicesTenancyUnitsService) AddProject(parent string, addtenantprojectrequest *AddTenantProjectRequest) *ServicesTenancyUnitsAddProjectCall {
 	c := &ServicesTenancyUnitsAddProjectCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -6123,7 +5622,7 @@ func (c *ServicesTenancyUnitsAddProjectCall) Do(opts ...googleapi.CallOption) (*
 	}
 	return ret, nil
 	// {
-	//   "description": "Add a new tenant project to the tenancy unit.\nThere can be a maximum of 512 tenant projects in a tenancy unit.\nIf there are previously failed `AddTenantProject` calls, you might need to\ncall `RemoveTenantProject` first to resolve them before you can make\nanother call to `AddTenantProject` with the same tag.\nOperation\u003cresponse: Empty\u003e.",
+	//   "description": "Add a new tenant project to the tenancy unit.\nThere can be at most 512 tenant projects in a tenancy unit.\nIf there are previously failed `AddTenantProject` calls, you might need to\ncall `RemoveTenantProject` first to clean them before you can make another\n`AddTenantProject` with the same tag.\nOperation\u003cresponse: Empty\u003e.",
 	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits/{tenancyUnitsId}:addProject",
 	//   "httpMethod": "POST",
 	//   "id": "serviceconsumermanagement.services.tenancyUnits.addProject",
@@ -6132,7 +5631,7 @@ func (c *ServicesTenancyUnitsAddProjectCall) Do(opts ...googleapi.CallOption) (*
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "Name of the tenancy unit.\nSuch as 'services/service.googleapis.com/projects/12345/tenancyUnits/abcd'.",
+	//       "description": "Name of the tenancy unit.",
 	//       "location": "path",
 	//       "pattern": "^services/[^/]+/[^/]+/[^/]+/tenancyUnits/[^/]+$",
 	//       "required": true,
@@ -6164,30 +5663,25 @@ type ServicesTenancyUnitsApplyProjectConfigCall struct {
 	header_                         http.Header
 }
 
-// ApplyProjectConfig: Apply a configuration to an existing tenant
+// ApplyProjectConfig: Apply configuration to an existing tenant
 // project.
-// This project must exist in an active state and have the original
+// This project must exist in active state and have the original
 // owner
-// account. The caller must have permission to add a project to the
+// account. Caller must have the permission to add a project to the
 // given
-// tenancy unit. The configuration is applied, but any existing settings
-// on
-// the project aren't modified.
-// Specified policy bindings are applied. Existing bindings aren't
+// tenancy unit. Configuration will be applied, but any existing
+// settings on
+// the project will not be modified.
+// Specified policy bindings will be applied. Existing binding will not
+// be
 // modified.
-// Specified services are activated. No service is deactivated.
-// If specified, new billing configuration is applied.
-// Omit a billing configuration to keep the existing one.
-// A service account in the project is created if previously non
-// existed.
-// Specified labels will be appended to tenant project, note that the
-// value of
-// existing label key will be updated if the same label key is
-// requested.
-// The specified folder is ignored, as moving a tenant project to a
-// different
-// folder isn't supported.
-// The operation fails if any of the steps fail, but no rollback of
+// Specified services will be activated.   No service will be
+// deactivated.
+// New billing configuration will be applied if specified.
+// Omit billing configuration to keep the existing one.
+// Service account in the project will be created if previously non
+// existing.
+// Operation fails if any of the steps fail, but no rollback of
 // already
 // applied configuration changes is attempted.
 // Operation<response: Empty>.
@@ -6288,7 +5782,7 @@ func (c *ServicesTenancyUnitsApplyProjectConfigCall) Do(opts ...googleapi.CallOp
 	}
 	return ret, nil
 	// {
-	//   "description": "Apply a configuration to an existing tenant project.\nThis project must exist in an active state and have the original owner\naccount. The caller must have permission to add a project to the given\ntenancy unit. The configuration is applied, but any existing settings on\nthe project aren't modified.\nSpecified policy bindings are applied. Existing bindings aren't modified.\nSpecified services are activated. No service is deactivated.\nIf specified, new billing configuration is applied.\nOmit a billing configuration to keep the existing one.\nA service account in the project is created if previously non existed.\nSpecified labels will be appended to tenant project, note that the value of\nexisting label key will be updated if the same label key is requested.\nThe specified folder is ignored, as moving a tenant project to a different\nfolder isn't supported.\nThe operation fails if any of the steps fail, but no rollback of already\napplied configuration changes is attempted.\nOperation\u003cresponse: Empty\u003e.",
+	//   "description": "Apply configuration to an existing tenant project.\nThis project must exist in active state and have the original owner\naccount. Caller must have the permission to add a project to the given\ntenancy unit. Configuration will be applied, but any existing settings on\nthe project will not be modified.\nSpecified policy bindings will be applied. Existing binding will not be\nmodified.\nSpecified services will be activated.   No service will be deactivated.\nNew billing configuration will be applied if specified.\nOmit billing configuration to keep the existing one.\nService account in the project will be created if previously non existing.\nOperation fails if any of the steps fail, but no rollback of already\napplied configuration changes is attempted.\nOperation\u003cresponse: Empty\u003e.",
 	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits/{tenancyUnitsId}:applyProjectConfig",
 	//   "httpMethod": "POST",
 	//   "id": "serviceconsumermanagement.services.tenancyUnits.applyProjectConfig",
@@ -6297,7 +5791,7 @@ func (c *ServicesTenancyUnitsApplyProjectConfigCall) Do(opts ...googleapi.CallOp
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Name of the tenancy unit.\nSuch as 'services/service.googleapis.com/projects/12345/tenancyUnits/abcd'.",
+	//       "description": "Name of the tenancy unit.",
 	//       "location": "path",
 	//       "pattern": "^services/[^/]+/[^/]+/[^/]+/tenancyUnits/[^/]+$",
 	//       "required": true,
@@ -6331,21 +5825,22 @@ type ServicesTenancyUnitsAttachProjectCall struct {
 
 // AttachProject: Attach an existing project to the tenancy unit as a
 // new tenant
-// resource. The project could either be the tenant project reserved
+// resource. The project could be either the tenant project reserved
 // by
-// calling `AddTenantProject` under a tenancy unit of a service
-// producer's
-// project of a managed service, or from a separate project.
-// The caller is checked against a set of permissions as if
+// calling AddTenantProject under tenancy unit for the producer project
+// of
+// service, or from outside.
+// Caller will be checked against the permission as if
 // calling
-// `AddTenantProject` on the same service consumer.
-// To trigger the attachment, the targeted tenant project must be in
+// AddTenantProject on the same consumer.
+// To trigger the attachement, the targeted tenant project must be in
 // a
-// folder. Make sure the ServiceConsumerManagement service account
-// is
-// the owner of that project. These two requirements are already met
-// if the project is reserved by calling
-// `AddTenantProject`.
+// folder. Please also make sure ServiceConsumerManagement service
+// account is
+// the owner of that project. Note that these two requirements are
+// already met
+// if the project is reserved through
+// AddTenantProject.
 // Operation<response: Empty>.
 func (r *ServicesTenancyUnitsService) AttachProject(name string, attachtenantprojectrequest *AttachTenantProjectRequest) *ServicesTenancyUnitsAttachProjectCall {
 	c := &ServicesTenancyUnitsAttachProjectCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -6444,7 +5939,7 @@ func (c *ServicesTenancyUnitsAttachProjectCall) Do(opts ...googleapi.CallOption)
 	}
 	return ret, nil
 	// {
-	//   "description": "Attach an existing project to the tenancy unit as a new tenant\nresource. The project could either be the tenant project reserved by\ncalling `AddTenantProject` under a tenancy unit of a service producer's\nproject of a managed service, or from a separate project.\nThe caller is checked against a set of permissions as if calling\n`AddTenantProject` on the same service consumer.\nTo trigger the attachment, the targeted tenant project must be in a\nfolder. Make sure the ServiceConsumerManagement service account is\nthe owner of that project. These two requirements are already met\nif the project is reserved by calling `AddTenantProject`.\nOperation\u003cresponse: Empty\u003e.",
+	//   "description": "Attach an existing project to the tenancy unit as a new tenant\nresource. The project could be either the tenant project reserved by\ncalling AddTenantProject under tenancy unit for the producer project of\nservice, or from outside.\nCaller will be checked against the permission as if calling\nAddTenantProject on the same consumer.\nTo trigger the attachement, the targeted tenant project must be in a\nfolder. Please also make sure ServiceConsumerManagement service account is\nthe owner of that project. Note that these two requirements are already met\nif the project is reserved through AddTenantProject.\nOperation\u003cresponse: Empty\u003e.",
 	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits/{tenancyUnitsId}:attachProject",
 	//   "httpMethod": "POST",
 	//   "id": "serviceconsumermanagement.services.tenancyUnits.attachProject",
@@ -6453,7 +5948,7 @@ func (c *ServicesTenancyUnitsAttachProjectCall) Do(opts ...googleapi.CallOption)
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Name of the tenancy unit that the project will be attached to.\nSuch as 'services/service.googleapis.com/projects/12345/tenancyUnits/abcd'.",
+	//       "description": "Name of the tenancy unit that project will be attached to.",
 	//       "location": "path",
 	//       "pattern": "^services/[^/]+/[^/]+/[^/]+/tenancyUnits/[^/]+$",
 	//       "required": true,
@@ -6592,7 +6087,7 @@ func (c *ServicesTenancyUnitsCreateCall) Do(opts ...googleapi.CallOption) (*Tena
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "services/{service}/{collection id}/{resource id}\n{collection id} is the cloud resource collection type representing the\nservice consumer, for example 'projects', or 'organizations'.\n{resource id} is the consumer numeric id, such as project number: '123456'.\n{service} the name of a managed service, such as 'service.googleapis.com'.\nEnables service binding using the new tenancy unit.",
+	//       "description": "services/{service}/{collection id}/{resource id}\n{collection id} is the cloud resource collection type representing the\nservice consumer, for example 'projects', or 'organizations'.\n{resource id} is the consumer numeric id, such as project number: '123456'.\n{service} the name of a service, for example 'service.googleapis.com'.\nEnabled service binding using the new tenancy unit.",
 	//       "location": "path",
 	//       "pattern": "^services/[^/]+/[^/]+/[^/]+$",
 	//       "required": true,
@@ -6623,10 +6118,9 @@ type ServicesTenancyUnitsDeleteCall struct {
 	header_    http.Header
 }
 
-// Delete: Delete a tenancy unit. Before you delete the tenancy unit,
+// Delete: Delete a tenancy unit.  Before the tenancy unit is deleted,
 // there should be
-// no tenant resources in it that aren't in a DELETED
-// state.
+// no tenant resources in it not in DELETED state.
 // Operation<response: Empty>.
 func (r *ServicesTenancyUnitsService) Delete(name string) *ServicesTenancyUnitsDeleteCall {
 	c := &ServicesTenancyUnitsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -6719,7 +6213,7 @@ func (c *ServicesTenancyUnitsDeleteCall) Do(opts ...googleapi.CallOption) (*Oper
 	}
 	return ret, nil
 	// {
-	//   "description": "Delete a tenancy unit. Before you delete the tenancy unit, there should be\nno tenant resources in it that aren't in a DELETED state.\nOperation\u003cresponse: Empty\u003e.",
+	//   "description": "Delete a tenancy unit.  Before the tenancy unit is deleted, there should be\nno tenant resources in it not in DELETED state.\nOperation\u003cresponse: Empty\u003e.",
 	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits/{tenancyUnitsId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "serviceconsumermanagement.services.tenancyUnits.delete",
@@ -6746,160 +6240,6 @@ func (c *ServicesTenancyUnitsDeleteCall) Do(opts ...googleapi.CallOption) (*Oper
 
 }
 
-// method id "serviceconsumermanagement.services.tenancyUnits.deleteProject":
-
-type ServicesTenancyUnitsDeleteProjectCall struct {
-	s                          *APIService
-	name                       string
-	deletetenantprojectrequest *DeleteTenantProjectRequest
-	urlParams_                 gensupport.URLParams
-	ctx_                       context.Context
-	header_                    http.Header
-}
-
-// DeleteProject: Deletes the specified project resource identified by a
-// tenant resource tag.
-// The mothod removes a project lien with a 'TenantManager' origin if
-// that was
-// added. It will then attempt to delete the project. If that operation
-// fails,
-// this method also fails.
-// After the project has been deleted, the tenant resource state is set
-// to
-// DELETED.  To permanently remove resource metadata, call
-// the
-// `RemoveTenantProject` method.
-// New resources with the same tag can't be added if there are
-// existing
-// resources in a DELETED state.
-// Operation<response: Empty>.
-func (r *ServicesTenancyUnitsService) DeleteProject(name string, deletetenantprojectrequest *DeleteTenantProjectRequest) *ServicesTenancyUnitsDeleteProjectCall {
-	c := &ServicesTenancyUnitsDeleteProjectCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.name = name
-	c.deletetenantprojectrequest = deletetenantprojectrequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ServicesTenancyUnitsDeleteProjectCall) Fields(s ...googleapi.Field) *ServicesTenancyUnitsDeleteProjectCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ServicesTenancyUnitsDeleteProjectCall) Context(ctx context.Context) *ServicesTenancyUnitsDeleteProjectCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ServicesTenancyUnitsDeleteProjectCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ServicesTenancyUnitsDeleteProjectCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deletetenantprojectrequest)
-	if err != nil {
-		return nil, err
-	}
-	reqHeaders.Set("Content-Type", "application/json")
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:deleteProject")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"name": c.name,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "serviceconsumermanagement.services.tenancyUnits.deleteProject" call.
-// Exactly one of *Operation or error will be non-nil. Any non-2xx
-// status code is an error. Response headers are in either
-// *Operation.ServerResponse.Header or (if a response was returned at
-// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
-// to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *ServicesTenancyUnitsDeleteProjectCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &Operation{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Deletes the specified project resource identified by a tenant resource tag.\nThe mothod removes a project lien with a 'TenantManager' origin if that was\nadded. It will then attempt to delete the project. If that operation fails,\nthis method also fails.\nAfter the project has been deleted, the tenant resource state is set to\nDELETED.  To permanently remove resource metadata, call the\n`RemoveTenantProject` method.\nNew resources with the same tag can't be added if there are existing\nresources in a DELETED state.\nOperation\u003cresponse: Empty\u003e.",
-	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits/{tenancyUnitsId}:deleteProject",
-	//   "httpMethod": "POST",
-	//   "id": "serviceconsumermanagement.services.tenancyUnits.deleteProject",
-	//   "parameterOrder": [
-	//     "name"
-	//   ],
-	//   "parameters": {
-	//     "name": {
-	//       "description": "Name of the tenancy unit.\nSuch as 'services/service.googleapis.com/projects/12345/tenancyUnits/abcd'.",
-	//       "location": "path",
-	//       "pattern": "^services/[^/]+/[^/]+/[^/]+/tenancyUnits/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v1/{+name}:deleteProject",
-	//   "request": {
-	//     "$ref": "DeleteTenantProjectRequest"
-	//   },
-	//   "response": {
-	//     "$ref": "Operation"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
-	//   ]
-	// }
-
-}
-
 // method id "serviceconsumermanagement.services.tenancyUnits.list":
 
 type ServicesTenancyUnitsListCall struct {
@@ -6911,15 +6251,12 @@ type ServicesTenancyUnitsListCall struct {
 	header_      http.Header
 }
 
-// List: Find the tenancy unit for a managed service and service
-// consumer.
-// This method shouldn't be used in a service producer's runtime path,
-// for
-// example to find the tenant project number when creating VMs.
-// Service
-// producers must persist the tenant project's information after the
-// project
-// is created.
+// List: Find the tenancy unit for a service and consumer.
+// This method should not be used in producers' runtime path, for
+// example
+// finding the tenant project number when creating VMs. Producers
+// should
+// persist the tenant project information after the project is created.
 func (r *ServicesTenancyUnitsService) List(parent string) *ServicesTenancyUnitsListCall {
 	c := &ServicesTenancyUnitsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -7048,7 +6385,7 @@ func (c *ServicesTenancyUnitsListCall) Do(opts ...googleapi.CallOption) (*ListTe
 	}
 	return ret, nil
 	// {
-	//   "description": "Find the tenancy unit for a managed service and service consumer.\nThis method shouldn't be used in a service producer's runtime path, for\nexample to find the tenant project number when creating VMs. Service\nproducers must persist the tenant project's information after the project\nis created.",
+	//   "description": "Find the tenancy unit for a service and consumer.\nThis method should not be used in producers' runtime path, for example\nfinding the tenant project number when creating VMs. Producers should\npersist the tenant project information after the project is created.",
 	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits",
 	//   "httpMethod": "GET",
 	//   "id": "serviceconsumermanagement.services.tenancyUnits.list",
@@ -7073,7 +6410,7 @@ func (c *ServicesTenancyUnitsListCall) Do(opts ...googleapi.CallOption) (*ListTe
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "Managed service and service consumer. Required.\nservices/{service}/{collection id}/{resource id}\n{collection id} is the cloud resource collection type representing the\nservice consumer, for example 'projects', or 'organizations'.\n{resource id} is the consumer numeric id, such as project number: '123456'.\n{service} the name of a service, such as 'service.googleapis.com'.",
+	//       "description": "Service and consumer. Required.\nservices/{service}/{collection id}/{resource id}\n{collection id} is the cloud resource collection type representing the\nservice consumer, for example 'projects', or 'organizations'.\n{resource id} is the consumer numeric id, such as project number: '123456'.\n{service} the name of a service, for example 'service.googleapis.com'.",
 	//       "location": "path",
 	//       "pattern": "^services/[^/]+/[^/]+/[^/]+$",
 	//       "required": true,
@@ -7123,16 +6460,14 @@ type ServicesTenancyUnitsRemoveProjectCall struct {
 	header_                    http.Header
 }
 
-// RemoveProject: Removes the specified project resource identified by a
+// RemoveProject: Removes specified project resource identified by
 // tenant resource tag.
-// The method removes the project lien with 'TenantManager' origin if
-// that
-// was added. It then attempts to delete the project. If that
-// operation
-// fails, this method also fails.
-// Calls to remove already removed or non-existent tenant project
-// succeed.
-// After the project has been deleted, or if was already in a DELETED
+// It will remove project lien with 'TenantManager' origin if that was
+// added.
+// It will then attempt to delete the project. If that operation fails,
+// this
+// method fails.
+// After the project has been deleted, or if was already in DELETED
 // state,
 // resource metadata is permanently removed from the tenancy
 // unit.
@@ -7234,7 +6569,7 @@ func (c *ServicesTenancyUnitsRemoveProjectCall) Do(opts ...googleapi.CallOption)
 	}
 	return ret, nil
 	// {
-	//   "description": "Removes the specified project resource identified by a tenant resource tag.\nThe method removes the project lien with 'TenantManager' origin if that\nwas added. It then attempts to delete the project. If that operation\nfails, this method also fails.\nCalls to remove already removed or non-existent tenant project succeed.\nAfter the project has been deleted, or if was already in a DELETED state,\nresource metadata is permanently removed from the tenancy unit.\nOperation\u003cresponse: Empty\u003e.",
+	//   "description": "Removes specified project resource identified by tenant resource tag.\nIt will remove project lien with 'TenantManager' origin if that was added.\nIt will then attempt to delete the project. If that operation fails, this\nmethod fails.\nAfter the project has been deleted, or if was already in DELETED state,\nresource metadata is permanently removed from the tenancy unit.\nOperation\u003cresponse: Empty\u003e.",
 	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits/{tenancyUnitsId}:removeProject",
 	//   "httpMethod": "POST",
 	//   "id": "serviceconsumermanagement.services.tenancyUnits.removeProject",
@@ -7253,154 +6588,6 @@ func (c *ServicesTenancyUnitsRemoveProjectCall) Do(opts ...googleapi.CallOption)
 	//   "path": "v1/{+name}:removeProject",
 	//   "request": {
 	//     "$ref": "RemoveTenantProjectRequest"
-	//   },
-	//   "response": {
-	//     "$ref": "Operation"
-	//   },
-	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
-	//   ]
-	// }
-
-}
-
-// method id "serviceconsumermanagement.services.tenancyUnits.undeleteProject":
-
-type ServicesTenancyUnitsUndeleteProjectCall struct {
-	s                            *APIService
-	name                         string
-	undeletetenantprojectrequest *UndeleteTenantProjectRequest
-	urlParams_                   gensupport.URLParams
-	ctx_                         context.Context
-	header_                      http.Header
-}
-
-// UndeleteProject: Attempts to undelete a previously deleted tenant
-// project. The project must
-// be in a DELETED state.
-// There are no guarantees that an undeleted project will be in
-// a fully restored and functional state. Call the
-// `ApplyTenantProjectConfig`
-// method to update its configuration and then validate all managed
-// service
-// resources.
-// Operation<response: Empty>.
-func (r *ServicesTenancyUnitsService) UndeleteProject(name string, undeletetenantprojectrequest *UndeleteTenantProjectRequest) *ServicesTenancyUnitsUndeleteProjectCall {
-	c := &ServicesTenancyUnitsUndeleteProjectCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.name = name
-	c.undeletetenantprojectrequest = undeletetenantprojectrequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ServicesTenancyUnitsUndeleteProjectCall) Fields(s ...googleapi.Field) *ServicesTenancyUnitsUndeleteProjectCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method. Any
-// pending HTTP request will be aborted if the provided context is
-// canceled.
-func (c *ServicesTenancyUnitsUndeleteProjectCall) Context(ctx context.Context) *ServicesTenancyUnitsUndeleteProjectCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns an http.Header that can be modified by the caller to
-// add HTTP headers to the request.
-func (c *ServicesTenancyUnitsUndeleteProjectCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ServicesTenancyUnitsUndeleteProjectCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := make(http.Header)
-	for k, v := range c.header_ {
-		reqHeaders[k] = v
-	}
-	reqHeaders.Set("User-Agent", c.s.userAgent())
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.undeletetenantprojectrequest)
-	if err != nil {
-		return nil, err
-	}
-	reqHeaders.Set("Content-Type", "application/json")
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:undeleteProject")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"name": c.name,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "serviceconsumermanagement.services.tenancyUnits.undeleteProject" call.
-// Exactly one of *Operation or error will be non-nil. Any non-2xx
-// status code is an error. Response headers are in either
-// *Operation.ServerResponse.Header or (if a response was returned at
-// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
-// to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *ServicesTenancyUnitsUndeleteProjectCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, &googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	ret := &Operation{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-	// {
-	//   "description": "Attempts to undelete a previously deleted tenant project. The project must\nbe in a DELETED state.\nThere are no guarantees that an undeleted project will be in\na fully restored and functional state. Call the `ApplyTenantProjectConfig`\nmethod to update its configuration and then validate all managed service\nresources.\nOperation\u003cresponse: Empty\u003e.",
-	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits/{tenancyUnitsId}:undeleteProject",
-	//   "httpMethod": "POST",
-	//   "id": "serviceconsumermanagement.services.tenancyUnits.undeleteProject",
-	//   "parameterOrder": [
-	//     "name"
-	//   ],
-	//   "parameters": {
-	//     "name": {
-	//       "description": "Name of the tenancy unit.\nSuch as 'services/service.googleapis.com/projects/12345/tenancyUnits/abcd'.",
-	//       "location": "path",
-	//       "pattern": "^services/[^/]+/[^/]+/[^/]+/tenancyUnits/[^/]+$",
-	//       "required": true,
-	//       "type": "string"
-	//     }
-	//   },
-	//   "path": "v1/{+name}:undeleteProject",
-	//   "request": {
-	//     "$ref": "UndeleteTenantProjectRequest"
 	//   },
 	//   "response": {
 	//     "$ref": "Operation"

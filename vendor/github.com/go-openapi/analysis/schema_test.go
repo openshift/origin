@@ -332,8 +332,3 @@ func TestSchemaAnalys_InvalidSchema(t *testing.T) {
 	//bbb, _ := json.MarshalIndent(def, "", " ")
 	//log.Printf(string(bbb))
 }
-
-func TestSchemaAnalysis_EdgeCases(t *testing.T) {
-	_, err := Schema(SchemaOpts{Schema: nil})
-	assert.Error(t, err)
-}

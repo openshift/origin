@@ -12,103 +12,6 @@ import (
 
 // Type Function Tests
 
-type versionErrorTest struct {
-	err VersionError
-	str string
-}
-
-var versionStr = fmt.Sprintf("%d.%d.%d", verMajor, verMinor, verMicro)
-
-var versionErrorTests = []versionErrorTest{
-	{
-		VersionError{
-			"deadbeef",
-			"x.y.z",
-		},
-		"Libseccomp version too low: deadbeef: " +
-			"minimum supported is x.y.z: detected " + versionStr,
-	},
-	{
-		VersionError{
-			"",
-			"x.y.z",
-		},
-		"Libseccomp version too low: minimum supported is x.y.z: " +
-			"detected " + versionStr,
-	},
-	{
-		VersionError{
-			"deadbeef",
-			"",
-		},
-		"Libseccomp version too low: " +
-			"deadbeef: minimum supported is 2.2.0: " +
-			"detected " + versionStr,
-	},
-	{
-		VersionError{
-			"",
-			"",
-		},
-		"Libseccomp version too low: minimum supported is 2.2.0: " +
-			"detected " + versionStr,
-	},
-}
-
-func TestVersionError(t *testing.T) {
-	for i, test := range versionErrorTests {
-		str := test.err.Error()
-		if str != test.str {
-			t.Errorf("VersionError %d: got %q: expected %q", i, str, test.str)
-		}
-	}
-}
-
-func ApiLevelIsSupported() bool {
-	return verMajor > 2 ||
-		(verMajor == 2 && verMinor > 3) ||
-		(verMajor == 2 && verMinor == 3 && verMicro >= 3)
-}
-
-func TestGetApiLevel(t *testing.T) {
-	api, err := GetApi()
-	if !ApiLevelIsSupported() {
-		if api != 0 {
-			t.Errorf("API level returned despite lack of support: %v", api)
-		} else if err == nil {
-			t.Errorf("No error returned despite lack of API level support")
-		}
-
-		t.Skipf("Skipping test: %s", err)
-	} else if err != nil {
-		t.Errorf("Error getting API level: %s", err)
-	}
-	fmt.Printf("Got API level of %v\n", api)
-}
-
-func TestSetApiLevel(t *testing.T) {
-	var expectedApi uint
-
-	expectedApi = 1
-	err := SetApi(expectedApi)
-	if !ApiLevelIsSupported() {
-		if err == nil {
-			t.Errorf("No error returned despite lack of API level support")
-		}
-
-		t.Skipf("Skipping test: %s", err)
-	} else if err != nil {
-		t.Errorf("Error setting API level: %s", err)
-	}
-
-	api, err := GetApi()
-	if err != nil {
-		t.Errorf("Error getting API level: %s", err)
-	} else if api != expectedApi {
-		t.Errorf("Got API level %v: expected %v", api, expectedApi)
-	}
-}
-
 func TestActionSetReturnCode(t *testing.T) {
 	if ActInvalid.SetReturnCode(0x0010) != ActInvalid {
 		t.Errorf("Able to set a return code on invalid action!")
@@ -432,38 +335,6 @@ func TestFilterAttributeGettersAndSetters(t *testing.T) {
 		t.Errorf("No new privileges bit was not set correctly")
 	}
 
-	if ApiLevelIsSupported() {
-		api, err := GetApi()
-		if err != nil {
-			t.Errorf("Error getting API level: %s", err)
-		} else if api < 3 {
-			err = SetApi(3)
-			if err != nil {
-				t.Errorf("Error setting API level: %s", err)
-			}
-		}
-	}
-
-	err = filter.SetLogBit(true)
-	if err != nil {
-		if !ApiLevelIsSupported() {
-			t.Logf("Ignoring failure: %s\n", err)
-		} else {
-			t.Errorf("Error setting log bit")
-		}
-	}
-
-	log, err := filter.GetLogBit()
-	if err != nil {
-		if !ApiLevelIsSupported() {
-			t.Logf("Ignoring failure: %s\n", err)
-		} else {
-			t.Errorf("Error getting log bit")
-		}
-	} else if log != true {
-		t.Errorf("Log bit was not set correctly")
-	}
-
 	err = filter.SetBadArchAction(ActInvalid)
 	if err == nil {
 		t.Errorf("Setting bad arch action to an invalid action should error")
@@ -542,11 +413,6 @@ func TestRuleAddAndLoad(t *testing.T) {
 		t.Errorf("Error getting syscall number of setreuid: %s", err)
 	}
 
-	call3, err := GetSyscallFromName("setreuid32")
-	if err != nil {
-		t.Errorf("Error getting syscall number of setreuid32: %s", err)
-	}
-
 	uid := syscall.Getuid()
 	euid := syscall.Geteuid()
 
@@ -572,11 +438,6 @@ func TestRuleAddAndLoad(t *testing.T) {
 		t.Errorf("Error adding conditional rule: %s", err)
 	}
 
-	err = filter1.AddRuleConditional(call3, ActErrno.SetReturnCode(0x3), conditions)
-	if err != nil {
-		t.Errorf("Error adding second conditional rule: %s", err)
-	}
-
 	err = filter1.Load()
 	if err != nil {
 		t.Errorf("Error loading filter: %s", err)
@@ -590,81 +451,7 @@ func TestRuleAddAndLoad(t *testing.T) {
 
 	// Try making a Geteuid syscall that should normally succeed
 	err = syscall.Setreuid(uid, euid)
-	if err == nil {
+	if err != syscall.Errno(2) {
 		t.Errorf("Syscall should have returned error code!")
-	} else if err != syscall.Errno(2) && err != syscall.Errno(3) {
-		t.Errorf("Syscall returned incorrect error code - likely not blocked by Seccomp!")
-	}
-}
-
-func TestLogAct(t *testing.T) {
-	expectedPid := syscall.Getpid()
-
-	api, err := GetApi()
-	if err != nil {
-		if !ApiLevelIsSupported() {
-			t.Skipf("Skipping test: %s", err)
-		}
-
-		t.Errorf("Error getting API level: %s", err)
-	} else if api < 3 {
-		t.Skipf("Skipping test: API level %d is less than 3", api)
-	}
-
-	filter, err := NewFilter(ActErrno.SetReturnCode(0x0001))
-	if err != nil {
-		t.Errorf("Error creating filter: %s", err)
-	}
-	defer filter.Release()
-
-	call, err := GetSyscallFromName("getpid")
-	if err != nil {
-		t.Errorf("Error getting syscall number of getpid: %s", err)
-	}
-
-	call1, err := GetSyscallFromName("write")
-	if err != nil {
-		t.Errorf("Error getting syscall number of write: %s", err)
-	}
-
-	call2, err := GetSyscallFromName("futex")
-	if err != nil {
-		t.Errorf("Error getting syscall number of futex: %s", err)
-	}
-
-	call3, err := GetSyscallFromName("exit_group")
-	if err != nil {
-		t.Errorf("Error getting syscall number of exit_group: %s", err)
-	}
-
-	err = filter.AddRule(call, ActLog)
-	if err != nil {
-		t.Errorf("Error adding rule to log syscall: %s", err)
-	}
-
-	err = filter.AddRule(call1, ActAllow)
-	if err != nil {
-		t.Errorf("Error adding rule to allow write syscall: %s", err)
-	}
-
-	err = filter.AddRule(call2, ActAllow)
-	if err != nil {
-		t.Errorf("Error adding rule to allow futex syscall: %s", err)
-	}
-
-	err = filter.AddRule(call3, ActAllow)
-	if err != nil {
-		t.Errorf("Error adding rule to allow exit_group syscall: %s", err)
-	}
-
-	err = filter.Load()
-	if err != nil {
-		t.Errorf("Error loading filter: %s", err)
-	}
-
-	// Try making a simple syscall, it should succeed
-	pid := syscall.Getpid()
-	if pid != expectedPid {
-		t.Errorf("Syscall should have returned expected pid (%d != %d)", pid, expectedPid)
 	}
 }

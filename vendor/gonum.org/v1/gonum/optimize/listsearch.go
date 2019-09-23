@@ -10,8 +10,6 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-var _ Method = (*ListSearch)(nil)
-
 // ListSearch finds the optimum location from a specified list of possible
 // optimum locations.
 type ListSearch struct {
@@ -26,8 +24,8 @@ type ListSearch struct {
 	bestIdx int
 }
 
-func (*ListSearch) Uses(has Available) (uses Available, err error) {
-	return has.function()
+func (*ListSearch) Needs() struct{ Gradient, Hessian bool } {
+	return struct{ Gradient, Hessian bool }{false, false}
 }
 
 // InitGlobal initializes the method for optimization. The input dimension

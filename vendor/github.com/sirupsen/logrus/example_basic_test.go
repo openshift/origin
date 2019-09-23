@@ -1,18 +1,16 @@
 package logrus_test
 
 import (
-	"os"
-
 	"github.com/sirupsen/logrus"
+	"os"
 )
 
 func Example_basic() {
 	var log = logrus.New()
 	log.Formatter = new(logrus.JSONFormatter)
 	log.Formatter = new(logrus.TextFormatter)                     //default
-	log.Formatter.(*logrus.TextFormatter).DisableColors = true    // remove colors
 	log.Formatter.(*logrus.TextFormatter).DisableTimestamp = true // remove timestamp from test output
-	log.Level = logrus.TraceLevel
+	log.Level = logrus.DebugLevel
 	log.Out = os.Stdout
 
 	// file, err := os.OpenFile("logrus.log", os.O_CREATE|os.O_WRONLY, 0666)
@@ -39,11 +37,6 @@ func Example_basic() {
 
 	log.WithFields(logrus.Fields{
 		"animal": "walrus",
-		"number": 0,
-	}).Trace("Went to the beach")
-
-	log.WithFields(logrus.Fields{
-		"animal": "walrus",
 		"number": 8,
 	}).Debug("Started observing beach")
 
@@ -67,7 +60,6 @@ func Example_basic() {
 	}).Panic("It's over 9000!")
 
 	// Output:
-	// level=trace msg="Went to the beach" animal=walrus number=0
 	// level=debug msg="Started observing beach" animal=walrus number=8
 	// level=info msg="A group of walrus emerges from the ocean" animal=walrus size=10
 	// level=warning msg="The group's number increased tremendously!" number=122 omg=true

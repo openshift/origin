@@ -17,9 +17,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
-
-	"github.com/prometheus/procfs/internal/util"
 )
 
 // ParseStats parses a Stats from an input io.Reader, using the format
@@ -69,7 +68,7 @@ func ParseStats(r io.Reader) (*Stats, error) {
 
 		// Extended precision counters are uint64 values.
 		if label == fieldXpc {
-			us, err := util.ParseUint64s(ss[1:])
+			us, err := parseUint64s(ss[1:])
 			if err != nil {
 				return nil, err
 			}
@@ -83,7 +82,7 @@ func ParseStats(r io.Reader) (*Stats, error) {
 		}
 
 		// All other counters are uint32 values.
-		us, err := util.ParseUint32s(ss[1:])
+		us, err := parseUint32s(ss[1:])
 		if err != nil {
 			return nil, err
 		}
@@ -327,4 +326,34 @@ func extendedPrecisionStats(us []uint64) (ExtendedPrecisionStats, error) {
 		WriteBytes: us[1],
 		ReadBytes:  us[2],
 	}, nil
+}
+
+// parseUint32s parses a slice of strings into a slice of uint32s.
+func parseUint32s(ss []string) ([]uint32, error) {
+	us := make([]uint32, 0, len(ss))
+	for _, s := range ss {
+		u, err := strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+
+		us = append(us, uint32(u))
+	}
+
+	return us, nil
+}
+
+// parseUint64s parses a slice of strings into a slice of uint64s.
+func parseUint64s(ss []string) ([]uint64, error) {
+	us := make([]uint64, 0, len(ss))
+	for _, s := range ss {
+		u, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		us = append(us, u)
+	}
+
+	return us, nil
 }

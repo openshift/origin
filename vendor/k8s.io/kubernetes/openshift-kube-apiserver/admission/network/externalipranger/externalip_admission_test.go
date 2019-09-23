@@ -1,7 +1,6 @@
 package externalipranger
 
 import (
-	"context"
 	"net"
 	"strings"
 	"testing"
@@ -218,7 +217,7 @@ func TestAdmission(t *testing.T) {
 			oldSvc = nil
 		}
 
-		err := handler.Validate(context.TODO(), admission.NewAttributesRecord(svc, oldSvc, kapi.Kind("Service").WithVersion("version"), "namespace", svc.ObjectMeta.Name, kapi.Resource("services").WithVersion("version"), "", test.op, nil, false, nil), nil)
+		err := handler.Validate(admission.NewAttributesRecord(svc, oldSvc, kapi.Kind("Service").WithVersion("version"), "namespace", svc.ObjectMeta.Name, kapi.Resource("services").WithVersion("version"), "", test.op, false, nil), nil)
 		if test.admit && err != nil {
 			t.Errorf("%s: expected no error but got: %s", test.testName, err)
 		} else if !test.admit && err == nil {

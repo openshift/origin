@@ -24,6 +24,7 @@ import (
 	"path"
 	"testing"
 
+	"github.com/kardianos/osext"
 	"k8s.io/klog"
 
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -108,9 +109,7 @@ func (e *E2EServices) Stop() {
 func RunE2EServices(t *testing.T) {
 	// Populate global DefaultFeatureGate with value from TestContext.FeatureGates.
 	// This way, statically-linked components see the same feature gate config as the test context.
-	if err := utilfeature.DefaultMutableFeatureGate.SetFromMap(framework.TestContext.FeatureGates); err != nil {
-		t.Fatal(err)
-	}
+	utilfeature.DefaultMutableFeatureGate.SetFromMap(framework.TestContext.FeatureGates)
 	e := newE2EServices()
 	if err := e.run(t); err != nil {
 		klog.Fatalf("Failed to run e2e services: %v", err)
@@ -120,13 +119,13 @@ func RunE2EServices(t *testing.T) {
 const (
 	// services.log is the combined log of all services
 	servicesLogFile = "services.log"
-	// LogVerbosityLevel is consistent with the level used in a cluster e2e test.
-	LogVerbosityLevel = "4"
+	// LOG_VERBOSITY_LEVEL is consistent with the level used in a cluster e2e test.
+	LOG_VERBOSITY_LEVEL = "4"
 )
 
 // startInternalServices starts the internal services in a separate process.
 func (e *E2EServices) startInternalServices() (*server, error) {
-	testBin, err := os.Executable()
+	testBin, err := osext.Executable()
 	if err != nil {
 		return nil, fmt.Errorf("can't get current binary: %v", err)
 	}

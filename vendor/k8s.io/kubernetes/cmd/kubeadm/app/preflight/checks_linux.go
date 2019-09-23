@@ -26,9 +26,11 @@ import (
 
 // Check validates if Docker is setup to use systemd as the cgroup driver.
 func (idsc IsDockerSystemdCheck) Check() (warnings, errorList []error) {
+	warnings = []error{}
 	driver, err := util.GetCgroupDriverDocker(exec.New())
 	if err != nil {
-		return nil, []error{err}
+		errorList = append(errorList, err)
+		return nil, errorList
 	}
 	if driver != util.CgroupDriverSystemd {
 		err = errors.Errorf("detected %q as the Docker cgroup driver. "+
@@ -36,7 +38,7 @@ func (idsc IsDockerSystemdCheck) Check() (warnings, errorList []error) {
 			"Please follow the guide at https://kubernetes.io/docs/setup/cri/",
 			driver,
 			util.CgroupDriverSystemd)
-		return []error{err}, nil
+		warnings = append(warnings, err)
 	}
-	return nil, nil
+	return warnings, nil
 }

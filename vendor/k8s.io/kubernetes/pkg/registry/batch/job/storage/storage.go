@@ -37,17 +37,13 @@ type JobStorage struct {
 	Status *StatusREST
 }
 
-// NewStorage creates a new JobStorage against etcd.
-func NewStorage(optsGetter generic.RESTOptionsGetter) (JobStorage, error) {
-	jobRest, jobStatusRest, err := NewREST(optsGetter)
-	if err != nil {
-		return JobStorage{}, err
-	}
+func NewStorage(optsGetter generic.RESTOptionsGetter) JobStorage {
+	jobRest, jobStatusRest := NewREST(optsGetter)
 
 	return JobStorage{
 		Job:    jobRest,
 		Status: jobStatusRest,
-	}, nil
+	}
 }
 
 // REST implements a RESTStorage for jobs against etcd
@@ -56,7 +52,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against Jobs.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &batch.Job{} },
 		NewListFunc:              func() runtime.Object { return &batch.JobList{} },
@@ -67,17 +63,17 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, error) {
 		UpdateStrategy: job.Strategy,
 		DeleteStrategy: job.Strategy,
 
-		TableConvertor: printerstorage.TableConvertor{TableGenerator: printers.NewTableGenerator().With(printersinternal.AddHandlers)},
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: job.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, nil, err
+		panic(err) // TODO: Propagate error up
 	}
 
 	statusStore := *store
 	statusStore.UpdateStrategy = job.StatusStrategy
 
-	return &REST{store}, &StatusREST{store: &statusStore}, nil
+	return &REST{store}, &StatusREST{store: &statusStore}
 }
 
 // Implement CategoriesProvider
@@ -93,7 +89,6 @@ type StatusREST struct {
 	store *genericregistry.Store
 }
 
-// New creates a new Job object.
 func (r *StatusREST) New() runtime.Object {
 	return &batch.Job{}
 }

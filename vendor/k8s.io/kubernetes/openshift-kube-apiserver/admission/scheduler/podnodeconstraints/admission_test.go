@@ -2,7 +2,6 @@ package podnodeconstraints
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"testing"
 
@@ -135,11 +134,11 @@ func TestPodNodeConstraints(t *testing.T) {
 			checkAdmitError(t, err, expectedError, errPrefix)
 			continue
 		}
-		attrs := admission.NewAttributesRecord(tc.resource, nil, kapi.Kind("Pod").WithVersion("version"), ns, "test", kapi.Resource("pods").WithVersion("version"), "", admission.Create, nil, false, tc.userinfo)
+		attrs := admission.NewAttributesRecord(tc.resource, nil, kapi.Kind("Pod").WithVersion("version"), ns, "test", kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, tc.userinfo)
 		if tc.expectedErrorMsg != "" {
 			expectedError = admission.NewForbidden(attrs, fmt.Errorf(tc.expectedErrorMsg))
 		}
-		err = prc.(admission.ValidationInterface).Validate(context.TODO(), attrs, nil)
+		err = prc.(admission.ValidationInterface).Validate(attrs, nil)
 		checkAdmitError(t, err, expectedError, errPrefix)
 	}
 }
@@ -155,8 +154,8 @@ func TestPodNodeConstraintsPodUpdate(t *testing.T) {
 		checkAdmitError(t, err, expectedError, errPrefix)
 		return
 	}
-	attrs := admission.NewAttributesRecord(nodeNamePod(), nodeNamePod(), kapi.Kind("Pod").WithVersion("version"), ns, "test", kapi.Resource("pods").WithVersion("version"), "", admission.Update, nil, false, serviceaccount.UserInfo("", "", ""))
-	err = prc.(admission.ValidationInterface).Validate(context.TODO(), attrs, nil)
+	attrs := admission.NewAttributesRecord(nodeNamePod(), nodeNamePod(), kapi.Kind("Pod").WithVersion("version"), ns, "test", kapi.Resource("pods").WithVersion("version"), "", admission.Update, false, serviceaccount.UserInfo("", "", ""))
+	err = prc.(admission.ValidationInterface).Validate(attrs, nil)
 	checkAdmitError(t, err, expectedError, errPrefix)
 }
 
@@ -171,8 +170,8 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 		checkAdmitError(t, err, expectedError, errPrefix)
 		return
 	}
-	attrs := admission.NewAttributesRecord(resourceQuota(), nil, kapi.Kind("ResourceQuota").WithVersion("version"), ns, "test", kapi.Resource("resourcequotas").WithVersion("version"), "", admission.Create, nil, false, serviceaccount.UserInfo("", "", ""))
-	err = prc.(admission.ValidationInterface).Validate(context.TODO(), attrs, nil)
+	attrs := admission.NewAttributesRecord(resourceQuota(), nil, kapi.Kind("ResourceQuota").WithVersion("version"), ns, "test", kapi.Resource("resourcequotas").WithVersion("version"), "", admission.Create, false, serviceaccount.UserInfo("", "", ""))
+	err = prc.(admission.ValidationInterface).Validate(attrs, nil)
 	checkAdmitError(t, err, expectedError, errPrefix)
 }
 

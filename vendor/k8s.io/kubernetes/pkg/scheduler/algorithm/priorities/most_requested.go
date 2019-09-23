@@ -18,11 +18,11 @@ package priorities
 
 import (
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
+	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 )
 
 var (
-	mostRequestedRatioResources = DefaultRequestedRatioResources
-	mostResourcePriority        = &ResourceAllocationPriority{"MostResourceAllocation", mostResourceScorer, mostRequestedRatioResources}
+	mostResourcePriority = &ResourceAllocationPriority{"MostResourceAllocation", mostResourceScorer}
 
 	// MostRequestedPriorityMap is a priority function that favors nodes with most requested resources.
 	// It calculates the percentage of memory and CPU requested by pods scheduled on the node, and prioritizes
@@ -31,15 +31,9 @@ var (
 	MostRequestedPriorityMap = mostResourcePriority.PriorityMap
 )
 
-func mostResourceScorer(requested, allocable ResourceToValueMap, includeVolumes bool, requestedVolumes int, allocatableVolumes int) int64 {
-	var nodeScore, weightSum int64
-	for resource, weight := range mostRequestedRatioResources {
-		resourceScore := mostRequestedScore(requested[resource], allocable[resource])
-		nodeScore += resourceScore * weight
-		weightSum += weight
-	}
-	return (nodeScore / weightSum)
-
+func mostResourceScorer(requested, allocable *schedulernodeinfo.Resource, includeVolumes bool, requestedVolumes int, allocatableVolumes int) int64 {
+	return (mostRequestedScore(requested.MilliCPU, allocable.MilliCPU) +
+		mostRequestedScore(requested.Memory, allocable.Memory)) / 2
 }
 
 // The used capacity is calculated on a scale of 0-10

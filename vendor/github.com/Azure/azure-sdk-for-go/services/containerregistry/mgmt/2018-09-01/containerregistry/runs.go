@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,19 +46,7 @@ func NewRunsClientWithBaseURI(baseURI string, subscriptionID string) RunsClient 
 // registryName - the name of the container registry.
 // runID - the run ID.
 func (client RunsClient) Cancel(ctx context.Context, resourceGroupName string, registryName string, runID string) (result RunsCancelFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RunsClient.Cancel")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
-		{TargetValue: resourceGroupName,
-			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "registryName", Name: validation.MinLength, Rule: 5, Chain: nil},
@@ -107,9 +94,13 @@ func (client RunsClient) CancelPreparer(ctx context.Context, resourceGroupName s
 // CancelSender sends the Cancel request. The method will close the
 // http.Response Body if it receives an error.
 func (client RunsClient) CancelSender(req *http.Request) (future RunsCancelFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -135,19 +126,7 @@ func (client RunsClient) CancelResponder(resp *http.Response) (result autorest.R
 // registryName - the name of the container registry.
 // runID - the run ID.
 func (client RunsClient) Get(ctx context.Context, resourceGroupName string, registryName string, runID string) (result Run, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RunsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
-		{TargetValue: resourceGroupName,
-			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "registryName", Name: validation.MinLength, Rule: 5, Chain: nil},
@@ -201,8 +180,8 @@ func (client RunsClient) GetPreparer(ctx context.Context, resourceGroupName stri
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client RunsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -224,19 +203,7 @@ func (client RunsClient) GetResponder(resp *http.Response) (result Run, err erro
 // registryName - the name of the container registry.
 // runID - the run ID.
 func (client RunsClient) GetLogSasURL(ctx context.Context, resourceGroupName string, registryName string, runID string) (result RunGetLogResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RunsClient.GetLogSasURL")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
-		{TargetValue: resourceGroupName,
-			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "registryName", Name: validation.MinLength, Rule: 5, Chain: nil},
@@ -290,8 +257,8 @@ func (client RunsClient) GetLogSasURLPreparer(ctx context.Context, resourceGroup
 // GetLogSasURLSender sends the GetLogSasURL request. The method will close the
 // http.Response Body if it receives an error.
 func (client RunsClient) GetLogSasURLSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetLogSasURLResponder handles the response to the GetLogSasURL request. The method always
@@ -315,19 +282,7 @@ func (client RunsClient) GetLogSasURLResponder(resp *http.Response) (result RunG
 // string function is 'contains'. All logical operators except 'Not', 'Has', 'All' are allowed.
 // top - $top is supported for get list of runs, which limits the maximum number of runs to return.
 func (client RunsClient) List(ctx context.Context, resourceGroupName string, registryName string, filter string, top *int32) (result RunListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RunsClient.List")
-		defer func() {
-			sc := -1
-			if result.rlr.Response.Response != nil {
-				sc = result.rlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
-		{TargetValue: resourceGroupName,
-			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "registryName", Name: validation.MinLength, Rule: 5, Chain: nil},
@@ -387,8 +342,8 @@ func (client RunsClient) ListPreparer(ctx context.Context, resourceGroupName str
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client RunsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -405,8 +360,8 @@ func (client RunsClient) ListResponder(resp *http.Response) (result RunListResul
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client RunsClient) listNextResults(ctx context.Context, lastResults RunListResult) (result RunListResult, err error) {
-	req, err := lastResults.runListResultPreparer(ctx)
+func (client RunsClient) listNextResults(lastResults RunListResult) (result RunListResult, err error) {
+	req, err := lastResults.runListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "containerregistry.RunsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -427,16 +382,6 @@ func (client RunsClient) listNextResults(ctx context.Context, lastResults RunLis
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RunsClient) ListComplete(ctx context.Context, resourceGroupName string, registryName string, filter string, top *int32) (result RunListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RunsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, registryName, filter, top)
 	return
 }
@@ -448,19 +393,7 @@ func (client RunsClient) ListComplete(ctx context.Context, resourceGroupName str
 // runID - the run ID.
 // runUpdateParameters - the run update properties.
 func (client RunsClient) Update(ctx context.Context, resourceGroupName string, registryName string, runID string, runUpdateParameters RunUpdateParameters) (result RunsUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RunsClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
-		{TargetValue: resourceGroupName,
-			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
 		{TargetValue: registryName,
 			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "registryName", Name: validation.MinLength, Rule: 5, Chain: nil},
@@ -510,9 +443,13 @@ func (client RunsClient) UpdatePreparer(ctx context.Context, resourceGroupName s
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client RunsClient) UpdateSender(req *http.Request) (future RunsUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}

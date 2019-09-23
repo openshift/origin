@@ -24,9 +24,7 @@ import (
 	policy "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	podutil "k8s.io/kubernetes/pkg/api/pod"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/core/pods"
 	"k8s.io/kubernetes/pkg/features"
 	psputil "k8s.io/kubernetes/pkg/security/podsecuritypolicy/util"
 	"k8s.io/kubernetes/pkg/securitycontext"
@@ -61,10 +59,10 @@ func NewSimpleProvider(psp *policy.PodSecurityPolicy, namespace string, strategy
 	}, nil
 }
 
-// MutatePod sets the default values of the required but not filled fields.
-// Validation should be used after the context is defaulted to ensure it
-// complies with the required restrictions.
-func (s *simpleProvider) MutatePod(pod *api.Pod) error {
+// DefaultPodSecurityContext sets the default values of the required but not filled fields.
+// It modifies the SecurityContext and annotations of the provided pod. Validation should be
+// used after the context is defaulted to ensure it complies with the required restrictions.
+func (s *simpleProvider) DefaultPodSecurityContext(pod *api.Pod) error {
 	sc := securitycontext.NewPodSecurityContextMutator(pod.Spec.SecurityContext)
 
 	if sc.SupplementalGroups() == nil {
@@ -106,26 +104,13 @@ func (s *simpleProvider) MutatePod(pod *api.Pod) error {
 
 	pod.Spec.SecurityContext = sc.PodSecurityContext()
 
-	if s.psp.Spec.RuntimeClass != nil && pod.Spec.RuntimeClassName == nil {
-		pod.Spec.RuntimeClassName = s.psp.Spec.RuntimeClass.DefaultRuntimeClassName
-	}
-
-	var retErr error
-	podutil.VisitContainers(&pod.Spec, func(c *api.Container) bool {
-		retErr = s.mutateContainer(pod, c)
-		if retErr != nil {
-			return false
-		}
-		return true
-	})
-
-	return retErr
+	return nil
 }
 
-// mutateContainer sets the default values of the required but not filled fields.
+// DefaultContainerSecurityContext sets the default values of the required but not filled fields.
 // It modifies the SecurityContext of the container and annotations of the pod. Validation should
 // be used after the context is defaulted to ensure it complies with the required restrictions.
-func (s *simpleProvider) mutateContainer(pod *api.Pod, container *api.Container) error {
+func (s *simpleProvider) DefaultContainerSecurityContext(pod *api.Pod, container *api.Container) error {
 	sc := securitycontext.NewEffectiveContainerSecurityContextMutator(
 		securitycontext.NewPodSecurityContextAccessor(pod.Spec.SecurityContext),
 		securitycontext.NewContainerSecurityContextMutator(container.SecurityContext),
@@ -232,23 +217,6 @@ func (s *simpleProvider) ValidatePod(pod *api.Pod) field.ErrorList {
 
 	allErrs = append(allErrs, s.strategies.SysctlsStrategy.Validate(pod)...)
 
-	allErrs = append(allErrs, s.validatePodVolumes(pod)...)
-
-	if s.psp.Spec.RuntimeClass != nil {
-		allErrs = append(allErrs, validateRuntimeClassName(pod.Spec.RuntimeClassName, s.psp.Spec.RuntimeClass.AllowedRuntimeClassNames)...)
-	}
-
-	pods.VisitContainersWithPath(&pod.Spec, func(c *api.Container, p *field.Path) bool {
-		allErrs = append(allErrs, s.validateContainer(pod, c, p)...)
-		return true
-	})
-
-	return allErrs
-}
-
-func (s *simpleProvider) validatePodVolumes(pod *api.Pod) field.ErrorList {
-	allErrs := field.ErrorList{}
-
 	if len(pod.Spec.Volumes) > 0 {
 		allowsAllVolumeTypes := psputil.PSPAllowsAllVolumes(s.psp)
 		allowedVolumes := psputil.FSTypeToStringSet(s.psp.Spec.Volumes)
@@ -266,8 +234,7 @@ func (s *simpleProvider) validatePodVolumes(pod *api.Pod) field.ErrorList {
 				continue
 			}
 
-			switch fsType {
-			case policy.HostPath:
+			if fsType == policy.HostPath {
 				allows, mustBeReadOnly := psputil.AllowsHostVolumePath(s.psp, v.HostPath.Path)
 				if !allows {
 					allErrs = append(allErrs, field.Invalid(
@@ -275,60 +242,51 @@ func (s *simpleProvider) validatePodVolumes(pod *api.Pod) field.ErrorList {
 						fmt.Sprintf("is not allowed to be used")))
 				} else if mustBeReadOnly {
 					// Ensure all the VolumeMounts that use this volume are read-only
-					pods.VisitContainersWithPath(&pod.Spec, func(c *api.Container, p *field.Path) bool {
-						for i, cv := range c.VolumeMounts {
+					for i, c := range pod.Spec.InitContainers {
+						for j, cv := range c.VolumeMounts {
 							if cv.Name == v.Name && !cv.ReadOnly {
-								allErrs = append(allErrs, field.Invalid(p.Child("volumeMounts").Index(i).Child("readOnly"), cv.ReadOnly, "must be read-only"))
+								allErrs = append(allErrs, field.Invalid(
+									field.NewPath("spec", "initContainers").Index(i).Child("volumeMounts").Index(j).Child("readOnly"),
+									cv.ReadOnly, "must be read-only"),
+								)
 							}
 						}
-						return true
-					})
-				}
-
-			case policy.FlexVolume:
-				if len(s.psp.Spec.AllowedFlexVolumes) > 0 {
-					found := false
-					driver := v.FlexVolume.Driver
-					for _, allowedFlexVolume := range s.psp.Spec.AllowedFlexVolumes {
-						if driver == allowedFlexVolume.Driver {
-							found = true
-							break
-						}
 					}
-					if !found {
-						allErrs = append(allErrs,
-							field.Invalid(field.NewPath("spec", "volumes").Index(i).Child("driver"), driver,
-								"Flexvolume driver is not allowed to be used"))
-					}
-				}
-
-			case policy.CSI:
-				if utilfeature.DefaultFeatureGate.Enabled(features.CSIInlineVolume) {
-					if len(s.psp.Spec.AllowedCSIDrivers) > 0 {
-						found := false
-						driver := v.CSI.Driver
-						for _, allowedCSIDriver := range s.psp.Spec.AllowedCSIDrivers {
-							if driver == allowedCSIDriver.Name {
-								found = true
-								break
+					for i, c := range pod.Spec.Containers {
+						for j, cv := range c.VolumeMounts {
+							if cv.Name == v.Name && !cv.ReadOnly {
+								allErrs = append(allErrs, field.Invalid(
+									field.NewPath("spec", "containers").Index(i).Child("volumeMounts").Index(j).Child("readOnly"),
+									cv.ReadOnly, "must be read-only"),
+								)
 							}
-						}
-						if !found {
-							allErrs = append(allErrs,
-								field.Invalid(field.NewPath("spec", "volumes").Index(i).Child("csi", "driver"), driver,
-									"Inline CSI driver is not allowed to be used"))
 						}
 					}
 				}
 			}
+
+			if fsType == policy.FlexVolume && len(s.psp.Spec.AllowedFlexVolumes) > 0 {
+				found := false
+				driver := v.FlexVolume.Driver
+				for _, allowedFlexVolume := range s.psp.Spec.AllowedFlexVolumes {
+					if driver == allowedFlexVolume.Driver {
+						found = true
+						break
+					}
+				}
+				if !found {
+					allErrs = append(allErrs,
+						field.Invalid(field.NewPath("spec", "volumes").Index(i).Child("driver"), driver,
+							"Flexvolume driver is not allowed to be used"))
+				}
+			}
 		}
 	}
-
 	return allErrs
 }
 
 // Ensure a container's SecurityContext is in compliance with the given constraints
-func (s *simpleProvider) validateContainer(pod *api.Pod, container *api.Container, containerPath *field.Path) field.ErrorList {
+func (s *simpleProvider) ValidateContainer(pod *api.Pod, container *api.Container, containerPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	podSC := securitycontext.NewPodSecurityContextAccessor(pod.Spec.SecurityContext)
@@ -431,21 +389,4 @@ func hostPortRangesToString(ranges []policy.HostPortRange) string {
 		formattedString = strings.Join(strRanges, ",")
 	}
 	return formattedString
-}
-
-// validates that the actual RuntimeClassName is contained in the list of valid names.
-func validateRuntimeClassName(actual *string, validNames []string) field.ErrorList {
-	if actual == nil {
-		return nil // An unset RuntimeClassName is always allowed.
-	}
-
-	for _, valid := range validNames {
-		if valid == policy.AllowAllRuntimeClassNames {
-			return nil
-		}
-		if *actual == valid {
-			return nil
-		}
-	}
-	return field.ErrorList{field.Invalid(field.NewPath("spec", "runtimeClassName"), *actual, "")}
 }

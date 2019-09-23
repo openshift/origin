@@ -84,7 +84,7 @@ func (podStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object
 // Validate validates a new pod.
 func (podStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	pod := obj.(*api.Pod)
-	allErrs := validation.ValidatePodCreate(pod)
+	allErrs := validation.ValidatePod(pod)
 	allErrs = append(allErrs, validation.ValidateConditionalPod(pod, nil, field.NewPath(""))...)
 	return allErrs
 }
@@ -174,16 +174,6 @@ func (podStatusStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Ob
 	return validation.ValidatePodStatusUpdate(obj.(*api.Pod), old.(*api.Pod))
 }
 
-type podEphemeralContainersStrategy struct {
-	podStrategy
-}
-
-var EphemeralContainersStrategy = podEphemeralContainersStrategy{Strategy}
-
-func (podEphemeralContainersStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidatePodEphemeralContainersUpdate(obj.(*api.Pod), old.(*api.Pod))
-}
-
 // GetAttrs returns labels and fields of a given object for filtering purposes.
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	pod, ok := obj.(*api.Pod)
@@ -203,9 +193,10 @@ func MatchPod(label labels.Selector, field fields.Selector) storage.SelectionPre
 	}
 }
 
-// NodeNameTriggerFunc returns value spec.nodename of given object.
-func NodeNameTriggerFunc(obj runtime.Object) string {
-	return obj.(*api.Pod).Spec.NodeName
+func NodeNameTriggerFunc(obj runtime.Object) []storage.MatchValue {
+	pod := obj.(*api.Pod)
+	result := storage.MatchValue{IndexName: "spec.nodeName", Value: pod.Spec.NodeName}
+	return []storage.MatchValue{result}
 }
 
 // PodToSelectableFields returns a field set that represents the object
@@ -221,12 +212,7 @@ func PodToSelectableFields(pod *api.Pod) fields.Set {
 	podSpecificFieldsSet["spec.schedulerName"] = string(pod.Spec.SchedulerName)
 	podSpecificFieldsSet["spec.serviceAccountName"] = string(pod.Spec.ServiceAccountName)
 	podSpecificFieldsSet["status.phase"] = string(pod.Status.Phase)
-	// TODO: add podIPs as a downward API value(s) with proper format
-	podIP := ""
-	if len(pod.Status.PodIPs) > 0 {
-		podIP = string(pod.Status.PodIPs[0].IP)
-	}
-	podSpecificFieldsSet["status.podIP"] = podIP
+	podSpecificFieldsSet["status.podIP"] = string(pod.Status.PodIP)
 	podSpecificFieldsSet["status.nominatedNodeName"] = string(pod.Status.NominatedNodeName)
 	return generic.AddObjectMetaFieldsSet(podSpecificFieldsSet, &pod.ObjectMeta, true)
 }
@@ -248,18 +234,6 @@ func getPod(getter ResourceGetter, ctx context.Context, name string) (*api.Pod, 
 	return pod, nil
 }
 
-// returns primary IP for a Pod
-func getPodIP(pod *api.Pod) string {
-	if pod == nil {
-		return ""
-	}
-	if len(pod.Status.PodIPs) > 0 {
-		return pod.Status.PodIPs[0].IP
-	}
-
-	return ""
-}
-
 // ResourceLocation returns a URL to which one can send traffic for the specified pod.
 func ResourceLocation(getter ResourceGetter, rt http.RoundTripper, ctx context.Context, id string) (*url.URL, http.RoundTripper, error) {
 	// Allow ID as "podname" or "podname:port" or "scheme:podname:port".
@@ -268,6 +242,7 @@ func ResourceLocation(getter ResourceGetter, rt http.RoundTripper, ctx context.C
 	if !valid {
 		return nil, nil, errors.NewBadRequest(fmt.Sprintf("invalid pod request %q", id))
 	}
+	// TODO: if port is not a number but a "(container)/(portname)", do a name lookup.
 
 	pod, err := getPod(getter, ctx, name)
 	if err != nil {
@@ -283,8 +258,8 @@ func ResourceLocation(getter ResourceGetter, rt http.RoundTripper, ctx context.C
 			}
 		}
 	}
-	podIP := getPodIP(pod)
-	if err := proxyutil.IsProxyableIP(podIP); err != nil {
+
+	if err := proxyutil.IsProxyableIP(pod.Status.PodIP); err != nil {
 		return nil, nil, errors.NewBadRequest(err.Error())
 	}
 
@@ -292,9 +267,9 @@ func ResourceLocation(getter ResourceGetter, rt http.RoundTripper, ctx context.C
 		Scheme: scheme,
 	}
 	if port == "" {
-		loc.Host = podIP
+		loc.Host = pod.Status.PodIP
 	} else {
-		loc.Host = net.JoinHostPort(podIP, port)
+		loc.Host = net.JoinHostPort(pod.Status.PodIP, port)
 	}
 	return loc, rt, nil
 }
@@ -386,15 +361,17 @@ func LogLocation(
 }
 
 func podHasContainerWithName(pod *api.Pod, containerName string) bool {
-	var hasContainer bool
-	podutil.VisitContainers(&pod.Spec, func(c *api.Container) bool {
+	for _, c := range pod.Spec.Containers {
 		if c.Name == containerName {
-			hasContainer = true
-			return false
+			return true
 		}
-		return true
-	})
-	return hasContainer
+	}
+	for _, c := range pod.Spec.InitContainers {
+		if c.Name == containerName {
+			return true
+		}
+	}
+	return false
 }
 
 func streamParams(params url.Values, opts runtime.Object) error {

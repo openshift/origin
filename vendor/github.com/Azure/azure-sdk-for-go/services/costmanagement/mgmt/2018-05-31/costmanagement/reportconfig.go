@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewReportConfigClientWithBaseURI(baseURI string, subscriptionID string) Rep
 // reportConfigName - report Config Name.
 // parameters - parameters supplied to the CreateOrUpdate Report Config operation.
 func (client ReportConfigClient) CreateOrUpdate(ctx context.Context, reportConfigName string, parameters ReportConfig) (result ReportConfig, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportConfigClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.ReportConfigProperties", Name: validation.Null, Rule: false,
@@ -151,8 +140,8 @@ func (client ReportConfigClient) CreateOrUpdatePreparer(ctx context.Context, rep
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportConfigClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -176,16 +165,6 @@ func (client ReportConfigClient) CreateOrUpdateResponder(resp *http.Response) (r
 // reportConfigName - report Config Name.
 // parameters - parameters supplied to the CreateOrUpdate Report Config operation.
 func (client ReportConfigClient) CreateOrUpdateByResourceGroupName(ctx context.Context, resourceGroupName string, reportConfigName string, parameters ReportConfig) (result ReportConfig, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportConfigClient.CreateOrUpdateByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.ReportConfigProperties", Name: validation.Null, Rule: false,
@@ -280,8 +259,8 @@ func (client ReportConfigClient) CreateOrUpdateByResourceGroupNamePreparer(ctx c
 // CreateOrUpdateByResourceGroupNameSender sends the CreateOrUpdateByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportConfigClient) CreateOrUpdateByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateByResourceGroupNameResponder handles the response to the CreateOrUpdateByResourceGroupName request. The method always
@@ -301,16 +280,6 @@ func (client ReportConfigClient) CreateOrUpdateByResourceGroupNameResponder(resp
 // Parameters:
 // reportConfigName - report Config Name.
 func (client ReportConfigClient) Delete(ctx context.Context, reportConfigName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportConfigClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, reportConfigName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportConfigClient", "Delete", nil, "Failure preparing request")
@@ -355,8 +324,8 @@ func (client ReportConfigClient) DeletePreparer(ctx context.Context, reportConfi
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportConfigClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -376,16 +345,6 @@ func (client ReportConfigClient) DeleteResponder(resp *http.Response) (result au
 // resourceGroupName - azure Resource Group Name.
 // reportConfigName - report Config Name.
 func (client ReportConfigClient) DeleteByResourceGroupName(ctx context.Context, resourceGroupName string, reportConfigName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportConfigClient.DeleteByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteByResourceGroupNamePreparer(ctx, resourceGroupName, reportConfigName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportConfigClient", "DeleteByResourceGroupName", nil, "Failure preparing request")
@@ -431,8 +390,8 @@ func (client ReportConfigClient) DeleteByResourceGroupNamePreparer(ctx context.C
 // DeleteByResourceGroupNameSender sends the DeleteByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportConfigClient) DeleteByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteByResourceGroupNameResponder handles the response to the DeleteByResourceGroupName request. The method always
@@ -451,16 +410,6 @@ func (client ReportConfigClient) DeleteByResourceGroupNameResponder(resp *http.R
 // Parameters:
 // reportConfigName - report Config Name.
 func (client ReportConfigClient) Get(ctx context.Context, reportConfigName string) (result ReportConfig, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportConfigClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, reportConfigName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportConfigClient", "Get", nil, "Failure preparing request")
@@ -505,8 +454,8 @@ func (client ReportConfigClient) GetPreparer(ctx context.Context, reportConfigNa
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportConfigClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -527,16 +476,6 @@ func (client ReportConfigClient) GetResponder(resp *http.Response) (result Repor
 // resourceGroupName - azure Resource Group Name.
 // reportConfigName - report Config Name.
 func (client ReportConfigClient) GetByResourceGroupName(ctx context.Context, resourceGroupName string, reportConfigName string) (result ReportConfig, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportConfigClient.GetByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetByResourceGroupNamePreparer(ctx, resourceGroupName, reportConfigName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportConfigClient", "GetByResourceGroupName", nil, "Failure preparing request")
@@ -582,8 +521,8 @@ func (client ReportConfigClient) GetByResourceGroupNamePreparer(ctx context.Cont
 // GetByResourceGroupNameSender sends the GetByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportConfigClient) GetByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetByResourceGroupNameResponder handles the response to the GetByResourceGroupName request. The method always
@@ -601,16 +540,6 @@ func (client ReportConfigClient) GetByResourceGroupNameResponder(resp *http.Resp
 
 // List lists all report configs for a subscription.
 func (client ReportConfigClient) List(ctx context.Context) (result ReportConfigListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportConfigClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportConfigClient", "List", nil, "Failure preparing request")
@@ -654,8 +583,8 @@ func (client ReportConfigClient) ListPreparer(ctx context.Context) (*http.Reques
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportConfigClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -675,16 +604,6 @@ func (client ReportConfigClient) ListResponder(resp *http.Response) (result Repo
 // Parameters:
 // resourceGroupName - azure Resource Group Name.
 func (client ReportConfigClient) ListByResourceGroupName(ctx context.Context, resourceGroupName string) (result ReportConfigListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportConfigClient.ListByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByResourceGroupNamePreparer(ctx, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportConfigClient", "ListByResourceGroupName", nil, "Failure preparing request")
@@ -729,8 +648,8 @@ func (client ReportConfigClient) ListByResourceGroupNamePreparer(ctx context.Con
 // ListByResourceGroupNameSender sends the ListByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportConfigClient) ListByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupNameResponder handles the response to the ListByResourceGroupName request. The method always

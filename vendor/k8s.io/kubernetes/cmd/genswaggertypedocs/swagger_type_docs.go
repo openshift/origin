@@ -54,7 +54,7 @@ func main() {
 
 	docsForTypes := kruntime.ParseDocumentationFrom(*typeSrc)
 
-	if *verify {
+	if *verify == true {
 		rc, err := kruntime.VerifySwaggerDocsExist(docsForTypes, funcOut)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error in verification process: %s\n", err)
@@ -62,7 +62,7 @@ func main() {
 		os.Exit(rc)
 	}
 
-	if len(docsForTypes) > 0 {
+	if docsForTypes != nil && len(docsForTypes) > 0 {
 		if err := kruntime.WriteSwaggerDocFunc(docsForTypes, funcOut); err != nil {
 			fmt.Fprintf(os.Stderr, "Error when writing swagger documentation functions: %s\n", err)
 			os.Exit(-1)

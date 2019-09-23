@@ -67,7 +67,7 @@ func destructuringOps(typ types.Type, expr ast.Expr) ([]interface{}, types.Type,
 		}
 
 		var structT *types.Struct
-		switch typ := typ.Underlying().(type) {
+		switch typ := typ.(type) {
 		case *types.Pointer:
 			var ok bool
 			structT, ok = typ.Elem().Underlying().(*types.Struct)
@@ -107,7 +107,7 @@ func destructuringOps(typ types.Type, expr ast.Expr) ([]interface{}, types.Type,
 		if err != nil {
 			return nil, nil, err
 		}
-		switch typ := typ.Underlying().(type) {
+		switch typ := typ.(type) {
 		case *types.Array:
 			out = append(out, "arrayelem")
 			return out, typ.Elem().Underlying(), nil

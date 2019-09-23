@@ -16,11 +16,6 @@ function teardown() {
   runc --debug run test_hello
   echo "${output}"
   [ "$status" -eq 0 ]
-
-  # check expected debug output was sent to stderr
-  [[ "${output}" == *"level=debug"* ]]
-  [[ "${output}" == *"nsexec started"* ]]
-  [[ "${output}" == *"child process in init()"* ]]
 }
 
 @test "global --debug to --log" {
@@ -38,8 +33,6 @@ function teardown() {
   run cat log.out
   [ "$status" -eq 0 ]
   [[ "${output}" == *"level=debug"* ]]
-  [[ "${output}" == *"nsexec started"* ]]
-  [[ "${output}" == *"child process in init()"* ]]
 }
 
 @test "global --debug to --log --log-format 'text'" {
@@ -57,8 +50,6 @@ function teardown() {
   run cat log.out
   [ "$status" -eq 0 ]
   [[ "${output}" == *"level=debug"* ]]
-  [[ "${output}" == *"nsexec started"* ]]
-  [[ "${output}" == *"child process in init()"* ]]
 }
 
 @test "global --debug to --log --log-format 'json'" {
@@ -76,6 +67,4 @@ function teardown() {
   run cat log.out
   [ "$status" -eq 0 ]
   [[ "${output}" == *'"level":"debug"'* ]]
-  [[ "${output}" == *"nsexec started"* ]]
-  [[ "${output}" == *"child process in init()"* ]]
 }

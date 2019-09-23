@@ -23,9 +23,6 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v1.1/customvision/prediction"
-
 // BoundingBox ...
 type BoundingBox struct {
 	Left   *float64 `json:"left,omitempty"`
@@ -37,16 +34,11 @@ type BoundingBox struct {
 // ImagePrediction ...
 type ImagePrediction struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY
-	ID *uuid.UUID `json:"id,omitempty"`
-	// Project - READ-ONLY
-	Project *uuid.UUID `json:"project,omitempty"`
-	// Iteration - READ-ONLY
-	Iteration *uuid.UUID `json:"iteration,omitempty"`
-	// Created - READ-ONLY
-	Created *date.Time `json:"created,omitempty"`
-	// Predictions - READ-ONLY
-	Predictions *[]Model `json:"predictions,omitempty"`
+	ID                *uuid.UUID `json:"id,omitempty"`
+	Project           *uuid.UUID `json:"project,omitempty"`
+	Iteration         *uuid.UUID `json:"iteration,omitempty"`
+	Created           *date.Time `json:"created,omitempty"`
+	Predictions       *[]Model   `json:"predictions,omitempty"`
 }
 
 // ImageURL ...
@@ -56,12 +48,8 @@ type ImageURL struct {
 
 // Model ...
 type Model struct {
-	// Probability - READ-ONLY
-	Probability *float64 `json:"probability,omitempty"`
-	// TagID - READ-ONLY
-	TagID *uuid.UUID `json:"tagId,omitempty"`
-	// TagName - READ-ONLY
-	TagName *string `json:"tagName,omitempty"`
-	// BoundingBox - READ-ONLY
+	Probability *float64     `json:"probability,omitempty"`
+	TagID       *uuid.UUID   `json:"tagId,omitempty"`
+	TagName     *string      `json:"tagName,omitempty"`
 	BoundingBox *BoundingBox `json:"boundingBox,omitempty"`
 }

@@ -47,7 +47,6 @@ var SynchronizedBeforeSuite = ginkgo.SynchronizedBeforeSuite
 var SynchronizedAfterSuite = ginkgo.SynchronizedAfterSuite
 var BeforeEach = ginkgo.BeforeEach
 var JustBeforeEach = ginkgo.JustBeforeEach
-var JustAfterEach = ginkgo.JustAfterEach
 var AfterEach = ginkgo.AfterEach
 
 // Declarations for Gomega DSL

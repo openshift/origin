@@ -3,11 +3,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/opencontainers/runc/libcontainer"
-	"github.com/opencontainers/runc/libcontainer/system"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -97,8 +96,8 @@ using the runc checkpoint command.`,
 			return err
 		}
 		// XXX: Currently this is untested with rootless containers.
-		if os.Geteuid() != 0 || system.RunningInUserNS() {
-			logrus.Warn("runc checkpoint is untested with rootless containers")
+		if isRootless() {
+			return fmt.Errorf("runc restore requires root")
 		}
 
 		spec, err := setupSpec(context)
@@ -106,9 +105,6 @@ using the runc checkpoint command.`,
 			return err
 		}
 		options := criuOptions(context)
-		if err := setEmptyNsMask(context, options); err != nil {
-			return err
-		}
 		status, err := startContainer(context, spec, CT_ACT_RESTORE, options)
 		if err != nil {
 			return err

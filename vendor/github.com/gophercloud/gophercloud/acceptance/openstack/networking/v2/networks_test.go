@@ -81,7 +81,7 @@ func TestNetworksCRUD(t *testing.T) {
 	newName := tools.RandomString("TESTACC-", 8)
 	newDescription := ""
 	updateOpts := &networks.UpdateOpts{
-		Name:        &newName,
+		Name:        newName,
 		Description: &newDescription,
 	}
 

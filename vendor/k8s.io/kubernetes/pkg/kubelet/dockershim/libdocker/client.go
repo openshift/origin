@@ -75,7 +75,7 @@ func getDockerClient(dockerEndpoint string) (*dockerapi.Client, error) {
 		klog.Infof("Connecting to docker on %s", dockerEndpoint)
 		return dockerapi.NewClient(dockerEndpoint, "", nil, nil)
 	}
-	return dockerapi.NewClientWithOpts(dockerapi.FromEnv)
+	return dockerapi.NewEnvClient()
 }
 
 // ConnectToDockerOrDie creates docker client connecting to docker daemon.

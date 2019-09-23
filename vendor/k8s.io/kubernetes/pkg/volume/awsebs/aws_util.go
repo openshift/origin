@@ -1,5 +1,3 @@
-// +build !providerless
-
 /*
 Copyright 2014 The Kubernetes Authors.
 
@@ -28,20 +26,26 @@ import (
 
 	"k8s.io/klog"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/sets"
-	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/cloud-provider"
 	volumehelpers "k8s.io/cloud-provider/volume/helpers"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
-	"k8s.io/legacy-cloud-providers/aws"
 )
 
 const (
 	diskPartitionSuffix = ""
+	diskXVDPath         = "/dev/xvd"
+	diskXVDPattern      = "/dev/xvd*"
+	maxChecks           = 60
+	maxRetries          = 10
 	checkSleepDuration  = time.Second
+	errorSleepDuration  = 5 * time.Second
+	ebsMaxReplicasInAZ  = 1
 )
 
 // AWSDiskUtil provides operations for EBS volume.
@@ -209,6 +213,20 @@ func verifyDevicePath(devicePaths []string) (string, error) {
 	}
 
 	return "", nil
+}
+
+// Returns the first path that exists, or empty string if none exist.
+func verifyAllPathsRemoved(devicePaths []string) (bool, error) {
+	allPathsRemoved := true
+	for _, path := range devicePaths {
+		exists, err := mount.PathExists(path)
+		if err != nil {
+			return false, fmt.Errorf("Error checking if path exists: %v", err)
+		}
+		allPathsRemoved = allPathsRemoved && !exists
+	}
+
+	return allPathsRemoved, nil
 }
 
 // Returns list of all paths for given EBS mount

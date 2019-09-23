@@ -31,8 +31,9 @@ func newProcess(process hcsProcess, processID int, computeSystem *System) *Proce
 		processID: processID,
 		system:    computeSystem,
 		logctx: logrus.Fields{
-			logfields.ContainerID: computeSystem.ID(),
-			logfields.ProcessID:   processID,
+			logfields.HCSOperation: "",
+			logfields.ContainerID:  computeSystem.ID(),
+			logfields.ProcessID:    processID,
 		},
 	}
 }
@@ -87,12 +88,13 @@ func (process *Process) SystemID() string {
 }
 
 func (process *Process) logOperationBegin(operation string) {
+	process.logctx[logfields.HCSOperation] = operation
 	logOperationBegin(
 		process.logctx,
-		operation+" - Begin Operation")
+		"hcsshim::Process - Begin Operation")
 }
 
-func (process *Process) logOperationEnd(operation string, err error) {
+func (process *Process) logOperationEnd(err error) {
 	var result string
 	if err == nil {
 		result = "Success"
@@ -102,8 +104,9 @@ func (process *Process) logOperationEnd(operation string, err error) {
 
 	logOperationEnd(
 		process.logctx,
-		operation+" - End Operation - "+result,
+		"hcsshim::Process - End Operation - "+result,
 		err)
+	process.logctx[logfields.HCSOperation] = ""
 }
 
 // Signal signals the process with `options`.
@@ -113,7 +116,7 @@ func (process *Process) Signal(options guestrequest.SignalProcessOptions) (err e
 
 	operation := "hcsshim::Process::Signal"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	if process.handle == 0 {
 		return makeProcessError(process, operation, ErrAlreadyClosed, nil)
@@ -145,7 +148,7 @@ func (process *Process) Kill() (err error) {
 
 	operation := "hcsshim::Process::Kill"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	if process.handle == 0 {
 		return makeProcessError(process, operation, ErrAlreadyClosed, nil)
@@ -167,7 +170,7 @@ func (process *Process) Kill() (err error) {
 func (process *Process) Wait() (err error) {
 	operation := "hcsshim::Process::Wait"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	err = waitForNotification(process.callbackNumber, hcsNotificationProcessExited, nil)
 	if err != nil {
@@ -182,7 +185,7 @@ func (process *Process) Wait() (err error) {
 func (process *Process) WaitTimeout(timeout time.Duration) (err error) {
 	operation := "hcssshim::Process::WaitTimeout"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	err = waitForNotification(process.callbackNumber, hcsNotificationProcessExited, &timeout)
 	if err != nil {
@@ -199,7 +202,7 @@ func (process *Process) ResizeConsole(width, height uint16) (err error) {
 
 	operation := "hcsshim::Process::ResizeConsole"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	if process.handle == 0 {
 		return makeProcessError(process, operation, ErrAlreadyClosed, nil)
@@ -236,7 +239,7 @@ func (process *Process) Properties() (_ *ProcessStatus, err error) {
 
 	operation := "hcsshim::Process::Properties"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	if process.handle == 0 {
 		return nil, makeProcessError(process, operation, ErrAlreadyClosed, nil)
@@ -272,7 +275,7 @@ func (process *Process) Properties() (_ *ProcessStatus, err error) {
 func (process *Process) ExitCode() (_ int, err error) {
 	operation := "hcsshim::Process::ExitCode"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	properties, err := process.Properties()
 	if err != nil {
@@ -299,7 +302,7 @@ func (process *Process) Stdio() (_ io.WriteCloser, _ io.ReadCloser, _ io.ReadClo
 
 	operation := "hcsshim::Process::Stdio"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	if process.handle == 0 {
 		return nil, nil, nil, makeProcessError(process, operation, ErrAlreadyClosed, nil)
@@ -343,7 +346,7 @@ func (process *Process) CloseStdin() (err error) {
 
 	operation := "hcsshim::Process::CloseStdin"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	if process.handle == 0 {
 		return makeProcessError(process, operation, ErrAlreadyClosed, nil)
@@ -381,7 +384,7 @@ func (process *Process) Close() (err error) {
 
 	operation := "hcsshim::Process::Close"
 	process.logOperationBegin(operation)
-	defer func() { process.logOperationEnd(operation, err) }()
+	defer func() { process.logOperationEnd(err) }()
 
 	// Don't double free this
 	if process.handle == 0 {

@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,16 +48,6 @@ func NewChargesClientWithBaseURI(baseURI string, subscriptionID string) ChargesC
 // The filter supports 'eq', 'lt', 'gt', 'le', 'ge', and 'and'. It does not currently support 'ne', 'or', or
 // 'not'. Tag filter is a key value pair string where key and value is separated by a colon (:).
 func (client ChargesClient) ListByDepartment(ctx context.Context, billingAccountID string, departmentID string, filter string) (result ChargesListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ChargesClient.ListByDepartment")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByDepartmentPreparer(ctx, billingAccountID, departmentID, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.ChargesClient", "ListByDepartment", nil, "Failure preparing request")
@@ -106,8 +95,8 @@ func (client ChargesClient) ListByDepartmentPreparer(ctx context.Context, billin
 // ListByDepartmentSender sends the ListByDepartment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ChargesClient) ListByDepartmentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListByDepartmentResponder handles the response to the ListByDepartment request. The method always
@@ -131,16 +120,6 @@ func (client ChargesClient) ListByDepartmentResponder(resp *http.Response) (resu
 // The filter supports 'eq', 'lt', 'gt', 'le', 'ge', and 'and'. It does not currently support 'ne', 'or', or
 // 'not'. Tag filter is a key value pair string where key and value is separated by a colon (:).
 func (client ChargesClient) ListByEnrollmentAccount(ctx context.Context, billingAccountID string, enrollmentAccountID string, filter string) (result ChargesListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ChargesClient.ListByEnrollmentAccount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByEnrollmentAccountPreparer(ctx, billingAccountID, enrollmentAccountID, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.ChargesClient", "ListByEnrollmentAccount", nil, "Failure preparing request")
@@ -188,8 +167,8 @@ func (client ChargesClient) ListByEnrollmentAccountPreparer(ctx context.Context,
 // ListByEnrollmentAccountSender sends the ListByEnrollmentAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ChargesClient) ListByEnrollmentAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListByEnrollmentAccountResponder handles the response to the ListByEnrollmentAccount request. The method always
@@ -214,16 +193,6 @@ func (client ChargesClient) ListByEnrollmentAccountResponder(resp *http.Response
 // The filter supports 'eq', 'lt', 'gt', 'le', 'ge', and 'and'. It does not currently support 'ne', 'or', or
 // 'not'. Tag filter is a key value pair string where key and value is separated by a colon (:).
 func (client ChargesClient) ListForBillingPeriodByDepartment(ctx context.Context, billingAccountID string, departmentID string, billingPeriodName string, filter string) (result ChargeSummary, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ChargesClient.ListForBillingPeriodByDepartment")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListForBillingPeriodByDepartmentPreparer(ctx, billingAccountID, departmentID, billingPeriodName, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.ChargesClient", "ListForBillingPeriodByDepartment", nil, "Failure preparing request")
@@ -272,8 +241,8 @@ func (client ChargesClient) ListForBillingPeriodByDepartmentPreparer(ctx context
 // ListForBillingPeriodByDepartmentSender sends the ListForBillingPeriodByDepartment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ChargesClient) ListForBillingPeriodByDepartmentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListForBillingPeriodByDepartmentResponder handles the response to the ListForBillingPeriodByDepartment request. The method always
@@ -298,16 +267,6 @@ func (client ChargesClient) ListForBillingPeriodByDepartmentResponder(resp *http
 // The filter supports 'eq', 'lt', 'gt', 'le', 'ge', and 'and'. It does not currently support 'ne', 'or', or
 // 'not'. Tag filter is a key value pair string where key and value is separated by a colon (:).
 func (client ChargesClient) ListForBillingPeriodByEnrollmentAccount(ctx context.Context, billingAccountID string, enrollmentAccountID string, billingPeriodName string, filter string) (result ChargeSummary, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ChargesClient.ListForBillingPeriodByEnrollmentAccount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListForBillingPeriodByEnrollmentAccountPreparer(ctx, billingAccountID, enrollmentAccountID, billingPeriodName, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.ChargesClient", "ListForBillingPeriodByEnrollmentAccount", nil, "Failure preparing request")
@@ -356,8 +315,8 @@ func (client ChargesClient) ListForBillingPeriodByEnrollmentAccountPreparer(ctx 
 // ListForBillingPeriodByEnrollmentAccountSender sends the ListForBillingPeriodByEnrollmentAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ChargesClient) ListForBillingPeriodByEnrollmentAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListForBillingPeriodByEnrollmentAccountResponder handles the response to the ListForBillingPeriodByEnrollmentAccount request. The method always

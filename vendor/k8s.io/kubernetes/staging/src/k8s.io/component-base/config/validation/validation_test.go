@@ -70,13 +70,11 @@ func TestValidateClientConnectionConfiguration(t *testing.T) {
 
 func TestValidateLeaderElectionConfiguration(t *testing.T) {
 	validConfig := &config.LeaderElectionConfiguration{
-		ResourceLock:      "configmap",
-		LeaderElect:       true,
-		LeaseDuration:     metav1.Duration{Duration: 30 * time.Second},
-		RenewDeadline:     metav1.Duration{Duration: 15 * time.Second},
-		RetryPeriod:       metav1.Duration{Duration: 5 * time.Second},
-		ResourceNamespace: "namespace",
-		ResourceName:      "name",
+		ResourceLock:  "configmap",
+		LeaderElect:   true,
+		LeaseDuration: metav1.Duration{Duration: 30 * time.Second},
+		RenewDeadline: metav1.Duration{Duration: 15 * time.Second},
+		RetryPeriod:   metav1.Duration{Duration: 5 * time.Second},
 	}
 
 	renewDeadlineExceedsLeaseDuration := validConfig.DeepCopy()
@@ -103,12 +101,6 @@ func TestValidateLeaderElectionConfiguration(t *testing.T) {
 
 	resourceLockNotDefined := validConfig.DeepCopy()
 	resourceLockNotDefined.ResourceLock = ""
-
-	resourceNameNotDefined := validConfig.DeepCopy()
-	resourceNameNotDefined.ResourceName = ""
-
-	resourceNamespaceNotDefined := validConfig.DeepCopy()
-	resourceNamespaceNotDefined.ResourceNamespace = ""
 
 	scenarios := map[string]struct {
 		expectedToFail bool
@@ -149,14 +141,6 @@ func TestValidateLeaderElectionConfiguration(t *testing.T) {
 		"bad-resource-lock-not-defined": {
 			expectedToFail: true,
 			config:         resourceLockNotDefined,
-		},
-		"bad-resource-name-not-defined": {
-			expectedToFail: true,
-			config:         resourceNameNotDefined,
-		},
-		"bad-resource-namespace-not-defined": {
-			expectedToFail: true,
-			config:         resourceNamespaceNotDefined,
 		},
 	}
 

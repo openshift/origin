@@ -21,11 +21,11 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
-// EdgeNodesClient is the cdn Management Client
+// EdgeNodesClient is the use these APIs to manage Azure CDN resources through the Azure Resource Manager. You must
+// make sure that requests made to these resources are secure.
 type EdgeNodesClient struct {
 	BaseClient
 }
@@ -42,16 +42,6 @@ func NewEdgeNodesClientWithBaseURI(baseURI string, subscriptionID string) EdgeNo
 
 // List lists all the edge nodes of a CDN service.
 func (client EdgeNodesClient) List(ctx context.Context) (result EdgenodeResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/EdgeNodesClient.List")
-		defer func() {
-			sc := -1
-			if result.er.Response.Response != nil {
-				sc = result.er.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -92,8 +82,8 @@ func (client EdgeNodesClient) ListPreparer(ctx context.Context) (*http.Request, 
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client EdgeNodesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -110,8 +100,8 @@ func (client EdgeNodesClient) ListResponder(resp *http.Response) (result Edgenod
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client EdgeNodesClient) listNextResults(ctx context.Context, lastResults EdgenodeResult) (result EdgenodeResult, err error) {
-	req, err := lastResults.edgenodeResultPreparer(ctx)
+func (client EdgeNodesClient) listNextResults(lastResults EdgenodeResult) (result EdgenodeResult, err error) {
+	req, err := lastResults.edgenodeResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.EdgeNodesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -132,16 +122,6 @@ func (client EdgeNodesClient) listNextResults(ctx context.Context, lastResults E
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client EdgeNodesClient) ListComplete(ctx context.Context) (result EdgenodeResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/EdgeNodesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx)
 	return
 }

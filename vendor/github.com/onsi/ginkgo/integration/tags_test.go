@@ -10,7 +10,7 @@ var _ = Describe("Tags", func() {
 	var pathToTest string
 	BeforeEach(func() {
 		pathToTest = tmpPath("tags")
-		copyIn(fixturePath("tags_tests"), pathToTest, false)
+		copyIn("tags_tests", pathToTest)
 	})
 
 	It("should honor the passed in -tags flag", func() {

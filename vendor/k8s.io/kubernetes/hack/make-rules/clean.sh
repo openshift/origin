@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/../..
+KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${KUBE_ROOT}/hack/lib/util.sh"
 
 CLEAN_PATTERNS=(
@@ -28,11 +28,11 @@ CLEAN_PATTERNS=(
   "test/e2e/generated/bindata.go"
 )
 
-for pattern in "${CLEAN_PATTERNS[@]}"; do
-  while IFS=$'\n' read -r match; do
+for pattern in ${CLEAN_PATTERNS[@]}; do
+  for match in $(find "${KUBE_ROOT}" -iregex "^${KUBE_ROOT}/${pattern}$"); do
     echo "Removing ${match#${KUBE_ROOT}\/} .."
     rm -rf "${match#${KUBE_ROOT}\/}"
-  done <   <(find "${KUBE_ROOT}" -iregex "^${KUBE_ROOT}/${pattern}$")
+  done
 done
 
 # ex: ts=2 sw=2 et filetype=sh

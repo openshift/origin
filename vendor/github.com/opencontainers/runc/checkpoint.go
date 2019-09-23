@@ -4,14 +4,11 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
 	"github.com/opencontainers/runc/libcontainer"
-	"github.com/opencontainers/runc/libcontainer/system"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 
 	"golang.org/x/sys/unix"
@@ -47,8 +44,8 @@ checkpointed.`,
 			return err
 		}
 		// XXX: Currently this is untested with rootless containers.
-		if os.Geteuid() != 0 || system.RunningInUserNS() {
-			logrus.Warn("runc checkpoint is untested with rootless containers")
+		if isRootless() {
+			return fmt.Errorf("runc checkpoint requires root")
 		}
 
 		container, err := getContainer(context)
@@ -70,7 +67,10 @@ checkpointed.`,
 		if err := setEmptyNsMask(context, options); err != nil {
 			return err
 		}
-		return container.Checkpoint(options)
+		if err := container.Checkpoint(options); err != nil {
+			return err
+		}
+		return nil
 	},
 }
 
@@ -121,8 +121,7 @@ var namespaceMapping = map[specs.LinuxNamespaceType]int{
 }
 
 func setEmptyNsMask(context *cli.Context, options *libcontainer.CriuOpts) error {
-	/* Runc doesn't manage network devices and their configuration */
-	nsmask := unix.CLONE_NEWNET
+	var nsmask int
 
 	for _, ns := range context.StringSlice("empty-ns") {
 		f, exists := namespaceMapping[specs.LinuxNamespaceType(ns)]

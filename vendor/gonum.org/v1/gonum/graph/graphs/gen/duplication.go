@@ -56,7 +56,7 @@ func Duplication(dst UndirectedMutator, n int, delta, alpha, sigma float64, src 
 		rndN = r.Intn
 	}
 
-	nodes := graph.NodesOf(dst.Nodes())
+	nodes := dst.Nodes()
 	sort.Sort(ordered.ByID(nodes))
 	if len(nodes) == 0 {
 		n--
@@ -76,7 +76,7 @@ func Duplication(dst UndirectedMutator, n int, delta, alpha, sigma float64, src 
 		// into the rest of the graph.
 		for {
 			// Add edges to parent's neighbours.
-			to := graph.NodesOf(dst.From(u.ID()))
+			to := dst.From(u.ID())
 			sort.Sort(ordered.ByID(to))
 			for _, v := range to {
 				vid := v.ID()
@@ -119,7 +119,7 @@ func Duplication(dst UndirectedMutator, n int, delta, alpha, sigma float64, src 
 				}
 			}
 
-			if dst.From(did).Len() != 0 {
+			if len(dst.From(did)) != 0 {
 				break
 			}
 		}

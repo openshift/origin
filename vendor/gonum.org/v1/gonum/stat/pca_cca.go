@@ -113,11 +113,10 @@ type CC struct {
 	ok      bool
 }
 
-// CanonicalCorrelations performs a canonical correlation analysis of the
-// input data x and y, columns of which should be interpretable as two sets
-// of measurements on the same observations (rows). These observations are
-// optionally weighted by weights. The result of the analysis is stored in
-// the receiver if the analysis is successful.
+// CanonicalCorrelations returns a CC which can provide the results of canonical
+// correlation analysis of the input data x and y, columns of which should be
+// interpretable as two sets of measurements on the same observations (rows).
+// These observations are optionally weighted by weights.
 //
 // Canonical correlation analysis finds associations between two sets of
 // variables on the same observations by finding linear combinations of the two

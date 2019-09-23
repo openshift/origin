@@ -87,7 +87,6 @@ func CreateTestOverlayNetwork() (*HostComputeNetwork, error) {
 				},
 			},
 		},
-		Flags: EnableNonPersistent,
 		SchemaVersion: SchemaVersion{
 			Major: 2,
 			Minor: 0,
@@ -248,19 +247,6 @@ func HcnCreateTestRemoteSubnetRoute() (*PolicyNetworkRequest, error) {
 
 	networkRequest := PolicyNetworkRequest{
 		Policies: []NetworkPolicy{rsrPolicy},
-	}
-
-	return &networkRequest, nil
-}
-
-func HcnCreateTestHostRoute() (*PolicyNetworkRequest, error) {
-	hostRoutePolicy := NetworkPolicy{
-		Type:     HostRoute,
-		Settings: []byte("{}"),
-	}
-
-	networkRequest := PolicyNetworkRequest{
-		Policies: []NetworkPolicy{hostRoutePolicy},
 	}
 
 	return &networkRequest, nil

@@ -89,10 +89,6 @@ following will output a list of processes running in the container:
 			Usage:  "disable the use of the subreaper used to reap reparented processes",
 			Hidden: true,
 		},
-		cli.IntFlag{
-			Name:  "preserve-fds",
-			Usage: "Pass N additional file descriptors to the container (stdio + $LISTEN_FDS + N in total)",
-		},
 	},
 	Action: func(context *cli.Context) error {
 		if err := checkArgs(context, 1, minArgs); err != nil {
@@ -136,12 +132,6 @@ func execProcess(context *cli.Context) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-
-	logLevel := "info"
-	if context.GlobalBool("debug") {
-		logLevel = "debug"
-	}
-
 	r := &runner{
 		enableSubreaper: false,
 		shouldDestroy:   false,
@@ -150,9 +140,6 @@ func execProcess(context *cli.Context) (int, error) {
 		detach:          detach,
 		pidFile:         context.String("pid-file"),
 		action:          CT_ACT_RUN,
-		init:            false,
-		preserveFDs:     context.Int("preserve-fds"),
-		logLevel:        logLevel,
 	}
 	return r.run(p)
 }
@@ -231,5 +218,5 @@ func getProcess(context *cli.Context, bundle string) (*specs.Process, error) {
 		}
 		p.User.AdditionalGids = append(p.User.AdditionalGids, uint32(gid))
 	}
-	return p, validateProcessSpec(p)
+	return p, nil
 }

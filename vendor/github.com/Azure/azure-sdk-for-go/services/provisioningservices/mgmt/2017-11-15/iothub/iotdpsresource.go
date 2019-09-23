@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewIotDpsResourceClientWithBaseURI(baseURI string, subscriptionID string) I
 // arguments - set the name parameter in the OperationInputs structure to the name of the provisioning service
 // to check.
 func (client IotDpsResourceClient) CheckProvisioningServiceNameAvailability(ctx context.Context, arguments OperationInputs) (result NameAvailabilityInfo, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.CheckProvisioningServiceNameAvailability")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: arguments,
 			Constraints: []validation.Constraint{{Target: "arguments.Name", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -108,8 +97,8 @@ func (client IotDpsResourceClient) CheckProvisioningServiceNameAvailabilityPrepa
 // CheckProvisioningServiceNameAvailabilitySender sends the CheckProvisioningServiceNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) CheckProvisioningServiceNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CheckProvisioningServiceNameAvailabilityResponder handles the response to the CheckProvisioningServiceNameAvailability request. The method always
@@ -133,16 +122,6 @@ func (client IotDpsResourceClient) CheckProvisioningServiceNameAvailabilityRespo
 // provisioningServiceName - name of provisioning service to create or update.
 // iotDpsDescription - description of the provisioning service to create or update.
 func (client IotDpsResourceClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, provisioningServiceName string, iotDpsDescription ProvisioningServiceDescription) (result IotDpsResourceCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: iotDpsDescription,
 			Constraints: []validation.Constraint{{Target: "iotDpsDescription.Properties", Name: validation.Null, Rule: true, Chain: nil},
@@ -191,9 +170,13 @@ func (client IotDpsResourceClient) CreateOrUpdatePreparer(ctx context.Context, r
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) CreateOrUpdateSender(req *http.Request) (future IotDpsResourceCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}
@@ -219,16 +202,6 @@ func (client IotDpsResourceClient) CreateOrUpdateResponder(resp *http.Response) 
 // provisioningServiceName - name of provisioning service to delete.
 // resourceGroupName - resource group identifier.
 func (client IotDpsResourceClient) Delete(ctx context.Context, provisioningServiceName string, resourceGroupName string) (result IotDpsResourceDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, provisioningServiceName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.IotDpsResourceClient", "Delete", nil, "Failure preparing request")
@@ -268,9 +241,13 @@ func (client IotDpsResourceClient) DeletePreparer(ctx context.Context, provision
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) DeleteSender(req *http.Request) (future IotDpsResourceDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent, http.StatusNotFound))
 	if err != nil {
 		return
 	}
@@ -295,16 +272,6 @@ func (client IotDpsResourceClient) DeleteResponder(resp *http.Response) (result 
 // provisioningServiceName - name of the provisioning service to retrieve.
 // resourceGroupName - resource group name.
 func (client IotDpsResourceClient) Get(ctx context.Context, provisioningServiceName string, resourceGroupName string) (result ProvisioningServiceDescription, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, provisioningServiceName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.IotDpsResourceClient", "Get", nil, "Failure preparing request")
@@ -350,8 +317,8 @@ func (client IotDpsResourceClient) GetPreparer(ctx context.Context, provisioning
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -376,16 +343,6 @@ func (client IotDpsResourceClient) GetResponder(resp *http.Response) (result Pro
 // asyncinfo - async header used to poll on the status of the operation, obtained while creating the long
 // running operation.
 func (client IotDpsResourceClient) GetOperationResult(ctx context.Context, operationID string, resourceGroupName string, provisioningServiceName string, asyncinfo string) (result AsyncOperationResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.GetOperationResult")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetOperationResultPreparer(ctx, operationID, resourceGroupName, provisioningServiceName, asyncinfo)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.IotDpsResourceClient", "GetOperationResult", nil, "Failure preparing request")
@@ -433,8 +390,8 @@ func (client IotDpsResourceClient) GetOperationResultPreparer(ctx context.Contex
 // GetOperationResultSender sends the GetOperationResult request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) GetOperationResultSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetOperationResultResponder handles the response to the GetOperationResult request. The method always
@@ -454,16 +411,6 @@ func (client IotDpsResourceClient) GetOperationResultResponder(resp *http.Respon
 // Parameters:
 // resourceGroupName - resource group identifier.
 func (client IotDpsResourceClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ProvisioningServiceDescriptionListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.psdlr.Response.Response != nil {
-				sc = result.psdlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -509,8 +456,8 @@ func (client IotDpsResourceClient) ListByResourceGroupPreparer(ctx context.Conte
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -527,8 +474,8 @@ func (client IotDpsResourceClient) ListByResourceGroupResponder(resp *http.Respo
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client IotDpsResourceClient) listByResourceGroupNextResults(ctx context.Context, lastResults ProvisioningServiceDescriptionListResult) (result ProvisioningServiceDescriptionListResult, err error) {
-	req, err := lastResults.provisioningServiceDescriptionListResultPreparer(ctx)
+func (client IotDpsResourceClient) listByResourceGroupNextResults(lastResults ProvisioningServiceDescriptionListResult) (result ProvisioningServiceDescriptionListResult, err error) {
+	req, err := lastResults.provisioningServiceDescriptionListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "iothub.IotDpsResourceClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -549,32 +496,12 @@ func (client IotDpsResourceClient) listByResourceGroupNextResults(ctx context.Co
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client IotDpsResourceClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result ProvisioningServiceDescriptionListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
 
 // ListBySubscription list all the provisioning services for a given subscription id.
 func (client IotDpsResourceClient) ListBySubscription(ctx context.Context) (result ProvisioningServiceDescriptionListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.ListBySubscription")
-		defer func() {
-			sc := -1
-			if result.psdlr.Response.Response != nil {
-				sc = result.psdlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listBySubscriptionNextResults
 	req, err := client.ListBySubscriptionPreparer(ctx)
 	if err != nil {
@@ -619,8 +546,8 @@ func (client IotDpsResourceClient) ListBySubscriptionPreparer(ctx context.Contex
 // ListBySubscriptionSender sends the ListBySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
@@ -637,8 +564,8 @@ func (client IotDpsResourceClient) ListBySubscriptionResponder(resp *http.Respon
 }
 
 // listBySubscriptionNextResults retrieves the next set of results, if any.
-func (client IotDpsResourceClient) listBySubscriptionNextResults(ctx context.Context, lastResults ProvisioningServiceDescriptionListResult) (result ProvisioningServiceDescriptionListResult, err error) {
-	req, err := lastResults.provisioningServiceDescriptionListResultPreparer(ctx)
+func (client IotDpsResourceClient) listBySubscriptionNextResults(lastResults ProvisioningServiceDescriptionListResult) (result ProvisioningServiceDescriptionListResult, err error) {
+	req, err := lastResults.provisioningServiceDescriptionListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "iothub.IotDpsResourceClient", "listBySubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -659,16 +586,6 @@ func (client IotDpsResourceClient) listBySubscriptionNextResults(ctx context.Con
 
 // ListBySubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client IotDpsResourceClient) ListBySubscriptionComplete(ctx context.Context) (result ProvisioningServiceDescriptionListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.ListBySubscription")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListBySubscription(ctx)
 	return
 }
@@ -678,16 +595,6 @@ func (client IotDpsResourceClient) ListBySubscriptionComplete(ctx context.Contex
 // provisioningServiceName - the provisioning service name to get the shared access keys for.
 // resourceGroupName - resource group name
 func (client IotDpsResourceClient) ListKeys(ctx context.Context, provisioningServiceName string, resourceGroupName string) (result SharedAccessSignatureAuthorizationRuleListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.ListKeys")
-		defer func() {
-			sc := -1
-			if result.sasarlr.Response.Response != nil {
-				sc = result.sasarlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listKeysNextResults
 	req, err := client.ListKeysPreparer(ctx, provisioningServiceName, resourceGroupName)
 	if err != nil {
@@ -734,8 +641,8 @@ func (client IotDpsResourceClient) ListKeysPreparer(ctx context.Context, provisi
 // ListKeysSender sends the ListKeys request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) ListKeysSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListKeysResponder handles the response to the ListKeys request. The method always
@@ -752,8 +659,8 @@ func (client IotDpsResourceClient) ListKeysResponder(resp *http.Response) (resul
 }
 
 // listKeysNextResults retrieves the next set of results, if any.
-func (client IotDpsResourceClient) listKeysNextResults(ctx context.Context, lastResults SharedAccessSignatureAuthorizationRuleListResult) (result SharedAccessSignatureAuthorizationRuleListResult, err error) {
-	req, err := lastResults.sharedAccessSignatureAuthorizationRuleListResultPreparer(ctx)
+func (client IotDpsResourceClient) listKeysNextResults(lastResults SharedAccessSignatureAuthorizationRuleListResult) (result SharedAccessSignatureAuthorizationRuleListResult, err error) {
+	req, err := lastResults.sharedAccessSignatureAuthorizationRuleListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "iothub.IotDpsResourceClient", "listKeysNextResults", nil, "Failure preparing next results request")
 	}
@@ -774,16 +681,6 @@ func (client IotDpsResourceClient) listKeysNextResults(ctx context.Context, last
 
 // ListKeysComplete enumerates all values, automatically crossing page boundaries as required.
 func (client IotDpsResourceClient) ListKeysComplete(ctx context.Context, provisioningServiceName string, resourceGroupName string) (result SharedAccessSignatureAuthorizationRuleListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.ListKeys")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListKeys(ctx, provisioningServiceName, resourceGroupName)
 	return
 }
@@ -794,16 +691,6 @@ func (client IotDpsResourceClient) ListKeysComplete(ctx context.Context, provisi
 // keyName - logical key name to get key-values for.
 // resourceGroupName - the name of the resource group that contains the provisioning service.
 func (client IotDpsResourceClient) ListKeysForKeyName(ctx context.Context, provisioningServiceName string, keyName string, resourceGroupName string) (result SharedAccessSignatureAuthorizationRuleAccessRightsDescription, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.ListKeysForKeyName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListKeysForKeyNamePreparer(ctx, provisioningServiceName, keyName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.IotDpsResourceClient", "ListKeysForKeyName", nil, "Failure preparing request")
@@ -850,8 +737,8 @@ func (client IotDpsResourceClient) ListKeysForKeyNamePreparer(ctx context.Contex
 // ListKeysForKeyNameSender sends the ListKeysForKeyName request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) ListKeysForKeyNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListKeysForKeyNameResponder handles the response to the ListKeysForKeyName request. The method always
@@ -872,16 +759,6 @@ func (client IotDpsResourceClient) ListKeysForKeyNameResponder(resp *http.Respon
 // provisioningServiceName - name of provisioning service.
 // resourceGroupName - name of resource group.
 func (client IotDpsResourceClient) ListValidSkus(ctx context.Context, provisioningServiceName string, resourceGroupName string) (result IotDpsSkuDefinitionListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.ListValidSkus")
-		defer func() {
-			sc := -1
-			if result.idsdlr.Response.Response != nil {
-				sc = result.idsdlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listValidSkusNextResults
 	req, err := client.ListValidSkusPreparer(ctx, provisioningServiceName, resourceGroupName)
 	if err != nil {
@@ -928,8 +805,8 @@ func (client IotDpsResourceClient) ListValidSkusPreparer(ctx context.Context, pr
 // ListValidSkusSender sends the ListValidSkus request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) ListValidSkusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListValidSkusResponder handles the response to the ListValidSkus request. The method always
@@ -946,8 +823,8 @@ func (client IotDpsResourceClient) ListValidSkusResponder(resp *http.Response) (
 }
 
 // listValidSkusNextResults retrieves the next set of results, if any.
-func (client IotDpsResourceClient) listValidSkusNextResults(ctx context.Context, lastResults IotDpsSkuDefinitionListResult) (result IotDpsSkuDefinitionListResult, err error) {
-	req, err := lastResults.iotDpsSkuDefinitionListResultPreparer(ctx)
+func (client IotDpsResourceClient) listValidSkusNextResults(lastResults IotDpsSkuDefinitionListResult) (result IotDpsSkuDefinitionListResult, err error) {
+	req, err := lastResults.iotDpsSkuDefinitionListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "iothub.IotDpsResourceClient", "listValidSkusNextResults", nil, "Failure preparing next results request")
 	}
@@ -968,16 +845,6 @@ func (client IotDpsResourceClient) listValidSkusNextResults(ctx context.Context,
 
 // ListValidSkusComplete enumerates all values, automatically crossing page boundaries as required.
 func (client IotDpsResourceClient) ListValidSkusComplete(ctx context.Context, provisioningServiceName string, resourceGroupName string) (result IotDpsSkuDefinitionListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.ListValidSkus")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListValidSkus(ctx, provisioningServiceName, resourceGroupName)
 	return
 }
@@ -988,16 +855,6 @@ func (client IotDpsResourceClient) ListValidSkusComplete(ctx context.Context, pr
 // provisioningServiceName - name of provisioning service to create or update.
 // provisioningServiceTags - updated tag information to set into the provisioning service instance.
 func (client IotDpsResourceClient) Update(ctx context.Context, resourceGroupName string, provisioningServiceName string, provisioningServiceTags TagsResource) (result IotDpsResourceUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotDpsResourceClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, provisioningServiceName, provisioningServiceTags)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.IotDpsResourceClient", "Update", nil, "Failure preparing request")
@@ -1039,9 +896,13 @@ func (client IotDpsResourceClient) UpdatePreparer(ctx context.Context, resourceG
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client IotDpsResourceClient) UpdateSender(req *http.Request) (future IotDpsResourceUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
 	if err != nil {
 		return
 	}

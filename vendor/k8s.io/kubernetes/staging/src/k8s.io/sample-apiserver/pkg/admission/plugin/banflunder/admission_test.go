@@ -17,7 +17,6 @@ limitations under the License.
 package banflunder_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -128,7 +127,7 @@ func TestBanflunderAdmissionPlugin(t *testing.T) {
 			informersFactory.WaitForCacheSync(stop)
 
 			// act
-			err = target.Admit(context.TODO(), admission.NewAttributesRecord(
+			err = target.Admit(admission.NewAttributesRecord(
 				&scenario.admissionInput,
 				nil,
 				scenario.admissionInputKind,
@@ -137,7 +136,6 @@ func TestBanflunderAdmissionPlugin(t *testing.T) {
 				scenario.admissionInputResource,
 				"",
 				admission.Create,
-				&metav1.CreateOptions{},
 				false,
 				nil),
 				nil,

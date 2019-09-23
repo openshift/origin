@@ -3,7 +3,6 @@ package hanging_suite_test
 import (
 	"fmt"
 	"time"
-
 	. "github.com/onsi/ginkgo"
 )
 

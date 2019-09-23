@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewWorkflowTriggerHistoriesClientWithBaseURI(baseURI string, subscriptionID
 // triggerName - the workflow trigger name.
 // historyName - the workflow trigger history name.
 func (client WorkflowTriggerHistoriesClient) Get(ctx context.Context, resourceGroupName string, workflowName string, triggerName string, historyName string) (result WorkflowTriggerHistory, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerHistoriesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, workflowName, triggerName, historyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowTriggerHistoriesClient", "Get", nil, "Failure preparing request")
@@ -104,8 +93,8 @@ func (client WorkflowTriggerHistoriesClient) GetPreparer(ctx context.Context, re
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowTriggerHistoriesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -129,16 +118,6 @@ func (client WorkflowTriggerHistoriesClient) GetResponder(resp *http.Response) (
 // top - the number of items to be included in the result.
 // filter - the filter to apply on the operation.
 func (client WorkflowTriggerHistoriesClient) List(ctx context.Context, resourceGroupName string, workflowName string, triggerName string, top *int32, filter string) (result WorkflowTriggerHistoryListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerHistoriesClient.List")
-		defer func() {
-			sc := -1
-			if result.wthlr.Response.Response != nil {
-				sc = result.wthlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, workflowName, triggerName, top, filter)
 	if err != nil {
@@ -192,8 +171,8 @@ func (client WorkflowTriggerHistoriesClient) ListPreparer(ctx context.Context, r
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowTriggerHistoriesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -210,8 +189,8 @@ func (client WorkflowTriggerHistoriesClient) ListResponder(resp *http.Response) 
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client WorkflowTriggerHistoriesClient) listNextResults(ctx context.Context, lastResults WorkflowTriggerHistoryListResult) (result WorkflowTriggerHistoryListResult, err error) {
-	req, err := lastResults.workflowTriggerHistoryListResultPreparer(ctx)
+func (client WorkflowTriggerHistoriesClient) listNextResults(lastResults WorkflowTriggerHistoryListResult) (result WorkflowTriggerHistoryListResult, err error) {
+	req, err := lastResults.workflowTriggerHistoryListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "logic.WorkflowTriggerHistoriesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -232,16 +211,6 @@ func (client WorkflowTriggerHistoriesClient) listNextResults(ctx context.Context
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client WorkflowTriggerHistoriesClient) ListComplete(ctx context.Context, resourceGroupName string, workflowName string, triggerName string, top *int32, filter string) (result WorkflowTriggerHistoryListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerHistoriesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, workflowName, triggerName, top, filter)
 	return
 }

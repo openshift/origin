@@ -18,11 +18,9 @@ sudo docker run \
 
 cAdvisor is now running (in the background) on `http://localhost:8080/`. The setup includes directories with Docker state cAdvisor needs to observe.
 
-**Note**: 
-- If docker daemon is running with [user namespace enabled](https://docs.docker.com/engine/reference/commandline/dockerd/#starting-the-daemon-with-user-namespaces-enabled),
-you need to add `--userns=host` option in order for cAdvisor to monitor Docker containers,
+**Note**: If docker daemon is running with [user namespace enabled](https://docs.docker.com/engine/reference/commandline/dockerd/#starting-the-daemon-with-user-namespaces-enabled),
+You need to add `--userns=host` option in order for cAdvisor to monitor Docker containers,
 otherwise cAdvisor can not connect to docker daemon.
-- If cadvisor scrapes `process metrics` by set flag `--disable_metrics`, you need to add `--pid=host` and `--privileged` for `docker run` to get `/proc/pid/fd` path in host.
 
 ## Latest Canary
 
@@ -73,7 +71,7 @@ This is a problem seen in older versions of Docker. To fix, start cAdvisor witho
 
 ## Standalone
 
-cAdvisor is a static Go binary with no external dependencies. To run it standalone all you should need to do is run it! Note that some data sources may require root privileges. cAdvisor will gracefully degrade its features to those it can expose with the access given.
+cAdvisor is a static Go binary with no external dependencies. To run it standalone all you should need to do is run it! Note that some data sources may require root priviledges. cAdvisor will gracefully degrade its features to those it can expose with the access given.
 
 ```
 $ sudo cadvisor

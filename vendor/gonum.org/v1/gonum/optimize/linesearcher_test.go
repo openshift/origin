@@ -41,7 +41,7 @@ func TestBacktracking(t *testing.T) {
 
 type funcGrader interface {
 	Func([]float64) float64
-	Grad([]float64, []float64) []float64
+	Grad([]float64, []float64)
 }
 
 type linesearcherTest struct {
@@ -68,10 +68,10 @@ func testLinesearcher(t *testing.T, ls Linesearcher, decrease, curvature float64
 	for i, prob := range []linesearcherTest{
 		newLinesearcherTest("Concave-to-the-right function", functions.ConcaveRight{}),
 		newLinesearcherTest("Concave-to-the-left function", functions.ConcaveLeft{}),
-		newLinesearcherTest("Plassmann wiggly function (l=39, beta=0.01)", functions.Plassmann{L: 39, Beta: 0.01}),
-		newLinesearcherTest("Yanai-Ozawa-Kaneko function (beta1=0.001, beta2=0.001)", functions.YanaiOzawaKaneko{Beta1: 0.001, Beta2: 0.001}),
-		newLinesearcherTest("Yanai-Ozawa-Kaneko function (beta1=0.01, beta2=0.001)", functions.YanaiOzawaKaneko{Beta1: 0.01, Beta2: 0.001}),
-		newLinesearcherTest("Yanai-Ozawa-Kaneko function (beta1=0.001, beta2=0.01)", functions.YanaiOzawaKaneko{Beta1: 0.001, Beta2: 0.01}),
+		newLinesearcherTest("Plassmann wiggly function (l=39, beta=0.01)", functions.Plassmann{39, 0.01}),
+		newLinesearcherTest("Yanai-Ozawa-Kaneko function (beta1=0.001, beta2=0.001)", functions.YanaiOzawaKaneko{0.001, 0.001}),
+		newLinesearcherTest("Yanai-Ozawa-Kaneko function (beta1=0.01, beta2=0.001)", functions.YanaiOzawaKaneko{0.01, 0.001}),
+		newLinesearcherTest("Yanai-Ozawa-Kaneko function (beta1=0.001, beta2=0.01)", functions.YanaiOzawaKaneko{0.001, 0.01}),
 	} {
 		for _, initStep := range []float64{0.001, 0.1, 1, 10, 1000} {
 			prefix := fmt.Sprintf("test %d (%v started from %v)", i, prob.name, initStep)

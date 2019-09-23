@@ -8,7 +8,6 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	networking "github.com/gophercloud/gophercloud/acceptance/openstack/networking/v2"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsbinding"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	th "github.com/gophercloud/gophercloud/testhelper"
 )
@@ -31,50 +30,25 @@ func TestPortsbindingCRUD(t *testing.T) {
 
 	// Define a host
 	hostID := "localhost"
-	profile := map[string]interface{}{"foo": "bar"}
 
 	// Create port
-	port, err := CreatePortsbinding(t, client, network.ID, subnet.ID, hostID, profile)
+	port, err := CreatePortsbinding(t, client, network.ID, subnet.ID, hostID)
 	th.AssertNoErr(t, err)
 	defer networking.DeletePort(t, client, port.ID)
 
 	tools.PrintResource(t, port)
-	th.AssertEquals(t, port.HostID, hostID)
-	th.AssertEquals(t, port.VNICType, "normal")
-	th.AssertDeepEquals(t, port.Profile, profile)
 
 	// Update port
 	newPortName := ""
 	newPortDescription := ""
-	newHostID := "127.0.0.1"
-	newProfile := map[string]interface{}{}
 	updateOpts := ports.UpdateOpts{
 		Name:        &newPortName,
 		Description: &newPortDescription,
 	}
-
-	var finalUpdateOpts ports.UpdateOptsBuilder
-
-	finalUpdateOpts = portsbinding.UpdateOptsExt{
-		UpdateOptsBuilder: updateOpts,
-		HostID:            &newHostID,
-		VNICType:          "baremetal",
-		Profile:           newProfile,
-	}
-
-	var newPort PortWithBindingExt
-
-	_, err = ports.Update(client, port.ID, finalUpdateOpts).Extract()
-	th.AssertNoErr(t, err)
-
-	// Read the updated port
-	err = ports.Get(client, port.ID).ExtractInto(&newPort)
+	newPort, err := ports.Update(client, port.ID, updateOpts).Extract()
 	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newPort)
 	th.AssertEquals(t, newPort.Description, newPortName)
 	th.AssertEquals(t, newPort.Description, newPortDescription)
-	th.AssertEquals(t, newPort.HostID, newHostID)
-	th.AssertEquals(t, newPort.VNICType, "baremetal")
-	th.AssertDeepEquals(t, newPort.Profile, newProfile)
 }

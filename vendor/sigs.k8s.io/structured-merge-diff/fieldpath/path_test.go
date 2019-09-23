@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/structured-merge-diff/value"
 )
 
-func TestPathString(t *testing.T) {
+func TestPath(t *testing.T) {
 	table := []struct {
 		name   string
 		fp     Path

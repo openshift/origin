@@ -67,7 +67,7 @@ func (r *REST) ShortNames() []string {
 }
 
 // Delete adds the CRD finalizer to the list
-func (r *REST) Delete(ctx context.Context, name string, deleteValidation rest.ValidateObjectFunc, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	obj, err := r.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
@@ -119,9 +119,6 @@ func (r *REST) Delete(ctx context.Context, name string, deleteValidation rest.Va
 					// wrong type
 					return nil, fmt.Errorf("expected *apiextensions.CustomResourceDefinition, got %v", existing)
 				}
-				if err := deleteValidation(ctx, existingCRD); err != nil {
-					return nil, err
-				}
 
 				// Set the deletion timestamp if needed
 				if existingCRD.DeletionTimestamp.IsZero() {
@@ -156,7 +153,7 @@ func (r *REST) Delete(ctx context.Context, name string, deleteValidation rest.Va
 		return out, false, nil
 	}
 
-	return r.Store.Delete(ctx, name, deleteValidation, options)
+	return r.Store.Delete(ctx, name, options)
 }
 
 // NewStatusREST makes a RESTStorage for status that has more limited options.

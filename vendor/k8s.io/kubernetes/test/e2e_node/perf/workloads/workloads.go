@@ -19,7 +19,7 @@ package workloads
 import (
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 )
 
@@ -29,7 +29,7 @@ type NodePerfWorkload interface {
 	// Name of the workload.
 	Name() string
 	// PodSpec used to run this workload.
-	PodSpec() v1.PodSpec
+	PodSpec() corev1.PodSpec
 	// Timeout provides the expected time to completion
 	// for this workload.
 	Timeout() time.Duration

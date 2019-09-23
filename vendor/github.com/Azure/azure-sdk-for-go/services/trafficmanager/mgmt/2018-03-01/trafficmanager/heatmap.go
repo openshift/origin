@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewHeatMapClientWithBaseURI(baseURI string, subscriptionID string) HeatMapC
 // topLeft - the top left latitude,longitude pair of the rectangular viewport to query for.
 // botRight - the bottom right latitude,longitude pair of the rectangular viewport to query for.
 func (client HeatMapClient) Get(ctx context.Context, resourceGroupName string, profileName string, topLeft []float64, botRight []float64) (result HeatMapModel, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/HeatMapClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: topLeft,
 			Constraints: []validation.Constraint{{Target: "topLeft", Name: validation.Null, Rule: false,
@@ -124,8 +113,8 @@ func (client HeatMapClient) GetPreparer(ctx context.Context, resourceGroupName s
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client HeatMapClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always

@@ -34,7 +34,6 @@ const (
 	podPrefix = "Pod"
 )
 
-// PodCheckpoint defines the operations to retrieve pod
 type PodCheckpoint interface {
 	checkpointmanager.Checkpoint
 	GetPod() *v1.Pod
@@ -67,7 +66,6 @@ func (cp *Data) VerifyChecksum() error {
 	return cp.Checksum.Verify(*cp.Pod)
 }
 
-// GetPod retrieves the pod from the checkpoint
 func (cp *Data) GetPod() *v1.Pod {
 	return cp.Pod
 }
@@ -91,7 +89,9 @@ func getPodKey(pod *v1.Pod) string {
 func LoadPods(cpm checkpointmanager.CheckpointManager) ([]*v1.Pod, error) {
 	pods := make([]*v1.Pod, 0)
 
-	checkpointKeys, err := cpm.ListCheckpoints()
+	var err error
+	checkpointKeys := []string{}
+	checkpointKeys, err = cpm.ListCheckpoints()
 	if err != nil {
 		klog.Errorf("Failed to list checkpoints: %v", err)
 	}

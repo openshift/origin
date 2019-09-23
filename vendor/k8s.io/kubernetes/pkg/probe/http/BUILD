@@ -15,7 +15,6 @@ go_library(
         "//pkg/version:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/net:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
-        "//vendor/k8s.io/utils/io:go_default_library",
     ],
 )
 

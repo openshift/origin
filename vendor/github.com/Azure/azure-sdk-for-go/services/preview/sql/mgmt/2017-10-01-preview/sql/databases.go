@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -51,16 +50,6 @@ func NewDatabasesClientWithBaseURI(baseURI string, subscriptionID string) Databa
 // databaseName - the name of the database.
 // parameters - the requested database resource state.
 func (client DatabasesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters Database) (result DatabasesCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Sku", Name: validation.Null, Rule: false,
@@ -101,8 +90,6 @@ func (client DatabasesClient) CreateOrUpdatePreparer(ctx context.Context, resour
 		"api-version": APIVersion,
 	}
 
-	parameters.Kind = nil
-	parameters.ManagedBy = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -116,9 +103,13 @@ func (client DatabasesClient) CreateOrUpdatePreparer(ctx context.Context, resour
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) CreateOrUpdateSender(req *http.Request) (future DatabasesCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -146,16 +137,6 @@ func (client DatabasesClient) CreateOrUpdateResponder(resp *http.Response) (resu
 // serverName - the name of the server.
 // databaseName - the name of the database.
 func (client DatabasesClient) Delete(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result DatabasesDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, serverName, databaseName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesClient", "Delete", nil, "Failure preparing request")
@@ -196,9 +177,13 @@ func (client DatabasesClient) DeletePreparer(ctx context.Context, resourceGroupN
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) DeleteSender(req *http.Request) (future DatabasesDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -225,16 +210,6 @@ func (client DatabasesClient) DeleteResponder(resp *http.Response) (result autor
 // serverName - the name of the server.
 // databaseName - the name of the database.
 func (client DatabasesClient) Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result Database, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, serverName, databaseName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesClient", "Get", nil, "Failure preparing request")
@@ -281,8 +256,8 @@ func (client DatabasesClient) GetPreparer(ctx context.Context, resourceGroupName
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -305,16 +280,6 @@ func (client DatabasesClient) GetResponder(resp *http.Response) (result Database
 // serverName - the name of the server.
 // elasticPoolName - the name of the elastic pool.
 func (client DatabasesClient) ListByElasticPool(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (result DatabaseListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.ListByElasticPool")
-		defer func() {
-			sc := -1
-			if result.dlr.Response.Response != nil {
-				sc = result.dlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByElasticPoolNextResults
 	req, err := client.ListByElasticPoolPreparer(ctx, resourceGroupName, serverName, elasticPoolName)
 	if err != nil {
@@ -362,8 +327,8 @@ func (client DatabasesClient) ListByElasticPoolPreparer(ctx context.Context, res
 // ListByElasticPoolSender sends the ListByElasticPool request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) ListByElasticPoolSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByElasticPoolResponder handles the response to the ListByElasticPool request. The method always
@@ -380,8 +345,8 @@ func (client DatabasesClient) ListByElasticPoolResponder(resp *http.Response) (r
 }
 
 // listByElasticPoolNextResults retrieves the next set of results, if any.
-func (client DatabasesClient) listByElasticPoolNextResults(ctx context.Context, lastResults DatabaseListResult) (result DatabaseListResult, err error) {
-	req, err := lastResults.databaseListResultPreparer(ctx)
+func (client DatabasesClient) listByElasticPoolNextResults(lastResults DatabaseListResult) (result DatabaseListResult, err error) {
+	req, err := lastResults.databaseListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "sql.DatabasesClient", "listByElasticPoolNextResults", nil, "Failure preparing next results request")
 	}
@@ -402,16 +367,6 @@ func (client DatabasesClient) listByElasticPoolNextResults(ctx context.Context, 
 
 // ListByElasticPoolComplete enumerates all values, automatically crossing page boundaries as required.
 func (client DatabasesClient) ListByElasticPoolComplete(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (result DatabaseListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.ListByElasticPool")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByElasticPool(ctx, resourceGroupName, serverName, elasticPoolName)
 	return
 }
@@ -422,16 +377,6 @@ func (client DatabasesClient) ListByElasticPoolComplete(ctx context.Context, res
 // from the Azure Resource Manager API or the portal.
 // serverName - the name of the server.
 func (client DatabasesClient) ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result DatabaseListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.ListByServer")
-		defer func() {
-			sc := -1
-			if result.dlr.Response.Response != nil {
-				sc = result.dlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByServerNextResults
 	req, err := client.ListByServerPreparer(ctx, resourceGroupName, serverName)
 	if err != nil {
@@ -478,8 +423,8 @@ func (client DatabasesClient) ListByServerPreparer(ctx context.Context, resource
 // ListByServerSender sends the ListByServer request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) ListByServerSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByServerResponder handles the response to the ListByServer request. The method always
@@ -496,8 +441,8 @@ func (client DatabasesClient) ListByServerResponder(resp *http.Response) (result
 }
 
 // listByServerNextResults retrieves the next set of results, if any.
-func (client DatabasesClient) listByServerNextResults(ctx context.Context, lastResults DatabaseListResult) (result DatabaseListResult, err error) {
-	req, err := lastResults.databaseListResultPreparer(ctx)
+func (client DatabasesClient) listByServerNextResults(lastResults DatabaseListResult) (result DatabaseListResult, err error) {
+	req, err := lastResults.databaseListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "sql.DatabasesClient", "listByServerNextResults", nil, "Failure preparing next results request")
 	}
@@ -518,16 +463,6 @@ func (client DatabasesClient) listByServerNextResults(ctx context.Context, lastR
 
 // ListByServerComplete enumerates all values, automatically crossing page boundaries as required.
 func (client DatabasesClient) ListByServerComplete(ctx context.Context, resourceGroupName string, serverName string) (result DatabaseListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.ListByServer")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByServer(ctx, resourceGroupName, serverName)
 	return
 }
@@ -539,16 +474,6 @@ func (client DatabasesClient) ListByServerComplete(ctx context.Context, resource
 // serverName - the name of the server.
 // databaseName - the name of the database to be paused.
 func (client DatabasesClient) Pause(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result DatabasesPauseFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.Pause")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.PausePreparer(ctx, resourceGroupName, serverName, databaseName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesClient", "Pause", nil, "Failure preparing request")
@@ -589,9 +514,13 @@ func (client DatabasesClient) PausePreparer(ctx context.Context, resourceGroupNa
 // PauseSender sends the Pause request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) PauseSender(req *http.Request) (future DatabasesPauseFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -620,16 +549,6 @@ func (client DatabasesClient) PauseResponder(resp *http.Response) (result Databa
 // databaseName - the name of the database to rename.
 // parameters - the resource move definition for renaming this database.
 func (client DatabasesClient) Rename(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters ResourceMoveDefinition) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.Rename")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.ID", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -684,8 +603,8 @@ func (client DatabasesClient) RenamePreparer(ctx context.Context, resourceGroupN
 // RenameSender sends the Rename request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) RenameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // RenameResponder handles the response to the Rename request. The method always
@@ -707,16 +626,6 @@ func (client DatabasesClient) RenameResponder(resp *http.Response) (result autor
 // serverName - the name of the server.
 // databaseName - the name of the database to be resumed.
 func (client DatabasesClient) Resume(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result DatabasesResumeFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.Resume")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ResumePreparer(ctx, resourceGroupName, serverName, databaseName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesClient", "Resume", nil, "Failure preparing request")
@@ -757,9 +666,13 @@ func (client DatabasesClient) ResumePreparer(ctx context.Context, resourceGroupN
 // ResumeSender sends the Resume request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) ResumeSender(req *http.Request) (future DatabasesResumeFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -788,16 +701,6 @@ func (client DatabasesClient) ResumeResponder(resp *http.Response) (result Datab
 // databaseName - the name of the database.
 // parameters - the requested database resource state.
 func (client DatabasesClient) Update(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters DatabaseUpdate) (result DatabasesUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, serverName, databaseName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesClient", "Update", nil, "Failure preparing request")
@@ -840,9 +743,13 @@ func (client DatabasesClient) UpdatePreparer(ctx context.Context, resourceGroupN
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) UpdateSender(req *http.Request) (future DatabasesUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -870,16 +777,6 @@ func (client DatabasesClient) UpdateResponder(resp *http.Response) (result Datab
 // serverName - the name of the server.
 // databaseName - the name of the database to be upgraded.
 func (client DatabasesClient) UpgradeDataWarehouse(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result DatabasesUpgradeDataWarehouseFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabasesClient.UpgradeDataWarehouse")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpgradeDataWarehousePreparer(ctx, resourceGroupName, serverName, databaseName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesClient", "UpgradeDataWarehouse", nil, "Failure preparing request")
@@ -920,9 +817,13 @@ func (client DatabasesClient) UpgradeDataWarehousePreparer(ctx context.Context, 
 // UpgradeDataWarehouseSender sends the UpgradeDataWarehouse request. The method will close the
 // http.Response Body if it receives an error.
 func (client DatabasesClient) UpgradeDataWarehouseSender(req *http.Request) (future DatabasesUpgradeDataWarehouseFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}

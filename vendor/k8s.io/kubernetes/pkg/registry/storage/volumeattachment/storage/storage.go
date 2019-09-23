@@ -25,9 +25,6 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	storageapi "k8s.io/kubernetes/pkg/apis/storage"
-	"k8s.io/kubernetes/pkg/printers"
-	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
-	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 	"k8s.io/kubernetes/pkg/registry/storage/volumeattachment"
 )
 
@@ -43,7 +40,7 @@ type REST struct {
 }
 
 // NewStorage returns a RESTStorage object that will work against VolumeAttachments
-func NewStorage(optsGetter generic.RESTOptionsGetter) (*VolumeAttachmentStorage, error) {
+func NewStorage(optsGetter generic.RESTOptionsGetter) *VolumeAttachmentStorage {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &storageapi.VolumeAttachment{} },
 		NewListFunc:              func() runtime.Object { return &storageapi.VolumeAttachmentList{} },
@@ -53,12 +50,10 @@ func NewStorage(optsGetter generic.RESTOptionsGetter) (*VolumeAttachmentStorage,
 		UpdateStrategy:      volumeattachment.Strategy,
 		DeleteStrategy:      volumeattachment.Strategy,
 		ReturnDeletedObject: true,
-
-		TableConvertor: printerstorage.TableConvertor{TableGenerator: printers.NewTableGenerator().With(printersinternal.AddHandlers)},
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, err
+		panic(err) // TODO: Propagate error up
 	}
 
 	statusStore := *store
@@ -67,7 +62,7 @@ func NewStorage(optsGetter generic.RESTOptionsGetter) (*VolumeAttachmentStorage,
 	return &VolumeAttachmentStorage{
 		VolumeAttachment: &REST{store},
 		Status:           &StatusREST{store: &statusStore},
-	}, nil
+	}
 }
 
 // StatusREST implements the REST endpoint for changing the status of a VolumeAttachment

@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewWorkspaceCollectionsClientWithBaseURI(baseURI string, subscriptionID str
 // location - azure location
 // body - check name availability request
 func (client WorkspaceCollectionsClient) CheckNameAvailability(ctx context.Context, location string, body CheckNameRequest) (result CheckNameResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.CheckNameAvailability")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CheckNameAvailabilityPreparer(ctx, location, body)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbiembedded.WorkspaceCollectionsClient", "CheckNameAvailability", nil, "Failure preparing request")
@@ -103,8 +92,8 @@ func (client WorkspaceCollectionsClient) CheckNameAvailabilityPreparer(ctx conte
 // CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always
@@ -127,16 +116,6 @@ func (client WorkspaceCollectionsClient) CheckNameAvailabilityResponder(resp *ht
 // workspaceCollectionName - power BI Embedded Workspace Collection name
 // body - create workspace collection request
 func (client WorkspaceCollectionsClient) Create(ctx context.Context, resourceGroupName string, workspaceCollectionName string, body CreateWorkspaceCollectionRequest) (result WorkspaceCollection, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: body,
 			Constraints: []validation.Constraint{{Target: "body.Sku", Name: validation.Null, Rule: false,
@@ -193,8 +172,8 @@ func (client WorkspaceCollectionsClient) CreatePreparer(ctx context.Context, res
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -215,16 +194,6 @@ func (client WorkspaceCollectionsClient) CreateResponder(resp *http.Response) (r
 // resourceGroupName - azure resource group
 // workspaceCollectionName - power BI Embedded Workspace Collection name
 func (client WorkspaceCollectionsClient) Delete(ctx context.Context, resourceGroupName string, workspaceCollectionName string) (result WorkspaceCollectionsDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, workspaceCollectionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbiembedded.WorkspaceCollectionsClient", "Delete", nil, "Failure preparing request")
@@ -264,9 +233,13 @@ func (client WorkspaceCollectionsClient) DeletePreparer(ctx context.Context, res
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) DeleteSender(req *http.Request) (future WorkspaceCollectionsDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -291,16 +264,6 @@ func (client WorkspaceCollectionsClient) DeleteResponder(resp *http.Response) (r
 // resourceGroupName - azure resource group
 // workspaceCollectionName - power BI Embedded Workspace Collection name
 func (client WorkspaceCollectionsClient) GetAccessKeys(ctx context.Context, resourceGroupName string, workspaceCollectionName string) (result WorkspaceCollectionAccessKeys, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.GetAccessKeys")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetAccessKeysPreparer(ctx, resourceGroupName, workspaceCollectionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbiembedded.WorkspaceCollectionsClient", "GetAccessKeys", nil, "Failure preparing request")
@@ -346,8 +309,8 @@ func (client WorkspaceCollectionsClient) GetAccessKeysPreparer(ctx context.Conte
 // GetAccessKeysSender sends the GetAccessKeys request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) GetAccessKeysSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetAccessKeysResponder handles the response to the GetAccessKeys request. The method always
@@ -368,16 +331,6 @@ func (client WorkspaceCollectionsClient) GetAccessKeysResponder(resp *http.Respo
 // resourceGroupName - azure resource group
 // workspaceCollectionName - power BI Embedded Workspace Collection name
 func (client WorkspaceCollectionsClient) GetByName(ctx context.Context, resourceGroupName string, workspaceCollectionName string) (result WorkspaceCollection, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.GetByName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetByNamePreparer(ctx, resourceGroupName, workspaceCollectionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbiembedded.WorkspaceCollectionsClient", "GetByName", nil, "Failure preparing request")
@@ -423,8 +376,8 @@ func (client WorkspaceCollectionsClient) GetByNamePreparer(ctx context.Context, 
 // GetByNameSender sends the GetByName request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) GetByNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetByNameResponder handles the response to the GetByName request. The method always
@@ -444,16 +397,6 @@ func (client WorkspaceCollectionsClient) GetByNameResponder(resp *http.Response)
 // Parameters:
 // resourceGroupName - azure resource group
 func (client WorkspaceCollectionsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result WorkspaceCollectionList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbiembedded.WorkspaceCollectionsClient", "ListByResourceGroup", nil, "Failure preparing request")
@@ -498,8 +441,8 @@ func (client WorkspaceCollectionsClient) ListByResourceGroupPreparer(ctx context
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -517,16 +460,6 @@ func (client WorkspaceCollectionsClient) ListByResourceGroupResponder(resp *http
 
 // ListBySubscription retrieves all existing Power BI workspace collections in the specified subscription.
 func (client WorkspaceCollectionsClient) ListBySubscription(ctx context.Context) (result WorkspaceCollectionList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.ListBySubscription")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListBySubscriptionPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbiembedded.WorkspaceCollectionsClient", "ListBySubscription", nil, "Failure preparing request")
@@ -570,8 +503,8 @@ func (client WorkspaceCollectionsClient) ListBySubscriptionPreparer(ctx context.
 // ListBySubscriptionSender sends the ListBySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
@@ -592,16 +525,6 @@ func (client WorkspaceCollectionsClient) ListBySubscriptionResponder(resp *http.
 // resourceGroupName - azure resource group
 // body - workspace migration request
 func (client WorkspaceCollectionsClient) Migrate(ctx context.Context, resourceGroupName string, body MigrateWorkspaceCollectionRequest) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.Migrate")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.MigratePreparer(ctx, resourceGroupName, body)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbiembedded.WorkspaceCollectionsClient", "Migrate", nil, "Failure preparing request")
@@ -648,8 +571,8 @@ func (client WorkspaceCollectionsClient) MigratePreparer(ctx context.Context, re
 // MigrateSender sends the Migrate request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) MigrateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // MigrateResponder handles the response to the Migrate request. The method always
@@ -670,16 +593,6 @@ func (client WorkspaceCollectionsClient) MigrateResponder(resp *http.Response) (
 // workspaceCollectionName - power BI Embedded Workspace Collection name
 // body - access key to regenerate
 func (client WorkspaceCollectionsClient) RegenerateKey(ctx context.Context, resourceGroupName string, workspaceCollectionName string, body WorkspaceCollectionAccessKey) (result WorkspaceCollectionAccessKeys, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.RegenerateKey")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.RegenerateKeyPreparer(ctx, resourceGroupName, workspaceCollectionName, body)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbiembedded.WorkspaceCollectionsClient", "RegenerateKey", nil, "Failure preparing request")
@@ -727,8 +640,8 @@ func (client WorkspaceCollectionsClient) RegenerateKeyPreparer(ctx context.Conte
 // RegenerateKeySender sends the RegenerateKey request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) RegenerateKeySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // RegenerateKeyResponder handles the response to the RegenerateKey request. The method always
@@ -750,16 +663,6 @@ func (client WorkspaceCollectionsClient) RegenerateKeyResponder(resp *http.Respo
 // workspaceCollectionName - power BI Embedded Workspace Collection name
 // body - update workspace collection request
 func (client WorkspaceCollectionsClient) Update(ctx context.Context, resourceGroupName string, workspaceCollectionName string, body UpdateWorkspaceCollectionRequest) (result WorkspaceCollection, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspaceCollectionsClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, workspaceCollectionName, body)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbiembedded.WorkspaceCollectionsClient", "Update", nil, "Failure preparing request")
@@ -807,8 +710,8 @@ func (client WorkspaceCollectionsClient) UpdatePreparer(ctx context.Context, res
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspaceCollectionsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

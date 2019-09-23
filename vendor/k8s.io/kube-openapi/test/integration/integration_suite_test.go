@@ -29,19 +29,16 @@ import (
 )
 
 const (
-	testdataDir = "./testdata"
-	testPkgDir  = "k8s.io/kube-openapi/test/integration/testdata"
-	inputDir    = testPkgDir + "/listtype" +
-		"," + testPkgDir + "/dummytype" +
-		"," + testPkgDir + "/uniontype" +
-		"," + testPkgDir + "/custom"
+	testdataDir              = "./testdata"
+	testPkgDir               = "k8s.io/kube-openapi/test/integration/testdata"
+	inputDir                 = testPkgDir + "/listtype" + "," + testPkgDir + "/dummytype"
 	outputBase               = "pkg"
 	outputPackage            = "generated"
 	outputBaseFileName       = "openapi_generated"
-	generatedSwaggerFileName = "generated.v2.json"
-	generatedReportFileName  = "generated.v2.report"
-	goldenSwaggerFileName    = "golden.v2.json"
-	goldenReportFileName     = "golden.v2.report"
+	generatedSwaggerFileName = "generated.json"
+	generatedReportFileName  = "generated.report"
+	goldenSwaggerFileName    = "golden.json"
+	goldenReportFileName     = "golden.report"
 	timeoutSeconds           = 5.0
 )
 

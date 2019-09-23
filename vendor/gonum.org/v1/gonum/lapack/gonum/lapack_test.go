@@ -89,8 +89,7 @@ func TestDgerqf(t *testing.T) {
 }
 
 func TestDgesvd(t *testing.T) {
-	const tol = 1e-13
-	testlapack.DgesvdTest(t, impl, tol)
+	testlapack.DgesvdTest(t, impl)
 }
 
 func TestDgetri(t *testing.T) {
@@ -297,14 +296,6 @@ func TestDlatrs(t *testing.T) {
 	testlapack.DlatrsTest(t, impl)
 }
 
-func TestDlauu2(t *testing.T) {
-	testlapack.Dlauu2Test(t, impl)
-}
-
-func TestDlauum(t *testing.T) {
-	testlapack.DlauumTest(t, impl)
-}
-
 func TestDorg2r(t *testing.T) {
 	testlapack.Dorg2rTest(t, impl)
 }
@@ -383,14 +374,6 @@ func TestDpotf2(t *testing.T) {
 
 func TestDpotrf(t *testing.T) {
 	testlapack.DpotrfTest(t, impl)
-}
-
-func TestDpotri(t *testing.T) {
-	testlapack.DpotriTest(t, impl)
-}
-
-func TestDpotrs(t *testing.T) {
-	testlapack.DpotrsTest(t, impl)
 }
 
 func TestDrscl(t *testing.T) {

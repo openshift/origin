@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"regexp"
-	"strings"
 )
 
 var (
@@ -22,17 +21,13 @@ func isSpace(r rune) bool {
 	return false
 }
 
-func replaceEnv(getenv func(string) string, s string) string {
-	if getenv == nil {
-		getenv = os.Getenv
-	}
-
+func replaceEnv(s string) string {
 	return envRe.ReplaceAllStringFunc(s, func(s string) string {
 		s = s[1:]
 		if s[0] == '{' {
 			s = s[1 : len(s)-1]
 		}
-		return getenv(s)
+		return os.Getenv(s)
 	})
 }
 
@@ -40,18 +35,10 @@ type Parser struct {
 	ParseEnv      bool
 	ParseBacktick bool
 	Position      int
-
-	// If ParseEnv is true, use this for getenv.
-	// If nil, use os.Getenv.
-	Getenv func(string) string
 }
 
 func NewParser() *Parser {
-	return &Parser{
-		ParseEnv:      ParseEnv,
-		ParseBacktick: ParseBacktick,
-		Position:      0,
-	}
+	return &Parser{ParseEnv, ParseBacktick, 0}
 }
 
 func (p *Parser) Parse(line string) ([]string, error) {
@@ -86,7 +73,7 @@ loop:
 				backtick += string(r)
 			} else if got {
 				if p.ParseEnv {
-					buf = replaceEnv(p.Getenv, buf)
+					buf = replaceEnv(buf)
 				}
 				args = append(args, buf)
 				buf = ""
@@ -121,11 +108,7 @@ loop:
 						if err != nil {
 							return nil, err
 						}
-						if r == ')' {
-							buf = buf[:len(buf)-len(backtick)-2] + out
-						} else {
-							buf = buf[:len(buf)-len(backtick)-1] + out
-						}
+						buf = out
 					}
 					backtick = ""
 					dollarQuote = !dollarQuote
@@ -136,7 +119,7 @@ loop:
 			}
 		case '(':
 			if !singleQuoted && !doubleQuoted && !backQuote {
-				if !dollarQuote && strings.HasSuffix(buf, "$") {
+				if !dollarQuote && len(buf) > 0 && buf == "$" {
 					dollarQuote = true
 					buf += "("
 					continue
@@ -176,7 +159,7 @@ loop:
 
 	if got {
 		if p.ParseEnv {
-			buf = replaceEnv(p.Getenv, buf)
+			buf = replaceEnv(buf)
 		}
 		args = append(args, buf)
 	}

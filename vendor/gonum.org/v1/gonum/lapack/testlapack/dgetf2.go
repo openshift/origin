@@ -170,8 +170,7 @@ func checkPLU(t *testing.T, ok bool, m, n, lda int, ipiv []int, factorized, orig
 	}
 	for i := len(ipiv) - 1; i >= 0; i-- {
 		v := ipiv[i]
-		blas64.Swap(blas64.Vector{N: m, Inc: 1, Data: p[i*ldp:]},
-			blas64.Vector{N: m, Inc: 1, Data: p[v*ldp:]})
+		blas64.Swap(m, blas64.Vector{Inc: 1, Data: p[i*ldp:]}, blas64.Vector{Inc: 1, Data: p[v*ldp:]})
 	}
 	P := blas64.General{
 		Rows:   m,

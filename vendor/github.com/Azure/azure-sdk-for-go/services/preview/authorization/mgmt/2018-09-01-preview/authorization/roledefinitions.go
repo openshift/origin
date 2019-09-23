@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewRoleDefinitionsClientWithBaseURI(baseURI string, subscriptionID string) 
 // roleDefinitionID - the ID of the role definition.
 // roleDefinition - the values for the role definition.
 func (client RoleDefinitionsClient) CreateOrUpdate(ctx context.Context, scope string, roleDefinitionID string, roleDefinition RoleDefinition) (result RoleDefinition, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RoleDefinitionsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdatePreparer(ctx, scope, roleDefinitionID, roleDefinition)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authorization.RoleDefinitionsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -84,14 +73,11 @@ func (client RoleDefinitionsClient) CreateOrUpdatePreparer(ctx context.Context, 
 		"scope":            scope,
 	}
 
-	const APIVersion = "2018-01-01-preview"
+	const APIVersion = "2018-09-01-preview"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
 
-	roleDefinition.ID = nil
-	roleDefinition.Name = nil
-	roleDefinition.Type = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -105,8 +91,8 @@ func (client RoleDefinitionsClient) CreateOrUpdatePreparer(ctx context.Context, 
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client RoleDefinitionsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -127,16 +113,6 @@ func (client RoleDefinitionsClient) CreateOrUpdateResponder(resp *http.Response)
 // scope - the scope of the role definition.
 // roleDefinitionID - the ID of the role definition to delete.
 func (client RoleDefinitionsClient) Delete(ctx context.Context, scope string, roleDefinitionID string) (result RoleDefinition, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RoleDefinitionsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, scope, roleDefinitionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authorization.RoleDefinitionsClient", "Delete", nil, "Failure preparing request")
@@ -165,7 +141,7 @@ func (client RoleDefinitionsClient) DeletePreparer(ctx context.Context, scope st
 		"scope":            scope,
 	}
 
-	const APIVersion = "2018-01-01-preview"
+	const APIVersion = "2018-09-01-preview"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -181,8 +157,8 @@ func (client RoleDefinitionsClient) DeletePreparer(ctx context.Context, scope st
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client RoleDefinitionsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -203,16 +179,6 @@ func (client RoleDefinitionsClient) DeleteResponder(resp *http.Response) (result
 // scope - the scope of the role definition.
 // roleDefinitionID - the ID of the role definition.
 func (client RoleDefinitionsClient) Get(ctx context.Context, scope string, roleDefinitionID string) (result RoleDefinition, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RoleDefinitionsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, scope, roleDefinitionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authorization.RoleDefinitionsClient", "Get", nil, "Failure preparing request")
@@ -241,7 +207,7 @@ func (client RoleDefinitionsClient) GetPreparer(ctx context.Context, scope strin
 		"scope":            scope,
 	}
 
-	const APIVersion = "2018-01-01-preview"
+	const APIVersion = "2018-09-01-preview"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -257,8 +223,8 @@ func (client RoleDefinitionsClient) GetPreparer(ctx context.Context, scope strin
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client RoleDefinitionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -281,16 +247,6 @@ func (client RoleDefinitionsClient) GetResponder(resp *http.Response) (result Ro
 // level role definitions, or /providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId} for tenant
 // level role definitions.
 func (client RoleDefinitionsClient) GetByID(ctx context.Context, roleID string) (result RoleDefinition, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RoleDefinitionsClient.GetByID")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetByIDPreparer(ctx, roleID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authorization.RoleDefinitionsClient", "GetByID", nil, "Failure preparing request")
@@ -318,7 +274,7 @@ func (client RoleDefinitionsClient) GetByIDPreparer(ctx context.Context, roleID 
 		"roleId": roleID,
 	}
 
-	const APIVersion = "2018-01-01-preview"
+	const APIVersion = "2018-09-01-preview"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -334,8 +290,8 @@ func (client RoleDefinitionsClient) GetByIDPreparer(ctx context.Context, roleID 
 // GetByIDSender sends the GetByID request. The method will close the
 // http.Response Body if it receives an error.
 func (client RoleDefinitionsClient) GetByIDSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetByIDResponder handles the response to the GetByID request. The method always
@@ -357,16 +313,6 @@ func (client RoleDefinitionsClient) GetByIDResponder(resp *http.Response) (resul
 // filter - the filter to apply on the operation. Use atScopeAndBelow filter to search below the given scope as
 // well.
 func (client RoleDefinitionsClient) List(ctx context.Context, scope string, filter string) (result RoleDefinitionListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RoleDefinitionsClient.List")
-		defer func() {
-			sc := -1
-			if result.rdlr.Response.Response != nil {
-				sc = result.rdlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, scope, filter)
 	if err != nil {
@@ -395,7 +341,7 @@ func (client RoleDefinitionsClient) ListPreparer(ctx context.Context, scope stri
 		"scope": scope,
 	}
 
-	const APIVersion = "2018-01-01-preview"
+	const APIVersion = "2018-09-01-preview"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -414,8 +360,8 @@ func (client RoleDefinitionsClient) ListPreparer(ctx context.Context, scope stri
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client RoleDefinitionsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -432,8 +378,8 @@ func (client RoleDefinitionsClient) ListResponder(resp *http.Response) (result R
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client RoleDefinitionsClient) listNextResults(ctx context.Context, lastResults RoleDefinitionListResult) (result RoleDefinitionListResult, err error) {
-	req, err := lastResults.roleDefinitionListResultPreparer(ctx)
+func (client RoleDefinitionsClient) listNextResults(lastResults RoleDefinitionListResult) (result RoleDefinitionListResult, err error) {
+	req, err := lastResults.roleDefinitionListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "authorization.RoleDefinitionsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -454,16 +400,6 @@ func (client RoleDefinitionsClient) listNextResults(ctx context.Context, lastRes
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RoleDefinitionsClient) ListComplete(ctx context.Context, scope string, filter string) (result RoleDefinitionListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RoleDefinitionsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, scope, filter)
 	return
 }

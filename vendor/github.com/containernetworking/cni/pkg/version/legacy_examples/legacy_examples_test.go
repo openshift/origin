@@ -17,7 +17,6 @@ package legacy_examples_test
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/containernetworking/cni/pkg/version/legacy_examples"
 	. "github.com/onsi/ginkgo"
@@ -30,11 +29,7 @@ var _ = Describe("The v0.1.0 Example", func() {
 		pluginPath, err := example.Build()
 		Expect(err).NotTo(HaveOccurred())
 
-		expectedBaseName := example.Name
-		if runtime.GOOS == "windows" {
-			expectedBaseName += ".exe"
-		}
-		Expect(filepath.Base(pluginPath)).To(Equal(expectedBaseName))
+		Expect(filepath.Base(pluginPath)).To(Equal(example.Name))
 
 		Expect(os.RemoveAll(pluginPath)).To(Succeed())
 	})

@@ -15,10 +15,9 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"github.com/heketi/tests"
 	"testing"
 	"time"
-
-	"github.com/heketi/tests"
 )
 
 func TestNewStatusGroup(t *testing.T) {

@@ -41,7 +41,10 @@ type syncT struct {
 // writeSync is used to write to a synchronisation pipe. An error is returned
 // if there was a problem writing the payload.
 func writeSync(pipe io.Writer, sync syncType) error {
-	return utils.WriteJSON(pipe, syncT{sync})
+	if err := utils.WriteJSON(pipe, syncT{sync}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // readSync is used to read from a synchronisation pipe. An error is returned

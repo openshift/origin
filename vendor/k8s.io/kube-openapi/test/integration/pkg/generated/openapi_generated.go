@@ -25,40 +25,19 @@ package generated
 import (
 	spec "github.com/go-openapi/spec"
 	common "k8s.io/kube-openapi/pkg/common"
-	custom "k8s.io/kube-openapi/test/integration/testdata/custom"
 )
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"k8s.io/kube-openapi/test/integration/testdata/custom.Bac":              common.EmbedOpenAPIDefinitionIntoV2Extension(custom.Bac{}.OpenAPIV3Definition(), custom.Bac{}.OpenAPIDefinition()),
-		"k8s.io/kube-openapi/test/integration/testdata/custom.Bah":              schema_test_integration_testdata_custom_Bah(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/custom.Bak":              custom.Bak{}.OpenAPIDefinition(),
-		"k8s.io/kube-openapi/test/integration/testdata/custom.Bal":              custom.Bal{}.OpenAPIV3Definition(),
-		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Bar":           schema_test_integration_testdata_dummytype_Bar(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Baz":           schema_test_integration_testdata_dummytype_Baz(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Foo":           schema_test_integration_testdata_dummytype_Foo(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Waldo":         schema_test_integration_testdata_dummytype_Waldo(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.AtomicList":     schema_test_integration_testdata_listtype_AtomicList(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.Item":           schema_test_integration_testdata_listtype_Item(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.MapList":        schema_test_integration_testdata_listtype_MapList(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.SetList":        schema_test_integration_testdata_listtype_SetList(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.UntypedList":    schema_test_integration_testdata_listtype_UntypedList(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/uniontype.InlinedUnion":  schema_test_integration_testdata_uniontype_InlinedUnion(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/uniontype.TopLevelUnion": schema_test_integration_testdata_uniontype_TopLevelUnion(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/uniontype.Union":         schema_test_integration_testdata_uniontype_Union(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/uniontype.Union2":        schema_test_integration_testdata_uniontype_Union2(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Bar":       schema_test_integration_testdata_dummytype_Bar(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Baz":       schema_test_integration_testdata_dummytype_Baz(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Foo":       schema_test_integration_testdata_dummytype_Foo(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Waldo":     schema_test_integration_testdata_dummytype_Waldo(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.AtomicList": schema_test_integration_testdata_listtype_AtomicList(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.Item":       schema_test_integration_testdata_listtype_Item(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.MapList":    schema_test_integration_testdata_listtype_MapList(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.SetList":    schema_test_integration_testdata_listtype_SetList(ref),
 	}
-}
-
-func schema_test_integration_testdata_custom_Bah(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.EmbedOpenAPIDefinitionIntoV2Extension(custom.Bah{}.OpenAPIV3Definition(), common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type:   custom.Bah{}.OpenAPISchemaType(),
-				Format: custom.Bah{}.OpenAPISchemaFormat(),
-			},
-		},
-	})
 }
 
 func schema_test_integration_testdata_dummytype_Bar(ref common.ReferenceCallback) common.OpenAPIDefinition {
@@ -83,6 +62,7 @@ func schema_test_integration_testdata_dummytype_Bar(ref common.ReferenceCallback
 				Required: []string{"ViolationBehind", "Violation"},
 			},
 		},
+		Dependencies: []string{},
 	}
 }
 
@@ -108,6 +88,7 @@ func schema_test_integration_testdata_dummytype_Baz(ref common.ReferenceCallback
 				Required: []string{"Violation", "ViolationBehind"},
 			},
 		},
+		Dependencies: []string{},
 	}
 }
 
@@ -133,6 +114,7 @@ func schema_test_integration_testdata_dummytype_Foo(ref common.ReferenceCallback
 				Required: []string{"Second", "First"},
 			},
 		},
+		Dependencies: []string{},
 	}
 }
 
@@ -158,6 +140,7 @@ func schema_test_integration_testdata_dummytype_Waldo(ref common.ReferenceCallba
 				Required: []string{"First", "Second"},
 			},
 		},
+		Dependencies: []string{},
 	}
 }
 
@@ -189,6 +172,7 @@ func schema_test_integration_testdata_listtype_AtomicList(ref common.ReferenceCa
 				Required: []string{"Field"},
 			},
 		},
+		Dependencies: []string{},
 	}
 }
 
@@ -232,6 +216,7 @@ func schema_test_integration_testdata_listtype_Item(ref common.ReferenceCallback
 				Required: []string{"Protocol", "Port"},
 			},
 		},
+		Dependencies: []string{},
 	}
 }
 
@@ -296,261 +281,6 @@ func schema_test_integration_testdata_listtype_SetList(ref common.ReferenceCallb
 				Required: []string{"Field"},
 			},
 		},
-	}
-}
-
-func schema_test_integration_testdata_listtype_UntypedList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"Field": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"Field"},
-			},
-		},
-	}
-}
-
-func schema_test_integration_testdata_uniontype_InlinedUnion(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"field1": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"field2": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"unionType": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"fieldA": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"fieldB": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"alpha": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"beta": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-				},
-				Required: []string{"name", "type"},
-			},
-			VendorExtensible: spec.VendorExtensible{
-				Extensions: spec.Extensions{
-					"x-kubernetes-unions": []interface{}{
-						map[string]interface{}{
-							"discriminator": "unionType",
-							"fields-to-discriminateBy": map[string]interface{}{
-								"fieldA": "FieldA",
-								"fieldB": "FieldB",
-							},
-						},
-						map[string]interface{}{
-							"discriminator": "type",
-							"fields-to-discriminateBy": map[string]interface{}{
-								"alpha": "Alpha",
-								"beta":  "Beta",
-							},
-						},
-						map[string]interface{}{
-							"fields-to-discriminateBy": map[string]interface{}{
-								"field1": "Field1",
-								"field2": "Field2",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func schema_test_integration_testdata_uniontype_TopLevelUnion(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"unionType": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"fieldA": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"fieldB": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-				},
-				Required: []string{"name"},
-			},
-			VendorExtensible: spec.VendorExtensible{
-				Extensions: spec.Extensions{
-					"x-kubernetes-unions": []interface{}{
-						map[string]interface{}{
-							"discriminator": "unionType",
-							"fields-to-discriminateBy": map[string]interface{}{
-								"fieldA": "FieldA",
-								"fieldB": "FieldB",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func schema_test_integration_testdata_uniontype_Union(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"unionType": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"fieldA": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"fieldB": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-				},
-			},
-			VendorExtensible: spec.VendorExtensible{
-				Extensions: spec.Extensions{
-					"x-kubernetes-unions": []interface{}{
-						map[string]interface{}{
-							"discriminator": "unionType",
-							"fields-to-discriminateBy": map[string]interface{}{
-								"fieldA": "FieldA",
-								"fieldB": "FieldB",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func schema_test_integration_testdata_uniontype_Union2(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"alpha": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"beta": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-				},
-				Required: []string{"type"},
-			},
-			VendorExtensible: spec.VendorExtensible{
-				Extensions: spec.Extensions{
-					"x-kubernetes-unions": []interface{}{
-						map[string]interface{}{
-							"discriminator": "type",
-							"fields-to-discriminateBy": map[string]interface{}{
-								"alpha": "Alpha",
-								"beta":  "Beta",
-							},
-						},
-					},
-				},
-			},
-		},
+		Dependencies: []string{},
 	}
 }

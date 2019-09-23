@@ -14,18 +14,28 @@
 //				(idea is if you say import "compress/zlib", you go to
 //				http://godoc/pkg/compress/zlib)
 //
+// Command-line interface:
+//
+//	godoc packagepath [name ...]
+//
+//	godoc compress/zlib
+//		- prints doc for package compress/zlib
+//	godoc crypto/block Cipher NewCMAC
+//		- prints doc for Cipher and NewCMAC in package crypto/block
+
+// +build !appengine
 
 package main
 
 import (
 	"archive/zip"
-	"bytes"
 	_ "expvar" // to serve /debug/vars
 	"flag"
 	"fmt"
 	"go/build"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	_ "net/http/pprof" // to serve /debug/pprof/*
 	"net/url"
 	"os"
@@ -43,7 +53,7 @@ import (
 	"golang.org/x/tools/godoc/vfs/zipfs"
 )
 
-const defaultAddr = "localhost:6060" // default webserver address
+const defaultAddr = ":6060" // default webserver address
 
 var (
 	// file system to serve
@@ -56,21 +66,29 @@ var (
 	analysisFlag = flag.String("analysis", "", `comma-separated list of analyses to perform (supported: type, pointer). See http://golang.org/lib/godoc/analysis/help.html`)
 
 	// network
-	httpAddr = flag.String("http", defaultAddr, "HTTP service address")
+	httpAddr   = flag.String("http", "", "HTTP service address (e.g., '"+defaultAddr+"')")
+	serverAddr = flag.String("server", "", "webserver address for command line searches")
 
 	// layout control
+	html    = flag.Bool("html", false, "print HTML in command-line mode")
+	srcMode = flag.Bool("src", false, "print (exported) source in command-line mode")
 	urlFlag = flag.String("url", "", "print HTML for named URL")
+
+	// command-line searches
+	query = flag.Bool("q", false, "arguments are considered search queries")
 
 	verbose = flag.Bool("v", false, "verbose mode")
 
 	// file system roots
 	// TODO(gri) consider the invariant that goroot always end in '/'
-	goroot = flag.String("goroot", findGOROOT(), "Go root directory")
+	goroot = flag.String("goroot", runtime.GOROOT(), "Go root directory")
 
 	// layout control
+	tabWidth       = flag.Int("tabwidth", 4, "tab width")
 	showTimestamps = flag.Bool("timestamps", false, "show timestamps with directory listings")
 	templateDir    = flag.String("templates", "", "load templates/JS/CSS from disk in this directory")
-	showPlayground = flag.Bool("play", false, "enable playground")
+	showPlayground = flag.Bool("play", false, "enable playground in web interface")
+	showExamples   = flag.Bool("ex", false, "show examples in command line mode")
 	declLinks      = flag.Bool("links", true, "link identifiers to their declarations")
 
 	// search index
@@ -84,19 +102,10 @@ var (
 	notesRx = flag.String("notes", "BUG", "regular expression matching note markers to show")
 )
 
-// An httpResponseRecorder is an http.ResponseWriter
-type httpResponseRecorder struct {
-	body   *bytes.Buffer
-	header http.Header
-	code   int
-}
-
-func (w *httpResponseRecorder) Header() http.Header         { return w.header }
-func (w *httpResponseRecorder) Write(b []byte) (int, error) { return w.body.Write(b) }
-func (w *httpResponseRecorder) WriteHeader(code int)        { w.code = code }
-
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage: godoc -http="+defaultAddr+"\n")
+	fmt.Fprintf(os.Stderr,
+		"usage: godoc package [name ...]\n"+
+			"	godoc -http="+defaultAddr+"\n")
 	flag.PrintDefaults()
 	os.Exit(2)
 }
@@ -123,58 +132,47 @@ func handleURLFlag() {
 
 		// Invoke default HTTP handler to serve request
 		// to our buffering httpWriter.
-		w := &httpResponseRecorder{code: 200, header: make(http.Header), body: new(bytes.Buffer)}
+		w := httptest.NewRecorder()
 		http.DefaultServeMux.ServeHTTP(w, req)
 
 		// Return data, error, or follow redirect.
-		switch w.code {
+		switch w.Code {
 		case 200: // ok
-			os.Stdout.Write(w.body.Bytes())
+			os.Stdout.Write(w.Body.Bytes())
 			return
 		case 301, 302, 303, 307: // redirect
-			redirect := w.header.Get("Location")
+			redirect := w.HeaderMap.Get("Location")
 			if redirect == "" {
-				log.Fatalf("HTTP %d without Location header", w.code)
+				log.Fatalf("HTTP %d without Location header", w.Code)
 			}
 			urlstr = redirect
 		default:
-			log.Fatalf("HTTP error %d", w.code)
+			log.Fatalf("HTTP error %d", w.Code)
 		}
 	}
 	log.Fatalf("too many redirects")
-}
-
-func initCorpus(corpus *godoc.Corpus) {
-	err := corpus.Init()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	if certInit != nil {
-		certInit()
-	}
-
 	playEnabled = *showPlayground
 
-	// Check usage.
-	if flag.NArg() > 0 {
-		fmt.Fprintln(os.Stderr, `Unexpected arguments. Use "go doc" for command-line help output instead. For example, "go doc fmt.Printf".`)
-		usage()
-	}
-	if *httpAddr == "" && *urlFlag == "" && !*writeIndex {
-		fmt.Fprintln(os.Stderr, "At least one of -http, -url, or -write_index must be set to a non-zero value.")
+	// Check usage: server and no args.
+	if (*httpAddr != "" || *urlFlag != "") && (flag.NArg() > 0) {
+		fmt.Fprintln(os.Stderr, "can't use -http with args.")
 		usage()
 	}
 
-	// Set the resolved goroot.
-	vfs.GOROOT = *goroot
+	// Check usage: command line args or index creation mode.
+	if (*httpAddr != "" || *urlFlag != "") != (flag.NArg() == 0) && !*writeIndex {
+		fmt.Fprintln(os.Stderr, "missing args.")
+		usage()
+	}
 
-	fsGate := make(chan bool, 20)
+	var fsGate chan bool
+	fsGate = make(chan bool, 20)
 
 	// Determine file system to use.
 	if *zipfile == "" {
@@ -201,6 +199,8 @@ func main() {
 		fs.Bind("/src", gatefs.New(vfs.OS(p), fsGate), "/src", vfs.BindAfter)
 	}
 
+	httpMode := *httpAddr != ""
+
 	var typeAnalysis, pointerAnalysis bool
 	if *analysisFlag != "" {
 		for _, a := range strings.Split(*analysisFlag, ",") {
@@ -218,7 +218,7 @@ func main() {
 	corpus := godoc.NewCorpus(fs)
 	corpus.Verbose = *verbose
 	corpus.MaxResults = *maxResults
-	corpus.IndexEnabled = *indexEnabled
+	corpus.IndexEnabled = *indexEnabled && httpMode
 	if *maxResults == 0 {
 		corpus.IndexFullText = false
 	}
@@ -226,27 +226,29 @@ func main() {
 	corpus.IndexDirectory = indexDirectoryDefault
 	corpus.IndexThrottle = *indexThrottle
 	corpus.IndexInterval = *indexInterval
-	if *writeIndex || *urlFlag != "" {
+	if *writeIndex {
 		corpus.IndexThrottle = 1.0
 		corpus.IndexEnabled = true
-		initCorpus(corpus)
-	} else {
-		go initCorpus(corpus)
+	}
+	if *writeIndex || httpMode || *urlFlag != "" {
+		if err := corpus.Init(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	// Initialize the version info before readTemplates, which saves
-	// the map value in a method value.
-	corpus.InitVersionInfo()
-
 	pres = godoc.NewPresentation(corpus)
+	pres.TabWidth = *tabWidth
 	pres.ShowTimestamps = *showTimestamps
 	pres.ShowPlayground = *showPlayground
+	pres.ShowExamples = *showExamples
 	pres.DeclLinks = *declLinks
+	pres.SrcMode = *srcMode
+	pres.HTMLMode = *html
 	if *notesRx != "" {
 		pres.NotesRx = regexp.MustCompile(*notesRx)
 	}
 
-	readTemplates(pres)
+	readTemplates(pres, httpMode || *urlFlag != "")
 	registerHandlers(pres)
 
 	if *writeIndex {
@@ -281,58 +283,63 @@ func main() {
 		return
 	}
 
-	var handler http.Handler = http.DefaultServeMux
-	if *verbose {
-		log.Printf("Go Documentation Server")
-		log.Printf("version = %s", runtime.Version())
-		log.Printf("address = %s", *httpAddr)
-		log.Printf("goroot = %s", *goroot)
-		switch {
-		case !*indexEnabled:
-			log.Print("search index disabled")
-		case *maxResults > 0:
-			log.Printf("full text index enabled (maxresults = %d)", *maxResults)
-		default:
-			log.Print("identifier search index enabled")
-		}
-		fs.Fprint(os.Stderr)
-		handler = loggingHandler(handler)
-	}
-
-	// Initialize search index.
-	if *indexEnabled {
-		go corpus.RunIndexer()
-	}
-
-	// Start type/pointer analysis.
-	if typeAnalysis || pointerAnalysis {
-		go analysis.Run(pointerAnalysis, &corpus.Analysis)
-	}
-
-	if runHTTPS != nil {
-		go func() {
-			if err := runHTTPS(handler); err != nil {
-				log.Fatalf("ListenAndServe TLS: %v", err)
+	if httpMode {
+		// HTTP server mode.
+		var handler http.Handler = http.DefaultServeMux
+		if *verbose {
+			log.Printf("Go Documentation Server")
+			log.Printf("version = %s", runtime.Version())
+			log.Printf("address = %s", *httpAddr)
+			log.Printf("goroot = %s", *goroot)
+			log.Printf("tabwidth = %d", *tabWidth)
+			switch {
+			case !*indexEnabled:
+				log.Print("search index disabled")
+			case *maxResults > 0:
+				log.Printf("full text index enabled (maxresults = %d)", *maxResults)
+			default:
+				log.Print("identifier search index enabled")
 			}
-		}()
+			fs.Fprint(os.Stderr)
+			handler = loggingHandler(handler)
+		}
+
+		// Initialize search index.
+		if *indexEnabled {
+			go corpus.RunIndexer()
+		}
+
+		// Start type/pointer analysis.
+		if typeAnalysis || pointerAnalysis {
+			go analysis.Run(pointerAnalysis, &corpus.Analysis)
+		}
+
+		if serveAutoCertHook != nil {
+			go func() {
+				if err := serveAutoCertHook(handler); err != nil {
+					log.Fatalf("ListenAndServe TLS: %v", err)
+				}
+			}()
+		}
+
+		// Start http server.
+		if err := http.ListenAndServe(*httpAddr, handler); err != nil {
+			log.Fatalf("ListenAndServe %s: %v", *httpAddr, err)
+		}
+
+		return
 	}
 
-	// Start http server.
-	if *verbose {
-		log.Println("starting HTTP server")
+	if *query {
+		handleRemoteSearch()
+		return
 	}
-	if wrapHTTPMux != nil {
-		handler = wrapHTTPMux(handler)
-	}
-	if err := http.ListenAndServe(*httpAddr, handler); err != nil {
-		log.Fatalf("ListenAndServe %s: %v", *httpAddr, err)
+
+	if err := godoc.CommandLine(os.Stdout, fs, pres, flag.Args()); err != nil {
+		log.Print(err)
 	}
 }
 
-// Hooks that are set non-nil in autocert.go if the "autocert" build tag
-// is used.
-var (
-	certInit    func()
-	runHTTPS    func(http.Handler) error
-	wrapHTTPMux func(http.Handler) http.Handler
-)
+// serveAutoCertHook if non-nil specifies a function to listen on port 443.
+// See autocert.go.
+var serveAutoCertHook func(http.Handler) error

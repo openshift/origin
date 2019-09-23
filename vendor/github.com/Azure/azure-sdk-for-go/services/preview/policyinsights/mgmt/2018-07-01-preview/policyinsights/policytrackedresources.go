@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewPolicyTrackedResourcesClientWithBaseURI(baseURI string) PolicyTrackedRes
 // top - maximum number of records to return.
 // filter - oData filter expression.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForManagementGroup(ctx context.Context, managementGroupName string, top *int32, filter string) (result PolicyTrackedResourcesQueryResultsPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesClient.ListQueryResultsForManagementGroup")
-		defer func() {
-			sc := -1
-			if result.ptrqr.Response.Response != nil {
-				sc = result.ptrqr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -116,8 +105,8 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForManagementGroupPre
 // ListQueryResultsForManagementGroupSender sends the ListQueryResultsForManagementGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForManagementGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListQueryResultsForManagementGroupResponder handles the response to the ListQueryResultsForManagementGroup request. The method always
@@ -134,8 +123,8 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForManagementGroupRes
 }
 
 // listQueryResultsForManagementGroupNextResults retrieves the next set of results, if any.
-func (client PolicyTrackedResourcesClient) listQueryResultsForManagementGroupNextResults(ctx context.Context, lastResults PolicyTrackedResourcesQueryResults) (result PolicyTrackedResourcesQueryResults, err error) {
-	req, err := lastResults.policyTrackedResourcesQueryResultsPreparer(ctx)
+func (client PolicyTrackedResourcesClient) listQueryResultsForManagementGroupNextResults(lastResults PolicyTrackedResourcesQueryResults) (result PolicyTrackedResourcesQueryResults, err error) {
+	req, err := lastResults.policyTrackedResourcesQueryResultsPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.PolicyTrackedResourcesClient", "listQueryResultsForManagementGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -156,16 +145,6 @@ func (client PolicyTrackedResourcesClient) listQueryResultsForManagementGroupNex
 
 // ListQueryResultsForManagementGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForManagementGroupComplete(ctx context.Context, managementGroupName string, top *int32, filter string) (result PolicyTrackedResourcesQueryResultsIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesClient.ListQueryResultsForManagementGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListQueryResultsForManagementGroup(ctx, managementGroupName, top, filter)
 	return
 }
@@ -176,16 +155,6 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForManagementGroupCom
 // top - maximum number of records to return.
 // filter - oData filter expression.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForResource(ctx context.Context, resourceID string, top *int32, filter string) (result PolicyTrackedResourcesQueryResultsPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesClient.ListQueryResultsForResource")
-		defer func() {
-			sc := -1
-			if result.ptrqr.Response.Response != nil {
-				sc = result.ptrqr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -244,8 +213,8 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForResourcePreparer(c
 // ListQueryResultsForResourceSender sends the ListQueryResultsForResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListQueryResultsForResourceResponder handles the response to the ListQueryResultsForResource request. The method always
@@ -262,8 +231,8 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceResponder(
 }
 
 // listQueryResultsForResourceNextResults retrieves the next set of results, if any.
-func (client PolicyTrackedResourcesClient) listQueryResultsForResourceNextResults(ctx context.Context, lastResults PolicyTrackedResourcesQueryResults) (result PolicyTrackedResourcesQueryResults, err error) {
-	req, err := lastResults.policyTrackedResourcesQueryResultsPreparer(ctx)
+func (client PolicyTrackedResourcesClient) listQueryResultsForResourceNextResults(lastResults PolicyTrackedResourcesQueryResults) (result PolicyTrackedResourcesQueryResults, err error) {
+	req, err := lastResults.policyTrackedResourcesQueryResultsPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.PolicyTrackedResourcesClient", "listQueryResultsForResourceNextResults", nil, "Failure preparing next results request")
 	}
@@ -284,16 +253,6 @@ func (client PolicyTrackedResourcesClient) listQueryResultsForResourceNextResult
 
 // ListQueryResultsForResourceComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceComplete(ctx context.Context, resourceID string, top *int32, filter string) (result PolicyTrackedResourcesQueryResultsIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesClient.ListQueryResultsForResource")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListQueryResultsForResource(ctx, resourceID, top, filter)
 	return
 }
@@ -305,16 +264,6 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceComplete(c
 // top - maximum number of records to return.
 // filter - oData filter expression.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceGroup(ctx context.Context, resourceGroupName string, subscriptionID string, top *int32, filter string) (result PolicyTrackedResourcesQueryResultsPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesClient.ListQueryResultsForResourceGroup")
-		defer func() {
-			sc := -1
-			if result.ptrqr.Response.Response != nil {
-				sc = result.ptrqr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -374,8 +323,8 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceGroupPrepa
 // ListQueryResultsForResourceGroupSender sends the ListQueryResultsForResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListQueryResultsForResourceGroupResponder handles the response to the ListQueryResultsForResourceGroup request. The method always
@@ -392,8 +341,8 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceGroupRespo
 }
 
 // listQueryResultsForResourceGroupNextResults retrieves the next set of results, if any.
-func (client PolicyTrackedResourcesClient) listQueryResultsForResourceGroupNextResults(ctx context.Context, lastResults PolicyTrackedResourcesQueryResults) (result PolicyTrackedResourcesQueryResults, err error) {
-	req, err := lastResults.policyTrackedResourcesQueryResultsPreparer(ctx)
+func (client PolicyTrackedResourcesClient) listQueryResultsForResourceGroupNextResults(lastResults PolicyTrackedResourcesQueryResults) (result PolicyTrackedResourcesQueryResults, err error) {
+	req, err := lastResults.policyTrackedResourcesQueryResultsPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.PolicyTrackedResourcesClient", "listQueryResultsForResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -414,16 +363,6 @@ func (client PolicyTrackedResourcesClient) listQueryResultsForResourceGroupNextR
 
 // ListQueryResultsForResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceGroupComplete(ctx context.Context, resourceGroupName string, subscriptionID string, top *int32, filter string) (result PolicyTrackedResourcesQueryResultsIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesClient.ListQueryResultsForResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListQueryResultsForResourceGroup(ctx, resourceGroupName, subscriptionID, top, filter)
 	return
 }
@@ -434,16 +373,6 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForResourceGroupCompl
 // top - maximum number of records to return.
 // filter - oData filter expression.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForSubscription(ctx context.Context, subscriptionID string, top *int32, filter string) (result PolicyTrackedResourcesQueryResultsPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesClient.ListQueryResultsForSubscription")
-		defer func() {
-			sc := -1
-			if result.ptrqr.Response.Response != nil {
-				sc = result.ptrqr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -502,8 +431,8 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForSubscriptionPrepar
 // ListQueryResultsForSubscriptionSender sends the ListQueryResultsForSubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForSubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListQueryResultsForSubscriptionResponder handles the response to the ListQueryResultsForSubscription request. The method always
@@ -520,8 +449,8 @@ func (client PolicyTrackedResourcesClient) ListQueryResultsForSubscriptionRespon
 }
 
 // listQueryResultsForSubscriptionNextResults retrieves the next set of results, if any.
-func (client PolicyTrackedResourcesClient) listQueryResultsForSubscriptionNextResults(ctx context.Context, lastResults PolicyTrackedResourcesQueryResults) (result PolicyTrackedResourcesQueryResults, err error) {
-	req, err := lastResults.policyTrackedResourcesQueryResultsPreparer(ctx)
+func (client PolicyTrackedResourcesClient) listQueryResultsForSubscriptionNextResults(lastResults PolicyTrackedResourcesQueryResults) (result PolicyTrackedResourcesQueryResults, err error) {
+	req, err := lastResults.policyTrackedResourcesQueryResultsPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.PolicyTrackedResourcesClient", "listQueryResultsForSubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -542,16 +471,6 @@ func (client PolicyTrackedResourcesClient) listQueryResultsForSubscriptionNextRe
 
 // ListQueryResultsForSubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PolicyTrackedResourcesClient) ListQueryResultsForSubscriptionComplete(ctx context.Context, subscriptionID string, top *int32, filter string) (result PolicyTrackedResourcesQueryResultsIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesClient.ListQueryResultsForSubscription")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListQueryResultsForSubscription(ctx, subscriptionID, top, filter)
 	return
 }

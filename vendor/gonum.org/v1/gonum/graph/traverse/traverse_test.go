@@ -136,7 +136,7 @@ func TestBreadthFirst(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -144,7 +144,7 @@ func TestBreadthFirst(t *testing.T) {
 			}
 		}
 		w := BreadthFirst{
-			Traverse: test.edge,
+			EdgeFilter: test.edge,
 		}
 		var got [][]int64
 		final := w.Walk(g, test.from, func(n graph.Node, d int) bool {
@@ -224,7 +224,7 @@ func TestDepthFirst(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -232,7 +232,7 @@ func TestDepthFirst(t *testing.T) {
 			}
 		}
 		w := DepthFirst{
-			Traverse: test.edge,
+			EdgeFilter: test.edge,
 		}
 		var got []int64
 		final := w.Walk(g, test.from, func(n graph.Node) bool {
@@ -285,11 +285,11 @@ func TestWalkAll(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 
 		for u, e := range test.g {
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				if g.Node(int64(v)) == nil {
+				if !g.Has(int64(v)) {
 					g.AddNode(simple.Node(v))
 				}
 				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
@@ -308,9 +308,9 @@ func TestWalkAll(t *testing.T) {
 			)
 			switch w := w.(type) {
 			case *BreadthFirst:
-				w.Traverse = test.edge
+				w.EdgeFilter = test.edge
 			case *DepthFirst:
-				w.Traverse = test.edge
+				w.EdgeFilter = test.edge
 			default:
 				panic(fmt.Sprintf("bad walker type: %T", w))
 			}
@@ -371,7 +371,7 @@ func gnpUndirected(n int, p float64) graph.Undirected {
 }
 
 func benchmarkWalkAllBreadthFirst(b *testing.B, g graph.Undirected) {
-	n := g.Nodes().Len()
+	n := len(g.Nodes())
 	b.ResetTimer()
 	var bft BreadthFirst
 	for i := 0; i < b.N; i++ {
@@ -402,7 +402,7 @@ func BenchmarkWalkAllBreadthFirstGnp_1000_half(b *testing.B) {
 }
 
 func benchmarkWalkAllDepthFirst(b *testing.B, g graph.Undirected) {
-	n := g.Nodes().Len()
+	n := len(g.Nodes())
 	b.ResetTimer()
 	var dft DepthFirst
 	for i := 0; i < b.N; i++ {

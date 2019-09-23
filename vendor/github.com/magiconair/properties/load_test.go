@@ -1,4 +1,4 @@
-// Copyright 2018 Frank Schroeder. All rights reserved.
+// Copyright 2016 Frank Schroeder. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -11,166 +11,136 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
-	"testing"
 
-	"github.com/magiconair/properties/assert"
+	. "github.com/magiconair/properties/_third_party/gopkg.in/check.v1"
 )
 
-func TestEncoding(t *testing.T) {
-	if got, want := utf8Default, Encoding(0); got != want {
-		t.Fatalf("got encoding %d want %d", got, want)
-	}
-	if got, want := UTF8, Encoding(1); got != want {
-		t.Fatalf("got encoding %d want %d", got, want)
-	}
-	if got, want := ISO_8859_1, Encoding(2); got != want {
-		t.Fatalf("got encoding %d want %d", got, want)
-	}
+type LoadSuite struct {
+	tempFiles []string
 }
 
-func TestLoadFailsWithNotExistingFile(t *testing.T) {
+var _ = Suite(&LoadSuite{})
+
+func (s *LoadSuite) TestLoadFailsWithNotExistingFile(c *C) {
 	_, err := LoadFile("doesnotexist.properties", ISO_8859_1)
-	assert.Equal(t, err != nil, true, "")
-	assert.Matches(t, err.Error(), "open.*no such file or directory")
+	c.Assert(err, NotNil)
+	c.Assert(err, ErrorMatches, "open.*no such file or directory")
 }
 
-func TestLoadFilesFailsOnNotExistingFile(t *testing.T) {
-	_, err := LoadFile("doesnotexist.properties", ISO_8859_1)
-	assert.Equal(t, err != nil, true, "")
-	assert.Matches(t, err.Error(), "open.*no such file or directory")
+func (s *LoadSuite) TestLoadFilesFailsOnNotExistingFile(c *C) {
+	_, err := LoadFiles([]string{"doesnotexist.properties"}, ISO_8859_1, false)
+	c.Assert(err, NotNil)
+	c.Assert(err, ErrorMatches, "open.*no such file or directory")
 }
 
-func TestLoadFilesDoesNotFailOnNotExistingFileAndIgnoreMissing(t *testing.T) {
+func (s *LoadSuite) TestLoadFilesDoesNotFailOnNotExistingFileAndIgnoreMissing(c *C) {
 	p, err := LoadFiles([]string{"doesnotexist.properties"}, ISO_8859_1, true)
-	assert.Equal(t, err, nil)
-	assert.Equal(t, p.Len(), 0)
+	c.Assert(err, IsNil)
+	c.Assert(p.Len(), Equals, 0)
 }
 
-func TestLoadString(t *testing.T) {
+func (s *LoadSuite) TestLoadString(c *C) {
 	x := "key=äüö"
 	p1 := MustLoadString(x)
 	p2 := must(Load([]byte(x), UTF8))
-	assert.Equal(t, p1, p2)
+	c.Assert(p1, DeepEquals, p2)
 }
 
-func TestLoadMap(t *testing.T) {
-	// LoadMap does not guarantee the same import order
-	// of keys every time since map access is randomized.
-	// Therefore, we need to compare the generated maps.
-	m := map[string]string{"key": "value", "abc": "def"}
-	assert.Equal(t, LoadMap(m).Map(), m)
-}
-
-func TestLoadFile(t *testing.T) {
-	tf := make(tempFiles, 0)
-	defer tf.removeAll()
-
-	filename := tf.makeFile("key=value")
+func (s *LoadSuite) TestLoadFile(c *C) {
+	filename := s.makeFile(c, "key=value")
 	p := MustLoadFile(filename, ISO_8859_1)
 
-	assert.Equal(t, p.Len(), 1)
-	assertKeyValues(t, "", p, "key", "value")
+	c.Assert(p.Len(), Equals, 1)
+	assertKeyValues(c, "", p, "key", "value")
 }
 
-func TestLoadFiles(t *testing.T) {
-	tf := make(tempFiles, 0)
-	defer tf.removeAll()
-
-	filename := tf.makeFile("key=value")
-	filename2 := tf.makeFile("key2=value2")
+func (s *LoadSuite) TestLoadFiles(c *C) {
+	filename := s.makeFile(c, "key=value")
+	filename2 := s.makeFile(c, "key2=value2")
 	p := MustLoadFiles([]string{filename, filename2}, ISO_8859_1, false)
-	assertKeyValues(t, "", p, "key", "value", "key2", "value2")
+	assertKeyValues(c, "", p, "key", "value", "key2", "value2")
 }
 
-func TestLoadExpandedFile(t *testing.T) {
-	tf := make(tempFiles, 0)
-	defer tf.removeAll()
-
-	if err := os.Setenv("_VARX", "some-value"); err != nil {
-		t.Fatal(err)
-	}
-	filename := tf.makeFilePrefix(os.Getenv("_VARX"), "key=value")
+func (s *LoadSuite) TestLoadExpandedFile(c *C) {
+	os.Setenv("_VARX", "some-value")
+	filename := s.makeFilePrefix(c, os.Getenv("_VARX"), "key=value")
 	filename = strings.Replace(filename, os.Getenv("_VARX"), "${_VARX}", -1)
 	p := MustLoadFile(filename, ISO_8859_1)
-	assertKeyValues(t, "", p, "key", "value")
+	assertKeyValues(c, "", p, "key", "value")
 }
 
-func TestLoadFilesAndIgnoreMissing(t *testing.T) {
-	tf := make(tempFiles, 0)
-	defer tf.removeAll()
-
-	filename := tf.makeFile("key=value")
-	filename2 := tf.makeFile("key2=value2")
+func (s *LoadSuite) TestLoadFilesAndIgnoreMissing(c *C) {
+	filename := s.makeFile(c, "key=value")
+	filename2 := s.makeFile(c, "key2=value2")
 	p := MustLoadFiles([]string{filename, filename + "foo", filename2, filename2 + "foo"}, ISO_8859_1, true)
-	assertKeyValues(t, "", p, "key", "value", "key2", "value2")
+	assertKeyValues(c, "", p, "key", "value", "key2", "value2")
 }
 
-func TestLoadURL(t *testing.T) {
+func (s *LoadSuite) TestLoadURL(c *C) {
 	srv := testServer()
 	defer srv.Close()
 	p := MustLoadURL(srv.URL + "/a")
-	assertKeyValues(t, "", p, "key", "value")
+	assertKeyValues(c, "", p, "key", "value")
 }
 
-func TestLoadURLs(t *testing.T) {
+func (s *LoadSuite) TestLoadURLs(c *C) {
 	srv := testServer()
 	defer srv.Close()
 	p := MustLoadURLs([]string{srv.URL + "/a", srv.URL + "/b"}, false)
-	assertKeyValues(t, "", p, "key", "value", "key2", "value2")
+	assertKeyValues(c, "", p, "key", "value", "key2", "value2")
 }
 
-func TestLoadURLsAndFailMissing(t *testing.T) {
+func (s *LoadSuite) TestLoadURLsAndFailMissing(c *C) {
 	srv := testServer()
 	defer srv.Close()
 	p, err := LoadURLs([]string{srv.URL + "/a", srv.URL + "/c"}, false)
-	assert.Equal(t, p, (*Properties)(nil))
-	assert.Matches(t, err.Error(), ".*returned 404.*")
+	c.Assert(p, IsNil)
+	c.Assert(err, ErrorMatches, ".*returned 404.*")
 }
 
-func TestLoadURLsAndIgnoreMissing(t *testing.T) {
+func (s *LoadSuite) TestLoadURLsAndIgnoreMissing(c *C) {
 	srv := testServer()
 	defer srv.Close()
 	p := MustLoadURLs([]string{srv.URL + "/a", srv.URL + "/b", srv.URL + "/c"}, true)
-	assertKeyValues(t, "", p, "key", "value", "key2", "value2")
+	assertKeyValues(c, "", p, "key", "value", "key2", "value2")
 }
 
-func TestLoadURLEncoding(t *testing.T) {
+func (s *LoadSuite) TestLoadURLEncoding(c *C) {
 	srv := testServer()
 	defer srv.Close()
 
 	uris := []string{"/none", "/utf8", "/plain", "/latin1", "/iso88591"}
 	for i, uri := range uris {
 		p := MustLoadURL(srv.URL + uri)
-		assert.Equal(t, p.GetString("key", ""), "äöü", fmt.Sprintf("%d", i))
+		c.Assert(p.GetString("key", ""), Equals, "äöü", Commentf("%d", i))
 	}
 }
 
-func TestLoadURLFailInvalidEncoding(t *testing.T) {
+func (s *LoadSuite) TestLoadURLFailInvalidEncoding(c *C) {
 	srv := testServer()
 	defer srv.Close()
 
 	p, err := LoadURL(srv.URL + "/json")
-	assert.Equal(t, p, (*Properties)(nil))
-	assert.Matches(t, err.Error(), ".*invalid content type.*")
+	c.Assert(p, IsNil)
+	c.Assert(err, ErrorMatches, ".*invalid content type.*")
 }
 
-func TestLoadAll(t *testing.T) {
-	tf := make(tempFiles, 0)
-	defer tf.removeAll()
-
-	filename := tf.makeFile("key=value")
-	filename2 := tf.makeFile("key2=value3")
-	filename3 := tf.makeFile("key=value4")
+func (s *LoadSuite) TestLoadAll(c *C) {
+	filename := s.makeFile(c, "key=value")
+	filename2 := s.makeFile(c, "key2=value3")
+	filename3 := s.makeFile(c, "key=value4")
 	srv := testServer()
 	defer srv.Close()
 	p := MustLoadAll([]string{filename, filename2, srv.URL + "/a", srv.URL + "/b", filename3}, UTF8, false)
-	assertKeyValues(t, "", p, "key", "value4", "key2", "value2")
+	assertKeyValues(c, "", p, "key", "value4", "key2", "value2")
 }
 
-type tempFiles []string
+func (s *LoadSuite) SetUpSuite(c *C) {
+	s.tempFiles = make([]string, 0)
+}
 
-func (tf *tempFiles) removeAll() {
-	for _, path := range *tf {
+func (s *LoadSuite) TearDownSuite(c *C) {
+	for _, path := range s.tempFiles {
 		err := os.Remove(path)
 		if err != nil {
 			fmt.Printf("os.Remove: %v", err)
@@ -178,30 +148,34 @@ func (tf *tempFiles) removeAll() {
 	}
 }
 
-func (tf *tempFiles) makeFile(data string) string {
-	return tf.makeFilePrefix("properties", data)
+func (s *LoadSuite) makeFile(c *C, data string) string {
+	return s.makeFilePrefix(c, "properties", data)
 }
 
-func (tf *tempFiles) makeFilePrefix(prefix, data string) string {
+func (s *LoadSuite) makeFilePrefix(c *C, prefix, data string) string {
 	f, err := ioutil.TempFile("", prefix)
 	if err != nil {
-		panic("ioutil.TempFile: " + err.Error())
+		fmt.Printf("ioutil.TempFile: %v", err)
+		c.FailNow()
 	}
 
 	// remember the temp file so that we can remove it later
-	*tf = append(*tf, f.Name())
+	s.tempFiles = append(s.tempFiles, f.Name())
 
 	n, err := fmt.Fprint(f, data)
 	if err != nil {
-		panic("fmt.Fprintln: " + err.Error())
+		fmt.Printf("fmt.Fprintln: %v", err)
+		c.FailNow()
 	}
 	if n != len(data) {
-		panic(fmt.Sprintf("Data size mismatch. expected=%d wrote=%d\n", len(data), n))
+		fmt.Printf("Data size mismatch. expected=%d wrote=%d\n", len(data), n)
+		c.FailNow()
 	}
 
 	err = f.Close()
 	if err != nil {
-		panic("f.Close: " + err.Error())
+		fmt.Printf("f.Close: %v", err)
+		c.FailNow()
 	}
 
 	return f.Name()
@@ -211,9 +185,7 @@ func testServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		send := func(data []byte, contentType string) {
 			w.Header().Set("Content-Type", contentType)
-			if _, err := w.Write(data); err != nil {
-				panic(err)
-			}
+			w.Write(data)
 		}
 
 		utf8 := []byte("key=äöü")

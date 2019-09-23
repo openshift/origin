@@ -19,7 +19,7 @@ test_shellcheck() {
 	fi
 }
 
-SHELLCHECK="$(command -v shellcheck 2>/dev/null)"
+SHELLCHECK="$(which shellcheck 2>/dev/null)"
 
 SCRIPT_DIR="$(cd "$(dirname "${0}")" && pwd)"
 

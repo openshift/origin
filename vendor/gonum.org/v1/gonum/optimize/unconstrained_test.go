@@ -1160,34 +1160,20 @@ func testLocal(t *testing.T, tests []unconstrainedTest, method Method) {
 			continue
 		}
 
-		settings := &Settings{}
-		settings.Converger = defaultFunctionConverge()
-		var uses Available
-		if method != nil {
-			var err error
-			has := availFromProblem(test.p)
-			uses, err = method.Uses(has)
-			if err != nil {
-				t.Errorf("problem and method mismatch: %v", err)
-				continue
-			}
-		}
-		if method != nil {
+		settings := DefaultSettingsLocal()
+		settings.Recorder = nil
+		if method != nil && method.Needs().Gradient {
 			// Turn off function convergence checks for gradient-based methods.
-			if uses.Grad {
-				settings.Converger = NeverTerminate{}
-			}
+			settings.FunctionConverge = nil
 		} else {
 			if test.fIter == 0 {
 				test.fIter = 20
 			}
-			c := settings.Converger.(*FunctionConverge)
-			c.Iterations = test.fIter
+			settings.FunctionConverge.Iterations = test.fIter
 			if test.fAbsTol == 0 {
 				test.fAbsTol = 1e-12
 			}
-			c.Absolute = test.fAbsTol
-			settings.Converger = c
+			settings.FunctionConverge.Absolute = test.fAbsTol
 		}
 		if test.gradTol == 0 {
 			test.gradTol = 1e-12
@@ -1234,7 +1220,7 @@ func testLocal(t *testing.T, tests []unconstrainedTest, method Method) {
 			continue
 		}
 
-		if !uses.Grad && !uses.Hess {
+		if !method.Needs().Gradient && !method.Needs().Hessian {
 			// Gradient-free tests can correctly terminate only with
 			// FunctionConvergence status.
 			if result.Status != FunctionConvergence {
@@ -1246,11 +1232,11 @@ func testLocal(t *testing.T, tests []unconstrainedTest, method Method) {
 		// evaluate them.
 		settings.InitValues = &Location{}
 		settings.InitValues.F = test.p.Func(test.x)
-		if uses.Grad {
+		if method.Needs().Gradient {
 			settings.InitValues.Gradient = resize(settings.InitValues.Gradient, len(test.x))
 			test.p.Grad(settings.InitValues.Gradient, test.x)
 		}
-		if uses.Hess {
+		if method.Needs().Hessian {
 			settings.InitValues.Hessian = mat.NewSymDense(len(test.x), nil)
 			test.p.Hess(settings.InitValues.Hessian, test.x)
 		}
@@ -1278,13 +1264,13 @@ func testLocal(t *testing.T, tests []unconstrainedTest, method Method) {
 			t.Errorf("Providing initial data does not reduce the number of Func calls for:\n%v", test)
 			continue
 		}
-		if uses.Grad {
+		if method.Needs().Gradient {
 			if result.GradEvaluations != result2.GradEvaluations+1 {
 				t.Errorf("Providing initial data does not reduce the number of Grad calls for:\n%v", test)
 				continue
 			}
 		}
-		if uses.Hess {
+		if method.Needs().Hessian {
 			if result.HessEvaluations != result2.HessEvaluations+1 {
 				t.Errorf("Providing initial data does not reduce the number of Hess calls for:\n%v", test)
 				continue
@@ -1301,11 +1287,12 @@ func TestIssue76(t *testing.T) {
 	// Location very close to the minimum.
 	x := []float64{-11.594439904886773, 13.203630051265385, -0.40343948776868443, 0.2367787746745986}
 	s := &Settings{
-		MajorIterations: 1000000,
+		FunctionThreshold: math.Inf(-1),
+		GradientThreshold: 1e-14,
+		MajorIterations:   1000000,
 	}
 	m := &GradientDescent{
-		GradStopThreshold: 1e-14,
-		Linesearcher:      &Backtracking{},
+		Linesearcher: &Backtracking{},
 	}
 	// We are not interested in the error, only in the returned status.
 	r, _ := Minimize(p, x, s, m)
@@ -1323,7 +1310,7 @@ func TestNelderMeadOneD(t *testing.T) {
 	}
 	x := []float64{10}
 	m := &NelderMead{}
-	var s *Settings
+	s := DefaultSettingsLocal()
 	result, err := Minimize(p, x, s, m)
 	if err != nil {
 		t.Errorf(err.Error())

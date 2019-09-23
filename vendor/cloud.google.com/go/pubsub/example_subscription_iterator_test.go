@@ -1,4 +1,4 @@
-// Copyright 2016 Google LLC
+// Copyright 2016 Google Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,25 +15,13 @@
 package pubsub_test
 
 import (
-	"context"
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
-	"google.golang.org/api/iterator"
+	"golang.org/x/net/context"
 )
 
-func ExampleClient_Subscriptions() {
-	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "project-id")
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// List all subscriptions of the project.
-	it := client.Subscriptions(ctx)
-	_ = it // TODO: iterate using Next.
-}
-
-func ExampleSubscriptionIterator_Next() {
+func ExampleSubscriptionIterator() {
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, "project-id")
 	if err != nil {
@@ -43,12 +31,12 @@ func ExampleSubscriptionIterator_Next() {
 	it := client.Subscriptions(ctx)
 	for {
 		sub, err := it.Next()
-		if err == iterator.Done {
+		if err == pubsub.Done {
 			break
 		}
 		if err != nil {
 			// TODO: Handle error.
 		}
-		fmt.Println(sub)
+		fmt.Println(sub.Name())
 	}
 }

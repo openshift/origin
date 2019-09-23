@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/spf13/pflag"
+
 	cliflag "k8s.io/component-base/cli/flag"
 )
 
@@ -57,7 +58,7 @@ func TestAddGlobalFlags(t *testing.T) {
 	}{
 		{
 			// Happy case
-			expectedFlag:  []string{"add-dir-header", "alsologtostderr", "help", "log-backtrace-at", "log-dir", "log-file", "log-file-max-size", "log-flush-frequency", "logtostderr", "skip-headers", "skip-log-headers", "stderrthreshold", "v", "vmodule"},
+			expectedFlag:  []string{"alsologtostderr", "help", "log-backtrace-at", "log-dir", "log-file", "log-flush-frequency", "logtostderr", "skip-headers", "stderrthreshold", "v", "vmodule"},
 			matchExpected: false,
 		},
 		{

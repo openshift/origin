@@ -166,6 +166,8 @@ type WebhookClientConfig struct {
 	//
 	// If the webhook is running within the cluster, then you should use `service`.
 	//
+	// Port 443 will be used if it is open, otherwise it is an error.
+	//
 	// +optional
 	Service *ServiceReference `json:"service,omitempty" protobuf:"bytes,2,opt,name=service"`
 
@@ -189,10 +191,4 @@ type ServiceReference struct {
 	// this service.
 	// +optional
 	Path *string `json:"path,omitempty" protobuf:"bytes,3,opt,name=path"`
-
-	// If specified, the port on the service that hosting webhook.
-	// Default to 443 for backward compatibility.
-	// `port` should be a valid port number (1-65535, inclusive).
-	// +optional
-	Port *int32 `json:"port,omitempty" protobuf:"varint,4,opt,name=port"`
 }

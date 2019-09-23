@@ -1,5 +1,3 @@
-// +build !providerless
-
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -24,12 +22,12 @@ import (
 
 	"k8s.io/klog"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
-	"k8s.io/legacy-cloud-providers/aws"
 )
 
 func TestGetVolumeName_Volume(t *testing.T) {
@@ -205,6 +203,13 @@ type detachCall struct {
 	nodeName      types.NodeName
 	retDeviceName string
 	ret           error
+}
+
+type diskIsAttachedCall struct {
+	diskName   aws.KubernetesVolumeID
+	nodeName   types.NodeName
+	isAttached bool
+	ret        error
 }
 
 func (testcase *testcase) AttachDisk(diskName aws.KubernetesVolumeID, nodeName types.NodeName) (string, error) {

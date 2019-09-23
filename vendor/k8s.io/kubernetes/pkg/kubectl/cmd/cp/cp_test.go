@@ -39,9 +39,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest/fake"
-	kexec "k8s.io/kubectl/pkg/cmd/exec"
-	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"
-	"k8s.io/kubectl/pkg/scheme"
+	kexec "k8s.io/kubernetes/pkg/kubectl/cmd/exec"
+	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 type FileType int
@@ -302,13 +302,11 @@ func TestTarUntar(t *testing.T) {
 		{
 			name:     "gakki",
 			data:     "tmp/gakki",
-			omitted:  true,
 			fileType: SymLink,
 		},
 		{
 			name:     "relative_to_dest",
 			data:     path.Join(dir2, "foo"),
-			omitted:  true,
 			fileType: SymLink,
 		},
 		{
@@ -360,7 +358,7 @@ func TestTarUntar(t *testing.T) {
 	}
 
 	reader := bytes.NewBuffer(writer.Bytes())
-	if err := opts.untarAll(fileSpec{}, reader, dir2, ""); err != nil {
+	if err := opts.untarAll(reader, dir2, ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -421,7 +419,7 @@ func TestTarUntarWrongPrefix(t *testing.T) {
 	}
 
 	reader := bytes.NewBuffer(writer.Bytes())
-	err = opts.untarAll(fileSpec{}, reader, dir2, "verylongprefix-showing-the-tar-was-tempered-with")
+	err = opts.untarAll(reader, dir2, "verylongprefix-showing-the-tar-was-tempered-with")
 	if err == nil || !strings.Contains(err.Error(), "tar contents corrupted") {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -536,7 +534,7 @@ func TestBadTar(t *testing.T) {
 	}
 
 	opts := NewCopyOptions(genericclioptions.NewTestIOStreamsDiscard())
-	if err := opts.untarAll(fileSpec{}, &buf, dir, "/prefix"); err != nil {
+	if err := opts.untarAll(&buf, dir, "/prefix"); err != nil {
 		t.Errorf("unexpected error: %v ", err)
 		t.FailNow()
 	}
@@ -547,12 +545,6 @@ func TestBadTar(t *testing.T) {
 			t.Errorf("Error finding file: %v", err)
 		}
 	}
-}
-
-// clean prevents path traversals by stripping them out.
-// This is adapted from https://golang.org/src/net/http/fs.go#L74
-func clean(fileName string) string {
-	return path.Clean(string(os.PathSeparator) + fileName)
 }
 
 func TestClean(t *testing.T) {
@@ -679,11 +671,11 @@ func TestCopyToPodNoPreserve(t *testing.T) {
 		nopreserve  bool
 	}{
 		"copy to pod no preserve user and permissions": {
-			expectedCmd: []string{"tar", "--no-same-permissions", "--no-same-owner", "-xmf", "-", "-C", "."},
+			expectedCmd: []string{"tar", "--no-same-permissions", "--no-same-owner", "-xf", "-", "-C", "."},
 			nopreserve:  true,
 		},
 		"copy to pod preserve user and permissions": {
-			expectedCmd: []string{"tar", "-xmf", "-", "-C", "."},
+			expectedCmd: []string{"tar", "-xf", "-", "-C", "."},
 			nopreserve:  false,
 		},
 	}
@@ -782,20 +774,35 @@ func TestUntar(t *testing.T) {
 		expected: "",
 	}}
 
+	mkExpectation := func(expected, suffix string) string {
+		if expected == "" {
+			return ""
+		}
+		return expected + suffix
+	}
+	mkBacklinkExpectation := func(expected, suffix string) string {
+		// "resolve" the back link relative to the expectation
+		targetDir := filepath.Dir(filepath.Dir(expected))
+		// If the "resolved" target is not nested in basedir, it is escaping.
+		if !filepath.HasPrefix(targetDir, basedir) {
+			return ""
+		}
+		return expected + suffix
+	}
 	links := []file{}
 	for _, f := range files {
 		links = append(links, file{
 			path:       f.path + "-innerlink",
 			linkTarget: "link-target",
-			expected:   "",
+			expected:   mkExpectation(f.expected, "-innerlink"),
 		}, file{
 			path:       f.path + "-innerlink-abs",
 			linkTarget: filepath.Join(basedir, "link-target"),
-			expected:   "",
+			expected:   mkExpectation(f.expected, "-innerlink-abs"),
 		}, file{
 			path:       f.path + "-backlink",
 			linkTarget: filepath.Join("..", "link-target"),
-			expected:   "",
+			expected:   mkBacklinkExpectation(f.expected, "-backlink"),
 		}, file{
 			path:       f.path + "-outerlink-abs",
 			linkTarget: filepath.Join(testdir, "link-target"),
@@ -819,7 +826,7 @@ func TestUntar(t *testing.T) {
 		file{
 			path:       "nested/again/back-link",
 			linkTarget: "../../nested",
-			expected:   "",
+			expected:   filepath.Join(basedir, "nested/again/back-link"),
 		},
 		file{
 			path:     "nested/again/back-link/../../../back-link-file",
@@ -831,7 +838,7 @@ func TestUntar(t *testing.T) {
 		file{
 			path:       "nested/back-link-first",
 			linkTarget: "../",
-			expected:   "",
+			expected:   filepath.Join(basedir, "nested/back-link-first"),
 		},
 		file{
 			path:       "nested/back-link-first/back-link-second",
@@ -879,7 +886,7 @@ func TestUntar(t *testing.T) {
 	output := (*testWriter)(t)
 	opts := NewCopyOptions(genericclioptions.IOStreams{In: &bytes.Buffer{}, Out: output, ErrOut: output})
 
-	require.NoError(t, opts.untarAll(fileSpec{}, buf, filepath.Join(basedir), ""))
+	require.NoError(t, opts.untarAll(buf, filepath.Join(basedir), ""))
 
 	filepath.Walk(testdir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -930,7 +937,7 @@ func TestUntar_SingleFile(t *testing.T) {
 	output := (*testWriter)(t)
 	opts := NewCopyOptions(genericclioptions.IOStreams{In: &bytes.Buffer{}, Out: output, ErrOut: output})
 
-	require.NoError(t, opts.untarAll(fileSpec{}, buf, filepath.Join(dest), srcName))
+	require.NoError(t, opts.untarAll(buf, filepath.Join(dest), srcName))
 	cmpFileData(t, dest, content)
 }
 

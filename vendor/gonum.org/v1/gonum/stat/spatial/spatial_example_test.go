@@ -103,7 +103,7 @@ func ExampleGetisOrdGStar() {
 	// v=0 G*i=-1.225
 }
 
-func ExampleGetisOrdGStar_banded() {
+func ExampleGetisOrd_band() {
 	data := []float64{0, 0, 0, 1, 1, 1, 0, 1, 0, 0}
 
 	// The locality here describes spatial neighbor

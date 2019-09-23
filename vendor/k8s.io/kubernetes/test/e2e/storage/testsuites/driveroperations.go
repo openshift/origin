@@ -22,8 +22,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apiserver/pkg/storage/names"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
+	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
 )
 
@@ -49,7 +48,7 @@ func CreateVolume(driver TestDriver, config *PerTestConfig, volType testpatterns
 	case testpatterns.DynamicPV:
 		// No need to create volume
 	default:
-		e2elog.Failf("Invalid volType specified: %v", volType)
+		framework.Failf("Invalid volType specified: %v", volType)
 	}
 	return nil
 }
@@ -72,8 +71,8 @@ func GetStorageClass(
 			Kind: "StorageClass",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			// Name must be unique, so let's base it on namespace name and use GenerateName
-			Name: names.SimpleNameGenerator.GenerateName(ns + "-" + suffix),
+			// Name must be unique, so let's base it on namespace name
+			Name: ns + "-" + suffix,
 		},
 		Provisioner:       provisioner,
 		Parameters:        parameters,

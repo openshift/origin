@@ -76,7 +76,7 @@ func StartRealMasterOrDie(t *testing.T, configFuncs ...func(*options.ServerRunOp
 	kubeAPIServerOptions.SecureServing.ServerCert.CertDirectory = certDir
 	kubeAPIServerOptions.Etcd.StorageConfig.Transport.ServerList = []string{framework.GetEtcdURL()}
 	kubeAPIServerOptions.Etcd.DefaultStorageMediaType = runtime.ContentTypeJSON // force json we can easily interpret the result in etcd
-	kubeAPIServerOptions.ServiceClusterIPRanges = defaultServiceClusterIPRange.String()
+	kubeAPIServerOptions.ServiceClusterIPRange = *defaultServiceClusterIPRange
 	kubeAPIServerOptions.Authorization.Modes = []string{"RBAC"}
 	kubeAPIServerOptions.Admission.GenericAdmission.DisablePlugins = []string{"ServiceAccount"}
 	kubeAPIServerOptions.APIEnablement.RuntimeConfig["api/all"] = "true"
@@ -117,7 +117,7 @@ func StartRealMasterOrDie(t *testing.T, configFuncs ...func(*options.ServerRunOp
 		t.Fatal(err)
 	}
 
-	kubeClientConfig := restclient.CopyConfig(kubeAPIServer.GenericAPIServer.LoopbackClientConfig)
+	kubeClientConfig := restclient.CopyConfig(kubeAPIServer.LoopbackClientConfig)
 
 	// we make lots of requests, don't be slow
 	kubeClientConfig.QPS = 99999
@@ -133,29 +133,19 @@ func StartRealMasterOrDie(t *testing.T, configFuncs ...func(*options.ServerRunOp
 			}
 		}()
 
-		prepared, err := kubeAPIServer.PrepareRun()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := prepared.Run(stopCh); err != nil {
+		if err := kubeAPIServer.PrepareRun().Run(stopCh); err != nil {
 			t.Fatal(err)
 		}
 	}()
 
 	lastHealth := ""
-	attempt := 0
 	if err := wait.PollImmediate(time.Second, time.Minute, func() (done bool, err error) {
 		// wait for the server to be healthy
 		result := kubeClient.RESTClient().Get().AbsPath("/healthz").Do()
 		content, _ := result.Raw()
 		lastHealth = string(content)
 		if errResult := result.Error(); errResult != nil {
-			attempt++
-			if attempt < 10 {
-				t.Log("waiting for server to be healthy")
-			} else {
-				t.Log(errResult)
-			}
+			t.Log(errResult)
 			return false, nil
 		}
 		var status int

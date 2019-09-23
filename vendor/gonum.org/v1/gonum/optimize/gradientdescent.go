@@ -6,11 +6,6 @@ package optimize
 
 import "gonum.org/v1/gonum/floats"
 
-var (
-	_ Method      = (*GradientDescent)(nil)
-	_ localMethod = (*GradientDescent)(nil)
-)
-
 // GradientDescent implements the steepest descent optimization method that
 // performs successive steps along the direction of the negative gradient.
 type GradientDescent struct {
@@ -20,10 +15,6 @@ type GradientDescent struct {
 	// StepSizer determines the initial step size along each direction.
 	// If StepSizer is nil, a reasonable default will be chosen.
 	StepSizer StepSizer
-	// GradStopThreshold sets the threshold for stopping if the gradient norm
-	// gets too small. If GradStopThreshold is 0 it is defaulted to 1e-12, and
-	// if it is NaN the setting is not used.
-	GradStopThreshold float64
 
 	ls *LinesearchMethod
 
@@ -35,10 +26,6 @@ func (g *GradientDescent) Status() (Status, error) {
 	return g.status, g.err
 }
 
-func (*GradientDescent) Uses(has Available) (uses Available, err error) {
-	return has.gradient()
-}
-
 func (g *GradientDescent) Init(dim, tasks int) int {
 	g.status = NotTerminated
 	g.err = nil
@@ -46,7 +33,7 @@ func (g *GradientDescent) Init(dim, tasks int) int {
 }
 
 func (g *GradientDescent) Run(operation chan<- Task, result <-chan Task, tasks []Task) {
-	g.status, g.err = localOptimizer{}.run(g, g.GradStopThreshold, operation, result, tasks)
+	g.status, g.err = localOptimizer{}.run(g, operation, result, tasks)
 	close(operation)
 	return
 }
@@ -84,7 +71,7 @@ func (g *GradientDescent) NextDirection(loc *Location, dir []float64) (stepSize 
 	return g.StepSizer.StepSize(loc, dir)
 }
 
-func (*GradientDescent) needs() struct {
+func (*GradientDescent) Needs() struct {
 	Gradient bool
 	Hessian  bool
 } {

@@ -11,6 +11,7 @@ spec:
       labels:
         app: csi-hostpathplugin
     spec:
+      serviceAccountName: csi-node-sa
       hostNetwork: true
       containers:
         - name: driver-registrar

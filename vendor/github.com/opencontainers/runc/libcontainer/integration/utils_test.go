@@ -19,10 +19,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
-func ptrInt(v int) *int {
-	return &v
-}
-
 func newStdBuffers() *stdBuffers {
 	return &stdBuffers{
 		Stdin:  bytes.NewBuffer(nil),
@@ -77,7 +73,6 @@ func newTestRoot() (string, error) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return "", err
 	}
-	testRoots = append(testRoots, dir)
 	return dir, nil
 }
 
@@ -128,20 +123,9 @@ func newContainer(config *configs.Config) (libcontainer.Container, error) {
 }
 
 func newContainerWithName(name string, config *configs.Config) (libcontainer.Container, error) {
-	root, err := newTestRoot()
-	if err != nil {
-		return nil, err
-	}
-
-	f, err := libcontainer.New(root, libcontainer.Cgroupfs)
-	if err != nil {
-		return nil, err
-	}
+	f := factory
 	if config.Cgroups != nil && config.Cgroups.Parent == "system.slice" {
-		f, err = libcontainer.New(root, libcontainer.SystemdCgroups)
-		if err != nil {
-			return nil, err
-		}
+		f = systemdFactory
 	}
 	return f.Create(name, config)
 }
@@ -164,7 +148,6 @@ func runContainer(config *configs.Config, console string, args ...string) (buffe
 		Stdin:  buffers.Stdin,
 		Stdout: buffers.Stdout,
 		Stderr: buffers.Stderr,
-		Init:   true,
 	}
 
 	err = container.Run(process)

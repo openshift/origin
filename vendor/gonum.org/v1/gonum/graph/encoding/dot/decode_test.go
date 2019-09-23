@@ -10,7 +10,6 @@ import (
 
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/encoding"
-	"gonum.org/v1/gonum/graph/multi"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
@@ -43,14 +42,6 @@ func TestRoundTrip(t *testing.T) {
 			want:     undirectedWithPorts,
 			directed: false,
 		},
-		{
-			want:     directedAttrs,
-			directed: true,
-		},
-		{
-			want:     undirectedAttrs,
-			directed: false,
-		},
 	}
 	for i, g := range golden {
 		var dst encoding.Builder
@@ -64,7 +55,7 @@ func TestRoundTrip(t *testing.T) {
 			t.Errorf("i=%d: unable to unmarshal DOT graph; %v", i, err)
 			continue
 		}
-		buf, err := Marshal(dst, "", "", "\t")
+		buf, err := Marshal(dst, "", "", "\t", false)
 		if err != nil {
 			t.Errorf("i=%d: unable to marshal graph; %v", i, dst)
 			continue
@@ -77,7 +68,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
-const directed = `strict digraph {
+const directed = `digraph {
 	graph [
 		outputorder=edgesfirst
 	];
@@ -98,7 +89,7 @@ const directed = `strict digraph {
 	A -> B [label="baz 2"];
 }`
 
-const undirected = `strict graph {
+const undirected = `graph {
 	graph [
 		outputorder=edgesfirst
 	];
@@ -119,7 +110,7 @@ const undirected = `strict graph {
 	A -- B [label="baz 2"];
 }`
 
-const directedID = `strict digraph G {
+const directedID = `digraph G {
 	// Node definitions.
 	A;
 	B;
@@ -128,7 +119,7 @@ const directedID = `strict digraph G {
 	A -> B;
 }`
 
-const undirectedID = `strict graph H {
+const undirectedID = `graph H {
 	// Node definitions.
 	A;
 	B;
@@ -137,7 +128,7 @@ const undirectedID = `strict graph H {
 	A -- B;
 }`
 
-const directedWithPorts = `strict digraph {
+const directedWithPorts = `digraph {
 	// Node definitions.
 	A;
 	B;
@@ -155,7 +146,7 @@ const directedWithPorts = `strict digraph {
 	E:_ -> F:c;
 }`
 
-const undirectedWithPorts = `strict graph {
+const undirectedWithPorts = `graph {
 	// Node definitions.
 	A;
 	B;
@@ -171,46 +162,6 @@ const undirectedWithPorts = `strict graph {
 	D:foo:n -- E:bar:s;
 	D:e -- F:bar:w;
 	E:_ -- F:c;
-}`
-
-const directedAttrs = `strict digraph {
-	node [
-		shape=circle
-		style=filled
-		label="NODE"
-	];
-	edge [
-		penwidth=5
-		color=gray
-		label=3.14
-	];
-
-	// Node definitions.
-	A [label=<br>];
-	B [label=-14];
-
-	// Edge definitions.
-	A -> B [label="hello world"];
-}`
-
-const undirectedAttrs = `strict graph {
-	node [
-		shape=circle
-		style=filled
-		label="NODE"
-	];
-	edge [
-		penwidth=5
-		color=gray
-		label=3.14
-	];
-
-	// Node definitions.
-	A [label=<br>];
-	B [label=-14];
-
-	// Edge definitions.
-	A -- B [label="hello world"];
 }`
 
 func TestChainedEdgeAttributes(t *testing.T) {
@@ -241,7 +192,7 @@ func TestChainedEdgeAttributes(t *testing.T) {
 			t.Errorf("i=%d: unable to unmarshal DOT graph; %v", i, err)
 			continue
 		}
-		buf, err := Marshal(dst, "", "", "\t")
+		buf, err := Marshal(dst, "", "", "\t", false)
 		if err != nil {
 			t.Errorf("i=%d: unable to marshal graph; %v", i, dst)
 			continue
@@ -254,7 +205,7 @@ func TestChainedEdgeAttributes(t *testing.T) {
 	}
 }
 
-const directedChained = `strict digraph {
+const directedChained = `digraph {
 	graph [
 		outputorder=edgesfirst
 	];
@@ -275,7 +226,7 @@ const directedChained = `strict digraph {
 	A -> B -> A [label="baz 2"];
 }`
 
-const directedNonchained = `strict digraph {
+const directedNonchained = `digraph {
 	graph [
 		outputorder=edgesfirst
 	];
@@ -319,7 +270,7 @@ const undirectedChained = `graph {
 	A -- B -- C [label="baz 2"];
 }`
 
-const undirectedNonchained = `strict graph {
+const undirectedNonchained = `graph {
 	graph [
 		outputorder=edgesfirst
 	];
@@ -340,107 +291,6 @@ const undirectedNonchained = `strict graph {
 	// Edge definitions.
 	A -- B [label="baz 2"];
 	B -- C [label="baz 2"];
-}`
-
-func TestMultigraphDecoding(t *testing.T) {
-	for i, test := range []struct {
-		directed bool
-		input    string
-		expected string
-	}{
-		{
-			directed: true,
-			input:    directedMultigraph,
-			expected: directedMultigraph,
-		},
-		{
-			directed: false,
-			input:    undirectedMultigraph,
-			expected: undirectedMultigraph,
-		},
-		{
-			directed: true,
-			input:    directedSelfLoopMultigraph,
-			expected: directedSelfLoopMultigraph,
-		},
-		{
-			directed: false,
-			input:    undirectedSelfLoopMultigraph,
-			expected: undirectedSelfLoopMultigraph,
-		},
-	} {
-		var dst encoding.MultiBuilder
-		if test.directed {
-			dst = multi.NewDirectedGraph()
-		} else {
-			dst = multi.NewUndirectedGraph()
-		}
-
-		if err := UnmarshalMulti([]byte(test.input), dst); err != nil {
-			t.Errorf("i=%d: unable to unmarshal DOT graph; %v", i, err)
-			continue
-		}
-		buf, err := MarshalMulti(dst, "", "", "\t")
-		if err != nil {
-			t.Errorf("i=%d: unable to marshal graph; %v", i, dst)
-			continue
-		}
-		actual := string(buf)
-		if actual != test.expected {
-			t.Errorf("i=%d: graph content mismatch; want:\n%s\n\nactual:\n%s", i, test.expected, actual)
-			continue
-		}
-	}
-}
-
-const directedMultigraph = `digraph {
-	// Node definitions.
-	0;
-	1;
-	2;
-
-	// Edge definitions.
-	0 -> 1;
-	0 -> 1;
-	0 -> 2;
-	2 -> 0;
-}`
-
-const undirectedMultigraph = `graph {
-	// Node definitions.
-	0;
-	1;
-	2;
-
-	// Edge definitions.
-	0 -- 1;
-	0 -- 1;
-	0 -- 2;
-	0 -- 2;
-}`
-
-const directedSelfLoopMultigraph = `digraph {
-	// Node definitions.
-	0;
-	1;
-
-	// Edge definitions.
-	0 -> 0;
-	0 -> 0;
-	1 -> 1;
-	1 -> 1;
-}`
-
-const undirectedSelfLoopMultigraph = `graph {
-	// Node definitions.
-	0;
-	1;
-
-	// Edge definitions.
-	0 -- 0;
-	0 -- 0;
-	1 -- 1;
-	1 -- 1;
 }`
 
 // Below follows a minimal implementation of a graph capable of validating the

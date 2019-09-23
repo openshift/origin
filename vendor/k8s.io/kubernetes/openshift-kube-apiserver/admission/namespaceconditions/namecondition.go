@@ -1,8 +1,6 @@
 package namespaceconditions
 
 import (
-	"context"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
@@ -22,7 +20,7 @@ func (p pluginHandlerWithNamespaceNameConditions) Handles(operation admission.Op
 }
 
 // Admit performs a mutating admission control check and emit metrics.
-func (p pluginHandlerWithNamespaceNameConditions) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+func (p pluginHandlerWithNamespaceNameConditions) Admit(a admission.Attributes, o admission.ObjectInterfaces) error {
 	if !p.shouldRunAdmission(a) {
 		return nil
 	}
@@ -31,11 +29,11 @@ func (p pluginHandlerWithNamespaceNameConditions) Admit(ctx context.Context, a a
 	if !ok {
 		return nil
 	}
-	return mutatingHandler.Admit(ctx, a, o)
+	return mutatingHandler.Admit(a, o)
 }
 
 // Validate performs a non-mutating admission control check and emits metrics.
-func (p pluginHandlerWithNamespaceNameConditions) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+func (p pluginHandlerWithNamespaceNameConditions) Validate(a admission.Attributes, o admission.ObjectInterfaces) error {
 	if !p.shouldRunAdmission(a) {
 		return nil
 	}
@@ -44,7 +42,7 @@ func (p pluginHandlerWithNamespaceNameConditions) Validate(ctx context.Context, 
 	if !ok {
 		return nil
 	}
-	return validatingHandler.Validate(ctx, a, o)
+	return validatingHandler.Validate(a, o)
 }
 
 func (p pluginHandlerWithNamespaceNameConditions) shouldRunAdmission(attr admission.Attributes) bool {

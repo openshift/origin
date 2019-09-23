@@ -29,7 +29,7 @@ func TestGuessAndCheck(t *testing.T) {
 	initX := make([]float64, dim)
 	Minimize(problem, initX, nil, &GuessAndCheck{Rander: d})
 
-	settings := &Settings{}
+	settings := DefaultSettingsGlobal()
 	settings.Concurrent = 5
 	settings.MajorIterations = 15
 	Minimize(problem, initX, settings, &GuessAndCheck{Rander: d})

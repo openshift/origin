@@ -153,6 +153,7 @@ type Writer struct {
 	writeClient  pb.ByteStream_WriteClient
 	resourceName string
 	offset       int64
+	backoffDelay time.Duration
 	err          error
 }
 

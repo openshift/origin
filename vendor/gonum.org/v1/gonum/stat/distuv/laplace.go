@@ -9,6 +9,8 @@ import (
 	"sort"
 
 	"golang.org/x/exp/rand"
+
+	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -45,7 +47,7 @@ func (l Laplace) ExKurtosis() float64 {
 // Note: Laplace distribution has no FitPrior because it has no sufficient
 // statistics.
 func (l *Laplace) Fit(samples, weights []float64) {
-	if weights != nil && len(samples) != len(weights) {
+	if len(samples) != len(weights) {
 		panic(badLength)
 	}
 
@@ -80,22 +82,13 @@ func (l *Laplace) Fit(samples, weights []float64) {
 	// TODO: Rethink quantile type when stat has more options
 	l.Mu = stat.Quantile(0.5, stat.Empirical, sortedSamples, sortedWeights)
 
+	sumWeights := floats.Sum(weights)
+
 	// The scale parameter is the average absolute distance
 	// between the sample and the mean
-	var absError float64
-	var sumWeights float64
-	if weights != nil {
-		for i, v := range samples {
-			absError += weights[i] * math.Abs(l.Mu-v)
-			sumWeights += weights[i]
-		}
-		l.Scale = absError / sumWeights
-	} else {
-		for _, v := range samples {
-			absError += math.Abs(l.Mu - v)
-		}
-		l.Scale = absError / float64(len(samples))
-	}
+	absError := stat.MomentAbout(1, samples, l.Mu, weights)
+
+	l.Scale = absError / sumWeights
 }
 
 // LogProb computes the natural logarithm of the value of the probability density

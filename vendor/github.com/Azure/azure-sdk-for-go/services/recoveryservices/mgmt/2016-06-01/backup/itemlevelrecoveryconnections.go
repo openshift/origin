@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -54,16 +53,6 @@ func NewItemLevelRecoveryConnectionsClientWithBaseURI(baseURI string, subscripti
 // backup data.
 // resourceILRRequest - the resource Item Level Recovery (ILR) request.
 func (client ItemLevelRecoveryConnectionsClient) Provision(ctx context.Context, vaultName string, resourceGroupName string, fabricName string, containerName string, protectedItemName string, recoveryPointID string, resourceILRRequest ILRRequestResource) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ItemLevelRecoveryConnectionsClient.Provision")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ProvisionPreparer(ctx, vaultName, resourceGroupName, fabricName, containerName, protectedItemName, recoveryPointID, resourceILRRequest)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "backup.ItemLevelRecoveryConnectionsClient", "Provision", nil, "Failure preparing request")
@@ -115,8 +104,8 @@ func (client ItemLevelRecoveryConnectionsClient) ProvisionPreparer(ctx context.C
 // ProvisionSender sends the Provision request. The method will close the
 // http.Response Body if it receives an error.
 func (client ItemLevelRecoveryConnectionsClient) ProvisionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ProvisionResponder handles the response to the Provision request. The method always
@@ -142,16 +131,6 @@ func (client ItemLevelRecoveryConnectionsClient) ProvisionResponder(resp *http.R
 // recoveryPointID - the string that identifies the recovery point. The iSCSI connection will be revoked for
 // this protected data.
 func (client ItemLevelRecoveryConnectionsClient) Revoke(ctx context.Context, vaultName string, resourceGroupName string, fabricName string, containerName string, protectedItemName string, recoveryPointID string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ItemLevelRecoveryConnectionsClient.Revoke")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.RevokePreparer(ctx, vaultName, resourceGroupName, fabricName, containerName, protectedItemName, recoveryPointID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "backup.ItemLevelRecoveryConnectionsClient", "Revoke", nil, "Failure preparing request")
@@ -201,8 +180,8 @@ func (client ItemLevelRecoveryConnectionsClient) RevokePreparer(ctx context.Cont
 // RevokeSender sends the Revoke request. The method will close the
 // http.Response Body if it receives an error.
 func (client ItemLevelRecoveryConnectionsClient) RevokeSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // RevokeResponder handles the response to the Revoke request. The method always

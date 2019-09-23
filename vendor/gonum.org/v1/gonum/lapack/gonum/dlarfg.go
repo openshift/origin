@@ -23,23 +23,14 @@ import (
 //
 // Dlarfg is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dlarfg(n int, alpha float64, x []float64, incX int) (beta, tau float64) {
-	switch {
-	case n < 0:
+	if n < 0 {
 		panic(nLT0)
-	case incX <= 0:
-		panic(badIncX)
 	}
-
 	if n <= 1 {
 		return alpha, 0
 	}
-
-	if len(x) < 1+(n-2)*abs(incX) {
-		panic(shortX)
-	}
-
+	checkVector(n-1, x, incX)
 	bi := blas64.Implementation()
-
 	xnorm := bi.Dnrm2(n-1, x, incX)
 	if xnorm == 0 {
 		return alpha, 0

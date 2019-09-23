@@ -55,7 +55,7 @@ type CarpStatus struct {
 	// A human readable message indicating details about why the carp is in this state.
 	// +optional
 	Message string
-	// A brief CamelCase message indicating details about why the carp is in this state. e.g. 'DiskPressure'
+	// A brief CamelCase message indicating details about why the carp is in this state. e.g. 'OutOfDisk'
 	// +optional
 	Reason string
 

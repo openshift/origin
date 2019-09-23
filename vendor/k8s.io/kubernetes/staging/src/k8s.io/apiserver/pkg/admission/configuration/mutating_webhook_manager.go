@@ -24,7 +24,6 @@ import (
 	"k8s.io/api/admissionregistration/v1beta1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apiserver/pkg/admission/plugin/webhook"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/generic"
 	"k8s.io/client-go/informers"
 	admissionregistrationlisters "k8s.io/client-go/listers/admissionregistration/v1beta1"
@@ -49,7 +48,7 @@ func NewMutatingWebhookConfigurationManager(f informers.SharedInformerFactory) g
 	}
 
 	// Start with an empty list
-	manager.configuration.Store([]webhook.WebhookAccessor{})
+	manager.configuration.Store(&v1beta1.MutatingWebhookConfiguration{})
 
 	// On any change, rebuild the config
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -62,8 +61,8 @@ func NewMutatingWebhookConfigurationManager(f informers.SharedInformerFactory) g
 }
 
 // Webhooks returns the merged MutatingWebhookConfiguration.
-func (m *mutatingWebhookConfigurationManager) Webhooks() []webhook.WebhookAccessor {
-	return m.configuration.Load().([]webhook.WebhookAccessor)
+func (m *mutatingWebhookConfigurationManager) Webhooks() []v1beta1.Webhook {
+	return m.configuration.Load().(*v1beta1.MutatingWebhookConfiguration).Webhooks
 }
 
 func (m *mutatingWebhookConfigurationManager) HasSynced() bool {
@@ -79,24 +78,16 @@ func (m *mutatingWebhookConfigurationManager) updateConfiguration() {
 	m.configuration.Store(mergeMutatingWebhookConfigurations(configurations))
 }
 
-func mergeMutatingWebhookConfigurations(configurations []*v1beta1.MutatingWebhookConfiguration) []webhook.WebhookAccessor {
+func mergeMutatingWebhookConfigurations(configurations []*v1beta1.MutatingWebhookConfiguration) *v1beta1.MutatingWebhookConfiguration {
+	var ret v1beta1.MutatingWebhookConfiguration
 	// The internal order of webhooks for each configuration is provided by the user
 	// but configurations themselves can be in any order. As we are going to run these
 	// webhooks in serial, they are sorted here to have a deterministic order.
 	sort.SliceStable(configurations, MutatingWebhookConfigurationSorter(configurations).ByName)
-	accessors := []webhook.WebhookAccessor{}
 	for _, c := range configurations {
-		// webhook names are not validated for uniqueness, so we check for duplicates and
-		// add a int suffix to distinguish between them
-		names := map[string]int{}
-		for i := range c.Webhooks {
-			n := c.Webhooks[i].Name
-			uid := fmt.Sprintf("%s/%s/%d", c.Name, n, names[n])
-			names[n]++
-			accessors = append(accessors, webhook.NewMutatingWebhookAccessor(uid, c.Name, &c.Webhooks[i]))
-		}
+		ret.Webhooks = append(ret.Webhooks, c.Webhooks...)
 	}
-	return accessors
+	return &ret
 }
 
 type MutatingWebhookConfigurationSorter []*v1beta1.MutatingWebhookConfiguration

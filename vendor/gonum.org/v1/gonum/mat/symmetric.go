@@ -55,16 +55,12 @@ type MutableSymmetric interface {
 // a new slice is allocated for the backing slice. If len(data) == n*n, data is
 // used as the backing slice, and changes to the elements of the returned SymDense
 // will be reflected in data. If neither of these is true, NewSymDense will panic.
-// NewSymDense will panic if n is zero.
 //
 // The data must be arranged in row-major order, i.e. the (i*c + j)-th
 // element in the data slice is the {i, j}-th element in the matrix.
 // Only the values in the upper triangular portion of the matrix are used.
 func NewSymDense(n int, data []float64) *SymDense {
-	if n <= 0 {
-		if n == 0 {
-			panic(ErrZeroLength)
-		}
+	if n < 0 {
 		panic("mat: negative dimension")
 	}
 	if data != nil && n*n != len(data) {
@@ -94,13 +90,12 @@ func (s *SymDense) Caps() (r, c int) {
 	return s.cap, s.cap
 }
 
-// T returns the receiver, the transpose of a symmetric matrix.
+// T implements the Matrix interface. Symmetric matrices, by definition, are
+// equal to their transpose, and this is a no-op.
 func (s *SymDense) T() Matrix {
 	return s
 }
 
-// Symmetric implements the Symmetric interface and returns the number of rows
-// and columns in the matrix.
 func (s *SymDense) Symmetric() int {
 	return s.mat.N
 }
@@ -113,14 +108,13 @@ func (s *SymDense) RawSymmetric() blas64.Symmetric {
 
 // SetRawSymmetric sets the underlying blas64.Symmetric used by the receiver.
 // Changes to elements in the receiver following the call will be reflected
-// in the input.
-//
-// The supplied Symmetric must use blas.Upper storage format.
-func (s *SymDense) SetRawSymmetric(mat blas64.Symmetric) {
-	if mat.Uplo != blas.Upper {
+// in b. SetRawSymmetric will panic if b is not an upper-encoded symmetric
+// matrix.
+func (s *SymDense) SetRawSymmetric(b blas64.Symmetric) {
+	if b.Uplo != blas.Upper {
 		panic(badSymTriangle)
 	}
-	s.mat = mat
+	s.mat = b
 }
 
 // Reset zeros the dimensions of the matrix so that it can be reused as the
@@ -131,13 +125,6 @@ func (s *SymDense) Reset() {
 	// N and Stride must be zeroed in unison.
 	s.mat.N, s.mat.Stride = 0, 0
 	s.mat.Data = s.mat.Data[:0]
-}
-
-// Zero sets all of the matrix elements to zero.
-func (s *SymDense) Zero() {
-	for i := 0; i < s.mat.N; i++ {
-		zero(s.mat.Data[i*s.mat.Stride+i : i*s.mat.Stride+s.mat.N])
-	}
 }
 
 // IsZero returns whether the receiver is zero-sized. Zero-sized matrices can be the
@@ -184,18 +171,6 @@ func (s *SymDense) isolatedWorkspace(a Symmetric) (w *SymDense, restore func()) 
 	return w, func() {
 		s.CopySym(w)
 		putWorkspaceSym(w)
-	}
-}
-
-// DiagView returns the diagonal as a matrix backed by the original data.
-func (s *SymDense) DiagView() Diagonal {
-	n := s.mat.N
-	return &DiagDense{
-		mat: blas64.Vector{
-			N:    n,
-			Inc:  s.mat.Stride + 1,
-			Data: s.mat.Data[:(n-1)*s.mat.Stride+n],
-		},
 	}
 }
 
@@ -282,7 +257,7 @@ func (s *SymDense) SymRankOne(a Symmetric, alpha float64, x Vector) {
 	xU, _ := untranspose(x)
 	if rv, ok := xU.(RawVectorer); ok {
 		xmat := rv.RawVector()
-		s.checkOverlap((&VecDense{mat: xmat}).asGeneral())
+		s.checkOverlap((&VecDense{mat: xmat, n: n}).asGeneral())
 		blas64.Syr(alpha, xmat, s.mat)
 		return
 	}
@@ -396,14 +371,14 @@ func (s *SymDense) RankTwo(a Symmetric, alpha float64, x, y Vector) {
 	xU, _ := untranspose(x)
 	if rv, ok := xU.(RawVectorer); ok {
 		xmat = rv.RawVector()
-		s.checkOverlap((&VecDense{mat: xmat}).asGeneral())
+		s.checkOverlap((&VecDense{mat: xmat, n: x.Len()}).asGeneral())
 	} else {
 		fast = false
 	}
 	yU, _ := untranspose(y)
 	if rv, ok := yU.(RawVectorer); ok {
 		ymat = rv.RawVector()
-		s.checkOverlap((&VecDense{mat: ymat}).asGeneral())
+		s.checkOverlap((&VecDense{mat: ymat, n: y.Len()}).asGeneral())
 	} else {
 		fast = false
 	}
@@ -498,12 +473,12 @@ func (s *SymDense) SubsetSym(a Symmetric, set []int) {
 	}
 }
 
-// SliceSym returns a new Matrix that shares backing data with the receiver.
+// SliceSquare returns a new Matrix that shares backing data with the receiver.
 // The returned matrix starts at {i,i} of the receiver and extends k-i rows
 // and columns. The final row and column in the resulting matrix is k-1.
-// SliceSym panics with ErrIndexOutOfRange if the slice is outside the
-// capacity of the receiver.
-func (s *SymDense) SliceSym(i, k int) Symmetric {
+// SliceSquare panics with ErrIndexOutOfRange if the slice is outside the capacity
+// of the receiver.
+func (s *SymDense) SliceSquare(i, k int) Matrix {
 	sz := s.cap
 	if i < 0 || sz < i || k < i || sz < k {
 		panic(ErrIndexOutOfRange)
@@ -515,21 +490,11 @@ func (s *SymDense) SliceSym(i, k int) Symmetric {
 	return &v
 }
 
-// Trace returns the trace of the matrix.
-func (s *SymDense) Trace() float64 {
-	// TODO(btracey): could use internal asm sum routine.
-	var v float64
-	for i := 0; i < s.mat.N; i++ {
-		v += s.mat.Data[i*s.mat.Stride+i]
-	}
-	return v
-}
-
-// GrowSym returns the receiver expanded by n rows and n columns. If the
+// GrowSquare returns the receiver expanded by n rows and n columns. If the
 // dimensions of the expanded matrix are outside the capacity of the receiver
 // a new allocation is made, otherwise not. Note that the receiver itself is
 // not modified during the call to GrowSquare.
-func (s *SymDense) GrowSym(n int) Symmetric {
+func (s *SymDense) GrowSquare(n int) Matrix {
 	if n < 0 {
 		panic(ErrIndexOutOfRange)
 	}
@@ -589,13 +554,14 @@ func (s *SymDense) PowPSD(a Symmetric, pow float64) error {
 		}
 		values[i] = math.Pow(v, pow)
 	}
-	u := eigen.VectorsTo(nil)
+	var u Dense
+	u.EigenvectorsSym(&eigen)
 
 	s.SymOuterK(values[0], u.ColView(0))
 
 	var v VecDense
 	for i := 1; i < dim; i++ {
-		v.ColViewOf(u, i)
+		v.ColViewOf(&u, i)
 		s.SymRankOne(s, values[i], &v)
 	}
 	return nil

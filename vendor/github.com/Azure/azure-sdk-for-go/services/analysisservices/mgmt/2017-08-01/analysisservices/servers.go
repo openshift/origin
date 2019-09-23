@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewServersClientWithBaseURI(baseURI string, subscriptionID string) ServersC
 // location - the region name which the operation will lookup into.
 // serverParameters - contains the information used to provision the Analysis Services server.
 func (client ServersClient) CheckNameAvailability(ctx context.Context, location string, serverParameters CheckServerNameAvailabilityParameters) (result CheckServerNameAvailabilityResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.CheckNameAvailability")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serverParameters,
 			Constraints: []validation.Constraint{{Target: "serverParameters.Name", Name: validation.Null, Rule: false,
@@ -113,8 +102,8 @@ func (client ServersClient) CheckNameAvailabilityPreparer(ctx context.Context, l
 // CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always
@@ -138,16 +127,6 @@ func (client ServersClient) CheckNameAvailabilityResponder(resp *http.Response) 
 // of 63.
 // serverParameters - contains the information used to provision the Analysis Services server.
 func (client ServersClient) Create(ctx context.Context, resourceGroupName string, serverName string, serverParameters Server) (result ServersCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -201,9 +180,13 @@ func (client ServersClient) CreatePreparer(ctx context.Context, resourceGroupNam
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) CreateSender(req *http.Request) (future ServersCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}
@@ -231,16 +214,6 @@ func (client ServersClient) CreateResponder(resp *http.Response) (result Server,
 // serverName - the name of the Analysis Services server. It must be at least 3 characters in length, and no
 // more than 63.
 func (client ServersClient) Delete(ctx context.Context, resourceGroupName string, serverName string) (result ServersDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -292,9 +265,13 @@ func (client ServersClient) DeletePreparer(ctx context.Context, resourceGroupNam
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) DeleteSender(req *http.Request) (future ServersDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -321,16 +298,6 @@ func (client ServersClient) DeleteResponder(resp *http.Response) (result autores
 // serverName - the name of the Analysis Services server. It must be at least 3 characters in length, and no
 // more than 63.
 func (client ServersClient) DissociateGateway(ctx context.Context, resourceGroupName string, serverName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.DissociateGateway")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -388,8 +355,8 @@ func (client ServersClient) DissociateGatewayPreparer(ctx context.Context, resou
 // DissociateGatewaySender sends the DissociateGateway request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) DissociateGatewaySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DissociateGatewayResponder handles the response to the DissociateGateway request. The method always
@@ -411,16 +378,6 @@ func (client ServersClient) DissociateGatewayResponder(resp *http.Response) (res
 // serverName - the name of the Analysis Services server. It must be a minimum of 3 characters, and a maximum
 // of 63.
 func (client ServersClient) GetDetails(ctx context.Context, resourceGroupName string, serverName string) (result Server, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.GetDetails")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -478,8 +435,8 @@ func (client ServersClient) GetDetailsPreparer(ctx context.Context, resourceGrou
 // GetDetailsSender sends the GetDetails request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) GetDetailsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetDetailsResponder handles the response to the GetDetails request. The method always
@@ -497,16 +454,6 @@ func (client ServersClient) GetDetailsResponder(resp *http.Response) (result Ser
 
 // List lists all the Analysis Services servers for the given subscription.
 func (client ServersClient) List(ctx context.Context) (result Servers, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "analysisservices.ServersClient", "List", nil, "Failure preparing request")
@@ -550,8 +497,8 @@ func (client ServersClient) ListPreparer(ctx context.Context) (*http.Request, er
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -572,16 +519,6 @@ func (client ServersClient) ListResponder(resp *http.Response) (result Servers, 
 // resourceGroupName - the name of the Azure Resource group of which a given Analysis Services server is part.
 // This name must be at least 1 character in length, and no more than 90.
 func (client ServersClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result Servers, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -634,8 +571,8 @@ func (client ServersClient) ListByResourceGroupPreparer(ctx context.Context, res
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -657,16 +594,6 @@ func (client ServersClient) ListByResourceGroupResponder(resp *http.Response) (r
 // This name must be at least 1 character in length, and no more than 90.
 // serverName - the name of the Analysis Services server.
 func (client ServersClient) ListGatewayStatus(ctx context.Context, resourceGroupName string, serverName string) (result GatewayListStatusLive, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.ListGatewayStatus")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -724,8 +651,8 @@ func (client ServersClient) ListGatewayStatusPreparer(ctx context.Context, resou
 // ListGatewayStatusSender sends the ListGatewayStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) ListGatewayStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListGatewayStatusResponder handles the response to the ListGatewayStatus request. The method always
@@ -746,16 +673,6 @@ func (client ServersClient) ListGatewayStatusResponder(resp *http.Response) (res
 // location - the region name which the operation will lookup into.
 // operationID - the target operation Id.
 func (client ServersClient) ListOperationResults(ctx context.Context, location string, operationID string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.ListOperationResults")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListOperationResultsPreparer(ctx, location, operationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "analysisservices.ServersClient", "ListOperationResults", nil, "Failure preparing request")
@@ -801,8 +718,8 @@ func (client ServersClient) ListOperationResultsPreparer(ctx context.Context, lo
 // ListOperationResultsSender sends the ListOperationResults request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) ListOperationResultsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListOperationResultsResponder handles the response to the ListOperationResults request. The method always
@@ -822,16 +739,6 @@ func (client ServersClient) ListOperationResultsResponder(resp *http.Response) (
 // location - the region name which the operation will lookup into.
 // operationID - the target operation Id.
 func (client ServersClient) ListOperationStatuses(ctx context.Context, location string, operationID string) (result OperationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.ListOperationStatuses")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListOperationStatusesPreparer(ctx, location, operationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "analysisservices.ServersClient", "ListOperationStatuses", nil, "Failure preparing request")
@@ -877,8 +784,8 @@ func (client ServersClient) ListOperationStatusesPreparer(ctx context.Context, l
 // ListOperationStatusesSender sends the ListOperationStatuses request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) ListOperationStatusesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListOperationStatusesResponder handles the response to the ListOperationStatuses request. The method always
@@ -901,16 +808,6 @@ func (client ServersClient) ListOperationStatusesResponder(resp *http.Response) 
 // serverName - the name of the Analysis Services server. It must be at least 3 characters in length, and no
 // more than 63.
 func (client ServersClient) ListSkusForExisting(ctx context.Context, resourceGroupName string, serverName string) (result SkuEnumerationForExistingResourceResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.ListSkusForExisting")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -968,8 +865,8 @@ func (client ServersClient) ListSkusForExistingPreparer(ctx context.Context, res
 // ListSkusForExistingSender sends the ListSkusForExisting request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) ListSkusForExistingSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListSkusForExistingResponder handles the response to the ListSkusForExisting request. The method always
@@ -987,16 +884,6 @@ func (client ServersClient) ListSkusForExistingResponder(resp *http.Response) (r
 
 // ListSkusForNew lists eligible SKUs for Analysis Services resource provider.
 func (client ServersClient) ListSkusForNew(ctx context.Context) (result SkuEnumerationForNewResourceResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.ListSkusForNew")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListSkusForNewPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "analysisservices.ServersClient", "ListSkusForNew", nil, "Failure preparing request")
@@ -1040,8 +927,8 @@ func (client ServersClient) ListSkusForNewPreparer(ctx context.Context) (*http.R
 // ListSkusForNewSender sends the ListSkusForNew request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) ListSkusForNewSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListSkusForNewResponder handles the response to the ListSkusForNew request. The method always
@@ -1064,16 +951,6 @@ func (client ServersClient) ListSkusForNewResponder(resp *http.Response) (result
 // serverName - the name of the Analysis Services server. It must be at least 3 characters in length, and no
 // more than 63.
 func (client ServersClient) Resume(ctx context.Context, resourceGroupName string, serverName string) (result ServersResumeFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.Resume")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1125,9 +1002,13 @@ func (client ServersClient) ResumePreparer(ctx context.Context, resourceGroupNam
 // ResumeSender sends the Resume request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) ResumeSender(req *http.Request) (future ServersResumeFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -1147,23 +1028,13 @@ func (client ServersClient) ResumeResponder(resp *http.Response) (result autores
 	return
 }
 
-// Suspend suspends operation of the specified Analysis Services server instance.
+// Suspend supends operation of the specified Analysis Services server instance.
 // Parameters:
 // resourceGroupName - the name of the Azure Resource group of which a given Analysis Services server is part.
 // This name must be at least 1 character in length, and no more than 90.
 // serverName - the name of the Analysis Services server. It must be at least 3 characters in length, and no
 // more than 63.
 func (client ServersClient) Suspend(ctx context.Context, resourceGroupName string, serverName string) (result ServersSuspendFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.Suspend")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1215,9 +1086,13 @@ func (client ServersClient) SuspendPreparer(ctx context.Context, resourceGroupNa
 // SuspendSender sends the Suspend request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) SuspendSender(req *http.Request) (future ServersSuspendFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -1245,16 +1120,6 @@ func (client ServersClient) SuspendResponder(resp *http.Response) (result autore
 // more than 63.
 // serverUpdateParameters - request object that contains the updated information for the server.
 func (client ServersClient) Update(ctx context.Context, resourceGroupName string, serverName string, serverUpdateParameters ServerUpdateParameters) (result ServersUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServersClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1308,9 +1173,13 @@ func (client ServersClient) UpdatePreparer(ctx context.Context, resourceGroupNam
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServersClient) UpdateSender(req *http.Request) (future ServersUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}

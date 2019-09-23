@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,21 +86,6 @@ func (n ContextBasedNaming) Name(req *http.Request) (namespace, name string, err
 	return ns, requestInfo.Name, nil
 }
 
-// fastURLPathEncode encodes the provided path as a URL path
-func fastURLPathEncode(path string) string {
-	for _, r := range []byte(path) {
-		switch {
-		case r >= '-' && r <= '9', r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z':
-			// characters within this range do not require escaping
-		default:
-			var u url.URL
-			u.Path = path
-			return u.EscapedPath()
-		}
-	}
-	return path
-}
-
 func (n ContextBasedNaming) GenerateLink(requestInfo *request.RequestInfo, obj runtime.Object) (uri string, err error) {
 	namespace, name, err := n.ObjectName(obj)
 	if err == errEmptyName && len(requestInfo.Name) > 0 {
@@ -117,23 +101,19 @@ func (n ContextBasedNaming) GenerateLink(requestInfo *request.RequestInfo, obj r
 		return n.SelfLinkPathPrefix + url.QueryEscape(name) + n.SelfLinkPathSuffix, nil
 	}
 
-	builder := strings.Builder{}
-	builder.Grow(len(n.SelfLinkPathPrefix) + len(namespace) + len(requestInfo.Resource) + len(name) + len(n.SelfLinkPathSuffix) + 8)
-	builder.WriteString(n.SelfLinkPathPrefix)
-	builder.WriteString(namespace)
-	builder.WriteByte('/')
-	builder.WriteString(requestInfo.Resource)
-	builder.WriteByte('/')
-	builder.WriteString(name)
-	builder.WriteString(n.SelfLinkPathSuffix)
-	return fastURLPathEncode(builder.String()), nil
+	return n.SelfLinkPathPrefix +
+			url.QueryEscape(namespace) +
+			"/" + url.QueryEscape(requestInfo.Resource) + "/" +
+			url.QueryEscape(name) +
+			n.SelfLinkPathSuffix,
+		nil
 }
 
 func (n ContextBasedNaming) GenerateListLink(req *http.Request) (uri string, err error) {
 	if len(req.URL.RawPath) > 0 {
 		return req.URL.RawPath, nil
 	}
-	return fastURLPathEncode(req.URL.Path), nil
+	return req.URL.EscapedPath(), nil
 }
 
 func (n ContextBasedNaming) ObjectName(obj runtime.Object) (namespace, name string, err error) {

@@ -21,6 +21,7 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestRetry(t *testing.T) {
@@ -120,6 +121,30 @@ func TestRetryClosesBody(t *testing.T) {
 		if got != want {
 			t.Errorf("response[%d].Body closed = %t, want %t", i, got, want)
 		}
+	}
+}
+
+func RetryReturnsOnContextCancel(t *testing.T) {
+	f := func() (*http.Response, error) {
+		return nil, io.ErrUnexpectedEOF
+	}
+	backoff := UniformPauseStrategy(time.Hour)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	errc := make(chan error, 1)
+	go func() {
+		_, err := Retry(ctx, f, backoff)
+		errc <- err
+	}()
+
+	cancel()
+	select {
+	case err := <-errc:
+		if err != ctx.Err() {
+			t.Errorf("Retry returned err: %v, want %v", err, ctx.Err())
+		}
+	case <-time.After(5 * time.Second):
+		t.Errorf("Timed out waiting for Retry to return")
 	}
 }
 

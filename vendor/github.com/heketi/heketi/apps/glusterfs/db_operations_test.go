@@ -215,89 +215,285 @@ func TestDeleteBricksWithEmptyPath(t *testing.T) {
 		"expected len(d.Bricks) == 15, got:", len(d.Bricks))
 }
 
-func TestDbDumpInternal(t *testing.T) {
+func TestDeletePendingEntriesVolumeCreate(t *testing.T) {
 	tmpfile := tests.Tempfile()
 	defer os.Remove(tmpfile)
 
+	// Create the app
 	app := NewTestApp(tmpfile)
 	defer app.Close()
 
 	err := setupSampleDbWithTopology(app,
-		1,    // clusters
+		2,    // clusters
 		3,    // nodes_per_cluster
-		1,    // devices_per_node,
-		5*TB, // disksize
+		4,    // devices_per_node,
+		6*TB, // disksize)
 	)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
-	t.Run("clusterOnly", func(t *testing.T) {
-		db, err := dbDumpInternal(app.db)
-		tests.Assert(t, err == nil, "expected err == nil, got:", err)
-		tests.Assert(t, len(db.Clusters) == 1)
-		tests.Assert(t, len(db.Nodes) == 3)
-		tests.Assert(t, len(db.Devices) == 3)
-		tests.Assert(t, len(db.Volumes) == 0)
-		tests.Assert(t, len(db.BlockVolumes) == 0)
-		tests.Assert(t, len(db.PendingOperations) == 0)
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+
+	vol := NewVolumeEntryFromRequest(req)
+	vc := NewVolumeCreateOperation(vol, app.db)
+
+	// verify that there are no volumes, bricks or pending operations
+	app.db.View(func(tx *bolt.Tx) error {
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 0, "expected len(vl) == 0, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 0, "expected len(bl) == 0, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+		return nil
 	})
-	t.Run("withVolumes", func(t *testing.T) {
-		req := &api.VolumeCreateRequest{}
-		req.Size = 100
-		// create five volumes
-		for i := 0; i < 5; i++ {
-			v := NewVolumeEntryFromRequest(req)
-			err := v.Create(app.db, app.executor)
-			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// Create first volume fully
+	e := vc.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+	e = vc.Exec(app.executor)
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+	e = vc.Finalize()
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+
+	// only build the second volume, this will leave pending entries
+	vol2 := NewVolumeEntryFromRequest(req)
+	vc2 := NewVolumeCreateOperation(vol2, app.db)
+	e = vc2.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+
+	// verify volumes, bricks, & pending ops exist
+	app.db.View(func(tx *bolt.Tx) error {
+		var pendingVols int
+		var pendingBricks int
+
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 2, "expected len(vl) == 2, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 6, "expected len(bl) == 6, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 1, "expected len(pol) == 1, got", len(pol))
+
+		for _, vid := range vl {
+			v, e := NewVolumeEntryFromId(tx, vid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			if v.Pending.Id != "" {
+				pendingVols++
+			}
 		}
-
-		db, err := dbDumpInternal(app.db)
-		tests.Assert(t, err == nil, "expected err == nil, got:", err)
-		tests.Assert(t, len(db.Clusters) == 1)
-		tests.Assert(t, len(db.Nodes) == 3)
-		tests.Assert(t, len(db.Devices) == 3)
-		tests.Assert(t, len(db.Volumes) == 5)
-		tests.Assert(t, len(db.BlockVolumes) == 0)
-		tests.Assert(t, len(db.PendingOperations) == 0)
+		tests.Assert(t, pendingVols == 1, "expected pendingVols == 1, got:", pendingVols)
+		for _, bid := range bl {
+			b, e := NewBrickEntryFromId(tx, bid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			if b.Pending.Id != "" {
+				pendingBricks++
+			}
+		}
+		tests.Assert(t, pendingBricks == 3, "expected pendingBricks == 3, got:", pendingBricks)
+		return nil
 	})
-	t.Run("withBlockVolumes", func(t *testing.T) {
-		req := &api.BlockVolumeCreateRequest{}
-		req.Size = 100
-		v := NewBlockVolumeEntryFromRequest(req)
-		err := v.Create(app.db, app.executor)
-		tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
-		db, err := dbDumpInternal(app.db)
-		tests.Assert(t, err == nil, "expected err == nil, got:", err)
-		tests.Assert(t, len(db.Clusters) == 1)
-		tests.Assert(t, len(db.Nodes) == 3)
-		tests.Assert(t, len(db.Devices) == 3)
-		tests.Assert(t, len(db.Volumes) == 6)
-		tests.Assert(t, len(db.BlockVolumes) == 1)
-		tests.Assert(t, len(db.PendingOperations) == 0)
-	})
-	t.Run("withPending", func(t *testing.T) {
-		req := &api.VolumeCreateRequest{}
-		req.Size = 1
-		v := NewVolumeEntryFromRequest(req)
-		vcr := NewVolumeCreateOperation(v, app.db)
-		err := vcr.Build()
-		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	err = DeletePendingEntries(app.db, false, false)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
 
-		db, err := dbDumpInternal(app.db)
-		tests.Assert(t, err == nil, "expected err == nil, got:", err)
-		tests.Assert(t, len(db.Clusters) == 1)
-		tests.Assert(t, len(db.Nodes) == 3)
-		tests.Assert(t, len(db.Devices) == 3)
-		tests.Assert(t, len(db.Volumes) == 7)
-		tests.Assert(t, len(db.BlockVolumes) == 1)
-		tests.Assert(t, len(db.PendingOperations) == 1)
+	// verify that completed volume & bricks exist but incomplete volume and bricks are gone
+	app.db.View(func(tx *bolt.Tx) error {
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 1, "expected len(vl) == 1, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 3, "expected len(bl) == 3, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+
+		for _, vid := range vl {
+			v, e := NewVolumeEntryFromId(tx, vid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			tests.Assert(t, v.Pending.Id == "",
+				`expected v.Pending.Id == "", got:`, v.Pending.Id)
+		}
+		for _, bid := range bl {
+			b, e := NewBrickEntryFromId(tx, bid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			tests.Assert(t, b.Pending.Id == "",
+				`expected b.Pending.Id == "", got:`, b.Pending.Id)
+		}
+		return nil
 	})
 }
 
-func TestDbDumpFileRoundTrip(t *testing.T) {
+func TestDeletePendingEntriesVolumeDelete(t *testing.T) {
 	tmpfile := tests.Tempfile()
 	defer os.Remove(tmpfile)
 
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		6*TB, // disksize)
+	)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+
+	// first we need to create a volume to delete
+	vol := NewVolumeEntryFromRequest(req)
+	vc := NewVolumeCreateOperation(vol, app.db)
+
+	e := vc.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got:", e)
+	e = vc.Exec(app.executor)
+	tests.Assert(t, e == nil, "expected e == nil, got:", e)
+	e = vc.Finalize()
+	tests.Assert(t, e == nil, "expected e == nil, got:", e)
+
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 3, "expected len(bl) == 3, got:", len(bl))
+		po, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(po) == 0, "expected len(po) == 0, got:", len(po))
+		return nil
+	})
+
+	vd := NewVolumeDeleteOperation(vol, app.db)
+	e = vd.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got:", e)
+
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 3, "expected len(bl) == 3, got:", len(bl))
+		po, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(po) == 1, "expected len(po) == 1, got:", len(po))
+		return nil
+	})
+	err = DeletePendingEntries(app.db, false, false)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 0, "expected len(bl) == 0, got:", len(bl))
+		po, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(po) == 0, "expected len(po) == 0, got:", len(po))
+		return nil
+	})
+}
+
+func TestDeletePendingEntriesVolumeExpandOperation(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		6*TB, // disksize)
+	)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+
+	vol := NewVolumeEntryFromRequest(req)
+	vc := NewVolumeCreateOperation(vol, app.db)
+
+	e := vc.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got:", e)
+	e = vc.Exec(app.executor)
+	tests.Assert(t, e == nil, "expected e == nil, got:", e)
+	e = vc.Finalize()
+	tests.Assert(t, e == nil, "expected e == nil, got:", e)
+
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 3, "expected len(bl) == 3, got:", len(bl))
+		po, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(po) == 0, "expected len(po) == 0, got:", len(po))
+		return nil
+	})
+
+	ve := NewVolumeExpandOperation(vol, app.db, 100)
+	e = ve.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got:", e)
+
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 6, "expected len(bl) == 6, got:", len(bl))
+		pcount := 0
+		for _, id := range bl {
+			b, e := NewBrickEntryFromId(tx, id)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			if b.Pending.Id != "" {
+				pcount++
+			}
+		}
+		tests.Assert(t, pcount == 3, "expected len(bl) == 3, got:", pcount)
+		po, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(po) == 1, "expected len(po) == 1, got:", len(po))
+		return nil
+	})
+
+	// expand is a special case, nothing should be deleted
+	err = DeletePendingEntries(app.db, false, false)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 6, "expected len(bl) == 6, got:", len(bl))
+		pcount := 0
+		for _, id := range bl {
+			b, e := NewBrickEntryFromId(tx, id)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			if b.Pending.Id != "" {
+				pcount++
+			}
+		}
+		tests.Assert(t, pcount == 3, "expected len(bl) == 3, got:", pcount)
+		po, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(po) == 1, "expected len(po) == 1, got:", len(po))
+		return nil
+	})
+}
+
+func TestDeletePendingEntriesBlockVolumeCreate(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
 	app := NewTestApp(tmpfile)
 	defer app.Close()
 
@@ -305,43 +501,310 @@ func TestDbDumpFileRoundTrip(t *testing.T) {
 		1,    // clusters
 		3,    // nodes_per_cluster
 		1,    // devices_per_node,
-		5*TB, // disksize
+		2*TB, // disksize)
 	)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
-	vreq := &api.VolumeCreateRequest{}
-	vreq.Size = 100
-	v := NewVolumeEntryFromRequest(vreq)
-	err = v.Create(app.db, app.executor)
-	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	req := &api.BlockVolumeCreateRequest{}
+	req.Size = 1024
 
-	breq := &api.BlockVolumeCreateRequest{}
-	breq.Size = 100
-	bv := NewBlockVolumeEntryFromRequest(breq)
-	err = bv.Create(app.db, app.executor)
-	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	vol := NewBlockVolumeEntryFromRequest(req)
+	vc := NewBlockVolumeCreateOperation(vol, app.db)
 
-	app.Close()
+	// verify that there are no volumes, bricks or pending operations
+	app.db.View(func(tx *bolt.Tx) error {
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 0, "expected len(vl) == 0, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 0, "expected len(bl) == 0, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+		return nil
+	})
 
-	tmpJson := tests.Tempfile()
-	defer os.Remove(tmpJson)
+	e := vc.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
 
-	err = DbDump(tmpJson, tmpfile)
-	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	// verify there is one pending op, volume and some bricks
+	app.db.View(func(tx *bolt.Tx) error {
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 1, "expected len(vl) == 1, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 3, "expected len(bl) == 3, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 1, "expected len(pol) == 1, got", len(pol))
+		return nil
+	})
 
-	newDb := tests.Tempfile()
-	defer os.Remove(newDb)
-	DbCreate(tmpJson, newDb)
+	err = DeletePendingEntries(app.db, false, false)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
 
-	app2 := NewTestApp(newDb)
+	app.db.View(func(tx *bolt.Tx) error {
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 0, "expected len(vl) == 0, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 0, "expected len(bl) == 0, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+		return nil
+	})
+}
+
+func TestDeletePendingEntriesBlockVolumeDelete(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
 	defer app.Close()
 
-	db, err := dbDumpInternal(app2.db)
+	err := setupSampleDbWithTopology(app,
+		1,    // clusters
+		3,    // nodes_per_cluster
+		1,    // devices_per_node,
+		2*TB, // disksize)
+	)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
-	tests.Assert(t, len(db.Clusters) == 1)
-	tests.Assert(t, len(db.Nodes) == 3)
-	tests.Assert(t, len(db.Devices) == 3)
-	tests.Assert(t, len(db.Volumes) == 2)
-	tests.Assert(t, len(db.BlockVolumes) == 1)
-	tests.Assert(t, len(db.PendingOperations) == 0)
+
+	req := &api.BlockVolumeCreateRequest{}
+	req.Size = 1024
+
+	vol := NewBlockVolumeEntryFromRequest(req)
+	vc := NewBlockVolumeCreateOperation(vol, app.db)
+
+	// verify that there are no volumes, bricks or pending operations
+	app.db.View(func(tx *bolt.Tx) error {
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 0, "expected len(vl) == 0, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 0, "expected len(bl) == 0, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+		return nil
+	})
+
+	e := vc.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+	e = vc.Exec(app.executor)
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+	e = vc.Finalize()
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+
+	// verify the volume and bricks exist but no pending op
+	app.db.View(func(tx *bolt.Tx) error {
+		bvl, e := BlockVolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bvl) == 1, "expected len(bvl) == 1, got", len(bvl))
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 1, "expected len(vl) == 1, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 3, "expected len(bl) == 3, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+		return nil
+	})
+
+	bdel := NewBlockVolumeDeleteOperation(vol, app.db)
+
+	e = bdel.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+
+	// we should now have a pending op for the delete
+	app.db.View(func(tx *bolt.Tx) error {
+		bvl, e := BlockVolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bvl) == 1, "expected len(bvl) == 1, got", len(bvl))
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 1, "expected len(vl) == 1, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 3, "expected len(bl) == 3, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 1, "expected len(pol) == 1, got", len(pol))
+		return nil
+	})
+
+	// clean
+	err = DeletePendingEntries(app.db, false, false)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	// the block volume and pending op should be gone. hosting volume stays
+	app.db.View(func(tx *bolt.Tx) error {
+		bvl, e := BlockVolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bvl) == 0, "expected len(bvl) == 0, got", len(bvl))
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 1, "expected len(vl) == 1, got", len(vl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 3, "expected len(bl) == 3, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+		return nil
+	})
+}
+
+func TestDeletePendingEntriesManyEntries(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		6*TB, // disksize)
+	)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// Create 10 complete volumes and 15 pending volumes
+	req := &api.VolumeCreateRequest{}
+	req.Size = 10
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+	req.Block = true
+
+	for i := 0; i < 10; i++ {
+		v := NewVolumeEntryFromRequest(req)
+		vc := NewVolumeCreateOperation(v, app.db)
+		e := vc.Build()
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		e = vc.Exec(app.executor)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		e = vc.Finalize()
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+	}
+	for i := 0; i < 15; i++ {
+		v := NewVolumeEntryFromRequest(req)
+		vc := NewVolumeCreateOperation(v, app.db)
+		e := vc.Build()
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+	}
+
+	// Create 10 complete blockvolumes and 15 pending blockvolumes
+	blockVolreq := &api.BlockVolumeCreateRequest{}
+	blockVolreq.Size = 1
+	for i := 0; i < 10; i++ {
+		blockvol := NewBlockVolumeEntryFromRequest(blockVolreq)
+		vc := NewBlockVolumeCreateOperation(blockvol, app.db)
+		e := vc.Build()
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		e = vc.Exec(app.executor)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		e = vc.Finalize()
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+	}
+	for i := 0; i < 15; i++ {
+		blockvol := NewBlockVolumeEntryFromRequest(blockVolreq)
+		vc := NewBlockVolumeCreateOperation(blockvol, app.db)
+		e := vc.Build()
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+	}
+
+	// verify volumes, bricks, & pending ops exist
+	app.db.View(func(tx *bolt.Tx) error {
+		var pendingVols int
+		var pendingBricks int
+		var pendingBlockVols int
+
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 25, "expected len(vl) == 25, got", len(vl))
+		bvl, e := BlockVolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bvl) == 25, "expected len(bvl) == 25, got", len(bvl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 75, "expected len(bl) == 75, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 30, "expected len(pol) == 30, got", len(pol))
+
+		for _, vid := range vl {
+			v, e := NewVolumeEntryFromId(tx, vid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			if v.Pending.Id != "" {
+				pendingVols++
+			}
+		}
+		tests.Assert(t, pendingVols == 15, "expected pendingVols == 15, got:", pendingVols)
+		for _, bid := range bl {
+			b, e := NewBrickEntryFromId(tx, bid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			if b.Pending.Id != "" {
+				pendingBricks++
+			}
+		}
+		tests.Assert(t, pendingBricks == 45, "expected pendingBricks == 45, got:", pendingBricks)
+		for _, bvid := range bvl {
+			bv, e := NewBlockVolumeEntryFromId(tx, bvid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			if bv.Pending.Id != "" {
+				pendingBlockVols++
+			}
+		}
+		tests.Assert(t, pendingBlockVols == 15, "expected pendingBricks == 15, got:", pendingBlockVols)
+		return nil
+	})
+
+	err = DeletePendingEntries(app.db, false, false)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	// verify that completed volume & bricks exist but incomplete volume and bricks are gone
+	app.db.View(func(tx *bolt.Tx) error {
+		vl, e := VolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(vl) == 10, "expected len(vl) == 10, got", len(vl))
+		bvl, e := BlockVolumeList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bvl) == 10, "expected len(bvl) == 10, got", len(bvl))
+		bl, e := BrickList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(bl) == 30, "expected len(bl) == 30, got", len(bl))
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+
+		for _, vid := range vl {
+			v, e := NewVolumeEntryFromId(tx, vid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			tests.Assert(t, v.Pending.Id == "",
+				`expected v.Pending.Id == "", got:`, v.Pending.Id)
+		}
+		for _, bid := range bl {
+			b, e := NewBrickEntryFromId(tx, bid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			tests.Assert(t, b.Pending.Id == "",
+				`expected b.Pending.Id == "", got:`, b.Pending.Id)
+		}
+		for _, bvid := range bvl {
+			bv, e := NewBlockVolumeEntryFromId(tx, bvid)
+			tests.Assert(t, e == nil, "expected e == nil, got", e)
+			tests.Assert(t, bv.Pending.Id == "",
+				`expected bv.Pending.Id == "" , got:`, bv.Pending.Id)
+		}
+		return nil
+	})
 }

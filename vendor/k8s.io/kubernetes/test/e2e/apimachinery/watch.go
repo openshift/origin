@@ -27,9 +27,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -55,17 +55,17 @@ var _ = SIGDescribe("Watchers", func() {
 		c := f.ClientSet
 		ns := f.Namespace.Name
 
-		ginkgo.By("creating a watch on configmaps with label A")
+		By("creating a watch on configmaps with label A")
 		watchA, err := watchConfigMaps(f, "", multipleWatchersLabelValueA)
-		framework.ExpectNoError(err, "failed to create a watch on configmaps with label: %s", multipleWatchersLabelValueA)
+		Expect(err).NotTo(HaveOccurred(), "failed to create a watch on configmaps with label: %s", multipleWatchersLabelValueA)
 
-		ginkgo.By("creating a watch on configmaps with label B")
+		By("creating a watch on configmaps with label B")
 		watchB, err := watchConfigMaps(f, "", multipleWatchersLabelValueB)
-		framework.ExpectNoError(err, "failed to create a watch on configmaps with label: %s", multipleWatchersLabelValueB)
+		Expect(err).NotTo(HaveOccurred(), "failed to create a watch on configmaps with label: %s", multipleWatchersLabelValueB)
 
-		ginkgo.By("creating a watch on configmaps with label A or B")
+		By("creating a watch on configmaps with label A or B")
 		watchAB, err := watchConfigMaps(f, "", multipleWatchersLabelValueA, multipleWatchersLabelValueB)
-		framework.ExpectNoError(err, "failed to create a watch on configmaps with label %s or %s", multipleWatchersLabelValueA, multipleWatchersLabelValueB)
+		Expect(err).NotTo(HaveOccurred(), "failed to create a watch on configmaps with label %s or %s", multipleWatchersLabelValueA, multipleWatchersLabelValueB)
 
 		testConfigMapA := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
@@ -84,48 +84,48 @@ var _ = SIGDescribe("Watchers", func() {
 			},
 		}
 
-		ginkgo.By("creating a configmap with label A and ensuring the correct watchers observe the notification")
+		By("creating a configmap with label A and ensuring the correct watchers observe the notification")
 		testConfigMapA, err = c.CoreV1().ConfigMaps(ns).Create(testConfigMapA)
-		framework.ExpectNoError(err, "failed to create a configmap with label %s in namespace: %s", multipleWatchersLabelValueA, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to create a configmap with label %s in namespace: %s", multipleWatchersLabelValueA, ns)
 		expectEvent(watchA, watch.Added, testConfigMapA)
 		expectEvent(watchAB, watch.Added, testConfigMapA)
 		expectNoEvent(watchB, watch.Added, testConfigMapA)
 
-		ginkgo.By("modifying configmap A and ensuring the correct watchers observe the notification")
+		By("modifying configmap A and ensuring the correct watchers observe the notification")
 		testConfigMapA, err = updateConfigMap(c, ns, testConfigMapA.GetName(), func(cm *v1.ConfigMap) {
 			setConfigMapData(cm, "mutation", "1")
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace: %s", testConfigMapA.GetName(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace: %s", testConfigMapA.GetName(), ns)
 		expectEvent(watchA, watch.Modified, testConfigMapA)
 		expectEvent(watchAB, watch.Modified, testConfigMapA)
 		expectNoEvent(watchB, watch.Modified, testConfigMapA)
 
-		ginkgo.By("modifying configmap A again and ensuring the correct watchers observe the notification")
+		By("modifying configmap A again and ensuring the correct watchers observe the notification")
 		testConfigMapA, err = updateConfigMap(c, ns, testConfigMapA.GetName(), func(cm *v1.ConfigMap) {
 			setConfigMapData(cm, "mutation", "2")
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace: %s", testConfigMapA.GetName(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace: %s", testConfigMapA.GetName(), ns)
 		expectEvent(watchA, watch.Modified, testConfigMapA)
 		expectEvent(watchAB, watch.Modified, testConfigMapA)
 		expectNoEvent(watchB, watch.Modified, testConfigMapA)
 
-		ginkgo.By("deleting configmap A and ensuring the correct watchers observe the notification")
+		By("deleting configmap A and ensuring the correct watchers observe the notification")
 		err = c.CoreV1().ConfigMaps(ns).Delete(testConfigMapA.GetName(), nil)
-		framework.ExpectNoError(err, "failed to delete configmap %s in namespace: %s", testConfigMapA.GetName(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete configmap %s in namespace: %s", testConfigMapA.GetName(), ns)
 		expectEvent(watchA, watch.Deleted, nil)
 		expectEvent(watchAB, watch.Deleted, nil)
 		expectNoEvent(watchB, watch.Deleted, nil)
 
-		ginkgo.By("creating a configmap with label B and ensuring the correct watchers observe the notification")
+		By("creating a configmap with label B and ensuring the correct watchers observe the notification")
 		testConfigMapB, err = c.CoreV1().ConfigMaps(ns).Create(testConfigMapB)
-		framework.ExpectNoError(err, "failed to create configmap %s in namespace: %s", testConfigMapB, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to create configmap %s in namespace: %s", testConfigMapB, ns)
 		expectEvent(watchB, watch.Added, testConfigMapB)
 		expectEvent(watchAB, watch.Added, testConfigMapB)
 		expectNoEvent(watchA, watch.Added, testConfigMapB)
 
-		ginkgo.By("deleting configmap B and ensuring the correct watchers observe the notification")
+		By("deleting configmap B and ensuring the correct watchers observe the notification")
 		err = c.CoreV1().ConfigMaps(ns).Delete(testConfigMapB.GetName(), nil)
-		framework.ExpectNoError(err, "failed to delete configmap %s in namespace: %s", testConfigMapB.GetName(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete configmap %s in namespace: %s", testConfigMapB.GetName(), ns)
 		expectEvent(watchB, watch.Deleted, nil)
 		expectEvent(watchAB, watch.Deleted, nil)
 		expectNoEvent(watchA, watch.Deleted, nil)
@@ -149,31 +149,31 @@ var _ = SIGDescribe("Watchers", func() {
 			},
 		}
 
-		ginkgo.By("creating a new configmap")
+		By("creating a new configmap")
 		testConfigMap, err := c.CoreV1().ConfigMaps(ns).Create(testConfigMap)
-		framework.ExpectNoError(err, "failed to create configmap %s in namespace: %s", testConfigMap.GetName(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to create configmap %s in namespace: %s", testConfigMap.GetName(), ns)
 
-		ginkgo.By("modifying the configmap once")
+		By("modifying the configmap once")
 		testConfigMapFirstUpdate, err := updateConfigMap(c, ns, testConfigMap.GetName(), func(cm *v1.ConfigMap) {
 			setConfigMapData(cm, "mutation", "1")
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace: %s", testConfigMap.GetName(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace: %s", testConfigMap.GetName(), ns)
 
-		ginkgo.By("modifying the configmap a second time")
+		By("modifying the configmap a second time")
 		testConfigMapSecondUpdate, err := updateConfigMap(c, ns, testConfigMap.GetName(), func(cm *v1.ConfigMap) {
 			setConfigMapData(cm, "mutation", "2")
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace %s a second time", testConfigMap.GetName(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace %s a second time", testConfigMap.GetName(), ns)
 
-		ginkgo.By("deleting the configmap")
+		By("deleting the configmap")
 		err = c.CoreV1().ConfigMaps(ns).Delete(testConfigMap.GetName(), nil)
-		framework.ExpectNoError(err, "failed to delete configmap %s in namespace: %s", testConfigMap.GetName(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete configmap %s in namespace: %s", testConfigMap.GetName(), ns)
 
-		ginkgo.By("creating a watch on configmaps from the resource version returned by the first update")
+		By("creating a watch on configmaps from the resource version returned by the first update")
 		testWatch, err := watchConfigMaps(f, testConfigMapFirstUpdate.ObjectMeta.ResourceVersion, fromResourceVersionLabelValue)
-		framework.ExpectNoError(err, "failed to create a watch on configmaps from the resource version %s returned by the first update", testConfigMapFirstUpdate.ObjectMeta.ResourceVersion)
+		Expect(err).NotTo(HaveOccurred(), "failed to create a watch on configmaps from the resource version %s returned by the first update", testConfigMapFirstUpdate.ObjectMeta.ResourceVersion)
 
-		ginkgo.By("Expecting to observe notifications for all changes to the configmap after the first update")
+		By("Expecting to observe notifications for all changes to the configmap after the first update")
 		expectEvent(testWatch, watch.Modified, testConfigMapSecondUpdate)
 		expectEvent(testWatch, watch.Deleted, nil)
 	})
@@ -198,47 +198,47 @@ var _ = SIGDescribe("Watchers", func() {
 			},
 		}
 
-		ginkgo.By("creating a watch on configmaps")
+		By("creating a watch on configmaps")
 		testWatchBroken, err := watchConfigMaps(f, "", watchRestartedLabelValue)
-		framework.ExpectNoError(err, "failed to create a watch on configmap with label: %s", watchRestartedLabelValue)
+		Expect(err).NotTo(HaveOccurred(), "failed to create a watch on configmap with label: %s", watchRestartedLabelValue)
 
-		ginkgo.By("creating a new configmap")
+		By("creating a new configmap")
 		testConfigMap, err = c.CoreV1().ConfigMaps(ns).Create(testConfigMap)
-		framework.ExpectNoError(err, "failed to create configmap %s in namespace: %s", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to create configmap %s in namespace: %s", configMapName, ns)
 
-		ginkgo.By("modifying the configmap once")
+		By("modifying the configmap once")
 		_, err = updateConfigMap(c, ns, testConfigMap.GetName(), func(cm *v1.ConfigMap) {
 			setConfigMapData(cm, "mutation", "1")
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace: %s", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace: %s", configMapName, ns)
 
-		ginkgo.By("closing the watch once it receives two notifications")
+		By("closing the watch once it receives two notifications")
 		expectEvent(testWatchBroken, watch.Added, testConfigMap)
 		lastEvent, ok := waitForEvent(testWatchBroken, watch.Modified, nil, 1*time.Minute)
 		if !ok {
-			e2elog.Failf("Timed out waiting for second watch notification")
+			framework.Failf("Timed out waiting for second watch notification")
 		}
 		testWatchBroken.Stop()
 
-		ginkgo.By("modifying the configmap a second time, while the watch is closed")
+		By("modifying the configmap a second time, while the watch is closed")
 		testConfigMapSecondUpdate, err := updateConfigMap(c, ns, testConfigMap.GetName(), func(cm *v1.ConfigMap) {
 			setConfigMapData(cm, "mutation", "2")
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace %s a second time", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace %s a second time", configMapName, ns)
 
-		ginkgo.By("creating a new watch on configmaps from the last resource version observed by the first watch")
+		By("creating a new watch on configmaps from the last resource version observed by the first watch")
 		lastEventConfigMap, ok := lastEvent.Object.(*v1.ConfigMap)
 		if !ok {
-			e2elog.Failf("Expected last notification to refer to a configmap but got: %v", lastEvent)
+			framework.Failf("Expected last notification to refer to a configmap but got: %v", lastEvent)
 		}
 		testWatchRestarted, err := watchConfigMaps(f, lastEventConfigMap.ObjectMeta.ResourceVersion, watchRestartedLabelValue)
-		framework.ExpectNoError(err, "failed to create a new watch on configmaps from the last resource version %s observed by the first watch", lastEventConfigMap.ObjectMeta.ResourceVersion)
+		Expect(err).NotTo(HaveOccurred(), "failed to create a new watch on configmaps from the last resource version %s observed by the first watch", lastEventConfigMap.ObjectMeta.ResourceVersion)
 
-		ginkgo.By("deleting the configmap")
+		By("deleting the configmap")
 		err = c.CoreV1().ConfigMaps(ns).Delete(testConfigMap.GetName(), nil)
-		framework.ExpectNoError(err, "failed to delete configmap %s in namespace: %s", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete configmap %s in namespace: %s", configMapName, ns)
 
-		ginkgo.By("Expecting to observe notifications for all changes to the configmap since the first watch closed")
+		By("Expecting to observe notifications for all changes to the configmap since the first watch closed")
 		expectEvent(testWatchRestarted, watch.Modified, testConfigMapSecondUpdate)
 		expectEvent(testWatchRestarted, watch.Deleted, nil)
 	})
@@ -263,57 +263,57 @@ var _ = SIGDescribe("Watchers", func() {
 			},
 		}
 
-		ginkgo.By("creating a watch on configmaps with a certain label")
+		By("creating a watch on configmaps with a certain label")
 		testWatch, err := watchConfigMaps(f, "", toBeChangedLabelValue)
-		framework.ExpectNoError(err, "failed to create a watch on configmap with label: %s", toBeChangedLabelValue)
+		Expect(err).NotTo(HaveOccurred(), "failed to create a watch on configmap with label: %s", toBeChangedLabelValue)
 
-		ginkgo.By("creating a new configmap")
+		By("creating a new configmap")
 		testConfigMap, err = c.CoreV1().ConfigMaps(ns).Create(testConfigMap)
-		framework.ExpectNoError(err, "failed to create configmap %s in namespace: %s", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to create configmap %s in namespace: %s", configMapName, ns)
 
-		ginkgo.By("modifying the configmap once")
+		By("modifying the configmap once")
 		testConfigMapFirstUpdate, err := updateConfigMap(c, ns, testConfigMap.GetName(), func(cm *v1.ConfigMap) {
 			setConfigMapData(cm, "mutation", "1")
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace: %s", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace: %s", configMapName, ns)
 
-		ginkgo.By("changing the label value of the configmap")
+		By("changing the label value of the configmap")
 		_, err = updateConfigMap(c, ns, testConfigMap.GetName(), func(cm *v1.ConfigMap) {
 			cm.ObjectMeta.Labels[watchConfigMapLabelKey] = "wrong-value"
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace %s by changing label value", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace %s by changing label value", configMapName, ns)
 
-		ginkgo.By("Expecting to observe a delete notification for the watched object")
+		By("Expecting to observe a delete notification for the watched object")
 		expectEvent(testWatch, watch.Added, testConfigMap)
 		expectEvent(testWatch, watch.Modified, testConfigMapFirstUpdate)
 		expectEvent(testWatch, watch.Deleted, nil)
 
-		ginkgo.By("modifying the configmap a second time")
+		By("modifying the configmap a second time")
 		testConfigMapSecondUpdate, err := updateConfigMap(c, ns, testConfigMap.GetName(), func(cm *v1.ConfigMap) {
 			setConfigMapData(cm, "mutation", "2")
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace %s a second time", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace %s a second time", configMapName, ns)
 
-		ginkgo.By("Expecting not to observe a notification because the object no longer meets the selector's requirements")
+		By("Expecting not to observe a notification because the object no longer meets the selector's requirements")
 		expectNoEvent(testWatch, watch.Modified, testConfigMapSecondUpdate)
 
-		ginkgo.By("changing the label value of the configmap back")
+		By("changing the label value of the configmap back")
 		testConfigMapLabelRestored, err := updateConfigMap(c, ns, testConfigMap.GetName(), func(cm *v1.ConfigMap) {
 			cm.ObjectMeta.Labels[watchConfigMapLabelKey] = toBeChangedLabelValue
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace %s by changing label value back", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace %s by changing label value back", configMapName, ns)
 
-		ginkgo.By("modifying the configmap a third time")
+		By("modifying the configmap a third time")
 		testConfigMapThirdUpdate, err := updateConfigMap(c, ns, testConfigMap.GetName(), func(cm *v1.ConfigMap) {
 			setConfigMapData(cm, "mutation", "3")
 		})
-		framework.ExpectNoError(err, "failed to update configmap %s in namespace %s a third time", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to update configmap %s in namespace %s a third time", configMapName, ns)
 
-		ginkgo.By("deleting the configmap")
+		By("deleting the configmap")
 		err = c.CoreV1().ConfigMaps(ns).Delete(testConfigMap.GetName(), nil)
-		framework.ExpectNoError(err, "failed to delete configmap %s in namespace: %s", configMapName, ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete configmap %s in namespace: %s", configMapName, ns)
 
-		ginkgo.By("Expecting to observe an add notification for the watched object when the label value was restored")
+		By("Expecting to observe an add notification for the watched object when the label value was restored")
 		expectEvent(testWatch, watch.Added, testConfigMapLabelRestored)
 		expectEvent(testWatch, watch.Modified, testConfigMapThirdUpdate)
 		expectEvent(testWatch, watch.Deleted, nil)
@@ -321,38 +321,37 @@ var _ = SIGDescribe("Watchers", func() {
 
 	/*
 	   Testname: watch-consistency
-	   Release : v1.15
 	   Description: Ensure that concurrent watches are consistent with each other by initiating an additional watch
 	   for events received from the first watch, initiated at the resource version of the event, and checking that all
 	   resource versions of all events match. Events are produced from writes on a background goroutine.
 	*/
-	framework.ConformanceIt("should receive events on concurrent watches in same order", func() {
+	It("should receive events on concurrent watches in same order", func() {
 		c := f.ClientSet
 		ns := f.Namespace.Name
 
 		iterations := 100
 
-		ginkgo.By("starting a background goroutine to produce watch events")
+		By("starting a background goroutine to produce watch events")
 		donec := make(chan struct{})
 		stopc := make(chan struct{})
 		go func() {
-			defer ginkgo.GinkgoRecover()
+			defer GinkgoRecover()
 			defer close(donec)
 			produceConfigMapEvents(f, stopc, 5*time.Millisecond)
 		}()
 
-		ginkgo.By("creating watches starting from each resource version of the events produced and verifying they all receive resource versions in the same order")
+		By("creating watches starting from each resource version of the events produced and verifying they all receive resource versions in the same order")
 		wcs := []watch.Interface{}
 		resourceVersion := "0"
 		for i := 0; i < iterations; i++ {
 			wc, err := c.CoreV1().ConfigMaps(ns).Watch(metav1.ListOptions{ResourceVersion: resourceVersion})
-			framework.ExpectNoError(err, "Failed to watch configmaps in the namespace %s", ns)
+			Expect(err).NotTo(HaveOccurred(), "Failed to watch configmaps in the namespace %s", ns)
 			wcs = append(wcs, wc)
 			resourceVersion = waitForNextConfigMapEvent(wcs[0]).ResourceVersion
 			for _, wc := range wcs[1:] {
 				e := waitForNextConfigMapEvent(wc)
 				if resourceVersion != e.ResourceVersion {
-					e2elog.Failf("resource version mismatch, expected %s but got %s", resourceVersion, e.ResourceVersion)
+					framework.Failf("resource version mismatch, expected %s but got %s", resourceVersion, e.ResourceVersion)
 				}
 			}
 		}
@@ -396,13 +395,13 @@ func setConfigMapData(cm *v1.ConfigMap, key, value string) {
 
 func expectEvent(w watch.Interface, eventType watch.EventType, object runtime.Object) {
 	if event, ok := waitForEvent(w, eventType, object, 1*time.Minute); !ok {
-		e2elog.Failf("Timed out waiting for expected watch notification: %v", event)
+		framework.Failf("Timed out waiting for expected watch notification: %v", event)
 	}
 }
 
 func expectNoEvent(w watch.Interface, eventType watch.EventType, object runtime.Object) {
 	if event, ok := waitForEvent(w, eventType, object, 10*time.Second); ok {
-		e2elog.Failf("Unexpected watch notification observed: %v", event)
+		framework.Failf("Unexpected watch notification observed: %v", event)
 	}
 }
 
@@ -413,9 +412,9 @@ func waitForEvent(w watch.Interface, expectType watch.EventType, expectObject ru
 		select {
 		case actual, ok := <-w.ResultChan():
 			if ok {
-				e2elog.Logf("Got : %v %v", actual.Type, actual.Object)
+				framework.Logf("Got : %v %v", actual.Type, actual.Object)
 			} else {
-				e2elog.Failf("Watch closed unexpectedly")
+				framework.Failf("Watch closed unexpectedly")
 			}
 			if expectType == actual.Type && (expectObject == nil || apiequality.Semantic.DeepEqual(expectObject, actual.Object)) {
 				return actual, true
@@ -435,10 +434,11 @@ func waitForNextConfigMapEvent(watch watch.Interface) *v1.ConfigMap {
 	case event := <-watch.ResultChan():
 		if configMap, ok := event.Object.(*v1.ConfigMap); ok {
 			return configMap
+		} else {
+			framework.Failf("expected config map")
 		}
-		e2elog.Failf("expected config map")
 	case <-time.After(10 * time.Second):
-		e2elog.Failf("timed out waiting for watch event")
+		framework.Failf("timed out waiting for watch event")
 	}
 	return nil // should never happen
 }
@@ -472,21 +472,21 @@ func produceConfigMapEvents(f *framework.Framework, stopc <-chan struct{}, minWa
 		case createEvent:
 			cm.Name = name(i)
 			_, err := c.CoreV1().ConfigMaps(ns).Create(cm)
-			framework.ExpectNoError(err, "Failed to create configmap %s in namespace %s", cm.Name, ns)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create configmap %s in namespace %s", cm.Name, ns)
 			existing = append(existing, i)
-			i++
+			i += 1
 		case updateEvent:
 			idx := rand.Intn(len(existing))
 			cm.Name = name(existing[idx])
 			_, err := c.CoreV1().ConfigMaps(ns).Update(cm)
-			framework.ExpectNoError(err, "Failed to update configmap %s in namespace %s", cm.Name, ns)
+			Expect(err).NotTo(HaveOccurred(), "Failed to update configmap %s in namespace %s", cm.Name, ns)
 		case deleteEvent:
 			idx := rand.Intn(len(existing))
 			err := c.CoreV1().ConfigMaps(ns).Delete(name(existing[idx]), &metav1.DeleteOptions{})
-			framework.ExpectNoError(err, "Failed to delete configmap %s in namespace %s", name(existing[idx]), ns)
+			Expect(err).NotTo(HaveOccurred(), "Failed to delete configmap %s in namespace %s", name(existing[idx]), ns)
 			existing = append(existing[:idx], existing[idx+1:]...)
 		default:
-			e2elog.Failf("Unsupported event operation: %d", op)
+			framework.Failf("Unsupported event operation: %d", op)
 		}
 		select {
 		case <-stopc:

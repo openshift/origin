@@ -42,19 +42,19 @@ func MatchesUsername(namespace, name string, username string) bool {
 	if !strings.HasPrefix(username, ServiceAccountUsernamePrefix) {
 		return false
 	}
-	username = username[len(ServiceAccountUsernamePrefix):]
+	username = strings.TrimPrefix(username, ServiceAccountUsernamePrefix)
+
+	if !strings.HasSuffix(username, name) {
+		return false
+	}
+	username = strings.TrimSuffix(username, name)
 
 	if !strings.HasPrefix(username, namespace) {
 		return false
 	}
-	username = username[len(namespace):]
+	username = strings.TrimPrefix(username, namespace)
 
-	if !strings.HasPrefix(username, ServiceAccountUsernameSeparator) {
-		return false
-	}
-	username = username[len(ServiceAccountUsernameSeparator):]
-
-	return username == name
+	return username == ServiceAccountUsernameSeparator
 }
 
 var invalidUsernameErr = fmt.Errorf("Username must be in the form %s", MakeUsername("namespace", "name"))

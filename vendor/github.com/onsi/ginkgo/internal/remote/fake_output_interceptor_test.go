@@ -1,7 +1,5 @@
 package remote_test
 
-import "os"
-
 type fakeOutputInterceptor struct {
 	DidStartInterceptingOutput bool
 	DidStopInterceptingOutput  bool
@@ -16,7 +14,4 @@ func (interceptor *fakeOutputInterceptor) StartInterceptingOutput() error {
 func (interceptor *fakeOutputInterceptor) StopInterceptingAndReturnOutput() (string, error) {
 	interceptor.DidStopInterceptingOutput = true
 	return interceptor.InterceptedOutput, nil
-}
-
-func (interceptor *fakeOutputInterceptor) StreamTo(*os.File) {
 }

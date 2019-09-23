@@ -14,11 +14,11 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"golang.org/x/text/internal"
 	"golang.org/x/text/internal/gen"
-	"golang.org/x/text/internal/language"
-	"golang.org/x/text/internal/language/compact"
 	"golang.org/x/text/internal/number"
 	"golang.org/x/text/internal/stringset"
+	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/cldr"
 )
 
@@ -151,19 +151,19 @@ func genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 	type symbols [NumSymbolTypes]string
 
 	type key struct {
-		tag    compact.ID
+		tag    int // from language.CompactIndex
 		system system
 	}
 	symbolMap := map[key]*symbols{}
 
-	defaults := map[compact.ID]system{}
+	defaults := map[int]system{}
 
 	for _, lang := range data.Locales() {
 		ldml := data.RawLDML(lang)
 		if ldml.Numbers == nil {
 			continue
 		}
-		langIndex, ok := compact.FromTag(language.MustParse(lang))
+		langIndex, ok := language.CompactIndex(language.MustParse(lang))
 		if !ok {
 			log.Fatalf("No compact index for language %s", lang)
 		}
@@ -213,7 +213,7 @@ func genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 		for t := SymDecimal; t < NumSymbolTypes; t++ {
 			p := k.tag
 			for syms[t] == "" {
-				p = p.Parent()
+				p = int(internal.Parent[p])
 				if pSyms, ok := symbolMap[key{p, k.system}]; ok && (*pSyms)[t] != "" {
 					syms[t] = (*pSyms)[t]
 					break
@@ -234,7 +234,7 @@ func genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 
 	for ns := system(0); ns < nNumberSystems; ns++ {
 		for _, l := range data.Locales() {
-			langIndex, _ := compact.FromTag(language.MustParse(l))
+			langIndex, _ := language.CompactIndex(language.MustParse(l))
 			s := symbolMap[key{langIndex, ns}]
 			if s == nil {
 				continue
@@ -255,30 +255,30 @@ func genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 
 	// resolveSymbolIndex gets the index from the closest matching locale,
 	// including the locale itself.
-	resolveSymbolIndex := func(langIndex compact.ID, ns system) symOffset {
+	resolveSymbolIndex := func(langIndex int, ns system) byte {
 		for {
 			if sym := symbolMap[key{langIndex, ns}]; sym != nil {
-				return symOffset(m[*sym])
+				return byte(m[*sym])
 			}
 			if langIndex == 0 {
 				return 0 // und, latn
 			}
-			langIndex = langIndex.Parent()
+			langIndex = int(internal.Parent[langIndex])
 		}
 	}
 
 	// Create an index with the symbols for each locale for the latn numbering
 	// system. If this is not the default, or the only one, for a locale, we
 	// will overwrite the value later.
-	var langToDefaults [compact.NumCompactTags]symOffset
+	var langToDefaults [language.NumCompactTags]byte
 	for _, l := range data.Locales() {
-		langIndex, _ := compact.FromTag(language.MustParse(l))
+		langIndex, _ := language.CompactIndex(language.MustParse(l))
 		langToDefaults[langIndex] = resolveSymbolIndex(langIndex, 0)
 	}
 
 	// Delete redundant entries.
 	for _, l := range data.Locales() {
-		langIndex, _ := compact.FromTag(language.MustParse(l))
+		langIndex, _ := language.CompactIndex(language.MustParse(l))
 		def := defaults[langIndex]
 		syms := symbolMap[key{langIndex, def}]
 		if syms == nil {
@@ -298,15 +298,15 @@ func genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 	// be referenced if a user specified an alternative numbering system.
 	var langToAlt []altSymData
 	for _, l := range data.Locales() {
-		langIndex, _ := compact.FromTag(language.MustParse(l))
+		langIndex, _ := language.CompactIndex(language.MustParse(l))
 		start := len(langToAlt)
-		if start >= hasNonLatnMask {
-			log.Fatalf("Number of alternative assignments >= %x", hasNonLatnMask)
+		if start > 0x7F {
+			log.Fatal("Number of alternative assignments > 0x7F")
 		}
 		// Create the entry for the default value.
 		def := defaults[langIndex]
 		langToAlt = append(langToAlt, altSymData{
-			compactTag: langIndex,
+			compactTag: uint16(langIndex),
 			system:     def,
 			symIndex:   resolveSymbolIndex(langIndex, def),
 		})
@@ -317,7 +317,7 @@ func genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 			}
 			if sym := symbolMap[key{langIndex, ns}]; sym != nil {
 				langToAlt = append(langToAlt, altSymData{
-					compactTag: langIndex,
+					compactTag: uint16(langIndex),
 					system:     ns,
 					symIndex:   resolveSymbolIndex(langIndex, ns),
 				})
@@ -328,7 +328,7 @@ func genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 			langToAlt = langToAlt[:start]
 		} else {
 			// Overwrite the entry in langToDefaults.
-			langToDefaults[langIndex] = hasNonLatnMask | symOffset(start)
+			langToDefaults[langIndex] = 0x80 | byte(start)
 		}
 	}
 	w.WriteComment(`
@@ -361,16 +361,16 @@ func genFormats(w *gen.CodeWriter, data *cldr.CLDR) {
 
 	// TODO: It would be possible to eliminate two of these slices by having
 	// another indirection and store a reference to the combination of patterns.
-	decimal := make([]byte, compact.NumCompactTags)
-	scientific := make([]byte, compact.NumCompactTags)
-	percent := make([]byte, compact.NumCompactTags)
+	decimal := make([]byte, language.NumCompactTags)
+	scientific := make([]byte, language.NumCompactTags)
+	percent := make([]byte, language.NumCompactTags)
 
 	for _, lang := range data.Locales() {
 		ldml := data.RawLDML(lang)
 		if ldml.Numbers == nil {
 			continue
 		}
-		langIndex, ok := compact.FromTag(language.MustParse(lang))
+		langIndex, ok := language.CompactIndex(language.MustParse(lang))
 		if !ok {
 			log.Fatalf("No compact index for language %s", lang)
 		}
@@ -440,8 +440,8 @@ func genFormats(w *gen.CodeWriter, data *cldr.CLDR) {
 	// indicates an unspecified value.
 	for _, data := range [][]byte{decimal, scientific, percent} {
 		for i := range data {
-			p := compact.ID(i)
-			for ; data[p] == 0; p = p.Parent() {
+			p := uint16(i)
+			for ; data[p] == 0; p = internal.Parent[p] {
 			}
 			data[i] = data[p]
 		}

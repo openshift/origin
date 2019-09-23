@@ -111,7 +111,7 @@ func (in *IngressBackend) DeepCopy() *IngressBackend {
 func (in *IngressList) DeepCopyInto(out *IngressList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Ingress, len(*in))

@@ -75,6 +75,7 @@ func TestRecordSetsCRUD(t *testing.T) {
 	description := ""
 	updateOpts := recordsets.UpdateOpts{
 		Description: &description,
+		TTL:         0,
 	}
 
 	newRS, err := recordsets.Update(client, rs.ZoneID, rs.ID, updateOpts).Extract()
@@ -83,30 +84,4 @@ func TestRecordSetsCRUD(t *testing.T) {
 	tools.PrintResource(t, &newRS)
 
 	th.AssertEquals(t, newRS.Description, description)
-
-	records := []string{"10.1.0.3"}
-	updateOpts = recordsets.UpdateOpts{
-		Records: records,
-	}
-
-	newRS, err = recordsets.Update(client, rs.ZoneID, rs.ID, updateOpts).Extract()
-	th.AssertNoErr(t, err)
-
-	tools.PrintResource(t, &newRS)
-
-	th.AssertDeepEquals(t, newRS.Records, records)
-	th.AssertEquals(t, newRS.TTL, 3600)
-
-	ttl := 0
-	updateOpts = recordsets.UpdateOpts{
-		TTL: &ttl,
-	}
-
-	newRS, err = recordsets.Update(client, rs.ZoneID, rs.ID, updateOpts).Extract()
-	th.AssertNoErr(t, err)
-
-	tools.PrintResource(t, &newRS)
-
-	th.AssertDeepEquals(t, newRS.Records, records)
-	th.AssertEquals(t, newRS.TTL, ttl)
 }

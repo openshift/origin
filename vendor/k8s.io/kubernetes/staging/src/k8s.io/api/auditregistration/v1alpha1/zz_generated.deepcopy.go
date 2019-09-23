@@ -55,7 +55,7 @@ func (in *AuditSink) DeepCopyObject() runtime.Object {
 func (in *AuditSinkList) DeepCopyInto(out *AuditSinkList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]AuditSink, len(*in))
@@ -129,11 +129,6 @@ func (in *ServiceReference) DeepCopyInto(out *ServiceReference) {
 	if in.Path != nil {
 		in, out := &in.Path, &out.Path
 		*out = new(string)
-		**out = **in
-	}
-	if in.Port != nil {
-		in, out := &in.Port, &out.Port
-		*out = new(int32)
 		**out = **in
 	}
 	return

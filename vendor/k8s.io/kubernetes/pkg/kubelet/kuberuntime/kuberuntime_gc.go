@@ -24,11 +24,10 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/types"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	internalapi "k8s.io/cri-api/pkg/apis"
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog"
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
@@ -277,15 +276,15 @@ func (cgc *containerGC) evictSandboxes(evictTerminatedPods bool) error {
 		return err
 	}
 
-	sandboxes, err := cgc.manager.getKubeletSandboxes(true)
-	if err != nil {
-		return err
-	}
-
 	// collect all the PodSandboxId of container
 	sandboxIDs := sets.NewString()
 	for _, container := range containers {
 		sandboxIDs.Insert(container.PodSandboxId)
+	}
+
+	sandboxes, err := cgc.manager.getKubeletSandboxes(true)
+	if err != nil {
+		return err
 	}
 
 	sandboxesByPod := make(sandboxesByPodUID)
@@ -376,20 +375,16 @@ func (cgc *containerGC) evictPodLogsDirectories(allSourcesReady bool) error {
 // * gets evictable sandboxes which are not ready and contains no containers.
 // * removes evictable sandboxes.
 func (cgc *containerGC) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy, allSourcesReady bool, evictTerminatedPods bool) error {
-	errors := []error{}
 	// Remove evictable containers
 	if err := cgc.evictContainers(gcPolicy, allSourcesReady, evictTerminatedPods); err != nil {
-		errors = append(errors, err)
+		return err
 	}
 
 	// Remove sandboxes with zero containers
 	if err := cgc.evictSandboxes(evictTerminatedPods); err != nil {
-		errors = append(errors, err)
+		return err
 	}
 
 	// Remove pod sandbox log directory
-	if err := cgc.evictPodLogsDirectories(allSourcesReady); err != nil {
-		errors = append(errors, err)
-	}
-	return utilerrors.NewAggregate(errors)
+	return cgc.evictPodLogsDirectories(allSourcesReady)
 }

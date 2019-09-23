@@ -23,7 +23,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -51,16 +50,6 @@ func NewDpsCertificateClientWithBaseURI(baseURI string, subscriptionID string) D
 // ifMatch - eTag of the certificate. This is required to update an existing certificate, and ignored while
 // creating a brand new certificate.
 func (client DpsCertificateClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, provisioningServiceName string, certificateName string, certificateDescription CertificateBodyDescription, ifMatch string) (result CertificateResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DpsCertificateClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: certificateName,
 			Constraints: []validation.Constraint{{Target: "certificateName", Name: validation.MaxLength, Rule: 256, Chain: nil}}}}); err != nil {
@@ -119,8 +108,8 @@ func (client DpsCertificateClient) CreateOrUpdatePreparer(ctx context.Context, r
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client DpsCertificateClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -136,7 +125,7 @@ func (client DpsCertificateClient) CreateOrUpdateResponder(resp *http.Response) 
 	return
 }
 
-// Delete deletes the specified certificate associated with the Provisioning Service
+// Delete deletes the specified certificate assosciated with the Provisioning Service
 // Parameters:
 // resourceGroupName - resource group identifier.
 // ifMatch - eTag of the certificate
@@ -152,16 +141,6 @@ func (client DpsCertificateClient) CreateOrUpdateResponder(resp *http.Response) 
 // certificatehasPrivateKey - indicates if the certificate contains a private key.
 // certificatenonce - random number generated to indicate Proof of Possession.
 func (client DpsCertificateClient) Delete(ctx context.Context, resourceGroupName string, ifMatch string, provisioningServiceName string, certificateName string, certificatename string, certificaterawBytes []byte, certificateisVerified *bool, certificatepurpose CertificatePurpose, certificatecreated *date.Time, certificatelastUpdated *date.Time, certificatehasPrivateKey *bool, certificatenonce string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DpsCertificateClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, ifMatch, provisioningServiceName, certificateName, certificatename, certificaterawBytes, certificateisVerified, certificatepurpose, certificatecreated, certificatelastUpdated, certificatehasPrivateKey, certificatenonce)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.DpsCertificateClient", "Delete", nil, "Failure preparing request")
@@ -233,8 +212,8 @@ func (client DpsCertificateClient) DeletePreparer(ctx context.Context, resourceG
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client DpsCertificateClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -266,16 +245,6 @@ func (client DpsCertificateClient) DeleteResponder(resp *http.Response) (result 
 // certificatehasPrivateKey - indicates if the certificate contains private key.
 // certificatenonce - random number generated to indicate Proof of Possession.
 func (client DpsCertificateClient) GenerateVerificationCode(ctx context.Context, certificateName string, ifMatch string, resourceGroupName string, provisioningServiceName string, certificatename string, certificaterawBytes []byte, certificateisVerified *bool, certificatepurpose CertificatePurpose, certificatecreated *date.Time, certificatelastUpdated *date.Time, certificatehasPrivateKey *bool, certificatenonce string) (result VerificationCodeResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DpsCertificateClient.GenerateVerificationCode")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GenerateVerificationCodePreparer(ctx, certificateName, ifMatch, resourceGroupName, provisioningServiceName, certificatename, certificaterawBytes, certificateisVerified, certificatepurpose, certificatecreated, certificatelastUpdated, certificatehasPrivateKey, certificatenonce)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.DpsCertificateClient", "GenerateVerificationCode", nil, "Failure preparing request")
@@ -347,8 +316,8 @@ func (client DpsCertificateClient) GenerateVerificationCodePreparer(ctx context.
 // GenerateVerificationCodeSender sends the GenerateVerificationCode request. The method will close the
 // http.Response Body if it receives an error.
 func (client DpsCertificateClient) GenerateVerificationCodeSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GenerateVerificationCodeResponder handles the response to the GenerateVerificationCode request. The method always
@@ -371,16 +340,6 @@ func (client DpsCertificateClient) GenerateVerificationCodeResponder(resp *http.
 // provisioningServiceName - name of the provisioning service the certificate is associated with.
 // ifMatch - eTag of the certificate.
 func (client DpsCertificateClient) Get(ctx context.Context, certificateName string, resourceGroupName string, provisioningServiceName string, ifMatch string) (result CertificateResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DpsCertificateClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, certificateName, resourceGroupName, provisioningServiceName, ifMatch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.DpsCertificateClient", "Get", nil, "Failure preparing request")
@@ -431,8 +390,8 @@ func (client DpsCertificateClient) GetPreparer(ctx context.Context, certificateN
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client DpsCertificateClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -453,16 +412,6 @@ func (client DpsCertificateClient) GetResponder(resp *http.Response) (result Cer
 // resourceGroupName - name of resource group.
 // provisioningServiceName - name of provisioning service to retrieve certificates for.
 func (client DpsCertificateClient) List(ctx context.Context, resourceGroupName string, provisioningServiceName string) (result CertificateListDescription, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DpsCertificateClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListPreparer(ctx, resourceGroupName, provisioningServiceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.DpsCertificateClient", "List", nil, "Failure preparing request")
@@ -508,8 +457,8 @@ func (client DpsCertificateClient) ListPreparer(ctx context.Context, resourceGro
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client DpsCertificateClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -543,16 +492,6 @@ func (client DpsCertificateClient) ListResponder(resp *http.Response) (result Ce
 // certificatehasPrivateKey - indicates if the certificate contains private key.
 // certificatenonce - random number generated to indicate Proof of Possession.
 func (client DpsCertificateClient) VerifyCertificate(ctx context.Context, certificateName string, ifMatch string, request VerificationCodeRequest, resourceGroupName string, provisioningServiceName string, certificatename string, certificaterawBytes []byte, certificateisVerified *bool, certificatepurpose CertificatePurpose, certificatecreated *date.Time, certificatelastUpdated *date.Time, certificatehasPrivateKey *bool, certificatenonce string) (result CertificateResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DpsCertificateClient.VerifyCertificate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.VerifyCertificatePreparer(ctx, certificateName, ifMatch, request, resourceGroupName, provisioningServiceName, certificatename, certificaterawBytes, certificateisVerified, certificatepurpose, certificatecreated, certificatelastUpdated, certificatehasPrivateKey, certificatenonce)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iothub.DpsCertificateClient", "VerifyCertificate", nil, "Failure preparing request")
@@ -626,8 +565,8 @@ func (client DpsCertificateClient) VerifyCertificatePreparer(ctx context.Context
 // VerifyCertificateSender sends the VerifyCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client DpsCertificateClient) VerifyCertificateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // VerifyCertificateResponder handles the response to the VerifyCertificate request. The method always

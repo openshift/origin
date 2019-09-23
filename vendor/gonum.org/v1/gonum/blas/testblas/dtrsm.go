@@ -7,8 +7,6 @@ package testblas
 import (
 	"testing"
 
-	"golang.org/x/exp/rand"
-
 	"gonum.org/v1/gonum/blas"
 	"gonum.org/v1/gonum/floats"
 )
@@ -18,8 +16,7 @@ type Dtrsmer interface {
 		alpha float64, a []float64, lda int, b []float64, ldb int)
 }
 
-func DtrsmTest(t *testing.T, impl Dtrsmer) {
-	rnd := rand.New(rand.NewSource(1))
+func DtrsmTest(t *testing.T, blasser Dtrsmer) {
 	for i, test := range []struct {
 		s     blas.Side
 		ul    blas.Uplo
@@ -30,8 +27,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 		alpha float64
 		a     [][]float64
 		b     [][]float64
-
-		want [][]float64
+		ans   [][]float64
 	}{
 		{
 			s:     blas.Left,
@@ -51,7 +47,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7},
 				{5, 8},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{1, 3.4},
 				{-0.5, -0.5},
 				{2, 3.2},
@@ -75,7 +71,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7},
 				{5, 8},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{60, 96},
 				{-42, -66},
 				{10, 16},
@@ -99,7 +95,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7, 1, 3},
 				{5, 8, 9, 10},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{1, 3.4, 1.2, 13},
 				{-0.5, -0.5, -4, -3.5},
 				{2, 3.2, 3.6, 4},
@@ -123,7 +119,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7, 1, 3},
 				{5, 8, 9, 10},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{60, 96, 126, 146},
 				{-42, -66, -88, -94},
 				{10, 16, 18, 20},
@@ -147,7 +143,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7},
 				{5, 8},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{4.5, 9},
 				{-0.375, -1.5},
 				{-0.75, -12.0 / 7},
@@ -171,7 +167,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7},
 				{5, 8},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{9, 18},
 				{-15, -33},
 				{60, 132},
@@ -195,7 +191,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7, 1, 3},
 				{5, 8, 9, 10},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{4.5, 9, 3, 13.5},
 				{-0.375, -1.5, -1.5, -63.0 / 8},
 				{-0.75, -12.0 / 7, 3, 39.0 / 28},
@@ -219,7 +215,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7, 1, 3},
 				{5, 8, 9, 10},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{9, 18, 6, 27},
 				{-15, -33, -15, -72},
 				{60, 132, 87, 327},
@@ -243,7 +239,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7},
 				{5, 8},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{4.5, 9},
 				{-0.30, -1.2},
 				{-6.0 / 35, -24.0 / 35},
@@ -267,7 +263,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7},
 				{5, 8},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{9, 18},
 				{-15, -33},
 				{69, 150},
@@ -291,7 +287,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7, 8, 9},
 				{5, 8, 10, 11},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{4.5, 9, 9, 10.5},
 				{-0.3, -1.2, -0.6, -0.9},
 				{-6.0 / 35, -24.0 / 35, -12.0 / 35, -18.0 / 35},
@@ -315,7 +311,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7, 8, 9},
 				{5, 8, 10, 11},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{9, 18, 18, 21},
 				{-15, -33, -30, -36},
 				{69, 150, 138, 165},
@@ -339,7 +335,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7},
 				{5, 8},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{-0.46875, 0.375},
 				{0.1875, 0.75},
 				{1.875, 3},
@@ -363,7 +359,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7},
 				{5, 8},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{168, 267},
 				{-78, -123},
 				{15, 24},
@@ -387,7 +383,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7, 4, 5},
 				{5, 8, 6, 7},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{-0.46875, 0.375, -2.0625, -1.78125},
 				{0.1875, 0.75, -0.375, -0.1875},
 				{1.875, 3, 2.25, 2.625},
@@ -411,7 +407,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{4, 7, 4, 5},
 				{5, 8, 6, 7},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{168, 267, 204, 237},
 				{-78, -123, -96, -111},
 				{15, 24, 18, 21},
@@ -436,7 +432,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{16, 17, 18},
 				{19, 20, 21},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{15, -2.4, -48.0 / 35},
 				{19.5, -3.3, -66.0 / 35},
 				{24, -4.2, -2.4},
@@ -462,7 +458,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{16, 17, 18},
 				{19, 20, 21},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{30, -57, 258},
 				{39, -75, 339},
 				{48, -93, 420},
@@ -486,7 +482,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{10, 11, 12},
 				{13, 14, 15},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{15, -2.4, -48.0 / 35},
 				{19.5, -3.3, -66.0 / 35},
 			},
@@ -508,7 +504,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{10, 11, 12},
 				{13, 14, 15},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{30, -57, 258},
 				{39, -75, 339},
 			},
@@ -532,7 +528,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{16, 17, 18},
 				{19, 20, 21},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{4.2, 1.2, 4.5},
 				{5.775, 1.65, 5.625},
 				{7.35, 2.1, 6.75},
@@ -558,7 +554,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{16, 17, 18},
 				{19, 20, 21},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{435, -183, 36},
 				{543, -228, 45},
 				{651, -273, 54},
@@ -582,7 +578,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{10, 11, 12},
 				{13, 14, 15},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{4.2, 1.2, 4.5},
 				{5.775, 1.65, 5.625},
 			},
@@ -604,7 +600,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{10, 11, 12},
 				{13, 14, 15},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{435, -183, 36},
 				{543, -228, 45},
 			},
@@ -628,7 +624,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{16, 17, 18},
 				{19, 20, 21},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{4.2, 1.2, 4.5},
 				{5.775, 1.65, 5.625},
 				{7.35, 2.1, 6.75},
@@ -654,7 +650,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{16, 17, 18},
 				{19, 20, 21},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{435, -183, 36},
 				{543, -228, 45},
 				{651, -273, 54},
@@ -678,7 +674,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{10, 11, 12},
 				{13, 14, 15},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{4.2, 1.2, 4.5},
 				{5.775, 1.65, 5.625},
 			},
@@ -700,7 +696,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{10, 11, 12},
 				{13, 14, 15},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{435, -183, 36},
 				{543, -228, 45},
 			},
@@ -724,7 +720,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{16, 17, 18},
 				{19, 20, 21},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{15, -2.4, -1.2},
 				{19.5, -3.3, -1.65},
 				{24, -4.2, -2.1},
@@ -750,7 +746,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{16, 17, 18},
 				{19, 20, 21},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{30, -57, 258},
 				{39, -75, 339},
 				{48, -93, 420},
@@ -774,7 +770,7 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{10, 11, 12},
 				{13, 14, 15},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{15, -2.4, -1.2},
 				{19.5, -3.3, -1.65},
 			},
@@ -796,75 +792,24 @@ func DtrsmTest(t *testing.T, impl Dtrsmer) {
 				{10, 11, 12},
 				{13, 14, 15},
 			},
-			want: [][]float64{
+			ans: [][]float64{
 				{30, -57, 258},
 				{39, -75, 339},
 			},
 		},
-		{
-			s:     blas.Right,
-			ul:    blas.Lower,
-			tA:    blas.Trans,
-			d:     blas.Unit,
-			m:     2,
-			n:     3,
-			alpha: 0,
-			a: [][]float64{
-				{2, 0, 0},
-				{3, 5, 0},
-				{4, 6, 8},
-			},
-			b: [][]float64{
-				{10, 11, 12},
-				{13, 14, 15},
-			},
-			want: [][]float64{
-				{0, 0, 0},
-				{0, 0, 0},
-			},
-		},
 	} {
-		m := test.m
-		n := test.n
-		na := m
-		if test.s == blas.Right {
-			na = n
+		aFlat := flatten(test.a)
+		bFlat := flatten(test.b)
+		ansFlat := flatten(test.ans)
+		var lda int
+		if test.s == blas.Left {
+			lda = test.m
+		} else {
+			lda = test.n
 		}
-		for _, lda := range []int{na, na + 3} {
-			for _, ldb := range []int{n, n + 5} {
-				a := make([]float64, na*lda)
-				for i := range a {
-					a[i] = rnd.NormFloat64()
-				}
-				for i := 0; i < na; i++ {
-					for j := 0; j < na; j++ {
-						a[i*lda+j] = test.a[i][j]
-					}
-				}
-
-				b := make([]float64, m*ldb)
-				for i := range b {
-					b[i] = rnd.NormFloat64()
-				}
-				for i := 0; i < m; i++ {
-					for j := 0; j < n; j++ {
-						b[i*ldb+j] = test.b[i][j]
-					}
-				}
-
-				impl.Dtrsm(test.s, test.ul, test.tA, test.d, test.m, test.n, test.alpha, a, lda, b, ldb)
-
-				want := make([]float64, len(b))
-				copy(want, b)
-				for i := 0; i < m; i++ {
-					for j := 0; j < n; j++ {
-						want[i*ldb+j] = test.want[i][j]
-					}
-				}
-				if !floats.EqualApprox(want, b, 1e-13) {
-					t.Errorf("Case %v: Want %v, got %v.", i, want, b)
-				}
-			}
+		blasser.Dtrsm(test.s, test.ul, test.tA, test.d, test.m, test.n, test.alpha, aFlat, lda, bFlat, test.n)
+		if !floats.EqualApprox(ansFlat, bFlat, 1e-13) {
+			t.Errorf("Case %v: Want %v, got %v.", i, ansFlat, bFlat)
 		}
 	}
 }

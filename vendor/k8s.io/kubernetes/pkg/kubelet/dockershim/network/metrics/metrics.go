@@ -21,9 +21,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-
-	"k8s.io/component-base/metrics"
-	"k8s.io/component-base/metrics/legacyregistry"
 )
 
 const (
@@ -41,25 +38,23 @@ const (
 var (
 	// NetworkPluginOperationsLatency collects operation latency numbers by operation
 	// type.
-	NetworkPluginOperationsLatency = metrics.NewHistogramVec(
-		&metrics.HistogramOpts{
-			Subsystem:      kubeletSubsystem,
-			Name:           NetworkPluginOperationsLatencyKey,
-			Help:           "Latency in seconds of network plugin operations. Broken down by operation type.",
-			Buckets:        prometheus.DefBuckets,
-			StabilityLevel: metrics.ALPHA,
+	NetworkPluginOperationsLatency = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Subsystem: kubeletSubsystem,
+			Name:      NetworkPluginOperationsLatencyKey,
+			Help:      "Latency in seconds of network plugin operations. Broken down by operation type.",
+			Buckets:   prometheus.DefBuckets,
 		},
 		[]string{"operation_type"},
 	)
 
 	// DeprecatedNetworkPluginOperationsLatency collects operation latency numbers by operation
 	// type.
-	DeprecatedNetworkPluginOperationsLatency = metrics.NewSummaryVec(
-		&metrics.SummaryOpts{
-			Subsystem:      kubeletSubsystem,
-			Name:           DeprecatedNetworkPluginOperationsLatencyKey,
-			Help:           "(Deprecated) Latency in microseconds of network plugin operations. Broken down by operation type.",
-			StabilityLevel: metrics.ALPHA,
+	DeprecatedNetworkPluginOperationsLatency = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Subsystem: kubeletSubsystem,
+			Name:      DeprecatedNetworkPluginOperationsLatencyKey,
+			Help:      "(Deprecated) Latency in microseconds of network plugin operations. Broken down by operation type.",
 		},
 		[]string{"operation_type"},
 	)
@@ -70,8 +65,8 @@ var registerMetrics sync.Once
 // Register all metrics.
 func Register() {
 	registerMetrics.Do(func() {
-		legacyregistry.MustRegister(NetworkPluginOperationsLatency)
-		legacyregistry.MustRegister(DeprecatedNetworkPluginOperationsLatency)
+		prometheus.MustRegister(NetworkPluginOperationsLatency)
+		prometheus.MustRegister(DeprecatedNetworkPluginOperationsLatency)
 	})
 }
 

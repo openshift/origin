@@ -17,7 +17,6 @@ limitations under the License.
 package podnodeselector
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"reflect"
@@ -37,12 +36,10 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
-// NamespaceNodeSelectors is for assigning node selectors labels to
-// namespaces. Default value is the annotation key
-// scheduler.alpha.kubernetes.io/node-selector
+// The annotation key scheduler.alpha.kubernetes.io/node-selector is for assigning
+// node selectors labels to namespaces
 var NamespaceNodeSelectors = []string{"scheduler.alpha.kubernetes.io/node-selector"}
 
-// PluginName is a string with the name of the plugin
 const PluginName = "PodNodeSelector"
 
 // Register registers a plugin
@@ -55,8 +52,8 @@ func Register(plugins *admission.Plugins) {
 	})
 }
 
-// Plugin is an implementation of admission.Interface.
-type Plugin struct {
+// podNodeSelector is an implementation of admission.Interface.
+type podNodeSelector struct {
 	*admission.Handler
 	client          kubernetes.Interface
 	namespaceLister corev1listers.NamespaceLister
@@ -64,8 +61,8 @@ type Plugin struct {
 	clusterNodeSelectors map[string]string
 }
 
-var _ = genericadmissioninitializer.WantsExternalKubeClientSet(&Plugin{})
-var _ = genericadmissioninitializer.WantsExternalKubeInformerFactory(&Plugin{})
+var _ = genericadmissioninitializer.WantsExternalKubeClientSet(&podNodeSelector{})
+var _ = genericadmissioninitializer.WantsExternalKubeInformerFactory(&podNodeSelector{})
 
 type pluginConfig struct {
 	PodNodeSelectorPluginConfig map[string]string
@@ -97,7 +94,7 @@ func readConfig(config io.Reader) *pluginConfig {
 }
 
 // Admit enforces that pod and its namespace node label selectors matches at least a node in the cluster.
-func (p *Plugin) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+func (p *podNodeSelector) Admit(a admission.Attributes, o admission.ObjectInterfaces) error {
 	if shouldIgnore(a) {
 		return nil
 	}
@@ -120,11 +117,11 @@ func (p *Plugin) Admit(ctx context.Context, a admission.Attributes, o admission.
 	// second selector wins
 	podNodeSelectorLabels := labels.Merge(namespaceNodeSelector, pod.Spec.NodeSelector)
 	pod.Spec.NodeSelector = map[string]string(podNodeSelectorLabels)
-	return p.Validate(ctx, a, o)
+	return p.Validate(a, o)
 }
 
 // Validate ensures that the pod node selector is allowed
-func (p *Plugin) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+func (p *podNodeSelector) Validate(a admission.Attributes, o admission.ObjectInterfaces) error {
 	if shouldIgnore(a) {
 		return nil
 	}
@@ -155,7 +152,7 @@ func (p *Plugin) Validate(ctx context.Context, a admission.Attributes, o admissi
 	return nil
 }
 
-func (p *Plugin) getNamespaceNodeSelectorMap(namespaceName string) (labels.Set, error) {
+func (p *podNodeSelector) getNamespaceNodeSelectorMap(namespaceName string) (labels.Set, error) {
 	namespace, err := p.namespaceLister.Get(namespaceName)
 	if errors.IsNotFound(err) {
 		namespace, err = p.defaultGetNamespace(namespaceName)
@@ -191,28 +188,24 @@ func shouldIgnore(a admission.Attributes) bool {
 	return false
 }
 
-// NewPodNodeSelector initializes a podNodeSelector
-func NewPodNodeSelector(clusterNodeSelectors map[string]string) *Plugin {
-	return &Plugin{
+func NewPodNodeSelector(clusterNodeSelectors map[string]string) *podNodeSelector {
+	return &podNodeSelector{
 		Handler:              admission.NewHandler(admission.Create),
 		clusterNodeSelectors: clusterNodeSelectors,
 	}
 }
 
-// SetExternalKubeClientSet sets the plugin's client
-func (p *Plugin) SetExternalKubeClientSet(client kubernetes.Interface) {
-	p.client = client
+func (a *podNodeSelector) SetExternalKubeClientSet(client kubernetes.Interface) {
+	a.client = client
 }
 
-// SetExternalKubeInformerFactory configures the plugin's informer factory
-func (p *Plugin) SetExternalKubeInformerFactory(f informers.SharedInformerFactory) {
+func (p *podNodeSelector) SetExternalKubeInformerFactory(f informers.SharedInformerFactory) {
 	namespaceInformer := f.Core().V1().Namespaces()
 	p.namespaceLister = namespaceInformer.Lister()
 	p.SetReadyFunc(namespaceInformer.Informer().HasSynced)
 }
 
-// ValidateInitialization verifies the object has been properly initialized
-func (p *Plugin) ValidateInitialization() error {
+func (p *podNodeSelector) ValidateInitialization() error {
 	if p.namespaceLister == nil {
 		return fmt.Errorf("missing namespaceLister")
 	}
@@ -222,7 +215,7 @@ func (p *Plugin) ValidateInitialization() error {
 	return nil
 }
 
-func (p *Plugin) defaultGetNamespace(name string) (*corev1.Namespace, error) {
+func (p *podNodeSelector) defaultGetNamespace(name string) (*corev1.Namespace, error) {
 	namespace, err := p.client.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("namespace %s does not exist", name)
@@ -230,7 +223,7 @@ func (p *Plugin) defaultGetNamespace(name string) (*corev1.Namespace, error) {
 	return namespace, nil
 }
 
-func (p *Plugin) getNodeSelectorMap(namespace *corev1.Namespace) (labels.Set, error) {
+func (p *podNodeSelector) getNodeSelectorMap(namespace *corev1.Namespace) (labels.Set, error) {
 	selector := labels.Set{}
 	labelsMap := labels.Set{}
 	var err error

@@ -4,12 +4,7 @@
 
 package language
 
-import (
-	"errors"
-	"strings"
-
-	"golang.org/x/text/internal/language"
-)
+import "errors"
 
 // A MatchOption configures a Matcher.
 type MatchOption func(*matcher)
@@ -19,29 +14,6 @@ type MatchOption func(*matcher)
 // tag. The default is currently true, but this may change in the future.
 func PreferSameScript(preferSame bool) MatchOption {
 	return func(m *matcher) { m.preferSameScript = preferSame }
-}
-
-// TODO(v1.0.0): consider making Matcher a concrete type, instead of interface.
-// There doesn't seem to be too much need for multiple types.
-// Making it a concrete type allows MatchStrings to be a method, which will
-// improve its discoverability.
-
-// MatchStrings parses and matches the given strings until one of them matches
-// the language in the Matcher. A string may be an Accept-Language header as
-// handled by ParseAcceptLanguage. The default language is returned if no
-// other language matched.
-func MatchStrings(m Matcher, lang ...string) (tag Tag, index int) {
-	for _, accept := range lang {
-		desired, _, err := ParseAcceptLanguage(accept)
-		if err != nil {
-			continue
-		}
-		if tag, index, conf := m.Match(desired...); conf != No {
-			return tag, index
-		}
-	}
-	tag, index, _ = m.Match()
-	return
 }
 
 // Matcher is the interface that wraps the Match method.
@@ -79,13 +51,12 @@ func NewMatcher(t []Tag, options ...MatchOption) Matcher {
 }
 
 func (m *matcher) Match(want ...Tag) (t Tag, index int, c Confidence) {
-	var tt language.Tag
 	match, w, c := m.getBest(want...)
 	if match != nil {
-		tt, index = match.tag, match.index
+		t, index = match.tag, match.index
 	} else {
 		// TODO: this should be an option
-		tt = m.default_.tag
+		t = m.default_.tag
 		if m.preferSameScript {
 		outer:
 			for _, w := range want {
@@ -97,7 +68,7 @@ func (m *matcher) Match(want ...Tag) (t Tag, index int, c Confidence) {
 				}
 				for i, h := range m.supported {
 					if script.scriptID == h.maxScript {
-						tt, index = h.tag, i
+						t, index = h.tag, i
 						break outer
 					}
 				}
@@ -105,45 +76,239 @@ func (m *matcher) Match(want ...Tag) (t Tag, index int, c Confidence) {
 		}
 		// TODO: select first language tag based on script.
 	}
-	if w.RegionID != tt.RegionID && w.RegionID != 0 {
-		if w.RegionID != 0 && tt.RegionID != 0 && tt.RegionID.Contains(w.RegionID) {
-			tt.RegionID = w.RegionID
-			tt.RemakeString()
-		} else if r := w.RegionID.String(); len(r) == 2 {
-			// TODO: also filter macro and deprecated.
-			tt, _ = tt.SetTypeForKey("rg", strings.ToLower(r)+"zzzz")
-		}
+	if w.region != 0 && t.region != 0 && t.region.contains(w.region) {
+		t, _ = Raw.Compose(t, Region{w.region})
 	}
 	// Copy options from the user-provided tag into the result tag. This is hard
 	// to do after the fact, so we do it here.
 	// TODO: add in alternative variants to -u-va-.
 	// TODO: add preferred region to -u-rg-.
-	if e := w.Extensions(); len(e) > 0 {
-		b := language.Builder{}
-		b.SetTag(tt)
-		for _, e := range e {
-			b.AddExt(e)
-		}
-		tt = b.Make()
+	// TODO: add other extensions. Merge with existing extensions.
+	if u, ok := w.Extension('u'); ok {
+		t, _ = Raw.Compose(t, u)
 	}
-	return makeTag(tt), index, c
+	return t, index, c
+}
+
+type scriptRegionFlags uint8
+
+const (
+	isList = 1 << iota
+	scriptInFrom
+	regionInFrom
+)
+
+func (t *Tag) setUndefinedLang(id langID) {
+	if t.lang == 0 {
+		t.lang = id
+	}
+}
+
+func (t *Tag) setUndefinedScript(id scriptID) {
+	if t.script == 0 {
+		t.script = id
+	}
+}
+
+func (t *Tag) setUndefinedRegion(id regionID) {
+	if t.region == 0 || t.region.contains(id) {
+		t.region = id
+	}
 }
 
 // ErrMissingLikelyTagsData indicates no information was available
 // to compute likely values of missing tags.
 var ErrMissingLikelyTagsData = errors.New("missing likely tags data")
 
-// func (t *Tag) setTagsFrom(id Tag) {
-// 	t.LangID = id.LangID
-// 	t.ScriptID = id.ScriptID
-// 	t.RegionID = id.RegionID
-// }
+// addLikelySubtags sets subtags to their most likely value, given the locale.
+// In most cases this means setting fields for unknown values, but in some
+// cases it may alter a value.  It returns a ErrMissingLikelyTagsData error
+// if the given locale cannot be expanded.
+func (t Tag) addLikelySubtags() (Tag, error) {
+	id, err := addTags(t)
+	if err != nil {
+		return t, err
+	} else if id.equalTags(t) {
+		return t, nil
+	}
+	id.remakeString()
+	return id, nil
+}
+
+// specializeRegion attempts to specialize a group region.
+func specializeRegion(t *Tag) bool {
+	if i := regionInclusion[t.region]; i < nRegionGroups {
+		x := likelyRegionGroup[i]
+		if langID(x.lang) == t.lang && scriptID(x.script) == t.script {
+			t.region = regionID(x.region)
+		}
+		return true
+	}
+	return false
+}
+
+func addTags(t Tag) (Tag, error) {
+	// We leave private use identifiers alone.
+	if t.private() {
+		return t, nil
+	}
+	if t.script != 0 && t.region != 0 {
+		if t.lang != 0 {
+			// already fully specified
+			specializeRegion(&t)
+			return t, nil
+		}
+		// Search matches for und-script-region. Note that for these cases
+		// region will never be a group so there is no need to check for this.
+		list := likelyRegion[t.region : t.region+1]
+		if x := list[0]; x.flags&isList != 0 {
+			list = likelyRegionList[x.lang : x.lang+uint16(x.script)]
+		}
+		for _, x := range list {
+			// Deviating from the spec. See match_test.go for details.
+			if scriptID(x.script) == t.script {
+				t.setUndefinedLang(langID(x.lang))
+				return t, nil
+			}
+		}
+	}
+	if t.lang != 0 {
+		// Search matches for lang-script and lang-region, where lang != und.
+		if t.lang < langNoIndexOffset {
+			x := likelyLang[t.lang]
+			if x.flags&isList != 0 {
+				list := likelyLangList[x.region : x.region+uint16(x.script)]
+				if t.script != 0 {
+					for _, x := range list {
+						if scriptID(x.script) == t.script && x.flags&scriptInFrom != 0 {
+							t.setUndefinedRegion(regionID(x.region))
+							return t, nil
+						}
+					}
+				} else if t.region != 0 {
+					count := 0
+					goodScript := true
+					tt := t
+					for _, x := range list {
+						// We visit all entries for which the script was not
+						// defined, including the ones where the region was not
+						// defined. This allows for proper disambiguation within
+						// regions.
+						if x.flags&scriptInFrom == 0 && t.region.contains(regionID(x.region)) {
+							tt.region = regionID(x.region)
+							tt.setUndefinedScript(scriptID(x.script))
+							goodScript = goodScript && tt.script == scriptID(x.script)
+							count++
+						}
+					}
+					if count == 1 {
+						return tt, nil
+					}
+					// Even if we fail to find a unique Region, we might have
+					// an unambiguous script.
+					if goodScript {
+						t.script = tt.script
+					}
+				}
+			}
+		}
+	} else {
+		// Search matches for und-script.
+		if t.script != 0 {
+			x := likelyScript[t.script]
+			if x.region != 0 {
+				t.setUndefinedRegion(regionID(x.region))
+				t.setUndefinedLang(langID(x.lang))
+				return t, nil
+			}
+		}
+		// Search matches for und-region. If und-script-region exists, it would
+		// have been found earlier.
+		if t.region != 0 {
+			if i := regionInclusion[t.region]; i < nRegionGroups {
+				x := likelyRegionGroup[i]
+				if x.region != 0 {
+					t.setUndefinedLang(langID(x.lang))
+					t.setUndefinedScript(scriptID(x.script))
+					t.region = regionID(x.region)
+				}
+			} else {
+				x := likelyRegion[t.region]
+				if x.flags&isList != 0 {
+					x = likelyRegionList[x.lang]
+				}
+				if x.script != 0 && x.flags != scriptInFrom {
+					t.setUndefinedLang(langID(x.lang))
+					t.setUndefinedScript(scriptID(x.script))
+					return t, nil
+				}
+			}
+		}
+	}
+
+	// Search matches for lang.
+	if t.lang < langNoIndexOffset {
+		x := likelyLang[t.lang]
+		if x.flags&isList != 0 {
+			x = likelyLangList[x.region]
+		}
+		if x.region != 0 {
+			t.setUndefinedScript(scriptID(x.script))
+			t.setUndefinedRegion(regionID(x.region))
+		}
+		specializeRegion(&t)
+		if t.lang == 0 {
+			t.lang = _en // default language
+		}
+		return t, nil
+	}
+	return t, ErrMissingLikelyTagsData
+}
+
+func (t *Tag) setTagsFrom(id Tag) {
+	t.lang = id.lang
+	t.script = id.script
+	t.region = id.region
+}
+
+// minimize removes the region or script subtags from t such that
+// t.addLikelySubtags() == t.minimize().addLikelySubtags().
+func (t Tag) minimize() (Tag, error) {
+	t, err := minimizeTags(t)
+	if err != nil {
+		return t, err
+	}
+	t.remakeString()
+	return t, nil
+}
+
+// minimizeTags mimics the behavior of the ICU 51 C implementation.
+func minimizeTags(t Tag) (Tag, error) {
+	if t.equalTags(und) {
+		return t, nil
+	}
+	max, err := addTags(t)
+	if err != nil {
+		return t, err
+	}
+	for _, id := range [...]Tag{
+		{lang: t.lang},
+		{lang: t.lang, region: t.region},
+		{lang: t.lang, script: t.script},
+	} {
+		if x, err := addTags(id); err == nil && max.equalTags(x) {
+			t.setTagsFrom(id)
+			break
+		}
+	}
+	return t, nil
+}
 
 // Tag Matching
 // CLDR defines an algorithm for finding the best match between two sets of language
 // tags. The basic algorithm defines how to score a possible match and then find
 // the match with the best score
-// (see https://www.unicode.org/reports/tr35/#LanguageMatching).
+// (see http://www.unicode.org/reports/tr35/#LanguageMatching).
 // Using scoring has several disadvantages. The scoring obfuscates the importance of
 // the various factors considered, making the algorithm harder to understand. Using
 // scoring also requires the full score to be computed for each pair of tags.
@@ -166,9 +331,8 @@ var ErrMissingLikelyTagsData = errors.New("missing likely tags data")
 //        1) compute the match between the two tags.
 //        2) if the match is better than the previous best match, replace it
 //           with the new match. (see next section)
-//     b) if the current best match is Exact and pin is true the result will be
-//        frozen to the language found thusfar, although better matches may
-//        still be found for the same language.
+//     b) if the current best match is above a certain threshold, return this
+//        match without proceeding to the next tag in "desired". [See Note 1]
 //   3) If the best match so far is below a certain threshold, return "default".
 //
 // Ranking:
@@ -217,6 +381,9 @@ var ErrMissingLikelyTagsData = errors.New("missing likely tags data")
 // found wins.
 //
 // Notes:
+// [1] Note that even if we may not have a perfect match, if a match is above a
+//     certain threshold, it is considered a better match than any other match
+//     to a tag later in the list of preferred language tags.
 // [2] In practice, as matching of Exact is done in a separate phase from
 //     matching the other levels, we reuse the Exact level to mean MaxExact in
 //     the second phase. As a consequence, we only need the levels defined by
@@ -254,7 +421,7 @@ var ErrMissingLikelyTagsData = errors.New("missing likely tags data")
 type matcher struct {
 	default_         *haveTag
 	supported        []*haveTag
-	index            map[language.Language]*matchHeader
+	index            map[langID]*matchHeader
 	passSettings     bool
 	preferSameScript bool
 }
@@ -262,14 +429,14 @@ type matcher struct {
 // matchHeader has the lists of tags for exact matches and matches based on
 // maximized and canonicalized tags for a given language.
 type matchHeader struct {
-	haveTags []*haveTag
-	original bool
+	exact []*haveTag
+	max   []*haveTag
 }
 
 // haveTag holds a supported Tag and its maximized script and region. The maximized
 // or canonicalized language is not stored as it is not needed during matching.
 type haveTag struct {
-	tag language.Tag
+	tag Tag
 
 	// index of this tag in the original list of supported tags.
 	index int
@@ -279,37 +446,37 @@ type haveTag struct {
 	conf Confidence
 
 	// Maximized region and script.
-	maxRegion language.Region
-	maxScript language.Script
+	maxRegion regionID
+	maxScript scriptID
 
 	// altScript may be checked as an alternative match to maxScript. If altScript
 	// matches, the confidence level for this match is Low. Theoretically there
 	// could be multiple alternative scripts. This does not occur in practice.
-	altScript language.Script
+	altScript scriptID
 
 	// nextMax is the index of the next haveTag with the same maximized tags.
 	nextMax uint16
 }
 
-func makeHaveTag(tag language.Tag, index int) (haveTag, language.Language) {
+func makeHaveTag(tag Tag, index int) (haveTag, langID) {
 	max := tag
-	if tag.LangID != 0 || tag.RegionID != 0 || tag.ScriptID != 0 {
-		max, _ = canonicalize(All, max)
-		max, _ = max.Maximize()
-		max.RemakeString()
+	if tag.lang != 0 {
+		max, _ = max.canonicalize(All)
+		max, _ = addTags(max)
+		max.remakeString()
 	}
-	return haveTag{tag, index, Exact, max.RegionID, max.ScriptID, altScript(max.LangID, max.ScriptID), 0}, max.LangID
+	return haveTag{tag, index, Exact, max.region, max.script, altScript(max.lang, max.script), 0}, max.lang
 }
 
 // altScript returns an alternative script that may match the given script with
 // a low confidence.  At the moment, the langMatch data allows for at most one
 // script to map to another and we rely on this to keep the code simple.
-func altScript(l language.Language, s language.Script) language.Script {
+func altScript(l langID, s scriptID) scriptID {
 	for _, alt := range matchScript {
 		// TODO: also match cases where language is not the same.
-		if (language.Language(alt.wantLang) == l || language.Language(alt.haveLang) == l) &&
-			language.Script(alt.haveScript) == s {
-			return language.Script(alt.wantScript)
+		if (langID(alt.wantLang) == l || langID(alt.haveLang) == l) &&
+			scriptID(alt.haveScript) == s {
+			return scriptID(alt.wantScript)
 		}
 	}
 	return 0
@@ -318,32 +485,34 @@ func altScript(l language.Language, s language.Script) language.Script {
 // addIfNew adds a haveTag to the list of tags only if it is a unique tag.
 // Tags that have the same maximized values are linked by index.
 func (h *matchHeader) addIfNew(n haveTag, exact bool) {
-	h.original = h.original || exact
 	// Don't add new exact matches.
-	for _, v := range h.haveTags {
-		if equalsRest(v.tag, n.tag) {
+	for _, v := range h.exact {
+		if v.tag.equalsRest(n.tag) {
 			return
 		}
 	}
+	if exact {
+		h.exact = append(h.exact, &n)
+	}
 	// Allow duplicate maximized tags, but create a linked list to allow quickly
 	// comparing the equivalents and bail out.
-	for i, v := range h.haveTags {
+	for i, v := range h.max {
 		if v.maxScript == n.maxScript &&
 			v.maxRegion == n.maxRegion &&
-			v.tag.VariantOrPrivateUseTags() == n.tag.VariantOrPrivateUseTags() {
-			for h.haveTags[i].nextMax != 0 {
-				i = int(h.haveTags[i].nextMax)
+			v.tag.variantOrPrivateTagStr() == n.tag.variantOrPrivateTagStr() {
+			for h.max[i].nextMax != 0 {
+				i = int(h.max[i].nextMax)
 			}
-			h.haveTags[i].nextMax = uint16(len(h.haveTags))
+			h.max[i].nextMax = uint16(len(h.max))
 			break
 		}
 	}
-	h.haveTags = append(h.haveTags, &n)
+	h.max = append(h.max, &n)
 }
 
 // header returns the matchHeader for the given language. It creates one if
 // it doesn't already exist.
-func (m *matcher) header(l language.Language) *matchHeader {
+func (m *matcher) header(l langID) *matchHeader {
 	if h := m.index[l]; h != nil {
 		return h
 	}
@@ -367,7 +536,7 @@ func toConf(d uint8) Confidence {
 // for a given tag.
 func newMatcher(supported []Tag, options []MatchOption) *matcher {
 	m := &matcher{
-		index:            make(map[language.Language]*matchHeader),
+		index:            make(map[langID]*matchHeader),
 		preferSameScript: true,
 	}
 	for _, o := range options {
@@ -380,41 +549,40 @@ func newMatcher(supported []Tag, options []MatchOption) *matcher {
 	// Add supported languages to the index. Add exact matches first to give
 	// them precedence.
 	for i, tag := range supported {
-		tt := tag.tag()
-		pair, _ := makeHaveTag(tt, i)
-		m.header(tt.LangID).addIfNew(pair, true)
+		pair, _ := makeHaveTag(tag, i)
+		m.header(tag.lang).addIfNew(pair, true)
 		m.supported = append(m.supported, &pair)
 	}
-	m.default_ = m.header(supported[0].lang()).haveTags[0]
-	// Keep these in two different loops to support the case that two equivalent
-	// languages are distinguished, such as iw and he.
+	m.default_ = m.header(supported[0].lang).exact[0]
 	for i, tag := range supported {
-		tt := tag.tag()
-		pair, max := makeHaveTag(tt, i)
-		if max != tt.LangID {
-			m.header(max).addIfNew(pair, true)
+		pair, max := makeHaveTag(tag, i)
+		if max != tag.lang {
+			m.header(max).addIfNew(pair, false)
 		}
 	}
 
+	// TODO: include alt script.
+	// - don't replace regions, but allow regions to be made more specific.
+
 	// update is used to add indexes in the map for equivalent languages.
-	// update will only add entries to original indexes, thus not computing any
-	// transitive relations.
-	update := func(want, have uint16, conf Confidence) {
-		if hh := m.index[language.Language(have)]; hh != nil {
-			if !hh.original {
+	// If force is true, the update will also apply to derived entries. To
+	// avoid applying a "transitive closure", use false.
+	update := func(want, have uint16, conf Confidence, force bool) {
+		if hh := m.index[langID(have)]; hh != nil {
+			if !force && len(hh.exact) == 0 {
 				return
 			}
-			hw := m.header(language.Language(want))
-			for _, ht := range hh.haveTags {
+			hw := m.header(langID(want))
+			for _, ht := range hh.max {
 				v := *ht
 				if conf < v.conf {
 					v.conf = conf
 				}
 				v.nextMax = 0 // this value needs to be recomputed
 				if v.altScript != 0 {
-					v.altScript = altScript(language.Language(want), v.maxScript)
+					v.altScript = altScript(langID(want), v.maxScript)
 				}
-				hw.addIfNew(v, conf == Exact && hh.original)
+				hw.addIfNew(v, conf == Exact && len(hh.exact) > 0)
 			}
 		}
 	}
@@ -422,9 +590,9 @@ func newMatcher(supported []Tag, options []MatchOption) *matcher {
 	// Add entries for languages with mutual intelligibility as defined by CLDR's
 	// languageMatch data.
 	for _, ml := range matchLang {
-		update(ml.want, ml.have, toConf(ml.distance))
+		update(ml.want, ml.have, toConf(ml.distance), false)
 		if !ml.oneway {
-			update(ml.have, ml.want, toConf(ml.distance))
+			update(ml.have, ml.want, toConf(ml.distance), false)
 		}
 	}
 
@@ -433,157 +601,127 @@ func newMatcher(supported []Tag, options []MatchOption) *matcher {
 	// First we match deprecated equivalents. If they are perfect equivalents
 	// (their canonicalization simply substitutes a different language code, but
 	// nothing else), the match confidence is Exact, otherwise it is High.
-	for i, lm := range language.AliasMap {
+	for i, lm := range langAliasMap {
+		if lm.from == _sh {
+			continue
+		}
+
 		// If deprecated codes match and there is no fiddling with the script or
 		// or region, we consider it an exact match.
 		conf := Exact
-		if language.AliasTypes[i] != language.Macro {
-			if !isExactEquivalent(language.Language(lm.From)) {
+		if langAliasTypes[i] != langMacro {
+			if !isExactEquivalent(langID(lm.from)) {
 				conf = High
 			}
-			update(lm.To, lm.From, conf)
+			update(lm.to, lm.from, conf, true)
 		}
-		update(lm.From, lm.To, conf)
+		update(lm.from, lm.to, conf, true)
 	}
 	return m
 }
 
 // getBest gets the best matching tag in m for any of the given tags, taking into
 // account the order of preference of the given tags.
-func (m *matcher) getBest(want ...Tag) (got *haveTag, orig language.Tag, c Confidence) {
+func (m *matcher) getBest(want ...Tag) (got *haveTag, orig Tag, c Confidence) {
 	best := bestMatch{}
-	for i, ww := range want {
-		w := ww.tag()
-		var max language.Tag
+	for _, w := range want {
+		var max Tag
 		// Check for exact match first.
-		h := m.index[w.LangID]
-		if w.LangID != 0 {
+		h := m.index[w.lang]
+		if w.lang != 0 {
+			// Base language is defined.
 			if h == nil {
 				continue
 			}
-			// Base language is defined.
-			max, _ = canonicalize(Legacy|Deprecated|Macro, w)
-			// A region that is added through canonicalization is stronger than
-			// a maximized region: set it in the original (e.g. mo -> ro-MD).
-			if w.RegionID != max.RegionID {
-				w.RegionID = max.RegionID
+			for i := range h.exact {
+				have := h.exact[i]
+				if have.tag.equalsRest(w) {
+					return have, w, Exact
+				}
 			}
-			// TODO: should we do the same for scripts?
-			// See test case: en, sr, nl ; sh ; sr
-			max, _ = max.Maximize()
+			max, _ = w.canonicalize(Legacy | Deprecated)
+			max, _ = addTags(max)
 		} else {
 			// Base language is not defined.
 			if h != nil {
-				for i := range h.haveTags {
-					have := h.haveTags[i]
-					if equalsRest(have.tag, w) {
+				for i := range h.exact {
+					have := h.exact[i]
+					if have.tag.equalsRest(w) {
 						return have, w, Exact
 					}
 				}
 			}
-			if w.ScriptID == 0 && w.RegionID == 0 {
+			if w.script == 0 && w.region == 0 {
 				// We skip all tags matching und for approximate matching, including
 				// private tags.
 				continue
 			}
-			max, _ = w.Maximize()
-			if h = m.index[max.LangID]; h == nil {
+			max, _ = addTags(w)
+			if h = m.index[max.lang]; h == nil {
 				continue
 			}
 		}
-		pin := true
-		for _, t := range want[i+1:] {
-			if w.LangID == t.lang() {
-				pin = false
-				break
-			}
-		}
 		// Check for match based on maximized tag.
-		for i := range h.haveTags {
-			have := h.haveTags[i]
-			best.update(have, w, max.ScriptID, max.RegionID, pin)
+		for i := range h.max {
+			have := h.max[i]
+			best.update(have, w, max.script, max.region)
 			if best.conf == Exact {
 				for have.nextMax != 0 {
-					have = h.haveTags[have.nextMax]
-					best.update(have, w, max.ScriptID, max.RegionID, pin)
+					have = h.max[have.nextMax]
+					best.update(have, w, max.script, max.region)
 				}
-				return best.have, best.want, best.conf
+				return best.have, best.want, High
 			}
 		}
 	}
 	if best.conf <= No {
 		if len(want) != 0 {
-			return nil, want[0].tag(), No
+			return nil, want[0], No
 		}
-		return nil, language.Tag{}, No
+		return nil, Tag{}, No
 	}
 	return best.have, best.want, best.conf
 }
 
 // bestMatch accumulates the best match so far.
 type bestMatch struct {
-	have            *haveTag
-	want            language.Tag
-	conf            Confidence
-	pinnedRegion    language.Region
-	pinLanguage     bool
-	sameRegionGroup bool
+	have *haveTag
+	want Tag
+	conf Confidence
 	// Cached results from applying tie-breaking rules.
 	origLang     bool
 	origReg      bool
-	paradigmReg  bool
 	regGroupDist uint8
+	regDist      uint8
 	origScript   bool
+	parentDist   uint8 // 255 if have is not an ancestor of want tag.
 }
 
 // update updates the existing best match if the new pair is considered to be a
-// better match. To determine if the given pair is a better match, it first
-// computes the rough confidence level. If this surpasses the current match, it
-// will replace it and update the tie-breaker rule cache. If there is a tie, it
-// proceeds with applying a series of tie-breaker rules. If there is no
-// conclusive winner after applying the tie-breaker rules, it leaves the current
-// match as the preferred match.
-//
-// If pin is true and have and tag are a strong match, it will henceforth only
-// consider matches for this language. This corresponds to the nothing that most
-// users have a strong preference for the first defined language. A user can
-// still prefer a second language over a dialect of the preferred language by
-// explicitly specifying dialects, e.g. "en, nl, en-GB". In this case pin should
-// be false.
-func (m *bestMatch) update(have *haveTag, tag language.Tag, maxScript language.Script, maxRegion language.Region, pin bool) {
+// better match.
+// To determine if the given pair is a better match, it first computes the rough
+// confidence level. If this surpasses the current match, it will replace it and
+// update the tie-breaker rule cache. If there is a tie, it proceeds with applying
+// a series of tie-breaker rules. If there is no conclusive winner after applying
+// the tie-breaker rules, it leaves the current match as the preferred match.
+func (m *bestMatch) update(have *haveTag, tag Tag, maxScript scriptID, maxRegion regionID) {
 	// Bail if the maximum attainable confidence is below that of the current best match.
 	c := have.conf
 	if c < m.conf {
 		return
 	}
-	// Don't change the language once we already have found an exact match.
-	if m.pinLanguage && tag.LangID != m.want.LangID {
-		return
-	}
-	// Pin the region group if we are comparing tags for the same language.
-	if tag.LangID == m.want.LangID && m.sameRegionGroup {
-		_, sameGroup := regionGroupDist(m.pinnedRegion, have.maxRegion, have.maxScript, m.want.LangID)
-		if !sameGroup {
-			return
-		}
-	}
-	if c == Exact && have.maxScript == maxScript {
-		// If there is another language and then another entry of this language,
-		// don't pin anything, otherwise pin the language.
-		m.pinLanguage = pin
-	}
-	if equalsRest(have.tag, tag) {
-	} else if have.maxScript != maxScript {
+	if have.maxScript != maxScript {
 		// There is usually very little comprehension between different scripts.
-		// In a few cases there may still be Low comprehension. This possibility
-		// is pre-computed and stored in have.altScript.
+		// In a few cases there may still be Low comprehension. This possibility is
+		// pre-computed and stored in have.altScript.
 		if Low < m.conf || have.altScript != maxScript {
 			return
 		}
 		c = Low
 	} else if have.maxRegion != maxRegion {
+		// There is usually a small difference between languages across regions.
+		// We use the region distance (below) to disambiguate between equal matches.
 		if High < c {
-			// There is usually a small difference between languages across regions.
 			c = High
 		}
 	}
@@ -602,7 +740,7 @@ func (m *bestMatch) update(have *haveTag, tag language.Tag, maxScript language.S
 
 	// Tie-breaker rules:
 	// We prefer if the pre-maximized language was specified and identical.
-	origLang := have.tag.LangID == tag.LangID && tag.LangID != 0
+	origLang := have.tag.lang == tag.lang && tag.lang != 0
 	if !beaten && m.origLang != origLang {
 		if m.origLang {
 			return
@@ -610,16 +748,7 @@ func (m *bestMatch) update(have *haveTag, tag language.Tag, maxScript language.S
 		beaten = true
 	}
 
-	// We prefer if the pre-maximized region was specified and identical.
-	origReg := have.tag.RegionID == tag.RegionID && tag.RegionID != 0
-	if !beaten && m.origReg != origReg {
-		if m.origReg {
-			return
-		}
-		beaten = true
-	}
-
-	regGroupDist, sameGroup := regionGroupDist(have.maxRegion, maxRegion, maxScript, tag.LangID)
+	regGroupDist := regionGroupDist(have.maxRegion, maxRegion, maxScript, tag.lang)
 	if !beaten && m.regGroupDist != regGroupDist {
 		if regGroupDist > m.regGroupDist {
 			return
@@ -627,18 +756,54 @@ func (m *bestMatch) update(have *haveTag, tag language.Tag, maxScript language.S
 		beaten = true
 	}
 
-	paradigmReg := isParadigmLocale(tag.LangID, have.maxRegion)
-	if !beaten && m.paradigmReg != paradigmReg {
-		if !paradigmReg {
+	// We prefer if the pre-maximized region was specified and identical.
+	origReg := have.tag.region == tag.region && tag.region != 0
+	if !beaten && m.origReg != origReg {
+		if m.origReg {
+			return
+		}
+		beaten = true
+	}
+
+	// TODO: remove the region distance rule. Region distance has been replaced
+	// by the region grouping rule. For now we leave it as it still seems to
+	// have a net positive effect when applied after the grouping rule.
+	// Possible solutions:
+	// - apply the primary locale rule first to effectively disable region
+	//   region distance if groups are defined.
+	// - express the following errors in terms of grouping (if possible)
+	// - find another method of handling the following cases.
+	// maximization of legacy: find mo in
+	//      "sr-Cyrl, sr-Latn, ro, ro-MD": have ro; want ro-MD (High)
+	// region distance French: find fr-US in
+	//      "en, fr, fr-CA, fr-CH": have fr; want fr-CA (High)
+
+	// Next we prefer smaller distances between regions, as defined by
+	// regionDist.
+	regDist := uint8(regionDistance(have.maxRegion, maxRegion))
+	if !beaten && m.regDist != regDist {
+		if regDist > m.regDist {
 			return
 		}
 		beaten = true
 	}
 
 	// Next we prefer if the pre-maximized script was specified and identical.
-	origScript := have.tag.ScriptID == tag.ScriptID && tag.ScriptID != 0
+	origScript := have.tag.script == tag.script && tag.script != 0
 	if !beaten && m.origScript != origScript {
 		if m.origScript {
+			return
+		}
+		beaten = true
+	}
+
+	// Finally we prefer tags which have a closer parent relationship.
+	// TODO: the parent relationship no longer seems necessary. It doesn't hurt
+	// to leave it in as the final tie-breaker, though, especially until the
+	// grouping data has further matured.
+	parentDist := parentDistance(have.tag.region, tag)
+	if !beaten && m.parentDist != parentDist {
+		if parentDist > m.parentDist {
 			return
 		}
 		beaten = true
@@ -649,59 +814,103 @@ func (m *bestMatch) update(have *haveTag, tag language.Tag, maxScript language.S
 		m.have = have
 		m.want = tag
 		m.conf = c
-		m.pinnedRegion = maxRegion
-		m.sameRegionGroup = sameGroup
 		m.origLang = origLang
 		m.origReg = origReg
-		m.paradigmReg = paradigmReg
 		m.origScript = origScript
 		m.regGroupDist = regGroupDist
+		m.regDist = regDist
+		m.parentDist = parentDist
 	}
 }
 
-func isParadigmLocale(lang language.Language, r language.Region) bool {
-	for _, e := range paradigmLocales {
-		if language.Language(e[0]) == lang && (r == language.Region(e[1]) || r == language.Region(e[2])) {
-			return true
+// parentDistance returns the number of times Parent must be called before the
+// regions match. It is assumed that it has already been checked that lang and
+// script are identical. If haveRegion does not occur in the ancestor chain of
+// tag, it returns 255.
+func parentDistance(haveRegion regionID, tag Tag) uint8 {
+	p := tag.Parent()
+	d := uint8(1)
+	for haveRegion != p.region {
+		if p.region == 0 {
+			return 255
 		}
+		p = p.Parent()
+		d++
 	}
-	return false
+	return d
 }
 
 // regionGroupDist computes the distance between two regions based on their
 // CLDR grouping.
-func regionGroupDist(a, b language.Region, script language.Script, lang language.Language) (dist uint8, same bool) {
-	const defaultDistance = 4
-
+func regionGroupDist(a, b regionID, script scriptID, lang langID) uint8 {
 	aGroup := uint(regionToGroups[a]) << 1
 	bGroup := uint(regionToGroups[b]) << 1
 	for _, ri := range matchRegion {
-		if language.Language(ri.lang) == lang && (ri.script == 0 || language.Script(ri.script) == script) {
+		if langID(ri.lang) == lang && (ri.script == 0 || scriptID(ri.script) == script) {
 			group := uint(1 << (ri.group &^ 0x80))
 			if 0x80&ri.group == 0 {
 				if aGroup&bGroup&group != 0 { // Both regions are in the group.
-					return ri.distance, ri.distance == defaultDistance
+					return ri.distance
 				}
 			} else {
 				if (aGroup|bGroup)&group == 0 { // Both regions are not in the group.
-					return ri.distance, ri.distance == defaultDistance
+					return ri.distance
 				}
 			}
 		}
 	}
-	return defaultDistance, true
+	const defaultDistance = 4
+	return defaultDistance
+}
+
+// regionDistance computes the distance between two regions based on the
+// distance in the graph of region containments as defined in CLDR. It iterates
+// over increasingly inclusive sets of groups, represented as bit vectors, until
+// the source bit vector has bits in common with the destination vector.
+func regionDistance(a, b regionID) int {
+	if a == b {
+		return 0
+	}
+	p, q := regionInclusion[a], regionInclusion[b]
+	if p < nRegionGroups {
+		p, q = q, p
+	}
+	set := regionInclusionBits
+	if q < nRegionGroups && set[p]&(1<<q) != 0 {
+		return 1
+	}
+	d := 2
+	for goal := set[q]; set[p]&goal == 0; p = regionInclusionNext[p] {
+		d++
+	}
+	return d
+}
+
+func (t Tag) variants() string {
+	if t.pVariant == 0 {
+		return ""
+	}
+	return t.str[t.pVariant:t.pExt]
+}
+
+// variantOrPrivateTagStr returns variants or private use tags.
+func (t Tag) variantOrPrivateTagStr() string {
+	if t.pExt > 0 {
+		return t.str[t.pVariant:t.pExt]
+	}
+	return t.str[t.pVariant:]
 }
 
 // equalsRest compares everything except the language.
-func equalsRest(a, b language.Tag) bool {
+func (a Tag) equalsRest(b Tag) bool {
 	// TODO: don't include extensions in this comparison. To do this efficiently,
 	// though, we should handle private tags separately.
-	return a.ScriptID == b.ScriptID && a.RegionID == b.RegionID && a.VariantOrPrivateUseTags() == b.VariantOrPrivateUseTags()
+	return a.script == b.script && a.region == b.region && a.variantOrPrivateTagStr() == b.variantOrPrivateTagStr()
 }
 
 // isExactEquivalent returns true if canonicalizing the language will not alter
 // the script or region of a tag.
-func isExactEquivalent(l language.Language) bool {
+func isExactEquivalent(l langID) bool {
 	for _, o := range notEquivalent {
 		if o == l {
 			return false
@@ -710,26 +919,15 @@ func isExactEquivalent(l language.Language) bool {
 	return true
 }
 
-var notEquivalent []language.Language
+var notEquivalent []langID
 
 func init() {
 	// Create a list of all languages for which canonicalization may alter the
 	// script or region.
-	for _, lm := range language.AliasMap {
-		tag := language.Tag{LangID: language.Language(lm.From)}
-		if tag, _ = canonicalize(All, tag); tag.ScriptID != 0 || tag.RegionID != 0 {
-			notEquivalent = append(notEquivalent, language.Language(lm.From))
-		}
-	}
-	// Maximize undefined regions of paradigm locales.
-	for i, v := range paradigmLocales {
-		t := language.Tag{LangID: language.Language(v[0])}
-		max, _ := t.Maximize()
-		if v[1] == 0 {
-			paradigmLocales[i][1] = uint16(max.RegionID)
-		}
-		if v[2] == 0 {
-			paradigmLocales[i][2] = uint16(max.RegionID)
+	for _, lm := range langAliasMap {
+		tag := Tag{lang: langID(lm.from)}
+		if tag, _ = tag.canonicalize(All); tag.script != 0 || tag.region != 0 {
+			notEquivalent = append(notEquivalent, langID(lm.from))
 		}
 	}
 }

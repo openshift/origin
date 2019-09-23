@@ -22,6 +22,8 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 )
 
+const configMapConfigKey = "kubelet"
+
 // configMapPayload implements Payload, backed by a v1/ConfigMap config source object
 type configMapPayload struct {
 	cm *apiv1.ConfigMap

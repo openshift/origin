@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -51,16 +50,6 @@ func NewManagedInstanceEncryptionProtectorsClientWithBaseURI(baseURI string, sub
 // managedInstanceName - the name of the managed instance.
 // parameters - the requested encryption protector resource state.
 func (client ManagedInstanceEncryptionProtectorsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, managedInstanceName string, parameters ManagedInstanceEncryptionProtector) (result ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedInstanceEncryptionProtectorsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, managedInstanceName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ManagedInstanceEncryptionProtectorsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -90,7 +79,6 @@ func (client ManagedInstanceEncryptionProtectorsClient) CreateOrUpdatePreparer(c
 		"api-version": APIVersion,
 	}
 
-	parameters.Kind = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -104,9 +92,13 @@ func (client ManagedInstanceEncryptionProtectorsClient) CreateOrUpdatePreparer(c
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagedInstanceEncryptionProtectorsClient) CreateOrUpdateSender(req *http.Request) (future ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -133,16 +125,6 @@ func (client ManagedInstanceEncryptionProtectorsClient) CreateOrUpdateResponder(
 // from the Azure Resource Manager API or the portal.
 // managedInstanceName - the name of the managed instance.
 func (client ManagedInstanceEncryptionProtectorsClient) Get(ctx context.Context, resourceGroupName string, managedInstanceName string) (result ManagedInstanceEncryptionProtector, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedInstanceEncryptionProtectorsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, managedInstanceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ManagedInstanceEncryptionProtectorsClient", "Get", nil, "Failure preparing request")
@@ -189,8 +171,8 @@ func (client ManagedInstanceEncryptionProtectorsClient) GetPreparer(ctx context.
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagedInstanceEncryptionProtectorsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -212,16 +194,6 @@ func (client ManagedInstanceEncryptionProtectorsClient) GetResponder(resp *http.
 // from the Azure Resource Manager API or the portal.
 // managedInstanceName - the name of the managed instance.
 func (client ManagedInstanceEncryptionProtectorsClient) ListByInstance(ctx context.Context, resourceGroupName string, managedInstanceName string) (result ManagedInstanceEncryptionProtectorListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedInstanceEncryptionProtectorsClient.ListByInstance")
-		defer func() {
-			sc := -1
-			if result.mieplr.Response.Response != nil {
-				sc = result.mieplr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByInstanceNextResults
 	req, err := client.ListByInstancePreparer(ctx, resourceGroupName, managedInstanceName)
 	if err != nil {
@@ -268,8 +240,8 @@ func (client ManagedInstanceEncryptionProtectorsClient) ListByInstancePreparer(c
 // ListByInstanceSender sends the ListByInstance request. The method will close the
 // http.Response Body if it receives an error.
 func (client ManagedInstanceEncryptionProtectorsClient) ListByInstanceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByInstanceResponder handles the response to the ListByInstance request. The method always
@@ -286,8 +258,8 @@ func (client ManagedInstanceEncryptionProtectorsClient) ListByInstanceResponder(
 }
 
 // listByInstanceNextResults retrieves the next set of results, if any.
-func (client ManagedInstanceEncryptionProtectorsClient) listByInstanceNextResults(ctx context.Context, lastResults ManagedInstanceEncryptionProtectorListResult) (result ManagedInstanceEncryptionProtectorListResult, err error) {
-	req, err := lastResults.managedInstanceEncryptionProtectorListResultPreparer(ctx)
+func (client ManagedInstanceEncryptionProtectorsClient) listByInstanceNextResults(lastResults ManagedInstanceEncryptionProtectorListResult) (result ManagedInstanceEncryptionProtectorListResult, err error) {
+	req, err := lastResults.managedInstanceEncryptionProtectorListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "sql.ManagedInstanceEncryptionProtectorsClient", "listByInstanceNextResults", nil, "Failure preparing next results request")
 	}
@@ -308,16 +280,6 @@ func (client ManagedInstanceEncryptionProtectorsClient) listByInstanceNextResult
 
 // ListByInstanceComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ManagedInstanceEncryptionProtectorsClient) ListByInstanceComplete(ctx context.Context, resourceGroupName string, managedInstanceName string) (result ManagedInstanceEncryptionProtectorListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedInstanceEncryptionProtectorsClient.ListByInstance")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByInstance(ctx, resourceGroupName, managedInstanceName)
 	return
 }

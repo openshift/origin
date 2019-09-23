@@ -47,7 +47,6 @@ acceptance/openstack/loadbalancer/v2
 
 acceptance/openstack/networking/v2
 acceptance/openstack/networking/v2/extensions
-acceptance/openstack/networking/v2/extensions/dns
 
 # Resource not found
 # acceptance/openstack/networking/v2/extensions/fwaas
@@ -60,7 +59,6 @@ acceptance/openstack/networking/v2/extensions/layer3
 # Resource not found
 # acceptance/openstack/networking/v2/extensions/lbaas_v2
 
-acceptance/openstack/networking/v2/extensions/mtu
 acceptance/openstack/networking/v2/extensions/networkipavailabilities
 acceptance/openstack/networking/v2/extensions/portsbinding
 acceptance/openstack/networking/v2/extensions/qos/ruletypes

@@ -19,8 +19,6 @@ var _ = Describe("JUnit Reporter", func() {
 		outputFile string
 		reporter   Reporter
 	)
-	testSuiteTime := 12456999 * time.Microsecond
-	reportedSuiteTime := 12.456
 
 	readOutputFile := func() reporters.JUnitTestSuite {
 		bytes, err := ioutil.ReadFile(outputFile)
@@ -72,17 +70,15 @@ var _ = Describe("JUnit Reporter", func() {
 			reporter.SpecSuiteDidEnd(&types.SuiteSummary{
 				NumberOfSpecsThatWillBeRun: 1,
 				NumberOfFailedSpecs:        0,
-				RunTime:                    testSuiteTime,
+				RunTime:                    10 * time.Second,
 			})
 		})
 
 		It("should record the test as passing", func() {
 			output := readOutputFile()
-			Ω(output.Name).Should(Equal("My test suite"))
 			Ω(output.Tests).Should(Equal(1))
 			Ω(output.Failures).Should(Equal(0))
-			Ω(output.Time).Should(Equal(reportedSuiteTime))
-			Ω(output.Errors).Should(Equal(0))
+			Ω(output.Time).Should(Equal(10.0))
 			Ω(output.TestCases).Should(HaveLen(1))
 			Ω(output.TestCases[0].Name).Should(Equal("A B C"))
 			Ω(output.TestCases[0].ClassName).Should(Equal("My test suite"))
@@ -110,17 +106,15 @@ var _ = Describe("JUnit Reporter", func() {
 			reporter.SpecSuiteDidEnd(&types.SuiteSummary{
 				NumberOfSpecsThatWillBeRun: 1,
 				NumberOfFailedSpecs:        1,
-				RunTime:                    testSuiteTime,
+				RunTime:                    10 * time.Second,
 			})
 		})
 
 		It("should record the test as having failed", func() {
 			output := readOutputFile()
-			Ω(output.Name).Should(Equal("My test suite"))
 			Ω(output.Tests).Should(Equal(1))
 			Ω(output.Failures).Should(Equal(1))
-			Ω(output.Time).Should(Equal(reportedSuiteTime))
-			Ω(output.Errors).Should(Equal(0))
+			Ω(output.Time).Should(Equal(10.0))
 			Ω(output.TestCases[0].Name).Should(Equal("BeforeSuite"))
 			Ω(output.TestCases[0].Time).Should(Equal(3.0))
 			Ω(output.TestCases[0].ClassName).Should(Equal("My test suite"))
@@ -150,17 +144,15 @@ var _ = Describe("JUnit Reporter", func() {
 			reporter.SpecSuiteDidEnd(&types.SuiteSummary{
 				NumberOfSpecsThatWillBeRun: 1,
 				NumberOfFailedSpecs:        1,
-				RunTime:                    testSuiteTime,
+				RunTime:                    10 * time.Second,
 			})
 		})
 
 		It("should record the test as having failed", func() {
 			output := readOutputFile()
-			Ω(output.Name).Should(Equal("My test suite"))
 			Ω(output.Tests).Should(Equal(1))
 			Ω(output.Failures).Should(Equal(1))
-			Ω(output.Time).Should(Equal(reportedSuiteTime))
-			Ω(output.Errors).Should(Equal(0))
+			Ω(output.Time).Should(Equal(10.0))
 			Ω(output.TestCases[0].Name).Should(Equal("AfterSuite"))
 			Ω(output.TestCases[0].Time).Should(Equal(3.0))
 			Ω(output.TestCases[0].ClassName).Should(Equal("My test suite"))
@@ -202,17 +194,15 @@ var _ = Describe("JUnit Reporter", func() {
 				reporter.SpecSuiteDidEnd(&types.SuiteSummary{
 					NumberOfSpecsThatWillBeRun: 1,
 					NumberOfFailedSpecs:        1,
-					RunTime:                    testSuiteTime,
+					RunTime:                    10 * time.Second,
 				})
 			})
 
 			It("should record test as failing", func() {
 				output := readOutputFile()
-				Ω(output.Name).Should(Equal("My test suite"))
 				Ω(output.Tests).Should(Equal(1))
 				Ω(output.Failures).Should(Equal(1))
-				Ω(output.Time).Should(Equal(reportedSuiteTime))
-				Ω(output.Errors).Should(Equal(0))
+				Ω(output.Time).Should(Equal(10.0))
 				Ω(output.TestCases[0].Name).Should(Equal("A B C"))
 				Ω(output.TestCases[0].ClassName).Should(Equal("My test suite"))
 				Ω(output.TestCases[0].FailureMessage.Type).Should(Equal(specStateCase.message))
@@ -240,7 +230,7 @@ var _ = Describe("JUnit Reporter", func() {
 				reporter.SpecSuiteDidEnd(&types.SuiteSummary{
 					NumberOfSpecsThatWillBeRun: 1,
 					NumberOfFailedSpecs:        0,
-					RunTime:                    testSuiteTime,
+					RunTime:                    10 * time.Second,
 				})
 			})
 
@@ -248,8 +238,7 @@ var _ = Describe("JUnit Reporter", func() {
 				output := readOutputFile()
 				Ω(output.Tests).Should(Equal(1))
 				Ω(output.Failures).Should(Equal(0))
-				Ω(output.Time).Should(Equal(reportedSuiteTime))
-				Ω(output.Errors).Should(Equal(0))
+				Ω(output.Time).Should(Equal(10.0))
 				Ω(output.TestCases[0].Name).Should(Equal("A B C"))
 				Ω(output.TestCases[0].Skipped).ShouldNot(BeNil())
 			})

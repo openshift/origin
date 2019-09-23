@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -51,16 +50,6 @@ func NewPermissionsClientWithBaseURI(baseURI string, subscriptionID string) Perm
 // resourceType - the resource type of the resource.
 // resourceName - the name of the resource to get the permissions for.
 func (client PermissionsClient) ListForResource(ctx context.Context, resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result PermissionGetResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PermissionsClient.ListForResource")
-		defer func() {
-			sc := -1
-			if result.pgr.Response.Response != nil {
-				sc = result.pgr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listForResourceNextResults
 	req, err := client.ListForResourcePreparer(ctx, resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName)
 	if err != nil {
@@ -110,8 +99,8 @@ func (client PermissionsClient) ListForResourcePreparer(ctx context.Context, res
 // ListForResourceSender sends the ListForResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client PermissionsClient) ListForResourceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListForResourceResponder handles the response to the ListForResource request. The method always
@@ -128,8 +117,8 @@ func (client PermissionsClient) ListForResourceResponder(resp *http.Response) (r
 }
 
 // listForResourceNextResults retrieves the next set of results, if any.
-func (client PermissionsClient) listForResourceNextResults(ctx context.Context, lastResults PermissionGetResult) (result PermissionGetResult, err error) {
-	req, err := lastResults.permissionGetResultPreparer(ctx)
+func (client PermissionsClient) listForResourceNextResults(lastResults PermissionGetResult) (result PermissionGetResult, err error) {
+	req, err := lastResults.permissionGetResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "authorization.PermissionsClient", "listForResourceNextResults", nil, "Failure preparing next results request")
 	}
@@ -150,16 +139,6 @@ func (client PermissionsClient) listForResourceNextResults(ctx context.Context, 
 
 // ListForResourceComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PermissionsClient) ListForResourceComplete(ctx context.Context, resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result PermissionGetResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PermissionsClient.ListForResource")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListForResource(ctx, resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName)
 	return
 }
@@ -168,16 +147,6 @@ func (client PermissionsClient) ListForResourceComplete(ctx context.Context, res
 // Parameters:
 // resourceGroupName - the name of the resource group to get the permissions for. The name is case insensitive.
 func (client PermissionsClient) ListForResourceGroup(ctx context.Context, resourceGroupName string) (result PermissionGetResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PermissionsClient.ListForResourceGroup")
-		defer func() {
-			sc := -1
-			if result.pgr.Response.Response != nil {
-				sc = result.pgr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listForResourceGroupNextResults
 	req, err := client.ListForResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -223,8 +192,8 @@ func (client PermissionsClient) ListForResourceGroupPreparer(ctx context.Context
 // ListForResourceGroupSender sends the ListForResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client PermissionsClient) ListForResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListForResourceGroupResponder handles the response to the ListForResourceGroup request. The method always
@@ -241,8 +210,8 @@ func (client PermissionsClient) ListForResourceGroupResponder(resp *http.Respons
 }
 
 // listForResourceGroupNextResults retrieves the next set of results, if any.
-func (client PermissionsClient) listForResourceGroupNextResults(ctx context.Context, lastResults PermissionGetResult) (result PermissionGetResult, err error) {
-	req, err := lastResults.permissionGetResultPreparer(ctx)
+func (client PermissionsClient) listForResourceGroupNextResults(lastResults PermissionGetResult) (result PermissionGetResult, err error) {
+	req, err := lastResults.permissionGetResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "authorization.PermissionsClient", "listForResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -263,16 +232,6 @@ func (client PermissionsClient) listForResourceGroupNextResults(ctx context.Cont
 
 // ListForResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PermissionsClient) ListForResourceGroupComplete(ctx context.Context, resourceGroupName string) (result PermissionGetResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PermissionsClient.ListForResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListForResourceGroup(ctx, resourceGroupName)
 	return
 }

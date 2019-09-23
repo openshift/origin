@@ -152,7 +152,6 @@ func TestImagesUpdate(t *testing.T) {
 	updateOpts := images.UpdateOpts{
 		images.ReplaceImageName{NewName: image.Name + "foo"},
 		images.ReplaceImageTags{NewTags: newTags},
-		images.ReplaceImageMinDisk{NewMinDisk: 21},
 		images.UpdateImageProperty{
 			Op:    images.AddOp,
 			Name:  "hw_disk_bus",

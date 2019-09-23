@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"io"
 	"net/http"
 )
@@ -44,21 +43,10 @@ func NewClient() Client {
 // Parameters:
 // accountName - the Azure Data Lake Store account to execute filesystem operations on.
 // directFilePath - the Data Lake Store path (starting with '/') of the file to which to append.
-// streamContents - the file contents to include when appending to the file.  The maximum content size is 4MB.
-// For content larger than 4MB you must append the content in 4MB chunks.
+// streamContents - the file contents to include when appending to the file.
 // offset - the optional offset in the stream to begin the append operation. Default is to append at the end of
 // the stream.
 func (client Client) Append(ctx context.Context, accountName string, directFilePath string, streamContents io.ReadCloser, offset *int64) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Append")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AppendPreparer(ctx, accountName, directFilePath, streamContents, offset)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "Append", nil, "Failure preparing request")
@@ -114,8 +102,8 @@ func (client Client) AppendPreparer(ctx context.Context, accountName string, dir
 // AppendSender sends the Append request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) AppendSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AppendResponder handles the response to the Append request. The method always
@@ -137,16 +125,6 @@ func (client Client) AppendResponder(resp *http.Response) (result autorest.Respo
 // access.
 // fsaction - file system operation read/write/execute in string form, matching regex pattern '[rwx-]{3}'
 func (client Client) CheckAccess(ctx context.Context, accountName string, pathParameter string, fsaction string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.CheckAccess")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CheckAccessPreparer(ctx, accountName, pathParameter, fsaction)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "CheckAccess", nil, "Failure preparing request")
@@ -199,8 +177,8 @@ func (client Client) CheckAccessPreparer(ctx context.Context, accountName string
 // CheckAccessSender sends the CheckAccess request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) CheckAccessSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CheckAccessResponder handles the response to the CheckAccess request. The method always
@@ -216,24 +194,13 @@ func (client Client) CheckAccessResponder(resp *http.Response) (result autorest.
 }
 
 // Concat concatenates the list of source files into the destination file, removing all source files upon success.
-// This operation has been deprecated, please use operation FileSystem_MsConcat instead.
 // Parameters:
 // accountName - the Azure Data Lake Store account to execute filesystem operations on.
 // destinationPath - the Data Lake Store path (starting with '/') of the destination file resulting from the
 // concatenation.
-// sources - a list of comma separated Data Lake Store paths (starting with '/') of the files to concatenate,
+// sources - a list of comma seperated Data Lake Store paths (starting with '/') of the files to concatenate,
 // in the order in which they should be concatenated.
 func (client Client) Concat(ctx context.Context, accountName string, destinationPath string, sources []string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Concat")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: sources,
 			Constraints: []validation.Constraint{{Target: "sources", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -290,8 +257,8 @@ func (client Client) ConcatPreparer(ctx context.Context, accountName string, des
 // ConcatSender sends the Concat request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) ConcatSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ConcatResponder handles the response to the Concat request. The method always
@@ -315,21 +282,10 @@ func (client Client) ConcatResponder(resp *http.Response) (result autorest.Respo
 // accountName - the Azure Data Lake Store account to execute filesystem operations on.
 // filePath - the Data Lake Store path (starting with '/') of the file to which to append using concurrent
 // append.
-// streamContents - the file contents to include when appending to the file.  The maximum content size is 4MB.
-// For content larger than 4MB you must append the content in 4MB chunks.
+// streamContents - the file contents to include when appending to the file.
 // appendMode - indicates the concurrent append call should create the file if it doesn't exist or just open
 // the existing file for append
 func (client Client) ConcurrentAppend(ctx context.Context, accountName string, filePath string, streamContents io.ReadCloser, appendMode AppendModeType) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.ConcurrentAppend")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ConcurrentAppendPreparer(ctx, accountName, filePath, streamContents, appendMode)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "ConcurrentAppend", nil, "Failure preparing request")
@@ -385,8 +341,8 @@ func (client Client) ConcurrentAppendPreparer(ctx context.Context, accountName s
 // ConcurrentAppendSender sends the ConcurrentAppend request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) ConcurrentAppendSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ConcurrentAppendResponder handles the response to the ConcurrentAppend request. The method always
@@ -406,20 +362,9 @@ func (client Client) ConcurrentAppendResponder(resp *http.Response) (result auto
 // accountName - the Azure Data Lake Store account to execute filesystem operations on.
 // directFilePath - the Data Lake Store path (starting with '/') of the file to create.
 // streamContents - the file contents to include when creating the file. This parameter is optional, resulting
-// in an empty file if not specified.  The maximum content size is 4MB.  For content larger than 4MB you must
-// append the content in 4MB chunks.
+// in an empty file if not specified.
 // overwrite - the indication of if the file should be overwritten.
 func (client Client) Create(ctx context.Context, accountName string, directFilePath string, streamContents io.ReadCloser, overwrite *bool) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Create")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePreparer(ctx, accountName, directFilePath, streamContents, overwrite)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "Create", nil, "Failure preparing request")
@@ -478,8 +423,8 @@ func (client Client) CreatePreparer(ctx context.Context, accountName string, dir
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -500,16 +445,6 @@ func (client Client) CreateResponder(resp *http.Response) (result autorest.Respo
 // filePath - the Data Lake Store path (starting with '/') of the file or directory to delete.
 // recursive - the optional switch indicating if the delete should be recursive
 func (client Client) Delete(ctx context.Context, accountName string, filePath string, recursive *bool) (result FileOperationResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Delete")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, accountName, filePath, recursive)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "Delete", nil, "Failure preparing request")
@@ -562,8 +497,8 @@ func (client Client) DeletePreparer(ctx context.Context, accountName string, fil
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -585,16 +520,6 @@ func (client Client) DeleteResponder(resp *http.Response) (result FileOperationR
 // accountName - the Azure Data Lake Store account to execute filesystem operations on.
 // flushFilePath - the Data Lake Store path (starting with '/') of the file to which to flush.
 func (client Client) Flush(ctx context.Context, accountName string, flushFilePath string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Flush")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.FlushPreparer(ctx, accountName, flushFilePath)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "Flush", nil, "Failure preparing request")
@@ -646,8 +571,8 @@ func (client Client) FlushPreparer(ctx context.Context, accountName string, flus
 // FlushSender sends the Flush request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) FlushSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // FlushResponder handles the response to the Flush request. The method always
@@ -668,16 +593,6 @@ func (client Client) FlushResponder(resp *http.Response) (result autorest.Respon
 // ACLFilePath - the Data Lake Store path (starting with '/') of the file or directory for which to get the
 // ACL.
 func (client Client) GetACLStatus(ctx context.Context, accountName string, ACLFilePath string) (result ACLStatusResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.GetACLStatus")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetACLStatusPreparer(ctx, accountName, ACLFilePath)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "GetACLStatus", nil, "Failure preparing request")
@@ -727,8 +642,8 @@ func (client Client) GetACLStatusPreparer(ctx context.Context, accountName strin
 // GetACLStatusSender sends the GetACLStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) GetACLStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetACLStatusResponder handles the response to the GetACLStatus request. The method always
@@ -750,16 +665,6 @@ func (client Client) GetACLStatusResponder(resp *http.Response) (result ACLStatu
 // getContentSummaryFilePath - the Data Lake Store path (starting with '/') of the file for which to retrieve
 // the summary.
 func (client Client) GetContentSummary(ctx context.Context, accountName string, getContentSummaryFilePath string) (result ContentSummaryResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.GetContentSummary")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetContentSummaryPreparer(ctx, accountName, getContentSummaryFilePath)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "GetContentSummary", nil, "Failure preparing request")
@@ -809,8 +714,8 @@ func (client Client) GetContentSummaryPreparer(ctx context.Context, accountName 
 // GetContentSummarySender sends the GetContentSummary request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) GetContentSummarySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetContentSummaryResponder handles the response to the GetContentSummary request. The method always
@@ -832,16 +737,6 @@ func (client Client) GetContentSummaryResponder(resp *http.Response) (result Con
 // getFilePath - the Data Lake Store path (starting with '/') of the file or directory for which to retrieve
 // the status.
 func (client Client) GetFileStatus(ctx context.Context, accountName string, getFilePath string) (result FileStatusResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.GetFileStatus")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetFileStatusPreparer(ctx, accountName, getFilePath)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "GetFileStatus", nil, "Failure preparing request")
@@ -891,8 +786,8 @@ func (client Client) GetFileStatusPreparer(ctx context.Context, accountName stri
 // GetFileStatusSender sends the GetFileStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) GetFileStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetFileStatusResponder handles the response to the GetFileStatus request. The method always
@@ -913,23 +808,13 @@ func (client Client) GetFileStatusResponder(resp *http.Response) (result FileSta
 // accountName - the Azure Data Lake Store account to execute filesystem operations on.
 // listFilePath - the Data Lake Store path (starting with '/') of the directory to list.
 // listSize - gets or sets the number of items to return. Optional.
-// listAfter - gets or sets the item or lexicographical index after which to begin returning results. For
+// listAfter - gets or sets the item or lexographical index after which to begin returning results. For
 // example, a file list of 'a','b','d' and listAfter='b' will return 'd', and a listAfter='c' will also return
 // 'd'. Optional.
-// listBefore - gets or sets the item or lexicographical index before which to begin returning results. For
+// listBefore - gets or sets the item or lexographical index before which to begin returning results. For
 // example, a file list of 'a','b','d' and listBefore='d' will return 'a','b', and a listBefore='c' will also
 // return 'a','b'. Optional.
 func (client Client) ListFileStatus(ctx context.Context, accountName string, listFilePath string, listSize *int32, listAfter string, listBefore string) (result FileStatusesResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.ListFileStatus")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListFileStatusPreparer(ctx, accountName, listFilePath, listSize, listAfter, listBefore)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "ListFileStatus", nil, "Failure preparing request")
@@ -988,8 +873,8 @@ func (client Client) ListFileStatusPreparer(ctx context.Context, accountName str
 // ListFileStatusSender sends the ListFileStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) ListFileStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListFileStatusResponder handles the response to the ListFileStatus request. The method always
@@ -1010,16 +895,6 @@ func (client Client) ListFileStatusResponder(resp *http.Response) (result FileSt
 // accountName - the Azure Data Lake Store account to execute filesystem operations on.
 // pathParameter - the Data Lake Store path (starting with '/') of the directory to create.
 func (client Client) Mkdirs(ctx context.Context, accountName string, pathParameter string) (result FileOperationResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Mkdirs")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.MkdirsPreparer(ctx, accountName, pathParameter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "Mkdirs", nil, "Failure preparing request")
@@ -1069,8 +944,8 @@ func (client Client) MkdirsPreparer(ctx context.Context, accountName string, pat
 // MkdirsSender sends the Mkdirs request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) MkdirsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // MkdirsResponder handles the response to the Mkdirs request. The method always
@@ -1094,16 +969,6 @@ func (client Client) MkdirsResponder(resp *http.Response) (result FileOperationR
 // aclspec - the ACL specification included in ACL modification operations in the format
 // '[default:]user|group|other::r|-w|-x|-'
 func (client Client) ModifyACLEntries(ctx context.Context, accountName string, modifyACLFilePath string, aclspec string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.ModifyACLEntries")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ModifyACLEntriesPreparer(ctx, accountName, modifyACLFilePath, aclspec)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "ModifyACLEntries", nil, "Failure preparing request")
@@ -1154,8 +1019,8 @@ func (client Client) ModifyACLEntriesPreparer(ctx context.Context, accountName s
 // ModifyACLEntriesSender sends the ModifyACLEntries request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) ModifyACLEntriesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ModifyACLEntriesResponder handles the response to the ModifyACLEntries request. The method always
@@ -1185,16 +1050,6 @@ func (client Client) ModifyACLEntriesResponder(resp *http.Response) (result auto
 // WARNING: This includes the deletion of any other files that are not source files. Only set this to true when
 // source files are the only files in the source directory.
 func (client Client) MsConcat(ctx context.Context, accountName string, msConcatDestinationPath string, streamContents io.ReadCloser, deleteSourceDirectory *bool) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.MsConcat")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.MsConcatPreparer(ctx, accountName, msConcatDestinationPath, streamContents, deleteSourceDirectory)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "MsConcat", nil, "Failure preparing request")
@@ -1249,8 +1104,8 @@ func (client Client) MsConcatPreparer(ctx context.Context, accountName string, m
 // MsConcatSender sends the MsConcat request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) MsConcatSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // MsConcatResponder handles the response to the MsConcat request. The method always
@@ -1270,16 +1125,6 @@ func (client Client) MsConcatResponder(resp *http.Response) (result autorest.Res
 // accountName - the Azure Data Lake Store account to execute filesystem operations on.
 // directFilePath - the Data Lake Store path (starting with '/') of the file to open.
 func (client Client) Open(ctx context.Context, accountName string, directFilePath string, length *int64, offset *int64) (result ReadCloser, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Open")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.OpenPreparer(ctx, accountName, directFilePath, length, offset)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "Open", nil, "Failure preparing request")
@@ -1336,8 +1181,8 @@ func (client Client) OpenPreparer(ctx context.Context, accountName string, direc
 // OpenSender sends the Open request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) OpenSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // OpenResponder handles the response to the Open request. The method always
@@ -1358,16 +1203,6 @@ func (client Client) OpenResponder(resp *http.Response) (result ReadCloser, err 
 // ACLFilePath - the Data Lake Store path (starting with '/') of the file or directory with the ACL being
 // removed.
 func (client Client) RemoveACL(ctx context.Context, accountName string, ACLFilePath string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.RemoveACL")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.RemoveACLPreparer(ctx, accountName, ACLFilePath)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "RemoveACL", nil, "Failure preparing request")
@@ -1417,8 +1252,8 @@ func (client Client) RemoveACLPreparer(ctx context.Context, accountName string, 
 // RemoveACLSender sends the RemoveACL request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) RemoveACLSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // RemoveACLResponder handles the response to the RemoveACL request. The method always
@@ -1440,16 +1275,6 @@ func (client Client) RemoveACLResponder(resp *http.Response) (result autorest.Re
 // removed.
 // aclspec - the ACL spec included in ACL removal operations in the format '[default:]user|group|other'
 func (client Client) RemoveACLEntries(ctx context.Context, accountName string, removeACLFilePath string, aclspec string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.RemoveACLEntries")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.RemoveACLEntriesPreparer(ctx, accountName, removeACLFilePath, aclspec)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "RemoveACLEntries", nil, "Failure preparing request")
@@ -1500,8 +1325,8 @@ func (client Client) RemoveACLEntriesPreparer(ctx context.Context, accountName s
 // RemoveACLEntriesSender sends the RemoveACLEntries request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) RemoveACLEntriesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // RemoveACLEntriesResponder handles the response to the RemoveACLEntries request. The method always
@@ -1522,16 +1347,6 @@ func (client Client) RemoveACLEntriesResponder(resp *http.Response) (result auto
 // defaultACLFilePath - the Data Lake Store path (starting with '/') of the directory with the default ACL
 // being removed.
 func (client Client) RemoveDefaultACL(ctx context.Context, accountName string, defaultACLFilePath string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.RemoveDefaultACL")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.RemoveDefaultACLPreparer(ctx, accountName, defaultACLFilePath)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "RemoveDefaultACL", nil, "Failure preparing request")
@@ -1581,8 +1396,8 @@ func (client Client) RemoveDefaultACLPreparer(ctx context.Context, accountName s
 // RemoveDefaultACLSender sends the RemoveDefaultACL request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) RemoveDefaultACLSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // RemoveDefaultACLResponder handles the response to the RemoveDefaultACL request. The method always
@@ -1603,16 +1418,6 @@ func (client Client) RemoveDefaultACLResponder(resp *http.Response) (result auto
 // renameFilePath - the Data Lake Store path (starting with '/') of the file or directory to move/rename.
 // destination - the path to move/rename the file or folder to
 func (client Client) Rename(ctx context.Context, accountName string, renameFilePath string, destination string) (result FileOperationResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Rename")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.RenamePreparer(ctx, accountName, renameFilePath, destination)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "Rename", nil, "Failure preparing request")
@@ -1663,8 +1468,8 @@ func (client Client) RenamePreparer(ctx context.Context, accountName string, ren
 // RenameSender sends the Rename request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) RenameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // RenameResponder handles the response to the Rename request. The method always
@@ -1688,16 +1493,6 @@ func (client Client) RenameResponder(resp *http.Response) (result FileOperationR
 // aclspec - the ACL spec included in ACL creation operations in the format
 // '[default:]user|group|other::r|-w|-x|-'
 func (client Client) SetACL(ctx context.Context, accountName string, setACLFilePath string, aclspec string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.SetACL")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.SetACLPreparer(ctx, accountName, setACLFilePath, aclspec)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "SetACL", nil, "Failure preparing request")
@@ -1748,8 +1543,8 @@ func (client Client) SetACLPreparer(ctx context.Context, accountName string, set
 // SetACLSender sends the SetACL request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) SetACLSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // SetACLResponder handles the response to the SetACL request. The method always
@@ -1777,16 +1572,6 @@ func (client Client) SetACLResponder(resp *http.Response) (result autorest.Respo
 // Unix timestamp relative to 1/1/1970 00:00:00.
 // expireTime - the time that the file will expire, corresponding to the ExpiryOption that was set.
 func (client Client) SetFileExpiry(ctx context.Context, accountName string, filePath string, expiryOption ExpiryOptionType, expireTime *int64) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.SetFileExpiry")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.SetFileExpiryPreparer(ctx, accountName, filePath, expiryOption, expireTime)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "SetFileExpiry", nil, "Failure preparing request")
@@ -1840,8 +1625,8 @@ func (client Client) SetFileExpiryPreparer(ctx context.Context, accountName stri
 // SetFileExpirySender sends the SetFileExpiry request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) SetFileExpirySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // SetFileExpiryResponder handles the response to the SetFileExpiry request. The method always
@@ -1866,16 +1651,6 @@ func (client Client) SetFileExpiryResponder(resp *http.Response) (result autores
 // group - the AAD Object ID of the group owner of the file or directory. If empty, the property will remain
 // unchanged.
 func (client Client) SetOwner(ctx context.Context, accountName string, setOwnerFilePath string, owner string, group string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.SetOwner")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.SetOwnerPreparer(ctx, accountName, setOwnerFilePath, owner, group)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "SetOwner", nil, "Failure preparing request")
@@ -1931,8 +1706,8 @@ func (client Client) SetOwnerPreparer(ctx context.Context, accountName string, s
 // SetOwnerSender sends the SetOwner request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) SetOwnerSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // SetOwnerResponder handles the response to the SetOwner request. The method always
@@ -1955,16 +1730,6 @@ func (client Client) SetOwnerResponder(resp *http.Response) (result autorest.Res
 // permission - a string representation of the permission (i.e 'rwx'). If empty, this property remains
 // unchanged.
 func (client Client) SetPermission(ctx context.Context, accountName string, setPermissionFilePath string, permission string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.SetPermission")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.SetPermissionPreparer(ctx, accountName, setPermissionFilePath, permission)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "filesystem.Client", "SetPermission", nil, "Failure preparing request")
@@ -2017,8 +1782,8 @@ func (client Client) SetPermissionPreparer(ctx context.Context, accountName stri
 // SetPermissionSender sends the SetPermission request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) SetPermissionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // SetPermissionResponder handles the response to the SetPermission request. The method always

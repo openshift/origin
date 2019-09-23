@@ -156,7 +156,7 @@ func TestCmdInitConfig(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "can't load old v1alpha3 config",
+			name:     "can't load deprecated v1alpha3 config",
 			args:     "--config=testdata/init/v1alpha3.yaml",
 			expected: false,
 		},
@@ -166,18 +166,13 @@ func TestCmdInitConfig(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "don't allow mixed arguments v1beta1",
-			args:     "--kubernetes-version=1.11.0 --config=testdata/init/v1beta1.yaml",
+			name:     "don't allow mixed arguments v1alpha3",
+			args:     "--kubernetes-version=1.11.0 --config=testdata/init/v1alpha3.yaml",
 			expected: false,
 		},
 		{
-			name:     "can load v1beta2 config",
-			args:     "--config=testdata/init/v1beta2.yaml",
-			expected: true,
-		},
-		{
-			name:     "don't allow mixed arguments v1beta2",
-			args:     "--kubernetes-version=1.11.0 --config=testdata/init/v1beta2.yaml",
+			name:     "don't allow mixed arguments v1beta1",
+			args:     "--kubernetes-version=1.11.0 --config=testdata/init/v1beta1.yaml",
 			expected: false,
 		},
 	}

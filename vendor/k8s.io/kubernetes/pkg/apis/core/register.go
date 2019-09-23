@@ -92,7 +92,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RangeAllocation{},
 		&ConfigMap{},
 		&ConfigMapList{},
-		&EphemeralContainers{},
 	)
 
 	return nil

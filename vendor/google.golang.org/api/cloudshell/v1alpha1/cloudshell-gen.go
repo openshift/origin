@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2018 Google Inc. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,35 +6,13 @@
 
 // Package cloudshell provides access to the Cloud Shell API.
 //
-// For product documentation, see: https://cloud.google.com/shell/docs/
-//
-// Creating a client
+// See https://cloud.google.com/shell/docs/
 //
 // Usage example:
 //
 //   import "google.golang.org/api/cloudshell/v1alpha1"
 //   ...
-//   ctx := context.Background()
-//   cloudshellService, err := cloudshell.NewService(ctx)
-//
-// In this example, Google Application Default Credentials are used for authentication.
-//
-// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
-//
-// Other authentication options
-//
-// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
-//
-//   cloudshellService, err := cloudshell.NewService(ctx, option.WithAPIKey("AIza..."))
-//
-// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
-//
-//   config := &oauth2.Config{...}
-//   // ...
-//   token, err := config.Exchange(ctx, ...)
-//   cloudshellService, err := cloudshell.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
-//
-// See https://godoc.org/google.golang.org/api/option/ for details on options.
+//   cloudshellService, err := cloudshell.New(oauthHttpClient)
 package cloudshell // import "google.golang.org/api/cloudshell/v1alpha1"
 
 import (
@@ -51,8 +29,6 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
-	option "google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -80,32 +56,6 @@ const (
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
-// NewService creates a new Service.
-func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
-	scopesOption := option.WithScopes(
-		"https://www.googleapis.com/auth/cloud-platform",
-	)
-	// NOTE: prepend, so we don't override user-specified scopes.
-	opts = append([]option.ClientOption{scopesOption}, opts...)
-	client, endpoint, err := htransport.NewClient(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	s, err := New(client)
-	if err != nil {
-		return nil, err
-	}
-	if endpoint != "" {
-		s.BasePath = endpoint
-	}
-	return s, nil
-}
-
-// New creates a new Service. It uses the provided http.Client for requests.
-//
-// Deprecated: please use NewService instead.
-// To provide a custom HTTP client, use option.WithHTTPClient.
-// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -169,14 +119,6 @@ type AuthorizeEnvironmentRequest struct {
 	// AccessToken: The OAuth access token that should be sent to the
 	// environment.
 	AccessToken string `json:"accessToken,omitempty"`
-
-	// ExpireTime: The time when the credentials expire. If not set,
-	// defaults to one hour from
-	// when the server received the request.
-	ExpireTime string `json:"expireTime,omitempty"`
-
-	// IdToken: The OAuth ID token that should be sent to the environment.
-	IdToken string `json:"idToken,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AccessToken") to
 	// unconditionally include in API requests. By default, fields with
@@ -373,8 +315,7 @@ type Operation struct {
 	// service that
 	// originally returns it. If you use the default HTTP mapping,
 	// the
-	// `name` should be a resource name ending with
-	// `operations/{unique_id}`.
+	// `name` should have the format of `operations/some/unique/name`.
 	Name string `json:"name,omitempty"`
 
 	// Response: The normal response of the operation in case of success.
@@ -592,20 +533,20 @@ func (s *StartEnvironmentResponse) MarshalJSON() ([]byte, error) {
 }
 
 // Status: The `Status` type defines a logical error model that is
-// suitable for
-// different programming environments, including REST APIs and RPC APIs.
-// It is
-// used by [gRPC](https://github.com/grpc). The error model is designed
-// to be:
+// suitable for different
+// programming environments, including REST APIs and RPC APIs. It is
+// used by
+// [gRPC](https://github.com/grpc). The error model is designed to
+// be:
 //
 // - Simple to use and understand for most users
 // - Flexible enough to meet unexpected needs
 //
 // # Overview
 //
-// The `Status` message contains three pieces of data: error code,
-// error
-// message, and error details. The error code should be an enum value
+// The `Status` message contains three pieces of data: error code, error
+// message,
+// and error details. The error code should be an enum value
 // of
 // google.rpc.Code, but it may accept additional error codes if needed.
 // The
@@ -721,13 +662,11 @@ type UsersEnvironmentsAuthorizeCall struct {
 	header_                     http.Header
 }
 
-// Authorize: Sends OAuth credentials to a running environment on behalf
+// Authorize: Sends an access token to a running environment on behalf
 // of a user. When
-// this completes, the environment will be authorized to run various
-// Google
-// Cloud command line tools without requiring the user to
-// manually
-// authenticate.
+// this completes, the environment will be authorized to run gcloud
+// commands
+// without requiring the user to manually authenticate.
 func (r *UsersEnvironmentsService) Authorize(name string, authorizeenvironmentrequest *AuthorizeEnvironmentRequest) *UsersEnvironmentsAuthorizeCall {
 	c := &UsersEnvironmentsAuthorizeCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -825,7 +764,7 @@ func (c *UsersEnvironmentsAuthorizeCall) Do(opts ...googleapi.CallOption) (*Empt
 	}
 	return ret, nil
 	// {
-	//   "description": "Sends OAuth credentials to a running environment on behalf of a user. When\nthis completes, the environment will be authorized to run various Google\nCloud command line tools without requiring the user to manually\nauthenticate.",
+	//   "description": "Sends an access token to a running environment on behalf of a user. When\nthis completes, the environment will be authorized to run gcloud commands\nwithout requiring the user to manually authenticate.",
 	//   "flatPath": "v1alpha1/users/{usersId}/environments/{environmentsId}:authorize",
 	//   "httpMethod": "POST",
 	//   "id": "cloudshell.users.environments.authorize",
@@ -834,7 +773,7 @@ func (c *UsersEnvironmentsAuthorizeCall) Do(opts ...googleapi.CallOption) (*Empt
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Name of the resource that should receive the credentials, for example\n`users/me/environments/default` or\n`users/someone@example.com/environments/default`.",
+	//       "description": "Name of the resource that should receive the token, for example\n`users/me/environments/default` or\n`users/someone@example.com/environments/default`.",
 	//       "location": "path",
 	//       "pattern": "^users/[^/]+/environments/[^/]+$",
 	//       "required": true,

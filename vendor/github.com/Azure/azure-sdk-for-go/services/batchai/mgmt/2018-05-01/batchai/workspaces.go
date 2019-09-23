@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewWorkspacesClientWithBaseURI(baseURI string, subscriptionID string) Works
 // characters along with dash (-) and underscore (_). The name must be from 1 through 64 characters long.
 // parameters - workspace creation parameters.
 func (client WorkspacesClient) Create(ctx context.Context, resourceGroupName string, workspaceName string, parameters WorkspaceCreateParameters) (result WorkspacesCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspacesClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
@@ -111,9 +100,13 @@ func (client WorkspacesClient) CreatePreparer(ctx context.Context, resourceGroup
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspacesClient) CreateSender(req *http.Request) (future WorkspacesCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -140,16 +133,6 @@ func (client WorkspacesClient) CreateResponder(resp *http.Response) (result Work
 // workspaceName - the name of the workspace. Workspace names can only contain a combination of alphanumeric
 // characters along with dash (-) and underscore (_). The name must be from 1 through 64 characters long.
 func (client WorkspacesClient) Delete(ctx context.Context, resourceGroupName string, workspaceName string) (result WorkspacesDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspacesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
@@ -199,9 +182,13 @@ func (client WorkspacesClient) DeletePreparer(ctx context.Context, resourceGroup
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspacesClient) DeleteSender(req *http.Request) (future WorkspacesDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -227,16 +214,6 @@ func (client WorkspacesClient) DeleteResponder(resp *http.Response) (result auto
 // workspaceName - the name of the workspace. Workspace names can only contain a combination of alphanumeric
 // characters along with dash (-) and underscore (_). The name must be from 1 through 64 characters long.
 func (client WorkspacesClient) Get(ctx context.Context, resourceGroupName string, workspaceName string) (result Workspace, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspacesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
@@ -292,8 +269,8 @@ func (client WorkspacesClient) GetPreparer(ctx context.Context, resourceGroupNam
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspacesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -313,16 +290,6 @@ func (client WorkspacesClient) GetResponder(resp *http.Response) (result Workspa
 // Parameters:
 // maxResults - the maximum number of items to return in the response. A maximum of 1000 files can be returned.
 func (client WorkspacesClient) List(ctx context.Context, maxResults *int32) (result WorkspaceListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspacesClient.List")
-		defer func() {
-			sc := -1
-			if result.wlr.Response.Response != nil {
-				sc = result.wlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -381,8 +348,8 @@ func (client WorkspacesClient) ListPreparer(ctx context.Context, maxResults *int
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspacesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -399,8 +366,8 @@ func (client WorkspacesClient) ListResponder(resp *http.Response) (result Worksp
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client WorkspacesClient) listNextResults(ctx context.Context, lastResults WorkspaceListResult) (result WorkspaceListResult, err error) {
-	req, err := lastResults.workspaceListResultPreparer(ctx)
+func (client WorkspacesClient) listNextResults(lastResults WorkspaceListResult) (result WorkspaceListResult, err error) {
+	req, err := lastResults.workspaceListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batchai.WorkspacesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -421,16 +388,6 @@ func (client WorkspacesClient) listNextResults(ctx context.Context, lastResults 
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client WorkspacesClient) ListComplete(ctx context.Context, maxResults *int32) (result WorkspaceListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspacesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, maxResults)
 	return
 }
@@ -440,16 +397,6 @@ func (client WorkspacesClient) ListComplete(ctx context.Context, maxResults *int
 // resourceGroupName - name of the resource group to which the resource belongs.
 // maxResults - the maximum number of items to return in the response. A maximum of 1000 files can be returned.
 func (client WorkspacesClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, maxResults *int32) (result WorkspaceListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspacesClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.wlr.Response.Response != nil {
-				sc = result.wlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
@@ -511,8 +458,8 @@ func (client WorkspacesClient) ListByResourceGroupPreparer(ctx context.Context, 
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspacesClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -529,8 +476,8 @@ func (client WorkspacesClient) ListByResourceGroupResponder(resp *http.Response)
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client WorkspacesClient) listByResourceGroupNextResults(ctx context.Context, lastResults WorkspaceListResult) (result WorkspaceListResult, err error) {
-	req, err := lastResults.workspaceListResultPreparer(ctx)
+func (client WorkspacesClient) listByResourceGroupNextResults(lastResults WorkspaceListResult) (result WorkspaceListResult, err error) {
+	req, err := lastResults.workspaceListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batchai.WorkspacesClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -551,16 +498,6 @@ func (client WorkspacesClient) listByResourceGroupNextResults(ctx context.Contex
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client WorkspacesClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, maxResults *int32) (result WorkspaceListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspacesClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, maxResults)
 	return
 }
@@ -572,16 +509,6 @@ func (client WorkspacesClient) ListByResourceGroupComplete(ctx context.Context, 
 // characters along with dash (-) and underscore (_). The name must be from 1 through 64 characters long.
 // parameters - additional parameters for workspace update.
 func (client WorkspacesClient) Update(ctx context.Context, resourceGroupName string, workspaceName string, parameters WorkspaceUpdateParameters) (result Workspace, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkspacesClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
@@ -639,8 +566,8 @@ func (client WorkspacesClient) UpdatePreparer(ctx context.Context, resourceGroup
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkspacesClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

@@ -77,7 +77,7 @@ func TestDate_Scan(t *testing.T) {
 	values := []interface{}{str, []byte(str), ref}
 	for _, value := range values {
 		result := Date{}
-		_ = (&result).Scan(value)
+		(&result).Scan(value)
 		assert.Equal(t, date, result, "value: %#v", value)
 	}
 
@@ -121,21 +121,4 @@ func TestDate_IsDate(t *testing.T) {
 	for _, test := range tests {
 		assert.Equal(t, test.valid, IsDate(test.value), "value [%s] should be valid: [%t]", test.value, test.valid)
 	}
-}
-
-func TestDeepCopyDate(t *testing.T) {
-	ref := time.Now().Truncate(24 * time.Hour).UTC()
-	date := Date(ref)
-	in := &date
-
-	out := new(Date)
-	in.DeepCopyInto(out)
-	assert.Equal(t, in, out)
-
-	out2 := in.DeepCopy()
-	assert.Equal(t, in, out2)
-
-	var inNil *Date
-	out3 := inNil.DeepCopy()
-	assert.Nil(t, out3)
 }

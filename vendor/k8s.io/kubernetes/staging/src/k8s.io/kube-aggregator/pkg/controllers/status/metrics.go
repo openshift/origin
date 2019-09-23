@@ -17,38 +17,27 @@ limitations under the License.
 package apiserver
 
 import (
-	"k8s.io/component-base/metrics"
-	"k8s.io/component-base/metrics/legacyregistry"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-/*
- * By default, all the following metrics are defined as falling under
- * ALPHA stability level https://github.com/kubernetes/enhancements/blob/master/keps/sig-instrumentation/20190404-kubernetes-control-plane-metrics-stability.md#stability-classes)
- *
- * Promoting the stability level of the metric is a responsibility of the component owner, since it
- * involves explicitly acknowledging support for the metric across multiple releases, in accordance with
- * the metric stability policy.
- */
 var (
-	unavailableCounter = metrics.NewCounterVec(
-		&metrics.CounterOpts{
-			Name:           "aggregator_unavailable_apiservice_count",
-			Help:           "Counter of APIServices which are marked as unavailable broken down by APIService name and reason.",
-			StabilityLevel: metrics.ALPHA,
+	unavailableCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "aggregator_unavailable_apiservice_count",
+			Help: "Counter of APIServices which are marked as unavailable broken down by APIService name and reason.",
 		},
 		[]string{"name", "reason"},
 	)
-	unavailableGauge = metrics.NewGaugeVec(
-		&metrics.GaugeOpts{
-			Name:           "aggregator_unavailable_apiservice",
-			Help:           "Gauge of APIServices which are marked as unavailable broken down by APIService name.",
-			StabilityLevel: metrics.ALPHA,
+	unavailableGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "aggregator_unavailable_apiservice",
+			Help: "Gauge of APIServices which are marked as unavailable broken down by APIService name.",
 		},
 		[]string{"name"},
 	)
 )
 
 func init() {
-	legacyregistry.MustRegister(unavailableCounter)
-	legacyregistry.MustRegister(unavailableGauge)
+	prometheus.MustRegister(unavailableCounter)
+	prometheus.MustRegister(unavailableGauge)
 }

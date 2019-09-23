@@ -80,62 +80,44 @@ func NodeAddress(nodeIP net.IP, // typically Kubelet.nodeIP
 				}
 				node.ObjectMeta.Annotations[kubeletapis.AnnotationProvidedIPAddr] = nodeIP.String()
 			}
-
-			// If --cloud-provider=external and node address is already set,
-			// then we return early because provider set addresses should take precedence.
-			// Otherwise, we try to look up the node IP and let the cloud provider override it later
-			// This should alleviate a lot of the bootstrapping issues with out-of-tree providers
-			if len(node.Status.Addresses) > 0 {
-				return nil
-			}
+			// We rely on the external cloud provider to supply the addresses.
+			return nil
 		}
 		if cloud != nil {
-			cloudNodeAddresses, err := nodeAddressesFunc()
+			nodeAddresses, err := nodeAddressesFunc()
 			if err != nil {
 				return err
 			}
-
-			var nodeAddresses []v1.NodeAddress
-
-			// For every address supplied by the cloud provider that matches nodeIP, nodeIP is the enforced node address for
-			// that address Type (like InternalIP and ExternalIP), meaning other addresses of the same Type are discarded.
-			// See #61921 for more information: some cloud providers may supply secondary IPs, so nodeIP serves as a way to
-			// ensure that the correct IPs show up on a Node object.
 			if nodeIP != nil {
 				enforcedNodeAddresses := []v1.NodeAddress{}
 
 				nodeIPTypes := make(map[v1.NodeAddressType]bool)
-				for _, nodeAddress := range cloudNodeAddresses {
+				for _, nodeAddress := range nodeAddresses {
 					if nodeAddress.Address == nodeIP.String() {
 						enforcedNodeAddresses = append(enforcedNodeAddresses, v1.NodeAddress{Type: nodeAddress.Type, Address: nodeAddress.Address})
 						nodeIPTypes[nodeAddress.Type] = true
 					}
 				}
-
-				// nodeIP must be among the addresses supplied by the cloud provider
-				if len(enforcedNodeAddresses) == 0 {
-					return fmt.Errorf("failed to get node address from cloud provider that matches ip: %v", nodeIP)
-				}
-
-				// nodeIP was found, now use all other addresses supplied by the cloud provider NOT of the same Type as nodeIP.
-				for _, nodeAddress := range cloudNodeAddresses {
-					if !nodeIPTypes[nodeAddress.Type] {
-						enforcedNodeAddresses = append(enforcedNodeAddresses, v1.NodeAddress{Type: nodeAddress.Type, Address: nodeAddress.Address})
+				if len(enforcedNodeAddresses) > 0 {
+					for _, nodeAddress := range nodeAddresses {
+						if !nodeIPTypes[nodeAddress.Type] && nodeAddress.Type != v1.NodeHostName {
+							enforcedNodeAddresses = append(enforcedNodeAddresses, v1.NodeAddress{Type: nodeAddress.Type, Address: nodeAddress.Address})
+						}
 					}
-				}
 
-				nodeAddresses = enforcedNodeAddresses
-			} else {
-				// If nodeIP is unset, just use the addresses provided by the cloud provider as-is
-				nodeAddresses = cloudNodeAddresses
+					enforcedNodeAddresses = append(enforcedNodeAddresses, v1.NodeAddress{Type: v1.NodeHostName, Address: hostname})
+					node.Status.Addresses = enforcedNodeAddresses
+					return nil
+				}
+				return fmt.Errorf("failed to get node address from cloud provider that matches ip: %v", nodeIP)
 			}
 
 			switch {
-			case len(cloudNodeAddresses) == 0:
+			case len(nodeAddresses) == 0:
 				// the cloud provider didn't specify any addresses
 				nodeAddresses = append(nodeAddresses, v1.NodeAddress{Type: v1.NodeHostName, Address: hostname})
 
-			case !hasAddressType(cloudNodeAddresses, v1.NodeHostName) && hasAddressValue(cloudNodeAddresses, hostname):
+			case !hasAddressType(nodeAddresses, v1.NodeHostName) && hasAddressValue(nodeAddresses, hostname):
 				// the cloud provider didn't specify an address of type Hostname,
 				// but the auto-detected hostname matched an address reported by the cloud provider,
 				// so we can add it and count on the value being verifiable via cloud provider metadata
@@ -332,7 +314,7 @@ func MachineInfo(nodeName string,
 		}
 		allocatableReservation := nodeAllocatableReservationFunc()
 		for k, v := range node.Status.Capacity {
-			value := v.DeepCopy()
+			value := *(v.Copy())
 			if res, exists := allocatableReservation[k]; exists {
 				value.Sub(res)
 			}
@@ -355,7 +337,7 @@ func MachineInfo(nodeName string,
 		for k, v := range node.Status.Capacity {
 			if v1helper.IsHugePageResourceName(k) {
 				allocatableMemory := node.Status.Allocatable[v1.ResourceMemory]
-				value := v.DeepCopy()
+				value := *(v.Copy())
 				allocatableMemory.Sub(value)
 				if allocatableMemory.Sign() < 0 {
 					// Negative Allocatable resources don't make sense.
@@ -487,7 +469,7 @@ func ReadyCondition(
 			}
 		}
 		if len(missingCapacities) > 0 {
-			errs = append(errs, fmt.Errorf("missing node capacity for resources: %s", strings.Join(missingCapacities, ", ")))
+			errs = append(errs, fmt.Errorf("Missing node capacity for resources: %s", strings.Join(missingCapacities, ", ")))
 		}
 		if aggregatedErr := errors.NewAggregate(errs); aggregatedErr != nil {
 			newNodeReadyCondition = v1.NodeCondition{
@@ -762,6 +744,21 @@ func VolumeLimits(volumePluginListFunc func() []volume.VolumePluginWithAttachLim
 				node.Status.Allocatable[v1.ResourceName(limitKey)] = *resource.NewQuantity(value, resource.DecimalSI)
 			}
 		}
+		return nil
+	}
+}
+
+// RemoveOutOfDiskCondition removes stale OutOfDisk condition
+// OutOfDisk condition has been removed from kubelet in 1.12
+func RemoveOutOfDiskCondition() Setter {
+	return func(node *v1.Node) error {
+		var conditions []v1.NodeCondition
+		for i := range node.Status.Conditions {
+			if node.Status.Conditions[i].Type != v1.NodeOutOfDisk {
+				conditions = append(conditions, node.Status.Conditions[i])
+			}
+		}
+		node.Status.Conditions = conditions
 		return nil
 	}
 }

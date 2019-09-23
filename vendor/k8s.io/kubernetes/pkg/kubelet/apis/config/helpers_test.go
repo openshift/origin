@@ -79,8 +79,6 @@ func allPrimitiveFieldPaths(t *testing.T, tp reflect.Type, path *field.Path) set
 	return paths
 }
 
-//lint:file-ignore U1000 Ignore dummy types, used by tests.
-
 // dummy helper types
 type foo struct {
 	foo int
@@ -151,7 +149,6 @@ var (
 		"CPUCFSQuotaPeriod.Duration",
 		"CPUManagerPolicy",
 		"CPUManagerReconcilePeriod.Duration",
-		"TopologyManagerPolicy",
 		"QOSReserved[*]",
 		"CgroupDriver",
 		"CgroupRoot",

@@ -27,7 +27,6 @@ import (
 )
 
 const (
-	// DefaultImageTag is the default tag for docker image.
 	DefaultImageTag = "latest"
 )
 

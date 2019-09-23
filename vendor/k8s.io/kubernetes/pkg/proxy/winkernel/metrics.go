@@ -21,42 +21,36 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-
-	"k8s.io/component-base/metrics"
-	"k8s.io/component-base/metrics/legacyregistry"
 )
 
 const kubeProxySubsystem = "kubeproxy"
 
 var (
-	SyncProxyRulesLatency = metrics.NewHistogram(
-		&metrics.HistogramOpts{
-			Subsystem:      kubeProxySubsystem,
-			Name:           "sync_proxy_rules_duration_seconds",
-			Help:           "SyncProxyRules latency in seconds",
-			Buckets:        prometheus.ExponentialBuckets(0.001, 2, 15),
-			StabilityLevel: metrics.ALPHA,
+	SyncProxyRulesLatency = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Subsystem: kubeProxySubsystem,
+			Name:      "sync_proxy_rules_duration_seconds",
+			Help:      "SyncProxyRules latency in seconds",
+			Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
 		},
 	)
 
-	DeprecatedSyncProxyRulesLatency = metrics.NewHistogram(
-		&metrics.HistogramOpts{
-			Subsystem:      kubeProxySubsystem,
-			Name:           "sync_proxy_rules_latency_microseconds",
-			Help:           "(Deprecated) SyncProxyRules latency in microseconds",
-			Buckets:        prometheus.ExponentialBuckets(1000, 2, 15),
-			StabilityLevel: metrics.ALPHA,
+	DeprecatedSyncProxyRulesLatency = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Subsystem: kubeProxySubsystem,
+			Name:      "sync_proxy_rules_latency_microseconds",
+			Help:      "(Deprecated) SyncProxyRules latency in microseconds",
+			Buckets:   prometheus.ExponentialBuckets(1000, 2, 15),
 		},
 	)
 
 	// SyncProxyRulesLastTimestamp is the timestamp proxy rules were last
 	// successfully synced.
-	SyncProxyRulesLastTimestamp = metrics.NewGauge(
-		&metrics.GaugeOpts{
-			Subsystem:      kubeProxySubsystem,
-			Name:           "sync_proxy_rules_last_timestamp_seconds",
-			Help:           "The last time proxy rules were successfully synced",
-			StabilityLevel: metrics.ALPHA,
+	SyncProxyRulesLastTimestamp = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Subsystem: kubeProxySubsystem,
+			Name:      "sync_proxy_rules_last_timestamp_seconds",
+			Help:      "The last time proxy rules were successfully synced",
 		},
 	)
 )
@@ -65,9 +59,9 @@ var registerMetricsOnce sync.Once
 
 func RegisterMetrics() {
 	registerMetricsOnce.Do(func() {
-		legacyregistry.MustRegister(SyncProxyRulesLatency)
-		legacyregistry.MustRegister(DeprecatedSyncProxyRulesLatency)
-		legacyregistry.MustRegister(SyncProxyRulesLastTimestamp)
+		prometheus.MustRegister(SyncProxyRulesLatency)
+		prometheus.MustRegister(DeprecatedSyncProxyRulesLatency)
+		prometheus.MustRegister(SyncProxyRulesLastTimestamp)
 	})
 }
 

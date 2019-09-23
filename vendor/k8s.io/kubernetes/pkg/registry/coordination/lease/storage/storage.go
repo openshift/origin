@@ -33,7 +33,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against leases.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &coordinationapi.Lease{} },
 		NewListFunc:              func() runtime.Object { return &coordinationapi.LeaseList{} },
@@ -43,12 +43,12 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 		UpdateStrategy: lease.Strategy,
 		DeleteStrategy: lease.Strategy,
 
-		TableConvertor: printerstorage.TableConvertor{TableGenerator: printers.NewTableGenerator().With(printersinternal.AddHandlers)},
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, err
+		panic(err) // TODO: Propagate error up
 	}
 
-	return &REST{store}, nil
+	return &REST{store}
 }

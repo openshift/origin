@@ -73,29 +73,4 @@ var _ = Describe("Map", func() {
 		})
 		Expect(allKeys).ShouldNot(m, "should run nested matchers")
 	})
-
-	It("should produce sensible error messages", func() {
-		m := MatchAllKeys(Keys{
-			"B": Equal("b"),
-			"A": Equal("a"),
-		})
-
-		actual := map[string]string{"A": "b", "C": "c"}
-
-		//Because the order of the constituent errors can't be guaranteed,
-		//we do a number of checks to make sure everything's included
-		m.Match(actual)
-		Expect(m.FailureMessage(actual)).Should(HavePrefix(
-			"Expected\n    <string>: \nto match keys: {\n",
-		))
-		Expect(m.FailureMessage(actual)).Should(ContainSubstring(
-			".\"A\":\n	Expected\n	    <string>: b\n	to equal\n	    <string>: a\n",
-		))
-		Expect(m.FailureMessage(actual)).Should(ContainSubstring(
-			"missing expected key B\n",
-		))
-		Expect(m.FailureMessage(actual)).Should(ContainSubstring(
-			".\"C\":\n	unexpected key C: map[",
-		))
-	})
 })

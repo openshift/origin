@@ -1,5 +1,3 @@
-// +build !providerless
-
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -408,12 +406,8 @@ func (detacher *cinderDiskDetacher) UnmountDevice(deviceMountPath string) error 
 	return mount.CleanupMountPoint(deviceMountPath, detacher.mounter, false)
 }
 
-func (plugin *cinderPlugin) CanAttach(spec *volume.Spec) (bool, error) {
-	return true, nil
-}
-
-func (plugin *cinderPlugin) CanDeviceMount(spec *volume.Spec) (bool, error) {
-	return true, nil
+func (plugin *cinderPlugin) CanAttach(spec *volume.Spec) bool {
+	return true
 }
 
 func (attacher *cinderDiskAttacher) nodeInstanceID(nodeName types.NodeName) (string, error) {

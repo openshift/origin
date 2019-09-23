@@ -1,9 +1,8 @@
 language: go
 
 go:
-  - tip
+        - tip
 install:
-  - go get github.com/ugorji/go/codec
-  - go get github.com/pquerna/ffjson/fflib/v1
-  - go get github.com/json-iterator/go
-  - go get golang.org/x/lint/golint
+        - go get github.com/ugorji/go/codec
+        - go get github.com/pquerna/ffjson/fflib/v1
+        - go get github.com/golang/lint/golint

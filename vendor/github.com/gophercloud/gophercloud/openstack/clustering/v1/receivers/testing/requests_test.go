@@ -92,14 +92,3 @@ func TestDeleteReceiver(t *testing.T) {
 	deleteResult := receivers.Delete(fake.ServiceClient(), "6dc6d336e3fc4c0a951b5698cd1236ee")
 	th.AssertNoErr(t, deleteResult.ExtractErr())
 }
-
-func TestNotifyReceivers(t *testing.T) {
-	th.SetupHTTP()
-	defer th.TeardownHTTP()
-
-	HandleNotifySuccessfully(t)
-
-	requestID, err := receivers.Notify(fake.ServiceClient(), "6dc6d336e3fc4c0a951b5698cd1236ee").Extract()
-	th.AssertNoErr(t, err)
-	th.AssertEquals(t, ExpectedNotifyRequestID, requestID)
-}

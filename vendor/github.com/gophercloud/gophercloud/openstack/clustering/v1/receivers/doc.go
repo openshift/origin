@@ -68,14 +68,5 @@ Example to List Receivers
 		}
 		return true, nil
 	})
-
-Example to Notify a Receiver
-
-	receiverID := "6dc6d336e3fc4c0a951b5698cd1236ee"
-	requestID, err := receivers.Notify(serviceClient, receiverID).Extract()
-	if err != nil {
-		panic(err)
-	}
-
 */
 package receivers

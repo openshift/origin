@@ -30,16 +30,6 @@ func (in *AdmissionRequest) DeepCopyInto(out *AdmissionRequest) {
 	*out = *in
 	out.Kind = in.Kind
 	out.Resource = in.Resource
-	if in.RequestKind != nil {
-		in, out := &in.RequestKind, &out.RequestKind
-		*out = new(v1.GroupVersionKind)
-		**out = **in
-	}
-	if in.RequestResource != nil {
-		in, out := &in.RequestResource, &out.RequestResource
-		*out = new(v1.GroupVersionResource)
-		**out = **in
-	}
 	in.UserInfo.DeepCopyInto(&out.UserInfo)
 	in.Object.DeepCopyInto(&out.Object)
 	in.OldObject.DeepCopyInto(&out.OldObject)
@@ -48,7 +38,6 @@ func (in *AdmissionRequest) DeepCopyInto(out *AdmissionRequest) {
 		*out = new(bool)
 		**out = **in
 	}
-	in.Options.DeepCopyInto(&out.Options)
 	return
 }
 

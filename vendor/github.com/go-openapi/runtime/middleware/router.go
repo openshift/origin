@@ -188,6 +188,7 @@ func (ra *RouteAuthenticator) Authenticate(req *http.Request, route *MatchedRout
 			if !applies {
 				return false, nil, nil
 			}
+
 			if err != nil {
 				route.Authenticator = ra
 				return true, nil, err

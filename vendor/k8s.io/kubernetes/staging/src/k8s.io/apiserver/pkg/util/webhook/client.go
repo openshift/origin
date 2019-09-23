@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"strconv"
 
 	"github.com/hashicorp/golang-lru"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,7 +49,6 @@ type ClientConfigService struct {
 	Name      string
 	Namespace string
 	Path      string
-	Port      int32
 }
 
 // ClientManager builds REST clients to talk to webhooks. It caches the clients
@@ -63,21 +61,19 @@ type ClientManager struct {
 }
 
 // NewClientManager creates a clientManager.
-func NewClientManager(gvs []schema.GroupVersion, addToSchemaFuncs ...func(s *runtime.Scheme) error) (ClientManager, error) {
+func NewClientManager(gv schema.GroupVersion, addToSchemaFunc func(s *runtime.Scheme) error) (ClientManager, error) {
 	cache, err := lru.New(defaultCacheSize)
 	if err != nil {
 		return ClientManager{}, err
 	}
 	hookScheme := runtime.NewScheme()
-	for _, addToSchemaFunc := range addToSchemaFuncs {
-		if err := addToSchemaFunc(hookScheme); err != nil {
-			return ClientManager{}, err
-		}
+	if err := addToSchemaFunc(hookScheme); err != nil {
+		return ClientManager{}, err
 	}
 	return ClientManager{
 		cache: cache,
 		negotiatedSerializer: serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{
-			Serializer: serializer.NewCodecFactory(hookScheme).LegacyCodec(gvs...),
+			Serializer: serializer.NewCodecFactory(hookScheme).LegacyCodec(gv),
 		}),
 	}, nil
 }
@@ -137,11 +133,6 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 		}
 		cfg.TLSClientConfig.CAData = append(cfg.TLSClientConfig.CAData, cc.CABundle...)
 
-		// Use http/1.1 instead of http/2.
-		// This is a workaround for http/2-enabled clients not load-balancing concurrent requests to multiple backends.
-		// See http://issue.k8s.io/75791 for details.
-		cfg.NextProtos = []string{"http/1.1"}
-
 		cfg.ContentConfig.NegotiatedSerializer = cm.negotiatedSerializer
 		cfg.ContentConfig.ContentType = runtime.ContentTypeJSON
 		client, err := rest.UnversionedRESTClientFor(cfg)
@@ -152,20 +143,13 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 	}
 
 	if cc.Service != nil {
-		port := cc.Service.Port
-		if port == 0 {
-			// Default to port 443 if no service port is specified
-			port = 443
-		}
-
-		restConfig, err := cm.authInfoResolver.ClientConfigForService(cc.Service.Name, cc.Service.Namespace, int(port))
+		restConfig, err := cm.authInfoResolver.ClientConfigForService(cc.Service.Name, cc.Service.Namespace)
 		if err != nil {
 			return nil, err
 		}
 		cfg := rest.CopyConfig(restConfig)
 		serverName := cc.Service.Name + "." + cc.Service.Namespace + ".svc"
-
-		host := net.JoinHostPort(serverName, strconv.Itoa(int(port)))
+		host := serverName + ":443"
 		cfg.Host = "https://" + host
 		cfg.APIPath = cc.Service.Path
 		// Set the server name if not already set
@@ -180,7 +164,7 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 		}
 		cfg.Dial = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			if addr == host {
-				u, err := cm.serviceResolver.ResolveEndpoint(cc.Service.Namespace, cc.Service.Name, port)
+				u, err := cm.serviceResolver.ResolveEndpoint(cc.Service.Namespace, cc.Service.Name)
 				if err != nil {
 					return nil, err
 				}
@@ -201,13 +185,7 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 		return nil, &ErrCallingWebhook{WebhookName: cc.Name, Reason: fmt.Errorf("Unparsable URL: %v", err)}
 	}
 
-	hostPort := u.Host
-	if len(u.Port()) == 0 {
-		// Default to port 443 if no port is specified
-		hostPort = net.JoinHostPort(hostPort, "443")
-	}
-
-	restConfig, err := cm.authInfoResolver.ClientConfigFor(hostPort)
+	restConfig, err := cm.authInfoResolver.ClientConfigFor(u.Host)
 	if err != nil {
 		return nil, err
 	}

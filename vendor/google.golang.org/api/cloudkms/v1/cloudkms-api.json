@@ -4,9 +4,6 @@
       "scopes": {
         "https://www.googleapis.com/auth/cloud-platform": {
           "description": "View and manage your data across Google Cloud Platform services"
-        },
-        "https://www.googleapis.com/auth/cloudkms": {
-          "description": "View and manage your keys and secrets stored in Cloud Key Management Service"
         }
       }
     }
@@ -133,8 +130,7 @@
                 "$ref": "Location"
               },
               "scopes": [
-                "https://www.googleapis.com/auth/cloud-platform",
-                "https://www.googleapis.com/auth/cloudkms"
+                "https://www.googleapis.com/auth/cloud-platform"
               ]
             },
             "list": {
@@ -175,8 +171,7 @@
                 "$ref": "ListLocationsResponse"
               },
               "scopes": [
-                "https://www.googleapis.com/auth/cloud-platform",
-                "https://www.googleapis.com/auth/cloudkms"
+                "https://www.googleapis.com/auth/cloud-platform"
               ]
             }
           },
@@ -213,8 +208,7 @@
                     "$ref": "KeyRing"
                   },
                   "scopes": [
-                    "https://www.googleapis.com/auth/cloud-platform",
-                    "https://www.googleapis.com/auth/cloudkms"
+                    "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
                 "get": {
@@ -239,8 +233,7 @@
                     "$ref": "KeyRing"
                   },
                   "scopes": [
-                    "https://www.googleapis.com/auth/cloud-platform",
-                    "https://www.googleapis.com/auth/cloudkms"
+                    "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
                 "getIamPolicy": {
@@ -265,8 +258,7 @@
                     "$ref": "Policy"
                   },
                   "scopes": [
-                    "https://www.googleapis.com/auth/cloud-platform",
-                    "https://www.googleapis.com/auth/cloudkms"
+                    "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
                 "list": {
@@ -302,8 +294,7 @@
                     "$ref": "ListKeyRingsResponse"
                   },
                   "scopes": [
-                    "https://www.googleapis.com/auth/cloud-platform",
-                    "https://www.googleapis.com/auth/cloudkms"
+                    "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
                 "setIamPolicy": {
@@ -331,8 +322,7 @@
                     "$ref": "Policy"
                   },
                   "scopes": [
-                    "https://www.googleapis.com/auth/cloud-platform",
-                    "https://www.googleapis.com/auth/cloudkms"
+                    "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
                 "testIamPermissions": {
@@ -360,8 +350,7 @@
                     "$ref": "TestIamPermissionsResponse"
                   },
                   "scopes": [
-                    "https://www.googleapis.com/auth/cloud-platform",
-                    "https://www.googleapis.com/auth/cloudkms"
+                    "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 }
               },
@@ -398,8 +387,7 @@
                         "$ref": "CryptoKey"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "decrypt": {
@@ -427,8 +415,7 @@
                         "$ref": "DecryptResponse"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "encrypt": {
@@ -456,8 +443,7 @@
                         "$ref": "EncryptResponse"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "get": {
@@ -482,8 +468,7 @@
                         "$ref": "CryptoKey"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "getIamPolicy": {
@@ -508,8 +493,7 @@
                         "$ref": "Policy"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "list": {
@@ -554,8 +538,7 @@
                         "$ref": "ListCryptoKeysResponse"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "patch": {
@@ -589,8 +572,7 @@
                         "$ref": "CryptoKey"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "setIamPolicy": {
@@ -618,8 +600,7 @@
                         "$ref": "Policy"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "testIamPermissions": {
@@ -647,8 +628,7 @@
                         "$ref": "TestIamPermissionsResponse"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "updatePrimaryVersion": {
@@ -676,8 +656,7 @@
                         "$ref": "CryptoKey"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     }
                   },
@@ -709,8 +688,7 @@
                             "$ref": "AsymmetricDecryptResponse"
                           },
                           "scopes": [
-                            "https://www.googleapis.com/auth/cloud-platform",
-                            "https://www.googleapis.com/auth/cloudkms"
+                            "https://www.googleapis.com/auth/cloud-platform"
                           ]
                         },
                         "asymmetricSign": {
@@ -738,8 +716,7 @@
                             "$ref": "AsymmetricSignResponse"
                           },
                           "scopes": [
-                            "https://www.googleapis.com/auth/cloud-platform",
-                            "https://www.googleapis.com/auth/cloudkms"
+                            "https://www.googleapis.com/auth/cloud-platform"
                           ]
                         },
                         "create": {
@@ -767,8 +744,7 @@
                             "$ref": "CryptoKeyVersion"
                           },
                           "scopes": [
-                            "https://www.googleapis.com/auth/cloud-platform",
-                            "https://www.googleapis.com/auth/cloudkms"
+                            "https://www.googleapis.com/auth/cloud-platform"
                           ]
                         },
                         "destroy": {
@@ -796,8 +772,7 @@
                             "$ref": "CryptoKeyVersion"
                           },
                           "scopes": [
-                            "https://www.googleapis.com/auth/cloud-platform",
-                            "https://www.googleapis.com/auth/cloudkms"
+                            "https://www.googleapis.com/auth/cloud-platform"
                           ]
                         },
                         "get": {
@@ -822,8 +797,7 @@
                             "$ref": "CryptoKeyVersion"
                           },
                           "scopes": [
-                            "https://www.googleapis.com/auth/cloud-platform",
-                            "https://www.googleapis.com/auth/cloudkms"
+                            "https://www.googleapis.com/auth/cloud-platform"
                           ]
                         },
                         "getPublicKey": {
@@ -848,8 +822,7 @@
                             "$ref": "PublicKey"
                           },
                           "scopes": [
-                            "https://www.googleapis.com/auth/cloud-platform",
-                            "https://www.googleapis.com/auth/cloudkms"
+                            "https://www.googleapis.com/auth/cloud-platform"
                           ]
                         },
                         "list": {
@@ -894,8 +867,7 @@
                             "$ref": "ListCryptoKeyVersionsResponse"
                           },
                           "scopes": [
-                            "https://www.googleapis.com/auth/cloud-platform",
-                            "https://www.googleapis.com/auth/cloudkms"
+                            "https://www.googleapis.com/auth/cloud-platform"
                           ]
                         },
                         "patch": {
@@ -929,8 +901,7 @@
                             "$ref": "CryptoKeyVersion"
                           },
                           "scopes": [
-                            "https://www.googleapis.com/auth/cloud-platform",
-                            "https://www.googleapis.com/auth/cloudkms"
+                            "https://www.googleapis.com/auth/cloud-platform"
                           ]
                         },
                         "restore": {
@@ -958,8 +929,7 @@
                             "$ref": "CryptoKeyVersion"
                           },
                           "scopes": [
-                            "https://www.googleapis.com/auth/cloud-platform",
-                            "https://www.googleapis.com/auth/cloudkms"
+                            "https://www.googleapis.com/auth/cloud-platform"
                           ]
                         }
                       }
@@ -990,8 +960,7 @@
                         "$ref": "Policy"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "setIamPolicy": {
@@ -1019,8 +988,7 @@
                         "$ref": "Policy"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     },
                     "testIamPermissions": {
@@ -1048,8 +1016,7 @@
                         "$ref": "TestIamPermissionsResponse"
                       },
                       "scopes": [
-                        "https://www.googleapis.com/auth/cloud-platform",
-                        "https://www.googleapis.com/auth/cloudkms"
+                        "https://www.googleapis.com/auth/cloud-platform"
                       ]
                     }
                   }
@@ -1061,7 +1028,7 @@
       }
     }
   },
-  "revision": "20190426",
+  "revision": "20181210",
   "rootUrl": "https://cloudkms.googleapis.com/",
   "schemas": {
     "AsymmetricDecryptRequest": {
@@ -1165,10 +1132,10 @@
       "properties": {
         "condition": {
           "$ref": "Expr",
-          "description": "The condition that is associated with this binding.\nNOTE: An unsatisfied condition will not allow user access via current\nbinding. Different bindings, including their conditions, are examined\nindependently."
+          "description": "Unimplemented. The condition that is associated with this binding.\nNOTE: an unsatisfied condition will not allow user access via current\nbinding. Different bindings, including their conditions, are examined\nindependently."
         },
         "members": {
-          "description": "Specifies the identities requesting access for a Cloud Platform resource.\n`members` can have the following values:\n\n* `allUsers`: A special identifier that represents anyone who is\n   on the internet; with or without a Google account.\n\n* `allAuthenticatedUsers`: A special identifier that represents anyone\n   who is authenticated with a Google account or a service account.\n\n* `user:{emailid}`: An email address that represents a specific Google\n   account. For example, `alice@gmail.com` .\n\n\n* `serviceAccount:{emailid}`: An email address that represents a service\n   account. For example, `my-other-app@appspot.gserviceaccount.com`.\n\n* `group:{emailid}`: An email address that represents a Google group.\n   For example, `admins@example.com`.\n\n\n* `domain:{domain}`: The G Suite domain (primary) that represents all the\n   users of that domain. For example, `google.com` or `example.com`.\n\n",
+          "description": "Specifies the identities requesting access for a Cloud Platform resource.\n`members` can have the following values:\n\n* `allUsers`: A special identifier that represents anyone who is\n   on the internet; with or without a Google account.\n\n* `allAuthenticatedUsers`: A special identifier that represents anyone\n   who is authenticated with a Google account or a service account.\n\n* `user:{emailid}`: An email address that represents a specific Google\n   account. For example, `alice@gmail.com` .\n\n\n* `serviceAccount:{emailid}`: An email address that represents a service\n   account. For example, `my-other-app@appspot.gserviceaccount.com`.\n\n* `group:{emailid}`: An email address that represents a Google group.\n   For example, `admins@example.com`.\n\n\n* `domain:{domain}`: A Google Apps domain name that represents all the\n   users of that domain. For example, `google.com` or `example.com`.\n\n",
           "items": {
             "type": "string"
           },
@@ -1522,7 +1489,7 @@
       "type": "object"
     },
     "KeyOperationAttestation": {
-      "description": "Contains an HSM-generated attestation about a key operation. For more\ninformation, see [Verifying attestations]\n(https://cloud.google.com/kms/docs/attest-key).",
+      "description": "Contains an HSM-generated attestation about a key operation.",
       "id": "KeyOperationAttestation",
       "properties": {
         "content": {
@@ -1534,13 +1501,11 @@
           "description": "Output only. The format of the attestation data.",
           "enum": [
             "ATTESTATION_FORMAT_UNSPECIFIED",
-            "CAVIUM_V1_COMPRESSED",
-            "CAVIUM_V2_COMPRESSED"
+            "CAVIUM_V1_COMPRESSED"
           ],
           "enumDescriptions": [
             "Not specified.",
-            "Cavium HSM attestation compressed with gzip. Note that this format is\ndefined by Cavium and subject to change at any time.",
-            "Cavium HSM attestation V2 compressed with gzip. This is a new format\nintroduced in Cavium's version 3.2-08."
+            "Cavium HSM attestation compressed with gzip. Note that this format is\ndefined by Cavium and subject to change at any time."
           ],
           "type": "string"
         }

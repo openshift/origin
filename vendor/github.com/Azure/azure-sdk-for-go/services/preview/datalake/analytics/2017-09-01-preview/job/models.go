@@ -18,19 +18,14 @@ package job
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/datalake/analytics/2017-09-01-preview/job"
 
 // CompileMode enumerates the values for compile mode.
 type CompileMode string
@@ -302,7 +297,7 @@ type CancelFuture struct {
 // If the operation has not completed it will return an error.
 func (future *CancelFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "job.CancelFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -515,8 +510,8 @@ func (cjp CreateJobProperties) AsBasicCreateJobProperties() (BasicCreateJobPrope
 	return &cjp, true
 }
 
-// CreateScopeJobParameters the parameters used to submit a new Data Lake Analytics Scope job. (Only for
-// use internally with Scope job type.)
+// CreateScopeJobParameters the parameters used to submit a new Data Lake Analytics Scope job. (Only for use
+// internally with Scope job type.)
 type CreateScopeJobParameters struct {
 	// Tags - The key-value pairs used to add additional metadata to the job information.
 	Tags map[string]*string `json:"tags"`
@@ -664,8 +659,8 @@ func (csjp *CreateScopeJobParameters) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// CreateScopeJobProperties scope job properties used when submitting Scope jobs. (Only for use internally
-// with Scope job type.)
+// CreateScopeJobProperties scope job properties used when submitting Scope jobs. (Only for use internally with
+// Scope job type.)
 type CreateScopeJobProperties struct {
 	// Resources - The list of resources that are required by the job.
 	Resources *[]ScopeJobResource `json:"resources,omitempty"`
@@ -775,71 +770,71 @@ func (cusjp CreateUSQLJobProperties) AsBasicCreateJobProperties() (BasicCreateJo
 // DataPath a Data Lake Analytics job data path item.
 type DataPath struct {
 	autorest.Response `json:"-"`
-	// JobID - READ-ONLY; The ID of the job this data is for.
+	// JobID - The ID of the job this data is for.
 	JobID *uuid.UUID `json:"jobId,omitempty"`
-	// Command - READ-ONLY; The command that this job data relates to.
+	// Command - The command that this job data relates to.
 	Command *string `json:"command,omitempty"`
-	// Paths - READ-ONLY; The list of paths to all of the job data.
+	// Paths - The list of paths to all of the job data.
 	Paths *[]string `json:"paths,omitempty"`
 }
 
 // Diagnostics error diagnostic information for failed jobs.
 type Diagnostics struct {
-	// Message - READ-ONLY; The error message.
+	// Message - The error message.
 	Message *string `json:"message,omitempty"`
-	// Severity - READ-ONLY; The severity of the error. Possible values include: 'Warning', 'Error', 'Info', 'SevereWarning', 'Deprecated', 'UserWarning'
+	// Severity - The severity of the error. Possible values include: 'Warning', 'Error', 'Info', 'SevereWarning', 'Deprecated', 'UserWarning'
 	Severity SeverityTypes `json:"severity,omitempty"`
-	// LineNumber - READ-ONLY; The line number the error occurred on.
+	// LineNumber - The line number the error occured on.
 	LineNumber *int32 `json:"lineNumber,omitempty"`
-	// ColumnNumber - READ-ONLY; The column where the error occurred.
+	// ColumnNumber - The column where the error occured.
 	ColumnNumber *int32 `json:"columnNumber,omitempty"`
-	// Start - READ-ONLY; The starting index of the error.
+	// Start - The starting index of the error.
 	Start *int32 `json:"start,omitempty"`
-	// End - READ-ONLY; The ending index of the error.
+	// End - The ending index of the error.
 	End *int32 `json:"end,omitempty"`
 }
 
 // ErrorDetails the Data Lake Analytics job error details.
 type ErrorDetails struct {
-	// ErrorID - READ-ONLY; The specific identifier for the type of error encountered in the job.
+	// ErrorID - The specific identifier for the type of error encountered in the job.
 	ErrorID *string `json:"errorId,omitempty"`
-	// Severity - READ-ONLY; The severity level of the failure. Possible values include: 'Warning', 'Error', 'Info', 'SevereWarning', 'Deprecated', 'UserWarning'
+	// Severity - The severity level of the failure. Possible values include: 'Warning', 'Error', 'Info', 'SevereWarning', 'Deprecated', 'UserWarning'
 	Severity SeverityTypes `json:"severity,omitempty"`
-	// Source - READ-ONLY; The ultimate source of the failure (usually either SYSTEM or USER).
+	// Source - The ultimate source of the failure (usually either SYSTEM or USER).
 	Source *string `json:"source,omitempty"`
-	// Message - READ-ONLY; The user friendly error message for the failure.
+	// Message - The user friendly error message for the failure.
 	Message *string `json:"message,omitempty"`
-	// Description - READ-ONLY; The error message description.
+	// Description - The error message description.
 	Description *string `json:"description,omitempty"`
-	// Details - READ-ONLY; The details of the error message.
+	// Details - The details of the error message.
 	Details *string `json:"details,omitempty"`
-	// LineNumber - READ-ONLY; The specific line number in the job where the error occurred.
+	// LineNumber - The specific line number in the job where the error occured.
 	LineNumber *int32 `json:"lineNumber,omitempty"`
-	// StartOffset - READ-ONLY; The start offset in the job where the error was found
+	// StartOffset - The start offset in the job where the error was found
 	StartOffset *int32 `json:"startOffset,omitempty"`
-	// EndOffset - READ-ONLY; The end offset in the job where the error was found.
+	// EndOffset - The end offset in the job where the error was found.
 	EndOffset *int32 `json:"endOffset,omitempty"`
-	// Resolution - READ-ONLY; The recommended resolution for the failure, if any.
+	// Resolution - The recommended resolution for the failure, if any.
 	Resolution *string `json:"resolution,omitempty"`
-	// FilePath - READ-ONLY; The path to any supplemental error files, if any.
+	// FilePath - The path to any supplemental error files, if any.
 	FilePath *string `json:"filePath,omitempty"`
-	// HelpLink - READ-ONLY; The link to MSDN or Azure help for this type of error, if any.
+	// HelpLink - The link to MSDN or Azure help for this type of error, if any.
 	HelpLink *string `json:"helpLink,omitempty"`
-	// InternalDiagnostics - READ-ONLY; The internal diagnostic stack trace if the user requesting the job error details has sufficient permissions it will be retrieved, otherwise it will be empty.
+	// InternalDiagnostics - The internal diagnostic stack trace if the user requesting the job error details has sufficient permissions it will be retrieved, otherwise it will be empty.
 	InternalDiagnostics *string `json:"internalDiagnostics,omitempty"`
-	// InnerError - READ-ONLY; The inner error of this specific job error message, if any.
+	// InnerError - The inner error of this specific job error message, if any.
 	InnerError *InnerError `json:"innerError,omitempty"`
 }
 
 // HiveJobProperties hive job properties used when retrieving Hive jobs.
 type HiveJobProperties struct {
-	// LogsLocation - READ-ONLY; The Hive logs location.
+	// LogsLocation - The Hive logs location.
 	LogsLocation *string `json:"logsLocation,omitempty"`
-	// OutputLocation - READ-ONLY; The location of Hive job output files (both execution output and results).
+	// OutputLocation - The location of Hive job output files (both execution output and results).
 	OutputLocation *string `json:"outputLocation,omitempty"`
-	// StatementCount - READ-ONLY; The number of statements that will be run based on the script.
+	// StatementCount - The number of statements that will be run based on the script.
 	StatementCount *int32 `json:"statementCount,omitempty"`
-	// ExecutedStatementCount - READ-ONLY; The number of statements that have been run based on the script.
+	// ExecutedStatementCount - The number of statements that have been run based on the script.
 	ExecutedStatementCount *int32 `json:"executedStatementCount,omitempty"`
 	// RuntimeVersion - The runtime version of the Data Lake Analytics engine to use for the specific type of job being run.
 	RuntimeVersion *string `json:"runtimeVersion,omitempty"`
@@ -853,6 +848,18 @@ type HiveJobProperties struct {
 func (hjp HiveJobProperties) MarshalJSON() ([]byte, error) {
 	hjp.Type = TypeHive
 	objectMap := make(map[string]interface{})
+	if hjp.LogsLocation != nil {
+		objectMap["logsLocation"] = hjp.LogsLocation
+	}
+	if hjp.OutputLocation != nil {
+		objectMap["outputLocation"] = hjp.OutputLocation
+	}
+	if hjp.StatementCount != nil {
+		objectMap["statementCount"] = hjp.StatementCount
+	}
+	if hjp.ExecutedStatementCount != nil {
+		objectMap["executedStatementCount"] = hjp.ExecutedStatementCount
+	}
 	if hjp.RuntimeVersion != nil {
 		objectMap["runtimeVersion"] = hjp.RuntimeVersion
 	}
@@ -893,9 +900,9 @@ func (hjp HiveJobProperties) AsBasicProperties() (BasicProperties, bool) {
 // InfoListResult list of JobInfo items.
 type InfoListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The list of JobInfo items.
+	// Value - The list of JobInfo items.
 	Value *[]InformationBasic `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -905,37 +912,20 @@ type InfoListResultIterator struct {
 	page InfoListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *InfoListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/InfoListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *InfoListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *InfoListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -957,11 +947,6 @@ func (iter InfoListResultIterator) Value() InformationBasic {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the InfoListResultIterator type.
-func NewInfoListResultIterator(page InfoListResultPage) InfoListResultIterator {
-	return InfoListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (ilr InfoListResult) IsEmpty() bool {
 	return ilr.Value == nil || len(*ilr.Value) == 0
@@ -969,11 +954,11 @@ func (ilr InfoListResult) IsEmpty() bool {
 
 // infoListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (ilr InfoListResult) infoListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (ilr InfoListResult) infoListResultPreparer() (*http.Request, error) {
 	if ilr.NextLink == nil || len(to.String(ilr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(ilr.NextLink)))
@@ -981,36 +966,19 @@ func (ilr InfoListResult) infoListResultPreparer(ctx context.Context) (*http.Req
 
 // InfoListResultPage contains a page of InformationBasic values.
 type InfoListResultPage struct {
-	fn  func(context.Context, InfoListResult) (InfoListResult, error)
+	fn  func(InfoListResult) (InfoListResult, error)
 	ilr InfoListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *InfoListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/InfoListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.ilr)
+func (page *InfoListResultPage) Next() error {
+	next, err := page.fn(page.ilr)
 	if err != nil {
 		return err
 	}
 	page.ilr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *InfoListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1031,46 +999,40 @@ func (page InfoListResultPage) Values() []InformationBasic {
 	return *page.ilr.Value
 }
 
-// Creates a new instance of the InfoListResultPage type.
-func NewInfoListResultPage(getNextPage func(context.Context, InfoListResult) (InfoListResult, error)) InfoListResultPage {
-	return InfoListResultPage{fn: getNextPage}
-}
-
-// Information the extended Data Lake Analytics job information properties returned when retrieving a
-// specific job.
+// Information the extended Data Lake Analytics job information properties returned when retrieving a specific job.
 type Information struct {
 	autorest.Response `json:"-"`
-	// ErrorMessage - READ-ONLY; The error message details for the job, if the job failed.
+	// ErrorMessage - The error message details for the job, if the job failed.
 	ErrorMessage *[]ErrorDetails `json:"errorMessage,omitempty"`
-	// StateAuditRecords - READ-ONLY; The job state audit records, indicating when various operations have been performed on this job.
+	// StateAuditRecords - The job state audit records, indicating when various operations have been performed on this job.
 	StateAuditRecords *[]StateAuditRecord `json:"stateAuditRecords,omitempty"`
 	// Properties - The job specific properties.
 	Properties BasicProperties `json:"properties,omitempty"`
-	// JobID - READ-ONLY; The job's unique identifier (a GUID).
+	// JobID - The job's unique identifier (a GUID).
 	JobID *uuid.UUID `json:"jobId,omitempty"`
 	// Name - The friendly name of the job.
 	Name *string `json:"name,omitempty"`
 	// Type - The job type of the current job (Hive, USql, or Scope (for internal use only)). Possible values include: 'USQL', 'Hive', 'Scope'
 	Type TypeEnum `json:"type,omitempty"`
-	// Submitter - READ-ONLY; The user or account that submitted the job.
+	// Submitter - The user or account that submitted the job.
 	Submitter *string `json:"submitter,omitempty"`
 	// DegreeOfParallelism - The degree of parallelism used for this job.
 	DegreeOfParallelism *int32 `json:"degreeOfParallelism,omitempty"`
-	// DegreeOfParallelismPercent - READ-ONLY; the degree of parallelism in percentage used for this job.
+	// DegreeOfParallelismPercent - the degree of parallelism in percentage used for this job.
 	DegreeOfParallelismPercent *float64 `json:"degreeOfParallelismPercent,omitempty"`
 	// Priority - The priority value for the current job. Lower numbers have a higher priority. By default, a job has a priority of 1000. This must be greater than 0.
 	Priority *int32 `json:"priority,omitempty"`
-	// SubmitTime - READ-ONLY; The time the job was submitted to the service.
+	// SubmitTime - The time the job was submitted to the service.
 	SubmitTime *date.Time `json:"submitTime,omitempty"`
-	// StartTime - READ-ONLY; The start time of the job.
+	// StartTime - The start time of the job.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; The completion time of the job.
+	// EndTime - The completion time of the job.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// State - READ-ONLY; The job state. When the job is in the Ended state, refer to Result and ErrorMessage for details. Possible values include: 'StateAccepted', 'StateCompiling', 'StateEnded', 'StateNew', 'StateQueued', 'StateRunning', 'StateScheduling', 'StateStarting', 'StatePaused', 'StateWaitingForCapacity', 'StateYielded', 'StateFinalizing'
+	// State - The job state. When the job is in the Ended state, refer to Result and ErrorMessage for details. Possible values include: 'StateAccepted', 'StateCompiling', 'StateEnded', 'StateNew', 'StateQueued', 'StateRunning', 'StateScheduling', 'StateStarting', 'StatePaused', 'StateWaitingForCapacity', 'StateYielded', 'StateFinalizing'
 	State State `json:"state,omitempty"`
-	// Result - READ-ONLY; The result of job execution or the current result of the running job. Possible values include: 'None', 'Succeeded', 'Cancelled', 'Failed'
+	// Result - The result of job execution or the current result of the running job. Possible values include: 'None', 'Succeeded', 'Cancelled', 'Failed'
 	Result Result `json:"result,omitempty"`
-	// LogFolder - READ-ONLY; The log folder path to use in the following format: adl://<accountName>.azuredatalakestore.net/system/jobservice/jobs/Usql/2016/03/13/17/18/5fe51957-93bc-4de0-8ddc-c5a4753b068b/logs/.
+	// LogFolder - The log folder path to use in the following format: adl://<accountName>.azuredatalakestore.net/system/jobservice/jobs/Usql/2016/03/13/17/18/5fe51957-93bc-4de0-8ddc-c5a4753b068b/logs/.
 	LogFolder *string `json:"logFolder,omitempty"`
 	// LogFilePatterns - The list of log file name patterns to find in the logFolder. '*' is the only matching character allowed. Example format: jobExecution*.log or *mylog*.txt
 	LogFilePatterns *[]string `json:"logFilePatterns,omitempty"`
@@ -1078,25 +1040,58 @@ type Information struct {
 	Related *RelationshipProperties `json:"related,omitempty"`
 	// Tags - The key-value pairs used to add additional metadata to the job information. (Only for use internally with Scope job type.)
 	Tags map[string]*string `json:"tags"`
-	// HierarchyQueueNode - READ-ONLY; the name of hierarchy queue node this job is assigned to, Null if job has not been assigned yet or the account doesn't have hierarchy queue.
+	// HierarchyQueueNode - the name of hierarchy queue node this job is assigned to, Null if job has not been assigned yet or the account doesn't have hierarchy queue.
 	HierarchyQueueNode *string `json:"hierarchyQueueNode,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for Information.
 func (i Information) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if i.ErrorMessage != nil {
+		objectMap["errorMessage"] = i.ErrorMessage
+	}
+	if i.StateAuditRecords != nil {
+		objectMap["stateAuditRecords"] = i.StateAuditRecords
+	}
 	objectMap["properties"] = i.Properties
+	if i.JobID != nil {
+		objectMap["jobId"] = i.JobID
+	}
 	if i.Name != nil {
 		objectMap["name"] = i.Name
 	}
 	if i.Type != "" {
 		objectMap["type"] = i.Type
 	}
+	if i.Submitter != nil {
+		objectMap["submitter"] = i.Submitter
+	}
 	if i.DegreeOfParallelism != nil {
 		objectMap["degreeOfParallelism"] = i.DegreeOfParallelism
 	}
+	if i.DegreeOfParallelismPercent != nil {
+		objectMap["degreeOfParallelismPercent"] = i.DegreeOfParallelismPercent
+	}
 	if i.Priority != nil {
 		objectMap["priority"] = i.Priority
+	}
+	if i.SubmitTime != nil {
+		objectMap["submitTime"] = i.SubmitTime
+	}
+	if i.StartTime != nil {
+		objectMap["startTime"] = i.StartTime
+	}
+	if i.EndTime != nil {
+		objectMap["endTime"] = i.EndTime
+	}
+	if i.State != "" {
+		objectMap["state"] = i.State
+	}
+	if i.Result != "" {
+		objectMap["result"] = i.Result
+	}
+	if i.LogFolder != nil {
+		objectMap["logFolder"] = i.LogFolder
 	}
 	if i.LogFilePatterns != nil {
 		objectMap["logFilePatterns"] = i.LogFilePatterns
@@ -1106,6 +1101,9 @@ func (i Information) MarshalJSON() ([]byte, error) {
 	}
 	if i.Tags != nil {
 		objectMap["tags"] = i.Tags
+	}
+	if i.HierarchyQueueNode != nil {
+		objectMap["hierarchyQueueNode"] = i.HierarchyQueueNode
 	}
 	return json.Marshal(objectMap)
 }
@@ -1306,31 +1304,31 @@ func (i *Information) UnmarshalJSON(body []byte) error {
 
 // InformationBasic the common Data Lake Analytics job information properties.
 type InformationBasic struct {
-	// JobID - READ-ONLY; The job's unique identifier (a GUID).
+	// JobID - The job's unique identifier (a GUID).
 	JobID *uuid.UUID `json:"jobId,omitempty"`
 	// Name - The friendly name of the job.
 	Name *string `json:"name,omitempty"`
 	// Type - The job type of the current job (Hive, USql, or Scope (for internal use only)). Possible values include: 'USQL', 'Hive', 'Scope'
 	Type TypeEnum `json:"type,omitempty"`
-	// Submitter - READ-ONLY; The user or account that submitted the job.
+	// Submitter - The user or account that submitted the job.
 	Submitter *string `json:"submitter,omitempty"`
 	// DegreeOfParallelism - The degree of parallelism used for this job.
 	DegreeOfParallelism *int32 `json:"degreeOfParallelism,omitempty"`
-	// DegreeOfParallelismPercent - READ-ONLY; the degree of parallelism in percentage used for this job.
+	// DegreeOfParallelismPercent - the degree of parallelism in percentage used for this job.
 	DegreeOfParallelismPercent *float64 `json:"degreeOfParallelismPercent,omitempty"`
 	// Priority - The priority value for the current job. Lower numbers have a higher priority. By default, a job has a priority of 1000. This must be greater than 0.
 	Priority *int32 `json:"priority,omitempty"`
-	// SubmitTime - READ-ONLY; The time the job was submitted to the service.
+	// SubmitTime - The time the job was submitted to the service.
 	SubmitTime *date.Time `json:"submitTime,omitempty"`
-	// StartTime - READ-ONLY; The start time of the job.
+	// StartTime - The start time of the job.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; The completion time of the job.
+	// EndTime - The completion time of the job.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// State - READ-ONLY; The job state. When the job is in the Ended state, refer to Result and ErrorMessage for details. Possible values include: 'StateAccepted', 'StateCompiling', 'StateEnded', 'StateNew', 'StateQueued', 'StateRunning', 'StateScheduling', 'StateStarting', 'StatePaused', 'StateWaitingForCapacity', 'StateYielded', 'StateFinalizing'
+	// State - The job state. When the job is in the Ended state, refer to Result and ErrorMessage for details. Possible values include: 'StateAccepted', 'StateCompiling', 'StateEnded', 'StateNew', 'StateQueued', 'StateRunning', 'StateScheduling', 'StateStarting', 'StatePaused', 'StateWaitingForCapacity', 'StateYielded', 'StateFinalizing'
 	State State `json:"state,omitempty"`
-	// Result - READ-ONLY; The result of job execution or the current result of the running job. Possible values include: 'None', 'Succeeded', 'Cancelled', 'Failed'
+	// Result - The result of job execution or the current result of the running job. Possible values include: 'None', 'Succeeded', 'Cancelled', 'Failed'
 	Result Result `json:"result,omitempty"`
-	// LogFolder - READ-ONLY; The log folder path to use in the following format: adl://<accountName>.azuredatalakestore.net/system/jobservice/jobs/Usql/2016/03/13/17/18/5fe51957-93bc-4de0-8ddc-c5a4753b068b/logs/.
+	// LogFolder - The log folder path to use in the following format: adl://<accountName>.azuredatalakestore.net/system/jobservice/jobs/Usql/2016/03/13/17/18/5fe51957-93bc-4de0-8ddc-c5a4753b068b/logs/.
 	LogFolder *string `json:"logFolder,omitempty"`
 	// LogFilePatterns - The list of log file name patterns to find in the logFolder. '*' is the only matching character allowed. Example format: jobExecution*.log or *mylog*.txt
 	LogFilePatterns *[]string `json:"logFilePatterns,omitempty"`
@@ -1338,24 +1336,51 @@ type InformationBasic struct {
 	Related *RelationshipProperties `json:"related,omitempty"`
 	// Tags - The key-value pairs used to add additional metadata to the job information. (Only for use internally with Scope job type.)
 	Tags map[string]*string `json:"tags"`
-	// HierarchyQueueNode - READ-ONLY; the name of hierarchy queue node this job is assigned to, Null if job has not been assigned yet or the account doesn't have hierarchy queue.
+	// HierarchyQueueNode - the name of hierarchy queue node this job is assigned to, Null if job has not been assigned yet or the account doesn't have hierarchy queue.
 	HierarchyQueueNode *string `json:"hierarchyQueueNode,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for InformationBasic.
 func (ib InformationBasic) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if ib.JobID != nil {
+		objectMap["jobId"] = ib.JobID
+	}
 	if ib.Name != nil {
 		objectMap["name"] = ib.Name
 	}
 	if ib.Type != "" {
 		objectMap["type"] = ib.Type
 	}
+	if ib.Submitter != nil {
+		objectMap["submitter"] = ib.Submitter
+	}
 	if ib.DegreeOfParallelism != nil {
 		objectMap["degreeOfParallelism"] = ib.DegreeOfParallelism
 	}
+	if ib.DegreeOfParallelismPercent != nil {
+		objectMap["degreeOfParallelismPercent"] = ib.DegreeOfParallelismPercent
+	}
 	if ib.Priority != nil {
 		objectMap["priority"] = ib.Priority
+	}
+	if ib.SubmitTime != nil {
+		objectMap["submitTime"] = ib.SubmitTime
+	}
+	if ib.StartTime != nil {
+		objectMap["startTime"] = ib.StartTime
+	}
+	if ib.EndTime != nil {
+		objectMap["endTime"] = ib.EndTime
+	}
+	if ib.State != "" {
+		objectMap["state"] = ib.State
+	}
+	if ib.Result != "" {
+		objectMap["result"] = ib.Result
+	}
+	if ib.LogFolder != nil {
+		objectMap["logFolder"] = ib.LogFolder
 	}
 	if ib.LogFilePatterns != nil {
 		objectMap["logFilePatterns"] = ib.LogFilePatterns
@@ -1366,114 +1391,99 @@ func (ib InformationBasic) MarshalJSON() ([]byte, error) {
 	if ib.Tags != nil {
 		objectMap["tags"] = ib.Tags
 	}
+	if ib.HierarchyQueueNode != nil {
+		objectMap["hierarchyQueueNode"] = ib.HierarchyQueueNode
+	}
 	return json.Marshal(objectMap)
 }
 
 // InnerError the Data Lake Analytics job error details.
 type InnerError struct {
-	// ErrorID - READ-ONLY; The specific identifier for the type of error encountered in the job.
+	// ErrorID - The specific identifier for the type of error encountered in the job.
 	ErrorID *string `json:"errorId,omitempty"`
-	// Severity - READ-ONLY; The severity level of the failure. Possible values include: 'Warning', 'Error', 'Info', 'SevereWarning', 'Deprecated', 'UserWarning'
+	// Severity - The severity level of the failure. Possible values include: 'Warning', 'Error', 'Info', 'SevereWarning', 'Deprecated', 'UserWarning'
 	Severity SeverityTypes `json:"severity,omitempty"`
-	// Source - READ-ONLY; The ultimate source of the failure (usually either SYSTEM or USER).
+	// Source - The ultimate source of the failure (usually either SYSTEM or USER).
 	Source *string `json:"source,omitempty"`
-	// Message - READ-ONLY; The user friendly error message for the failure.
+	// Message - The user friendly error message for the failure.
 	Message *string `json:"message,omitempty"`
-	// Description - READ-ONLY; The error message description.
+	// Description - The error message description.
 	Description *string `json:"description,omitempty"`
-	// Details - READ-ONLY; The details of the error message.
+	// Details - The details of the error message.
 	Details *string `json:"details,omitempty"`
-	// DiagnosticCode - READ-ONLY; The diagnostic error code.
+	// DiagnosticCode - The diagnostic error code.
 	DiagnosticCode *int32 `json:"diagnosticCode,omitempty"`
-	// Component - READ-ONLY; The component that failed.
+	// Component - The component that failed.
 	Component *string `json:"component,omitempty"`
-	// Resolution - READ-ONLY; The recommended resolution for the failure, if any.
+	// Resolution - The recommended resolution for the failure, if any.
 	Resolution *string `json:"resolution,omitempty"`
-	// HelpLink - READ-ONLY; The link to MSDN or Azure help for this type of error, if any.
+	// HelpLink - The link to MSDN or Azure help for this type of error, if any.
 	HelpLink *string `json:"helpLink,omitempty"`
-	// InternalDiagnostics - READ-ONLY; The internal diagnostic stack trace if the user requesting the job error details has sufficient permissions it will be retrieved, otherwise it will be empty.
+	// InternalDiagnostics - The internal diagnostic stack trace if the user requesting the job error details has sufficient permissions it will be retrieved, otherwise it will be empty.
 	InternalDiagnostics *string `json:"internalDiagnostics,omitempty"`
-	// InnerError - READ-ONLY; The inner error of this specific job error message, if any.
+	// InnerError - The inner error of this specific job error message, if any.
 	InnerError *InnerError `json:"innerError,omitempty"`
 }
 
-// PipelineInformation job Pipeline Information, showing the relationship of jobs and recurrences of those
-// jobs in a pipeline.
+// PipelineInformation job Pipeline Information, showing the relationship of jobs and recurrences of those jobs in
+// a pipeline.
 type PipelineInformation struct {
 	autorest.Response `json:"-"`
-	// PipelineID - READ-ONLY; The job relationship pipeline identifier (a GUID).
+	// PipelineID - The job relationship pipeline identifier (a GUID).
 	PipelineID *uuid.UUID `json:"pipelineId,omitempty"`
-	// PipelineName - READ-ONLY; The friendly name of the job relationship pipeline, which does not need to be unique.
+	// PipelineName - The friendly name of the job relationship pipeline, which does not need to be unique.
 	PipelineName *string `json:"pipelineName,omitempty"`
-	// PipelineURI - READ-ONLY; The pipeline uri, unique, links to the originating service for this pipeline.
+	// PipelineURI - The pipeline uri, unique, links to the originating service for this pipeline.
 	PipelineURI *string `json:"pipelineUri,omitempty"`
-	// NumJobsFailed - READ-ONLY; The number of jobs in this pipeline that have failed.
+	// NumJobsFailed - The number of jobs in this pipeline that have failed.
 	NumJobsFailed *int32 `json:"numJobsFailed,omitempty"`
-	// NumJobsCanceled - READ-ONLY; The number of jobs in this pipeline that have been canceled.
+	// NumJobsCanceled - The number of jobs in this pipeline that have been canceled.
 	NumJobsCanceled *int32 `json:"numJobsCanceled,omitempty"`
-	// NumJobsSucceeded - READ-ONLY; The number of jobs in this pipeline that have succeeded.
+	// NumJobsSucceeded - The number of jobs in this pipeline that have succeeded.
 	NumJobsSucceeded *int32 `json:"numJobsSucceeded,omitempty"`
-	// AuHoursFailed - READ-ONLY; The number of job execution hours that resulted in failed jobs.
+	// AuHoursFailed - The number of job execution hours that resulted in failed jobs.
 	AuHoursFailed *float64 `json:"auHoursFailed,omitempty"`
-	// AuHoursCanceled - READ-ONLY; The number of job execution hours that resulted in canceled jobs.
+	// AuHoursCanceled - The number of job execution hours that resulted in canceled jobs.
 	AuHoursCanceled *float64 `json:"auHoursCanceled,omitempty"`
-	// AuHoursSucceeded - READ-ONLY; The number of job execution hours that resulted in successful jobs.
+	// AuHoursSucceeded - The number of job execution hours that resulted in successful jobs.
 	AuHoursSucceeded *float64 `json:"auHoursSucceeded,omitempty"`
-	// LastSubmitTime - READ-ONLY; The last time a job in this pipeline was submitted.
+	// LastSubmitTime - The last time a job in this pipeline was submitted.
 	LastSubmitTime *date.Time `json:"lastSubmitTime,omitempty"`
-	// Runs - READ-ONLY; The list of recurrence identifiers representing each run of this pipeline.
+	// Runs - The list of recurrence identifiers representing each run of this pipeline.
 	Runs *[]PipelineRunInformation `json:"runs,omitempty"`
-	// Recurrences - READ-ONLY; The list of recurrence identifiers representing each run of this pipeline.
+	// Recurrences - The list of recurrence identifiers representing each run of this pipeline.
 	Recurrences *[]uuid.UUID `json:"recurrences,omitempty"`
 }
 
 // PipelineInformationListResult list of job pipeline information items.
 type PipelineInformationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The list of job pipeline information items.
+	// Value - The list of job pipeline information items.
 	Value *[]PipelineInformation `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// PipelineInformationListResultIterator provides access to a complete listing of PipelineInformation
-// values.
+// PipelineInformationListResultIterator provides access to a complete listing of PipelineInformation values.
 type PipelineInformationListResultIterator struct {
 	i    int
 	page PipelineInformationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *PipelineInformationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelineInformationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *PipelineInformationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *PipelineInformationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1495,11 +1505,6 @@ func (iter PipelineInformationListResultIterator) Value() PipelineInformation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the PipelineInformationListResultIterator type.
-func NewPipelineInformationListResultIterator(page PipelineInformationListResultPage) PipelineInformationListResultIterator {
-	return PipelineInformationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (pilr PipelineInformationListResult) IsEmpty() bool {
 	return pilr.Value == nil || len(*pilr.Value) == 0
@@ -1507,11 +1512,11 @@ func (pilr PipelineInformationListResult) IsEmpty() bool {
 
 // pipelineInformationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (pilr PipelineInformationListResult) pipelineInformationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (pilr PipelineInformationListResult) pipelineInformationListResultPreparer() (*http.Request, error) {
 	if pilr.NextLink == nil || len(to.String(pilr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(pilr.NextLink)))
@@ -1519,36 +1524,19 @@ func (pilr PipelineInformationListResult) pipelineInformationListResultPreparer(
 
 // PipelineInformationListResultPage contains a page of PipelineInformation values.
 type PipelineInformationListResultPage struct {
-	fn   func(context.Context, PipelineInformationListResult) (PipelineInformationListResult, error)
+	fn   func(PipelineInformationListResult) (PipelineInformationListResult, error)
 	pilr PipelineInformationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *PipelineInformationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelineInformationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.pilr)
+func (page *PipelineInformationListResultPage) Next() error {
+	next, err := page.fn(page.pilr)
 	if err != nil {
 		return err
 	}
 	page.pilr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *PipelineInformationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1569,16 +1557,11 @@ func (page PipelineInformationListResultPage) Values() []PipelineInformation {
 	return *page.pilr.Value
 }
 
-// Creates a new instance of the PipelineInformationListResultPage type.
-func NewPipelineInformationListResultPage(getNextPage func(context.Context, PipelineInformationListResult) (PipelineInformationListResult, error)) PipelineInformationListResultPage {
-	return PipelineInformationListResultPage{fn: getNextPage}
-}
-
 // PipelineRunInformation run info for a specific job pipeline.
 type PipelineRunInformation struct {
-	// RunID - READ-ONLY; The run identifier of an instance of pipeline executions (a GUID).
+	// RunID - The run identifier of an instance of pipeline executions (a GUID).
 	RunID *uuid.UUID `json:"runId,omitempty"`
-	// LastSubmitTime - READ-ONLY; The time this instance was last submitted.
+	// LastSubmitTime - The time this instance was last submitted.
 	LastSubmitTime *date.Time `json:"lastSubmitTime,omitempty"`
 }
 
@@ -1689,73 +1672,55 @@ func (p Properties) AsBasicProperties() (BasicProperties, bool) {
 // RecurrenceInformation recurrence job information for a specific recurrence.
 type RecurrenceInformation struct {
 	autorest.Response `json:"-"`
-	// RecurrenceID - READ-ONLY; The recurrence identifier (a GUID), unique per activity/script, regardless of iterations. This is something to link different occurrences of the same job together.
+	// RecurrenceID - The recurrence identifier (a GUID), unique per activity/script, regardless of iterations. This is something to link different occurrences of the same job together.
 	RecurrenceID *uuid.UUID `json:"recurrenceId,omitempty"`
-	// RecurrenceName - READ-ONLY; The recurrence name, user friendly name for the correlation between jobs.
+	// RecurrenceName - The recurrence name, user friendly name for the correlation between jobs.
 	RecurrenceName *string `json:"recurrenceName,omitempty"`
-	// NumJobsFailed - READ-ONLY; The number of jobs in this recurrence that have failed.
+	// NumJobsFailed - The number of jobs in this recurrence that have failed.
 	NumJobsFailed *int32 `json:"numJobsFailed,omitempty"`
-	// NumJobsCanceled - READ-ONLY; The number of jobs in this recurrence that have been canceled.
+	// NumJobsCanceled - The number of jobs in this recurrence that have been canceled.
 	NumJobsCanceled *int32 `json:"numJobsCanceled,omitempty"`
-	// NumJobsSucceeded - READ-ONLY; The number of jobs in this recurrence that have succeeded.
+	// NumJobsSucceeded - The number of jobs in this recurrence that have succeeded.
 	NumJobsSucceeded *int32 `json:"numJobsSucceeded,omitempty"`
-	// AuHoursFailed - READ-ONLY; The number of job execution hours that resulted in failed jobs.
+	// AuHoursFailed - The number of job execution hours that resulted in failed jobs.
 	AuHoursFailed *float64 `json:"auHoursFailed,omitempty"`
-	// AuHoursCanceled - READ-ONLY; The number of job execution hours that resulted in canceled jobs.
+	// AuHoursCanceled - The number of job execution hours that resulted in canceled jobs.
 	AuHoursCanceled *float64 `json:"auHoursCanceled,omitempty"`
-	// AuHoursSucceeded - READ-ONLY; The number of job execution hours that resulted in successful jobs.
+	// AuHoursSucceeded - The number of job execution hours that resulted in successful jobs.
 	AuHoursSucceeded *float64 `json:"auHoursSucceeded,omitempty"`
-	// LastSubmitTime - READ-ONLY; The last time a job in this recurrence was submitted.
+	// LastSubmitTime - The last time a job in this recurrence was submitted.
 	LastSubmitTime *date.Time `json:"lastSubmitTime,omitempty"`
 }
 
 // RecurrenceInformationListResult list of job recurrence information items.
 type RecurrenceInformationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The list of job recurrence information items.
+	// Value - The list of job recurrence information items.
 	Value *[]RecurrenceInformation `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// RecurrenceInformationListResultIterator provides access to a complete listing of RecurrenceInformation
-// values.
+// RecurrenceInformationListResultIterator provides access to a complete listing of RecurrenceInformation values.
 type RecurrenceInformationListResultIterator struct {
 	i    int
 	page RecurrenceInformationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *RecurrenceInformationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecurrenceInformationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *RecurrenceInformationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *RecurrenceInformationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1777,11 +1742,6 @@ func (iter RecurrenceInformationListResultIterator) Value() RecurrenceInformatio
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the RecurrenceInformationListResultIterator type.
-func NewRecurrenceInformationListResultIterator(page RecurrenceInformationListResultPage) RecurrenceInformationListResultIterator {
-	return RecurrenceInformationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (rilr RecurrenceInformationListResult) IsEmpty() bool {
 	return rilr.Value == nil || len(*rilr.Value) == 0
@@ -1789,11 +1749,11 @@ func (rilr RecurrenceInformationListResult) IsEmpty() bool {
 
 // recurrenceInformationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (rilr RecurrenceInformationListResult) recurrenceInformationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (rilr RecurrenceInformationListResult) recurrenceInformationListResultPreparer() (*http.Request, error) {
 	if rilr.NextLink == nil || len(to.String(rilr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(rilr.NextLink)))
@@ -1801,36 +1761,19 @@ func (rilr RecurrenceInformationListResult) recurrenceInformationListResultPrepa
 
 // RecurrenceInformationListResultPage contains a page of RecurrenceInformation values.
 type RecurrenceInformationListResultPage struct {
-	fn   func(context.Context, RecurrenceInformationListResult) (RecurrenceInformationListResult, error)
+	fn   func(RecurrenceInformationListResult) (RecurrenceInformationListResult, error)
 	rilr RecurrenceInformationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *RecurrenceInformationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecurrenceInformationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.rilr)
+func (page *RecurrenceInformationListResultPage) Next() error {
+	next, err := page.fn(page.rilr)
 	if err != nil {
 		return err
 	}
 	page.rilr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *RecurrenceInformationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1851,13 +1794,8 @@ func (page RecurrenceInformationListResultPage) Values() []RecurrenceInformation
 	return *page.rilr.Value
 }
 
-// Creates a new instance of the RecurrenceInformationListResultPage type.
-func NewRecurrenceInformationListResultPage(getNextPage func(context.Context, RecurrenceInformationListResult) (RecurrenceInformationListResult, error)) RecurrenceInformationListResultPage {
-	return RecurrenceInformationListResultPage{fn: getNextPage}
-}
-
-// RelationshipProperties job relationship information properties including pipeline information,
-// correlation information, etc.
+// RelationshipProperties job relationship information properties including pipeline information, correlation
+// information, etc.
 type RelationshipProperties struct {
 	// PipelineID - The job relationship pipeline identifier (a GUID).
 	PipelineID *uuid.UUID `json:"pipelineId,omitempty"`
@@ -1885,34 +1823,34 @@ type Resource struct {
 
 // ResourceUsageStatistics the statistics information for resource usage.
 type ResourceUsageStatistics struct {
-	// Average - READ-ONLY; The average value.
+	// Average - The average value.
 	Average *float64 `json:"average,omitempty"`
-	// Minimum - READ-ONLY; The minimum value.
+	// Minimum - The minimum value.
 	Minimum *int64 `json:"minimum,omitempty"`
-	// Maximum - READ-ONLY; The maximum value.
+	// Maximum - The maximum value.
 	Maximum *int64 `json:"maximum,omitempty"`
 }
 
-// ScopeJobProperties scope job properties used when submitting and retrieving Scope jobs. (Only for use
-// internally with Scope job type.)
+// ScopeJobProperties scope job properties used when submitting and retrieving Scope jobs. (Only for use internally
+// with Scope job type.)
 type ScopeJobProperties struct {
-	// Resources - READ-ONLY; The list of resources that are required by the job.
+	// Resources - The list of resources that are required by the job.
 	Resources *[]ScopeJobResource `json:"resources,omitempty"`
-	// UserAlgebraPath - READ-ONLY; The algebra file path after the job has completed.
+	// UserAlgebraPath - The algebra file path after the job has completed.
 	UserAlgebraPath *string `json:"userAlgebraPath,omitempty"`
 	// Notifier - The list of email addresses, separated by semi-colons, to notify when the job reaches a terminal state.
 	Notifier *string `json:"notifier,omitempty"`
-	// TotalCompilationTime - READ-ONLY; The total time this job spent compiling. This value should not be set by the user and will be ignored if it is.
+	// TotalCompilationTime - The total time this job spent compiling. This value should not be set by the user and will be ignored if it is.
 	TotalCompilationTime *string `json:"totalCompilationTime,omitempty"`
-	// TotalQueuedTime - READ-ONLY; The total time this job spent queued. This value should not be set by the user and will be ignored if it is.
+	// TotalQueuedTime - The total time this job spent queued. This value should not be set by the user and will be ignored if it is.
 	TotalQueuedTime *string `json:"totalQueuedTime,omitempty"`
-	// TotalRunningTime - READ-ONLY; The total time this job spent executing. This value should not be set by the user and will be ignored if it is.
+	// TotalRunningTime - The total time this job spent executing. This value should not be set by the user and will be ignored if it is.
 	TotalRunningTime *string `json:"totalRunningTime,omitempty"`
-	// TotalPausedTime - READ-ONLY; The total time this job spent paused. This value should not be set by the user and will be ignored if it is.
+	// TotalPausedTime - The total time this job spent paused. This value should not be set by the user and will be ignored if it is.
 	TotalPausedTime *string `json:"totalPausedTime,omitempty"`
-	// RootProcessNodeID - READ-ONLY; The ID used to identify the job manager coordinating job execution. This value should not be set by the user and will be ignored if it is.
+	// RootProcessNodeID - The ID used to identify the job manager coordinating job execution. This value should not be set by the user and will be ignored if it is.
 	RootProcessNodeID *string `json:"rootProcessNodeId,omitempty"`
-	// YarnApplicationID - READ-ONLY; The ID used to identify the yarn application executing the job. This value should not be set by the user and will be ignored if it is.
+	// YarnApplicationID - The ID used to identify the yarn application executing the job. This value should not be set by the user and will be ignored if it is.
 	YarnApplicationID *string `json:"yarnApplicationId,omitempty"`
 	// RuntimeVersion - The runtime version of the Data Lake Analytics engine to use for the specific type of job being run.
 	RuntimeVersion *string `json:"runtimeVersion,omitempty"`
@@ -1926,8 +1864,32 @@ type ScopeJobProperties struct {
 func (sjp ScopeJobProperties) MarshalJSON() ([]byte, error) {
 	sjp.Type = TypeScope
 	objectMap := make(map[string]interface{})
+	if sjp.Resources != nil {
+		objectMap["resources"] = sjp.Resources
+	}
+	if sjp.UserAlgebraPath != nil {
+		objectMap["userAlgebraPath"] = sjp.UserAlgebraPath
+	}
 	if sjp.Notifier != nil {
 		objectMap["notifier"] = sjp.Notifier
+	}
+	if sjp.TotalCompilationTime != nil {
+		objectMap["totalCompilationTime"] = sjp.TotalCompilationTime
+	}
+	if sjp.TotalQueuedTime != nil {
+		objectMap["totalQueuedTime"] = sjp.TotalQueuedTime
+	}
+	if sjp.TotalRunningTime != nil {
+		objectMap["totalRunningTime"] = sjp.TotalRunningTime
+	}
+	if sjp.TotalPausedTime != nil {
+		objectMap["totalPausedTime"] = sjp.TotalPausedTime
+	}
+	if sjp.RootProcessNodeID != nil {
+		objectMap["rootProcessNodeId"] = sjp.RootProcessNodeID
+	}
+	if sjp.YarnApplicationID != nil {
+		objectMap["yarnApplicationId"] = sjp.YarnApplicationID
 	}
 	if sjp.RuntimeVersion != nil {
 		objectMap["runtimeVersion"] = sjp.RuntimeVersion
@@ -1976,86 +1938,86 @@ type ScopeJobResource struct {
 
 // StateAuditRecord the Data Lake Analytics job state audit records for tracking the lifecycle of a job.
 type StateAuditRecord struct {
-	// NewState - READ-ONLY; The new state the job is in.
+	// NewState - The new state the job is in.
 	NewState *string `json:"newState,omitempty"`
-	// TimeStamp - READ-ONLY; The time stamp that the state change took place.
+	// TimeStamp - The time stamp that the state change took place.
 	TimeStamp *date.Time `json:"timeStamp,omitempty"`
-	// RequestedByUser - READ-ONLY; The user who requests the change.
+	// RequestedByUser - The user who requests the change.
 	RequestedByUser *string `json:"requestedByUser,omitempty"`
-	// Details - READ-ONLY; The details of the audit log.
+	// Details - The details of the audit log.
 	Details *string `json:"details,omitempty"`
 }
 
 // Statistics the Data Lake Analytics job execution statistics.
 type Statistics struct {
 	autorest.Response `json:"-"`
-	// LastUpdateTimeUtc - READ-ONLY; The last update time for the statistics.
+	// LastUpdateTimeUtc - The last update time for the statistics.
 	LastUpdateTimeUtc *date.Time `json:"lastUpdateTimeUtc,omitempty"`
-	// FinalizingTimeUtc - READ-ONLY; The job finalizing start time.
+	// FinalizingTimeUtc - The job finalizing start time.
 	FinalizingTimeUtc *date.Time `json:"finalizingTimeUtc,omitempty"`
-	// Stages - READ-ONLY; The list of stages for the job.
+	// Stages - The list of stages for the job.
 	Stages *[]StatisticsVertexStage `json:"stages,omitempty"`
 }
 
 // StatisticsVertex the detailed information for a vertex.
 type StatisticsVertex struct {
-	// Name - READ-ONLY; The name of the vertex.
+	// Name - The name of the vertex.
 	Name *string `json:"name,omitempty"`
-	// VertexID - READ-ONLY; The id of the vertex.
+	// VertexID - The id of the vertex.
 	VertexID *uuid.UUID `json:"vertexId,omitempty"`
-	// ExecutionTime - READ-ONLY; The amount of execution time of the vertex.
+	// ExecutionTime - The amount of execution time of the vertex.
 	ExecutionTime *string `json:"executionTime,omitempty"`
-	// DataRead - READ-ONLY; The amount of data read of the vertex, in bytes.
+	// DataRead - The amount of data read of the vertex, in bytes.
 	DataRead *int64 `json:"dataRead,omitempty"`
-	// PeakMemUsage - READ-ONLY; The amount of peak memory usage of the vertex, in bytes.
+	// PeakMemUsage - The amount of peak memory usage of the vertex, in bytes.
 	PeakMemUsage *int64 `json:"peakMemUsage,omitempty"`
 }
 
 // StatisticsVertexStage the Data Lake Analytics job statistics vertex stage information.
 type StatisticsVertexStage struct {
-	// DataRead - READ-ONLY; The amount of data read, in bytes.
+	// DataRead - The amount of data read, in bytes.
 	DataRead *int64 `json:"dataRead,omitempty"`
-	// DataReadCrossPod - READ-ONLY; The amount of data read across multiple pods, in bytes.
+	// DataReadCrossPod - The amount of data read across multiple pods, in bytes.
 	DataReadCrossPod *int64 `json:"dataReadCrossPod,omitempty"`
-	// DataReadIntraPod - READ-ONLY; The amount of data read in one pod, in bytes.
+	// DataReadIntraPod - The amount of data read in one pod, in bytes.
 	DataReadIntraPod *int64 `json:"dataReadIntraPod,omitempty"`
-	// DataToRead - READ-ONLY; The amount of data remaining to be read, in bytes.
+	// DataToRead - The amount of data remaining to be read, in bytes.
 	DataToRead *int64 `json:"dataToRead,omitempty"`
-	// DataWritten - READ-ONLY; The amount of data written, in bytes.
+	// DataWritten - The amount of data written, in bytes.
 	DataWritten *int64 `json:"dataWritten,omitempty"`
-	// DuplicateDiscardCount - READ-ONLY; The number of duplicates that were discarded.
+	// DuplicateDiscardCount - The number of duplicates that were discarded.
 	DuplicateDiscardCount *int32 `json:"duplicateDiscardCount,omitempty"`
-	// FailedCount - READ-ONLY; The number of failures that occurred in this stage.
+	// FailedCount - The number of failures that occured in this stage.
 	FailedCount *int32 `json:"failedCount,omitempty"`
-	// MaxVertexDataRead - READ-ONLY; The maximum amount of data read in a single vertex, in bytes.
+	// MaxVertexDataRead - The maximum amount of data read in a single vertex, in bytes.
 	MaxVertexDataRead *int64 `json:"maxVertexDataRead,omitempty"`
-	// MinVertexDataRead - READ-ONLY; The minimum amount of data read in a single vertex, in bytes.
+	// MinVertexDataRead - The minimum amount of data read in a single vertex, in bytes.
 	MinVertexDataRead *int64 `json:"minVertexDataRead,omitempty"`
-	// ReadFailureCount - READ-ONLY; The number of read failures in this stage.
+	// ReadFailureCount - The number of read failures in this stage.
 	ReadFailureCount *int32 `json:"readFailureCount,omitempty"`
-	// RevocationCount - READ-ONLY; The number of vertices that were revoked during this stage.
+	// RevocationCount - The number of vertices that were revoked during this stage.
 	RevocationCount *int32 `json:"revocationCount,omitempty"`
-	// RunningCount - READ-ONLY; The number of currently running vertices in this stage.
+	// RunningCount - The number of currently running vertices in this stage.
 	RunningCount *int32 `json:"runningCount,omitempty"`
-	// ScheduledCount - READ-ONLY; The number of currently scheduled vertices in this stage.
+	// ScheduledCount - The number of currently scheduled vertices in this stage.
 	ScheduledCount *int32 `json:"scheduledCount,omitempty"`
-	// StageName - READ-ONLY; The name of this stage in job execution.
+	// StageName - The name of this stage in job execution.
 	StageName *string `json:"stageName,omitempty"`
-	// SucceededCount - READ-ONLY; The number of vertices that succeeded in this stage.
+	// SucceededCount - The number of vertices that succeeded in this stage.
 	SucceededCount *int32 `json:"succeededCount,omitempty"`
-	// TempDataWritten - READ-ONLY; The amount of temporary data written, in bytes.
+	// TempDataWritten - The amount of temporary data written, in bytes.
 	TempDataWritten *int64 `json:"tempDataWritten,omitempty"`
-	// TotalCount - READ-ONLY; The total vertex count for this stage.
+	// TotalCount - The total vertex count for this stage.
 	TotalCount *int32 `json:"totalCount,omitempty"`
-	// TotalFailedTime - READ-ONLY; The amount of time that failed vertices took up in this stage.
+	// TotalFailedTime - The amount of time that failed vertices took up in this stage.
 	TotalFailedTime *string `json:"totalFailedTime,omitempty"`
-	// TotalProgress - READ-ONLY; The current progress of this stage, as a percentage.
+	// TotalProgress - The current progress of this stage, as a percentage.
 	TotalProgress *int32 `json:"totalProgress,omitempty"`
-	// TotalSucceededTime - READ-ONLY; The amount of time all successful vertices took in this stage.
+	// TotalSucceededTime - The amount of time all successful vertices took in this stage.
 	TotalSucceededTime *string `json:"totalSucceededTime,omitempty"`
-	// TotalPeakMemUsage - READ-ONLY; The sum of the peak memory usage of all the vertices in the stage, in bytes.
+	// TotalPeakMemUsage - The sum of the peak memory usage of all the vertices in the stage, in bytes.
 	TotalPeakMemUsage *int64 `json:"totalPeakMemUsage,omitempty"`
-	// TotalExecutionTime - READ-ONLY; The sum of the total execution time of all the vertices in the stage.
+	// TotalExecutionTime - The sum of the total execution time of all the vertices in the stage.
 	TotalExecutionTime *string `json:"totalExecutionTime,omitempty"`
 	// MaxDataReadVertex - the vertex with the maximum amount of data read.
 	MaxDataReadVertex *StatisticsVertex `json:"maxDataReadVertex,omitempty"`
@@ -2063,11 +2025,11 @@ type StatisticsVertexStage struct {
 	MaxExecutionTimeVertex *StatisticsVertex `json:"maxExecutionTimeVertex,omitempty"`
 	// MaxPeakMemUsageVertex - the vertex with the maximum peak memory usage.
 	MaxPeakMemUsageVertex *StatisticsVertex `json:"maxPeakMemUsageVertex,omitempty"`
-	// EstimatedVertexCPUCoreCount - READ-ONLY; The estimated vertex CPU core count.
+	// EstimatedVertexCPUCoreCount - The estimated vertex CPU core count.
 	EstimatedVertexCPUCoreCount *int32 `json:"estimatedVertexCpuCoreCount,omitempty"`
-	// EstimatedVertexPeakCPUCoreCount - READ-ONLY; The estimated vertex peak CPU core count.
+	// EstimatedVertexPeakCPUCoreCount - The estimated vertex peak CPU core count.
 	EstimatedVertexPeakCPUCoreCount *int32 `json:"estimatedVertexPeakCpuCoreCount,omitempty"`
-	// EstimatedVertexMemSize - READ-ONLY; The estimated vertex memory size, in bytes.
+	// EstimatedVertexMemSize - The estimated vertex memory size, in bytes.
 	EstimatedVertexMemSize *int64 `json:"estimatedVertexMemSize,omitempty"`
 	// AllocatedContainerCPUCoreCount - The statistics information for the allocated container CPU core count.
 	AllocatedContainerCPUCoreCount *ResourceUsageStatistics `json:"allocatedContainerCpuCoreCount,omitempty"`
@@ -2088,7 +2050,7 @@ type UpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *UpdateFuture) Result(client Client) (i Information, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "job.UpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2107,8 +2069,8 @@ func (future *UpdateFuture) Result(client Client) (i Information, err error) {
 	return
 }
 
-// UpdateJobParameters the parameters that can be used to update existing Data Lake Analytics job
-// information properties. (Only for use internally with Scope job type.)
+// UpdateJobParameters the parameters that can be used to update existing Data Lake Analytics job information
+// properties. (Only for use internally with Scope job type.)
 type UpdateJobParameters struct {
 	// DegreeOfParallelism - The degree of parallelism used for this job.
 	DegreeOfParallelism *int32 `json:"degreeOfParallelism,omitempty"`
@@ -2140,31 +2102,31 @@ func (ujp UpdateJobParameters) MarshalJSON() ([]byte, error) {
 
 // USQLJobProperties u-SQL job properties used when retrieving U-SQL jobs.
 type USQLJobProperties struct {
-	// Resources - READ-ONLY; The list of resources that are required by the job.
+	// Resources - The list of resources that are required by the job.
 	Resources *[]Resource `json:"resources,omitempty"`
 	// Statistics - The job specific statistics.
 	Statistics *Statistics `json:"statistics,omitempty"`
 	// DebugData - The job specific debug data locations.
 	DebugData *DataPath `json:"debugData,omitempty"`
-	// Diagnostics - READ-ONLY; The diagnostics for the job.
+	// Diagnostics - The diagnostics for the job.
 	Diagnostics *[]Diagnostics `json:"diagnostics,omitempty"`
-	// AlgebraFilePath - READ-ONLY; The algebra file path after the job has completed.
+	// AlgebraFilePath - The algebra file path after the job has completed.
 	AlgebraFilePath *string `json:"algebraFilePath,omitempty"`
-	// TotalCompilationTime - READ-ONLY; The total time this job spent compiling. This value should not be set by the user and will be ignored if it is.
+	// TotalCompilationTime - The total time this job spent compiling. This value should not be set by the user and will be ignored if it is.
 	TotalCompilationTime *string `json:"totalCompilationTime,omitempty"`
-	// TotalQueuedTime - READ-ONLY; The total time this job spent queued. This value should not be set by the user and will be ignored if it is.
+	// TotalQueuedTime - The total time this job spent queued. This value should not be set by the user and will be ignored if it is.
 	TotalQueuedTime *string `json:"totalQueuedTime,omitempty"`
-	// TotalRunningTime - READ-ONLY; The total time this job spent executing. This value should not be set by the user and will be ignored if it is.
+	// TotalRunningTime - The total time this job spent executing. This value should not be set by the user and will be ignored if it is.
 	TotalRunningTime *string `json:"totalRunningTime,omitempty"`
-	// TotalPausedTime - READ-ONLY; The total time this job spent paused. This value should not be set by the user and will be ignored if it is.
+	// TotalPausedTime - The total time this job spent paused. This value should not be set by the user and will be ignored if it is.
 	TotalPausedTime *string `json:"totalPausedTime,omitempty"`
-	// RootProcessNodeID - READ-ONLY; The ID used to identify the job manager coordinating job execution. This value should not be set by the user and will be ignored if it is.
+	// RootProcessNodeID - The ID used to identify the job manager coordinating job execution. This value should not be set by the user and will be ignored if it is.
 	RootProcessNodeID *string `json:"rootProcessNodeId,omitempty"`
-	// YarnApplicationID - READ-ONLY; The ID used to identify the yarn application executing the job. This value should not be set by the user and will be ignored if it is.
+	// YarnApplicationID - The ID used to identify the yarn application executing the job. This value should not be set by the user and will be ignored if it is.
 	YarnApplicationID *string `json:"yarnApplicationId,omitempty"`
-	// YarnApplicationTimeStamp - READ-ONLY; The timestamp (in ticks) for the yarn application executing the job. This value should not be set by the user and will be ignored if it is.
+	// YarnApplicationTimeStamp - The timestamp (in ticks) for the yarn application executing the job. This value should not be set by the user and will be ignored if it is.
 	YarnApplicationTimeStamp *int64 `json:"yarnApplicationTimeStamp,omitempty"`
-	// CompileMode - READ-ONLY; The specific compilation mode for the job used during execution. If this is not specified during submission, the server will determine the optimal compilation mode. Possible values include: 'Semantic', 'Full', 'SingleBox'
+	// CompileMode - The specific compilation mode for the job used during execution. If this is not specified during submission, the server will determine the optimal compilation mode. Possible values include: 'Semantic', 'Full', 'SingleBox'
 	CompileMode CompileMode `json:"compileMode,omitempty"`
 	// RuntimeVersion - The runtime version of the Data Lake Analytics engine to use for the specific type of job being run.
 	RuntimeVersion *string `json:"runtimeVersion,omitempty"`
@@ -2178,11 +2140,44 @@ type USQLJobProperties struct {
 func (usjp USQLJobProperties) MarshalJSON() ([]byte, error) {
 	usjp.Type = TypeUSQL
 	objectMap := make(map[string]interface{})
+	if usjp.Resources != nil {
+		objectMap["resources"] = usjp.Resources
+	}
 	if usjp.Statistics != nil {
 		objectMap["statistics"] = usjp.Statistics
 	}
 	if usjp.DebugData != nil {
 		objectMap["debugData"] = usjp.DebugData
+	}
+	if usjp.Diagnostics != nil {
+		objectMap["diagnostics"] = usjp.Diagnostics
+	}
+	if usjp.AlgebraFilePath != nil {
+		objectMap["algebraFilePath"] = usjp.AlgebraFilePath
+	}
+	if usjp.TotalCompilationTime != nil {
+		objectMap["totalCompilationTime"] = usjp.TotalCompilationTime
+	}
+	if usjp.TotalQueuedTime != nil {
+		objectMap["totalQueuedTime"] = usjp.TotalQueuedTime
+	}
+	if usjp.TotalRunningTime != nil {
+		objectMap["totalRunningTime"] = usjp.TotalRunningTime
+	}
+	if usjp.TotalPausedTime != nil {
+		objectMap["totalPausedTime"] = usjp.TotalPausedTime
+	}
+	if usjp.RootProcessNodeID != nil {
+		objectMap["rootProcessNodeId"] = usjp.RootProcessNodeID
+	}
+	if usjp.YarnApplicationID != nil {
+		objectMap["yarnApplicationId"] = usjp.YarnApplicationID
+	}
+	if usjp.YarnApplicationTimeStamp != nil {
+		objectMap["yarnApplicationTimeStamp"] = usjp.YarnApplicationTimeStamp
+	}
+	if usjp.CompileMode != "" {
+		objectMap["compileMode"] = usjp.CompileMode
 	}
 	if usjp.RuntimeVersion != nil {
 		objectMap["runtimeVersion"] = usjp.RuntimeVersion
@@ -2230,7 +2225,7 @@ type YieldFuture struct {
 // If the operation has not completed it will return an error.
 func (future *YieldFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "job.YieldFuture", "Result", future.Response(), "Polling failure")
 		return

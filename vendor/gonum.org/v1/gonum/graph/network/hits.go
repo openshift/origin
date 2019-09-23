@@ -22,7 +22,7 @@ type HubAuthority struct {
 // vector difference between iterations is below tol. The returned map is
 // keyed on the graph node IDs.
 func HITS(g graph.Directed, tol float64) map[int64]HubAuthority {
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 
 	// Make a topological copy of g with dense node IDs.
 	indexOf := make(map[int64]int, len(nodes))
@@ -33,13 +33,14 @@ func HITS(g graph.Directed, tol float64) map[int64]HubAuthority {
 	nodesLinkedFrom := make([][]int, len(nodes))
 	for i, n := range nodes {
 		id := n.ID()
-		for _, u := range graph.NodesOf(g.To(id)) {
+		for _, u := range g.To(id) {
 			nodesLinkingTo[i] = append(nodesLinkingTo[i], indexOf[u.ID()])
 		}
-		for _, v := range graph.NodesOf(g.From(id)) {
+		for _, v := range g.From(id) {
 			nodesLinkedFrom[i] = append(nodesLinkedFrom[i], indexOf[v.ID()])
 		}
 	}
+	indexOf = nil
 
 	w := make([]float64, 4*len(nodes))
 	auth := w[:len(nodes)]

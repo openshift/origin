@@ -133,7 +133,8 @@ func printFilesIfDryRunning(data InitData) error {
 	return dryrunutil.PrintDryRunFiles(files, data.OutputWriter())
 }
 
-// newControlPlaneWaiter returns a new waiter that is used to wait on the control plane to boot up.
+// NewControlPlaneWaiter returns a new waiter that is used to wait on the control plane to boot up.
+// TODO: make private (lowercase) after self-hosting phase is removed.
 func newControlPlaneWaiter(dryRun bool, timeout time.Duration, client clientset.Interface, out io.Writer) (apiclient.Waiter, error) {
 	if dryRun {
 		return dryrunutil.NewWaiter(), nil

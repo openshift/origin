@@ -18,17 +18,7 @@ var _ = Describe("FocusedFixture", func() {
 		})
 	})
 
-	FWhen("focused", func() {
-		It("focused", func() {
-
-		})
-	})
-
 	FIt("focused", func() {
-
-	})
-
-	FSpecify("focused", func() {
 
 	})
 

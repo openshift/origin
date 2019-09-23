@@ -30,10 +30,7 @@ import (
 func TestPodLogValidates(t *testing.T) {
 	config, server := registrytest.NewEtcdStorage(t, "")
 	defer server.Terminate(t)
-	s, destroyFunc, err := generic.NewRawStorage(config)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	s, destroyFunc := generic.NewRawStorage(config)
 	defer destroyFunc()
 	store := &genericregistry.Store{
 		Storage: genericregistry.DryRunnableStorage{Storage: s},
@@ -49,7 +46,7 @@ func TestPodLogValidates(t *testing.T) {
 	for _, tc := range testCases {
 		_, err := logRest.Get(genericapirequest.NewDefaultContext(), "test", tc)
 		if !errors.IsInvalid(err) {
-			t.Fatalf("Unexpected error: %v", err)
+			t.Fatalf("unexpected error: %v", err)
 		}
 	}
 }

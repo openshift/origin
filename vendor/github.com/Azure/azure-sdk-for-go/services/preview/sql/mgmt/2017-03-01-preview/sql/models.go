@@ -18,19 +18,14 @@ package sql
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/sql/mgmt/2017-03-01-preview/sql"
 
 // AuthenticationType enumerates the values for authentication type.
 type AuthenticationType string
@@ -271,16 +266,10 @@ const (
 	Basic DatabaseEdition = "Basic"
 	// Business ...
 	Business DatabaseEdition = "Business"
-	// BusinessCritical ...
-	BusinessCritical DatabaseEdition = "BusinessCritical"
 	// DataWarehouse ...
 	DataWarehouse DatabaseEdition = "DataWarehouse"
 	// Free ...
 	Free DatabaseEdition = "Free"
-	// GeneralPurpose ...
-	GeneralPurpose DatabaseEdition = "GeneralPurpose"
-	// Hyperscale ...
-	Hyperscale DatabaseEdition = "Hyperscale"
 	// Premium ...
 	Premium DatabaseEdition = "Premium"
 	// PremiumRS ...
@@ -299,7 +288,7 @@ const (
 
 // PossibleDatabaseEditionValues returns an array of possible values for the DatabaseEdition const type.
 func PossibleDatabaseEditionValues() []DatabaseEdition {
-	return []DatabaseEdition{Basic, Business, BusinessCritical, DataWarehouse, Free, GeneralPurpose, Hyperscale, Premium, PremiumRS, Standard, Stretch, System, System2, Web}
+	return []DatabaseEdition{Basic, Business, DataWarehouse, Free, Premium, PremiumRS, Standard, Stretch, System, System2, Web}
 }
 
 // DataMaskingFunction enumerates the values for data masking function.
@@ -361,10 +350,6 @@ type ElasticPoolEdition string
 const (
 	// ElasticPoolEditionBasic ...
 	ElasticPoolEditionBasic ElasticPoolEdition = "Basic"
-	// ElasticPoolEditionBusinessCritical ...
-	ElasticPoolEditionBusinessCritical ElasticPoolEdition = "BusinessCritical"
-	// ElasticPoolEditionGeneralPurpose ...
-	ElasticPoolEditionGeneralPurpose ElasticPoolEdition = "GeneralPurpose"
 	// ElasticPoolEditionPremium ...
 	ElasticPoolEditionPremium ElasticPoolEdition = "Premium"
 	// ElasticPoolEditionStandard ...
@@ -373,7 +358,7 @@ const (
 
 // PossibleElasticPoolEditionValues returns an array of possible values for the ElasticPoolEdition const type.
 func PossibleElasticPoolEditionValues() []ElasticPoolEdition {
-	return []ElasticPoolEdition{ElasticPoolEditionBasic, ElasticPoolEditionBusinessCritical, ElasticPoolEditionGeneralPurpose, ElasticPoolEditionPremium, ElasticPoolEditionStandard}
+	return []ElasticPoolEdition{ElasticPoolEditionBasic, ElasticPoolEditionPremium, ElasticPoolEditionStandard}
 }
 
 // ElasticPoolState enumerates the values for elastic pool state.
@@ -586,15 +571,13 @@ const (
 	ManagedDatabaseCreateModeDefault ManagedDatabaseCreateMode = "Default"
 	// ManagedDatabaseCreateModePointInTimeRestore ...
 	ManagedDatabaseCreateModePointInTimeRestore ManagedDatabaseCreateMode = "PointInTimeRestore"
-	// ManagedDatabaseCreateModeRecovery ...
-	ManagedDatabaseCreateModeRecovery ManagedDatabaseCreateMode = "Recovery"
 	// ManagedDatabaseCreateModeRestoreExternalBackup ...
 	ManagedDatabaseCreateModeRestoreExternalBackup ManagedDatabaseCreateMode = "RestoreExternalBackup"
 )
 
 // PossibleManagedDatabaseCreateModeValues returns an array of possible values for the ManagedDatabaseCreateMode const type.
 func PossibleManagedDatabaseCreateModeValues() []ManagedDatabaseCreateMode {
-	return []ManagedDatabaseCreateMode{ManagedDatabaseCreateModeDefault, ManagedDatabaseCreateModePointInTimeRestore, ManagedDatabaseCreateModeRecovery, ManagedDatabaseCreateModeRestoreExternalBackup}
+	return []ManagedDatabaseCreateMode{ManagedDatabaseCreateModeDefault, ManagedDatabaseCreateModePointInTimeRestore, ManagedDatabaseCreateModeRestoreExternalBackup}
 }
 
 // ManagedDatabaseStatus enumerates the values for managed database status.
@@ -611,60 +594,11 @@ const (
 	Online ManagedDatabaseStatus = "Online"
 	// Shutdown ...
 	Shutdown ManagedDatabaseStatus = "Shutdown"
-	// Updating ...
-	Updating ManagedDatabaseStatus = "Updating"
 )
 
 // PossibleManagedDatabaseStatusValues returns an array of possible values for the ManagedDatabaseStatus const type.
 func PossibleManagedDatabaseStatusValues() []ManagedDatabaseStatus {
-	return []ManagedDatabaseStatus{Creating, Inaccessible, Offline, Online, Shutdown, Updating}
-}
-
-// ManagedInstanceLicenseType enumerates the values for managed instance license type.
-type ManagedInstanceLicenseType string
-
-const (
-	// BasePrice ...
-	BasePrice ManagedInstanceLicenseType = "BasePrice"
-	// LicenseIncluded ...
-	LicenseIncluded ManagedInstanceLicenseType = "LicenseIncluded"
-)
-
-// PossibleManagedInstanceLicenseTypeValues returns an array of possible values for the ManagedInstanceLicenseType const type.
-func PossibleManagedInstanceLicenseTypeValues() []ManagedInstanceLicenseType {
-	return []ManagedInstanceLicenseType{BasePrice, LicenseIncluded}
-}
-
-// ManagedInstanceProxyOverride enumerates the values for managed instance proxy override.
-type ManagedInstanceProxyOverride string
-
-const (
-	// ManagedInstanceProxyOverrideDefault ...
-	ManagedInstanceProxyOverrideDefault ManagedInstanceProxyOverride = "Default"
-	// ManagedInstanceProxyOverrideProxy ...
-	ManagedInstanceProxyOverrideProxy ManagedInstanceProxyOverride = "Proxy"
-	// ManagedInstanceProxyOverrideRedirect ...
-	ManagedInstanceProxyOverrideRedirect ManagedInstanceProxyOverride = "Redirect"
-)
-
-// PossibleManagedInstanceProxyOverrideValues returns an array of possible values for the ManagedInstanceProxyOverride const type.
-func PossibleManagedInstanceProxyOverrideValues() []ManagedInstanceProxyOverride {
-	return []ManagedInstanceProxyOverride{ManagedInstanceProxyOverrideDefault, ManagedInstanceProxyOverrideProxy, ManagedInstanceProxyOverrideRedirect}
-}
-
-// ManagedServerCreateMode enumerates the values for managed server create mode.
-type ManagedServerCreateMode string
-
-const (
-	// ManagedServerCreateModeDefault ...
-	ManagedServerCreateModeDefault ManagedServerCreateMode = "Default"
-	// ManagedServerCreateModePointInTimeRestore ...
-	ManagedServerCreateModePointInTimeRestore ManagedServerCreateMode = "PointInTimeRestore"
-)
-
-// PossibleManagedServerCreateModeValues returns an array of possible values for the ManagedServerCreateMode const type.
-func PossibleManagedServerCreateModeValues() []ManagedServerCreateMode {
-	return []ManagedServerCreateMode{ManagedServerCreateModeDefault, ManagedServerCreateModePointInTimeRestore}
+	return []ManagedDatabaseStatus{Creating, Inaccessible, Offline, Online, Shutdown}
 }
 
 // ManagementOperationState enumerates the values for management operation state.
@@ -1008,21 +942,6 @@ const (
 // PossibleSecurityAlertPolicyUseServerDefaultValues returns an array of possible values for the SecurityAlertPolicyUseServerDefault const type.
 func PossibleSecurityAlertPolicyUseServerDefaultValues() []SecurityAlertPolicyUseServerDefault {
 	return []SecurityAlertPolicyUseServerDefault{SecurityAlertPolicyUseServerDefaultDisabled, SecurityAlertPolicyUseServerDefaultEnabled}
-}
-
-// SensitivityLabelSource enumerates the values for sensitivity label source.
-type SensitivityLabelSource string
-
-const (
-	// Current ...
-	Current SensitivityLabelSource = "current"
-	// Recommended ...
-	Recommended SensitivityLabelSource = "recommended"
-)
-
-// PossibleSensitivityLabelSourceValues returns an array of possible values for the SensitivityLabelSource const type.
-func PossibleSensitivityLabelSourceValues() []SensitivityLabelSource {
-	return []SensitivityLabelSource{Current, Recommended}
 }
 
 // ServerConnectionType enumerates the values for server connection type.
@@ -1482,11 +1401,11 @@ func PossibleVulnerabilityAssessmentPolicyBaselineNameValues() []VulnerabilityAs
 type AutomaticTuningOptions struct {
 	// DesiredState - Automatic tuning option desired state. Possible values include: 'AutomaticTuningOptionModeDesiredOff', 'AutomaticTuningOptionModeDesiredOn', 'AutomaticTuningOptionModeDesiredDefault'
 	DesiredState AutomaticTuningOptionModeDesired `json:"desiredState,omitempty"`
-	// ActualState - READ-ONLY; Automatic tuning option actual state. Possible values include: 'Off', 'On'
+	// ActualState - Automatic tuning option actual state. Possible values include: 'Off', 'On'
 	ActualState AutomaticTuningOptionModeActual `json:"actualState,omitempty"`
-	// ReasonCode - READ-ONLY; Reason code if desired and actual state are different.
+	// ReasonCode - Reason code if desired and actual state are different.
 	ReasonCode *int32 `json:"reasonCode,omitempty"`
-	// ReasonDesc - READ-ONLY; Reason description if desired and actual state are different. Possible values include: 'Default', 'Disabled', 'AutoConfigured', 'InheritedFromServer', 'QueryStoreOff', 'QueryStoreReadOnly', 'NotSupported'
+	// ReasonDesc - Reason description if desired and actual state are different. Possible values include: 'Default', 'Disabled', 'AutoConfigured', 'InheritedFromServer', 'QueryStoreOff', 'QueryStoreReadOnly', 'NotSupported'
 	ReasonDesc AutomaticTuningDisabledReason `json:"reasonDesc,omitempty"`
 }
 
@@ -1494,11 +1413,11 @@ type AutomaticTuningOptions struct {
 type AutomaticTuningServerOptions struct {
 	// DesiredState - Automatic tuning option desired state. Possible values include: 'AutomaticTuningOptionModeDesiredOff', 'AutomaticTuningOptionModeDesiredOn', 'AutomaticTuningOptionModeDesiredDefault'
 	DesiredState AutomaticTuningOptionModeDesired `json:"desiredState,omitempty"`
-	// ActualState - READ-ONLY; Automatic tuning option actual state. Possible values include: 'Off', 'On'
+	// ActualState - Automatic tuning option actual state. Possible values include: 'Off', 'On'
 	ActualState AutomaticTuningOptionModeActual `json:"actualState,omitempty"`
-	// ReasonCode - READ-ONLY; Reason code if desired and actual state are different.
+	// ReasonCode - Reason code if desired and actual state are different.
 	ReasonCode *int32 `json:"reasonCode,omitempty"`
-	// ReasonDesc - READ-ONLY; Reason description if desired and actual state are different. Possible values include: 'AutomaticTuningServerReasonDefault', 'AutomaticTuningServerReasonDisabled', 'AutomaticTuningServerReasonAutoConfigured'
+	// ReasonDesc - Reason description if desired and actual state are different. Possible values include: 'AutomaticTuningServerReasonDefault', 'AutomaticTuningServerReasonDisabled', 'AutomaticTuningServerReasonAutoConfigured'
 	ReasonDesc AutomaticTuningServerReason `json:"reasonDesc,omitempty"`
 }
 
@@ -1506,7 +1425,7 @@ type AutomaticTuningServerOptions struct {
 type AutomaticTuningServerProperties struct {
 	// DesiredState - Automatic tuning desired state. Possible values include: 'AutomaticTuningServerModeCustom', 'AutomaticTuningServerModeAuto', 'AutomaticTuningServerModeUnspecified'
 	DesiredState AutomaticTuningServerMode `json:"desiredState,omitempty"`
-	// ActualState - READ-ONLY; Automatic tuning actual state. Possible values include: 'AutomaticTuningServerModeCustom', 'AutomaticTuningServerModeAuto', 'AutomaticTuningServerModeUnspecified'
+	// ActualState - Automatic tuning actual state. Possible values include: 'AutomaticTuningServerModeCustom', 'AutomaticTuningServerModeAuto', 'AutomaticTuningServerModeUnspecified'
 	ActualState AutomaticTuningServerMode `json:"actualState,omitempty"`
 	// Options - Automatic tuning options definition.
 	Options map[string]*AutomaticTuningServerOptions `json:"options"`
@@ -1518,14 +1437,17 @@ func (atsp AutomaticTuningServerProperties) MarshalJSON() ([]byte, error) {
 	if atsp.DesiredState != "" {
 		objectMap["desiredState"] = atsp.DesiredState
 	}
+	if atsp.ActualState != "" {
+		objectMap["actualState"] = atsp.ActualState
+	}
 	if atsp.Options != nil {
 		objectMap["options"] = atsp.Options
 	}
 	return json.Marshal(objectMap)
 }
 
-// BackupLongTermRetentionPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the
-// results of a long-running operation.
+// BackupLongTermRetentionPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of
+// a long-running operation.
 type BackupLongTermRetentionPoliciesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -1534,7 +1456,7 @@ type BackupLongTermRetentionPoliciesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupLongTermRetentionPoliciesCreateOrUpdateFuture) Result(client BackupLongTermRetentionPoliciesClient) (bltrp BackupLongTermRetentionPolicy, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.BackupLongTermRetentionPoliciesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1556,23 +1478,35 @@ func (future *BackupLongTermRetentionPoliciesCreateOrUpdateFuture) Result(client
 // BackupLongTermRetentionPolicy a backup long term retention policy
 type BackupLongTermRetentionPolicy struct {
 	autorest.Response `json:"-"`
-	// Location - READ-ONLY; The geo-location where the resource lives
+	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
 	// BackupLongTermRetentionPolicyProperties - The properties of the backup long term retention policy
 	*BackupLongTermRetentionPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for BackupLongTermRetentionPolicy.
 func (bltrp BackupLongTermRetentionPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if bltrp.Location != nil {
+		objectMap["location"] = bltrp.Location
+	}
 	if bltrp.BackupLongTermRetentionPolicyProperties != nil {
 		objectMap["properties"] = bltrp.BackupLongTermRetentionPolicyProperties
+	}
+	if bltrp.ID != nil {
+		objectMap["id"] = bltrp.ID
+	}
+	if bltrp.Name != nil {
+		objectMap["name"] = bltrp.Name
+	}
+	if bltrp.Type != nil {
+		objectMap["type"] = bltrp.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1637,8 +1571,7 @@ func (bltrp *BackupLongTermRetentionPolicy) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BackupLongTermRetentionPolicyListResult represents the response to a list long-term retention policies
-// request.
+// BackupLongTermRetentionPolicyListResult represents the response to a list long-term retention policies request.
 type BackupLongTermRetentionPolicyListResult struct {
 	autorest.Response `json:"-"`
 	// Value - The list of long-term retention policies in the database.
@@ -1656,23 +1589,35 @@ type BackupLongTermRetentionPolicyProperties struct {
 // BackupLongTermRetentionVault a backup long term retention vault
 type BackupLongTermRetentionVault struct {
 	autorest.Response `json:"-"`
-	// Location - READ-ONLY; The geo-location where the resource lives
+	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
 	// BackupLongTermRetentionVaultProperties - The properties of the backup long term retention vault
 	*BackupLongTermRetentionVaultProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for BackupLongTermRetentionVault.
 func (bltrv BackupLongTermRetentionVault) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if bltrv.Location != nil {
+		objectMap["location"] = bltrv.Location
+	}
 	if bltrv.BackupLongTermRetentionVaultProperties != nil {
 		objectMap["properties"] = bltrv.BackupLongTermRetentionVaultProperties
+	}
+	if bltrv.ID != nil {
+		objectMap["id"] = bltrv.ID
+	}
+	if bltrv.Name != nil {
+		objectMap["name"] = bltrv.Name
+	}
+	if bltrv.Type != nil {
+		objectMap["type"] = bltrv.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1750,8 +1695,8 @@ type BackupLongTermRetentionVaultProperties struct {
 	RecoveryServicesVaultResourceID *string `json:"recoveryServicesVaultResourceId,omitempty"`
 }
 
-// BackupLongTermRetentionVaultsCreateOrUpdateFuture an abstraction for monitoring and retrieving the
-// results of a long-running operation.
+// BackupLongTermRetentionVaultsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type BackupLongTermRetentionVaultsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -1760,7 +1705,7 @@ type BackupLongTermRetentionVaultsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupLongTermRetentionVaultsCreateOrUpdateFuture) Result(client BackupLongTermRetentionVaultsClient) (bltrv BackupLongTermRetentionVault, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.BackupLongTermRetentionVaultsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1787,29 +1732,28 @@ type CheckNameAvailabilityRequest struct {
 	Type *string `json:"type,omitempty"`
 }
 
-// CheckNameAvailabilityResponse a response indicating whether the specified name for a resource is
-// available.
+// CheckNameAvailabilityResponse a response indicating whether the specified name for a resource is available.
 type CheckNameAvailabilityResponse struct {
 	autorest.Response `json:"-"`
-	// Available - READ-ONLY; True if the name is available, otherwise false.
+	// Available - True if the name is available, otherwise false.
 	Available *bool `json:"available,omitempty"`
-	// Message - READ-ONLY; A message explaining why the name is unavailable. Will be null if the name is available.
+	// Message - A message explaining why the name is unavailable. Will be null if the name is available.
 	Message *string `json:"message,omitempty"`
-	// Name - READ-ONLY; The name whose availability was checked.
+	// Name - The name whose availability was checked.
 	Name *string `json:"name,omitempty"`
-	// Reason - READ-ONLY; The reason code explaining why the name is unavailable. Will be null if the name is available. Possible values include: 'Invalid', 'AlreadyExists'
+	// Reason - The reason code explaining why the name is unavailable. Will be null if the name is available. Possible values include: 'Invalid', 'AlreadyExists'
 	Reason CheckNameAvailabilityReason `json:"reason,omitempty"`
 }
 
-// CompleteDatabaseRestoreDefinition contains the information necessary to perform a complete database
-// restore operation.
+// CompleteDatabaseRestoreDefinition contains the information necessary to perform a complete database restore
+// operation.
 type CompleteDatabaseRestoreDefinition struct {
 	// LastBackupName - The last backup name to apply
 	LastBackupName *string `json:"lastBackupName,omitempty"`
 }
 
-// CreateDatabaseRestorePointDefinition contains the information necessary to perform a create database
-// restore point operation.
+// CreateDatabaseRestorePointDefinition contains the information necessary to perform a create database restore
+// point operation.
 type CreateDatabaseRestorePointDefinition struct {
 	// RestorePointLabel - The restore point label to apply
 	RestorePointLabel *string `json:"restorePointLabel,omitempty"`
@@ -1818,7 +1762,7 @@ type CreateDatabaseRestorePointDefinition struct {
 // Database represents a database.
 type Database struct {
 	autorest.Response `json:"-"`
-	// Kind - READ-ONLY; Kind of database.  This is metadata used for the Azure portal experience.
+	// Kind - Kind of database.  This is metadata used for the Azure portal experience.
 	Kind *string `json:"kind,omitempty"`
 	// DatabaseProperties - The properties representing the resource.
 	*DatabaseProperties `json:"properties,omitempty"`
@@ -1826,17 +1770,20 @@ type Database struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for Database.
 func (d Database) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if d.Kind != nil {
+		objectMap["kind"] = d.Kind
+	}
 	if d.DatabaseProperties != nil {
 		objectMap["properties"] = d.DatabaseProperties
 	}
@@ -1845,6 +1792,15 @@ func (d Database) MarshalJSON() ([]byte, error) {
 	}
 	if d.Tags != nil {
 		objectMap["tags"] = d.Tags
+	}
+	if d.ID != nil {
+		objectMap["id"] = d.ID
+	}
+	if d.Name != nil {
+		objectMap["name"] = d.Name
+	}
+	if d.Type != nil {
+		objectMap["type"] = d.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1932,11 +1888,11 @@ type DatabaseAutomaticTuning struct {
 	autorest.Response `json:"-"`
 	// DatabaseAutomaticTuningProperties - Resource properties.
 	*DatabaseAutomaticTuningProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1945,6 +1901,15 @@ func (dat DatabaseAutomaticTuning) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dat.DatabaseAutomaticTuningProperties != nil {
 		objectMap["properties"] = dat.DatabaseAutomaticTuningProperties
+	}
+	if dat.ID != nil {
+		objectMap["id"] = dat.ID
+	}
+	if dat.Name != nil {
+		objectMap["name"] = dat.Name
+	}
+	if dat.Type != nil {
+		objectMap["type"] = dat.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2004,7 +1969,7 @@ func (dat *DatabaseAutomaticTuning) UnmarshalJSON(body []byte) error {
 type DatabaseAutomaticTuningProperties struct {
 	// DesiredState - Automatic tuning desired state. Possible values include: 'Inherit', 'Custom', 'Auto', 'Unspecified'
 	DesiredState AutomaticTuningMode `json:"desiredState,omitempty"`
-	// ActualState - READ-ONLY; Automatic tuning actual state. Possible values include: 'Inherit', 'Custom', 'Auto', 'Unspecified'
+	// ActualState - Automatic tuning actual state. Possible values include: 'Inherit', 'Custom', 'Auto', 'Unspecified'
 	ActualState AutomaticTuningMode `json:"actualState,omitempty"`
 	// Options - Automatic tuning options definition.
 	Options map[string]*AutomaticTuningOptions `json:"options"`
@@ -2016,6 +1981,9 @@ func (datp DatabaseAutomaticTuningProperties) MarshalJSON() ([]byte, error) {
 	if datp.DesiredState != "" {
 		objectMap["desiredState"] = datp.DesiredState
 	}
+	if datp.ActualState != "" {
+		objectMap["actualState"] = datp.ActualState
+	}
 	if datp.Options != nil {
 		objectMap["options"] = datp.Options
 	}
@@ -2025,23 +1993,35 @@ func (datp DatabaseAutomaticTuningProperties) MarshalJSON() ([]byte, error) {
 // DatabaseBlobAuditingPolicy a database blob auditing policy.
 type DatabaseBlobAuditingPolicy struct {
 	autorest.Response `json:"-"`
-	// Kind - READ-ONLY; Resource kind.
+	// Kind - Resource kind.
 	Kind *string `json:"kind,omitempty"`
 	// DatabaseBlobAuditingPolicyProperties - Resource properties.
 	*DatabaseBlobAuditingPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for DatabaseBlobAuditingPolicy.
 func (dbap DatabaseBlobAuditingPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if dbap.Kind != nil {
+		objectMap["kind"] = dbap.Kind
+	}
 	if dbap.DatabaseBlobAuditingPolicyProperties != nil {
 		objectMap["properties"] = dbap.DatabaseBlobAuditingPolicyProperties
+	}
+	if dbap.ID != nil {
+		objectMap["id"] = dbap.ID
+	}
+	if dbap.Name != nil {
+		objectMap["name"] = dbap.Name
+	}
+	if dbap.Type != nil {
+		objectMap["type"] = dbap.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2108,13 +2088,13 @@ func (dbap *DatabaseBlobAuditingPolicy) UnmarshalJSON(body []byte) error {
 
 // DatabaseBlobAuditingPolicyProperties properties of a database blob auditing policy.
 type DatabaseBlobAuditingPolicyProperties struct {
-	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint or isAzureMonitorTargetEnabled are required. Possible values include: 'BlobAuditingPolicyStateEnabled', 'BlobAuditingPolicyStateDisabled'
+	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint and storageAccountAccessKey are required. Possible values include: 'BlobAuditingPolicyStateEnabled', 'BlobAuditingPolicyStateDisabled'
 	State BlobAuditingPolicyState `json:"state,omitempty"`
 	// StorageEndpoint - Specifies the blob storage endpoint (e.g. https://MyAccount.blob.core.windows.net). If state is Enabled, storageEndpoint is required.
 	StorageEndpoint *string `json:"storageEndpoint,omitempty"`
-	// StorageAccountAccessKey - Specifies the identifier key of the auditing storage account. If state is Enabled and storageEndpoint is specified, storageAccountAccessKey is required.
+	// StorageAccountAccessKey - Specifies the identifier key of the auditing storage account. If state is Enabled, storageAccountAccessKey is required.
 	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
-	// RetentionDays - Specifies the number of days to keep in the audit logs in the storage account.
+	// RetentionDays - Specifies the number of days to keep in the audit logs.
 	RetentionDays *int32 `json:"retentionDays,omitempty"`
 	// AuditActionsAndGroups - Specifies the Actions-Groups and Actions to audit.
 	//
@@ -2163,9 +2143,9 @@ type DatabaseBlobAuditingPolicyProperties struct {
 	// REFERENCES
 	//
 	// The general form for defining an action to be audited is:
-	// {action} ON {object} BY {principal}
+	// <action> ON <object> BY <principal>
 	//
-	// Note that <object> in the above format can refer to an object like a table, view, or stored procedure, or an entire database or schema. For the latter cases, the forms DATABASE::{db_name} and SCHEMA::{schema_name} are used, respectively.
+	// Note that <object> in the above format can refer to an object like a table, view, or stored procedure, or an entire database or schema. For the latter cases, the forms DATABASE::<db_name> and SCHEMA::<schema_name> are used, respectively.
 	//
 	// For example:
 	// SELECT on dbo.myTable by public
@@ -2178,18 +2158,6 @@ type DatabaseBlobAuditingPolicyProperties struct {
 	StorageAccountSubscriptionID *uuid.UUID `json:"storageAccountSubscriptionId,omitempty"`
 	// IsStorageSecondaryKeyInUse - Specifies whether storageAccountAccessKey value is the storage's secondary key.
 	IsStorageSecondaryKeyInUse *bool `json:"isStorageSecondaryKeyInUse,omitempty"`
-	// IsAzureMonitorTargetEnabled - Specifies whether audit events are sent to Azure Monitor.
-	// In order to send the events to Azure Monitor, specify 'State' as 'Enabled' and 'IsAzureMonitorTargetEnabled' as true.
-	//
-	// When using REST API to configure auditing, Diagnostic Settings with 'SQLSecurityAuditEvents' diagnostic logs category on the database should be also created.
-	// Note that for server level audit you should use the 'master' database as {databaseName}.
-	//
-	// Diagnostic Settings URI format:
-	// PUT https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Sql/servers/{serverName}/databases/{databaseName}/providers/microsoft.insights/diagnosticSettings/{settingsName}?api-version=2017-05-01-preview
-	//
-	// For more information, see [Diagnostic Settings REST API](https://go.microsoft.com/fwlink/?linkid=2033207)
-	// or [Diagnostic Settings PowerShell](https://go.microsoft.com/fwlink/?linkid=2033043)
-	IsAzureMonitorTargetEnabled *bool `json:"isAzureMonitorTargetEnabled,omitempty"`
 }
 
 // DatabaseListResult represents the response to a list database request.
@@ -2203,11 +2171,11 @@ type DatabaseListResult struct {
 type DatabaseOperation struct {
 	// DatabaseOperationProperties - Resource properties.
 	*DatabaseOperationProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2216,6 +2184,15 @@ func (do DatabaseOperation) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if do.DatabaseOperationProperties != nil {
 		objectMap["properties"] = do.DatabaseOperationProperties
+	}
+	if do.ID != nil {
+		objectMap["id"] = do.ID
+	}
+	if do.Name != nil {
+		objectMap["name"] = do.Name
+	}
+	if do.Type != nil {
+		objectMap["type"] = do.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2274,9 +2251,9 @@ func (do *DatabaseOperation) UnmarshalJSON(body []byte) error {
 // DatabaseOperationListResult the response to a list database operations request
 type DatabaseOperationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]DatabaseOperation `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -2286,37 +2263,20 @@ type DatabaseOperationListResultIterator struct {
 	page DatabaseOperationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *DatabaseOperationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabaseOperationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *DatabaseOperationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *DatabaseOperationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2338,11 +2298,6 @@ func (iter DatabaseOperationListResultIterator) Value() DatabaseOperation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the DatabaseOperationListResultIterator type.
-func NewDatabaseOperationListResultIterator(page DatabaseOperationListResultPage) DatabaseOperationListResultIterator {
-	return DatabaseOperationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (dolr DatabaseOperationListResult) IsEmpty() bool {
 	return dolr.Value == nil || len(*dolr.Value) == 0
@@ -2350,11 +2305,11 @@ func (dolr DatabaseOperationListResult) IsEmpty() bool {
 
 // databaseOperationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (dolr DatabaseOperationListResult) databaseOperationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (dolr DatabaseOperationListResult) databaseOperationListResultPreparer() (*http.Request, error) {
 	if dolr.NextLink == nil || len(to.String(dolr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(dolr.NextLink)))
@@ -2362,36 +2317,19 @@ func (dolr DatabaseOperationListResult) databaseOperationListResultPreparer(ctx 
 
 // DatabaseOperationListResultPage contains a page of DatabaseOperation values.
 type DatabaseOperationListResultPage struct {
-	fn   func(context.Context, DatabaseOperationListResult) (DatabaseOperationListResult, error)
+	fn   func(DatabaseOperationListResult) (DatabaseOperationListResult, error)
 	dolr DatabaseOperationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *DatabaseOperationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabaseOperationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.dolr)
+func (page *DatabaseOperationListResultPage) Next() error {
+	next, err := page.fn(page.dolr)
 	if err != nil {
 		return err
 	}
 	page.dolr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *DatabaseOperationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2412,40 +2350,35 @@ func (page DatabaseOperationListResultPage) Values() []DatabaseOperation {
 	return *page.dolr.Value
 }
 
-// Creates a new instance of the DatabaseOperationListResultPage type.
-func NewDatabaseOperationListResultPage(getNextPage func(context.Context, DatabaseOperationListResult) (DatabaseOperationListResult, error)) DatabaseOperationListResultPage {
-	return DatabaseOperationListResultPage{fn: getNextPage}
-}
-
 // DatabaseOperationProperties the properties of a database operation.
 type DatabaseOperationProperties struct {
-	// DatabaseName - READ-ONLY; The name of the database the operation is being performed on.
+	// DatabaseName - The name of the database the operation is being performed on.
 	DatabaseName *string `json:"databaseName,omitempty"`
-	// Operation - READ-ONLY; The name of operation.
+	// Operation - The name of operation.
 	Operation *string `json:"operation,omitempty"`
-	// OperationFriendlyName - READ-ONLY; The friendly name of operation.
+	// OperationFriendlyName - The friendly name of operation.
 	OperationFriendlyName *string `json:"operationFriendlyName,omitempty"`
-	// PercentComplete - READ-ONLY; The percentage of the operation completed.
+	// PercentComplete - The percentage of the operation completed.
 	PercentComplete *int32 `json:"percentComplete,omitempty"`
-	// ServerName - READ-ONLY; The name of the server.
+	// ServerName - The name of the server.
 	ServerName *string `json:"serverName,omitempty"`
-	// StartTime - READ-ONLY; The operation start time.
+	// StartTime - The operation start time.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// State - READ-ONLY; The operation state. Possible values include: 'ManagementOperationStatePending', 'ManagementOperationStateInProgress', 'ManagementOperationStateSucceeded', 'ManagementOperationStateFailed', 'ManagementOperationStateCancelInProgress', 'ManagementOperationStateCancelled'
+	// State - The operation state. Possible values include: 'ManagementOperationStatePending', 'ManagementOperationStateInProgress', 'ManagementOperationStateSucceeded', 'ManagementOperationStateFailed', 'ManagementOperationStateCancelInProgress', 'ManagementOperationStateCancelled'
 	State ManagementOperationState `json:"state,omitempty"`
-	// ErrorCode - READ-ONLY; The operation error code.
+	// ErrorCode - The operation error code.
 	ErrorCode *int32 `json:"errorCode,omitempty"`
-	// ErrorDescription - READ-ONLY; The operation error description.
+	// ErrorDescription - The operation error description.
 	ErrorDescription *string `json:"errorDescription,omitempty"`
-	// ErrorSeverity - READ-ONLY; The operation error severity.
+	// ErrorSeverity - The operation error severity.
 	ErrorSeverity *int32 `json:"errorSeverity,omitempty"`
-	// IsUserError - READ-ONLY; Whether or not the error is a user error.
+	// IsUserError - Whether or not the error is a user error.
 	IsUserError *bool `json:"isUserError,omitempty"`
-	// EstimatedCompletionTime - READ-ONLY; The estimated completion time of the operation.
+	// EstimatedCompletionTime - The estimated completion time of the operation.
 	EstimatedCompletionTime *date.Time `json:"estimatedCompletionTime,omitempty"`
-	// Description - READ-ONLY; The operation description.
+	// Description - The operation description.
 	Description *string `json:"description,omitempty"`
-	// IsCancellable - READ-ONLY; Whether the operation can be cancelled.
+	// IsCancellable - Whether the operation can be cancelled.
 	IsCancellable *bool `json:"isCancellable,omitempty"`
 }
 
@@ -2453,15 +2386,15 @@ type DatabaseOperationProperties struct {
 type DatabaseProperties struct {
 	// Collation - The collation of the database. If createMode is not Default, this value is ignored.
 	Collation *string `json:"collation,omitempty"`
-	// CreationDate - READ-ONLY; The creation date of the database (ISO8601 format).
+	// CreationDate - The creation date of the database (ISO8601 format).
 	CreationDate *date.Time `json:"creationDate,omitempty"`
-	// ContainmentState - READ-ONLY; The containment state of the database.
+	// ContainmentState - The containment state of the database.
 	ContainmentState *int64 `json:"containmentState,omitempty"`
-	// CurrentServiceObjectiveID - READ-ONLY; The current service level objective ID of the database. This is the ID of the service level objective that is currently active.
+	// CurrentServiceObjectiveID - The current service level objective ID of the database. This is the ID of the service level objective that is currently active.
 	CurrentServiceObjectiveID *uuid.UUID `json:"currentServiceObjectiveId,omitempty"`
-	// DatabaseID - READ-ONLY; The ID of the database.
+	// DatabaseID - The ID of the database.
 	DatabaseID *uuid.UUID `json:"databaseId,omitempty"`
-	// EarliestRestoreDate - READ-ONLY; This records the earliest start date and time that restore is available for this database (ISO8601 format).
+	// EarliestRestoreDate - This records the earliest start date and time that restore is available for this database (ISO8601 format).
 	EarliestRestoreDate *date.Time `json:"earliestRestoreDate,omitempty"`
 	// CreateMode - Specifies the mode of database creation.
 	// Default: regular database creation.
@@ -2481,53 +2414,29 @@ type DatabaseProperties struct {
 	RestorePointInTime *date.Time `json:"restorePointInTime,omitempty"`
 	// RecoveryServicesRecoveryPointResourceID - Conditional. If createMode is RestoreLongTermRetentionBackup, then this value is required. Specifies the resource ID of the recovery point to restore from.
 	RecoveryServicesRecoveryPointResourceID *string `json:"recoveryServicesRecoveryPointResourceId,omitempty"`
-	// Edition - The edition of the database. The DatabaseEditions enumeration contains all the valid editions. If createMode is NonReadableSecondary or OnlineSecondary, this value is ignored.
-	//
-	// The list of SKUs may vary by region and support offer. To determine the SKUs (including the SKU name, tier/edition, family, and capacity) that are available to your subscription in an Azure region, use the `Capabilities_ListByLocation` REST API or one of the following commands:
-	//
-	// ```azurecli
-	// az sql db list-editions -l <location> -o table
-	// ````
-	//
-	// ```powershell
-	// Get-AzSqlServerServiceObjective -Location <location>
-	// ````
-	// . Possible values include: 'Web', 'Business', 'Basic', 'Standard', 'Premium', 'PremiumRS', 'Free', 'Stretch', 'DataWarehouse', 'System', 'System2', 'GeneralPurpose', 'BusinessCritical', 'Hyperscale'
+	// Edition - The edition of the database. The DatabaseEditions enumeration contains all the valid editions. If createMode is NonReadableSecondary or OnlineSecondary, this value is ignored. To see possible values, query the capabilities API (/subscriptions/{subscriptionId}/providers/Microsoft.Sql/locations/{locationID}/capabilities) referred to by operationId: "Capabilities_ListByLocation." or use the Azure CLI command `az sql db list-editions -l westus --query [].name`. Possible values include: 'Web', 'Business', 'Basic', 'Standard', 'Premium', 'PremiumRS', 'Free', 'Stretch', 'DataWarehouse', 'System', 'System2'
 	Edition DatabaseEdition `json:"edition,omitempty"`
 	// MaxSizeBytes - The max size of the database expressed in bytes. If createMode is not Default, this value is ignored. To see possible values, query the capabilities API (/subscriptions/{subscriptionId}/providers/Microsoft.Sql/locations/{locationID}/capabilities) referred to by operationId: "Capabilities_ListByLocation."
 	MaxSizeBytes *string `json:"maxSizeBytes,omitempty"`
-	// RequestedServiceObjectiveID - The configured service level objective ID of the database. This is the service level objective that is in the process of being applied to the database. Once successfully updated, it will match the value of currentServiceObjectiveId property. If requestedServiceObjectiveId and requestedServiceObjectiveName are both updated, the value of requestedServiceObjectiveId overrides the value of requestedServiceObjectiveName.
-	//
-	// The list of SKUs may vary by region and support offer. To determine the service objective ids that are available to your subscription in an Azure region, use the `Capabilities_ListByLocation` REST API.
+	// RequestedServiceObjectiveID - The configured service level objective ID of the database. This is the service level objective that is in the process of being applied to the database. Once successfully updated, it will match the value of currentServiceObjectiveId property. If requestedServiceObjectiveId and requestedServiceObjectiveName are both updated, the value of requestedServiceObjectiveId overrides the value of requestedServiceObjectiveName. To see possible values, query the capabilities API (/subscriptions/{subscriptionId}/providers/Microsoft.Sql/locations/{locationID}/capabilities) referred to by operationId: "Capabilities_ListByLocation." or use the Azure CLI command `az sql db list-editions --location <location> --query [].supportedServiceLevelObjectives[].name` .
 	RequestedServiceObjectiveID *uuid.UUID `json:"requestedServiceObjectiveId,omitempty"`
-	// RequestedServiceObjectiveName - The name of the configured service level objective of the database. This is the service level objective that is in the process of being applied to the database. Once successfully updated, it will match the value of serviceLevelObjective property.
-	//
-	// The list of SKUs may vary by region and support offer. To determine the SKUs (including the SKU name, tier/edition, family, and capacity) that are available to your subscription in an Azure region, use the `Capabilities_ListByLocation` REST API or one of the following commands:
-	//
-	// ```azurecli
-	// az sql db list-editions -l <location> -o table
-	// ````
-	//
-	// ```powershell
-	// Get-AzSqlServerServiceObjective -Location <location>
-	// ````
-	// . Possible values include: 'ServiceObjectiveNameSystem', 'ServiceObjectiveNameSystem0', 'ServiceObjectiveNameSystem1', 'ServiceObjectiveNameSystem2', 'ServiceObjectiveNameSystem3', 'ServiceObjectiveNameSystem4', 'ServiceObjectiveNameSystem2L', 'ServiceObjectiveNameSystem3L', 'ServiceObjectiveNameSystem4L', 'ServiceObjectiveNameFree', 'ServiceObjectiveNameBasic', 'ServiceObjectiveNameS0', 'ServiceObjectiveNameS1', 'ServiceObjectiveNameS2', 'ServiceObjectiveNameS3', 'ServiceObjectiveNameS4', 'ServiceObjectiveNameS6', 'ServiceObjectiveNameS7', 'ServiceObjectiveNameS9', 'ServiceObjectiveNameS12', 'ServiceObjectiveNameP1', 'ServiceObjectiveNameP2', 'ServiceObjectiveNameP3', 'ServiceObjectiveNameP4', 'ServiceObjectiveNameP6', 'ServiceObjectiveNameP11', 'ServiceObjectiveNameP15', 'ServiceObjectiveNamePRS1', 'ServiceObjectiveNamePRS2', 'ServiceObjectiveNamePRS4', 'ServiceObjectiveNamePRS6', 'ServiceObjectiveNameDW100', 'ServiceObjectiveNameDW200', 'ServiceObjectiveNameDW300', 'ServiceObjectiveNameDW400', 'ServiceObjectiveNameDW500', 'ServiceObjectiveNameDW600', 'ServiceObjectiveNameDW1000', 'ServiceObjectiveNameDW1200', 'ServiceObjectiveNameDW1000c', 'ServiceObjectiveNameDW1500', 'ServiceObjectiveNameDW1500c', 'ServiceObjectiveNameDW2000', 'ServiceObjectiveNameDW2000c', 'ServiceObjectiveNameDW3000', 'ServiceObjectiveNameDW2500c', 'ServiceObjectiveNameDW3000c', 'ServiceObjectiveNameDW6000', 'ServiceObjectiveNameDW5000c', 'ServiceObjectiveNameDW6000c', 'ServiceObjectiveNameDW7500c', 'ServiceObjectiveNameDW10000c', 'ServiceObjectiveNameDW15000c', 'ServiceObjectiveNameDW30000c', 'ServiceObjectiveNameDS100', 'ServiceObjectiveNameDS200', 'ServiceObjectiveNameDS300', 'ServiceObjectiveNameDS400', 'ServiceObjectiveNameDS500', 'ServiceObjectiveNameDS600', 'ServiceObjectiveNameDS1000', 'ServiceObjectiveNameDS1200', 'ServiceObjectiveNameDS1500', 'ServiceObjectiveNameDS2000', 'ServiceObjectiveNameElasticPool'
+	// RequestedServiceObjectiveName - The name of the configured service level objective of the database. This is the service level objective that is in the process of being applied to the database. Once successfully updated, it will match the value of serviceLevelObjective property. To see possible values, query the capabilities API (/subscriptions/{subscriptionId}/providers/Microsoft.Sql/locations/{locationID}/capabilities) referred to by operationId: "Capabilities_ListByLocation." or use the Azure CLI command `az sql db list-editions --location <location> --query [].supportedServiceLevelObjectives[].name`. Possible values include: 'ServiceObjectiveNameSystem', 'ServiceObjectiveNameSystem0', 'ServiceObjectiveNameSystem1', 'ServiceObjectiveNameSystem2', 'ServiceObjectiveNameSystem3', 'ServiceObjectiveNameSystem4', 'ServiceObjectiveNameSystem2L', 'ServiceObjectiveNameSystem3L', 'ServiceObjectiveNameSystem4L', 'ServiceObjectiveNameFree', 'ServiceObjectiveNameBasic', 'ServiceObjectiveNameS0', 'ServiceObjectiveNameS1', 'ServiceObjectiveNameS2', 'ServiceObjectiveNameS3', 'ServiceObjectiveNameS4', 'ServiceObjectiveNameS6', 'ServiceObjectiveNameS7', 'ServiceObjectiveNameS9', 'ServiceObjectiveNameS12', 'ServiceObjectiveNameP1', 'ServiceObjectiveNameP2', 'ServiceObjectiveNameP3', 'ServiceObjectiveNameP4', 'ServiceObjectiveNameP6', 'ServiceObjectiveNameP11', 'ServiceObjectiveNameP15', 'ServiceObjectiveNamePRS1', 'ServiceObjectiveNamePRS2', 'ServiceObjectiveNamePRS4', 'ServiceObjectiveNamePRS6', 'ServiceObjectiveNameDW100', 'ServiceObjectiveNameDW200', 'ServiceObjectiveNameDW300', 'ServiceObjectiveNameDW400', 'ServiceObjectiveNameDW500', 'ServiceObjectiveNameDW600', 'ServiceObjectiveNameDW1000', 'ServiceObjectiveNameDW1200', 'ServiceObjectiveNameDW1000c', 'ServiceObjectiveNameDW1500', 'ServiceObjectiveNameDW1500c', 'ServiceObjectiveNameDW2000', 'ServiceObjectiveNameDW2000c', 'ServiceObjectiveNameDW3000', 'ServiceObjectiveNameDW2500c', 'ServiceObjectiveNameDW3000c', 'ServiceObjectiveNameDW6000', 'ServiceObjectiveNameDW5000c', 'ServiceObjectiveNameDW6000c', 'ServiceObjectiveNameDW7500c', 'ServiceObjectiveNameDW10000c', 'ServiceObjectiveNameDW15000c', 'ServiceObjectiveNameDW30000c', 'ServiceObjectiveNameDS100', 'ServiceObjectiveNameDS200', 'ServiceObjectiveNameDS300', 'ServiceObjectiveNameDS400', 'ServiceObjectiveNameDS500', 'ServiceObjectiveNameDS600', 'ServiceObjectiveNameDS1000', 'ServiceObjectiveNameDS1200', 'ServiceObjectiveNameDS1500', 'ServiceObjectiveNameDS2000', 'ServiceObjectiveNameElasticPool'
 	RequestedServiceObjectiveName ServiceObjectiveName `json:"requestedServiceObjectiveName,omitempty"`
-	// ServiceLevelObjective - READ-ONLY; The current service level objective of the database. Possible values include: 'ServiceObjectiveNameSystem', 'ServiceObjectiveNameSystem0', 'ServiceObjectiveNameSystem1', 'ServiceObjectiveNameSystem2', 'ServiceObjectiveNameSystem3', 'ServiceObjectiveNameSystem4', 'ServiceObjectiveNameSystem2L', 'ServiceObjectiveNameSystem3L', 'ServiceObjectiveNameSystem4L', 'ServiceObjectiveNameFree', 'ServiceObjectiveNameBasic', 'ServiceObjectiveNameS0', 'ServiceObjectiveNameS1', 'ServiceObjectiveNameS2', 'ServiceObjectiveNameS3', 'ServiceObjectiveNameS4', 'ServiceObjectiveNameS6', 'ServiceObjectiveNameS7', 'ServiceObjectiveNameS9', 'ServiceObjectiveNameS12', 'ServiceObjectiveNameP1', 'ServiceObjectiveNameP2', 'ServiceObjectiveNameP3', 'ServiceObjectiveNameP4', 'ServiceObjectiveNameP6', 'ServiceObjectiveNameP11', 'ServiceObjectiveNameP15', 'ServiceObjectiveNamePRS1', 'ServiceObjectiveNamePRS2', 'ServiceObjectiveNamePRS4', 'ServiceObjectiveNamePRS6', 'ServiceObjectiveNameDW100', 'ServiceObjectiveNameDW200', 'ServiceObjectiveNameDW300', 'ServiceObjectiveNameDW400', 'ServiceObjectiveNameDW500', 'ServiceObjectiveNameDW600', 'ServiceObjectiveNameDW1000', 'ServiceObjectiveNameDW1200', 'ServiceObjectiveNameDW1000c', 'ServiceObjectiveNameDW1500', 'ServiceObjectiveNameDW1500c', 'ServiceObjectiveNameDW2000', 'ServiceObjectiveNameDW2000c', 'ServiceObjectiveNameDW3000', 'ServiceObjectiveNameDW2500c', 'ServiceObjectiveNameDW3000c', 'ServiceObjectiveNameDW6000', 'ServiceObjectiveNameDW5000c', 'ServiceObjectiveNameDW6000c', 'ServiceObjectiveNameDW7500c', 'ServiceObjectiveNameDW10000c', 'ServiceObjectiveNameDW15000c', 'ServiceObjectiveNameDW30000c', 'ServiceObjectiveNameDS100', 'ServiceObjectiveNameDS200', 'ServiceObjectiveNameDS300', 'ServiceObjectiveNameDS400', 'ServiceObjectiveNameDS500', 'ServiceObjectiveNameDS600', 'ServiceObjectiveNameDS1000', 'ServiceObjectiveNameDS1200', 'ServiceObjectiveNameDS1500', 'ServiceObjectiveNameDS2000', 'ServiceObjectiveNameElasticPool'
+	// ServiceLevelObjective - The current service level objective of the database. Possible values include: 'ServiceObjectiveNameSystem', 'ServiceObjectiveNameSystem0', 'ServiceObjectiveNameSystem1', 'ServiceObjectiveNameSystem2', 'ServiceObjectiveNameSystem3', 'ServiceObjectiveNameSystem4', 'ServiceObjectiveNameSystem2L', 'ServiceObjectiveNameSystem3L', 'ServiceObjectiveNameSystem4L', 'ServiceObjectiveNameFree', 'ServiceObjectiveNameBasic', 'ServiceObjectiveNameS0', 'ServiceObjectiveNameS1', 'ServiceObjectiveNameS2', 'ServiceObjectiveNameS3', 'ServiceObjectiveNameS4', 'ServiceObjectiveNameS6', 'ServiceObjectiveNameS7', 'ServiceObjectiveNameS9', 'ServiceObjectiveNameS12', 'ServiceObjectiveNameP1', 'ServiceObjectiveNameP2', 'ServiceObjectiveNameP3', 'ServiceObjectiveNameP4', 'ServiceObjectiveNameP6', 'ServiceObjectiveNameP11', 'ServiceObjectiveNameP15', 'ServiceObjectiveNamePRS1', 'ServiceObjectiveNamePRS2', 'ServiceObjectiveNamePRS4', 'ServiceObjectiveNamePRS6', 'ServiceObjectiveNameDW100', 'ServiceObjectiveNameDW200', 'ServiceObjectiveNameDW300', 'ServiceObjectiveNameDW400', 'ServiceObjectiveNameDW500', 'ServiceObjectiveNameDW600', 'ServiceObjectiveNameDW1000', 'ServiceObjectiveNameDW1200', 'ServiceObjectiveNameDW1000c', 'ServiceObjectiveNameDW1500', 'ServiceObjectiveNameDW1500c', 'ServiceObjectiveNameDW2000', 'ServiceObjectiveNameDW2000c', 'ServiceObjectiveNameDW3000', 'ServiceObjectiveNameDW2500c', 'ServiceObjectiveNameDW3000c', 'ServiceObjectiveNameDW6000', 'ServiceObjectiveNameDW5000c', 'ServiceObjectiveNameDW6000c', 'ServiceObjectiveNameDW7500c', 'ServiceObjectiveNameDW10000c', 'ServiceObjectiveNameDW15000c', 'ServiceObjectiveNameDW30000c', 'ServiceObjectiveNameDS100', 'ServiceObjectiveNameDS200', 'ServiceObjectiveNameDS300', 'ServiceObjectiveNameDS400', 'ServiceObjectiveNameDS500', 'ServiceObjectiveNameDS600', 'ServiceObjectiveNameDS1000', 'ServiceObjectiveNameDS1200', 'ServiceObjectiveNameDS1500', 'ServiceObjectiveNameDS2000', 'ServiceObjectiveNameElasticPool'
 	ServiceLevelObjective ServiceObjectiveName `json:"serviceLevelObjective,omitempty"`
-	// Status - READ-ONLY; The status of the database.
+	// Status - The status of the database.
 	Status *string `json:"status,omitempty"`
 	// ElasticPoolName - The name of the elastic pool the database is in. If elasticPoolName and requestedServiceObjectiveName are both updated, the value of requestedServiceObjectiveName is ignored. Not supported for DataWarehouse edition.
 	ElasticPoolName *string `json:"elasticPoolName,omitempty"`
-	// DefaultSecondaryLocation - READ-ONLY; The default secondary region for this database.
+	// DefaultSecondaryLocation - The default secondary region for this database.
 	DefaultSecondaryLocation *string `json:"defaultSecondaryLocation,omitempty"`
-	// ServiceTierAdvisors - READ-ONLY; The list of service tier advisors for this database. Expanded property
+	// ServiceTierAdvisors - The list of service tier advisors for this database. Expanded property
 	ServiceTierAdvisors *[]ServiceTierAdvisor `json:"serviceTierAdvisors,omitempty"`
-	// TransparentDataEncryption - READ-ONLY; The transparent data encryption info for this database.
+	// TransparentDataEncryption - The transparent data encryption info for this database.
 	TransparentDataEncryption *[]TransparentDataEncryption `json:"transparentDataEncryption,omitempty"`
-	// RecommendedIndex - READ-ONLY; The recommended indices for this database.
+	// RecommendedIndex - The recommended indices for this database.
 	RecommendedIndex *[]RecommendedIndex `json:"recommendedIndex,omitempty"`
-	// FailoverGroupID - READ-ONLY; The resource identifier of the failover group containing this database.
+	// FailoverGroupID - The resource identifier of the failover group containing this database.
 	FailoverGroupID *string `json:"failoverGroupId,omitempty"`
 	// ReadScale - Conditional. If the database is a geo-secondary, readScale indicates whether read-only connections are allowed to this database or not. Not supported for DataWarehouse edition. Possible values include: 'ReadScaleEnabled', 'ReadScaleDisabled'
 	ReadScale ReadScale `json:"readScale,omitempty"`
@@ -2537,8 +2446,8 @@ type DatabaseProperties struct {
 	ZoneRedundant *bool `json:"zoneRedundant,omitempty"`
 }
 
-// DatabasesCreateImportOperationFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// DatabasesCreateImportOperationFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type DatabasesCreateImportOperationFuture struct {
 	azure.Future
 }
@@ -2547,7 +2456,7 @@ type DatabasesCreateImportOperationFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DatabasesCreateImportOperationFuture) Result(client DatabasesClient) (ier ImportExportResponse, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesCreateImportOperationFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2576,7 +2485,7 @@ type DatabasesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DatabasesCreateOrUpdateFuture) Result(client DatabasesClient) (d Database, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2600,15 +2509,15 @@ type DatabaseSecurityAlertPolicy struct {
 	autorest.Response `json:"-"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// Kind - READ-ONLY; Resource kind.
+	// Kind - Resource kind.
 	Kind *string `json:"kind,omitempty"`
 	// DatabaseSecurityAlertPolicyProperties - Properties of the security alert policy.
 	*DatabaseSecurityAlertPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2618,8 +2527,20 @@ func (dsap DatabaseSecurityAlertPolicy) MarshalJSON() ([]byte, error) {
 	if dsap.Location != nil {
 		objectMap["location"] = dsap.Location
 	}
+	if dsap.Kind != nil {
+		objectMap["kind"] = dsap.Kind
+	}
 	if dsap.DatabaseSecurityAlertPolicyProperties != nil {
 		objectMap["properties"] = dsap.DatabaseSecurityAlertPolicyProperties
+	}
+	if dsap.ID != nil {
+		objectMap["id"] = dsap.ID
+	}
+	if dsap.Name != nil {
+		objectMap["name"] = dsap.Name
+	}
+	if dsap.Type != nil {
+		objectMap["type"] = dsap.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2713,8 +2634,7 @@ type DatabaseSecurityAlertPolicyProperties struct {
 	UseServerDefault SecurityAlertPolicyUseServerDefault `json:"useServerDefault,omitempty"`
 }
 
-// DatabasesExportFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DatabasesExportFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DatabasesExportFuture struct {
 	azure.Future
 }
@@ -2723,7 +2643,7 @@ type DatabasesExportFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DatabasesExportFuture) Result(client DatabasesClient) (ier ImportExportResponse, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesExportFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2742,8 +2662,7 @@ func (future *DatabasesExportFuture) Result(client DatabasesClient) (ier ImportE
 	return
 }
 
-// DatabasesImportFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DatabasesImportFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DatabasesImportFuture struct {
 	azure.Future
 }
@@ -2752,7 +2671,7 @@ type DatabasesImportFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DatabasesImportFuture) Result(client DatabasesClient) (ier ImportExportResponse, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesImportFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2771,8 +2690,7 @@ func (future *DatabasesImportFuture) Result(client DatabasesClient) (ier ImportE
 	return
 }
 
-// DatabasesPauseFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DatabasesPauseFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DatabasesPauseFuture struct {
 	azure.Future
 }
@@ -2781,7 +2699,7 @@ type DatabasesPauseFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DatabasesPauseFuture) Result(client DatabasesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesPauseFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2794,8 +2712,7 @@ func (future *DatabasesPauseFuture) Result(client DatabasesClient) (ar autorest.
 	return
 }
 
-// DatabasesResumeFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DatabasesResumeFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DatabasesResumeFuture struct {
 	azure.Future
 }
@@ -2804,7 +2721,7 @@ type DatabasesResumeFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DatabasesResumeFuture) Result(client DatabasesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesResumeFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2817,8 +2734,7 @@ func (future *DatabasesResumeFuture) Result(client DatabasesClient) (ar autorest
 	return
 }
 
-// DatabasesUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DatabasesUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DatabasesUpdateFuture struct {
 	azure.Future
 }
@@ -2827,7 +2743,7 @@ type DatabasesUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DatabasesUpdateFuture) Result(client DatabasesClient) (d Database, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.DatabasesUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2852,11 +2768,11 @@ type DatabaseUpdate struct {
 	Tags map[string]*string `json:"tags"`
 	// DatabaseProperties - The properties representing the resource.
 	*DatabaseProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2868,6 +2784,15 @@ func (du DatabaseUpdate) MarshalJSON() ([]byte, error) {
 	}
 	if du.DatabaseProperties != nil {
 		objectMap["properties"] = du.DatabaseProperties
+	}
+	if du.ID != nil {
+		objectMap["id"] = du.ID
+	}
+	if du.Name != nil {
+		objectMap["name"] = du.Name
+	}
+	if du.Type != nil {
+		objectMap["type"] = du.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2934,19 +2859,19 @@ func (du *DatabaseUpdate) UnmarshalJSON(body []byte) error {
 
 // DatabaseUsage the database usages.
 type DatabaseUsage struct {
-	// Name - READ-ONLY; The name of the usage metric.
+	// Name - The name of the usage metric.
 	Name *string `json:"name,omitempty"`
-	// ResourceName - READ-ONLY; The name of the resource.
+	// ResourceName - The name of the resource.
 	ResourceName *string `json:"resourceName,omitempty"`
-	// DisplayName - READ-ONLY; The usage metric display name.
+	// DisplayName - The usage metric display name.
 	DisplayName *string `json:"displayName,omitempty"`
-	// CurrentValue - READ-ONLY; The current value of the usage metric.
+	// CurrentValue - The current value of the usage metric.
 	CurrentValue *float64 `json:"currentValue,omitempty"`
-	// Limit - READ-ONLY; The current limit of the usage metric.
+	// Limit - The current limit of the usage metric.
 	Limit *float64 `json:"limit,omitempty"`
-	// Unit - READ-ONLY; The units of the usage metric.
+	// Unit - The units of the usage metric.
 	Unit *string `json:"unit,omitempty"`
-	// NextResetTime - READ-ONLY; The next reset time for the usage metric (ISO8601 format).
+	// NextResetTime - The next reset time for the usage metric (ISO8601 format).
 	NextResetTime *date.Time `json:"nextResetTime,omitempty"`
 }
 
@@ -2962,11 +2887,11 @@ type DatabaseVulnerabilityAssessment struct {
 	autorest.Response `json:"-"`
 	// DatabaseVulnerabilityAssessmentProperties - Resource properties.
 	*DatabaseVulnerabilityAssessmentProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2975,6 +2900,15 @@ func (dva DatabaseVulnerabilityAssessment) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dva.DatabaseVulnerabilityAssessmentProperties != nil {
 		objectMap["properties"] = dva.DatabaseVulnerabilityAssessmentProperties
+	}
+	if dva.ID != nil {
+		objectMap["id"] = dva.ID
+	}
+	if dva.Name != nil {
+		objectMap["name"] = dva.Name
+	}
+	if dva.Type != nil {
+		objectMap["type"] = dva.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3030,160 +2964,13 @@ func (dva *DatabaseVulnerabilityAssessment) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// DatabaseVulnerabilityAssessmentListResult a list of the database's vulnerability assessments.
-type DatabaseVulnerabilityAssessmentListResult struct {
-	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
-	Value *[]DatabaseVulnerabilityAssessment `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// DatabaseVulnerabilityAssessmentListResultIterator provides access to a complete listing of
-// DatabaseVulnerabilityAssessment values.
-type DatabaseVulnerabilityAssessmentListResultIterator struct {
-	i    int
-	page DatabaseVulnerabilityAssessmentListResultPage
-}
-
-// NextWithContext advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *DatabaseVulnerabilityAssessmentListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabaseVulnerabilityAssessmentListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err = iter.page.NextWithContext(ctx)
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *DatabaseVulnerabilityAssessmentListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter DatabaseVulnerabilityAssessmentListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter DatabaseVulnerabilityAssessmentListResultIterator) Response() DatabaseVulnerabilityAssessmentListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter DatabaseVulnerabilityAssessmentListResultIterator) Value() DatabaseVulnerabilityAssessment {
-	if !iter.page.NotDone() {
-		return DatabaseVulnerabilityAssessment{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// Creates a new instance of the DatabaseVulnerabilityAssessmentListResultIterator type.
-func NewDatabaseVulnerabilityAssessmentListResultIterator(page DatabaseVulnerabilityAssessmentListResultPage) DatabaseVulnerabilityAssessmentListResultIterator {
-	return DatabaseVulnerabilityAssessmentListResultIterator{page: page}
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (dvalr DatabaseVulnerabilityAssessmentListResult) IsEmpty() bool {
-	return dvalr.Value == nil || len(*dvalr.Value) == 0
-}
-
-// databaseVulnerabilityAssessmentListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (dvalr DatabaseVulnerabilityAssessmentListResult) databaseVulnerabilityAssessmentListResultPreparer(ctx context.Context) (*http.Request, error) {
-	if dvalr.NextLink == nil || len(to.String(dvalr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(dvalr.NextLink)))
-}
-
-// DatabaseVulnerabilityAssessmentListResultPage contains a page of DatabaseVulnerabilityAssessment values.
-type DatabaseVulnerabilityAssessmentListResultPage struct {
-	fn    func(context.Context, DatabaseVulnerabilityAssessmentListResult) (DatabaseVulnerabilityAssessmentListResult, error)
-	dvalr DatabaseVulnerabilityAssessmentListResult
-}
-
-// NextWithContext advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *DatabaseVulnerabilityAssessmentListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DatabaseVulnerabilityAssessmentListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.dvalr)
-	if err != nil {
-		return err
-	}
-	page.dvalr = next
-	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *DatabaseVulnerabilityAssessmentListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page DatabaseVulnerabilityAssessmentListResultPage) NotDone() bool {
-	return !page.dvalr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page DatabaseVulnerabilityAssessmentListResultPage) Response() DatabaseVulnerabilityAssessmentListResult {
-	return page.dvalr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page DatabaseVulnerabilityAssessmentListResultPage) Values() []DatabaseVulnerabilityAssessment {
-	if page.dvalr.IsEmpty() {
-		return nil
-	}
-	return *page.dvalr.Value
-}
-
-// Creates a new instance of the DatabaseVulnerabilityAssessmentListResultPage type.
-func NewDatabaseVulnerabilityAssessmentListResultPage(getNextPage func(context.Context, DatabaseVulnerabilityAssessmentListResult) (DatabaseVulnerabilityAssessmentListResult, error)) DatabaseVulnerabilityAssessmentListResultPage {
-	return DatabaseVulnerabilityAssessmentListResultPage{fn: getNextPage}
-}
-
 // DatabaseVulnerabilityAssessmentProperties properties of a database Vulnerability Assessment.
 type DatabaseVulnerabilityAssessmentProperties struct {
-	// StorageContainerPath - A blob storage container path to hold the scan results (e.g. https://myStorage.blob.core.windows.net/VaScans/).  It is required if server level vulnerability assessment policy doesn't set
+	// StorageContainerPath - A blob storage container path to hold the scan results (e.g. https://myStorage.blob.core.windows.net/VaScans/).
 	StorageContainerPath *string `json:"storageContainerPath,omitempty"`
 	// StorageContainerSasKey - A shared access signature (SAS Key) that has write access to the blob container specified in 'storageContainerPath' parameter. If 'storageAccountAccessKey' isn't specified, StorageContainerSasKey is required.
 	StorageContainerSasKey *string `json:"storageContainerSasKey,omitempty"`
-	// StorageAccountAccessKey - Specifies the identifier key of the storage account for vulnerability assessment scan results. If 'StorageContainerSasKey' isn't specified, storageAccountAccessKey is required.
+	// StorageAccountAccessKey - Specifies the identifier key of the vulnerability assessment storage account. If 'StorageContainerSasKey' isn't specified, storageAccountAccessKey is required.
 	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
 	// RecurringScans - The recurring scans settings
 	RecurringScans *VulnerabilityAssessmentRecurringScansProperties `json:"recurringScans,omitempty"`
@@ -3194,11 +2981,11 @@ type DatabaseVulnerabilityAssessmentRuleBaseline struct {
 	autorest.Response `json:"-"`
 	// DatabaseVulnerabilityAssessmentRuleBaselineProperties - Resource properties.
 	*DatabaseVulnerabilityAssessmentRuleBaselineProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3207,6 +2994,15 @@ func (dvarb DatabaseVulnerabilityAssessmentRuleBaseline) MarshalJSON() ([]byte, 
 	objectMap := make(map[string]interface{})
 	if dvarb.DatabaseVulnerabilityAssessmentRuleBaselineProperties != nil {
 		objectMap["properties"] = dvarb.DatabaseVulnerabilityAssessmentRuleBaselineProperties
+	}
+	if dvarb.ID != nil {
+		objectMap["id"] = dvarb.ID
+	}
+	if dvarb.Name != nil {
+		objectMap["name"] = dvarb.Name
+	}
+	if dvarb.Type != nil {
+		objectMap["type"] = dvarb.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3262,15 +3058,15 @@ func (dvarb *DatabaseVulnerabilityAssessmentRuleBaseline) UnmarshalJSON(body []b
 	return nil
 }
 
-// DatabaseVulnerabilityAssessmentRuleBaselineItem properties for an Azure SQL Database Vulnerability
-// Assessment rule baseline's result.
+// DatabaseVulnerabilityAssessmentRuleBaselineItem properties for an Azure SQL Database Vulnerability Assessment
+// rule baseline's result.
 type DatabaseVulnerabilityAssessmentRuleBaselineItem struct {
 	// Result - The rule baseline result
 	Result *[]string `json:"result,omitempty"`
 }
 
-// DatabaseVulnerabilityAssessmentRuleBaselineProperties properties of a database Vulnerability Assessment
-// rule baseline.
+// DatabaseVulnerabilityAssessmentRuleBaselineProperties properties of a database Vulnerability Assessment rule
+// baseline.
 type DatabaseVulnerabilityAssessmentRuleBaselineProperties struct {
 	// BaselineResults - The rule baseline result
 	BaselineResults *[]DatabaseVulnerabilityAssessmentRuleBaselineItem `json:"baselineResults,omitempty"`
@@ -3281,15 +3077,15 @@ type DataMaskingPolicy struct {
 	autorest.Response `json:"-"`
 	// DataMaskingPolicyProperties - The properties of the data masking policy.
 	*DataMaskingPolicyProperties `json:"properties,omitempty"`
-	// Location - READ-ONLY; The location of the data masking policy.
+	// Location - The location of the data masking policy.
 	Location *string `json:"location,omitempty"`
-	// Kind - READ-ONLY; The kind of data masking policy. Metadata, used for Azure portal.
+	// Kind - The kind of data masking policy. Metadata, used for Azure portal.
 	Kind *string `json:"kind,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3298,6 +3094,21 @@ func (dmp DataMaskingPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dmp.DataMaskingPolicyProperties != nil {
 		objectMap["properties"] = dmp.DataMaskingPolicyProperties
+	}
+	if dmp.Location != nil {
+		objectMap["location"] = dmp.Location
+	}
+	if dmp.Kind != nil {
+		objectMap["kind"] = dmp.Kind
+	}
+	if dmp.ID != nil {
+		objectMap["id"] = dmp.ID
+	}
+	if dmp.Name != nil {
+		objectMap["name"] = dmp.Name
+	}
+	if dmp.Type != nil {
+		objectMap["type"] = dmp.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3377,9 +3188,9 @@ type DataMaskingPolicyProperties struct {
 	DataMaskingState DataMaskingState `json:"dataMaskingState,omitempty"`
 	// ExemptPrincipals - The list of the exempt principals. Specifies the semicolon-separated list of database users for which the data masking policy does not apply. The specified users receive data results without masking for all of the database queries.
 	ExemptPrincipals *string `json:"exemptPrincipals,omitempty"`
-	// ApplicationPrincipals - READ-ONLY; The list of the application principals. This is a legacy parameter and is no longer used.
+	// ApplicationPrincipals - The list of the application principals. This is a legacy parameter and is no longer used.
 	ApplicationPrincipals *string `json:"applicationPrincipals,omitempty"`
-	// MaskingLevel - READ-ONLY; The masking level. This is a legacy parameter and is no longer used.
+	// MaskingLevel - The masking level. This is a legacy parameter and is no longer used.
 	MaskingLevel *string `json:"maskingLevel,omitempty"`
 }
 
@@ -3388,15 +3199,15 @@ type DataMaskingRule struct {
 	autorest.Response `json:"-"`
 	// DataMaskingRuleProperties - The properties of the resource.
 	*DataMaskingRuleProperties `json:"properties,omitempty"`
-	// Location - READ-ONLY; The location of the data masking rule.
+	// Location - The location of the data masking rule.
 	Location *string `json:"location,omitempty"`
-	// Kind - READ-ONLY; The kind of Data Masking Rule. Metadata, used for Azure portal.
+	// Kind - The kind of Data Masking Rule. Metadata, used for Azure portal.
 	Kind *string `json:"kind,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3405,6 +3216,21 @@ func (dmr DataMaskingRule) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dmr.DataMaskingRuleProperties != nil {
 		objectMap["properties"] = dmr.DataMaskingRuleProperties
+	}
+	if dmr.Location != nil {
+		objectMap["location"] = dmr.Location
+	}
+	if dmr.Kind != nil {
+		objectMap["kind"] = dmr.Kind
+	}
+	if dmr.ID != nil {
+		objectMap["id"] = dmr.ID
+	}
+	if dmr.Name != nil {
+		objectMap["name"] = dmr.Name
+	}
+	if dmr.Type != nil {
+		objectMap["type"] = dmr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3487,7 +3313,7 @@ type DataMaskingRuleListResult struct {
 
 // DataMaskingRuleProperties the properties of a database data masking rule.
 type DataMaskingRuleProperties struct {
-	// ID - READ-ONLY; The rule Id.
+	// ID - The rule Id.
 	ID *string `json:"id,omitempty"`
 	// AliasName - The alias name. This is a legacy parameter and is no longer used.
 	AliasName *string `json:"aliasName,omitempty"`
@@ -3518,11 +3344,11 @@ type DataWarehouseUserActivities struct {
 	autorest.Response `json:"-"`
 	// DataWarehouseUserActivitiesProperties - Resource properties.
 	*DataWarehouseUserActivitiesProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3531,6 +3357,15 @@ func (dwua DataWarehouseUserActivities) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dwua.DataWarehouseUserActivitiesProperties != nil {
 		objectMap["properties"] = dwua.DataWarehouseUserActivitiesProperties
+	}
+	if dwua.ID != nil {
+		objectMap["id"] = dwua.ID
+	}
+	if dwua.Name != nil {
+		objectMap["name"] = dwua.Name
+	}
+	if dwua.Type != nil {
+		objectMap["type"] = dwua.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3586,23 +3421,23 @@ func (dwua *DataWarehouseUserActivities) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// DataWarehouseUserActivitiesProperties user activities of a data warehouse. This currently includes the
-// count of running or suspended queries. For more information, please view the sys.dm_pdw_exec_requests
-// dynamic management view (DMV).
+// DataWarehouseUserActivitiesProperties user activities of a data warehouse. This currently includes the count of
+// running or suspended queries. For more information, please view the sys.dm_pdw_exec_requests dynamic management
+// view (DMV).
 type DataWarehouseUserActivitiesProperties struct {
-	// ActiveQueriesCount - READ-ONLY; Count of running and suspended queries.
+	// ActiveQueriesCount - Count of running and suspended queries.
 	ActiveQueriesCount *int32 `json:"activeQueriesCount,omitempty"`
 }
 
 // EditionCapability the database edition capabilities.
 type EditionCapability struct {
-	// Name - READ-ONLY; The edition name.
+	// Name - The edition name.
 	Name *string `json:"name,omitempty"`
-	// Status - READ-ONLY; The status of the edition. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	// Status - The status of the edition. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
 	Status CapabilityStatus `json:"status,omitempty"`
-	// SupportedServiceLevelObjectives - READ-ONLY; The list of supported service objectives for the edition.
+	// SupportedServiceLevelObjectives - The list of supported service objectives for the edition.
 	SupportedServiceLevelObjectives *[]ServiceObjectiveCapability `json:"supportedServiceLevelObjectives,omitempty"`
-	// ZoneRedundant - READ-ONLY; Whether or not zone redundancy is supported for the edition.
+	// ZoneRedundant - Whether or not zone redundancy is supported for the edition.
 	ZoneRedundant *bool `json:"zoneRedundant,omitempty"`
 }
 
@@ -3611,17 +3446,17 @@ type ElasticPool struct {
 	autorest.Response `json:"-"`
 	// ElasticPoolProperties - The properties representing the resource.
 	*ElasticPoolProperties `json:"properties,omitempty"`
-	// Kind - READ-ONLY; Kind of elastic pool.  This is metadata used for the Azure portal experience.
+	// Kind - Kind of elastic pool.  This is metadata used for the Azure portal experience.
 	Kind *string `json:"kind,omitempty"`
 	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3631,11 +3466,23 @@ func (ep ElasticPool) MarshalJSON() ([]byte, error) {
 	if ep.ElasticPoolProperties != nil {
 		objectMap["properties"] = ep.ElasticPoolProperties
 	}
+	if ep.Kind != nil {
+		objectMap["kind"] = ep.Kind
+	}
 	if ep.Location != nil {
 		objectMap["location"] = ep.Location
 	}
 	if ep.Tags != nil {
 		objectMap["tags"] = ep.Tags
+	}
+	if ep.ID != nil {
+		objectMap["id"] = ep.ID
+	}
+	if ep.Name != nil {
+		objectMap["name"] = ep.Name
+	}
+	if ep.Type != nil {
+		objectMap["type"] = ep.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3724,11 +3571,11 @@ type ElasticPoolActivity struct {
 	Location *string `json:"location,omitempty"`
 	// ElasticPoolActivityProperties - The properties representing the resource.
 	*ElasticPoolActivityProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3740,6 +3587,15 @@ func (epa ElasticPoolActivity) MarshalJSON() ([]byte, error) {
 	}
 	if epa.ElasticPoolActivityProperties != nil {
 		objectMap["properties"] = epa.ElasticPoolActivityProperties
+	}
+	if epa.ID != nil {
+		objectMap["id"] = epa.ID
+	}
+	if epa.Name != nil {
+		objectMap["name"] = epa.Name
+	}
+	if epa.Type != nil {
+		objectMap["type"] = epa.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3813,45 +3669,45 @@ type ElasticPoolActivityListResult struct {
 
 // ElasticPoolActivityProperties represents the properties of an elastic pool.
 type ElasticPoolActivityProperties struct {
-	// EndTime - READ-ONLY; The time the operation finished (ISO8601 format).
+	// EndTime - The time the operation finished (ISO8601 format).
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// ErrorCode - READ-ONLY; The error code if available.
+	// ErrorCode - The error code if available.
 	ErrorCode *int32 `json:"errorCode,omitempty"`
-	// ErrorMessage - READ-ONLY; The error message if available.
+	// ErrorMessage - The error message if available.
 	ErrorMessage *string `json:"errorMessage,omitempty"`
-	// ErrorSeverity - READ-ONLY; The error severity if available.
+	// ErrorSeverity - The error severity if available.
 	ErrorSeverity *int32 `json:"errorSeverity,omitempty"`
-	// Operation - READ-ONLY; The operation name.
+	// Operation - The operation name.
 	Operation *string `json:"operation,omitempty"`
-	// OperationID - READ-ONLY; The unique operation ID.
+	// OperationID - The unique operation ID.
 	OperationID *uuid.UUID `json:"operationId,omitempty"`
-	// PercentComplete - READ-ONLY; The percentage complete if available.
+	// PercentComplete - The percentage complete if available.
 	PercentComplete *int32 `json:"percentComplete,omitempty"`
-	// RequestedDatabaseDtuMax - READ-ONLY; The requested max DTU per database if available.
+	// RequestedDatabaseDtuMax - The requested max DTU per database if available.
 	RequestedDatabaseDtuMax *int32 `json:"requestedDatabaseDtuMax,omitempty"`
-	// RequestedDatabaseDtuMin - READ-ONLY; The requested min DTU per database if available.
+	// RequestedDatabaseDtuMin - The requested min DTU per database if available.
 	RequestedDatabaseDtuMin *int32 `json:"requestedDatabaseDtuMin,omitempty"`
-	// RequestedDtu - READ-ONLY; The requested DTU for the pool if available.
+	// RequestedDtu - The requested DTU for the pool if available.
 	RequestedDtu *int32 `json:"requestedDtu,omitempty"`
-	// RequestedElasticPoolName - READ-ONLY; The requested name for the elastic pool if available.
+	// RequestedElasticPoolName - The requested name for the elastic pool if available.
 	RequestedElasticPoolName *string `json:"requestedElasticPoolName,omitempty"`
-	// RequestedStorageLimitInGB - READ-ONLY; The requested storage limit for the pool in GB if available.
+	// RequestedStorageLimitInGB - The requested storage limit for the pool in GB if available.
 	RequestedStorageLimitInGB *int64 `json:"requestedStorageLimitInGB,omitempty"`
-	// ElasticPoolName - READ-ONLY; The name of the elastic pool.
+	// ElasticPoolName - The name of the elastic pool.
 	ElasticPoolName *string `json:"elasticPoolName,omitempty"`
-	// ServerName - READ-ONLY; The name of the server the elastic pool is in.
+	// ServerName - The name of the server the elastic pool is in.
 	ServerName *string `json:"serverName,omitempty"`
-	// StartTime - READ-ONLY; The time the operation started (ISO8601 format).
+	// StartTime - The time the operation started (ISO8601 format).
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// State - READ-ONLY; The current state of the operation.
+	// State - The current state of the operation.
 	State *string `json:"state,omitempty"`
-	// RequestedStorageLimitInMB - READ-ONLY; The requested storage limit in MB.
+	// RequestedStorageLimitInMB - The requested storage limit in MB.
 	RequestedStorageLimitInMB *int32 `json:"requestedStorageLimitInMB,omitempty"`
-	// RequestedDatabaseDtuGuarantee - READ-ONLY; The requested per database DTU guarantee.
+	// RequestedDatabaseDtuGuarantee - The requested per database DTU guarantee.
 	RequestedDatabaseDtuGuarantee *int32 `json:"requestedDatabaseDtuGuarantee,omitempty"`
-	// RequestedDatabaseDtuCap - READ-ONLY; The requested per database DTU cap.
+	// RequestedDatabaseDtuCap - The requested per database DTU cap.
 	RequestedDatabaseDtuCap *int32 `json:"requestedDatabaseDtuCap,omitempty"`
-	// RequestedDtuGuarantee - READ-ONLY; The requested DTU guarantee.
+	// RequestedDtuGuarantee - The requested DTU guarantee.
 	RequestedDtuGuarantee *int32 `json:"requestedDtuGuarantee,omitempty"`
 }
 
@@ -3861,11 +3717,11 @@ type ElasticPoolDatabaseActivity struct {
 	Location *string `json:"location,omitempty"`
 	// ElasticPoolDatabaseActivityProperties - The properties representing the resource.
 	*ElasticPoolDatabaseActivityProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3877,6 +3733,15 @@ func (epda ElasticPoolDatabaseActivity) MarshalJSON() ([]byte, error) {
 	}
 	if epda.ElasticPoolDatabaseActivityProperties != nil {
 		objectMap["properties"] = epda.ElasticPoolDatabaseActivityProperties
+	}
+	if epda.ID != nil {
+		objectMap["id"] = epda.ID
+	}
+	if epda.Name != nil {
+		objectMap["name"] = epda.Name
+	}
+	if epda.Type != nil {
+		objectMap["type"] = epda.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3941,8 +3806,7 @@ func (epda *ElasticPoolDatabaseActivity) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ElasticPoolDatabaseActivityListResult represents the response to a list elastic pool database activity
-// request.
+// ElasticPoolDatabaseActivityListResult represents the response to a list elastic pool database activity request.
 type ElasticPoolDatabaseActivityListResult struct {
 	autorest.Response `json:"-"`
 	// Value - The list of elastic pool database activities.
@@ -3951,65 +3815,65 @@ type ElasticPoolDatabaseActivityListResult struct {
 
 // ElasticPoolDatabaseActivityProperties represents the properties of an elastic pool database activity.
 type ElasticPoolDatabaseActivityProperties struct {
-	// DatabaseName - READ-ONLY; The database name.
+	// DatabaseName - The database name.
 	DatabaseName *string `json:"databaseName,omitempty"`
-	// EndTime - READ-ONLY; The time the operation finished (ISO8601 format).
+	// EndTime - The time the operation finished (ISO8601 format).
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// ErrorCode - READ-ONLY; The error code if available.
+	// ErrorCode - The error code if available.
 	ErrorCode *int32 `json:"errorCode,omitempty"`
-	// ErrorMessage - READ-ONLY; The error message if available.
+	// ErrorMessage - The error message if available.
 	ErrorMessage *string `json:"errorMessage,omitempty"`
-	// ErrorSeverity - READ-ONLY; The error severity if available.
+	// ErrorSeverity - The error severity if available.
 	ErrorSeverity *int32 `json:"errorSeverity,omitempty"`
-	// Operation - READ-ONLY; The operation name.
+	// Operation - The operation name.
 	Operation *string `json:"operation,omitempty"`
-	// OperationID - READ-ONLY; The unique operation ID.
+	// OperationID - The unique operation ID.
 	OperationID *uuid.UUID `json:"operationId,omitempty"`
-	// PercentComplete - READ-ONLY; The percentage complete if available.
+	// PercentComplete - The percentage complete if available.
 	PercentComplete *int32 `json:"percentComplete,omitempty"`
-	// RequestedElasticPoolName - READ-ONLY; The name for the elastic pool the database is moving into if available.
+	// RequestedElasticPoolName - The name for the elastic pool the database is moving into if available.
 	RequestedElasticPoolName *string `json:"requestedElasticPoolName,omitempty"`
-	// CurrentElasticPoolName - READ-ONLY; The name of the current elastic pool the database is in if available.
+	// CurrentElasticPoolName - The name of the current elastic pool the database is in if available.
 	CurrentElasticPoolName *string `json:"currentElasticPoolName,omitempty"`
-	// CurrentServiceObjective - READ-ONLY; The name of the current service objective if available.
+	// CurrentServiceObjective - The name of the current service objective if available.
 	CurrentServiceObjective *string `json:"currentServiceObjective,omitempty"`
-	// RequestedServiceObjective - READ-ONLY; The name of the requested service objective if available.
+	// RequestedServiceObjective - The name of the requested service objective if available.
 	RequestedServiceObjective *string `json:"requestedServiceObjective,omitempty"`
-	// ServerName - READ-ONLY; The name of the server the elastic pool is in.
+	// ServerName - The name of the server the elastic pool is in.
 	ServerName *string `json:"serverName,omitempty"`
-	// StartTime - READ-ONLY; The time the operation started (ISO8601 format).
+	// StartTime - The time the operation started (ISO8601 format).
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// State - READ-ONLY; The current state of the operation.
+	// State - The current state of the operation.
 	State *string `json:"state,omitempty"`
 }
 
 // ElasticPoolDtuCapability the Elastic Pool DTU capability.
 type ElasticPoolDtuCapability struct {
-	// Limit - READ-ONLY; The maximum size of the database (see 'unit' for the units).
+	// Limit - The maximum size of the database (see 'unit' for the units).
 	Limit *int64 `json:"limit,omitempty"`
-	// MaxDatabaseCount - READ-ONLY; The maximum number of databases supported.
+	// MaxDatabaseCount - The maximum number of databases supported.
 	MaxDatabaseCount *int64 `json:"maxDatabaseCount,omitempty"`
-	// Status - READ-ONLY; The status of the capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	// Status - The status of the capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
 	Status CapabilityStatus `json:"status,omitempty"`
-	// SupportedMaxSizes - READ-ONLY; The list of supported max sizes.
+	// SupportedMaxSizes - The list of supported max sizes.
 	SupportedMaxSizes *[]MaxSizeCapability `json:"supportedMaxSizes,omitempty"`
-	// IncludedMaxSize - READ-ONLY; The included (free) max size for this service level objective.
+	// IncludedMaxSize - The included (free) max size for this service level objective.
 	IncludedMaxSize *MaxSizeCapability `json:"includedMaxSize,omitempty"`
-	// SupportedPerDatabaseMaxSizes - READ-ONLY; The list of supported max database sizes.
+	// SupportedPerDatabaseMaxSizes - The list of supported max database sizes.
 	SupportedPerDatabaseMaxSizes *[]MaxSizeCapability `json:"supportedPerDatabaseMaxSizes,omitempty"`
-	// SupportedPerDatabaseMaxDtus - READ-ONLY; The list of supported max database DTUs.
+	// SupportedPerDatabaseMaxDtus - The list of supported max database DTUs.
 	SupportedPerDatabaseMaxDtus *[]ElasticPoolPerDatabaseMaxDtuCapability `json:"supportedPerDatabaseMaxDtus,omitempty"`
 }
 
 // ElasticPoolEditionCapability the elastic pool edition capabilities.
 type ElasticPoolEditionCapability struct {
-	// Name - READ-ONLY; The elastic pool edition name.
+	// Name - The elastic pool edition name.
 	Name *string `json:"name,omitempty"`
-	// Status - READ-ONLY; The status of the elastic pool edition. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	// Status - The status of the elastic pool edition. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
 	Status CapabilityStatus `json:"status,omitempty"`
-	// SupportedElasticPoolDtus - READ-ONLY; The list of supported elastic pool DTU levels for the edition.
+	// SupportedElasticPoolDtus - The list of supported elastic pool DTU levels for the edition.
 	SupportedElasticPoolDtus *[]ElasticPoolDtuCapability `json:"supportedElasticPoolDtus,omitempty"`
-	// ZoneRedundant - READ-ONLY; Whether or not zone redundancy is supported for the edition.
+	// ZoneRedundant - Whether or not zone redundancy is supported for the edition.
 	ZoneRedundant *bool `json:"zoneRedundant,omitempty"`
 }
 
@@ -4022,29 +3886,29 @@ type ElasticPoolListResult struct {
 
 // ElasticPoolPerDatabaseMaxDtuCapability the max per-database DTU capability.
 type ElasticPoolPerDatabaseMaxDtuCapability struct {
-	// Limit - READ-ONLY; The maximum DTUs per database.
+	// Limit - The maximum DTUs per database.
 	Limit *int64 `json:"limit,omitempty"`
-	// Status - READ-ONLY; The status of the capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	// Status - The status of the capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
 	Status CapabilityStatus `json:"status,omitempty"`
-	// SupportedPerDatabaseMinDtus - READ-ONLY; The list of supported min database DTUs.
+	// SupportedPerDatabaseMinDtus - The list of supported min database DTUs.
 	SupportedPerDatabaseMinDtus *[]ElasticPoolPerDatabaseMinDtuCapability `json:"supportedPerDatabaseMinDtus,omitempty"`
 }
 
 // ElasticPoolPerDatabaseMinDtuCapability the minimum per-database DTU capability.
 type ElasticPoolPerDatabaseMinDtuCapability struct {
-	// Limit - READ-ONLY; The maximum DTUs per database.
+	// Limit - The maximum DTUs per database.
 	Limit *int64 `json:"limit,omitempty"`
-	// Status - READ-ONLY; The status of the capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	// Status - The status of the capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
 	Status CapabilityStatus `json:"status,omitempty"`
 }
 
 // ElasticPoolProperties represents the properties of an elastic pool.
 type ElasticPoolProperties struct {
-	// CreationDate - READ-ONLY; The creation date of the elastic pool (ISO8601 format).
+	// CreationDate - The creation date of the elastic pool (ISO8601 format).
 	CreationDate *date.Time `json:"creationDate,omitempty"`
-	// State - READ-ONLY; The state of the elastic pool. Possible values include: 'ElasticPoolStateCreating', 'ElasticPoolStateReady', 'ElasticPoolStateDisabled'
+	// State - The state of the elastic pool. Possible values include: 'ElasticPoolStateCreating', 'ElasticPoolStateReady', 'ElasticPoolStateDisabled'
 	State ElasticPoolState `json:"state,omitempty"`
-	// Edition - The edition of the elastic pool. Possible values include: 'ElasticPoolEditionBasic', 'ElasticPoolEditionStandard', 'ElasticPoolEditionPremium', 'ElasticPoolEditionGeneralPurpose', 'ElasticPoolEditionBusinessCritical'
+	// Edition - The edition of the elastic pool. Possible values include: 'ElasticPoolEditionBasic', 'ElasticPoolEditionStandard', 'ElasticPoolEditionPremium'
 	Edition ElasticPoolEdition `json:"edition,omitempty"`
 	// Dtu - The total shared DTU for the database elastic pool.
 	Dtu *int32 `json:"dtu,omitempty"`
@@ -4058,8 +3922,8 @@ type ElasticPoolProperties struct {
 	ZoneRedundant *bool `json:"zoneRedundant,omitempty"`
 }
 
-// ElasticPoolsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// ElasticPoolsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type ElasticPoolsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -4068,7 +3932,7 @@ type ElasticPoolsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ElasticPoolsCreateOrUpdateFuture) Result(client ElasticPoolsClient) (ep ElasticPool, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4087,8 +3951,7 @@ func (future *ElasticPoolsCreateOrUpdateFuture) Result(client ElasticPoolsClient
 	return
 }
 
-// ElasticPoolsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ElasticPoolsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ElasticPoolsUpdateFuture struct {
 	azure.Future
 }
@@ -4097,7 +3960,7 @@ type ElasticPoolsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ElasticPoolsUpdateFuture) Result(client ElasticPoolsClient) (ep ElasticPool, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4122,11 +3985,11 @@ type ElasticPoolUpdate struct {
 	Tags map[string]*string `json:"tags"`
 	// ElasticPoolProperties - The properties representing the resource.
 	*ElasticPoolProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4138,6 +4001,15 @@ func (epu ElasticPoolUpdate) MarshalJSON() ([]byte, error) {
 	}
 	if epu.ElasticPoolProperties != nil {
 		objectMap["properties"] = epu.ElasticPoolProperties
+	}
+	if epu.ID != nil {
+		objectMap["id"] = epu.ID
+	}
+	if epu.Name != nil {
+		objectMap["name"] = epu.Name
+	}
+	if epu.Type != nil {
+		objectMap["type"] = epu.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4207,15 +4079,15 @@ type EncryptionProtector struct {
 	autorest.Response `json:"-"`
 	// Kind - Kind of encryption protector. This is metadata used for the Azure portal experience.
 	Kind *string `json:"kind,omitempty"`
-	// Location - READ-ONLY; Resource location.
+	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
 	// EncryptionProtectorProperties - Resource properties.
 	*EncryptionProtectorProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4225,8 +4097,20 @@ func (ep EncryptionProtector) MarshalJSON() ([]byte, error) {
 	if ep.Kind != nil {
 		objectMap["kind"] = ep.Kind
 	}
+	if ep.Location != nil {
+		objectMap["location"] = ep.Location
+	}
 	if ep.EncryptionProtectorProperties != nil {
 		objectMap["properties"] = ep.EncryptionProtectorProperties
+	}
+	if ep.ID != nil {
+		objectMap["id"] = ep.ID
+	}
+	if ep.Name != nil {
+		objectMap["name"] = ep.Name
+	}
+	if ep.Type != nil {
+		objectMap["type"] = ep.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4303,50 +4187,32 @@ func (ep *EncryptionProtector) UnmarshalJSON(body []byte) error {
 // EncryptionProtectorListResult a list of server encryption protectors.
 type EncryptionProtectorListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]EncryptionProtector `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// EncryptionProtectorListResultIterator provides access to a complete listing of EncryptionProtector
-// values.
+// EncryptionProtectorListResultIterator provides access to a complete listing of EncryptionProtector values.
 type EncryptionProtectorListResultIterator struct {
 	i    int
 	page EncryptionProtectorListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *EncryptionProtectorListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/EncryptionProtectorListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *EncryptionProtectorListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *EncryptionProtectorListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -4368,11 +4234,6 @@ func (iter EncryptionProtectorListResultIterator) Value() EncryptionProtector {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the EncryptionProtectorListResultIterator type.
-func NewEncryptionProtectorListResultIterator(page EncryptionProtectorListResultPage) EncryptionProtectorListResultIterator {
-	return EncryptionProtectorListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (eplr EncryptionProtectorListResult) IsEmpty() bool {
 	return eplr.Value == nil || len(*eplr.Value) == 0
@@ -4380,11 +4241,11 @@ func (eplr EncryptionProtectorListResult) IsEmpty() bool {
 
 // encryptionProtectorListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (eplr EncryptionProtectorListResult) encryptionProtectorListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (eplr EncryptionProtectorListResult) encryptionProtectorListResultPreparer() (*http.Request, error) {
 	if eplr.NextLink == nil || len(to.String(eplr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(eplr.NextLink)))
@@ -4392,36 +4253,19 @@ func (eplr EncryptionProtectorListResult) encryptionProtectorListResultPreparer(
 
 // EncryptionProtectorListResultPage contains a page of EncryptionProtector values.
 type EncryptionProtectorListResultPage struct {
-	fn   func(context.Context, EncryptionProtectorListResult) (EncryptionProtectorListResult, error)
+	fn   func(EncryptionProtectorListResult) (EncryptionProtectorListResult, error)
 	eplr EncryptionProtectorListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *EncryptionProtectorListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/EncryptionProtectorListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.eplr)
+func (page *EncryptionProtectorListResultPage) Next() error {
+	next, err := page.fn(page.eplr)
 	if err != nil {
 		return err
 	}
 	page.eplr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *EncryptionProtectorListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -4442,22 +4286,17 @@ func (page EncryptionProtectorListResultPage) Values() []EncryptionProtector {
 	return *page.eplr.Value
 }
 
-// Creates a new instance of the EncryptionProtectorListResultPage type.
-func NewEncryptionProtectorListResultPage(getNextPage func(context.Context, EncryptionProtectorListResult) (EncryptionProtectorListResult, error)) EncryptionProtectorListResultPage {
-	return EncryptionProtectorListResultPage{fn: getNextPage}
-}
-
 // EncryptionProtectorProperties properties for an encryption protector execution.
 type EncryptionProtectorProperties struct {
-	// Subregion - READ-ONLY; Subregion of the encryption protector.
+	// Subregion - Subregion of the encryption protector.
 	Subregion *string `json:"subregion,omitempty"`
 	// ServerKeyName - The name of the server key.
 	ServerKeyName *string `json:"serverKeyName,omitempty"`
 	// ServerKeyType - The encryption protector type like 'ServiceManaged', 'AzureKeyVault'. Possible values include: 'ServiceManaged', 'AzureKeyVault'
 	ServerKeyType ServerKeyType `json:"serverKeyType,omitempty"`
-	// URI - READ-ONLY; The URI of the server key.
+	// URI - The URI of the server key.
 	URI *string `json:"uri,omitempty"`
-	// Thumbprint - READ-ONLY; Thumbprint of the server key.
+	// Thumbprint - Thumbprint of the server key.
 	Thumbprint *string `json:"thumbprint,omitempty"`
 }
 
@@ -4471,7 +4310,7 @@ type EncryptionProtectorsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *EncryptionProtectorsCreateOrUpdateFuture) Result(client EncryptionProtectorsClient) (ep EncryptionProtector, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.EncryptionProtectorsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4511,11 +4350,11 @@ type ExtendedDatabaseBlobAuditingPolicy struct {
 	autorest.Response `json:"-"`
 	// ExtendedDatabaseBlobAuditingPolicyProperties - Resource properties.
 	*ExtendedDatabaseBlobAuditingPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4524,6 +4363,15 @@ func (edbap ExtendedDatabaseBlobAuditingPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if edbap.ExtendedDatabaseBlobAuditingPolicyProperties != nil {
 		objectMap["properties"] = edbap.ExtendedDatabaseBlobAuditingPolicyProperties
+	}
+	if edbap.ID != nil {
+		objectMap["id"] = edbap.ID
+	}
+	if edbap.Name != nil {
+		objectMap["name"] = edbap.Name
+	}
+	if edbap.Type != nil {
+		objectMap["type"] = edbap.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4583,13 +4431,13 @@ func (edbap *ExtendedDatabaseBlobAuditingPolicy) UnmarshalJSON(body []byte) erro
 type ExtendedDatabaseBlobAuditingPolicyProperties struct {
 	// PredicateExpression - Specifies condition of where clause when creating an audit.
 	PredicateExpression *string `json:"predicateExpression,omitempty"`
-	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint or isAzureMonitorTargetEnabled are required. Possible values include: 'BlobAuditingPolicyStateEnabled', 'BlobAuditingPolicyStateDisabled'
+	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint and storageAccountAccessKey are required. Possible values include: 'BlobAuditingPolicyStateEnabled', 'BlobAuditingPolicyStateDisabled'
 	State BlobAuditingPolicyState `json:"state,omitempty"`
 	// StorageEndpoint - Specifies the blob storage endpoint (e.g. https://MyAccount.blob.core.windows.net). If state is Enabled, storageEndpoint is required.
 	StorageEndpoint *string `json:"storageEndpoint,omitempty"`
-	// StorageAccountAccessKey - Specifies the identifier key of the auditing storage account. If state is Enabled and storageEndpoint is specified, storageAccountAccessKey is required.
+	// StorageAccountAccessKey - Specifies the identifier key of the auditing storage account. If state is Enabled, storageAccountAccessKey is required.
 	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
-	// RetentionDays - Specifies the number of days to keep in the audit logs in the storage account.
+	// RetentionDays - Specifies the number of days to keep in the audit logs.
 	RetentionDays *int32 `json:"retentionDays,omitempty"`
 	// AuditActionsAndGroups - Specifies the Actions-Groups and Actions to audit.
 	//
@@ -4638,9 +4486,9 @@ type ExtendedDatabaseBlobAuditingPolicyProperties struct {
 	// REFERENCES
 	//
 	// The general form for defining an action to be audited is:
-	// {action} ON {object} BY {principal}
+	// <action> ON <object> BY <principal>
 	//
-	// Note that <object> in the above format can refer to an object like a table, view, or stored procedure, or an entire database or schema. For the latter cases, the forms DATABASE::{db_name} and SCHEMA::{schema_name} are used, respectively.
+	// Note that <object> in the above format can refer to an object like a table, view, or stored procedure, or an entire database or schema. For the latter cases, the forms DATABASE::<db_name> and SCHEMA::<schema_name> are used, respectively.
 	//
 	// For example:
 	// SELECT on dbo.myTable by public
@@ -4653,22 +4501,10 @@ type ExtendedDatabaseBlobAuditingPolicyProperties struct {
 	StorageAccountSubscriptionID *uuid.UUID `json:"storageAccountSubscriptionId,omitempty"`
 	// IsStorageSecondaryKeyInUse - Specifies whether storageAccountAccessKey value is the storage's secondary key.
 	IsStorageSecondaryKeyInUse *bool `json:"isStorageSecondaryKeyInUse,omitempty"`
-	// IsAzureMonitorTargetEnabled - Specifies whether audit events are sent to Azure Monitor.
-	// In order to send the events to Azure Monitor, specify 'State' as 'Enabled' and 'IsAzureMonitorTargetEnabled' as true.
-	//
-	// When using REST API to configure auditing, Diagnostic Settings with 'SQLSecurityAuditEvents' diagnostic logs category on the database should be also created.
-	// Note that for server level audit you should use the 'master' database as {databaseName}.
-	//
-	// Diagnostic Settings URI format:
-	// PUT https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Sql/servers/{serverName}/databases/{databaseName}/providers/microsoft.insights/diagnosticSettings/{settingsName}?api-version=2017-05-01-preview
-	//
-	// For more information, see [Diagnostic Settings REST API](https://go.microsoft.com/fwlink/?linkid=2033207)
-	// or [Diagnostic Settings PowerShell](https://go.microsoft.com/fwlink/?linkid=2033043)
-	IsAzureMonitorTargetEnabled *bool `json:"isAzureMonitorTargetEnabled,omitempty"`
 }
 
-// ExtendedServerBlobAuditingPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the
-// results of a long-running operation.
+// ExtendedServerBlobAuditingPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results
+// of a long-running operation.
 type ExtendedServerBlobAuditingPoliciesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -4677,7 +4513,7 @@ type ExtendedServerBlobAuditingPoliciesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ExtendedServerBlobAuditingPoliciesCreateOrUpdateFuture) Result(client ExtendedServerBlobAuditingPoliciesClient) (esbap ExtendedServerBlobAuditingPolicy, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ExtendedServerBlobAuditingPoliciesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4701,11 +4537,11 @@ type ExtendedServerBlobAuditingPolicy struct {
 	autorest.Response `json:"-"`
 	// ExtendedServerBlobAuditingPolicyProperties - Resource properties.
 	*ExtendedServerBlobAuditingPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -4714,6 +4550,15 @@ func (esbap ExtendedServerBlobAuditingPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if esbap.ExtendedServerBlobAuditingPolicyProperties != nil {
 		objectMap["properties"] = esbap.ExtendedServerBlobAuditingPolicyProperties
+	}
+	if esbap.ID != nil {
+		objectMap["id"] = esbap.ID
+	}
+	if esbap.Name != nil {
+		objectMap["name"] = esbap.Name
+	}
+	if esbap.Type != nil {
+		objectMap["type"] = esbap.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4773,13 +4618,13 @@ func (esbap *ExtendedServerBlobAuditingPolicy) UnmarshalJSON(body []byte) error 
 type ExtendedServerBlobAuditingPolicyProperties struct {
 	// PredicateExpression - Specifies condition of where clause when creating an audit.
 	PredicateExpression *string `json:"predicateExpression,omitempty"`
-	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint or isAzureMonitorTargetEnabled are required. Possible values include: 'BlobAuditingPolicyStateEnabled', 'BlobAuditingPolicyStateDisabled'
+	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint and storageAccountAccessKey are required. Possible values include: 'BlobAuditingPolicyStateEnabled', 'BlobAuditingPolicyStateDisabled'
 	State BlobAuditingPolicyState `json:"state,omitempty"`
 	// StorageEndpoint - Specifies the blob storage endpoint (e.g. https://MyAccount.blob.core.windows.net). If state is Enabled, storageEndpoint is required.
 	StorageEndpoint *string `json:"storageEndpoint,omitempty"`
-	// StorageAccountAccessKey - Specifies the identifier key of the auditing storage account. If state is Enabled and storageEndpoint is specified, storageAccountAccessKey is required.
+	// StorageAccountAccessKey - Specifies the identifier key of the auditing storage account. If state is Enabled, storageAccountAccessKey is required.
 	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
-	// RetentionDays - Specifies the number of days to keep in the audit logs in the storage account.
+	// RetentionDays - Specifies the number of days to keep in the audit logs.
 	RetentionDays *int32 `json:"retentionDays,omitempty"`
 	// AuditActionsAndGroups - Specifies the Actions-Groups and Actions to audit.
 	//
@@ -4828,9 +4673,9 @@ type ExtendedServerBlobAuditingPolicyProperties struct {
 	// REFERENCES
 	//
 	// The general form for defining an action to be audited is:
-	// {action} ON {object} BY {principal}
+	// <action> ON <object> BY <principal>
 	//
-	// Note that <object> in the above format can refer to an object like a table, view, or stored procedure, or an entire database or schema. For the latter cases, the forms DATABASE::{db_name} and SCHEMA::{schema_name} are used, respectively.
+	// Note that <object> in the above format can refer to an object like a table, view, or stored procedure, or an entire database or schema. For the latter cases, the forms DATABASE::<db_name> and SCHEMA::<schema_name> are used, respectively.
 	//
 	// For example:
 	// SELECT on dbo.myTable by public
@@ -4843,45 +4688,45 @@ type ExtendedServerBlobAuditingPolicyProperties struct {
 	StorageAccountSubscriptionID *uuid.UUID `json:"storageAccountSubscriptionId,omitempty"`
 	// IsStorageSecondaryKeyInUse - Specifies whether storageAccountAccessKey value is the storage's secondary key.
 	IsStorageSecondaryKeyInUse *bool `json:"isStorageSecondaryKeyInUse,omitempty"`
-	// IsAzureMonitorTargetEnabled - Specifies whether audit events are sent to Azure Monitor.
-	// In order to send the events to Azure Monitor, specify 'State' as 'Enabled' and 'IsAzureMonitorTargetEnabled' as true.
-	//
-	// When using REST API to configure auditing, Diagnostic Settings with 'SQLSecurityAuditEvents' diagnostic logs category on the database should be also created.
-	// Note that for server level audit you should use the 'master' database as {databaseName}.
-	//
-	// Diagnostic Settings URI format:
-	// PUT https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Sql/servers/{serverName}/databases/{databaseName}/providers/microsoft.insights/diagnosticSettings/{settingsName}?api-version=2017-05-01-preview
-	//
-	// For more information, see [Diagnostic Settings REST API](https://go.microsoft.com/fwlink/?linkid=2033207)
-	// or [Diagnostic Settings PowerShell](https://go.microsoft.com/fwlink/?linkid=2033043)
-	IsAzureMonitorTargetEnabled *bool `json:"isAzureMonitorTargetEnabled,omitempty"`
 }
 
 // FailoverGroup a failover group.
 type FailoverGroup struct {
 	autorest.Response `json:"-"`
-	// Location - READ-ONLY; Resource location.
+	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
 	// FailoverGroupProperties - Resource properties.
 	*FailoverGroupProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for FailoverGroup.
 func (fg FailoverGroup) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if fg.Location != nil {
+		objectMap["location"] = fg.Location
+	}
 	if fg.Tags != nil {
 		objectMap["tags"] = fg.Tags
 	}
 	if fg.FailoverGroupProperties != nil {
 		objectMap["properties"] = fg.FailoverGroupProperties
+	}
+	if fg.ID != nil {
+		objectMap["id"] = fg.ID
+	}
+	if fg.Name != nil {
+		objectMap["name"] = fg.Name
+	}
+	if fg.Type != nil {
+		objectMap["type"] = fg.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -4958,9 +4803,9 @@ func (fg *FailoverGroup) UnmarshalJSON(body []byte) error {
 // FailoverGroupListResult a list of failover groups.
 type FailoverGroupListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]FailoverGroup `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -4970,37 +4815,20 @@ type FailoverGroupListResultIterator struct {
 	page FailoverGroupListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *FailoverGroupListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/FailoverGroupListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *FailoverGroupListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *FailoverGroupListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -5022,11 +4850,6 @@ func (iter FailoverGroupListResultIterator) Value() FailoverGroup {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the FailoverGroupListResultIterator type.
-func NewFailoverGroupListResultIterator(page FailoverGroupListResultPage) FailoverGroupListResultIterator {
-	return FailoverGroupListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (fglr FailoverGroupListResult) IsEmpty() bool {
 	return fglr.Value == nil || len(*fglr.Value) == 0
@@ -5034,11 +4857,11 @@ func (fglr FailoverGroupListResult) IsEmpty() bool {
 
 // failoverGroupListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (fglr FailoverGroupListResult) failoverGroupListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (fglr FailoverGroupListResult) failoverGroupListResultPreparer() (*http.Request, error) {
 	if fglr.NextLink == nil || len(to.String(fglr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(fglr.NextLink)))
@@ -5046,36 +4869,19 @@ func (fglr FailoverGroupListResult) failoverGroupListResultPreparer(ctx context.
 
 // FailoverGroupListResultPage contains a page of FailoverGroup values.
 type FailoverGroupListResultPage struct {
-	fn   func(context.Context, FailoverGroupListResult) (FailoverGroupListResult, error)
+	fn   func(FailoverGroupListResult) (FailoverGroupListResult, error)
 	fglr FailoverGroupListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *FailoverGroupListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/FailoverGroupListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.fglr)
+func (page *FailoverGroupListResultPage) Next() error {
+	next, err := page.fn(page.fglr)
 	if err != nil {
 		return err
 	}
 	page.fglr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *FailoverGroupListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -5096,20 +4902,15 @@ func (page FailoverGroupListResultPage) Values() []FailoverGroup {
 	return *page.fglr.Value
 }
 
-// Creates a new instance of the FailoverGroupListResultPage type.
-func NewFailoverGroupListResultPage(getNextPage func(context.Context, FailoverGroupListResult) (FailoverGroupListResult, error)) FailoverGroupListResultPage {
-	return FailoverGroupListResultPage{fn: getNextPage}
-}
-
 // FailoverGroupProperties properties of a failover group.
 type FailoverGroupProperties struct {
 	// ReadWriteEndpoint - Read-write endpoint of the failover group instance.
 	ReadWriteEndpoint *FailoverGroupReadWriteEndpoint `json:"readWriteEndpoint,omitempty"`
 	// ReadOnlyEndpoint - Read-only endpoint of the failover group instance.
 	ReadOnlyEndpoint *FailoverGroupReadOnlyEndpoint `json:"readOnlyEndpoint,omitempty"`
-	// ReplicationRole - READ-ONLY; Local replication role of the failover group instance. Possible values include: 'Primary', 'Secondary'
+	// ReplicationRole - Local replication role of the failover group instance. Possible values include: 'Primary', 'Secondary'
 	ReplicationRole FailoverGroupReplicationRole `json:"replicationRole,omitempty"`
-	// ReplicationState - READ-ONLY; Replication state of the failover group instance.
+	// ReplicationState - Replication state of the failover group instance.
 	ReplicationState *string `json:"replicationState,omitempty"`
 	// PartnerServers - List of partner server information for the failover group.
 	PartnerServers *[]PartnerInfo `json:"partnerServers,omitempty"`
@@ -5131,8 +4932,8 @@ type FailoverGroupReadWriteEndpoint struct {
 	FailoverWithDataLossGracePeriodMinutes *int32 `json:"failoverWithDataLossGracePeriodMinutes,omitempty"`
 }
 
-// FailoverGroupsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// FailoverGroupsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type FailoverGroupsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -5141,7 +4942,7 @@ type FailoverGroupsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FailoverGroupsCreateOrUpdateFuture) Result(client FailoverGroupsClient) (fg FailoverGroup, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.FailoverGroupsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5160,8 +4961,7 @@ func (future *FailoverGroupsCreateOrUpdateFuture) Result(client FailoverGroupsCl
 	return
 }
 
-// FailoverGroupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// FailoverGroupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type FailoverGroupsDeleteFuture struct {
 	azure.Future
 }
@@ -5170,7 +4970,7 @@ type FailoverGroupsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FailoverGroupsDeleteFuture) Result(client FailoverGroupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.FailoverGroupsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5193,7 +4993,7 @@ type FailoverGroupsFailoverFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FailoverGroupsFailoverFuture) Result(client FailoverGroupsClient) (fg FailoverGroup, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.FailoverGroupsFailoverFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5212,8 +5012,8 @@ func (future *FailoverGroupsFailoverFuture) Result(client FailoverGroupsClient) 
 	return
 }
 
-// FailoverGroupsForceFailoverAllowDataLossFuture an abstraction for monitoring and retrieving the results
-// of a long-running operation.
+// FailoverGroupsForceFailoverAllowDataLossFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type FailoverGroupsForceFailoverAllowDataLossFuture struct {
 	azure.Future
 }
@@ -5222,7 +5022,7 @@ type FailoverGroupsForceFailoverAllowDataLossFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FailoverGroupsForceFailoverAllowDataLossFuture) Result(client FailoverGroupsClient) (fg FailoverGroup, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.FailoverGroupsForceFailoverAllowDataLossFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5241,8 +5041,7 @@ func (future *FailoverGroupsForceFailoverAllowDataLossFuture) Result(client Fail
 	return
 }
 
-// FailoverGroupsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// FailoverGroupsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type FailoverGroupsUpdateFuture struct {
 	azure.Future
 }
@@ -5251,7 +5050,7 @@ type FailoverGroupsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FailoverGroupsUpdateFuture) Result(client FailoverGroupsClient) (fg FailoverGroup, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.FailoverGroupsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5336,25 +5135,40 @@ type FailoverGroupUpdateProperties struct {
 // FirewallRule represents a server firewall rule.
 type FirewallRule struct {
 	autorest.Response `json:"-"`
-	// Kind - READ-ONLY; Kind of server that contains this firewall rule.
+	// Kind - Kind of server that contains this firewall rule.
 	Kind *string `json:"kind,omitempty"`
-	// Location - READ-ONLY; Location of the server that contains this firewall rule.
+	// Location - Location of the server that contains this firewall rule.
 	Location *string `json:"location,omitempty"`
 	// FirewallRuleProperties - The properties representing the resource.
 	*FirewallRuleProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for FirewallRule.
 func (fr FirewallRule) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if fr.Kind != nil {
+		objectMap["kind"] = fr.Kind
+	}
+	if fr.Location != nil {
+		objectMap["location"] = fr.Location
+	}
 	if fr.FirewallRuleProperties != nil {
 		objectMap["properties"] = fr.FirewallRuleProperties
+	}
+	if fr.ID != nil {
+		objectMap["id"] = fr.ID
+	}
+	if fr.Name != nil {
+		objectMap["name"] = fr.Name
+	}
+	if fr.Type != nil {
+		objectMap["type"] = fr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -5448,15 +5262,15 @@ type GeoBackupPolicy struct {
 	autorest.Response `json:"-"`
 	// GeoBackupPolicyProperties - The properties of the geo backup policy.
 	*GeoBackupPolicyProperties `json:"properties,omitempty"`
-	// Kind - READ-ONLY; Kind of geo backup policy.  This is metadata used for the Azure portal experience.
+	// Kind - Kind of geo backup policy.  This is metadata used for the Azure portal experience.
 	Kind *string `json:"kind,omitempty"`
-	// Location - READ-ONLY; Backup policy location.
+	// Location - Backup policy location.
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -5465,6 +5279,21 @@ func (gbp GeoBackupPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if gbp.GeoBackupPolicyProperties != nil {
 		objectMap["properties"] = gbp.GeoBackupPolicyProperties
+	}
+	if gbp.Kind != nil {
+		objectMap["kind"] = gbp.Kind
+	}
+	if gbp.Location != nil {
+		objectMap["location"] = gbp.Location
+	}
+	if gbp.ID != nil {
+		objectMap["id"] = gbp.ID
+	}
+	if gbp.Name != nil {
+		objectMap["name"] = gbp.Name
+	}
+	if gbp.Type != nil {
+		objectMap["type"] = gbp.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -5549,7 +5378,7 @@ type GeoBackupPolicyListResult struct {
 type GeoBackupPolicyProperties struct {
 	// State - The state of the geo backup policy. Possible values include: 'GeoBackupPolicyStateDisabled', 'GeoBackupPolicyStateEnabled'
 	State GeoBackupPolicyState `json:"state,omitempty"`
-	// StorageType - READ-ONLY; The storage type of the geo backup policy.
+	// StorageType - The storage type of the geo backup policy.
 	StorageType *string `json:"storageType,omitempty"`
 }
 
@@ -5558,11 +5387,11 @@ type ImportExportResponse struct {
 	autorest.Response `json:"-"`
 	// ImportExportResponseProperties - The import/export operation properties.
 	*ImportExportResponseProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -5571,6 +5400,15 @@ func (ier ImportExportResponse) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ier.ImportExportResponseProperties != nil {
 		objectMap["properties"] = ier.ImportExportResponseProperties
+	}
+	if ier.ID != nil {
+		objectMap["id"] = ier.ID
+	}
+	if ier.Name != nil {
+		objectMap["name"] = ier.Name
+	}
+	if ier.Type != nil {
+		objectMap["type"] = ier.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -5628,23 +5466,23 @@ func (ier *ImportExportResponse) UnmarshalJSON(body []byte) error {
 
 // ImportExportResponseProperties response for Import/Export Status operation.
 type ImportExportResponseProperties struct {
-	// RequestType - READ-ONLY; The request type of the operation.
+	// RequestType - The request type of the operation.
 	RequestType *string `json:"requestType,omitempty"`
-	// RequestID - READ-ONLY; The request type of the operation.
+	// RequestID - The request type of the operation.
 	RequestID *uuid.UUID `json:"requestId,omitempty"`
-	// ServerName - READ-ONLY; The name of the server.
+	// ServerName - The name of the server.
 	ServerName *string `json:"serverName,omitempty"`
-	// DatabaseName - READ-ONLY; The name of the database.
+	// DatabaseName - The name of the database.
 	DatabaseName *string `json:"databaseName,omitempty"`
-	// Status - READ-ONLY; The status message returned from the server.
+	// Status - The status message returned from the server.
 	Status *string `json:"status,omitempty"`
-	// LastModifiedTime - READ-ONLY; The operation status last modified time.
+	// LastModifiedTime - The operation status last modified time.
 	LastModifiedTime *string `json:"lastModifiedTime,omitempty"`
-	// QueuedTime - READ-ONLY; The operation queued time.
+	// QueuedTime - The operation queued time.
 	QueuedTime *string `json:"queuedTime,omitempty"`
-	// BlobURI - READ-ONLY; The blob uri.
+	// BlobURI - The blob uri.
 	BlobURI *string `json:"blobUri,omitempty"`
-	// ErrorMessage - READ-ONLY; The error message returned from the server.
+	// ErrorMessage - The error message returned from the server.
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
@@ -5737,18 +5575,7 @@ func (ier *ImportExtensionRequest) UnmarshalJSON(body []byte) error {
 type ImportRequest struct {
 	// DatabaseName - The name of the database to import.
 	DatabaseName *string `json:"databaseName,omitempty"`
-	// Edition - The edition for the database being created.
-	//
-	// The list of SKUs may vary by region and support offer. To determine the SKUs (including the SKU name, tier/edition, family, and capacity) that are available to your subscription in an Azure region, use the `Capabilities_ListByLocation` REST API or one of the following commands:
-	//
-	// ```azurecli
-	// az sql db list-editions -l <location> -o table
-	// ````
-	//
-	// ```powershell
-	// Get-AzSqlServerServiceObjective -Location <location>
-	// ````
-	// . Possible values include: 'Web', 'Business', 'Basic', 'Standard', 'Premium', 'PremiumRS', 'Free', 'Stretch', 'DataWarehouse', 'System', 'System2', 'GeneralPurpose', 'BusinessCritical', 'Hyperscale'
+	// Edition - The edition for the database being created. Possible values include: 'Web', 'Business', 'Basic', 'Standard', 'Premium', 'PremiumRS', 'Free', 'Stretch', 'DataWarehouse', 'System', 'System2'
 	Edition DatabaseEdition `json:"edition,omitempty"`
 	// ServiceObjectiveName - The name of the service objective to assign to the database. Possible values include: 'ServiceObjectiveNameSystem', 'ServiceObjectiveNameSystem0', 'ServiceObjectiveNameSystem1', 'ServiceObjectiveNameSystem2', 'ServiceObjectiveNameSystem3', 'ServiceObjectiveNameSystem4', 'ServiceObjectiveNameSystem2L', 'ServiceObjectiveNameSystem3L', 'ServiceObjectiveNameSystem4L', 'ServiceObjectiveNameFree', 'ServiceObjectiveNameBasic', 'ServiceObjectiveNameS0', 'ServiceObjectiveNameS1', 'ServiceObjectiveNameS2', 'ServiceObjectiveNameS3', 'ServiceObjectiveNameS4', 'ServiceObjectiveNameS6', 'ServiceObjectiveNameS7', 'ServiceObjectiveNameS9', 'ServiceObjectiveNameS12', 'ServiceObjectiveNameP1', 'ServiceObjectiveNameP2', 'ServiceObjectiveNameP3', 'ServiceObjectiveNameP4', 'ServiceObjectiveNameP6', 'ServiceObjectiveNameP11', 'ServiceObjectiveNameP15', 'ServiceObjectiveNamePRS1', 'ServiceObjectiveNamePRS2', 'ServiceObjectiveNamePRS4', 'ServiceObjectiveNamePRS6', 'ServiceObjectiveNameDW100', 'ServiceObjectiveNameDW200', 'ServiceObjectiveNameDW300', 'ServiceObjectiveNameDW400', 'ServiceObjectiveNameDW500', 'ServiceObjectiveNameDW600', 'ServiceObjectiveNameDW1000', 'ServiceObjectiveNameDW1200', 'ServiceObjectiveNameDW1000c', 'ServiceObjectiveNameDW1500', 'ServiceObjectiveNameDW1500c', 'ServiceObjectiveNameDW2000', 'ServiceObjectiveNameDW2000c', 'ServiceObjectiveNameDW3000', 'ServiceObjectiveNameDW2500c', 'ServiceObjectiveNameDW3000c', 'ServiceObjectiveNameDW6000', 'ServiceObjectiveNameDW5000c', 'ServiceObjectiveNameDW6000c', 'ServiceObjectiveNameDW7500c', 'ServiceObjectiveNameDW10000c', 'ServiceObjectiveNameDW15000c', 'ServiceObjectiveNameDW30000c', 'ServiceObjectiveNameDS100', 'ServiceObjectiveNameDS200', 'ServiceObjectiveNameDS300', 'ServiceObjectiveNameDS400', 'ServiceObjectiveNameDS500', 'ServiceObjectiveNameDS600', 'ServiceObjectiveNameDS1000', 'ServiceObjectiveNameDS1200', 'ServiceObjectiveNameDS1500', 'ServiceObjectiveNameDS2000', 'ServiceObjectiveNameElasticPool'
 	ServiceObjectiveName ServiceObjectiveName `json:"serviceObjectiveName,omitempty"`
@@ -5773,11 +5600,11 @@ type Job struct {
 	autorest.Response `json:"-"`
 	// JobProperties - Resource properties.
 	*JobProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -5786,6 +5613,15 @@ func (j Job) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if j.JobProperties != nil {
 		objectMap["properties"] = j.JobProperties
+	}
+	if j.ID != nil {
+		objectMap["id"] = j.ID
+	}
+	if j.Name != nil {
+		objectMap["name"] = j.Name
+	}
+	if j.Type != nil {
+		objectMap["type"] = j.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -5852,11 +5688,11 @@ type JobAgent struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -5874,6 +5710,15 @@ func (ja JobAgent) MarshalJSON() ([]byte, error) {
 	}
 	if ja.Tags != nil {
 		objectMap["tags"] = ja.Tags
+	}
+	if ja.ID != nil {
+		objectMap["id"] = ja.ID
+	}
+	if ja.Name != nil {
+		objectMap["name"] = ja.Name
+	}
+	if ja.Type != nil {
+		objectMap["type"] = ja.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -5959,9 +5804,9 @@ func (ja *JobAgent) UnmarshalJSON(body []byte) error {
 // JobAgentListResult a list of Azure SQL job agents.
 type JobAgentListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]JobAgent `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -5971,37 +5816,20 @@ type JobAgentListResultIterator struct {
 	page JobAgentListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobAgentListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobAgentListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobAgentListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobAgentListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -6023,11 +5851,6 @@ func (iter JobAgentListResultIterator) Value() JobAgent {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobAgentListResultIterator type.
-func NewJobAgentListResultIterator(page JobAgentListResultPage) JobAgentListResultIterator {
-	return JobAgentListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jalr JobAgentListResult) IsEmpty() bool {
 	return jalr.Value == nil || len(*jalr.Value) == 0
@@ -6035,11 +5858,11 @@ func (jalr JobAgentListResult) IsEmpty() bool {
 
 // jobAgentListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jalr JobAgentListResult) jobAgentListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (jalr JobAgentListResult) jobAgentListResultPreparer() (*http.Request, error) {
 	if jalr.NextLink == nil || len(to.String(jalr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jalr.NextLink)))
@@ -6047,36 +5870,19 @@ func (jalr JobAgentListResult) jobAgentListResultPreparer(ctx context.Context) (
 
 // JobAgentListResultPage contains a page of JobAgent values.
 type JobAgentListResultPage struct {
-	fn   func(context.Context, JobAgentListResult) (JobAgentListResult, error)
+	fn   func(JobAgentListResult) (JobAgentListResult, error)
 	jalr JobAgentListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobAgentListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobAgentListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jalr)
+func (page *JobAgentListResultPage) Next() error {
+	next, err := page.fn(page.jalr)
 	if err != nil {
 		return err
 	}
 	page.jalr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobAgentListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -6097,16 +5903,11 @@ func (page JobAgentListResultPage) Values() []JobAgent {
 	return *page.jalr.Value
 }
 
-// Creates a new instance of the JobAgentListResultPage type.
-func NewJobAgentListResultPage(getNextPage func(context.Context, JobAgentListResult) (JobAgentListResult, error)) JobAgentListResultPage {
-	return JobAgentListResultPage{fn: getNextPage}
-}
-
 // JobAgentProperties properties of a job agent.
 type JobAgentProperties struct {
 	// DatabaseID - Resource ID of the database to store job metadata in.
 	DatabaseID *string `json:"databaseId,omitempty"`
-	// State - READ-ONLY; The state of the job agent. Possible values include: 'JobAgentStateCreating', 'JobAgentStateReady', 'JobAgentStateUpdating', 'JobAgentStateDeleting', 'JobAgentStateDisabled'
+	// State - The state of the job agent. Possible values include: 'JobAgentStateCreating', 'JobAgentStateReady', 'JobAgentStateUpdating', 'JobAgentStateDeleting', 'JobAgentStateDisabled'
 	State JobAgentState `json:"state,omitempty"`
 }
 
@@ -6120,7 +5921,7 @@ type JobAgentsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *JobAgentsCreateOrUpdateFuture) Result(client JobAgentsClient) (ja JobAgent, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.JobAgentsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -6139,8 +5940,7 @@ func (future *JobAgentsCreateOrUpdateFuture) Result(client JobAgentsClient) (ja 
 	return
 }
 
-// JobAgentsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// JobAgentsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type JobAgentsDeleteFuture struct {
 	azure.Future
 }
@@ -6149,7 +5949,7 @@ type JobAgentsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *JobAgentsDeleteFuture) Result(client JobAgentsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.JobAgentsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -6162,8 +5962,7 @@ func (future *JobAgentsDeleteFuture) Result(client JobAgentsClient) (ar autorest
 	return
 }
 
-// JobAgentsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// JobAgentsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type JobAgentsUpdateFuture struct {
 	azure.Future
 }
@@ -6172,7 +5971,7 @@ type JobAgentsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *JobAgentsUpdateFuture) Result(client JobAgentsClient) (ja JobAgent, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.JobAgentsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -6211,11 +6010,11 @@ type JobCredential struct {
 	autorest.Response `json:"-"`
 	// JobCredentialProperties - Resource properties.
 	*JobCredentialProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -6224,6 +6023,15 @@ func (jc JobCredential) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if jc.JobCredentialProperties != nil {
 		objectMap["properties"] = jc.JobCredentialProperties
+	}
+	if jc.ID != nil {
+		objectMap["id"] = jc.ID
+	}
+	if jc.Name != nil {
+		objectMap["name"] = jc.Name
+	}
+	if jc.Type != nil {
+		objectMap["type"] = jc.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -6282,9 +6090,9 @@ func (jc *JobCredential) UnmarshalJSON(body []byte) error {
 // JobCredentialListResult a list of job credentials.
 type JobCredentialListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]JobCredential `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -6294,37 +6102,20 @@ type JobCredentialListResultIterator struct {
 	page JobCredentialListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobCredentialListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobCredentialListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobCredentialListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobCredentialListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -6346,11 +6137,6 @@ func (iter JobCredentialListResultIterator) Value() JobCredential {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobCredentialListResultIterator type.
-func NewJobCredentialListResultIterator(page JobCredentialListResultPage) JobCredentialListResultIterator {
-	return JobCredentialListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jclr JobCredentialListResult) IsEmpty() bool {
 	return jclr.Value == nil || len(*jclr.Value) == 0
@@ -6358,11 +6144,11 @@ func (jclr JobCredentialListResult) IsEmpty() bool {
 
 // jobCredentialListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jclr JobCredentialListResult) jobCredentialListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (jclr JobCredentialListResult) jobCredentialListResultPreparer() (*http.Request, error) {
 	if jclr.NextLink == nil || len(to.String(jclr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jclr.NextLink)))
@@ -6370,36 +6156,19 @@ func (jclr JobCredentialListResult) jobCredentialListResultPreparer(ctx context.
 
 // JobCredentialListResultPage contains a page of JobCredential values.
 type JobCredentialListResultPage struct {
-	fn   func(context.Context, JobCredentialListResult) (JobCredentialListResult, error)
+	fn   func(JobCredentialListResult) (JobCredentialListResult, error)
 	jclr JobCredentialListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobCredentialListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobCredentialListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jclr)
+func (page *JobCredentialListResultPage) Next() error {
+	next, err := page.fn(page.jclr)
 	if err != nil {
 		return err
 	}
 	page.jclr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobCredentialListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -6420,11 +6189,6 @@ func (page JobCredentialListResultPage) Values() []JobCredential {
 	return *page.jclr.Value
 }
 
-// Creates a new instance of the JobCredentialListResultPage type.
-func NewJobCredentialListResultPage(getNextPage func(context.Context, JobCredentialListResult) (JobCredentialListResult, error)) JobCredentialListResultPage {
-	return JobCredentialListResultPage{fn: getNextPage}
-}
-
 // JobCredentialProperties properties of a job credential.
 type JobCredentialProperties struct {
 	// Username - The credential user name.
@@ -6438,11 +6202,11 @@ type JobExecution struct {
 	autorest.Response `json:"-"`
 	// JobExecutionProperties - Resource properties.
 	*JobExecutionProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -6451,6 +6215,15 @@ func (je JobExecution) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if je.JobExecutionProperties != nil {
 		objectMap["properties"] = je.JobExecutionProperties
+	}
+	if je.ID != nil {
+		objectMap["id"] = je.ID
+	}
+	if je.Name != nil {
+		objectMap["name"] = je.Name
+	}
+	if je.Type != nil {
+		objectMap["type"] = je.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -6509,9 +6282,9 @@ func (je *JobExecution) UnmarshalJSON(body []byte) error {
 // JobExecutionListResult a list of job executions.
 type JobExecutionListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]JobExecution `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -6521,37 +6294,20 @@ type JobExecutionListResultIterator struct {
 	page JobExecutionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobExecutionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobExecutionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobExecutionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobExecutionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -6573,11 +6329,6 @@ func (iter JobExecutionListResultIterator) Value() JobExecution {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobExecutionListResultIterator type.
-func NewJobExecutionListResultIterator(page JobExecutionListResultPage) JobExecutionListResultIterator {
-	return JobExecutionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jelr JobExecutionListResult) IsEmpty() bool {
 	return jelr.Value == nil || len(*jelr.Value) == 0
@@ -6585,11 +6336,11 @@ func (jelr JobExecutionListResult) IsEmpty() bool {
 
 // jobExecutionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jelr JobExecutionListResult) jobExecutionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (jelr JobExecutionListResult) jobExecutionListResultPreparer() (*http.Request, error) {
 	if jelr.NextLink == nil || len(to.String(jelr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jelr.NextLink)))
@@ -6597,36 +6348,19 @@ func (jelr JobExecutionListResult) jobExecutionListResultPreparer(ctx context.Co
 
 // JobExecutionListResultPage contains a page of JobExecution values.
 type JobExecutionListResultPage struct {
-	fn   func(context.Context, JobExecutionListResult) (JobExecutionListResult, error)
+	fn   func(JobExecutionListResult) (JobExecutionListResult, error)
 	jelr JobExecutionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobExecutionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobExecutionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jelr)
+func (page *JobExecutionListResultPage) Next() error {
+	next, err := page.fn(page.jelr)
 	if err != nil {
 		return err
 	}
 	page.jelr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobExecutionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -6647,43 +6381,37 @@ func (page JobExecutionListResultPage) Values() []JobExecution {
 	return *page.jelr.Value
 }
 
-// Creates a new instance of the JobExecutionListResultPage type.
-func NewJobExecutionListResultPage(getNextPage func(context.Context, JobExecutionListResult) (JobExecutionListResult, error)) JobExecutionListResultPage {
-	return JobExecutionListResultPage{fn: getNextPage}
-}
-
 // JobExecutionProperties properties for an Azure SQL Database Elastic job execution.
 type JobExecutionProperties struct {
-	// JobVersion - READ-ONLY; The job version number.
+	// JobVersion - The job version number.
 	JobVersion *int32 `json:"jobVersion,omitempty"`
-	// StepName - READ-ONLY; The job step name.
+	// StepName - The job step name.
 	StepName *string `json:"stepName,omitempty"`
-	// StepID - READ-ONLY; The job step id.
+	// StepID - The job step id.
 	StepID *int32 `json:"stepId,omitempty"`
-	// JobExecutionID - READ-ONLY; The unique identifier of the job execution.
+	// JobExecutionID - The unique identifier of the job execution.
 	JobExecutionID *uuid.UUID `json:"jobExecutionId,omitempty"`
-	// Lifecycle - READ-ONLY; The detailed state of the job execution. Possible values include: 'Created', 'InProgress', 'WaitingForChildJobExecutions', 'WaitingForRetry', 'Succeeded', 'SucceededWithSkipped', 'Failed', 'TimedOut', 'Canceled', 'Skipped'
+	// Lifecycle - The detailed state of the job execution. Possible values include: 'Created', 'InProgress', 'WaitingForChildJobExecutions', 'WaitingForRetry', 'Succeeded', 'SucceededWithSkipped', 'Failed', 'TimedOut', 'Canceled', 'Skipped'
 	Lifecycle JobExecutionLifecycle `json:"lifecycle,omitempty"`
-	// ProvisioningState - READ-ONLY; The ARM provisioning state of the job execution. Possible values include: 'ProvisioningStateCreated', 'ProvisioningStateInProgress', 'ProvisioningStateSucceeded', 'ProvisioningStateFailed', 'ProvisioningStateCanceled'
+	// ProvisioningState - The ARM provisioning state of the job execution. Possible values include: 'ProvisioningStateCreated', 'ProvisioningStateInProgress', 'ProvisioningStateSucceeded', 'ProvisioningStateFailed', 'ProvisioningStateCanceled'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
-	// CreateTime - READ-ONLY; The time that the job execution was created.
+	// CreateTime - The time that the job execution was created.
 	CreateTime *date.Time `json:"createTime,omitempty"`
-	// StartTime - READ-ONLY; The time that the job execution started.
+	// StartTime - The time that the job execution started.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; The time that the job execution completed.
+	// EndTime - The time that the job execution completed.
 	EndTime *date.Time `json:"endTime,omitempty"`
 	// CurrentAttempts - Number of times the job execution has been attempted.
 	CurrentAttempts *int32 `json:"currentAttempts,omitempty"`
-	// CurrentAttemptStartTime - READ-ONLY; Start time of the current attempt.
+	// CurrentAttemptStartTime - Start time of the current attempt.
 	CurrentAttemptStartTime *date.Time `json:"currentAttemptStartTime,omitempty"`
-	// LastMessage - READ-ONLY; The last status or error message.
+	// LastMessage - The last status or error message.
 	LastMessage *string `json:"lastMessage,omitempty"`
-	// Target - READ-ONLY; The target that this execution is executed on.
+	// Target - The target that this execution is executed on.
 	Target *JobExecutionTarget `json:"target,omitempty"`
 }
 
-// JobExecutionsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// JobExecutionsCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type JobExecutionsCreateFuture struct {
 	azure.Future
 }
@@ -6692,7 +6420,7 @@ type JobExecutionsCreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *JobExecutionsCreateFuture) Result(client JobExecutionsClient) (je JobExecution, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.JobExecutionsCreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -6711,8 +6439,8 @@ func (future *JobExecutionsCreateFuture) Result(client JobExecutionsClient) (je 
 	return
 }
 
-// JobExecutionsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// JobExecutionsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type JobExecutionsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -6721,7 +6449,7 @@ type JobExecutionsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *JobExecutionsCreateOrUpdateFuture) Result(client JobExecutionsClient) (je JobExecution, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.JobExecutionsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -6742,20 +6470,20 @@ func (future *JobExecutionsCreateOrUpdateFuture) Result(client JobExecutionsClie
 
 // JobExecutionTarget the target that a job execution is executed on.
 type JobExecutionTarget struct {
-	// Type - READ-ONLY; The type of the target. Possible values include: 'JobTargetTypeTargetGroup', 'JobTargetTypeSQLDatabase', 'JobTargetTypeSQLElasticPool', 'JobTargetTypeSQLShardMap', 'JobTargetTypeSQLServer'
+	// Type - The type of the target. Possible values include: 'JobTargetTypeTargetGroup', 'JobTargetTypeSQLDatabase', 'JobTargetTypeSQLElasticPool', 'JobTargetTypeSQLShardMap', 'JobTargetTypeSQLServer'
 	Type JobTargetType `json:"type,omitempty"`
-	// ServerName - READ-ONLY; The server name.
+	// ServerName - The server name.
 	ServerName *string `json:"serverName,omitempty"`
-	// DatabaseName - READ-ONLY; The database name.
+	// DatabaseName - The database name.
 	DatabaseName *string `json:"databaseName,omitempty"`
 }
 
 // JobListResult a list of jobs.
 type JobListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]Job `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -6765,37 +6493,20 @@ type JobListResultIterator struct {
 	page JobListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -6817,11 +6528,6 @@ func (iter JobListResultIterator) Value() Job {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobListResultIterator type.
-func NewJobListResultIterator(page JobListResultPage) JobListResultIterator {
-	return JobListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jlr JobListResult) IsEmpty() bool {
 	return jlr.Value == nil || len(*jlr.Value) == 0
@@ -6829,11 +6535,11 @@ func (jlr JobListResult) IsEmpty() bool {
 
 // jobListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jlr JobListResult) jobListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (jlr JobListResult) jobListResultPreparer() (*http.Request, error) {
 	if jlr.NextLink == nil || len(to.String(jlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jlr.NextLink)))
@@ -6841,36 +6547,19 @@ func (jlr JobListResult) jobListResultPreparer(ctx context.Context) (*http.Reque
 
 // JobListResultPage contains a page of Job values.
 type JobListResultPage struct {
-	fn  func(context.Context, JobListResult) (JobListResult, error)
+	fn  func(JobListResult) (JobListResult, error)
 	jlr JobListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jlr)
+func (page *JobListResultPage) Next() error {
+	next, err := page.fn(page.jlr)
 	if err != nil {
 		return err
 	}
 	page.jlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -6891,16 +6580,11 @@ func (page JobListResultPage) Values() []Job {
 	return *page.jlr.Value
 }
 
-// Creates a new instance of the JobListResultPage type.
-func NewJobListResultPage(getNextPage func(context.Context, JobListResult) (JobListResult, error)) JobListResultPage {
-	return JobListResultPage{fn: getNextPage}
-}
-
 // JobProperties properties of a job.
 type JobProperties struct {
 	// Description - User-defined description of the job.
 	Description *string `json:"description,omitempty"`
-	// Version - READ-ONLY; The job version number.
+	// Version - The job version number.
 	Version *int32 `json:"version,omitempty"`
 	// Schedule - Schedule properties of the job.
 	Schedule *JobSchedule `json:"schedule,omitempty"`
@@ -6916,7 +6600,7 @@ type JobSchedule struct {
 	Type JobScheduleType `json:"type,omitempty"`
 	// Enabled - Whether or not the schedule is enabled.
 	Enabled *bool `json:"enabled,omitempty"`
-	// Interval - Value of the schedule's recurring interval, if the schedule type is recurring. ISO8601 duration format.
+	// Interval - Value of the schedule's recurring interval, if the scheduletype is recurring. ISO8601 duration format.
 	Interval *string `json:"interval,omitempty"`
 }
 
@@ -6925,11 +6609,11 @@ type JobStep struct {
 	autorest.Response `json:"-"`
 	// JobStepProperties - Resource properties.
 	*JobStepProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -6938,6 +6622,15 @@ func (js JobStep) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if js.JobStepProperties != nil {
 		objectMap["properties"] = js.JobStepProperties
+	}
+	if js.ID != nil {
+		objectMap["id"] = js.ID
+	}
+	if js.Name != nil {
+		objectMap["name"] = js.Name
+	}
+	if js.Type != nil {
+		objectMap["type"] = js.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -7020,9 +6713,9 @@ type JobStepExecutionOptions struct {
 // JobStepListResult a list of job steps.
 type JobStepListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]JobStep `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -7032,37 +6725,20 @@ type JobStepListResultIterator struct {
 	page JobStepListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobStepListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobStepListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobStepListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobStepListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -7084,11 +6760,6 @@ func (iter JobStepListResultIterator) Value() JobStep {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobStepListResultIterator type.
-func NewJobStepListResultIterator(page JobStepListResultPage) JobStepListResultIterator {
-	return JobStepListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jslr JobStepListResult) IsEmpty() bool {
 	return jslr.Value == nil || len(*jslr.Value) == 0
@@ -7096,11 +6767,11 @@ func (jslr JobStepListResult) IsEmpty() bool {
 
 // jobStepListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jslr JobStepListResult) jobStepListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (jslr JobStepListResult) jobStepListResultPreparer() (*http.Request, error) {
 	if jslr.NextLink == nil || len(to.String(jslr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jslr.NextLink)))
@@ -7108,36 +6779,19 @@ func (jslr JobStepListResult) jobStepListResultPreparer(ctx context.Context) (*h
 
 // JobStepListResultPage contains a page of JobStep values.
 type JobStepListResultPage struct {
-	fn   func(context.Context, JobStepListResult) (JobStepListResult, error)
+	fn   func(JobStepListResult) (JobStepListResult, error)
 	jslr JobStepListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobStepListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobStepListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jslr)
+func (page *JobStepListResultPage) Next() error {
+	next, err := page.fn(page.jslr)
 	if err != nil {
 		return err
 	}
 	page.jslr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobStepListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -7156,11 +6810,6 @@ func (page JobStepListResultPage) Values() []JobStep {
 		return nil
 	}
 	return *page.jslr.Value
-}
-
-// Creates a new instance of the JobStepListResultPage type.
-func NewJobStepListResultPage(getNextPage func(context.Context, JobStepListResult) (JobStepListResult, error)) JobStepListResultPage {
-	return JobStepListResultPage{fn: getNextPage}
 }
 
 // JobStepOutput the output configuration of a job step.
@@ -7199,8 +6848,8 @@ type JobStepProperties struct {
 	ExecutionOptions *JobStepExecutionOptions `json:"executionOptions,omitempty"`
 }
 
-// JobTarget a job target, for example a specific database or a container of databases that is evaluated
-// during job execution.
+// JobTarget a job target, for example a specific database or a container of databases that is evaluated during job
+// execution.
 type JobTarget struct {
 	// MembershipType - Whether the target is included or excluded from the group. Possible values include: 'Include', 'Exclude'
 	MembershipType JobTargetGroupMembershipType `json:"membershipType,omitempty"`
@@ -7223,11 +6872,11 @@ type JobTargetGroup struct {
 	autorest.Response `json:"-"`
 	// JobTargetGroupProperties - Resource properties.
 	*JobTargetGroupProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -7236,6 +6885,15 @@ func (jtg JobTargetGroup) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if jtg.JobTargetGroupProperties != nil {
 		objectMap["properties"] = jtg.JobTargetGroupProperties
+	}
+	if jtg.ID != nil {
+		objectMap["id"] = jtg.ID
+	}
+	if jtg.Name != nil {
+		objectMap["name"] = jtg.Name
+	}
+	if jtg.Type != nil {
+		objectMap["type"] = jtg.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -7294,9 +6952,9 @@ func (jtg *JobTargetGroup) UnmarshalJSON(body []byte) error {
 // JobTargetGroupListResult a list of target groups.
 type JobTargetGroupListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]JobTargetGroup `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -7306,37 +6964,20 @@ type JobTargetGroupListResultIterator struct {
 	page JobTargetGroupListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobTargetGroupListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobTargetGroupListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobTargetGroupListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobTargetGroupListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -7358,11 +6999,6 @@ func (iter JobTargetGroupListResultIterator) Value() JobTargetGroup {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobTargetGroupListResultIterator type.
-func NewJobTargetGroupListResultIterator(page JobTargetGroupListResultPage) JobTargetGroupListResultIterator {
-	return JobTargetGroupListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jtglr JobTargetGroupListResult) IsEmpty() bool {
 	return jtglr.Value == nil || len(*jtglr.Value) == 0
@@ -7370,11 +7006,11 @@ func (jtglr JobTargetGroupListResult) IsEmpty() bool {
 
 // jobTargetGroupListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jtglr JobTargetGroupListResult) jobTargetGroupListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (jtglr JobTargetGroupListResult) jobTargetGroupListResultPreparer() (*http.Request, error) {
 	if jtglr.NextLink == nil || len(to.String(jtglr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jtglr.NextLink)))
@@ -7382,36 +7018,19 @@ func (jtglr JobTargetGroupListResult) jobTargetGroupListResultPreparer(ctx conte
 
 // JobTargetGroupListResultPage contains a page of JobTargetGroup values.
 type JobTargetGroupListResultPage struct {
-	fn    func(context.Context, JobTargetGroupListResult) (JobTargetGroupListResult, error)
+	fn    func(JobTargetGroupListResult) (JobTargetGroupListResult, error)
 	jtglr JobTargetGroupListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobTargetGroupListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobTargetGroupListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jtglr)
+func (page *JobTargetGroupListResultPage) Next() error {
+	next, err := page.fn(page.jtglr)
 	if err != nil {
 		return err
 	}
 	page.jtglr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobTargetGroupListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -7432,11 +7051,6 @@ func (page JobTargetGroupListResultPage) Values() []JobTargetGroup {
 	return *page.jtglr.Value
 }
 
-// Creates a new instance of the JobTargetGroupListResultPage type.
-func NewJobTargetGroupListResultPage(getNextPage func(context.Context, JobTargetGroupListResult) (JobTargetGroupListResult, error)) JobTargetGroupListResultPage {
-	return JobTargetGroupListResultPage{fn: getNextPage}
-}
-
 // JobTargetGroupProperties properties of job target group.
 type JobTargetGroupProperties struct {
 	// Members - Members of the target group.
@@ -7446,20 +7060,20 @@ type JobTargetGroupProperties struct {
 // JobVersion a job version.
 type JobVersion struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // JobVersionListResult a list of job versions.
 type JobVersionListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]JobVersion `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -7469,37 +7083,20 @@ type JobVersionListResultIterator struct {
 	page JobVersionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobVersionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobVersionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobVersionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobVersionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -7521,11 +7118,6 @@ func (iter JobVersionListResultIterator) Value() JobVersion {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobVersionListResultIterator type.
-func NewJobVersionListResultIterator(page JobVersionListResultPage) JobVersionListResultIterator {
-	return JobVersionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jvlr JobVersionListResult) IsEmpty() bool {
 	return jvlr.Value == nil || len(*jvlr.Value) == 0
@@ -7533,11 +7125,11 @@ func (jvlr JobVersionListResult) IsEmpty() bool {
 
 // jobVersionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jvlr JobVersionListResult) jobVersionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (jvlr JobVersionListResult) jobVersionListResultPreparer() (*http.Request, error) {
 	if jvlr.NextLink == nil || len(to.String(jvlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jvlr.NextLink)))
@@ -7545,36 +7137,19 @@ func (jvlr JobVersionListResult) jobVersionListResultPreparer(ctx context.Contex
 
 // JobVersionListResultPage contains a page of JobVersion values.
 type JobVersionListResultPage struct {
-	fn   func(context.Context, JobVersionListResult) (JobVersionListResult, error)
+	fn   func(JobVersionListResult) (JobVersionListResult, error)
 	jvlr JobVersionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobVersionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobVersionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jvlr)
+func (page *JobVersionListResultPage) Next() error {
+	next, err := page.fn(page.jvlr)
 	if err != nil {
 		return err
 	}
 	page.jvlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobVersionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -7595,452 +7170,15 @@ func (page JobVersionListResultPage) Values() []JobVersion {
 	return *page.jvlr.Value
 }
 
-// Creates a new instance of the JobVersionListResultPage type.
-func NewJobVersionListResultPage(getNextPage func(context.Context, JobVersionListResult) (JobVersionListResult, error)) JobVersionListResultPage {
-	return JobVersionListResultPage{fn: getNextPage}
-}
-
 // LocationCapabilities the capabilities for a location.
 type LocationCapabilities struct {
 	autorest.Response `json:"-"`
-	// Name - READ-ONLY; The location name.
+	// Name - The location name.
 	Name *string `json:"name,omitempty"`
-	// Status - READ-ONLY; Azure SQL Database's status for the location. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	// Status - Azure SQL Database's status for the location. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
 	Status CapabilityStatus `json:"status,omitempty"`
-	// SupportedServerVersions - READ-ONLY; The list of supported server versions.
+	// SupportedServerVersions - The list of supported server versions.
 	SupportedServerVersions *[]ServerVersionCapability `json:"supportedServerVersions,omitempty"`
-}
-
-// LogicalServerSecurityAlertPolicyListResult a list of the server's security alert policies.
-type LogicalServerSecurityAlertPolicyListResult struct {
-	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
-	Value *[]ServerSecurityAlertPolicy `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// LogicalServerSecurityAlertPolicyListResultIterator provides access to a complete listing of
-// ServerSecurityAlertPolicy values.
-type LogicalServerSecurityAlertPolicyListResultIterator struct {
-	i    int
-	page LogicalServerSecurityAlertPolicyListResultPage
-}
-
-// NextWithContext advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *LogicalServerSecurityAlertPolicyListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LogicalServerSecurityAlertPolicyListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err = iter.page.NextWithContext(ctx)
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *LogicalServerSecurityAlertPolicyListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter LogicalServerSecurityAlertPolicyListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter LogicalServerSecurityAlertPolicyListResultIterator) Response() LogicalServerSecurityAlertPolicyListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter LogicalServerSecurityAlertPolicyListResultIterator) Value() ServerSecurityAlertPolicy {
-	if !iter.page.NotDone() {
-		return ServerSecurityAlertPolicy{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// Creates a new instance of the LogicalServerSecurityAlertPolicyListResultIterator type.
-func NewLogicalServerSecurityAlertPolicyListResultIterator(page LogicalServerSecurityAlertPolicyListResultPage) LogicalServerSecurityAlertPolicyListResultIterator {
-	return LogicalServerSecurityAlertPolicyListResultIterator{page: page}
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (lssaplr LogicalServerSecurityAlertPolicyListResult) IsEmpty() bool {
-	return lssaplr.Value == nil || len(*lssaplr.Value) == 0
-}
-
-// logicalServerSecurityAlertPolicyListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (lssaplr LogicalServerSecurityAlertPolicyListResult) logicalServerSecurityAlertPolicyListResultPreparer(ctx context.Context) (*http.Request, error) {
-	if lssaplr.NextLink == nil || len(to.String(lssaplr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(lssaplr.NextLink)))
-}
-
-// LogicalServerSecurityAlertPolicyListResultPage contains a page of ServerSecurityAlertPolicy values.
-type LogicalServerSecurityAlertPolicyListResultPage struct {
-	fn      func(context.Context, LogicalServerSecurityAlertPolicyListResult) (LogicalServerSecurityAlertPolicyListResult, error)
-	lssaplr LogicalServerSecurityAlertPolicyListResult
-}
-
-// NextWithContext advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *LogicalServerSecurityAlertPolicyListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LogicalServerSecurityAlertPolicyListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.lssaplr)
-	if err != nil {
-		return err
-	}
-	page.lssaplr = next
-	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *LogicalServerSecurityAlertPolicyListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page LogicalServerSecurityAlertPolicyListResultPage) NotDone() bool {
-	return !page.lssaplr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page LogicalServerSecurityAlertPolicyListResultPage) Response() LogicalServerSecurityAlertPolicyListResult {
-	return page.lssaplr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page LogicalServerSecurityAlertPolicyListResultPage) Values() []ServerSecurityAlertPolicy {
-	if page.lssaplr.IsEmpty() {
-		return nil
-	}
-	return *page.lssaplr.Value
-}
-
-// Creates a new instance of the LogicalServerSecurityAlertPolicyListResultPage type.
-func NewLogicalServerSecurityAlertPolicyListResultPage(getNextPage func(context.Context, LogicalServerSecurityAlertPolicyListResult) (LogicalServerSecurityAlertPolicyListResult, error)) LogicalServerSecurityAlertPolicyListResultPage {
-	return LogicalServerSecurityAlertPolicyListResultPage{fn: getNextPage}
-}
-
-// ManagedBackupShortTermRetentionPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving
-// the results of a long-running operation.
-type ManagedBackupShortTermRetentionPoliciesCreateOrUpdateFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *ManagedBackupShortTermRetentionPoliciesCreateOrUpdateFuture) Result(client ManagedBackupShortTermRetentionPoliciesClient) (mbstrp ManagedBackupShortTermRetentionPolicy, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "sql.ManagedBackupShortTermRetentionPoliciesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("sql.ManagedBackupShortTermRetentionPoliciesCreateOrUpdateFuture")
-		return
-	}
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if mbstrp.Response.Response, err = future.GetResult(sender); err == nil && mbstrp.Response.Response.StatusCode != http.StatusNoContent {
-		mbstrp, err = client.CreateOrUpdateResponder(mbstrp.Response.Response)
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "sql.ManagedBackupShortTermRetentionPoliciesCreateOrUpdateFuture", "Result", mbstrp.Response.Response, "Failure responding to request")
-		}
-	}
-	return
-}
-
-// ManagedBackupShortTermRetentionPoliciesUpdateFuture an abstraction for monitoring and retrieving the
-// results of a long-running operation.
-type ManagedBackupShortTermRetentionPoliciesUpdateFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *ManagedBackupShortTermRetentionPoliciesUpdateFuture) Result(client ManagedBackupShortTermRetentionPoliciesClient) (mbstrp ManagedBackupShortTermRetentionPolicy, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "sql.ManagedBackupShortTermRetentionPoliciesUpdateFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("sql.ManagedBackupShortTermRetentionPoliciesUpdateFuture")
-		return
-	}
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if mbstrp.Response.Response, err = future.GetResult(sender); err == nil && mbstrp.Response.Response.StatusCode != http.StatusNoContent {
-		mbstrp, err = client.UpdateResponder(mbstrp.Response.Response)
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "sql.ManagedBackupShortTermRetentionPoliciesUpdateFuture", "Result", mbstrp.Response.Response, "Failure responding to request")
-		}
-	}
-	return
-}
-
-// ManagedBackupShortTermRetentionPolicy a short term retention policy.
-type ManagedBackupShortTermRetentionPolicy struct {
-	autorest.Response `json:"-"`
-	// ManagedBackupShortTermRetentionPolicyProperties - Resource properties.
-	*ManagedBackupShortTermRetentionPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
-	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
-	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
-	Type *string `json:"type,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for ManagedBackupShortTermRetentionPolicy.
-func (mbstrp ManagedBackupShortTermRetentionPolicy) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if mbstrp.ManagedBackupShortTermRetentionPolicyProperties != nil {
-		objectMap["properties"] = mbstrp.ManagedBackupShortTermRetentionPolicyProperties
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for ManagedBackupShortTermRetentionPolicy struct.
-func (mbstrp *ManagedBackupShortTermRetentionPolicy) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "properties":
-			if v != nil {
-				var managedBackupShortTermRetentionPolicyProperties ManagedBackupShortTermRetentionPolicyProperties
-				err = json.Unmarshal(*v, &managedBackupShortTermRetentionPolicyProperties)
-				if err != nil {
-					return err
-				}
-				mbstrp.ManagedBackupShortTermRetentionPolicyProperties = &managedBackupShortTermRetentionPolicyProperties
-			}
-		case "id":
-			if v != nil {
-				var ID string
-				err = json.Unmarshal(*v, &ID)
-				if err != nil {
-					return err
-				}
-				mbstrp.ID = &ID
-			}
-		case "name":
-			if v != nil {
-				var name string
-				err = json.Unmarshal(*v, &name)
-				if err != nil {
-					return err
-				}
-				mbstrp.Name = &name
-			}
-		case "type":
-			if v != nil {
-				var typeVar string
-				err = json.Unmarshal(*v, &typeVar)
-				if err != nil {
-					return err
-				}
-				mbstrp.Type = &typeVar
-			}
-		}
-	}
-
-	return nil
-}
-
-// ManagedBackupShortTermRetentionPolicyListResult a list of short term retention policies.
-type ManagedBackupShortTermRetentionPolicyListResult struct {
-	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
-	Value *[]ManagedBackupShortTermRetentionPolicy `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// ManagedBackupShortTermRetentionPolicyListResultIterator provides access to a complete listing of
-// ManagedBackupShortTermRetentionPolicy values.
-type ManagedBackupShortTermRetentionPolicyListResultIterator struct {
-	i    int
-	page ManagedBackupShortTermRetentionPolicyListResultPage
-}
-
-// NextWithContext advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *ManagedBackupShortTermRetentionPolicyListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedBackupShortTermRetentionPolicyListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err = iter.page.NextWithContext(ctx)
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ManagedBackupShortTermRetentionPolicyListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter ManagedBackupShortTermRetentionPolicyListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter ManagedBackupShortTermRetentionPolicyListResultIterator) Response() ManagedBackupShortTermRetentionPolicyListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter ManagedBackupShortTermRetentionPolicyListResultIterator) Value() ManagedBackupShortTermRetentionPolicy {
-	if !iter.page.NotDone() {
-		return ManagedBackupShortTermRetentionPolicy{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// Creates a new instance of the ManagedBackupShortTermRetentionPolicyListResultIterator type.
-func NewManagedBackupShortTermRetentionPolicyListResultIterator(page ManagedBackupShortTermRetentionPolicyListResultPage) ManagedBackupShortTermRetentionPolicyListResultIterator {
-	return ManagedBackupShortTermRetentionPolicyListResultIterator{page: page}
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (mbstrplr ManagedBackupShortTermRetentionPolicyListResult) IsEmpty() bool {
-	return mbstrplr.Value == nil || len(*mbstrplr.Value) == 0
-}
-
-// managedBackupShortTermRetentionPolicyListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (mbstrplr ManagedBackupShortTermRetentionPolicyListResult) managedBackupShortTermRetentionPolicyListResultPreparer(ctx context.Context) (*http.Request, error) {
-	if mbstrplr.NextLink == nil || len(to.String(mbstrplr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(mbstrplr.NextLink)))
-}
-
-// ManagedBackupShortTermRetentionPolicyListResultPage contains a page of
-// ManagedBackupShortTermRetentionPolicy values.
-type ManagedBackupShortTermRetentionPolicyListResultPage struct {
-	fn       func(context.Context, ManagedBackupShortTermRetentionPolicyListResult) (ManagedBackupShortTermRetentionPolicyListResult, error)
-	mbstrplr ManagedBackupShortTermRetentionPolicyListResult
-}
-
-// NextWithContext advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *ManagedBackupShortTermRetentionPolicyListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedBackupShortTermRetentionPolicyListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.mbstrplr)
-	if err != nil {
-		return err
-	}
-	page.mbstrplr = next
-	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ManagedBackupShortTermRetentionPolicyListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page ManagedBackupShortTermRetentionPolicyListResultPage) NotDone() bool {
-	return !page.mbstrplr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page ManagedBackupShortTermRetentionPolicyListResultPage) Response() ManagedBackupShortTermRetentionPolicyListResult {
-	return page.mbstrplr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page ManagedBackupShortTermRetentionPolicyListResultPage) Values() []ManagedBackupShortTermRetentionPolicy {
-	if page.mbstrplr.IsEmpty() {
-		return nil
-	}
-	return *page.mbstrplr.Value
-}
-
-// Creates a new instance of the ManagedBackupShortTermRetentionPolicyListResultPage type.
-func NewManagedBackupShortTermRetentionPolicyListResultPage(getNextPage func(context.Context, ManagedBackupShortTermRetentionPolicyListResult) (ManagedBackupShortTermRetentionPolicyListResult, error)) ManagedBackupShortTermRetentionPolicyListResultPage {
-	return ManagedBackupShortTermRetentionPolicyListResultPage{fn: getNextPage}
-}
-
-// ManagedBackupShortTermRetentionPolicyProperties properties of a short term retention policy
-type ManagedBackupShortTermRetentionPolicyProperties struct {
-	// RetentionDays - The backup retention period in days. This is how many days Point-in-Time Restore will be supported.
-	RetentionDays *int32 `json:"retentionDays,omitempty"`
 }
 
 // ManagedDatabase a managed database resource.
@@ -8052,11 +7190,11 @@ type ManagedDatabase struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -8071,6 +7209,15 @@ func (md ManagedDatabase) MarshalJSON() ([]byte, error) {
 	}
 	if md.Tags != nil {
 		objectMap["tags"] = md.Tags
+	}
+	if md.ID != nil {
+		objectMap["id"] = md.ID
+	}
+	if md.Name != nil {
+		objectMap["name"] = md.Name
+	}
+	if md.Type != nil {
+		objectMap["type"] = md.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -8147,9 +7294,9 @@ func (md *ManagedDatabase) UnmarshalJSON(body []byte) error {
 // ManagedDatabaseListResult a list of managed databases.
 type ManagedDatabaseListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]ManagedDatabase `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -8159,37 +7306,20 @@ type ManagedDatabaseListResultIterator struct {
 	page ManagedDatabaseListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ManagedDatabaseListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedDatabaseListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ManagedDatabaseListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ManagedDatabaseListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -8211,11 +7341,6 @@ func (iter ManagedDatabaseListResultIterator) Value() ManagedDatabase {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ManagedDatabaseListResultIterator type.
-func NewManagedDatabaseListResultIterator(page ManagedDatabaseListResultPage) ManagedDatabaseListResultIterator {
-	return ManagedDatabaseListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (mdlr ManagedDatabaseListResult) IsEmpty() bool {
 	return mdlr.Value == nil || len(*mdlr.Value) == 0
@@ -8223,11 +7348,11 @@ func (mdlr ManagedDatabaseListResult) IsEmpty() bool {
 
 // managedDatabaseListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (mdlr ManagedDatabaseListResult) managedDatabaseListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (mdlr ManagedDatabaseListResult) managedDatabaseListResultPreparer() (*http.Request, error) {
 	if mdlr.NextLink == nil || len(to.String(mdlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(mdlr.NextLink)))
@@ -8235,36 +7360,19 @@ func (mdlr ManagedDatabaseListResult) managedDatabaseListResultPreparer(ctx cont
 
 // ManagedDatabaseListResultPage contains a page of ManagedDatabase values.
 type ManagedDatabaseListResultPage struct {
-	fn   func(context.Context, ManagedDatabaseListResult) (ManagedDatabaseListResult, error)
+	fn   func(ManagedDatabaseListResult) (ManagedDatabaseListResult, error)
 	mdlr ManagedDatabaseListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ManagedDatabaseListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedDatabaseListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.mdlr)
+func (page *ManagedDatabaseListResultPage) Next() error {
+	next, err := page.fn(page.mdlr)
 	if err != nil {
 		return err
 	}
 	page.mdlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ManagedDatabaseListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -8285,45 +7393,36 @@ func (page ManagedDatabaseListResultPage) Values() []ManagedDatabase {
 	return *page.mdlr.Value
 }
 
-// Creates a new instance of the ManagedDatabaseListResultPage type.
-func NewManagedDatabaseListResultPage(getNextPage func(context.Context, ManagedDatabaseListResult) (ManagedDatabaseListResult, error)) ManagedDatabaseListResultPage {
-	return ManagedDatabaseListResultPage{fn: getNextPage}
-}
-
 // ManagedDatabaseProperties the managed database's properties.
 type ManagedDatabaseProperties struct {
 	// Collation - Collation of the managed database.
 	Collation *string `json:"collation,omitempty"`
-	// Status - READ-ONLY; Status of the database. Possible values include: 'Online', 'Offline', 'Shutdown', 'Creating', 'Inaccessible', 'Updating'
+	// Status - Status for the database. Possible values include: 'Online', 'Offline', 'Shutdown', 'Creating', 'Inaccessible'
 	Status ManagedDatabaseStatus `json:"status,omitempty"`
-	// CreationDate - READ-ONLY; Creation date of the database.
+	// CreationDate - Creation date of the database.
 	CreationDate *date.Time `json:"creationDate,omitempty"`
-	// EarliestRestorePoint - READ-ONLY; Earliest restore point in time for point in time restore.
+	// EarliestRestorePoint - Earliest restore point in time for point in time restore.
 	EarliestRestorePoint *date.Time `json:"earliestRestorePoint,omitempty"`
 	// RestorePointInTime - Conditional. If createMode is PointInTimeRestore, this value is required. Specifies the point in time (ISO8601 format) of the source database that will be restored to create the new database.
 	RestorePointInTime *date.Time `json:"restorePointInTime,omitempty"`
-	// DefaultSecondaryLocation - READ-ONLY; Geo paired region.
+	// DefaultSecondaryLocation - Geo paired region.
 	DefaultSecondaryLocation *string `json:"defaultSecondaryLocation,omitempty"`
 	// CatalogCollation - Collation of the metadata catalog. Possible values include: 'DATABASEDEFAULT', 'SQLLatin1GeneralCP1CIAS'
 	CatalogCollation CatalogCollationType `json:"catalogCollation,omitempty"`
-	// CreateMode - Managed database create mode. PointInTimeRestore: Create a database by restoring a point in time backup of an existing database. SourceDatabaseName, SourceManagedInstanceName and PointInTime must be specified. RestoreExternalBackup: Create a database by restoring from external backup files. Collation, StorageContainerUri and StorageContainerSasToken must be specified. Recovery: Creates a database by restoring a geo-replicated backup. RecoverableDatabaseId must be specified as the recoverable database resource ID to restore. Possible values include: 'ManagedDatabaseCreateModeDefault', 'ManagedDatabaseCreateModeRestoreExternalBackup', 'ManagedDatabaseCreateModePointInTimeRestore', 'ManagedDatabaseCreateModeRecovery'
+	// CreateMode - Managed database create mode. PointInTimeRestore: Create a database by restoring a point in time backup of an existing database. SourceDatabaseName, SourceManagedInstanceName and PointInTime must be specified. RestoreExternalBackup: Create a database by restoring from external backup files. Collation, StorageContainerUri and StorageContainerSasToken must be specified. Possible values include: 'ManagedDatabaseCreateModeDefault', 'ManagedDatabaseCreateModeRestoreExternalBackup', 'ManagedDatabaseCreateModePointInTimeRestore'
 	CreateMode ManagedDatabaseCreateMode `json:"createMode,omitempty"`
 	// StorageContainerURI - Conditional. If createMode is RestoreExternalBackup, this value is required. Specifies the uri of the storage container where backups for this restore are stored.
 	StorageContainerURI *string `json:"storageContainerUri,omitempty"`
 	// SourceDatabaseID - The resource identifier of the source database associated with create operation of this database.
 	SourceDatabaseID *string `json:"sourceDatabaseId,omitempty"`
-	// RestorableDroppedDatabaseID - The restorable dropped database resource id to restore when creating this database.
-	RestorableDroppedDatabaseID *string `json:"restorableDroppedDatabaseId,omitempty"`
 	// StorageContainerSasToken - Conditional. If createMode is RestoreExternalBackup, this value is required. Specifies the storage container sas token.
 	StorageContainerSasToken *string `json:"storageContainerSasToken,omitempty"`
-	// FailoverGroupID - READ-ONLY; Instance Failover Group resource identifier that this managed database belongs to.
+	// FailoverGroupID - Instance Failover Group resource identifier that this managed database belongs to.
 	FailoverGroupID *string `json:"failoverGroupId,omitempty"`
-	// RecoverableDatabaseID - The resource identifier of the recoverable database associated with create operation of this database.
-	RecoverableDatabaseID *string `json:"recoverableDatabaseId,omitempty"`
 }
 
-// ManagedDatabasesCompleteRestoreFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// ManagedDatabasesCompleteRestoreFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type ManagedDatabasesCompleteRestoreFuture struct {
 	azure.Future
 }
@@ -8332,7 +7431,7 @@ type ManagedDatabasesCompleteRestoreFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedDatabasesCompleteRestoreFuture) Result(client ManagedDatabasesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ManagedDatabasesCompleteRestoreFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -8345,8 +7444,8 @@ func (future *ManagedDatabasesCompleteRestoreFuture) Result(client ManagedDataba
 	return
 }
 
-// ManagedDatabasesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// ManagedDatabasesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type ManagedDatabasesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -8355,7 +7454,7 @@ type ManagedDatabasesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedDatabasesCreateOrUpdateFuture) Result(client ManagedDatabasesClient) (md ManagedDatabase, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ManagedDatabasesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -8384,7 +7483,7 @@ type ManagedDatabasesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedDatabasesDeleteFuture) Result(client ManagedDatabasesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ManagedDatabasesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -8407,7 +7506,7 @@ type ManagedDatabasesUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedDatabasesUpdateFuture) Result(client ManagedDatabasesClient) (md ManagedDatabase, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ManagedDatabasesUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -8484,7 +7583,7 @@ type ManagedInstance struct {
 	autorest.Response `json:"-"`
 	// Identity - The Azure Active Directory identity of the managed instance.
 	Identity *ResourceIdentity `json:"identity,omitempty"`
-	// Sku - Managed instance SKU. Allowed values for sku.name: GP_Gen4, GP_Gen5, BC_Gen4, BC_Gen5
+	// Sku - Managed instance sku
 	Sku *Sku `json:"sku,omitempty"`
 	// ManagedInstanceProperties - Resource properties.
 	*ManagedInstanceProperties `json:"properties,omitempty"`
@@ -8492,11 +7591,11 @@ type ManagedInstance struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -8517,6 +7616,15 @@ func (mi ManagedInstance) MarshalJSON() ([]byte, error) {
 	}
 	if mi.Tags != nil {
 		objectMap["tags"] = mi.Tags
+	}
+	if mi.ID != nil {
+		objectMap["id"] = mi.ID
+	}
+	if mi.Name != nil {
+		objectMap["name"] = mi.Name
+	}
+	if mi.Type != nil {
+		objectMap["type"] = mi.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -8611,9 +7719,9 @@ func (mi *ManagedInstance) UnmarshalJSON(body []byte) error {
 // ManagedInstanceListResult a list of managed instances.
 type ManagedInstanceListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]ManagedInstance `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -8623,37 +7731,20 @@ type ManagedInstanceListResultIterator struct {
 	page ManagedInstanceListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ManagedInstanceListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedInstanceListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ManagedInstanceListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ManagedInstanceListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -8675,11 +7766,6 @@ func (iter ManagedInstanceListResultIterator) Value() ManagedInstance {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ManagedInstanceListResultIterator type.
-func NewManagedInstanceListResultIterator(page ManagedInstanceListResultPage) ManagedInstanceListResultIterator {
-	return ManagedInstanceListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (milr ManagedInstanceListResult) IsEmpty() bool {
 	return milr.Value == nil || len(*milr.Value) == 0
@@ -8687,11 +7773,11 @@ func (milr ManagedInstanceListResult) IsEmpty() bool {
 
 // managedInstanceListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (milr ManagedInstanceListResult) managedInstanceListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (milr ManagedInstanceListResult) managedInstanceListResultPreparer() (*http.Request, error) {
 	if milr.NextLink == nil || len(to.String(milr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(milr.NextLink)))
@@ -8699,36 +7785,19 @@ func (milr ManagedInstanceListResult) managedInstanceListResultPreparer(ctx cont
 
 // ManagedInstanceListResultPage contains a page of ManagedInstance values.
 type ManagedInstanceListResultPage struct {
-	fn   func(context.Context, ManagedInstanceListResult) (ManagedInstanceListResult, error)
+	fn   func(ManagedInstanceListResult) (ManagedInstanceListResult, error)
 	milr ManagedInstanceListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ManagedInstanceListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedInstanceListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.milr)
+func (page *ManagedInstanceListResultPage) Next() error {
+	next, err := page.fn(page.milr)
 	if err != nil {
 		return err
 	}
 	page.milr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ManagedInstanceListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -8749,20 +7818,9 @@ func (page ManagedInstanceListResultPage) Values() []ManagedInstance {
 	return *page.milr.Value
 }
 
-// Creates a new instance of the ManagedInstanceListResultPage type.
-func NewManagedInstanceListResultPage(getNextPage func(context.Context, ManagedInstanceListResult) (ManagedInstanceListResult, error)) ManagedInstanceListResultPage {
-	return ManagedInstanceListResultPage{fn: getNextPage}
-}
-
 // ManagedInstanceProperties the properties of a managed instance.
 type ManagedInstanceProperties struct {
-	// ManagedInstanceCreateMode - Specifies the mode of database creation.
-	//
-	// Default: Regular instance creation.
-	//
-	// Restore: Creates an instance by restoring a set of backups to specific point in time. RestorePointInTime and SourceManagedInstanceId must be specified. Possible values include: 'ManagedServerCreateModeDefault', 'ManagedServerCreateModePointInTimeRestore'
-	ManagedInstanceCreateMode ManagedServerCreateMode `json:"managedInstanceCreateMode,omitempty"`
-	// FullyQualifiedDomainName - READ-ONLY; The fully qualified domain name of the managed instance.
+	// FullyQualifiedDomainName - The fully qualified domain name of the managed instance.
 	FullyQualifiedDomainName *string `json:"fullyQualifiedDomainName,omitempty"`
 	// AdministratorLogin - Administrator username for the managed instance. Can only be specified when the managed instance is being created (and is required for creation).
 	AdministratorLogin *string `json:"administratorLogin,omitempty"`
@@ -8770,41 +7828,24 @@ type ManagedInstanceProperties struct {
 	AdministratorLoginPassword *string `json:"administratorLoginPassword,omitempty"`
 	// SubnetID - Subnet resource ID for the managed instance.
 	SubnetID *string `json:"subnetId,omitempty"`
-	// State - READ-ONLY; The state of the managed instance.
+	// State - The state of the managed instance.
 	State *string `json:"state,omitempty"`
-	// LicenseType - The license type. Possible values are 'LicenseIncluded' (regular price inclusive of a new SQL license) and 'BasePrice' (discounted AHB price for bringing your own SQL licenses). Possible values include: 'LicenseIncluded', 'BasePrice'
-	LicenseType ManagedInstanceLicenseType `json:"licenseType,omitempty"`
-	// VCores - The number of vCores. Allowed values: 8, 16, 24, 32, 40, 64, 80.
+	// LicenseType - The license type. Possible values are 'LicenseIncluded' and 'BasePrice'.
+	LicenseType *string `json:"licenseType,omitempty"`
+	// VCores - The number of VCores.
 	VCores *int32 `json:"vCores,omitempty"`
-	// StorageSizeInGB - Storage size in GB. Minimum value: 32. Maximum value: 8192. Increments of 32 GB allowed only.
+	// StorageSizeInGB - The maximum storage size in GB.
 	StorageSizeInGB *int32 `json:"storageSizeInGB,omitempty"`
 	// Collation - Collation of the managed instance.
 	Collation *string `json:"collation,omitempty"`
-	// DNSZone - READ-ONLY; The Dns Zone that the managed instance is in.
+	// DNSZone - The Dns Zone that the managed instance is in.
 	DNSZone *string `json:"dnsZone,omitempty"`
 	// DNSZonePartner - The resource id of another managed instance whose DNS zone this managed instance will share after creation.
 	DNSZonePartner *string `json:"dnsZonePartner,omitempty"`
-	// PublicDataEndpointEnabled - Whether or not the public data endpoint is enabled.
-	PublicDataEndpointEnabled *bool `json:"publicDataEndpointEnabled,omitempty"`
-	// SourceManagedInstanceID - The resource identifier of the source managed instance associated with create operation of this instance.
-	SourceManagedInstanceID *string `json:"sourceManagedInstanceId,omitempty"`
-	// RestorePointInTime - Specifies the point in time (ISO8601 format) of the source database that will be restored to create the new database.
-	RestorePointInTime *date.Time `json:"restorePointInTime,omitempty"`
-	// ProxyOverride - Connection type used for connecting to the instance. Possible values include: 'ManagedInstanceProxyOverrideProxy', 'ManagedInstanceProxyOverrideRedirect', 'ManagedInstanceProxyOverrideDefault'
-	ProxyOverride ManagedInstanceProxyOverride `json:"proxyOverride,omitempty"`
-	// TimezoneID - Id of the timezone. Allowed values are timezones supported by Windows.
-	// Windows keeps details on supported timezones, including the id, in registry under
-	// KEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones.
-	// You can get those registry values via SQL Server by querying SELECT name AS timezone_id FROM sys.time_zone_info.
-	// List of Ids can also be obtained by executing [System.TimeZoneInfo]::GetSystemTimeZones() in PowerShell.
-	// An example of valid timezone id is "Pacific Standard Time" or "W. Europe Standard Time".
-	TimezoneID *string `json:"timezoneId,omitempty"`
-	// InstancePoolID - The Id of the instance pool this managed server belongs to.
-	InstancePoolID *string `json:"instancePoolId,omitempty"`
 }
 
-// ManagedInstancesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// ManagedInstancesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type ManagedInstancesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -8813,7 +7854,7 @@ type ManagedInstancesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedInstancesCreateOrUpdateFuture) Result(client ManagedInstancesClient) (mi ManagedInstance, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ManagedInstancesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -8842,7 +7883,7 @@ type ManagedInstancesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedInstancesDeleteFuture) Result(client ManagedInstancesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ManagedInstancesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -8865,7 +7906,7 @@ type ManagedInstancesUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ManagedInstancesUpdateFuture) Result(client ManagedInstancesClient) (mi ManagedInstance, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ManagedInstancesUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -8953,49 +7994,49 @@ func (miu *ManagedInstanceUpdate) UnmarshalJSON(body []byte) error {
 
 // MaxSizeCapability the maximum size limits for a database.
 type MaxSizeCapability struct {
-	// Limit - READ-ONLY; The maximum size of the database (see 'unit' for the units).
+	// Limit - The maximum size of the database (see 'unit' for the units).
 	Limit *int64 `json:"limit,omitempty"`
-	// Unit - READ-ONLY; The units that the limit is expressed in. Possible values include: 'Megabytes', 'Gigabytes', 'Terabytes', 'Petabytes'
+	// Unit - The units that the limit is expressed in. Possible values include: 'Megabytes', 'Gigabytes', 'Terabytes', 'Petabytes'
 	Unit MaxSizeUnits `json:"unit,omitempty"`
-	// Status - READ-ONLY; The status of the maximum size capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	// Status - The status of the maximum size capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
 	Status CapabilityStatus `json:"status,omitempty"`
 }
 
 // Metric database metrics.
 type Metric struct {
-	// StartTime - READ-ONLY; The start time for the metric (ISO-8601 format).
+	// StartTime - The start time for the metric (ISO-8601 format).
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; The end time for the metric (ISO-8601 format).
+	// EndTime - The end time for the metric (ISO-8601 format).
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// TimeGrain - READ-ONLY; The time step to be used to summarize the metric values.
+	// TimeGrain - The time step to be used to summarize the metric values.
 	TimeGrain *string `json:"timeGrain,omitempty"`
-	// Unit - READ-ONLY; The unit of the metric. Possible values include: 'UnitTypeCount', 'UnitTypeBytes', 'UnitTypeSeconds', 'UnitTypePercent', 'UnitTypeCountPerSecond', 'UnitTypeBytesPerSecond'
+	// Unit - The unit of the metric. Possible values include: 'UnitTypeCount', 'UnitTypeBytes', 'UnitTypeSeconds', 'UnitTypePercent', 'UnitTypeCountPerSecond', 'UnitTypeBytesPerSecond'
 	Unit UnitType `json:"unit,omitempty"`
-	// Name - READ-ONLY; The name information for the metric.
+	// Name - The name information for the metric.
 	Name *MetricName `json:"name,omitempty"`
-	// MetricValues - READ-ONLY; The metric values for the specified time window and timestep.
+	// MetricValues - The metric values for the specified time window and timestep.
 	MetricValues *[]MetricValue `json:"metricValues,omitempty"`
 }
 
 // MetricAvailability a metric availability value.
 type MetricAvailability struct {
-	// Retention - READ-ONLY; The length of retention for the database metric.
+	// Retention - The length of retention for the database metric.
 	Retention *string `json:"retention,omitempty"`
-	// TimeGrain - READ-ONLY; The granularity of the database metric.
+	// TimeGrain - The granularity of the database metric.
 	TimeGrain *string `json:"timeGrain,omitempty"`
 }
 
 // MetricDefinition a database metric definition.
 type MetricDefinition struct {
-	// Name - READ-ONLY; The name information for the metric.
+	// Name - The name information for the metric.
 	Name *MetricName `json:"name,omitempty"`
-	// PrimaryAggregationType - READ-ONLY; The primary aggregation type defining how metric values are displayed. Possible values include: 'None', 'Average', 'Count', 'Minimum', 'Maximum', 'Total'
+	// PrimaryAggregationType - The primary aggregation type defining how metric values are displayed. Possible values include: 'None', 'Average', 'Count', 'Minimum', 'Maximum', 'Total'
 	PrimaryAggregationType PrimaryAggregationType `json:"primaryAggregationType,omitempty"`
-	// ResourceURI - READ-ONLY; The resource uri of the database.
+	// ResourceURI - The resource uri of the database.
 	ResourceURI *string `json:"resourceUri,omitempty"`
-	// Unit - READ-ONLY; The unit of the metric. Possible values include: 'UnitDefinitionTypeCount', 'UnitDefinitionTypeBytes', 'UnitDefinitionTypeSeconds', 'UnitDefinitionTypePercent', 'UnitDefinitionTypeCountPerSecond', 'UnitDefinitionTypeBytesPerSecond'
+	// Unit - The unit of the metric. Possible values include: 'UnitDefinitionTypeCount', 'UnitDefinitionTypeBytes', 'UnitDefinitionTypeSeconds', 'UnitDefinitionTypePercent', 'UnitDefinitionTypeCountPerSecond', 'UnitDefinitionTypeBytesPerSecond'
 	Unit UnitDefinitionType `json:"unit,omitempty"`
-	// MetricAvailabilities - READ-ONLY; The list of database metric availabilities for the metric.
+	// MetricAvailabilities - The list of database metric availabities for the metric.
 	MetricAvailabilities *[]MetricAvailability `json:"metricAvailabilities,omitempty"`
 }
 
@@ -9015,76 +8056,88 @@ type MetricListResult struct {
 
 // MetricName a database metric name.
 type MetricName struct {
-	// Value - READ-ONLY; The name of the database metric.
+	// Value - The name of the database metric.
 	Value *string `json:"value,omitempty"`
-	// LocalizedValue - READ-ONLY; The friendly name of the database metric.
+	// LocalizedValue - The friendly name of the database metric.
 	LocalizedValue *string `json:"localizedValue,omitempty"`
 }
 
 // MetricValue represents database metrics.
 type MetricValue struct {
-	// Count - READ-ONLY; The number of values for the metric.
+	// Count - The number of values for the metric.
 	Count *float64 `json:"count,omitempty"`
-	// Average - READ-ONLY; The average value of the metric.
+	// Average - The average value of the metric.
 	Average *float64 `json:"average,omitempty"`
-	// Maximum - READ-ONLY; The max value of the metric.
+	// Maximum - The max value of the metric.
 	Maximum *float64 `json:"maximum,omitempty"`
-	// Minimum - READ-ONLY; The min value of the metric.
+	// Minimum - The min value of the metric.
 	Minimum *float64 `json:"minimum,omitempty"`
-	// Timestamp - READ-ONLY; The metric timestamp (ISO-8601 format).
+	// Timestamp - The metric timestamp (ISO-8601 format).
 	Timestamp *date.Time `json:"timestamp,omitempty"`
-	// Total - READ-ONLY; The total value of the metric.
+	// Total - The total value of the metric.
 	Total *float64 `json:"total,omitempty"`
 }
 
 // Operation SQL REST API operation definition.
 type Operation struct {
-	// Name - READ-ONLY; The name of the operation being performed on this particular object.
+	// Name - The name of the operation being performed on this particular object.
 	Name *string `json:"name,omitempty"`
-	// Display - READ-ONLY; The localized display information for this particular operation / action.
+	// Display - The localized display information for this particular operation / action.
 	Display *OperationDisplay `json:"display,omitempty"`
-	// Origin - READ-ONLY; The intended executor of the operation. Possible values include: 'OperationOriginUser', 'OperationOriginSystem'
+	// Origin - The intended executor of the operation. Possible values include: 'OperationOriginUser', 'OperationOriginSystem'
 	Origin OperationOrigin `json:"origin,omitempty"`
-	// Properties - READ-ONLY; Additional descriptions for the operation.
+	// Properties - Additional descriptions for the operation.
 	Properties map[string]interface{} `json:"properties"`
 }
 
 // MarshalJSON is the custom marshaler for Operation.
 func (o Operation) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if o.Name != nil {
+		objectMap["name"] = o.Name
+	}
+	if o.Display != nil {
+		objectMap["display"] = o.Display
+	}
+	if o.Origin != "" {
+		objectMap["origin"] = o.Origin
+	}
+	if o.Properties != nil {
+		objectMap["properties"] = o.Properties
+	}
 	return json.Marshal(objectMap)
 }
 
 // OperationDisplay display metadata associated with the operation.
 type OperationDisplay struct {
-	// Provider - READ-ONLY; The localized friendly form of the resource provider name.
+	// Provider - The localized friendly form of the resource provider name.
 	Provider *string `json:"provider,omitempty"`
-	// Resource - READ-ONLY; The localized friendly form of the resource type related to this action/operation.
+	// Resource - The localized friendly form of the resource type related to this action/operation.
 	Resource *string `json:"resource,omitempty"`
-	// Operation - READ-ONLY; The localized friendly name for the operation.
+	// Operation - The localized friendly name for the operation.
 	Operation *string `json:"operation,omitempty"`
-	// Description - READ-ONLY; The localized friendly description for the operation.
+	// Description - The localized friendly description for the operation.
 	Description *string `json:"description,omitempty"`
 }
 
 // OperationImpact the impact of an operation, both in absolute and relative terms.
 type OperationImpact struct {
-	// Name - READ-ONLY; The name of the impact dimension.
+	// Name - The name of the impact dimension.
 	Name *string `json:"name,omitempty"`
-	// Unit - READ-ONLY; The unit in which estimated impact to dimension is measured.
+	// Unit - The unit in which estimated impact to dimension is measured.
 	Unit *string `json:"unit,omitempty"`
-	// ChangeValueAbsolute - READ-ONLY; The absolute impact to dimension.
+	// ChangeValueAbsolute - The absolute impact to dimension.
 	ChangeValueAbsolute *float64 `json:"changeValueAbsolute,omitempty"`
-	// ChangeValueRelative - READ-ONLY; The relative impact to dimension (null if not applicable)
+	// ChangeValueRelative - The relative impact to dimension (null if not applicable)
 	ChangeValueRelative *float64 `json:"changeValueRelative,omitempty"`
 }
 
 // OperationListResult result of the request to list SQL operations.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]Operation `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -9094,37 +8147,20 @@ type OperationListResultIterator struct {
 	page OperationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OperationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OperationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -9146,11 +8182,6 @@ func (iter OperationListResultIterator) Value() Operation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OperationListResultIterator type.
-func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
-	return OperationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (olr OperationListResult) IsEmpty() bool {
 	return olr.Value == nil || len(*olr.Value) == 0
@@ -9158,11 +8189,11 @@ func (olr OperationListResult) IsEmpty() bool {
 
 // operationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (olr OperationListResult) operationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (olr OperationListResult) operationListResultPreparer() (*http.Request, error) {
 	if olr.NextLink == nil || len(to.String(olr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(olr.NextLink)))
@@ -9170,36 +8201,19 @@ func (olr OperationListResult) operationListResultPreparer(ctx context.Context) 
 
 // OperationListResultPage contains a page of Operation values.
 type OperationListResultPage struct {
-	fn  func(context.Context, OperationListResult) (OperationListResult, error)
+	fn  func(OperationListResult) (OperationListResult, error)
 	olr OperationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.olr)
+func (page *OperationListResultPage) Next() error {
+	next, err := page.fn(page.olr)
 	if err != nil {
 		return err
 	}
 	page.olr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OperationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -9220,54 +8234,61 @@ func (page OperationListResultPage) Values() []Operation {
 	return *page.olr.Value
 }
 
-// Creates a new instance of the OperationListResultPage type.
-func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
-	return OperationListResultPage{fn: getNextPage}
-}
-
 // PartnerInfo partner server information for the failover group.
 type PartnerInfo struct {
 	// ID - Resource identifier of the partner server.
 	ID *string `json:"id,omitempty"`
-	// Location - READ-ONLY; Geo location of the partner server.
+	// Location - Geo location of the partner server.
 	Location *string `json:"location,omitempty"`
-	// ReplicationRole - READ-ONLY; Replication role of the partner server. Possible values include: 'Primary', 'Secondary'
+	// ReplicationRole - Replication role of the partner server. Possible values include: 'Primary', 'Secondary'
 	ReplicationRole FailoverGroupReplicationRole `json:"replicationRole,omitempty"`
 }
 
 // PerformanceLevel a possible performance level of a service objective capability.
 type PerformanceLevel struct {
-	// Unit - READ-ONLY; Unit type used to measure service objective performance level. Possible values include: 'DTU'
+	// Unit - Unit type used to measure service objective performance level. Possible values include: 'DTU'
 	Unit PerformanceLevelUnit `json:"unit,omitempty"`
-	// Value - READ-ONLY; Performance level value.
+	// Value - Performance level value.
 	Value *int32 `json:"value,omitempty"`
 }
 
 // ProxyResource ARM proxy resource.
 type ProxyResource struct {
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // RecommendedIndex represents a database recommended index.
 type RecommendedIndex struct {
-	// RecommendedIndexProperties - READ-ONLY; The properties representing the resource.
+	// RecommendedIndexProperties - The properties representing the resource.
 	*RecommendedIndexProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for RecommendedIndex.
 func (ri RecommendedIndex) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if ri.RecommendedIndexProperties != nil {
+		objectMap["properties"] = ri.RecommendedIndexProperties
+	}
+	if ri.ID != nil {
+		objectMap["id"] = ri.ID
+	}
+	if ri.Name != nil {
+		objectMap["name"] = ri.Name
+	}
+	if ri.Type != nil {
+		objectMap["type"] = ri.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -9324,29 +8345,29 @@ func (ri *RecommendedIndex) UnmarshalJSON(body []byte) error {
 
 // RecommendedIndexProperties represents the properties of a database recommended index.
 type RecommendedIndexProperties struct {
-	// Action - READ-ONLY; The proposed index action. You can create a missing index, drop an unused index, or rebuild an existing index to improve its performance. Possible values include: 'Create', 'Drop', 'Rebuild'
+	// Action - The proposed index action. You can create a missing index, drop an unused index, or rebuild an existing index to improve its performance. Possible values include: 'Create', 'Drop', 'Rebuild'
 	Action RecommendedIndexAction `json:"action,omitempty"`
-	// State - READ-ONLY; The current recommendation state. Possible values include: 'Active', 'Pending', 'Executing', 'Verifying', 'PendingRevert', 'Reverting', 'Reverted', 'Ignored', 'Expired', 'Blocked', 'Success'
+	// State - The current recommendation state. Possible values include: 'Active', 'Pending', 'Executing', 'Verifying', 'PendingRevert', 'Reverting', 'Reverted', 'Ignored', 'Expired', 'Blocked', 'Success'
 	State RecommendedIndexState `json:"state,omitempty"`
-	// Created - READ-ONLY; The UTC datetime showing when this resource was created (ISO8601 format).
+	// Created - The UTC datetime showing when this resource was created (ISO8601 format).
 	Created *date.Time `json:"created,omitempty"`
-	// LastModified - READ-ONLY; The UTC datetime of when was this resource last changed (ISO8601 format).
+	// LastModified - The UTC datetime of when was this resource last changed (ISO8601 format).
 	LastModified *date.Time `json:"lastModified,omitempty"`
-	// IndexType - READ-ONLY; The type of index (CLUSTERED, NONCLUSTERED, COLUMNSTORE, CLUSTERED COLUMNSTORE). Possible values include: 'CLUSTERED', 'NONCLUSTERED', 'COLUMNSTORE', 'CLUSTEREDCOLUMNSTORE'
+	// IndexType - The type of index (CLUSTERED, NONCLUSTERED, COLUMNSTORE, CLUSTERED COLUMNSTORE). Possible values include: 'CLUSTERED', 'NONCLUSTERED', 'COLUMNSTORE', 'CLUSTEREDCOLUMNSTORE'
 	IndexType RecommendedIndexType `json:"indexType,omitempty"`
-	// Schema - READ-ONLY; The schema where table to build index over resides
+	// Schema - The schema where table to build index over resides
 	Schema *string `json:"schema,omitempty"`
-	// Table - READ-ONLY; The table on which to build index.
+	// Table - The table on which to build index.
 	Table *string `json:"table,omitempty"`
-	// Columns - READ-ONLY; Columns over which to build index
+	// Columns - Columns over which to build index
 	Columns *[]string `json:"columns,omitempty"`
-	// IncludedColumns - READ-ONLY; The list of column names to be included in the index
+	// IncludedColumns - The list of column names to be included in the index
 	IncludedColumns *[]string `json:"includedColumns,omitempty"`
-	// IndexScript - READ-ONLY; The full build index script
+	// IndexScript - The full build index script
 	IndexScript *string `json:"indexScript,omitempty"`
-	// EstimatedImpact - READ-ONLY; The estimated impact of doing recommended index action.
+	// EstimatedImpact - The estimated impact of doing recommended index action.
 	EstimatedImpact *[]OperationImpact `json:"estimatedImpact,omitempty"`
-	// ReportedImpact - READ-ONLY; The values reported after index action is complete.
+	// ReportedImpact - The values reported after index action is complete.
 	ReportedImpact *[]OperationImpact `json:"reportedImpact,omitempty"`
 }
 
@@ -9355,11 +8376,11 @@ type RecoverableDatabase struct {
 	autorest.Response `json:"-"`
 	// RecoverableDatabaseProperties - The properties of a recoverable database
 	*RecoverableDatabaseProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -9368,6 +8389,15 @@ func (rd RecoverableDatabase) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if rd.RecoverableDatabaseProperties != nil {
 		objectMap["properties"] = rd.RecoverableDatabaseProperties
+	}
+	if rd.ID != nil {
+		objectMap["id"] = rd.ID
+	}
+	if rd.Name != nil {
+		objectMap["name"] = rd.Name
+	}
+	if rd.Type != nil {
+		objectMap["type"] = rd.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -9432,36 +8462,48 @@ type RecoverableDatabaseListResult struct {
 
 // RecoverableDatabaseProperties the properties of a recoverable database
 type RecoverableDatabaseProperties struct {
-	// Edition - READ-ONLY; The edition of the database
+	// Edition - The edition of the database
 	Edition *string `json:"edition,omitempty"`
-	// ServiceLevelObjective - READ-ONLY; The service level objective name of the database
+	// ServiceLevelObjective - The service level objective name of the database
 	ServiceLevelObjective *string `json:"serviceLevelObjective,omitempty"`
-	// ElasticPoolName - READ-ONLY; The elastic pool name of the database
+	// ElasticPoolName - The elastic pool name of the database
 	ElasticPoolName *string `json:"elasticPoolName,omitempty"`
-	// LastAvailableBackupDate - READ-ONLY; The last available backup date of the database (ISO8601 format)
+	// LastAvailableBackupDate - The last available backup date of the database (ISO8601 format)
 	LastAvailableBackupDate *date.Time `json:"lastAvailableBackupDate,omitempty"`
 }
 
 // ReplicationLink represents a database replication link.
 type ReplicationLink struct {
 	autorest.Response `json:"-"`
-	// Location - READ-ONLY; Location of the server that contains this firewall rule.
+	// Location - Location of the server that contains this firewall rule.
 	Location *string `json:"location,omitempty"`
 	// ReplicationLinkProperties - The properties representing the resource.
 	*ReplicationLinkProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ReplicationLink.
 func (rl ReplicationLink) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if rl.Location != nil {
+		objectMap["location"] = rl.Location
+	}
 	if rl.ReplicationLinkProperties != nil {
 		objectMap["properties"] = rl.ReplicationLinkProperties
+	}
+	if rl.ID != nil {
+		objectMap["id"] = rl.ID
+	}
+	if rl.Name != nil {
+		objectMap["name"] = rl.Name
+	}
+	if rl.Type != nil {
+		objectMap["type"] = rl.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -9535,30 +8577,30 @@ type ReplicationLinkListResult struct {
 
 // ReplicationLinkProperties represents the properties of a database replication link.
 type ReplicationLinkProperties struct {
-	// IsTerminationAllowed - READ-ONLY; Legacy value indicating whether termination is allowed.  Currently always returns true.
+	// IsTerminationAllowed - Legacy value indicating whether termination is allowed.  Currently always returns true.
 	IsTerminationAllowed *bool `json:"isTerminationAllowed,omitempty"`
-	// ReplicationMode - READ-ONLY; Replication mode of this replication link.
+	// ReplicationMode - Replication mode of this replication link.
 	ReplicationMode *string `json:"replicationMode,omitempty"`
-	// PartnerServer - READ-ONLY; The name of the server hosting the partner database.
+	// PartnerServer - The name of the server hosting the partner database.
 	PartnerServer *string `json:"partnerServer,omitempty"`
-	// PartnerDatabase - READ-ONLY; The name of the partner database.
+	// PartnerDatabase - The name of the partner database.
 	PartnerDatabase *string `json:"partnerDatabase,omitempty"`
-	// PartnerLocation - READ-ONLY; The Azure Region of the partner database.
+	// PartnerLocation - The Azure Region of the partner database.
 	PartnerLocation *string `json:"partnerLocation,omitempty"`
-	// Role - READ-ONLY; The role of the database in the replication link. Possible values include: 'ReplicationRolePrimary', 'ReplicationRoleSecondary', 'ReplicationRoleNonReadableSecondary', 'ReplicationRoleSource', 'ReplicationRoleCopy'
+	// Role - The role of the database in the replication link. Possible values include: 'ReplicationRolePrimary', 'ReplicationRoleSecondary', 'ReplicationRoleNonReadableSecondary', 'ReplicationRoleSource', 'ReplicationRoleCopy'
 	Role ReplicationRole `json:"role,omitempty"`
-	// PartnerRole - READ-ONLY; The role of the partner database in the replication link. Possible values include: 'ReplicationRolePrimary', 'ReplicationRoleSecondary', 'ReplicationRoleNonReadableSecondary', 'ReplicationRoleSource', 'ReplicationRoleCopy'
+	// PartnerRole - The role of the partner database in the replication link. Possible values include: 'ReplicationRolePrimary', 'ReplicationRoleSecondary', 'ReplicationRoleNonReadableSecondary', 'ReplicationRoleSource', 'ReplicationRoleCopy'
 	PartnerRole ReplicationRole `json:"partnerRole,omitempty"`
-	// StartTime - READ-ONLY; The start time for the replication link.
+	// StartTime - The start time for the replication link.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// PercentComplete - READ-ONLY; The percentage of seeding complete for the replication link.
+	// PercentComplete - The percentage of seeding complete for the replication link.
 	PercentComplete *int32 `json:"percentComplete,omitempty"`
-	// ReplicationState - READ-ONLY; The replication state for the replication link. Possible values include: 'PENDING', 'SEEDING', 'CATCHUP', 'SUSPENDED'
+	// ReplicationState - The replication state for the replication link. Possible values include: 'PENDING', 'SEEDING', 'CATCHUP', 'SUSPENDED'
 	ReplicationState ReplicationState `json:"replicationState,omitempty"`
 }
 
-// ReplicationLinksFailoverAllowDataLossFuture an abstraction for monitoring and retrieving the results of
-// a long-running operation.
+// ReplicationLinksFailoverAllowDataLossFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type ReplicationLinksFailoverAllowDataLossFuture struct {
 	azure.Future
 }
@@ -9567,7 +8609,7 @@ type ReplicationLinksFailoverAllowDataLossFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ReplicationLinksFailoverAllowDataLossFuture) Result(client ReplicationLinksClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ReplicationLinksFailoverAllowDataLossFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -9580,8 +8622,8 @@ func (future *ReplicationLinksFailoverAllowDataLossFuture) Result(client Replica
 	return
 }
 
-// ReplicationLinksFailoverFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// ReplicationLinksFailoverFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type ReplicationLinksFailoverFuture struct {
 	azure.Future
 }
@@ -9590,7 +8632,7 @@ type ReplicationLinksFailoverFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ReplicationLinksFailoverFuture) Result(client ReplicationLinksClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ReplicationLinksFailoverFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -9605,21 +8647,21 @@ func (future *ReplicationLinksFailoverFuture) Result(client ReplicationLinksClie
 
 // Resource ARM resource.
 type Resource struct {
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // ResourceIdentity azure Active Directory identity configuration for a resource.
 type ResourceIdentity struct {
-	// PrincipalID - READ-ONLY; The Azure Active Directory principal id.
+	// PrincipalID - The Azure Active Directory principal id.
 	PrincipalID *uuid.UUID `json:"principalId,omitempty"`
 	// Type - The identity type. Set this to 'SystemAssigned' in order to automatically create and assign an Azure Active Directory principal for the resource. Possible values include: 'SystemAssigned'
 	Type IdentityType `json:"type,omitempty"`
-	// TenantID - READ-ONLY; The Azure Active Directory tenant id.
+	// TenantID - The Azure Active Directory tenant id.
 	TenantID *uuid.UUID `json:"tenantId,omitempty"`
 }
 
@@ -9632,23 +8674,35 @@ type ResourceMoveDefinition struct {
 // RestorableDroppedDatabase a restorable dropped database
 type RestorableDroppedDatabase struct {
 	autorest.Response `json:"-"`
-	// Location - READ-ONLY; The geo-location where the resource lives
+	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
 	// RestorableDroppedDatabaseProperties - The properties of a restorable dropped database
 	*RestorableDroppedDatabaseProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for RestorableDroppedDatabase.
 func (rdd RestorableDroppedDatabase) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if rdd.Location != nil {
+		objectMap["location"] = rdd.Location
+	}
 	if rdd.RestorableDroppedDatabaseProperties != nil {
 		objectMap["properties"] = rdd.RestorableDroppedDatabaseProperties
+	}
+	if rdd.ID != nil {
+		objectMap["id"] = rdd.ID
+	}
+	if rdd.Name != nil {
+		objectMap["name"] = rdd.Name
+	}
+	if rdd.Type != nil {
+		objectMap["type"] = rdd.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -9722,305 +8776,56 @@ type RestorableDroppedDatabaseListResult struct {
 
 // RestorableDroppedDatabaseProperties the properties of a restorable dropped database
 type RestorableDroppedDatabaseProperties struct {
-	// DatabaseName - READ-ONLY; The name of the database
+	// DatabaseName - The name of the database
 	DatabaseName *string `json:"databaseName,omitempty"`
-	// Edition - READ-ONLY; The edition of the database
+	// Edition - The edition of the database
 	Edition *string `json:"edition,omitempty"`
-	// MaxSizeBytes - READ-ONLY; The max size in bytes of the database
+	// MaxSizeBytes - The max size in bytes of the database
 	MaxSizeBytes *string `json:"maxSizeBytes,omitempty"`
-	// ServiceLevelObjective - READ-ONLY; The service level objective name of the database
+	// ServiceLevelObjective - The service level objective name of the database
 	ServiceLevelObjective *string `json:"serviceLevelObjective,omitempty"`
-	// ElasticPoolName - READ-ONLY; The elastic pool name of the database
+	// ElasticPoolName - The elastic pool name of the database
 	ElasticPoolName *string `json:"elasticPoolName,omitempty"`
-	// CreationDate - READ-ONLY; The creation date of the database (ISO8601 format)
+	// CreationDate - The creation date of the database (ISO8601 format)
 	CreationDate *date.Time `json:"creationDate,omitempty"`
-	// DeletionDate - READ-ONLY; The deletion date of the database (ISO8601 format)
+	// DeletionDate - The deletion date of the database (ISO8601 format)
 	DeletionDate *date.Time `json:"deletionDate,omitempty"`
-	// EarliestRestoreDate - READ-ONLY; The earliest restore date of the database (ISO8601 format)
-	EarliestRestoreDate *date.Time `json:"earliestRestoreDate,omitempty"`
-}
-
-// RestorableDroppedManagedDatabase a restorable dropped managed database resource.
-type RestorableDroppedManagedDatabase struct {
-	autorest.Response `json:"-"`
-	// RestorableDroppedManagedDatabaseProperties - Resource properties.
-	*RestorableDroppedManagedDatabaseProperties `json:"properties,omitempty"`
-	// Location - Resource location.
-	Location *string `json:"location,omitempty"`
-	// Tags - Resource tags.
-	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource ID.
-	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
-	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
-	Type *string `json:"type,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for RestorableDroppedManagedDatabase.
-func (rdmd RestorableDroppedManagedDatabase) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if rdmd.RestorableDroppedManagedDatabaseProperties != nil {
-		objectMap["properties"] = rdmd.RestorableDroppedManagedDatabaseProperties
-	}
-	if rdmd.Location != nil {
-		objectMap["location"] = rdmd.Location
-	}
-	if rdmd.Tags != nil {
-		objectMap["tags"] = rdmd.Tags
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for RestorableDroppedManagedDatabase struct.
-func (rdmd *RestorableDroppedManagedDatabase) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "properties":
-			if v != nil {
-				var restorableDroppedManagedDatabaseProperties RestorableDroppedManagedDatabaseProperties
-				err = json.Unmarshal(*v, &restorableDroppedManagedDatabaseProperties)
-				if err != nil {
-					return err
-				}
-				rdmd.RestorableDroppedManagedDatabaseProperties = &restorableDroppedManagedDatabaseProperties
-			}
-		case "location":
-			if v != nil {
-				var location string
-				err = json.Unmarshal(*v, &location)
-				if err != nil {
-					return err
-				}
-				rdmd.Location = &location
-			}
-		case "tags":
-			if v != nil {
-				var tags map[string]*string
-				err = json.Unmarshal(*v, &tags)
-				if err != nil {
-					return err
-				}
-				rdmd.Tags = tags
-			}
-		case "id":
-			if v != nil {
-				var ID string
-				err = json.Unmarshal(*v, &ID)
-				if err != nil {
-					return err
-				}
-				rdmd.ID = &ID
-			}
-		case "name":
-			if v != nil {
-				var name string
-				err = json.Unmarshal(*v, &name)
-				if err != nil {
-					return err
-				}
-				rdmd.Name = &name
-			}
-		case "type":
-			if v != nil {
-				var typeVar string
-				err = json.Unmarshal(*v, &typeVar)
-				if err != nil {
-					return err
-				}
-				rdmd.Type = &typeVar
-			}
-		}
-	}
-
-	return nil
-}
-
-// RestorableDroppedManagedDatabaseListResult a list of restorable dropped managed databases.
-type RestorableDroppedManagedDatabaseListResult struct {
-	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
-	Value *[]RestorableDroppedManagedDatabase `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// RestorableDroppedManagedDatabaseListResultIterator provides access to a complete listing of
-// RestorableDroppedManagedDatabase values.
-type RestorableDroppedManagedDatabaseListResultIterator struct {
-	i    int
-	page RestorableDroppedManagedDatabaseListResultPage
-}
-
-// NextWithContext advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *RestorableDroppedManagedDatabaseListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RestorableDroppedManagedDatabaseListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err = iter.page.NextWithContext(ctx)
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *RestorableDroppedManagedDatabaseListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter RestorableDroppedManagedDatabaseListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter RestorableDroppedManagedDatabaseListResultIterator) Response() RestorableDroppedManagedDatabaseListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter RestorableDroppedManagedDatabaseListResultIterator) Value() RestorableDroppedManagedDatabase {
-	if !iter.page.NotDone() {
-		return RestorableDroppedManagedDatabase{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// Creates a new instance of the RestorableDroppedManagedDatabaseListResultIterator type.
-func NewRestorableDroppedManagedDatabaseListResultIterator(page RestorableDroppedManagedDatabaseListResultPage) RestorableDroppedManagedDatabaseListResultIterator {
-	return RestorableDroppedManagedDatabaseListResultIterator{page: page}
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (rdmdlr RestorableDroppedManagedDatabaseListResult) IsEmpty() bool {
-	return rdmdlr.Value == nil || len(*rdmdlr.Value) == 0
-}
-
-// restorableDroppedManagedDatabaseListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (rdmdlr RestorableDroppedManagedDatabaseListResult) restorableDroppedManagedDatabaseListResultPreparer(ctx context.Context) (*http.Request, error) {
-	if rdmdlr.NextLink == nil || len(to.String(rdmdlr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(rdmdlr.NextLink)))
-}
-
-// RestorableDroppedManagedDatabaseListResultPage contains a page of RestorableDroppedManagedDatabase
-// values.
-type RestorableDroppedManagedDatabaseListResultPage struct {
-	fn     func(context.Context, RestorableDroppedManagedDatabaseListResult) (RestorableDroppedManagedDatabaseListResult, error)
-	rdmdlr RestorableDroppedManagedDatabaseListResult
-}
-
-// NextWithContext advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *RestorableDroppedManagedDatabaseListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RestorableDroppedManagedDatabaseListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.rdmdlr)
-	if err != nil {
-		return err
-	}
-	page.rdmdlr = next
-	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *RestorableDroppedManagedDatabaseListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page RestorableDroppedManagedDatabaseListResultPage) NotDone() bool {
-	return !page.rdmdlr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page RestorableDroppedManagedDatabaseListResultPage) Response() RestorableDroppedManagedDatabaseListResult {
-	return page.rdmdlr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page RestorableDroppedManagedDatabaseListResultPage) Values() []RestorableDroppedManagedDatabase {
-	if page.rdmdlr.IsEmpty() {
-		return nil
-	}
-	return *page.rdmdlr.Value
-}
-
-// Creates a new instance of the RestorableDroppedManagedDatabaseListResultPage type.
-func NewRestorableDroppedManagedDatabaseListResultPage(getNextPage func(context.Context, RestorableDroppedManagedDatabaseListResult) (RestorableDroppedManagedDatabaseListResult, error)) RestorableDroppedManagedDatabaseListResultPage {
-	return RestorableDroppedManagedDatabaseListResultPage{fn: getNextPage}
-}
-
-// RestorableDroppedManagedDatabaseProperties the restorable dropped managed database's properties.
-type RestorableDroppedManagedDatabaseProperties struct {
-	// DatabaseName - READ-ONLY; The name of the database.
-	DatabaseName *string `json:"databaseName,omitempty"`
-	// CreationDate - READ-ONLY; The creation date of the database (ISO8601 format).
-	CreationDate *date.Time `json:"creationDate,omitempty"`
-	// DeletionDate - READ-ONLY; The deletion date of the database (ISO8601 format).
-	DeletionDate *date.Time `json:"deletionDate,omitempty"`
-	// EarliestRestoreDate - READ-ONLY; The earliest restore date of the database (ISO8601 format).
+	// EarliestRestoreDate - The earliest restore date of the database (ISO8601 format)
 	EarliestRestoreDate *date.Time `json:"earliestRestoreDate,omitempty"`
 }
 
 // RestorePoint database restore points.
 type RestorePoint struct {
 	autorest.Response `json:"-"`
-	// Location - READ-ONLY; Resource location.
+	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
 	// RestorePointProperties - Resource properties.
 	*RestorePointProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for RestorePoint.
 func (rp RestorePoint) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if rp.Location != nil {
+		objectMap["location"] = rp.Location
+	}
 	if rp.RestorePointProperties != nil {
 		objectMap["properties"] = rp.RestorePointProperties
+	}
+	if rp.ID != nil {
+		objectMap["id"] = rp.ID
+	}
+	if rp.Name != nil {
+		objectMap["name"] = rp.Name
+	}
+	if rp.Type != nil {
+		objectMap["type"] = rp.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -10085,29 +8890,28 @@ func (rp *RestorePoint) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// RestorePointListResult a list of long term retention backups.
+// RestorePointListResult a list of long term retention bacukps.
 type RestorePointListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]RestorePoint `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
 // RestorePointProperties properties of a database restore point
 type RestorePointProperties struct {
-	// RestorePointType - READ-ONLY; The type of restore point. Possible values include: 'CONTINUOUS', 'DISCRETE'
+	// RestorePointType - The type of restore point. Possible values include: 'CONTINUOUS', 'DISCRETE'
 	RestorePointType RestorePointType `json:"restorePointType,omitempty"`
-	// EarliestRestoreDate - READ-ONLY; The earliest time to which this database can be restored
+	// EarliestRestoreDate - The earliest time to which this database can be restored
 	EarliestRestoreDate *date.Time `json:"earliestRestoreDate,omitempty"`
-	// RestorePointCreationDate - READ-ONLY; The time the backup was taken
+	// RestorePointCreationDate - The time the backup was taken
 	RestorePointCreationDate *date.Time `json:"restorePointCreationDate,omitempty"`
-	// RestorePointLabel - READ-ONLY; The label of restore point for backup request by user
+	// RestorePointLabel - The label of restore point for backup request by user
 	RestorePointLabel *string `json:"restorePointLabel,omitempty"`
 }
 
-// RestorePointsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// RestorePointsCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type RestorePointsCreateFuture struct {
 	azure.Future
 }
@@ -10116,7 +8920,7 @@ type RestorePointsCreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *RestorePointsCreateFuture) Result(client RestorePointsClient) (rp RestorePoint, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.RestorePointsCreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -10137,7 +8941,7 @@ func (future *RestorePointsCreateFuture) Result(client RestorePointsClient) (rp 
 
 // SecurityAlertPolicyProperties properties of a security alert policy.
 type SecurityAlertPolicyProperties struct {
-	// State - Specifies the state of the policy, whether it is enabled or disabled or a policy has not been applied yet on the specific database. Possible values include: 'SecurityAlertPolicyStateNew', 'SecurityAlertPolicyStateEnabled', 'SecurityAlertPolicyStateDisabled'
+	// State - Specifies the state of the policy, whether it is enabled or disabled. Possible values include: 'SecurityAlertPolicyStateNew', 'SecurityAlertPolicyStateEnabled', 'SecurityAlertPolicyStateDisabled'
 	State SecurityAlertPolicyState `json:"state,omitempty"`
 	// DisabledAlerts - Specifies an array of alerts that are disabled. Allowed values are: Sql_Injection, Sql_Injection_Vulnerability, Access_Anomaly, Data_Exfiltration, Unsafe_Action
 	DisabledAlerts *[]string `json:"disabledAlerts,omitempty"`
@@ -10151,241 +8955,6 @@ type SecurityAlertPolicyProperties struct {
 	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
 	// RetentionDays - Specifies the number of days to keep in the Threat Detection audit logs.
 	RetentionDays *int32 `json:"retentionDays,omitempty"`
-	// CreationTime - READ-ONLY; Specifies the UTC creation time of the policy.
-	CreationTime *date.Time `json:"creationTime,omitempty"`
-}
-
-// SensitivityLabel a sensitivity label.
-type SensitivityLabel struct {
-	autorest.Response `json:"-"`
-	// SensitivityLabelProperties - Resource properties.
-	*SensitivityLabelProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
-	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
-	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
-	Type *string `json:"type,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for SensitivityLabel.
-func (sl SensitivityLabel) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if sl.SensitivityLabelProperties != nil {
-		objectMap["properties"] = sl.SensitivityLabelProperties
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for SensitivityLabel struct.
-func (sl *SensitivityLabel) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "properties":
-			if v != nil {
-				var sensitivityLabelProperties SensitivityLabelProperties
-				err = json.Unmarshal(*v, &sensitivityLabelProperties)
-				if err != nil {
-					return err
-				}
-				sl.SensitivityLabelProperties = &sensitivityLabelProperties
-			}
-		case "id":
-			if v != nil {
-				var ID string
-				err = json.Unmarshal(*v, &ID)
-				if err != nil {
-					return err
-				}
-				sl.ID = &ID
-			}
-		case "name":
-			if v != nil {
-				var name string
-				err = json.Unmarshal(*v, &name)
-				if err != nil {
-					return err
-				}
-				sl.Name = &name
-			}
-		case "type":
-			if v != nil {
-				var typeVar string
-				err = json.Unmarshal(*v, &typeVar)
-				if err != nil {
-					return err
-				}
-				sl.Type = &typeVar
-			}
-		}
-	}
-
-	return nil
-}
-
-// SensitivityLabelListResult a list of sensitivity labels.
-type SensitivityLabelListResult struct {
-	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
-	Value *[]SensitivityLabel `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// SensitivityLabelListResultIterator provides access to a complete listing of SensitivityLabel values.
-type SensitivityLabelListResultIterator struct {
-	i    int
-	page SensitivityLabelListResultPage
-}
-
-// NextWithContext advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *SensitivityLabelListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SensitivityLabelListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err = iter.page.NextWithContext(ctx)
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SensitivityLabelListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter SensitivityLabelListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter SensitivityLabelListResultIterator) Response() SensitivityLabelListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter SensitivityLabelListResultIterator) Value() SensitivityLabel {
-	if !iter.page.NotDone() {
-		return SensitivityLabel{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// Creates a new instance of the SensitivityLabelListResultIterator type.
-func NewSensitivityLabelListResultIterator(page SensitivityLabelListResultPage) SensitivityLabelListResultIterator {
-	return SensitivityLabelListResultIterator{page: page}
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (sllr SensitivityLabelListResult) IsEmpty() bool {
-	return sllr.Value == nil || len(*sllr.Value) == 0
-}
-
-// sensitivityLabelListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (sllr SensitivityLabelListResult) sensitivityLabelListResultPreparer(ctx context.Context) (*http.Request, error) {
-	if sllr.NextLink == nil || len(to.String(sllr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(sllr.NextLink)))
-}
-
-// SensitivityLabelListResultPage contains a page of SensitivityLabel values.
-type SensitivityLabelListResultPage struct {
-	fn   func(context.Context, SensitivityLabelListResult) (SensitivityLabelListResult, error)
-	sllr SensitivityLabelListResult
-}
-
-// NextWithContext advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *SensitivityLabelListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SensitivityLabelListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sllr)
-	if err != nil {
-		return err
-	}
-	page.sllr = next
-	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SensitivityLabelListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page SensitivityLabelListResultPage) NotDone() bool {
-	return !page.sllr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page SensitivityLabelListResultPage) Response() SensitivityLabelListResult {
-	return page.sllr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page SensitivityLabelListResultPage) Values() []SensitivityLabel {
-	if page.sllr.IsEmpty() {
-		return nil
-	}
-	return *page.sllr.Value
-}
-
-// Creates a new instance of the SensitivityLabelListResultPage type.
-func NewSensitivityLabelListResultPage(getNextPage func(context.Context, SensitivityLabelListResult) (SensitivityLabelListResult, error)) SensitivityLabelListResultPage {
-	return SensitivityLabelListResultPage{fn: getNextPage}
-}
-
-// SensitivityLabelProperties properties of a sensitivity label.
-type SensitivityLabelProperties struct {
-	// LabelName - The label name.
-	LabelName *string `json:"labelName,omitempty"`
-	// LabelID - The label ID.
-	LabelID *string `json:"labelId,omitempty"`
-	// InformationType - The information type.
-	InformationType *string `json:"informationType,omitempty"`
-	// InformationTypeID - The information type ID.
-	InformationTypeID *string `json:"informationTypeId,omitempty"`
-	// IsDisabled - READ-ONLY; Is sensitivity recommendation disabled. Applicable for recommended sensitivity label only. Specifies whether the sensitivity recommendation on this column is disabled (dismissed) or not.
-	IsDisabled *bool `json:"isDisabled,omitempty"`
 }
 
 // Server an Azure SQL Database server.
@@ -10393,7 +8962,7 @@ type Server struct {
 	autorest.Response `json:"-"`
 	// Identity - The Azure Active Directory identity of the server.
 	Identity *ResourceIdentity `json:"identity,omitempty"`
-	// Kind - READ-ONLY; Kind of sql server. This is metadata used for the Azure portal experience.
+	// Kind - Kind of sql server. This is metadata used for the Azure portal experience.
 	Kind *string `json:"kind,omitempty"`
 	// ServerProperties - Resource properties.
 	*ServerProperties `json:"properties,omitempty"`
@@ -10401,11 +8970,11 @@ type Server struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -10415,6 +8984,9 @@ func (s Server) MarshalJSON() ([]byte, error) {
 	if s.Identity != nil {
 		objectMap["identity"] = s.Identity
 	}
+	if s.Kind != nil {
+		objectMap["kind"] = s.Kind
+	}
 	if s.ServerProperties != nil {
 		objectMap["properties"] = s.ServerProperties
 	}
@@ -10423,6 +8995,15 @@ func (s Server) MarshalJSON() ([]byte, error) {
 	}
 	if s.Tags != nil {
 		objectMap["tags"] = s.Tags
+	}
+	if s.ID != nil {
+		objectMap["id"] = s.ID
+	}
+	if s.Name != nil {
+		objectMap["name"] = s.Name
+	}
+	if s.Type != nil {
+		objectMap["type"] = s.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -10538,11 +9119,11 @@ type ServerAutomaticTuning struct {
 	autorest.Response `json:"-"`
 	// AutomaticTuningServerProperties - Resource properties.
 	*AutomaticTuningServerProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -10551,6 +9132,15 @@ func (sat ServerAutomaticTuning) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sat.AutomaticTuningServerProperties != nil {
 		objectMap["properties"] = sat.AutomaticTuningServerProperties
+	}
+	if sat.ID != nil {
+		objectMap["id"] = sat.ID
+	}
+	if sat.Name != nil {
+		objectMap["name"] = sat.Name
+	}
+	if sat.Type != nil {
+		objectMap["type"] = sat.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -10611,11 +9201,11 @@ type ServerAzureADAdministrator struct {
 	autorest.Response `json:"-"`
 	// ServerAdministratorProperties - The properties of the resource.
 	*ServerAdministratorProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -10624,6 +9214,15 @@ func (saaa ServerAzureADAdministrator) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if saaa.ServerAdministratorProperties != nil {
 		objectMap["properties"] = saaa.ServerAdministratorProperties
+	}
+	if saaa.ID != nil {
+		objectMap["id"] = saaa.ID
+	}
+	if saaa.Name != nil {
+		objectMap["name"] = saaa.Name
+	}
+	if saaa.Type != nil {
+		objectMap["type"] = saaa.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -10679,8 +9278,8 @@ func (saaa *ServerAzureADAdministrator) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ServerAzureADAdministratorsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results
-// of a long-running operation.
+// ServerAzureADAdministratorsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type ServerAzureADAdministratorsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -10689,7 +9288,7 @@ type ServerAzureADAdministratorsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerAzureADAdministratorsCreateOrUpdateFuture) Result(client ServerAzureADAdministratorsClient) (saaa ServerAzureADAdministrator, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerAzureADAdministratorsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -10718,7 +9317,7 @@ type ServerAzureADAdministratorsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerAzureADAdministratorsDeleteFuture) Result(client ServerAzureADAdministratorsClient) (saaa ServerAzureADAdministrator, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerAzureADAdministratorsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -10737,8 +9336,8 @@ func (future *ServerAzureADAdministratorsDeleteFuture) Result(client ServerAzure
 	return
 }
 
-// ServerBlobAuditingPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results
-// of a long-running operation.
+// ServerBlobAuditingPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type ServerBlobAuditingPoliciesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -10747,7 +9346,7 @@ type ServerBlobAuditingPoliciesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerBlobAuditingPoliciesCreateOrUpdateFuture) Result(client ServerBlobAuditingPoliciesClient) (sbap ServerBlobAuditingPolicy, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerBlobAuditingPoliciesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -10771,11 +9370,11 @@ type ServerBlobAuditingPolicy struct {
 	autorest.Response `json:"-"`
 	// ServerBlobAuditingPolicyProperties - Resource properties.
 	*ServerBlobAuditingPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -10784,6 +9383,15 @@ func (sbap ServerBlobAuditingPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sbap.ServerBlobAuditingPolicyProperties != nil {
 		objectMap["properties"] = sbap.ServerBlobAuditingPolicyProperties
+	}
+	if sbap.ID != nil {
+		objectMap["id"] = sbap.ID
+	}
+	if sbap.Name != nil {
+		objectMap["name"] = sbap.Name
+	}
+	if sbap.Type != nil {
+		objectMap["type"] = sbap.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -10841,13 +9449,13 @@ func (sbap *ServerBlobAuditingPolicy) UnmarshalJSON(body []byte) error {
 
 // ServerBlobAuditingPolicyProperties properties of a server blob auditing policy.
 type ServerBlobAuditingPolicyProperties struct {
-	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint or isAzureMonitorTargetEnabled are required. Possible values include: 'BlobAuditingPolicyStateEnabled', 'BlobAuditingPolicyStateDisabled'
+	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint and storageAccountAccessKey are required. Possible values include: 'BlobAuditingPolicyStateEnabled', 'BlobAuditingPolicyStateDisabled'
 	State BlobAuditingPolicyState `json:"state,omitempty"`
 	// StorageEndpoint - Specifies the blob storage endpoint (e.g. https://MyAccount.blob.core.windows.net). If state is Enabled, storageEndpoint is required.
 	StorageEndpoint *string `json:"storageEndpoint,omitempty"`
-	// StorageAccountAccessKey - Specifies the identifier key of the auditing storage account. If state is Enabled and storageEndpoint is specified, storageAccountAccessKey is required.
+	// StorageAccountAccessKey - Specifies the identifier key of the auditing storage account. If state is Enabled, storageAccountAccessKey is required.
 	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
-	// RetentionDays - Specifies the number of days to keep in the audit logs in the storage account.
+	// RetentionDays - Specifies the number of days to keep in the audit logs.
 	RetentionDays *int32 `json:"retentionDays,omitempty"`
 	// AuditActionsAndGroups - Specifies the Actions-Groups and Actions to audit.
 	//
@@ -10896,9 +9504,9 @@ type ServerBlobAuditingPolicyProperties struct {
 	// REFERENCES
 	//
 	// The general form for defining an action to be audited is:
-	// {action} ON {object} BY {principal}
+	// <action> ON <object> BY <principal>
 	//
-	// Note that <object> in the above format can refer to an object like a table, view, or stored procedure, or an entire database or schema. For the latter cases, the forms DATABASE::{db_name} and SCHEMA::{schema_name} are used, respectively.
+	// Note that <object> in the above format can refer to an object like a table, view, or stored procedure, or an entire database or schema. For the latter cases, the forms DATABASE::<db_name> and SCHEMA::<schema_name> are used, respectively.
 	//
 	// For example:
 	// SELECT on dbo.myTable by public
@@ -10911,18 +9519,6 @@ type ServerBlobAuditingPolicyProperties struct {
 	StorageAccountSubscriptionID *uuid.UUID `json:"storageAccountSubscriptionId,omitempty"`
 	// IsStorageSecondaryKeyInUse - Specifies whether storageAccountAccessKey value is the storage's secondary key.
 	IsStorageSecondaryKeyInUse *bool `json:"isStorageSecondaryKeyInUse,omitempty"`
-	// IsAzureMonitorTargetEnabled - Specifies whether audit events are sent to Azure Monitor.
-	// In order to send the events to Azure Monitor, specify 'State' as 'Enabled' and 'IsAzureMonitorTargetEnabled' as true.
-	//
-	// When using REST API to configure auditing, Diagnostic Settings with 'SQLSecurityAuditEvents' diagnostic logs category on the database should be also created.
-	// Note that for server level audit you should use the 'master' database as {databaseName}.
-	//
-	// Diagnostic Settings URI format:
-	// PUT https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Sql/servers/{serverName}/databases/{databaseName}/providers/microsoft.insights/diagnosticSettings/{settingsName}?api-version=2017-05-01-preview
-	//
-	// For more information, see [Diagnostic Settings REST API](https://go.microsoft.com/fwlink/?linkid=2033207)
-	// or [Diagnostic Settings PowerShell](https://go.microsoft.com/fwlink/?linkid=2033043)
-	IsAzureMonitorTargetEnabled *bool `json:"isAzureMonitorTargetEnabled,omitempty"`
 }
 
 // ServerCommunicationLink server communication link.
@@ -10930,15 +9526,15 @@ type ServerCommunicationLink struct {
 	autorest.Response `json:"-"`
 	// ServerCommunicationLinkProperties - The properties of resource.
 	*ServerCommunicationLinkProperties `json:"properties,omitempty"`
-	// Location - READ-ONLY; Communication link location.
+	// Location - Communication link location.
 	Location *string `json:"location,omitempty"`
-	// Kind - READ-ONLY; Communication link kind.  This property is used for Azure Portal metadata.
+	// Kind - Communication link kind.  This property is used for Azure Portal metadata.
 	Kind *string `json:"kind,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -10947,6 +9543,21 @@ func (scl ServerCommunicationLink) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if scl.ServerCommunicationLinkProperties != nil {
 		objectMap["properties"] = scl.ServerCommunicationLinkProperties
+	}
+	if scl.Location != nil {
+		objectMap["location"] = scl.Location
+	}
+	if scl.Kind != nil {
+		objectMap["kind"] = scl.Kind
+	}
+	if scl.ID != nil {
+		objectMap["id"] = scl.ID
+	}
+	if scl.Name != nil {
+		objectMap["name"] = scl.Name
+	}
+	if scl.Type != nil {
+		objectMap["type"] = scl.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -11029,14 +9640,14 @@ type ServerCommunicationLinkListResult struct {
 
 // ServerCommunicationLinkProperties the properties of a server communication link.
 type ServerCommunicationLinkProperties struct {
-	// State - READ-ONLY; The state.
+	// State - The state.
 	State *string `json:"state,omitempty"`
 	// PartnerServer - The name of the partner server.
 	PartnerServer *string `json:"partnerServer,omitempty"`
 }
 
-// ServerCommunicationLinksCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of
-// a long-running operation.
+// ServerCommunicationLinksCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type ServerCommunicationLinksCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -11045,7 +9656,7 @@ type ServerCommunicationLinksCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerCommunicationLinksCreateOrUpdateFuture) Result(client ServerCommunicationLinksClient) (scl ServerCommunicationLink, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerCommunicationLinksCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -11067,25 +9678,40 @@ func (future *ServerCommunicationLinksCreateOrUpdateFuture) Result(client Server
 // ServerConnectionPolicy a server secure connection policy.
 type ServerConnectionPolicy struct {
 	autorest.Response `json:"-"`
-	// Kind - READ-ONLY; Metadata used for the Azure portal experience.
+	// Kind - Metadata used for the Azure portal experience.
 	Kind *string `json:"kind,omitempty"`
-	// Location - READ-ONLY; Resource location.
+	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
 	// ServerConnectionPolicyProperties - The properties of the server secure connection policy.
 	*ServerConnectionPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ServerConnectionPolicy.
 func (scp ServerConnectionPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if scp.Kind != nil {
+		objectMap["kind"] = scp.Kind
+	}
+	if scp.Location != nil {
+		objectMap["location"] = scp.Location
+	}
 	if scp.ServerConnectionPolicyProperties != nil {
 		objectMap["properties"] = scp.ServerConnectionPolicyProperties
+	}
+	if scp.ID != nil {
+		objectMap["id"] = scp.ID
+	}
+	if scp.Name != nil {
+		objectMap["name"] = scp.Name
+	}
+	if scp.Type != nil {
+		objectMap["type"] = scp.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -11170,11 +9796,11 @@ type ServerDNSAlias struct {
 	autorest.Response `json:"-"`
 	// ServerDNSAliasProperties - Resource properties.
 	*ServerDNSAliasProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -11183,6 +9809,15 @@ func (sda ServerDNSAlias) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sda.ServerDNSAliasProperties != nil {
 		objectMap["properties"] = sda.ServerDNSAliasProperties
+	}
+	if sda.ID != nil {
+		objectMap["id"] = sda.ID
+	}
+	if sda.Name != nil {
+		objectMap["name"] = sda.Name
+	}
+	if sda.Type != nil {
+		objectMap["type"] = sda.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -11254,7 +9889,7 @@ type ServerDNSAliasesAcquireFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerDNSAliasesAcquireFuture) Result(client ServerDNSAliasesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerDNSAliasesAcquireFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -11267,8 +9902,8 @@ func (future *ServerDNSAliasesAcquireFuture) Result(client ServerDNSAliasesClien
 	return
 }
 
-// ServerDNSAliasesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// ServerDNSAliasesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type ServerDNSAliasesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -11277,7 +9912,7 @@ type ServerDNSAliasesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerDNSAliasesCreateOrUpdateFuture) Result(client ServerDNSAliasesClient) (sda ServerDNSAlias, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerDNSAliasesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -11306,7 +9941,7 @@ type ServerDNSAliasesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerDNSAliasesDeleteFuture) Result(client ServerDNSAliasesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerDNSAliasesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -11322,9 +9957,9 @@ func (future *ServerDNSAliasesDeleteFuture) Result(client ServerDNSAliasesClient
 // ServerDNSAliasListResult a list of server DNS aliases.
 type ServerDNSAliasListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]ServerDNSAlias `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -11334,37 +9969,20 @@ type ServerDNSAliasListResultIterator struct {
 	page ServerDNSAliasListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ServerDNSAliasListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServerDNSAliasListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ServerDNSAliasListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ServerDNSAliasListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -11386,11 +10004,6 @@ func (iter ServerDNSAliasListResultIterator) Value() ServerDNSAlias {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ServerDNSAliasListResultIterator type.
-func NewServerDNSAliasListResultIterator(page ServerDNSAliasListResultPage) ServerDNSAliasListResultIterator {
-	return ServerDNSAliasListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sdalr ServerDNSAliasListResult) IsEmpty() bool {
 	return sdalr.Value == nil || len(*sdalr.Value) == 0
@@ -11398,11 +10011,11 @@ func (sdalr ServerDNSAliasListResult) IsEmpty() bool {
 
 // serverDNSAliasListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sdalr ServerDNSAliasListResult) serverDNSAliasListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (sdalr ServerDNSAliasListResult) serverDNSAliasListResultPreparer() (*http.Request, error) {
 	if sdalr.NextLink == nil || len(to.String(sdalr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sdalr.NextLink)))
@@ -11410,36 +10023,19 @@ func (sdalr ServerDNSAliasListResult) serverDNSAliasListResultPreparer(ctx conte
 
 // ServerDNSAliasListResultPage contains a page of ServerDNSAlias values.
 type ServerDNSAliasListResultPage struct {
-	fn    func(context.Context, ServerDNSAliasListResult) (ServerDNSAliasListResult, error)
+	fn    func(ServerDNSAliasListResult) (ServerDNSAliasListResult, error)
 	sdalr ServerDNSAliasListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ServerDNSAliasListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServerDNSAliasListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sdalr)
+func (page *ServerDNSAliasListResultPage) Next() error {
+	next, err := page.fn(page.sdalr)
 	if err != nil {
 		return err
 	}
 	page.sdalr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ServerDNSAliasListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -11460,14 +10056,9 @@ func (page ServerDNSAliasListResultPage) Values() []ServerDNSAlias {
 	return *page.sdalr.Value
 }
 
-// Creates a new instance of the ServerDNSAliasListResultPage type.
-func NewServerDNSAliasListResultPage(getNextPage func(context.Context, ServerDNSAliasListResult) (ServerDNSAliasListResult, error)) ServerDNSAliasListResultPage {
-	return ServerDNSAliasListResultPage{fn: getNextPage}
-}
-
 // ServerDNSAliasProperties properties of a server DNS alias.
 type ServerDNSAliasProperties struct {
-	// AzureDNSRecord - READ-ONLY; The fully qualified DNS record for alias
+	// AzureDNSRecord - The fully qualified DNS record for alias
 	AzureDNSRecord *string `json:"azureDnsRecord,omitempty"`
 }
 
@@ -11476,15 +10067,15 @@ type ServerKey struct {
 	autorest.Response `json:"-"`
 	// Kind - Kind of encryption protector. This is metadata used for the Azure portal experience.
 	Kind *string `json:"kind,omitempty"`
-	// Location - READ-ONLY; Resource location.
+	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
 	// ServerKeyProperties - Resource properties.
 	*ServerKeyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -11494,8 +10085,20 @@ func (sk ServerKey) MarshalJSON() ([]byte, error) {
 	if sk.Kind != nil {
 		objectMap["kind"] = sk.Kind
 	}
+	if sk.Location != nil {
+		objectMap["location"] = sk.Location
+	}
 	if sk.ServerKeyProperties != nil {
 		objectMap["properties"] = sk.ServerKeyProperties
+	}
+	if sk.ID != nil {
+		objectMap["id"] = sk.ID
+	}
+	if sk.Name != nil {
+		objectMap["name"] = sk.Name
+	}
+	if sk.Type != nil {
+		objectMap["type"] = sk.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -11572,9 +10175,9 @@ func (sk *ServerKey) UnmarshalJSON(body []byte) error {
 // ServerKeyListResult a list of server keys.
 type ServerKeyListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]ServerKey `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -11584,37 +10187,20 @@ type ServerKeyListResultIterator struct {
 	page ServerKeyListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ServerKeyListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServerKeyListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ServerKeyListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ServerKeyListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -11636,11 +10222,6 @@ func (iter ServerKeyListResultIterator) Value() ServerKey {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ServerKeyListResultIterator type.
-func NewServerKeyListResultIterator(page ServerKeyListResultPage) ServerKeyListResultIterator {
-	return ServerKeyListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sklr ServerKeyListResult) IsEmpty() bool {
 	return sklr.Value == nil || len(*sklr.Value) == 0
@@ -11648,11 +10229,11 @@ func (sklr ServerKeyListResult) IsEmpty() bool {
 
 // serverKeyListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sklr ServerKeyListResult) serverKeyListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (sklr ServerKeyListResult) serverKeyListResultPreparer() (*http.Request, error) {
 	if sklr.NextLink == nil || len(to.String(sklr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sklr.NextLink)))
@@ -11660,36 +10241,19 @@ func (sklr ServerKeyListResult) serverKeyListResultPreparer(ctx context.Context)
 
 // ServerKeyListResultPage contains a page of ServerKey values.
 type ServerKeyListResultPage struct {
-	fn   func(context.Context, ServerKeyListResult) (ServerKeyListResult, error)
+	fn   func(ServerKeyListResult) (ServerKeyListResult, error)
 	sklr ServerKeyListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ServerKeyListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServerKeyListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sklr)
+func (page *ServerKeyListResultPage) Next() error {
+	next, err := page.fn(page.sklr)
 	if err != nil {
 		return err
 	}
 	page.sklr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ServerKeyListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -11710,14 +10274,9 @@ func (page ServerKeyListResultPage) Values() []ServerKey {
 	return *page.sklr.Value
 }
 
-// Creates a new instance of the ServerKeyListResultPage type.
-func NewServerKeyListResultPage(getNextPage func(context.Context, ServerKeyListResult) (ServerKeyListResult, error)) ServerKeyListResultPage {
-	return ServerKeyListResultPage{fn: getNextPage}
-}
-
 // ServerKeyProperties properties for a server key execution.
 type ServerKeyProperties struct {
-	// Subregion - READ-ONLY; Subregion of the server key.
+	// Subregion - Subregion of the server key.
 	Subregion *string `json:"subregion,omitempty"`
 	// ServerKeyType - The server key type like 'ServiceManaged', 'AzureKeyVault'. Possible values include: 'ServiceManaged', 'AzureKeyVault'
 	ServerKeyType ServerKeyType `json:"serverKeyType,omitempty"`
@@ -11729,8 +10288,8 @@ type ServerKeyProperties struct {
 	CreationDate *date.Time `json:"creationDate,omitempty"`
 }
 
-// ServerKeysCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// ServerKeysCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type ServerKeysCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -11739,7 +10298,7 @@ type ServerKeysCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerKeysCreateOrUpdateFuture) Result(client ServerKeysClient) (sk ServerKey, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerKeysCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -11758,8 +10317,7 @@ func (future *ServerKeysCreateOrUpdateFuture) Result(client ServerKeysClient) (s
 	return
 }
 
-// ServerKeysDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ServerKeysDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ServerKeysDeleteFuture struct {
 	azure.Future
 }
@@ -11768,7 +10326,7 @@ type ServerKeysDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerKeysDeleteFuture) Result(client ServerKeysClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerKeysDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -11784,9 +10342,9 @@ func (future *ServerKeysDeleteFuture) Result(client ServerKeysClient) (ar autore
 // ServerListResult a list of servers.
 type ServerListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]Server `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -11796,37 +10354,20 @@ type ServerListResultIterator struct {
 	page ServerListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ServerListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServerListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ServerListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ServerListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -11848,11 +10389,6 @@ func (iter ServerListResultIterator) Value() Server {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ServerListResultIterator type.
-func NewServerListResultIterator(page ServerListResultPage) ServerListResultIterator {
-	return ServerListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (slr ServerListResult) IsEmpty() bool {
 	return slr.Value == nil || len(*slr.Value) == 0
@@ -11860,11 +10396,11 @@ func (slr ServerListResult) IsEmpty() bool {
 
 // serverListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (slr ServerListResult) serverListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (slr ServerListResult) serverListResultPreparer() (*http.Request, error) {
 	if slr.NextLink == nil || len(to.String(slr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(slr.NextLink)))
@@ -11872,36 +10408,19 @@ func (slr ServerListResult) serverListResultPreparer(ctx context.Context) (*http
 
 // ServerListResultPage contains a page of Server values.
 type ServerListResultPage struct {
-	fn  func(context.Context, ServerListResult) (ServerListResult, error)
+	fn  func(ServerListResult) (ServerListResult, error)
 	slr ServerListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ServerListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServerListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.slr)
+func (page *ServerListResultPage) Next() error {
+	next, err := page.fn(page.slr)
 	if err != nil {
 		return err
 	}
 	page.slr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ServerListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -11922,11 +10441,6 @@ func (page ServerListResultPage) Values() []Server {
 	return *page.slr.Value
 }
 
-// Creates a new instance of the ServerListResultPage type.
-func NewServerListResultPage(getNextPage func(context.Context, ServerListResult) (ServerListResult, error)) ServerListResultPage {
-	return ServerListResultPage{fn: getNextPage}
-}
-
 // ServerProperties the properties of a server.
 type ServerProperties struct {
 	// AdministratorLogin - Administrator username for the server. Once created it cannot be changed.
@@ -11935,9 +10449,9 @@ type ServerProperties struct {
 	AdministratorLoginPassword *string `json:"administratorLoginPassword,omitempty"`
 	// Version - The version of the server.
 	Version *string `json:"version,omitempty"`
-	// State - READ-ONLY; The state of the server.
+	// State - The state of the server.
 	State *string `json:"state,omitempty"`
-	// FullyQualifiedDomainName - READ-ONLY; The fully qualified domain name of the server.
+	// FullyQualifiedDomainName - The fully qualified domain name of the server.
 	FullyQualifiedDomainName *string `json:"fullyQualifiedDomainName,omitempty"`
 }
 
@@ -11951,7 +10465,7 @@ type ServersCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServersCreateOrUpdateFuture) Result(client ServersClient) (s Server, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServersCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -11970,8 +10484,7 @@ func (future *ServersCreateOrUpdateFuture) Result(client ServersClient) (s Serve
 	return
 }
 
-// ServersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ServersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ServersDeleteFuture struct {
 	azure.Future
 }
@@ -11980,7 +10493,7 @@ type ServersDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServersDeleteFuture) Result(client ServersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -11993,8 +10506,8 @@ func (future *ServersDeleteFuture) Result(client ServersClient) (ar autorest.Res
 	return
 }
 
-// ServerSecurityAlertPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results
-// of a long-running operation.
+// ServerSecurityAlertPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type ServerSecurityAlertPoliciesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -12003,7 +10516,7 @@ type ServerSecurityAlertPoliciesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServerSecurityAlertPoliciesCreateOrUpdateFuture) Result(client ServerSecurityAlertPoliciesClient) (ssap ServerSecurityAlertPolicy, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServerSecurityAlertPoliciesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -12027,11 +10540,11 @@ type ServerSecurityAlertPolicy struct {
 	autorest.Response `json:"-"`
 	// SecurityAlertPolicyProperties - Resource properties.
 	*SecurityAlertPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -12040,6 +10553,15 @@ func (ssap ServerSecurityAlertPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ssap.SecurityAlertPolicyProperties != nil {
 		objectMap["properties"] = ssap.SecurityAlertPolicyProperties
+	}
+	if ssap.ID != nil {
+		objectMap["id"] = ssap.ID
+	}
+	if ssap.Name != nil {
+		objectMap["name"] = ssap.Name
+	}
+	if ssap.Type != nil {
+		objectMap["type"] = ssap.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -12095,8 +10617,7 @@ func (ssap *ServerSecurityAlertPolicy) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ServersUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ServersUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ServersUpdateFuture struct {
 	azure.Future
 }
@@ -12105,7 +10626,7 @@ type ServersUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServersUpdateFuture) Result(client ServersClient) (s Server, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServersUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -12179,19 +10700,19 @@ func (su *ServerUpdate) UnmarshalJSON(body []byte) error {
 
 // ServerUsage represents server metrics.
 type ServerUsage struct {
-	// Name - READ-ONLY; Name of the server usage metric.
+	// Name - Name of the server usage metric.
 	Name *string `json:"name,omitempty"`
-	// ResourceName - READ-ONLY; The name of the resource.
+	// ResourceName - The name of the resource.
 	ResourceName *string `json:"resourceName,omitempty"`
-	// DisplayName - READ-ONLY; The metric display name.
+	// DisplayName - The metric display name.
 	DisplayName *string `json:"displayName,omitempty"`
-	// CurrentValue - READ-ONLY; The current value of the metric.
+	// CurrentValue - The current value of the metric.
 	CurrentValue *float64 `json:"currentValue,omitempty"`
-	// Limit - READ-ONLY; The current limit of the metric.
+	// Limit - The current limit of the metric.
 	Limit *float64 `json:"limit,omitempty"`
-	// Unit - READ-ONLY; The units of the metric.
+	// Unit - The units of the metric.
 	Unit *string `json:"unit,omitempty"`
-	// NextResetTime - READ-ONLY; The next reset time for the metric (ISO8601 format).
+	// NextResetTime - The next reset time for the metric (ISO8601 format).
 	NextResetTime *date.Time `json:"nextResetTime,omitempty"`
 }
 
@@ -12204,13 +10725,13 @@ type ServerUsageListResult struct {
 
 // ServerVersionCapability the server capabilities.
 type ServerVersionCapability struct {
-	// Name - READ-ONLY; The server version name.
+	// Name - The server version name.
 	Name *string `json:"name,omitempty"`
-	// Status - READ-ONLY; The status of the server version. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	// Status - The status of the server version. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
 	Status CapabilityStatus `json:"status,omitempty"`
-	// SupportedEditions - READ-ONLY; The list of supported database editions.
+	// SupportedEditions - The list of supported database editions.
 	SupportedEditions *[]EditionCapability `json:"supportedEditions,omitempty"`
-	// SupportedElasticPoolEditions - READ-ONLY; The list of supported elastic pool editions.
+	// SupportedElasticPoolEditions - The list of supported elastic pool editions.
 	SupportedElasticPoolEditions *[]ElasticPoolEditionCapability `json:"supportedElasticPoolEditions,omitempty"`
 }
 
@@ -12219,11 +10740,11 @@ type ServiceObjective struct {
 	autorest.Response `json:"-"`
 	// ServiceObjectiveProperties - Represents the properties of the resource.
 	*ServiceObjectiveProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -12232,6 +10753,15 @@ func (so ServiceObjective) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if so.ServiceObjectiveProperties != nil {
 		objectMap["properties"] = so.ServiceObjectiveProperties
+	}
+	if so.ID != nil {
+		objectMap["id"] = so.ID
+	}
+	if so.Name != nil {
+		objectMap["name"] = so.Name
+	}
+	if so.Type != nil {
+		objectMap["type"] = so.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -12289,23 +10819,41 @@ func (so *ServiceObjective) UnmarshalJSON(body []byte) error {
 
 // ServiceObjectiveCapability the service objectives capability.
 type ServiceObjectiveCapability struct {
-	// Name - READ-ONLY; The service objective name.
+	// Name - The service objective name.
 	Name *string `json:"name,omitempty"`
-	// Status - READ-ONLY; The status of the service objective. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	// Status - The status of the service objective. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
 	Status CapabilityStatus `json:"status,omitempty"`
-	// PerformanceLevel - READ-ONLY; The performance level of the service objective capability.
+	// PerformanceLevel - The performance level of the service objective capability.
 	*PerformanceLevel `json:"performanceLevel,omitempty"`
-	// ID - READ-ONLY; The unique ID of the service objective.
+	// ID - The unique ID of the service objective.
 	ID *uuid.UUID `json:"id,omitempty"`
-	// SupportedMaxSizes - READ-ONLY; The list of supported maximum database sizes for this service objective.
+	// SupportedMaxSizes - The list of supported maximum database sizes for this service objective.
 	SupportedMaxSizes *[]MaxSizeCapability `json:"supportedMaxSizes,omitempty"`
-	// IncludedMaxSize - READ-ONLY; The included (free) max size for this service level objective.
+	// IncludedMaxSize - The included (free) max size for this service level objective.
 	IncludedMaxSize *MaxSizeCapability `json:"includedMaxSize,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ServiceObjectiveCapability.
 func (soc ServiceObjectiveCapability) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if soc.Name != nil {
+		objectMap["name"] = soc.Name
+	}
+	if soc.Status != "" {
+		objectMap["status"] = soc.Status
+	}
+	if soc.PerformanceLevel != nil {
+		objectMap["performanceLevel"] = soc.PerformanceLevel
+	}
+	if soc.ID != nil {
+		objectMap["id"] = soc.ID
+	}
+	if soc.SupportedMaxSizes != nil {
+		objectMap["supportedMaxSizes"] = soc.SupportedMaxSizes
+	}
+	if soc.IncludedMaxSize != nil {
+		objectMap["includedMaxSize"] = soc.IncludedMaxSize
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12387,34 +10935,46 @@ type ServiceObjectiveListResult struct {
 
 // ServiceObjectiveProperties represents the properties of a database service objective.
 type ServiceObjectiveProperties struct {
-	// ServiceObjectiveName - READ-ONLY; The name for the service objective.
+	// ServiceObjectiveName - The name for the service objective.
 	ServiceObjectiveName *string `json:"serviceObjectiveName,omitempty"`
-	// IsDefault - READ-ONLY; Gets whether the service level objective is the default service objective.
+	// IsDefault - Gets whether the service level objective is the default service objective.
 	IsDefault *bool `json:"isDefault,omitempty"`
-	// IsSystem - READ-ONLY; Gets whether the service level objective is a system service objective.
+	// IsSystem - Gets whether the service level objective is a system service objective.
 	IsSystem *bool `json:"isSystem,omitempty"`
-	// Description - READ-ONLY; The description for the service level objective.
+	// Description - The description for the service level objective.
 	Description *string `json:"description,omitempty"`
-	// Enabled - READ-ONLY; Gets whether the service level objective is enabled.
+	// Enabled - Gets whether the service level objective is enabled.
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // ServiceTierAdvisor represents a Service Tier Advisor.
 type ServiceTierAdvisor struct {
 	autorest.Response `json:"-"`
-	// ServiceTierAdvisorProperties - READ-ONLY; The properties representing the resource.
+	// ServiceTierAdvisorProperties - The properites representing the resource.
 	*ServiceTierAdvisorProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ServiceTierAdvisor.
 func (sta ServiceTierAdvisor) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if sta.ServiceTierAdvisorProperties != nil {
+		objectMap["properties"] = sta.ServiceTierAdvisorProperties
+	}
+	if sta.ID != nil {
+		objectMap["id"] = sta.ID
+	}
+	if sta.Name != nil {
+		objectMap["name"] = sta.Name
+	}
+	if sta.Type != nil {
+		objectMap["type"] = sta.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12478,43 +11038,43 @@ type ServiceTierAdvisorListResult struct {
 
 // ServiceTierAdvisorProperties represents the properties of a Service Tier Advisor.
 type ServiceTierAdvisorProperties struct {
-	// ObservationPeriodStart - READ-ONLY; The observation period start (ISO8601 format).
+	// ObservationPeriodStart - The observation period start (ISO8601 format).
 	ObservationPeriodStart *date.Time `json:"observationPeriodStart,omitempty"`
-	// ObservationPeriodEnd - READ-ONLY; The observation period start (ISO8601 format).
+	// ObservationPeriodEnd - The observation period start (ISO8601 format).
 	ObservationPeriodEnd *date.Time `json:"observationPeriodEnd,omitempty"`
-	// ActiveTimeRatio - READ-ONLY; The activeTimeRatio for service tier advisor.
+	// ActiveTimeRatio - The activeTimeRatio for service tier advisor.
 	ActiveTimeRatio *float64 `json:"activeTimeRatio,omitempty"`
-	// MinDtu - READ-ONLY; Gets or sets minDtu for service tier advisor.
+	// MinDtu - Gets or sets minDtu for service tier advisor.
 	MinDtu *float64 `json:"minDtu,omitempty"`
-	// AvgDtu - READ-ONLY; Gets or sets avgDtu for service tier advisor.
+	// AvgDtu - Gets or sets avgDtu for service tier advisor.
 	AvgDtu *float64 `json:"avgDtu,omitempty"`
-	// MaxDtu - READ-ONLY; Gets or sets maxDtu for service tier advisor.
+	// MaxDtu - Gets or sets maxDtu for service tier advisor.
 	MaxDtu *float64 `json:"maxDtu,omitempty"`
-	// MaxSizeInGB - READ-ONLY; Gets or sets maxSizeInGB for service tier advisor.
+	// MaxSizeInGB - Gets or sets maxSizeInGB for service tier advisor.
 	MaxSizeInGB *float64 `json:"maxSizeInGB,omitempty"`
-	// ServiceLevelObjectiveUsageMetrics - READ-ONLY; Gets or sets serviceLevelObjectiveUsageMetrics for the service tier advisor.
+	// ServiceLevelObjectiveUsageMetrics - Gets or sets serviceLevelObjectiveUsageMetrics for the service tier advisor.
 	ServiceLevelObjectiveUsageMetrics *[]SloUsageMetric `json:"serviceLevelObjectiveUsageMetrics,omitempty"`
-	// CurrentServiceLevelObjective - READ-ONLY; Gets or sets currentServiceLevelObjective for service tier advisor.
+	// CurrentServiceLevelObjective - Gets or sets currentServiceLevelObjective for service tier advisor.
 	CurrentServiceLevelObjective *string `json:"currentServiceLevelObjective,omitempty"`
-	// CurrentServiceLevelObjectiveID - READ-ONLY; Gets or sets currentServiceLevelObjectiveId for service tier advisor.
+	// CurrentServiceLevelObjectiveID - Gets or sets currentServiceLevelObjectiveId for service tier advisor.
 	CurrentServiceLevelObjectiveID *uuid.UUID `json:"currentServiceLevelObjectiveId,omitempty"`
-	// UsageBasedRecommendationServiceLevelObjective - READ-ONLY; Gets or sets usageBasedRecommendationServiceLevelObjective for service tier advisor.
+	// UsageBasedRecommendationServiceLevelObjective - Gets or sets usageBasedRecommendationServiceLevelObjective for service tier advisor.
 	UsageBasedRecommendationServiceLevelObjective *string `json:"usageBasedRecommendationServiceLevelObjective,omitempty"`
-	// UsageBasedRecommendationServiceLevelObjectiveID - READ-ONLY; Gets or sets usageBasedRecommendationServiceLevelObjectiveId for service tier advisor.
+	// UsageBasedRecommendationServiceLevelObjectiveID - Gets or sets usageBasedRecommendationServiceLevelObjectiveId for service tier advisor.
 	UsageBasedRecommendationServiceLevelObjectiveID *uuid.UUID `json:"usageBasedRecommendationServiceLevelObjectiveId,omitempty"`
-	// DatabaseSizeBasedRecommendationServiceLevelObjective - READ-ONLY; Gets or sets databaseSizeBasedRecommendationServiceLevelObjective for service tier advisor.
+	// DatabaseSizeBasedRecommendationServiceLevelObjective - Gets or sets databaseSizeBasedRecommendationServiceLevelObjective for service tier advisor.
 	DatabaseSizeBasedRecommendationServiceLevelObjective *string `json:"databaseSizeBasedRecommendationServiceLevelObjective,omitempty"`
-	// DatabaseSizeBasedRecommendationServiceLevelObjectiveID - READ-ONLY; Gets or sets databaseSizeBasedRecommendationServiceLevelObjectiveId for service tier advisor.
+	// DatabaseSizeBasedRecommendationServiceLevelObjectiveID - Gets or sets databaseSizeBasedRecommendationServiceLevelObjectiveId for service tier advisor.
 	DatabaseSizeBasedRecommendationServiceLevelObjectiveID *uuid.UUID `json:"databaseSizeBasedRecommendationServiceLevelObjectiveId,omitempty"`
-	// DisasterPlanBasedRecommendationServiceLevelObjective - READ-ONLY; Gets or sets disasterPlanBasedRecommendationServiceLevelObjective for service tier advisor.
+	// DisasterPlanBasedRecommendationServiceLevelObjective - Gets or sets disasterPlanBasedRecommendationServiceLevelObjective for service tier advisor.
 	DisasterPlanBasedRecommendationServiceLevelObjective *string `json:"disasterPlanBasedRecommendationServiceLevelObjective,omitempty"`
-	// DisasterPlanBasedRecommendationServiceLevelObjectiveID - READ-ONLY; Gets or sets disasterPlanBasedRecommendationServiceLevelObjectiveId for service tier advisor.
+	// DisasterPlanBasedRecommendationServiceLevelObjectiveID - Gets or sets disasterPlanBasedRecommendationServiceLevelObjectiveId for service tier advisor.
 	DisasterPlanBasedRecommendationServiceLevelObjectiveID *uuid.UUID `json:"disasterPlanBasedRecommendationServiceLevelObjectiveId,omitempty"`
-	// OverallRecommendationServiceLevelObjective - READ-ONLY; Gets or sets overallRecommendationServiceLevelObjective for service tier advisor.
+	// OverallRecommendationServiceLevelObjective - Gets or sets overallRecommendationServiceLevelObjective for service tier advisor.
 	OverallRecommendationServiceLevelObjective *string `json:"overallRecommendationServiceLevelObjective,omitempty"`
-	// OverallRecommendationServiceLevelObjectiveID - READ-ONLY; Gets or sets overallRecommendationServiceLevelObjectiveId for service tier advisor.
+	// OverallRecommendationServiceLevelObjectiveID - Gets or sets overallRecommendationServiceLevelObjectiveId for service tier advisor.
 	OverallRecommendationServiceLevelObjectiveID *uuid.UUID `json:"overallRecommendationServiceLevelObjectiveId,omitempty"`
-	// Confidence - READ-ONLY; Gets or sets confidence for service tier advisor.
+	// Confidence - Gets or sets confidence for service tier advisor.
 	Confidence *float64 `json:"confidence,omitempty"`
 }
 
@@ -12534,11 +11094,11 @@ type Sku struct {
 
 // SloUsageMetric a Slo Usage Metric.
 type SloUsageMetric struct {
-	// ServiceLevelObjective - READ-ONLY; The serviceLevelObjective for SLO usage metric. Possible values include: 'ServiceObjectiveNameSystem', 'ServiceObjectiveNameSystem0', 'ServiceObjectiveNameSystem1', 'ServiceObjectiveNameSystem2', 'ServiceObjectiveNameSystem3', 'ServiceObjectiveNameSystem4', 'ServiceObjectiveNameSystem2L', 'ServiceObjectiveNameSystem3L', 'ServiceObjectiveNameSystem4L', 'ServiceObjectiveNameFree', 'ServiceObjectiveNameBasic', 'ServiceObjectiveNameS0', 'ServiceObjectiveNameS1', 'ServiceObjectiveNameS2', 'ServiceObjectiveNameS3', 'ServiceObjectiveNameS4', 'ServiceObjectiveNameS6', 'ServiceObjectiveNameS7', 'ServiceObjectiveNameS9', 'ServiceObjectiveNameS12', 'ServiceObjectiveNameP1', 'ServiceObjectiveNameP2', 'ServiceObjectiveNameP3', 'ServiceObjectiveNameP4', 'ServiceObjectiveNameP6', 'ServiceObjectiveNameP11', 'ServiceObjectiveNameP15', 'ServiceObjectiveNamePRS1', 'ServiceObjectiveNamePRS2', 'ServiceObjectiveNamePRS4', 'ServiceObjectiveNamePRS6', 'ServiceObjectiveNameDW100', 'ServiceObjectiveNameDW200', 'ServiceObjectiveNameDW300', 'ServiceObjectiveNameDW400', 'ServiceObjectiveNameDW500', 'ServiceObjectiveNameDW600', 'ServiceObjectiveNameDW1000', 'ServiceObjectiveNameDW1200', 'ServiceObjectiveNameDW1000c', 'ServiceObjectiveNameDW1500', 'ServiceObjectiveNameDW1500c', 'ServiceObjectiveNameDW2000', 'ServiceObjectiveNameDW2000c', 'ServiceObjectiveNameDW3000', 'ServiceObjectiveNameDW2500c', 'ServiceObjectiveNameDW3000c', 'ServiceObjectiveNameDW6000', 'ServiceObjectiveNameDW5000c', 'ServiceObjectiveNameDW6000c', 'ServiceObjectiveNameDW7500c', 'ServiceObjectiveNameDW10000c', 'ServiceObjectiveNameDW15000c', 'ServiceObjectiveNameDW30000c', 'ServiceObjectiveNameDS100', 'ServiceObjectiveNameDS200', 'ServiceObjectiveNameDS300', 'ServiceObjectiveNameDS400', 'ServiceObjectiveNameDS500', 'ServiceObjectiveNameDS600', 'ServiceObjectiveNameDS1000', 'ServiceObjectiveNameDS1200', 'ServiceObjectiveNameDS1500', 'ServiceObjectiveNameDS2000', 'ServiceObjectiveNameElasticPool'
+	// ServiceLevelObjective - The serviceLevelObjective for SLO usage metric. Possible values include: 'ServiceObjectiveNameSystem', 'ServiceObjectiveNameSystem0', 'ServiceObjectiveNameSystem1', 'ServiceObjectiveNameSystem2', 'ServiceObjectiveNameSystem3', 'ServiceObjectiveNameSystem4', 'ServiceObjectiveNameSystem2L', 'ServiceObjectiveNameSystem3L', 'ServiceObjectiveNameSystem4L', 'ServiceObjectiveNameFree', 'ServiceObjectiveNameBasic', 'ServiceObjectiveNameS0', 'ServiceObjectiveNameS1', 'ServiceObjectiveNameS2', 'ServiceObjectiveNameS3', 'ServiceObjectiveNameS4', 'ServiceObjectiveNameS6', 'ServiceObjectiveNameS7', 'ServiceObjectiveNameS9', 'ServiceObjectiveNameS12', 'ServiceObjectiveNameP1', 'ServiceObjectiveNameP2', 'ServiceObjectiveNameP3', 'ServiceObjectiveNameP4', 'ServiceObjectiveNameP6', 'ServiceObjectiveNameP11', 'ServiceObjectiveNameP15', 'ServiceObjectiveNamePRS1', 'ServiceObjectiveNamePRS2', 'ServiceObjectiveNamePRS4', 'ServiceObjectiveNamePRS6', 'ServiceObjectiveNameDW100', 'ServiceObjectiveNameDW200', 'ServiceObjectiveNameDW300', 'ServiceObjectiveNameDW400', 'ServiceObjectiveNameDW500', 'ServiceObjectiveNameDW600', 'ServiceObjectiveNameDW1000', 'ServiceObjectiveNameDW1200', 'ServiceObjectiveNameDW1000c', 'ServiceObjectiveNameDW1500', 'ServiceObjectiveNameDW1500c', 'ServiceObjectiveNameDW2000', 'ServiceObjectiveNameDW2000c', 'ServiceObjectiveNameDW3000', 'ServiceObjectiveNameDW2500c', 'ServiceObjectiveNameDW3000c', 'ServiceObjectiveNameDW6000', 'ServiceObjectiveNameDW5000c', 'ServiceObjectiveNameDW6000c', 'ServiceObjectiveNameDW7500c', 'ServiceObjectiveNameDW10000c', 'ServiceObjectiveNameDW15000c', 'ServiceObjectiveNameDW30000c', 'ServiceObjectiveNameDS100', 'ServiceObjectiveNameDS200', 'ServiceObjectiveNameDS300', 'ServiceObjectiveNameDS400', 'ServiceObjectiveNameDS500', 'ServiceObjectiveNameDS600', 'ServiceObjectiveNameDS1000', 'ServiceObjectiveNameDS1200', 'ServiceObjectiveNameDS1500', 'ServiceObjectiveNameDS2000', 'ServiceObjectiveNameElasticPool'
 	ServiceLevelObjective ServiceObjectiveName `json:"serviceLevelObjective,omitempty"`
-	// ServiceLevelObjectiveID - READ-ONLY; The serviceLevelObjectiveId for SLO usage metric.
+	// ServiceLevelObjectiveID - The serviceLevelObjectiveId for SLO usage metric.
 	ServiceLevelObjectiveID *uuid.UUID `json:"serviceLevelObjectiveId,omitempty"`
-	// InRangeTimeRatio - READ-ONLY; Gets or sets inRangeTimeRatio for SLO usage metric.
+	// InRangeTimeRatio - Gets or sets inRangeTimeRatio for SLO usage metric.
 	InRangeTimeRatio *float64 `json:"inRangeTimeRatio,omitempty"`
 }
 
@@ -12547,11 +11107,11 @@ type SubscriptionUsage struct {
 	autorest.Response `json:"-"`
 	// SubscriptionUsageProperties - Resource properties.
 	*SubscriptionUsageProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -12560,6 +11120,15 @@ func (su SubscriptionUsage) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if su.SubscriptionUsageProperties != nil {
 		objectMap["properties"] = su.SubscriptionUsageProperties
+	}
+	if su.ID != nil {
+		objectMap["id"] = su.ID
+	}
+	if su.Name != nil {
+		objectMap["name"] = su.Name
+	}
+	if su.Type != nil {
+		objectMap["type"] = su.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -12618,9 +11187,9 @@ func (su *SubscriptionUsage) UnmarshalJSON(body []byte) error {
 // SubscriptionUsageListResult a list of subscription usage metrics in a location.
 type SubscriptionUsageListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]SubscriptionUsage `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -12630,37 +11199,20 @@ type SubscriptionUsageListResultIterator struct {
 	page SubscriptionUsageListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SubscriptionUsageListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SubscriptionUsageListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SubscriptionUsageListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SubscriptionUsageListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -12682,11 +11234,6 @@ func (iter SubscriptionUsageListResultIterator) Value() SubscriptionUsage {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SubscriptionUsageListResultIterator type.
-func NewSubscriptionUsageListResultIterator(page SubscriptionUsageListResultPage) SubscriptionUsageListResultIterator {
-	return SubscriptionUsageListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sulr SubscriptionUsageListResult) IsEmpty() bool {
 	return sulr.Value == nil || len(*sulr.Value) == 0
@@ -12694,11 +11241,11 @@ func (sulr SubscriptionUsageListResult) IsEmpty() bool {
 
 // subscriptionUsageListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sulr SubscriptionUsageListResult) subscriptionUsageListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (sulr SubscriptionUsageListResult) subscriptionUsageListResultPreparer() (*http.Request, error) {
 	if sulr.NextLink == nil || len(to.String(sulr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sulr.NextLink)))
@@ -12706,36 +11253,19 @@ func (sulr SubscriptionUsageListResult) subscriptionUsageListResultPreparer(ctx 
 
 // SubscriptionUsageListResultPage contains a page of SubscriptionUsage values.
 type SubscriptionUsageListResultPage struct {
-	fn   func(context.Context, SubscriptionUsageListResult) (SubscriptionUsageListResult, error)
+	fn   func(SubscriptionUsageListResult) (SubscriptionUsageListResult, error)
 	sulr SubscriptionUsageListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SubscriptionUsageListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SubscriptionUsageListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sulr)
+func (page *SubscriptionUsageListResultPage) Next() error {
+	next, err := page.fn(page.sulr)
 	if err != nil {
 		return err
 	}
 	page.sulr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SubscriptionUsageListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -12756,20 +11286,15 @@ func (page SubscriptionUsageListResultPage) Values() []SubscriptionUsage {
 	return *page.sulr.Value
 }
 
-// Creates a new instance of the SubscriptionUsageListResultPage type.
-func NewSubscriptionUsageListResultPage(getNextPage func(context.Context, SubscriptionUsageListResult) (SubscriptionUsageListResult, error)) SubscriptionUsageListResultPage {
-	return SubscriptionUsageListResultPage{fn: getNextPage}
-}
-
 // SubscriptionUsageProperties properties of a subscription usage.
 type SubscriptionUsageProperties struct {
-	// DisplayName - READ-ONLY; User-readable name of the metric.
+	// DisplayName - User-readable name of the metric.
 	DisplayName *string `json:"displayName,omitempty"`
-	// CurrentValue - READ-ONLY; Current value of the metric.
+	// CurrentValue - Current value of the metric.
 	CurrentValue *float64 `json:"currentValue,omitempty"`
-	// Limit - READ-ONLY; Boundary value of the metric.
+	// Limit - Boundary value of the metric.
 	Limit *float64 `json:"limit,omitempty"`
-	// Unit - READ-ONLY; Unit of the metric.
+	// Unit - Unit of the metric.
 	Unit *string `json:"unit,omitempty"`
 }
 
@@ -12778,11 +11303,11 @@ type SyncAgent struct {
 	autorest.Response `json:"-"`
 	// SyncAgentProperties - Resource properties.
 	*SyncAgentProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -12791,6 +11316,15 @@ func (sa SyncAgent) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sa.SyncAgentProperties != nil {
 		objectMap["properties"] = sa.SyncAgentProperties
+	}
+	if sa.ID != nil {
+		objectMap["id"] = sa.ID
+	}
+	if sa.Name != nil {
+		objectMap["name"] = sa.Name
+	}
+	if sa.Type != nil {
+		objectMap["type"] = sa.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -12849,7 +11383,7 @@ func (sa *SyncAgent) UnmarshalJSON(body []byte) error {
 // SyncAgentKeyProperties properties of an Azure SQL Database sync agent key.
 type SyncAgentKeyProperties struct {
 	autorest.Response `json:"-"`
-	// SyncAgentKey - READ-ONLY; Key of sync agent.
+	// SyncAgentKey - Key of sync agent.
 	SyncAgentKey *string `json:"syncAgentKey,omitempty"`
 }
 
@@ -12857,11 +11391,11 @@ type SyncAgentKeyProperties struct {
 type SyncAgentLinkedDatabase struct {
 	// SyncAgentLinkedDatabaseProperties - Resource properties.
 	*SyncAgentLinkedDatabaseProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -12870,6 +11404,15 @@ func (sald SyncAgentLinkedDatabase) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sald.SyncAgentLinkedDatabaseProperties != nil {
 		objectMap["properties"] = sald.SyncAgentLinkedDatabaseProperties
+	}
+	if sald.ID != nil {
+		objectMap["id"] = sald.ID
+	}
+	if sald.Name != nil {
+		objectMap["name"] = sald.Name
+	}
+	if sald.Type != nil {
+		objectMap["type"] = sald.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -12928,50 +11471,33 @@ func (sald *SyncAgentLinkedDatabase) UnmarshalJSON(body []byte) error {
 // SyncAgentLinkedDatabaseListResult a list of sync agent linked databases.
 type SyncAgentLinkedDatabaseListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]SyncAgentLinkedDatabase `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// SyncAgentLinkedDatabaseListResultIterator provides access to a complete listing of
-// SyncAgentLinkedDatabase values.
+// SyncAgentLinkedDatabaseListResultIterator provides access to a complete listing of SyncAgentLinkedDatabase
+// values.
 type SyncAgentLinkedDatabaseListResultIterator struct {
 	i    int
 	page SyncAgentLinkedDatabaseListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SyncAgentLinkedDatabaseListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncAgentLinkedDatabaseListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SyncAgentLinkedDatabaseListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SyncAgentLinkedDatabaseListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -12993,11 +11519,6 @@ func (iter SyncAgentLinkedDatabaseListResultIterator) Value() SyncAgentLinkedDat
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SyncAgentLinkedDatabaseListResultIterator type.
-func NewSyncAgentLinkedDatabaseListResultIterator(page SyncAgentLinkedDatabaseListResultPage) SyncAgentLinkedDatabaseListResultIterator {
-	return SyncAgentLinkedDatabaseListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (saldlr SyncAgentLinkedDatabaseListResult) IsEmpty() bool {
 	return saldlr.Value == nil || len(*saldlr.Value) == 0
@@ -13005,11 +11526,11 @@ func (saldlr SyncAgentLinkedDatabaseListResult) IsEmpty() bool {
 
 // syncAgentLinkedDatabaseListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (saldlr SyncAgentLinkedDatabaseListResult) syncAgentLinkedDatabaseListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (saldlr SyncAgentLinkedDatabaseListResult) syncAgentLinkedDatabaseListResultPreparer() (*http.Request, error) {
 	if saldlr.NextLink == nil || len(to.String(saldlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(saldlr.NextLink)))
@@ -13017,36 +11538,19 @@ func (saldlr SyncAgentLinkedDatabaseListResult) syncAgentLinkedDatabaseListResul
 
 // SyncAgentLinkedDatabaseListResultPage contains a page of SyncAgentLinkedDatabase values.
 type SyncAgentLinkedDatabaseListResultPage struct {
-	fn     func(context.Context, SyncAgentLinkedDatabaseListResult) (SyncAgentLinkedDatabaseListResult, error)
+	fn     func(SyncAgentLinkedDatabaseListResult) (SyncAgentLinkedDatabaseListResult, error)
 	saldlr SyncAgentLinkedDatabaseListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SyncAgentLinkedDatabaseListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncAgentLinkedDatabaseListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.saldlr)
+func (page *SyncAgentLinkedDatabaseListResultPage) Next() error {
+	next, err := page.fn(page.saldlr)
 	if err != nil {
 		return err
 	}
 	page.saldlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SyncAgentLinkedDatabaseListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -13067,33 +11571,28 @@ func (page SyncAgentLinkedDatabaseListResultPage) Values() []SyncAgentLinkedData
 	return *page.saldlr.Value
 }
 
-// Creates a new instance of the SyncAgentLinkedDatabaseListResultPage type.
-func NewSyncAgentLinkedDatabaseListResultPage(getNextPage func(context.Context, SyncAgentLinkedDatabaseListResult) (SyncAgentLinkedDatabaseListResult, error)) SyncAgentLinkedDatabaseListResultPage {
-	return SyncAgentLinkedDatabaseListResultPage{fn: getNextPage}
-}
-
 // SyncAgentLinkedDatabaseProperties properties of an Azure SQL Database sync agent linked database.
 type SyncAgentLinkedDatabaseProperties struct {
-	// DatabaseType - READ-ONLY; Type of the sync agent linked database. Possible values include: 'AzureSQLDatabase', 'SQLServerDatabase'
+	// DatabaseType - Type of the sync agent linked database. Possible values include: 'AzureSQLDatabase', 'SQLServerDatabase'
 	DatabaseType SyncMemberDbType `json:"databaseType,omitempty"`
-	// DatabaseID - READ-ONLY; Id of the sync agent linked database.
+	// DatabaseID - Id of the sync agent linked database.
 	DatabaseID *string `json:"databaseId,omitempty"`
-	// Description - READ-ONLY; Description of the sync agent linked database.
+	// Description - Description of the sync agent linked database.
 	Description *string `json:"description,omitempty"`
-	// ServerName - READ-ONLY; Server name of the sync agent linked database.
+	// ServerName - Server name of the sync agent linked database.
 	ServerName *string `json:"serverName,omitempty"`
-	// DatabaseName - READ-ONLY; Database name of the sync agent linked database.
+	// DatabaseName - Database name of the sync agent linked database.
 	DatabaseName *string `json:"databaseName,omitempty"`
-	// UserName - READ-ONLY; User name of the sync agent linked database.
+	// UserName - User name of the sync agent linked database.
 	UserName *string `json:"userName,omitempty"`
 }
 
 // SyncAgentListResult a list of sync agents.
 type SyncAgentListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]SyncAgent `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -13103,37 +11602,20 @@ type SyncAgentListResultIterator struct {
 	page SyncAgentListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SyncAgentListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncAgentListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SyncAgentListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SyncAgentListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -13155,11 +11637,6 @@ func (iter SyncAgentListResultIterator) Value() SyncAgent {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SyncAgentListResultIterator type.
-func NewSyncAgentListResultIterator(page SyncAgentListResultPage) SyncAgentListResultIterator {
-	return SyncAgentListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (salr SyncAgentListResult) IsEmpty() bool {
 	return salr.Value == nil || len(*salr.Value) == 0
@@ -13167,11 +11644,11 @@ func (salr SyncAgentListResult) IsEmpty() bool {
 
 // syncAgentListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (salr SyncAgentListResult) syncAgentListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (salr SyncAgentListResult) syncAgentListResultPreparer() (*http.Request, error) {
 	if salr.NextLink == nil || len(to.String(salr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(salr.NextLink)))
@@ -13179,36 +11656,19 @@ func (salr SyncAgentListResult) syncAgentListResultPreparer(ctx context.Context)
 
 // SyncAgentListResultPage contains a page of SyncAgent values.
 type SyncAgentListResultPage struct {
-	fn   func(context.Context, SyncAgentListResult) (SyncAgentListResult, error)
+	fn   func(SyncAgentListResult) (SyncAgentListResult, error)
 	salr SyncAgentListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SyncAgentListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncAgentListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.salr)
+func (page *SyncAgentListResultPage) Next() error {
+	next, err := page.fn(page.salr)
 	if err != nil {
 		return err
 	}
 	page.salr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SyncAgentListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -13229,31 +11689,26 @@ func (page SyncAgentListResultPage) Values() []SyncAgent {
 	return *page.salr.Value
 }
 
-// Creates a new instance of the SyncAgentListResultPage type.
-func NewSyncAgentListResultPage(getNextPage func(context.Context, SyncAgentListResult) (SyncAgentListResult, error)) SyncAgentListResultPage {
-	return SyncAgentListResultPage{fn: getNextPage}
-}
-
 // SyncAgentProperties properties of an Azure SQL Database sync agent.
 type SyncAgentProperties struct {
-	// Name - READ-ONLY; Name of the sync agent.
+	// Name - Name of the sync agent.
 	Name *string `json:"name,omitempty"`
 	// SyncDatabaseID - ARM resource id of the sync database in the sync agent.
 	SyncDatabaseID *string `json:"syncDatabaseId,omitempty"`
-	// LastAliveTime - READ-ONLY; Last alive time of the sync agent.
+	// LastAliveTime - Last alive time of the sync agent.
 	LastAliveTime *date.Time `json:"lastAliveTime,omitempty"`
-	// State - READ-ONLY; State of the sync agent. Possible values include: 'SyncAgentStateOnline', 'SyncAgentStateOffline', 'SyncAgentStateNeverConnected'
+	// State - State of the sync agent. Possible values include: 'SyncAgentStateOnline', 'SyncAgentStateOffline', 'SyncAgentStateNeverConnected'
 	State SyncAgentState `json:"state,omitempty"`
-	// IsUpToDate - READ-ONLY; If the sync agent version is up to date.
+	// IsUpToDate - If the sync agent version is up to date.
 	IsUpToDate *bool `json:"isUpToDate,omitempty"`
-	// ExpiryTime - READ-ONLY; Expiration time of the sync agent version.
+	// ExpiryTime - Expiration time of the sync agent version.
 	ExpiryTime *date.Time `json:"expiryTime,omitempty"`
-	// Version - READ-ONLY; Version of the sync agent.
+	// Version - Version of the sync agent.
 	Version *string `json:"version,omitempty"`
 }
 
-// SyncAgentsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// SyncAgentsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type SyncAgentsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -13262,7 +11717,7 @@ type SyncAgentsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncAgentsCreateOrUpdateFuture) Result(client SyncAgentsClient) (sa SyncAgent, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncAgentsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -13281,8 +11736,7 @@ func (future *SyncAgentsCreateOrUpdateFuture) Result(client SyncAgentsClient) (s
 	return
 }
 
-// SyncAgentsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// SyncAgentsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type SyncAgentsDeleteFuture struct {
 	azure.Future
 }
@@ -13291,7 +11745,7 @@ type SyncAgentsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncAgentsDeleteFuture) Result(client SyncAgentsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncAgentsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -13307,50 +11761,32 @@ func (future *SyncAgentsDeleteFuture) Result(client SyncAgentsClient) (ar autore
 // SyncDatabaseIDListResult a list of sync database ID properties.
 type SyncDatabaseIDListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]SyncDatabaseIDProperties `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// SyncDatabaseIDListResultIterator provides access to a complete listing of SyncDatabaseIDProperties
-// values.
+// SyncDatabaseIDListResultIterator provides access to a complete listing of SyncDatabaseIDProperties values.
 type SyncDatabaseIDListResultIterator struct {
 	i    int
 	page SyncDatabaseIDListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SyncDatabaseIDListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncDatabaseIDListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SyncDatabaseIDListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SyncDatabaseIDListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -13372,11 +11808,6 @@ func (iter SyncDatabaseIDListResultIterator) Value() SyncDatabaseIDProperties {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SyncDatabaseIDListResultIterator type.
-func NewSyncDatabaseIDListResultIterator(page SyncDatabaseIDListResultPage) SyncDatabaseIDListResultIterator {
-	return SyncDatabaseIDListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sdilr SyncDatabaseIDListResult) IsEmpty() bool {
 	return sdilr.Value == nil || len(*sdilr.Value) == 0
@@ -13384,11 +11815,11 @@ func (sdilr SyncDatabaseIDListResult) IsEmpty() bool {
 
 // syncDatabaseIDListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sdilr SyncDatabaseIDListResult) syncDatabaseIDListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (sdilr SyncDatabaseIDListResult) syncDatabaseIDListResultPreparer() (*http.Request, error) {
 	if sdilr.NextLink == nil || len(to.String(sdilr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sdilr.NextLink)))
@@ -13396,36 +11827,19 @@ func (sdilr SyncDatabaseIDListResult) syncDatabaseIDListResultPreparer(ctx conte
 
 // SyncDatabaseIDListResultPage contains a page of SyncDatabaseIDProperties values.
 type SyncDatabaseIDListResultPage struct {
-	fn    func(context.Context, SyncDatabaseIDListResult) (SyncDatabaseIDListResult, error)
+	fn    func(SyncDatabaseIDListResult) (SyncDatabaseIDListResult, error)
 	sdilr SyncDatabaseIDListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SyncDatabaseIDListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncDatabaseIDListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sdilr)
+func (page *SyncDatabaseIDListResultPage) Next() error {
+	next, err := page.fn(page.sdilr)
 	if err != nil {
 		return err
 	}
 	page.sdilr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SyncDatabaseIDListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -13446,72 +11860,50 @@ func (page SyncDatabaseIDListResultPage) Values() []SyncDatabaseIDProperties {
 	return *page.sdilr.Value
 }
 
-// Creates a new instance of the SyncDatabaseIDListResultPage type.
-func NewSyncDatabaseIDListResultPage(getNextPage func(context.Context, SyncDatabaseIDListResult) (SyncDatabaseIDListResult, error)) SyncDatabaseIDListResultPage {
-	return SyncDatabaseIDListResultPage{fn: getNextPage}
-}
-
 // SyncDatabaseIDProperties properties of the sync database id.
 type SyncDatabaseIDProperties struct {
-	// ID - READ-ONLY; ARM resource id of sync database.
+	// ID - ARM resource id of sync database.
 	ID *string `json:"id,omitempty"`
 }
 
 // SyncFullSchemaProperties properties of the database full schema.
 type SyncFullSchemaProperties struct {
-	// Tables - READ-ONLY; List of tables in the database full schema.
+	// Tables - List of tables in the database full schema.
 	Tables *[]SyncFullSchemaTable `json:"tables,omitempty"`
-	// LastUpdateTime - READ-ONLY; Last update time of the database schema.
+	// LastUpdateTime - Last update time of the database schema.
 	LastUpdateTime *date.Time `json:"lastUpdateTime,omitempty"`
 }
 
 // SyncFullSchemaPropertiesListResult a list of sync schema properties.
 type SyncFullSchemaPropertiesListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]SyncFullSchemaProperties `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// SyncFullSchemaPropertiesListResultIterator provides access to a complete listing of
-// SyncFullSchemaProperties values.
+// SyncFullSchemaPropertiesListResultIterator provides access to a complete listing of SyncFullSchemaProperties
+// values.
 type SyncFullSchemaPropertiesListResultIterator struct {
 	i    int
 	page SyncFullSchemaPropertiesListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SyncFullSchemaPropertiesListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncFullSchemaPropertiesListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SyncFullSchemaPropertiesListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SyncFullSchemaPropertiesListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -13533,11 +11925,6 @@ func (iter SyncFullSchemaPropertiesListResultIterator) Value() SyncFullSchemaPro
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SyncFullSchemaPropertiesListResultIterator type.
-func NewSyncFullSchemaPropertiesListResultIterator(page SyncFullSchemaPropertiesListResultPage) SyncFullSchemaPropertiesListResultIterator {
-	return SyncFullSchemaPropertiesListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sfsplr SyncFullSchemaPropertiesListResult) IsEmpty() bool {
 	return sfsplr.Value == nil || len(*sfsplr.Value) == 0
@@ -13545,11 +11932,11 @@ func (sfsplr SyncFullSchemaPropertiesListResult) IsEmpty() bool {
 
 // syncFullSchemaPropertiesListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sfsplr SyncFullSchemaPropertiesListResult) syncFullSchemaPropertiesListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (sfsplr SyncFullSchemaPropertiesListResult) syncFullSchemaPropertiesListResultPreparer() (*http.Request, error) {
 	if sfsplr.NextLink == nil || len(to.String(sfsplr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sfsplr.NextLink)))
@@ -13557,36 +11944,19 @@ func (sfsplr SyncFullSchemaPropertiesListResult) syncFullSchemaPropertiesListRes
 
 // SyncFullSchemaPropertiesListResultPage contains a page of SyncFullSchemaProperties values.
 type SyncFullSchemaPropertiesListResultPage struct {
-	fn     func(context.Context, SyncFullSchemaPropertiesListResult) (SyncFullSchemaPropertiesListResult, error)
+	fn     func(SyncFullSchemaPropertiesListResult) (SyncFullSchemaPropertiesListResult, error)
 	sfsplr SyncFullSchemaPropertiesListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SyncFullSchemaPropertiesListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncFullSchemaPropertiesListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sfsplr)
+func (page *SyncFullSchemaPropertiesListResultPage) Next() error {
+	next, err := page.fn(page.sfsplr)
 	if err != nil {
 		return err
 	}
 	page.sfsplr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SyncFullSchemaPropertiesListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -13607,40 +11977,35 @@ func (page SyncFullSchemaPropertiesListResultPage) Values() []SyncFullSchemaProp
 	return *page.sfsplr.Value
 }
 
-// Creates a new instance of the SyncFullSchemaPropertiesListResultPage type.
-func NewSyncFullSchemaPropertiesListResultPage(getNextPage func(context.Context, SyncFullSchemaPropertiesListResult) (SyncFullSchemaPropertiesListResult, error)) SyncFullSchemaPropertiesListResultPage {
-	return SyncFullSchemaPropertiesListResultPage{fn: getNextPage}
-}
-
 // SyncFullSchemaTable properties of the table in the database full schema.
 type SyncFullSchemaTable struct {
-	// Columns - READ-ONLY; List of columns in the table of database full schema.
+	// Columns - List of columns in the table of database full schema.
 	Columns *[]SyncFullSchemaTableColumn `json:"columns,omitempty"`
-	// ErrorID - READ-ONLY; Error id of the table.
+	// ErrorID - Error id of the table.
 	ErrorID *string `json:"errorId,omitempty"`
-	// HasError - READ-ONLY; If there is error in the table.
+	// HasError - If there is error in the table.
 	HasError *bool `json:"hasError,omitempty"`
-	// Name - READ-ONLY; Name of the table.
+	// Name - Name of the table.
 	Name *string `json:"name,omitempty"`
-	// QuotedName - READ-ONLY; Quoted name of the table.
+	// QuotedName - Quoted name of the table.
 	QuotedName *string `json:"quotedName,omitempty"`
 }
 
 // SyncFullSchemaTableColumn properties of the column in the table of database full schema.
 type SyncFullSchemaTableColumn struct {
-	// DataSize - READ-ONLY; Data size of the column.
+	// DataSize - Data size of the column.
 	DataSize *string `json:"dataSize,omitempty"`
-	// DataType - READ-ONLY; Data type of the column.
+	// DataType - Data type of the column.
 	DataType *string `json:"dataType,omitempty"`
-	// ErrorID - READ-ONLY; Error id of the column.
+	// ErrorID - Error id of the column.
 	ErrorID *string `json:"errorId,omitempty"`
-	// HasError - READ-ONLY; If there is error in the table.
+	// HasError - If there is error in the table.
 	HasError *bool `json:"hasError,omitempty"`
-	// IsPrimaryKey - READ-ONLY; If it is the primary key of the table.
+	// IsPrimaryKey - If it is the primary key of the table.
 	IsPrimaryKey *bool `json:"isPrimaryKey,omitempty"`
-	// Name - READ-ONLY; Name of the column.
+	// Name - Name of the column.
 	Name *string `json:"name,omitempty"`
-	// QuotedName - READ-ONLY; Quoted name of the column.
+	// QuotedName - Quoted name of the column.
 	QuotedName *string `json:"quotedName,omitempty"`
 }
 
@@ -13649,11 +12014,11 @@ type SyncGroup struct {
 	autorest.Response `json:"-"`
 	// SyncGroupProperties - Resource properties.
 	*SyncGroupProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -13662,6 +12027,15 @@ func (sg SyncGroup) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sg.SyncGroupProperties != nil {
 		objectMap["properties"] = sg.SyncGroupProperties
+	}
+	if sg.ID != nil {
+		objectMap["id"] = sg.ID
+	}
+	if sg.Name != nil {
+		objectMap["name"] = sg.Name
+	}
+	if sg.Type != nil {
+		objectMap["type"] = sg.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -13720,9 +12094,9 @@ func (sg *SyncGroup) UnmarshalJSON(body []byte) error {
 // SyncGroupListResult a list of sync groups.
 type SyncGroupListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]SyncGroup `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -13732,37 +12106,20 @@ type SyncGroupListResultIterator struct {
 	page SyncGroupListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SyncGroupListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncGroupListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SyncGroupListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SyncGroupListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -13784,11 +12141,6 @@ func (iter SyncGroupListResultIterator) Value() SyncGroup {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SyncGroupListResultIterator type.
-func NewSyncGroupListResultIterator(page SyncGroupListResultPage) SyncGroupListResultIterator {
-	return SyncGroupListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sglr SyncGroupListResult) IsEmpty() bool {
 	return sglr.Value == nil || len(*sglr.Value) == 0
@@ -13796,11 +12148,11 @@ func (sglr SyncGroupListResult) IsEmpty() bool {
 
 // syncGroupListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sglr SyncGroupListResult) syncGroupListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (sglr SyncGroupListResult) syncGroupListResultPreparer() (*http.Request, error) {
 	if sglr.NextLink == nil || len(to.String(sglr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sglr.NextLink)))
@@ -13808,36 +12160,19 @@ func (sglr SyncGroupListResult) syncGroupListResultPreparer(ctx context.Context)
 
 // SyncGroupListResultPage contains a page of SyncGroup values.
 type SyncGroupListResultPage struct {
-	fn   func(context.Context, SyncGroupListResult) (SyncGroupListResult, error)
+	fn   func(SyncGroupListResult) (SyncGroupListResult, error)
 	sglr SyncGroupListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SyncGroupListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncGroupListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sglr)
+func (page *SyncGroupListResultPage) Next() error {
+	next, err := page.fn(page.sglr)
 	if err != nil {
 		return err
 	}
 	page.sglr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SyncGroupListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -13858,17 +12193,12 @@ func (page SyncGroupListResultPage) Values() []SyncGroup {
 	return *page.sglr.Value
 }
 
-// Creates a new instance of the SyncGroupListResultPage type.
-func NewSyncGroupListResultPage(getNextPage func(context.Context, SyncGroupListResult) (SyncGroupListResult, error)) SyncGroupListResultPage {
-	return SyncGroupListResultPage{fn: getNextPage}
-}
-
 // SyncGroupLogListResult a list of sync group log properties.
 type SyncGroupLogListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]SyncGroupLogProperties `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -13878,37 +12208,20 @@ type SyncGroupLogListResultIterator struct {
 	page SyncGroupLogListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SyncGroupLogListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncGroupLogListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SyncGroupLogListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SyncGroupLogListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -13930,11 +12243,6 @@ func (iter SyncGroupLogListResultIterator) Value() SyncGroupLogProperties {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SyncGroupLogListResultIterator type.
-func NewSyncGroupLogListResultIterator(page SyncGroupLogListResultPage) SyncGroupLogListResultIterator {
-	return SyncGroupLogListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sgllr SyncGroupLogListResult) IsEmpty() bool {
 	return sgllr.Value == nil || len(*sgllr.Value) == 0
@@ -13942,11 +12250,11 @@ func (sgllr SyncGroupLogListResult) IsEmpty() bool {
 
 // syncGroupLogListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sgllr SyncGroupLogListResult) syncGroupLogListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (sgllr SyncGroupLogListResult) syncGroupLogListResultPreparer() (*http.Request, error) {
 	if sgllr.NextLink == nil || len(to.String(sgllr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sgllr.NextLink)))
@@ -13954,36 +12262,19 @@ func (sgllr SyncGroupLogListResult) syncGroupLogListResultPreparer(ctx context.C
 
 // SyncGroupLogListResultPage contains a page of SyncGroupLogProperties values.
 type SyncGroupLogListResultPage struct {
-	fn    func(context.Context, SyncGroupLogListResult) (SyncGroupLogListResult, error)
+	fn    func(SyncGroupLogListResult) (SyncGroupLogListResult, error)
 	sgllr SyncGroupLogListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SyncGroupLogListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncGroupLogListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sgllr)
+func (page *SyncGroupLogListResultPage) Next() error {
+	next, err := page.fn(page.sgllr)
 	if err != nil {
 		return err
 	}
 	page.sgllr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SyncGroupLogListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -14004,24 +12295,19 @@ func (page SyncGroupLogListResultPage) Values() []SyncGroupLogProperties {
 	return *page.sgllr.Value
 }
 
-// Creates a new instance of the SyncGroupLogListResultPage type.
-func NewSyncGroupLogListResultPage(getNextPage func(context.Context, SyncGroupLogListResult) (SyncGroupLogListResult, error)) SyncGroupLogListResultPage {
-	return SyncGroupLogListResultPage{fn: getNextPage}
-}
-
 // SyncGroupLogProperties properties of an Azure SQL Database sync group log.
 type SyncGroupLogProperties struct {
-	// Timestamp - READ-ONLY; Timestamp of the sync group log.
+	// Timestamp - Timestamp of the sync group log.
 	Timestamp *date.Time `json:"timestamp,omitempty"`
-	// Type - READ-ONLY; Type of the sync group log. Possible values include: 'SyncGroupLogTypeAll', 'SyncGroupLogTypeError', 'SyncGroupLogTypeWarning', 'SyncGroupLogTypeSuccess'
+	// Type - Type of the sync group log. Possible values include: 'SyncGroupLogTypeAll', 'SyncGroupLogTypeError', 'SyncGroupLogTypeWarning', 'SyncGroupLogTypeSuccess'
 	Type SyncGroupLogType `json:"type,omitempty"`
-	// Source - READ-ONLY; Source of the sync group log.
+	// Source - Source of the sync group log.
 	Source *string `json:"source,omitempty"`
-	// Details - READ-ONLY; Details of the sync group log.
+	// Details - Details of the sync group log.
 	Details *string `json:"details,omitempty"`
-	// TracingID - READ-ONLY; TracingId of the sync group log.
+	// TracingID - TracingId of the sync group log.
 	TracingID *uuid.UUID `json:"tracingId,omitempty"`
-	// OperationStatus - READ-ONLY; OperationStatus of the sync group log.
+	// OperationStatus - OperationStatus of the sync group log.
 	OperationStatus *string `json:"operationStatus,omitempty"`
 }
 
@@ -14029,7 +12315,7 @@ type SyncGroupLogProperties struct {
 type SyncGroupProperties struct {
 	// Interval - Sync interval of the sync group.
 	Interval *int32 `json:"interval,omitempty"`
-	// LastSyncTime - READ-ONLY; Last sync time of the sync group.
+	// LastSyncTime - Last sync time of the sync group.
 	LastSyncTime *date.Time `json:"lastSyncTime,omitempty"`
 	// ConflictResolutionPolicy - Conflict resolution policy of the sync group. Possible values include: 'HubWin', 'MemberWin'
 	ConflictResolutionPolicy SyncConflictResolutionPolicy `json:"conflictResolutionPolicy,omitempty"`
@@ -14039,7 +12325,7 @@ type SyncGroupProperties struct {
 	HubDatabaseUserName *string `json:"hubDatabaseUserName,omitempty"`
 	// HubDatabasePassword - Password for the sync group hub database credential.
 	HubDatabasePassword *string `json:"hubDatabasePassword,omitempty"`
-	// SyncState - READ-ONLY; Sync state of the sync group. Possible values include: 'NotReady', 'Error', 'Warning', 'Progressing', 'Good'
+	// SyncState - Sync state of the sync group. Possible values include: 'NotReady', 'Error', 'Warning', 'Progressing', 'Good'
 	SyncState SyncGroupState `json:"syncState,omitempty"`
 	// Schema - Sync schema of the sync group.
 	Schema *SyncGroupSchema `json:"schema,omitempty"`
@@ -14071,8 +12357,8 @@ type SyncGroupSchemaTableColumn struct {
 	DataType *string `json:"dataType,omitempty"`
 }
 
-// SyncGroupsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// SyncGroupsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type SyncGroupsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -14081,7 +12367,7 @@ type SyncGroupsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncGroupsCreateOrUpdateFuture) Result(client SyncGroupsClient) (sg SyncGroup, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncGroupsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -14100,8 +12386,7 @@ func (future *SyncGroupsCreateOrUpdateFuture) Result(client SyncGroupsClient) (s
 	return
 }
 
-// SyncGroupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// SyncGroupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type SyncGroupsDeleteFuture struct {
 	azure.Future
 }
@@ -14110,7 +12395,7 @@ type SyncGroupsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncGroupsDeleteFuture) Result(client SyncGroupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncGroupsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -14123,8 +12408,8 @@ func (future *SyncGroupsDeleteFuture) Result(client SyncGroupsClient) (ar autore
 	return
 }
 
-// SyncGroupsRefreshHubSchemaFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// SyncGroupsRefreshHubSchemaFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type SyncGroupsRefreshHubSchemaFuture struct {
 	azure.Future
 }
@@ -14133,7 +12418,7 @@ type SyncGroupsRefreshHubSchemaFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncGroupsRefreshHubSchemaFuture) Result(client SyncGroupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncGroupsRefreshHubSchemaFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -14146,8 +12431,7 @@ func (future *SyncGroupsRefreshHubSchemaFuture) Result(client SyncGroupsClient) 
 	return
 }
 
-// SyncGroupsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// SyncGroupsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type SyncGroupsUpdateFuture struct {
 	azure.Future
 }
@@ -14156,7 +12440,7 @@ type SyncGroupsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncGroupsUpdateFuture) Result(client SyncGroupsClient) (sg SyncGroup, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncGroupsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -14180,11 +12464,11 @@ type SyncMember struct {
 	autorest.Response `json:"-"`
 	// SyncMemberProperties - Resource properties.
 	*SyncMemberProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -14193,6 +12477,15 @@ func (sm SyncMember) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sm.SyncMemberProperties != nil {
 		objectMap["properties"] = sm.SyncMemberProperties
+	}
+	if sm.ID != nil {
+		objectMap["id"] = sm.ID
+	}
+	if sm.Name != nil {
+		objectMap["name"] = sm.Name
+	}
+	if sm.Type != nil {
+		objectMap["type"] = sm.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -14251,9 +12544,9 @@ func (sm *SyncMember) UnmarshalJSON(body []byte) error {
 // SyncMemberListResult a list of Azure SQL Database sync members.
 type SyncMemberListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]SyncMember `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -14263,37 +12556,20 @@ type SyncMemberListResultIterator struct {
 	page SyncMemberListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SyncMemberListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncMemberListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SyncMemberListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SyncMemberListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -14315,11 +12591,6 @@ func (iter SyncMemberListResultIterator) Value() SyncMember {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SyncMemberListResultIterator type.
-func NewSyncMemberListResultIterator(page SyncMemberListResultPage) SyncMemberListResultIterator {
-	return SyncMemberListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (smlr SyncMemberListResult) IsEmpty() bool {
 	return smlr.Value == nil || len(*smlr.Value) == 0
@@ -14327,11 +12598,11 @@ func (smlr SyncMemberListResult) IsEmpty() bool {
 
 // syncMemberListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (smlr SyncMemberListResult) syncMemberListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (smlr SyncMemberListResult) syncMemberListResultPreparer() (*http.Request, error) {
 	if smlr.NextLink == nil || len(to.String(smlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(smlr.NextLink)))
@@ -14339,36 +12610,19 @@ func (smlr SyncMemberListResult) syncMemberListResultPreparer(ctx context.Contex
 
 // SyncMemberListResultPage contains a page of SyncMember values.
 type SyncMemberListResultPage struct {
-	fn   func(context.Context, SyncMemberListResult) (SyncMemberListResult, error)
+	fn   func(SyncMemberListResult) (SyncMemberListResult, error)
 	smlr SyncMemberListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SyncMemberListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SyncMemberListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.smlr)
+func (page *SyncMemberListResultPage) Next() error {
+	next, err := page.fn(page.smlr)
 	if err != nil {
 		return err
 	}
 	page.smlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SyncMemberListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -14389,11 +12643,6 @@ func (page SyncMemberListResultPage) Values() []SyncMember {
 	return *page.smlr.Value
 }
 
-// Creates a new instance of the SyncMemberListResultPage type.
-func NewSyncMemberListResultPage(getNextPage func(context.Context, SyncMemberListResult) (SyncMemberListResult, error)) SyncMemberListResultPage {
-	return SyncMemberListResultPage{fn: getNextPage}
-}
-
 // SyncMemberProperties properties of a sync member.
 type SyncMemberProperties struct {
 	// DatabaseType - Database type of the sync member. Possible values include: 'AzureSQLDatabase', 'SQLServerDatabase'
@@ -14412,12 +12661,12 @@ type SyncMemberProperties struct {
 	Password *string `json:"password,omitempty"`
 	// SyncDirection - Sync direction of the sync member. Possible values include: 'Bidirectional', 'OneWayMemberToHub', 'OneWayHubToMember'
 	SyncDirection SyncDirection `json:"syncDirection,omitempty"`
-	// SyncState - READ-ONLY; Sync state of the sync member. Possible values include: 'SyncInProgress', 'SyncSucceeded', 'SyncFailed', 'DisabledTombstoneCleanup', 'DisabledBackupRestore', 'SyncSucceededWithWarnings', 'SyncCancelling', 'SyncCancelled', 'UnProvisioned', 'Provisioning', 'Provisioned', 'ProvisionFailed', 'DeProvisioning', 'DeProvisioned', 'DeProvisionFailed', 'Reprovisioning', 'ReprovisionFailed', 'UnReprovisioned'
+	// SyncState - Sync state of the sync member. Possible values include: 'SyncInProgress', 'SyncSucceeded', 'SyncFailed', 'DisabledTombstoneCleanup', 'DisabledBackupRestore', 'SyncSucceededWithWarnings', 'SyncCancelling', 'SyncCancelled', 'UnProvisioned', 'Provisioning', 'Provisioned', 'ProvisionFailed', 'DeProvisioning', 'DeProvisioned', 'DeProvisionFailed', 'Reprovisioning', 'ReprovisionFailed', 'UnReprovisioned'
 	SyncState SyncMemberState `json:"syncState,omitempty"`
 }
 
-// SyncMembersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// SyncMembersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type SyncMembersCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -14426,7 +12675,7 @@ type SyncMembersCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncMembersCreateOrUpdateFuture) Result(client SyncMembersClient) (sm SyncMember, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncMembersCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -14445,8 +12694,7 @@ func (future *SyncMembersCreateOrUpdateFuture) Result(client SyncMembersClient) 
 	return
 }
 
-// SyncMembersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// SyncMembersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type SyncMembersDeleteFuture struct {
 	azure.Future
 }
@@ -14455,7 +12703,7 @@ type SyncMembersDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncMembersDeleteFuture) Result(client SyncMembersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncMembersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -14468,8 +12716,8 @@ func (future *SyncMembersDeleteFuture) Result(client SyncMembersClient) (ar auto
 	return
 }
 
-// SyncMembersRefreshMemberSchemaFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// SyncMembersRefreshMemberSchemaFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type SyncMembersRefreshMemberSchemaFuture struct {
 	azure.Future
 }
@@ -14478,7 +12726,7 @@ type SyncMembersRefreshMemberSchemaFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncMembersRefreshMemberSchemaFuture) Result(client SyncMembersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncMembersRefreshMemberSchemaFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -14491,8 +12739,7 @@ func (future *SyncMembersRefreshMemberSchemaFuture) Result(client SyncMembersCli
 	return
 }
 
-// SyncMembersUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// SyncMembersUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type SyncMembersUpdateFuture struct {
 	azure.Future
 }
@@ -14501,7 +12748,7 @@ type SyncMembersUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SyncMembersUpdateFuture) Result(client SyncMembersClient) (sm SyncMember, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.SyncMembersUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -14526,11 +12773,11 @@ type TrackedResource struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Resource tags.
 	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -14543,29 +12790,50 @@ func (tr TrackedResource) MarshalJSON() ([]byte, error) {
 	if tr.Tags != nil {
 		objectMap["tags"] = tr.Tags
 	}
+	if tr.ID != nil {
+		objectMap["id"] = tr.ID
+	}
+	if tr.Name != nil {
+		objectMap["name"] = tr.Name
+	}
+	if tr.Type != nil {
+		objectMap["type"] = tr.Type
+	}
 	return json.Marshal(objectMap)
 }
 
 // TransparentDataEncryption represents a database transparent data encryption configuration.
 type TransparentDataEncryption struct {
 	autorest.Response `json:"-"`
-	// Location - READ-ONLY; Resource location.
+	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
 	// TransparentDataEncryptionProperties - Represents the properties of the resource.
 	*TransparentDataEncryptionProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for TransparentDataEncryption.
 func (tde TransparentDataEncryption) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if tde.Location != nil {
+		objectMap["location"] = tde.Location
+	}
 	if tde.TransparentDataEncryptionProperties != nil {
 		objectMap["properties"] = tde.TransparentDataEncryptionProperties
+	}
+	if tde.ID != nil {
+		objectMap["id"] = tde.ID
+	}
+	if tde.Name != nil {
+		objectMap["name"] = tde.Name
+	}
+	if tde.Type != nil {
+		objectMap["type"] = tde.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -14632,23 +12900,35 @@ func (tde *TransparentDataEncryption) UnmarshalJSON(body []byte) error {
 
 // TransparentDataEncryptionActivity represents a database transparent data encryption Scan.
 type TransparentDataEncryptionActivity struct {
-	// Location - READ-ONLY; Resource location.
+	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
 	// TransparentDataEncryptionActivityProperties - Represents the properties of the resource.
 	*TransparentDataEncryptionActivityProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for TransparentDataEncryptionActivity.
 func (tdea TransparentDataEncryptionActivity) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if tdea.Location != nil {
+		objectMap["location"] = tdea.Location
+	}
 	if tdea.TransparentDataEncryptionActivityProperties != nil {
 		objectMap["properties"] = tdea.TransparentDataEncryptionActivityProperties
+	}
+	if tdea.ID != nil {
+		objectMap["id"] = tdea.ID
+	}
+	if tdea.Name != nil {
+		objectMap["name"] = tdea.Name
+	}
+	if tdea.Type != nil {
+		objectMap["type"] = tdea.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -14721,12 +13001,12 @@ type TransparentDataEncryptionActivityListResult struct {
 	Value *[]TransparentDataEncryptionActivity `json:"value,omitempty"`
 }
 
-// TransparentDataEncryptionActivityProperties represents the properties of a database transparent data
-// encryption Scan.
+// TransparentDataEncryptionActivityProperties represents the properties of a database transparent data encryption
+// Scan.
 type TransparentDataEncryptionActivityProperties struct {
-	// Status - READ-ONLY; The status of the database. Possible values include: 'Encrypting', 'Decrypting'
+	// Status - The status of the database. Possible values include: 'Encrypting', 'Decrypting'
 	Status TransparentDataEncryptionActivityStatus `json:"status,omitempty"`
-	// PercentComplete - READ-ONLY; The percent complete of the transparent data encryption scan for a database.
+	// PercentComplete - The percent complete of the transparent data encryption scan for a database.
 	PercentComplete *float64 `json:"percentComplete,omitempty"`
 }
 
@@ -14736,378 +13016,16 @@ type TransparentDataEncryptionProperties struct {
 	Status TransparentDataEncryptionStatus `json:"status,omitempty"`
 }
 
-// VirtualCluster an Azure SQL virtual cluster.
-type VirtualCluster struct {
-	autorest.Response `json:"-"`
-	// VirtualClusterProperties - Resource properties.
-	*VirtualClusterProperties `json:"properties,omitempty"`
-	// Location - Resource location.
-	Location *string `json:"location,omitempty"`
-	// Tags - Resource tags.
-	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource ID.
-	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
-	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
-	Type *string `json:"type,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for VirtualCluster.
-func (vc VirtualCluster) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if vc.VirtualClusterProperties != nil {
-		objectMap["properties"] = vc.VirtualClusterProperties
-	}
-	if vc.Location != nil {
-		objectMap["location"] = vc.Location
-	}
-	if vc.Tags != nil {
-		objectMap["tags"] = vc.Tags
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for VirtualCluster struct.
-func (vc *VirtualCluster) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "properties":
-			if v != nil {
-				var virtualClusterProperties VirtualClusterProperties
-				err = json.Unmarshal(*v, &virtualClusterProperties)
-				if err != nil {
-					return err
-				}
-				vc.VirtualClusterProperties = &virtualClusterProperties
-			}
-		case "location":
-			if v != nil {
-				var location string
-				err = json.Unmarshal(*v, &location)
-				if err != nil {
-					return err
-				}
-				vc.Location = &location
-			}
-		case "tags":
-			if v != nil {
-				var tags map[string]*string
-				err = json.Unmarshal(*v, &tags)
-				if err != nil {
-					return err
-				}
-				vc.Tags = tags
-			}
-		case "id":
-			if v != nil {
-				var ID string
-				err = json.Unmarshal(*v, &ID)
-				if err != nil {
-					return err
-				}
-				vc.ID = &ID
-			}
-		case "name":
-			if v != nil {
-				var name string
-				err = json.Unmarshal(*v, &name)
-				if err != nil {
-					return err
-				}
-				vc.Name = &name
-			}
-		case "type":
-			if v != nil {
-				var typeVar string
-				err = json.Unmarshal(*v, &typeVar)
-				if err != nil {
-					return err
-				}
-				vc.Type = &typeVar
-			}
-		}
-	}
-
-	return nil
-}
-
-// VirtualClusterListResult a list of virtual clusters.
-type VirtualClusterListResult struct {
-	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
-	Value *[]VirtualCluster `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// VirtualClusterListResultIterator provides access to a complete listing of VirtualCluster values.
-type VirtualClusterListResultIterator struct {
-	i    int
-	page VirtualClusterListResultPage
-}
-
-// NextWithContext advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *VirtualClusterListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualClusterListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err = iter.page.NextWithContext(ctx)
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *VirtualClusterListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter VirtualClusterListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter VirtualClusterListResultIterator) Response() VirtualClusterListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter VirtualClusterListResultIterator) Value() VirtualCluster {
-	if !iter.page.NotDone() {
-		return VirtualCluster{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// Creates a new instance of the VirtualClusterListResultIterator type.
-func NewVirtualClusterListResultIterator(page VirtualClusterListResultPage) VirtualClusterListResultIterator {
-	return VirtualClusterListResultIterator{page: page}
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (vclr VirtualClusterListResult) IsEmpty() bool {
-	return vclr.Value == nil || len(*vclr.Value) == 0
-}
-
-// virtualClusterListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (vclr VirtualClusterListResult) virtualClusterListResultPreparer(ctx context.Context) (*http.Request, error) {
-	if vclr.NextLink == nil || len(to.String(vclr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(vclr.NextLink)))
-}
-
-// VirtualClusterListResultPage contains a page of VirtualCluster values.
-type VirtualClusterListResultPage struct {
-	fn   func(context.Context, VirtualClusterListResult) (VirtualClusterListResult, error)
-	vclr VirtualClusterListResult
-}
-
-// NextWithContext advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *VirtualClusterListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualClusterListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.vclr)
-	if err != nil {
-		return err
-	}
-	page.vclr = next
-	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *VirtualClusterListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page VirtualClusterListResultPage) NotDone() bool {
-	return !page.vclr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page VirtualClusterListResultPage) Response() VirtualClusterListResult {
-	return page.vclr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page VirtualClusterListResultPage) Values() []VirtualCluster {
-	if page.vclr.IsEmpty() {
-		return nil
-	}
-	return *page.vclr.Value
-}
-
-// Creates a new instance of the VirtualClusterListResultPage type.
-func NewVirtualClusterListResultPage(getNextPage func(context.Context, VirtualClusterListResult) (VirtualClusterListResult, error)) VirtualClusterListResultPage {
-	return VirtualClusterListResultPage{fn: getNextPage}
-}
-
-// VirtualClusterProperties the properties of a virtual cluster.
-type VirtualClusterProperties struct {
-	// SubnetID - READ-ONLY; Subnet resource ID for the virtual cluster.
-	SubnetID *string `json:"subnetId,omitempty"`
-	// Family - If the service has different generations of hardware, for the same SKU, then that can be captured here.
-	Family *string `json:"family,omitempty"`
-	// ChildResources - READ-ONLY; List of resources in this virtual cluster.
-	ChildResources *[]string `json:"childResources,omitempty"`
-}
-
-// VirtualClustersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
-type VirtualClustersDeleteFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *VirtualClustersDeleteFuture) Result(client VirtualClustersClient) (ar autorest.Response, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "sql.VirtualClustersDeleteFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("sql.VirtualClustersDeleteFuture")
-		return
-	}
-	ar.Response = future.Response()
-	return
-}
-
-// VirtualClustersUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
-type VirtualClustersUpdateFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *VirtualClustersUpdateFuture) Result(client VirtualClustersClient) (vc VirtualCluster, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "sql.VirtualClustersUpdateFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("sql.VirtualClustersUpdateFuture")
-		return
-	}
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if vc.Response.Response, err = future.GetResult(sender); err == nil && vc.Response.Response.StatusCode != http.StatusNoContent {
-		vc, err = client.UpdateResponder(vc.Response.Response)
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "sql.VirtualClustersUpdateFuture", "Result", vc.Response.Response, "Failure responding to request")
-		}
-	}
-	return
-}
-
-// VirtualClusterUpdate an update request for an Azure SQL Database virtual cluster.
-type VirtualClusterUpdate struct {
-	// VirtualClusterProperties - Resource properties.
-	*VirtualClusterProperties `json:"properties,omitempty"`
-	// Tags - Resource tags.
-	Tags map[string]*string `json:"tags"`
-}
-
-// MarshalJSON is the custom marshaler for VirtualClusterUpdate.
-func (vcu VirtualClusterUpdate) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if vcu.VirtualClusterProperties != nil {
-		objectMap["properties"] = vcu.VirtualClusterProperties
-	}
-	if vcu.Tags != nil {
-		objectMap["tags"] = vcu.Tags
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for VirtualClusterUpdate struct.
-func (vcu *VirtualClusterUpdate) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "properties":
-			if v != nil {
-				var virtualClusterProperties VirtualClusterProperties
-				err = json.Unmarshal(*v, &virtualClusterProperties)
-				if err != nil {
-					return err
-				}
-				vcu.VirtualClusterProperties = &virtualClusterProperties
-			}
-		case "tags":
-			if v != nil {
-				var tags map[string]*string
-				err = json.Unmarshal(*v, &tags)
-				if err != nil {
-					return err
-				}
-				vcu.Tags = tags
-			}
-		}
-	}
-
-	return nil
-}
-
 // VirtualNetworkRule a virtual network rule.
 type VirtualNetworkRule struct {
 	autorest.Response `json:"-"`
 	// VirtualNetworkRuleProperties - Resource properties.
 	*VirtualNetworkRuleProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -15116,6 +13034,15 @@ func (vnr VirtualNetworkRule) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if vnr.VirtualNetworkRuleProperties != nil {
 		objectMap["properties"] = vnr.VirtualNetworkRuleProperties
+	}
+	if vnr.ID != nil {
+		objectMap["id"] = vnr.ID
+	}
+	if vnr.Name != nil {
+		objectMap["name"] = vnr.Name
+	}
+	if vnr.Type != nil {
+		objectMap["type"] = vnr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -15174,9 +13101,9 @@ func (vnr *VirtualNetworkRule) UnmarshalJSON(body []byte) error {
 // VirtualNetworkRuleListResult a list of virtual network rules.
 type VirtualNetworkRuleListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of results.
+	// Value - Array of results.
 	Value *[]VirtualNetworkRule `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	// NextLink - Link to retrieve next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -15186,37 +13113,20 @@ type VirtualNetworkRuleListResultIterator struct {
 	page VirtualNetworkRuleListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *VirtualNetworkRuleListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualNetworkRuleListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *VirtualNetworkRuleListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *VirtualNetworkRuleListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -15238,11 +13148,6 @@ func (iter VirtualNetworkRuleListResultIterator) Value() VirtualNetworkRule {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the VirtualNetworkRuleListResultIterator type.
-func NewVirtualNetworkRuleListResultIterator(page VirtualNetworkRuleListResultPage) VirtualNetworkRuleListResultIterator {
-	return VirtualNetworkRuleListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (vnrlr VirtualNetworkRuleListResult) IsEmpty() bool {
 	return vnrlr.Value == nil || len(*vnrlr.Value) == 0
@@ -15250,11 +13155,11 @@ func (vnrlr VirtualNetworkRuleListResult) IsEmpty() bool {
 
 // virtualNetworkRuleListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (vnrlr VirtualNetworkRuleListResult) virtualNetworkRuleListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (vnrlr VirtualNetworkRuleListResult) virtualNetworkRuleListResultPreparer() (*http.Request, error) {
 	if vnrlr.NextLink == nil || len(to.String(vnrlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(vnrlr.NextLink)))
@@ -15262,36 +13167,19 @@ func (vnrlr VirtualNetworkRuleListResult) virtualNetworkRuleListResultPreparer(c
 
 // VirtualNetworkRuleListResultPage contains a page of VirtualNetworkRule values.
 type VirtualNetworkRuleListResultPage struct {
-	fn    func(context.Context, VirtualNetworkRuleListResult) (VirtualNetworkRuleListResult, error)
+	fn    func(VirtualNetworkRuleListResult) (VirtualNetworkRuleListResult, error)
 	vnrlr VirtualNetworkRuleListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *VirtualNetworkRuleListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/VirtualNetworkRuleListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.vnrlr)
+func (page *VirtualNetworkRuleListResultPage) Next() error {
+	next, err := page.fn(page.vnrlr)
 	if err != nil {
 		return err
 	}
 	page.vnrlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *VirtualNetworkRuleListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -15312,18 +13200,13 @@ func (page VirtualNetworkRuleListResultPage) Values() []VirtualNetworkRule {
 	return *page.vnrlr.Value
 }
 
-// Creates a new instance of the VirtualNetworkRuleListResultPage type.
-func NewVirtualNetworkRuleListResultPage(getNextPage func(context.Context, VirtualNetworkRuleListResult) (VirtualNetworkRuleListResult, error)) VirtualNetworkRuleListResultPage {
-	return VirtualNetworkRuleListResultPage{fn: getNextPage}
-}
-
 // VirtualNetworkRuleProperties properties of a virtual network rule.
 type VirtualNetworkRuleProperties struct {
 	// VirtualNetworkSubnetID - The ARM resource id of the virtual network subnet.
 	VirtualNetworkSubnetID *string `json:"virtualNetworkSubnetId,omitempty"`
 	// IgnoreMissingVnetServiceEndpoint - Create firewall rule before the virtual network has vnet service endpoint enabled.
 	IgnoreMissingVnetServiceEndpoint *bool `json:"ignoreMissingVnetServiceEndpoint,omitempty"`
-	// State - READ-ONLY; Virtual Network Rule State. Possible values include: 'VirtualNetworkRuleStateInitializing', 'VirtualNetworkRuleStateInProgress', 'VirtualNetworkRuleStateReady', 'VirtualNetworkRuleStateDeleting', 'VirtualNetworkRuleStateUnknown'
+	// State - Virtual Network Rule State. Possible values include: 'VirtualNetworkRuleStateInitializing', 'VirtualNetworkRuleStateInProgress', 'VirtualNetworkRuleStateReady', 'VirtualNetworkRuleStateDeleting', 'VirtualNetworkRuleStateUnknown'
 	State VirtualNetworkRuleState `json:"state,omitempty"`
 }
 
@@ -15337,7 +13220,7 @@ type VirtualNetworkRulesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *VirtualNetworkRulesCreateOrUpdateFuture) Result(client VirtualNetworkRulesClient) (vnr VirtualNetworkRule, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.VirtualNetworkRulesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -15356,8 +13239,8 @@ func (future *VirtualNetworkRulesCreateOrUpdateFuture) Result(client VirtualNetw
 	return
 }
 
-// VirtualNetworkRulesDeleteFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// VirtualNetworkRulesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type VirtualNetworkRulesDeleteFuture struct {
 	azure.Future
 }
@@ -15366,7 +13249,7 @@ type VirtualNetworkRulesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *VirtualNetworkRulesDeleteFuture) Result(client VirtualNetworkRulesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.VirtualNetworkRulesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -15379,8 +13262,7 @@ func (future *VirtualNetworkRulesDeleteFuture) Result(client VirtualNetworkRules
 	return
 }
 
-// VulnerabilityAssessmentRecurringScansProperties properties of a Vulnerability Assessment recurring
-// scans.
+// VulnerabilityAssessmentRecurringScansProperties properties of a Vulnerability Assessment recurring scans.
 type VulnerabilityAssessmentRecurringScansProperties struct {
 	// IsEnabled - Recurring scans state.
 	IsEnabled *bool `json:"isEnabled,omitempty"`

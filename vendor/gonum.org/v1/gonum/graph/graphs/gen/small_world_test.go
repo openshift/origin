@@ -22,8 +22,6 @@ func TestNavigableSmallWorldUndirected(t *testing.T) {
 			for r := 0.5; r < 10; r++ {
 				for _, dims := range smallWorldDimensionParameters {
 					g := &gnUndirected{UndirectedBuilder: simple.NewUndirectedGraph()}
-					orig := g.NewNode()
-					g.AddNode(orig)
 					err := NavigableSmallWorld(g, dims, p, q, r, nil)
 					n := 1
 					for _, d := range dims {
@@ -31,9 +29,6 @@ func TestNavigableSmallWorldUndirected(t *testing.T) {
 					}
 					if err != nil {
 						t.Fatalf("unexpected error: dims=%v n=%d, p=%d, q=%d, r=%v: %v", dims, n, p, q, r, err)
-					}
-					if g.From(orig.ID()).Len() != 0 {
-						t.Errorf("edge added from already existing node: dims=%v n=%d, p=%d, q=%d, r=%v", dims, n, p, q, r)
 					}
 					if g.addBackwards {
 						t.Errorf("edge added with From.ID > To.ID: dims=%v n=%d, p=%d, q=%d, r=%v", dims, n, p, q, r)

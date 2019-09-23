@@ -30,8 +30,7 @@ spec:
       serviceAccount: csi-snapshotter
       containers:
       - name: csi-snapshotter
-        # TODO: replace with official 2.0.0 release when ready
-        image: quay.io/k8scsi/csi-snapshotter:v2.0.0-rc1
+        image: quay.io/k8scsi/csi-snapshotter:v1.0.1
         args:
         - "--csi-address=$(ADDRESS)"
         - "--connection-timeout=15s"

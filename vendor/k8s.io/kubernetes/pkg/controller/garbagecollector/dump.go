@@ -268,7 +268,7 @@ func (h *debugHTTPHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		graph = h.controller.dependencyGraphBuilder.uidToNode.ToGonumGraph()
 	}
 
-	data, err := dot.Marshal(graph, "full", "", "  ")
+	data, err := dot.Marshal(graph, "full", "", "  ", false)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

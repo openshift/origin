@@ -19,9 +19,7 @@ package credentialprovider
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -30,10 +28,6 @@ import (
 	"sync"
 
 	"k8s.io/klog"
-)
-
-const (
-	maxReadLength = 10 * 1 << 20 // 10MB
 )
 
 // DockerConfigJson represents ~/.docker/config.json file info
@@ -60,7 +54,7 @@ var (
 	preferredPathLock sync.Mutex
 	preferredPath     = ""
 	workingDirPath    = ""
-	homeDirPath, _    = os.UserHomeDir()
+	homeDirPath       = os.Getenv("HOME")
 	rootDirPath       = "/"
 	homeJsonDirPath   = filepath.Join(homeDirPath, ".docker")
 	rootJsonDirPath   = filepath.Join(rootDirPath, ".docker")
@@ -201,14 +195,9 @@ func ReadUrl(url string, client *http.Client, header *http.Header) (body []byte,
 		}
 	}
 
-	limitedReader := &io.LimitedReader{R: resp.Body, N: maxReadLength}
-	contents, err := ioutil.ReadAll(limitedReader)
+	contents, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
-	}
-
-	if limitedReader.N <= 0 {
-		return nil, errors.New("the read limit is reached")
 	}
 
 	return contents, nil

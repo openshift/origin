@@ -30,38 +30,42 @@ type DrotmParams struct {
 	H [4]float64 // Column-major 2 by 2 matrix.
 }
 
-// Transpose specifies the transposition operation of a matrix.
-type Transpose byte
+// Transpose is used to specify the transposition operation for a
+// routine.
+type Transpose int
 
 const (
-	NoTrans   Transpose = 'N'
-	Trans     Transpose = 'T'
-	ConjTrans Transpose = 'C'
+	NoTrans Transpose = 111 + iota
+	Trans
+	ConjTrans
 )
 
-// Uplo specifies whether a matrix is upper or lower triangular.
-type Uplo byte
+// Uplo is used to specify whether the matrix is an upper or lower
+// triangular matrix.
+type Uplo int
 
 const (
-	Upper Uplo = 'U'
-	Lower Uplo = 'L'
-	All   Uplo = 'A'
+	All Uplo = 120 + iota
+	Upper
+	Lower
 )
 
-// Diag specifies whether a matrix is unit triangular.
-type Diag byte
+// Diag is used to specify whether the matrix is a unit or non-unit
+// triangular matrix.
+type Diag int
 
 const (
-	NonUnit Diag = 'N'
-	Unit    Diag = 'U'
+	NonUnit Diag = 131 + iota
+	Unit
 )
 
-// Side specifies from which side a multiplication operation is performed.
-type Side byte
+// Side is used to specify from which side a multiplication operation
+// is performed.
+type Side int
 
 const (
-	Left  Side = 'L'
-	Right Side = 'R'
+	Left Side = 141 + iota
+	Right
 )
 
 // Float32 implements the single precision real BLAS routines.

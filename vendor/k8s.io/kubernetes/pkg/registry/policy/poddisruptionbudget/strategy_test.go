@@ -68,32 +68,30 @@ func TestPodDisruptionBudgetStrategy(t *testing.T) {
 		t.Errorf("Unexpected error updating PodDisruptionBudget.")
 	}
 
-	// Changing the selector?  OK
+	// Changing the selector?  No.
 	newPdb.Spec.Selector = &metav1.LabelSelector{MatchLabels: map[string]string{"a": "bar"}}
 	Strategy.PrepareForUpdate(ctx, newPdb, pdb)
 	errs = Strategy.ValidateUpdate(ctx, newPdb, pdb)
-	if len(errs) != 0 {
-		t.Errorf("Expected no error on changing selector on poddisruptionbudgets.")
+	if len(errs) == 0 {
+		t.Errorf("Expected a validation error since updates are disallowed on poddisruptionbudgets.")
 	}
 	newPdb.Spec.Selector = pdb.Spec.Selector
 
-	// Changing MinAvailable?  OK
+	// Changing MinAvailable?  Also no.
 	newMinAvailable := intstr.FromString("28%")
 	newPdb.Spec.MinAvailable = &newMinAvailable
 	Strategy.PrepareForUpdate(ctx, newPdb, pdb)
 	errs = Strategy.ValidateUpdate(ctx, newPdb, pdb)
-	if len(errs) != 0 {
-		t.Errorf("Expected no error updating MinAvailable on poddisruptionbudgets.")
+	if len(errs) == 0 {
+		t.Errorf("Expected a validation error since updates are disallowed on poddisruptionbudgets.")
 	}
 
-	// Changing MinAvailable to MaxAvailable? OK
 	maxUnavailable := intstr.FromString("28%")
 	newPdb.Spec.MaxUnavailable = &maxUnavailable
-	newPdb.Spec.MinAvailable = nil
 	Strategy.PrepareForUpdate(ctx, newPdb, pdb)
 	errs = Strategy.ValidateUpdate(ctx, newPdb, pdb)
-	if len(errs) != 0 {
-		t.Errorf("Expected no error updating replacing MinAvailable with MaxUnavailable on poddisruptionbudgets.")
+	if len(errs) == 0 {
+		t.Errorf("Expected a validation error since updates are disallowed on poddisruptionbudgets.")
 	}
 }
 

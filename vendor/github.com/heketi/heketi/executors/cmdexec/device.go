@@ -10,7 +10,6 @@
 package cmdexec
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -19,7 +18,6 @@ import (
 	"github.com/heketi/heketi/executors"
 	conv "github.com/heketi/heketi/pkg/conversions"
 	"github.com/heketi/heketi/pkg/paths"
-	rex "github.com/heketi/heketi/pkg/remoteexec"
 )
 
 const (
@@ -43,23 +41,12 @@ func (s *CmdExecutor) DeviceSetup(host, device, vgid string, destroy bool) (d *e
 		logger.Info("Data on device %v (host %v) will be destroyed", device, host)
 		commands = append(commands, fmt.Sprintf("wipefs --all %v", device))
 	}
-	commands = append(commands, fmt.Sprintf("pvcreate -qq --metadatasize=128M --dataalignment=%v '%v'", s.PVDataAlignment(), device))
-	commands = append(commands, fmt.Sprintf("vgcreate -qq --physicalextentsize=%v --autobackup=%v %v %v",
-
-		// Physical extent size
-		s.VGPhysicalExtentSize(),
-
-		// Autobackup
-		conv.BoolToYN(s.BackupLVM),
-
-		// Device
-		paths.VgIdToName(vgid), device),
-	)
+	commands = append(commands, fmt.Sprintf("pvcreate -qq --metadatasize=128M --dataalignment=256K '%v'", device))
+	commands = append(commands, fmt.Sprintf("vgcreate -qq --autobackup=%v %v %v", conv.BoolToYN(s.BackupLVM), paths.VgIdToName(vgid), device))
 
 	// Execute command
-	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands, 5))
+	_, err := s.RemoteExecutor.RemoteCommandExecute(host, commands, 5)
 	if err != nil {
-		err = fmt.Errorf("Setup of device %v failed (already initialized or contains data?): %v", device, err)
 		return nil, err
 	}
 
@@ -71,66 +58,6 @@ func (s *CmdExecutor) DeviceSetup(host, device, vgid string, destroy bool) (d *e
 	}()
 
 	return s.GetDeviceInfo(host, device, vgid)
-}
-
-func (s *CmdExecutor) PVS(host string) (d *executors.PVSCommandOutput, e error) {
-
-	// Setup commands
-	commands := []string{}
-
-	commands = append(commands, fmt.Sprintf("pvs --reportformat json --units k"))
-
-	results, err := s.RemoteExecutor.ExecCommands(host, commands,
-		s.GlusterCliExecTimeout())
-	if err := rex.AnyError(results, err); err != nil {
-		return nil, fmt.Errorf("Unable to get data for LVM PVs")
-	}
-	var pvsCommandOutput executors.PVSCommandOutput
-	err = json.Unmarshal([]byte(results[0].Output), &pvsCommandOutput)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to determine LVM PVs : %v", err)
-	}
-	return &pvsCommandOutput, nil
-}
-
-func (s *CmdExecutor) VGS(host string) (d *executors.VGSCommandOutput, e error) {
-
-	// Setup commands
-	commands := []string{}
-
-	commands = append(commands, fmt.Sprintf("vgs --reportformat json --units k"))
-
-	results, err := s.RemoteExecutor.ExecCommands(host, commands,
-		s.GlusterCliExecTimeout())
-	if err := rex.AnyError(results, err); err != nil {
-		return nil, fmt.Errorf("Unable to get data for LVM VGs")
-	}
-	var vgsCommandOutput executors.VGSCommandOutput
-	err = json.Unmarshal([]byte(results[0].Output), &vgsCommandOutput)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to determine LVM VGs : %v", err)
-	}
-	return &vgsCommandOutput, nil
-}
-
-func (s *CmdExecutor) LVS(host string) (d *executors.LVSCommandOutput, e error) {
-
-	// Setup commands
-	commands := []string{}
-
-	commands = append(commands, fmt.Sprintf("lvs --reportformat json --units k"))
-
-	results, err := s.RemoteExecutor.ExecCommands(host, commands,
-		s.GlusterCliExecTimeout())
-	if err := rex.AnyError(results, err); err != nil {
-		return nil, fmt.Errorf("Unable to get data for LVM LVs")
-	}
-	var lvsCommandOutput executors.LVSCommandOutput
-	err = json.Unmarshal([]byte(results[0].Output), &lvsCommandOutput)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to determine LVM LVs : %v", err)
-	}
-	return &lvsCommandOutput, nil
 }
 
 func (s *CmdExecutor) GetDeviceInfo(host, device, vgid string) (d *executors.DeviceInfo, e error) {
@@ -165,7 +92,7 @@ func (s *CmdExecutor) removeDevice(host, device, vgid string) error {
 	}
 
 	// Execute command
-	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands, 5))
+	_, err := s.RemoteExecutor.RemoteCommandExecute(host, commands, 5)
 	if err != nil {
 		return logger.LogError(
 			"Failed to delete device %v with id %v on host %v: %v",
@@ -181,7 +108,7 @@ func (s *CmdExecutor) removeDeviceMountPoint(host, vgid string) error {
 	commands := []string{
 		fmt.Sprintf("ls %v", pdir),
 	}
-	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands, 5))
+	_, err := s.RemoteExecutor.RemoteCommandExecute(host, commands, 5)
 	if err != nil {
 		return nil
 	}
@@ -190,7 +117,7 @@ func (s *CmdExecutor) removeDeviceMountPoint(host, vgid string) error {
 		fmt.Sprintf("rmdir %v", pdir),
 	}
 
-	err = rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands, 5))
+	_, err = s.RemoteExecutor.RemoteCommandExecute(host, commands, 5)
 	if err != nil {
 		logger.LogError("Error while removing the VG directory")
 	}
@@ -207,14 +134,14 @@ func (s *CmdExecutor) getVgSizeFromNode(
 	}
 
 	// Execute command
-	results, err := s.RemoteExecutor.ExecCommands(host, commands, 5)
-	if err := rex.AnyError(results, err); err != nil {
+	b, err := s.RemoteExecutor.RemoteCommandExecute(host, commands, 5)
+	if err != nil {
 		return err
 	}
 
 	// Example:
 	// sampleVg:r/w:772:-1:0:0:0:-1:0:4:4:2097135616:4096:511996:0:511996:rJ0bIG-3XNc-NoS0-fkKm-batK-dFyX-xbxHym
-	vginfo := strings.Split(results[0].Output, ":")
+	vginfo := strings.Split(b[0], ":")
 
 	// See vgdisplay manpage
 	if len(vginfo) < 17 {

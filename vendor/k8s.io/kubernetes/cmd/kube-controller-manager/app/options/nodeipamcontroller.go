@@ -17,17 +17,14 @@ limitations under the License.
 package options
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/spf13/pflag"
 
-	nodeipamconfig "k8s.io/kubernetes/pkg/controller/nodeipam/config"
+	kubectrlmgrconfig "k8s.io/kubernetes/pkg/controller/apis/config"
 )
 
 // NodeIPAMControllerOptions holds the NodeIpamController options.
 type NodeIPAMControllerOptions struct {
-	*nodeipamconfig.NodeIPAMControllerConfiguration
+	*kubectrlmgrconfig.NodeIPAMControllerConfiguration
 }
 
 // AddFlags adds flags related to NodeIpamController for controller manager to the specified FlagSet.
@@ -35,25 +32,18 @@ func (o *NodeIPAMControllerOptions) AddFlags(fs *pflag.FlagSet) {
 	if o == nil {
 		return
 	}
+
 	fs.StringVar(&o.ServiceCIDR, "service-cluster-ip-range", o.ServiceCIDR, "CIDR Range for Services in cluster. Requires --allocate-node-cidrs to be true")
 	fs.Int32Var(&o.NodeCIDRMaskSize, "node-cidr-mask-size", o.NodeCIDRMaskSize, "Mask size for node cidr in cluster.")
 }
 
 // ApplyTo fills up NodeIpamController config with options.
-func (o *NodeIPAMControllerOptions) ApplyTo(cfg *nodeipamconfig.NodeIPAMControllerConfiguration) error {
+func (o *NodeIPAMControllerOptions) ApplyTo(cfg *kubectrlmgrconfig.NodeIPAMControllerConfiguration) error {
 	if o == nil {
 		return nil
 	}
 
-	// split the cidrs list and assign primary and secondary
-	serviceCIDRList := strings.Split(o.ServiceCIDR, ",")
-	if len(serviceCIDRList) > 0 {
-		cfg.ServiceCIDR = serviceCIDRList[0]
-	}
-	if len(serviceCIDRList) > 1 {
-		cfg.SecondaryServiceCIDR = serviceCIDRList[1]
-	}
-
+	cfg.ServiceCIDR = o.ServiceCIDR
 	cfg.NodeCIDRMaskSize = o.NodeCIDRMaskSize
 
 	return nil
@@ -64,12 +54,7 @@ func (o *NodeIPAMControllerOptions) Validate() []error {
 	if o == nil {
 		return nil
 	}
-	errs := make([]error, 0)
 
-	serviceCIDRList := strings.Split(o.ServiceCIDR, ",")
-	if len(serviceCIDRList) > 2 {
-		errs = append(errs, fmt.Errorf("--service-cluster-ip-range can not contain more than two entries"))
-	}
-
+	errs := []error{}
 	return errs
 }

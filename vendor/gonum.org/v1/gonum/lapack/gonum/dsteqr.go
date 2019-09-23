@@ -26,49 +26,46 @@ import (
 // Dsteqr will panic otherwise.
 //
 // z, on entry, contains the n×n orthogonal matrix used in the reduction to
-// tridiagonal form if compz == lapack.EVOrig. On exit, if
-// compz == lapack.EVOrig, z contains the orthonormal eigenvectors of the
-// original symmetric matrix, and if compz == lapack.EVTridiag, z contains the
+// tridiagonal form if compz == lapack.OriginalEV. On exit, if
+// compz == lapack.OriginalEV, z contains the orthonormal eigenvectors of the
+// original symmetric matrix, and if compz == lapack.TridiagEV, z contains the
 // orthonormal eigenvectors of the symmetric tridiagonal matrix. z is not used
-// if compz == lapack.EVCompNone.
+// if compz == lapack.None.
 //
 // work must have length at least max(1, 2*n-2) if the eigenvectors are computed,
 // and Dsteqr will panic otherwise.
 //
 // Dsteqr is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dsteqr(compz lapack.EVComp, n int, d, e, z []float64, ldz int, work []float64) (ok bool) {
-	switch {
-	case compz != lapack.EVCompNone && compz != lapack.EVTridiag && compz != lapack.EVOrig:
-		panic(badEVComp)
-	case n < 0:
+	if n < 0 {
 		panic(nLT0)
-	case ldz < 1, compz != lapack.EVCompNone && ldz < n:
-		panic(badLdZ)
 	}
-
-	// Quick return if possible.
-	if n == 0 {
-		return true
+	if len(d) < n {
+		panic(badD)
 	}
-
-	switch {
-	case len(d) < n:
-		panic(shortD)
-	case len(e) < n-1:
-		panic(shortE)
-	case compz != lapack.EVCompNone && len(z) < (n-1)*ldz+n:
-		panic(shortZ)
-	case compz != lapack.EVCompNone && len(work) < max(1, 2*n-2):
-		panic(shortWork)
+	if len(e) < n-1 {
+		panic(badE)
+	}
+	if compz != lapack.None && compz != lapack.TridiagEV && compz != lapack.OriginalEV {
+		panic(badEVComp)
+	}
+	if compz != lapack.None {
+		if len(work) < max(1, 2*n-2) {
+			panic(badWork)
+		}
+		checkMatrix(n, n, z, ldz)
 	}
 
 	var icompz int
-	if compz == lapack.EVOrig {
+	if compz == lapack.OriginalEV {
 		icompz = 1
-	} else if compz == lapack.EVTridiag {
+	} else if compz == lapack.TridiagEV {
 		icompz = 2
 	}
 
+	if n == 0 {
+		return true
+	}
 	if n == 1 {
 		if icompz == 2 {
 			z[0] = 1

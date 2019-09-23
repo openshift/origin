@@ -150,7 +150,7 @@ func TestObserverSimpleContentSpecified(t *testing.T) {
 	o.AddReactor(
 		testReaction,
 		map[string][]byte{
-			testFile: []byte("bar"),
+			testFile: {},
 		},
 		testFile)
 

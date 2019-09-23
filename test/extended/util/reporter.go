@@ -9,8 +9,6 @@ import (
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters/stenographer"
 	"github.com/onsi/ginkgo/types"
-
-	"github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable"
 )
 
 const maxDescriptionLength = 100
@@ -23,7 +21,7 @@ type SimpleReporter struct {
 func NewSimpleReporter() *SimpleReporter {
 	return &SimpleReporter{
 		Output:       os.Stdout,
-		stenographer: stenographer.New(!config.DefaultReporterConfig.NoColor, false, colorable.NewColorableStdout()),
+		stenographer: stenographer.New(!config.DefaultReporterConfig.NoColor, false),
 	}
 }
 

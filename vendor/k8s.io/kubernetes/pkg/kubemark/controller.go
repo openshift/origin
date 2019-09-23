@@ -31,6 +31,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/controller"
 
 	"k8s.io/klog"
 )
@@ -113,7 +114,7 @@ func NewKubemarkController(externalClient kubeclient.Interface, externalInformer
 
 // WaitForCacheSync waits until all caches in the controller are populated.
 func (kubemarkController *KubemarkController) WaitForCacheSync(stopCh chan struct{}) bool {
-	return cache.WaitForNamedCacheSync("kubemark", stopCh,
+	return controller.WaitForCacheSync("kubemark", stopCh,
 		kubemarkController.externalCluster.rcSynced,
 		kubemarkController.externalCluster.podSynced,
 		kubemarkController.kubemarkCluster.nodeSynced)

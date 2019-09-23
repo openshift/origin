@@ -249,7 +249,7 @@ func TestGrid(t *testing.T) {
 	}
 	for _, test := range reach {
 		g.AllowDiagonal = test.diagonal
-		got := graph.NodesOf(g.From(test.from.ID()))
+		got := g.From(test.from.ID())
 		if !reflect.DeepEqual(got, test.to) {
 			t.Fatalf("unexpected nodes from %d with allow diagonal=%t:\ngot: %v\nwant:%v",
 				test.from, test.diagonal, got, test.to)

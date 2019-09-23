@@ -33,7 +33,6 @@ import (
 	storageerr "k8s.io/apiserver/pkg/storage/errors"
 	"k8s.io/apiserver/pkg/util/dryrun"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/printers"
 	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
@@ -58,7 +57,7 @@ type FinalizeREST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against namespaces.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *FinalizeREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *FinalizeREST) {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &api.Namespace{} },
 		NewListFunc:              func() runtime.Object { return &api.NamespaceList{} },
@@ -70,13 +69,11 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *Finaliz
 		DeleteStrategy:      namespace.Strategy,
 		ReturnDeletedObject: true,
 
-		ShouldDeleteDuringUpdate: ShouldDeleteNamespaceDuringUpdate,
-
-		TableConvertor: printerstorage.TableConvertor{TableGenerator: printers.NewTableGenerator().With(printersinternal.AddHandlers)},
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: namespace.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, nil, nil, err
+		panic(err) // TODO: Propagate error up
 	}
 
 	statusStore := *store
@@ -85,7 +82,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *Finaliz
 	finalizeStore := *store
 	finalizeStore.UpdateStrategy = namespace.FinalizeStrategy
 
-	return &REST{store: store, status: &statusStore}, &StatusREST{store: &statusStore}, &FinalizeREST{store: &finalizeStore}, nil
+	return &REST{store: store, status: &statusStore}, &StatusREST{store: &statusStore}, &FinalizeREST{store: &finalizeStore}
 }
 
 func (r *REST) NamespaceScoped() bool {
@@ -125,7 +122,7 @@ func (r *REST) Export(ctx context.Context, name string, opts metav1.ExportOption
 }
 
 // Delete enforces life-cycle rules for namespace termination
-func (r *REST) Delete(ctx context.Context, name string, deleteValidation rest.ValidateObjectFunc, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	nsObj, err := r.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
@@ -178,9 +175,6 @@ func (r *REST) Delete(ctx context.Context, name string, deleteValidation rest.Va
 					// wrong type
 					return nil, fmt.Errorf("expected *api.Namespace, got %v", existing)
 				}
-				if err := deleteValidation(ctx, existingNamespace); err != nil {
-					return nil, err
-				}
 				// Set the deletion timestamp if needed
 				if existingNamespace.DeletionTimestamp.IsZero() {
 					now := metav1.Now()
@@ -191,33 +185,17 @@ func (r *REST) Delete(ctx context.Context, name string, deleteValidation rest.Va
 					existingNamespace.Status.Phase = api.NamespaceTerminating
 				}
 
-				// the current finalizers which are on namespace
-				currentFinalizers := map[string]bool{}
-				for _, f := range existingNamespace.Finalizers {
-					currentFinalizers[f] = true
-				}
-				// the finalizers we should ensure on namespace
-				shouldHaveFinalizers := map[string]bool{
-					metav1.FinalizerOrphanDependents: shouldHaveOrphanFinalizer(options, currentFinalizers[metav1.FinalizerOrphanDependents]),
-					metav1.FinalizerDeleteDependents: shouldHaveDeleteDependentsFinalizer(options, currentFinalizers[metav1.FinalizerDeleteDependents]),
-				}
-				// determine whether there are changes
-				changeNeeded := false
-				for finalizer, shouldHave := range shouldHaveFinalizers {
-					changeNeeded = currentFinalizers[finalizer] != shouldHave || changeNeeded
-					if shouldHave {
-						currentFinalizers[finalizer] = true
-					} else {
-						delete(currentFinalizers, finalizer)
-					}
-				}
-				// make the changes if needed
-				if changeNeeded {
+				// Remove orphan finalizer if options.OrphanDependents = false.
+				if options.OrphanDependents != nil && *options.OrphanDependents == false {
+					// remove Orphan finalizer.
 					newFinalizers := []string{}
-					for f := range currentFinalizers {
-						newFinalizers = append(newFinalizers, f)
+					for i := range existingNamespace.ObjectMeta.Finalizers {
+						finalizer := existingNamespace.ObjectMeta.Finalizers[i]
+						if string(finalizer) != metav1.FinalizerOrphanDependents {
+							newFinalizers = append(newFinalizers, finalizer)
+						}
 					}
-					existingNamespace.Finalizers = newFinalizers
+					existingNamespace.ObjectMeta.Finalizers = newFinalizers
 				}
 				return existingNamespace, nil
 			}),
@@ -241,37 +219,7 @@ func (r *REST) Delete(ctx context.Context, name string, deleteValidation rest.Va
 		err = apierrors.NewConflict(api.Resource("namespaces"), namespace.Name, fmt.Errorf("The system is ensuring all content is removed from this namespace.  Upon completion, this namespace will automatically be purged by the system."))
 		return nil, false, err
 	}
-	return r.store.Delete(ctx, name, deleteValidation, options)
-}
-
-// ShouldDeleteNamespaceDuringUpdate adds namespace-specific spec.finalizer checks on top of the default generic ShouldDeleteDuringUpdate behavior
-func ShouldDeleteNamespaceDuringUpdate(ctx context.Context, key string, obj, existing runtime.Object) bool {
-	ns, ok := obj.(*api.Namespace)
-	if !ok {
-		utilruntime.HandleError(fmt.Errorf("unexpected type %T", obj))
-		return false
-	}
-	return len(ns.Spec.Finalizers) == 0 && genericregistry.ShouldDeleteDuringUpdate(ctx, key, obj, existing)
-}
-
-func shouldHaveOrphanFinalizer(options *metav1.DeleteOptions, haveOrphanFinalizer bool) bool {
-	if options.OrphanDependents != nil {
-		return *options.OrphanDependents
-	}
-	if options.PropagationPolicy != nil {
-		return *options.PropagationPolicy == metav1.DeletePropagationOrphan
-	}
-	return haveOrphanFinalizer
-}
-
-func shouldHaveDeleteDependentsFinalizer(options *metav1.DeleteOptions, haveDeleteDependentsFinalizer bool) bool {
-	if options.OrphanDependents != nil {
-		return *options.OrphanDependents == false
-	}
-	if options.PropagationPolicy != nil {
-		return *options.PropagationPolicy == metav1.DeletePropagationForeground
-	}
-	return haveDeleteDependentsFinalizer
+	return r.store.Delete(ctx, name, options)
 }
 
 func (e *REST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1beta1.Table, error) {

@@ -35,52 +35,39 @@ import (
 
 type RESTStorageProvider struct{}
 
-func (p RESTStorageProvider) NewRESTStorage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool, error) {
+func (p RESTStorageProvider) NewRESTStorage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(extensions.GroupName, legacyscheme.Scheme, legacyscheme.ParameterCodec, legacyscheme.Codecs)
 	// If you add a version here, be sure to add an entry in `k8s.io/kubernetes/cmd/kube-apiserver/app/aggregator.go with specific priorities.
 	// TODO refactor the plumbing to provide the information in the APIGroupInfo
 
 	if apiResourceConfigSource.VersionEnabled(extensionsapiv1beta1.SchemeGroupVersion) {
-		if storageMap, err := p.v1beta1Storage(apiResourceConfigSource, restOptionsGetter); err != nil {
-			return genericapiserver.APIGroupInfo{}, false, err
-		} else {
-			apiGroupInfo.VersionedResourcesStorageMap[extensionsapiv1beta1.SchemeGroupVersion.Version] = storageMap
-		}
+		apiGroupInfo.VersionedResourcesStorageMap[extensionsapiv1beta1.SchemeGroupVersion.Version] = p.v1beta1Storage(apiResourceConfigSource, restOptionsGetter)
 	}
 
-	return apiGroupInfo, true, nil
+	return apiGroupInfo, true
 }
 
-func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (map[string]rest.Storage, error) {
+func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) map[string]rest.Storage {
 	storage := map[string]rest.Storage{}
 
 	// This is a dummy replication controller for scale subresource purposes.
 	// TODO: figure out how to enable this only if needed as a part of scale subresource GA.
 	if apiResourceConfigSource.ResourceEnabled(extensionsapiv1beta1.SchemeGroupVersion.WithResource("replicationcontrollers")) {
-		controllerStorage, err := expcontrollerstore.NewStorage(restOptionsGetter)
-		if err != nil {
-			return storage, err
-		}
+		controllerStorage := expcontrollerstore.NewStorage(restOptionsGetter)
 		storage["replicationcontrollers"] = controllerStorage.ReplicationController
 		storage["replicationcontrollers/scale"] = controllerStorage.Scale
 	}
 
 	// daemonsets
 	if apiResourceConfigSource.ResourceEnabled(extensionsapiv1beta1.SchemeGroupVersion.WithResource("daemonsets")) {
-		daemonSetStorage, daemonSetStatusStorage, err := daemonstore.NewREST(restOptionsGetter)
-		if err != nil {
-			return storage, err
-		}
+		daemonSetStorage, daemonSetStatusStorage := daemonstore.NewREST(restOptionsGetter)
 		storage["daemonsets"] = daemonSetStorage.WithCategories(nil)
 		storage["daemonsets/status"] = daemonSetStatusStorage
 	}
 
 	//deployments
 	if apiResourceConfigSource.ResourceEnabled(extensionsapiv1beta1.SchemeGroupVersion.WithResource("deployments")) {
-		deploymentStorage, err := deploymentstore.NewStorage(restOptionsGetter)
-		if err != nil {
-			return storage, err
-		}
+		deploymentStorage := deploymentstore.NewStorage(restOptionsGetter)
 		storage["deployments"] = deploymentStorage.Deployment.WithCategories(nil)
 		storage["deployments/status"] = deploymentStorage.Status
 		storage["deployments/rollback"] = deploymentStorage.Rollback
@@ -88,29 +75,20 @@ func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorag
 	}
 	// ingresses
 	if apiResourceConfigSource.ResourceEnabled(extensionsapiv1beta1.SchemeGroupVersion.WithResource("ingresses")) {
-		ingressStorage, ingressStatusStorage, err := ingressstore.NewREST(restOptionsGetter)
-		if err != nil {
-			return storage, err
-		}
+		ingressStorage, ingressStatusStorage := ingressstore.NewREST(restOptionsGetter)
 		storage["ingresses"] = ingressStorage
 		storage["ingresses/status"] = ingressStatusStorage
 	}
 
 	// podsecuritypolicy
 	if apiResourceConfigSource.ResourceEnabled(extensionsapiv1beta1.SchemeGroupVersion.WithResource("podsecuritypolicies")) {
-		podSecurityPolicyStorage, err := pspstore.NewREST(restOptionsGetter)
-		if err != nil {
-			return storage, err
-		}
+		podSecurityPolicyStorage := pspstore.NewREST(restOptionsGetter)
 		storage["podSecurityPolicies"] = podSecurityPolicyStorage
 	}
 
 	// replicasets
 	if apiResourceConfigSource.ResourceEnabled(extensionsapiv1beta1.SchemeGroupVersion.WithResource("replicasets")) {
-		replicaSetStorage, err := replicasetstore.NewStorage(restOptionsGetter)
-		if err != nil {
-			return storage, err
-		}
+		replicaSetStorage := replicasetstore.NewStorage(restOptionsGetter)
 		storage["replicasets"] = replicaSetStorage.ReplicaSet.WithCategories(nil)
 		storage["replicasets/status"] = replicaSetStorage.Status
 		storage["replicasets/scale"] = replicaSetStorage.Scale
@@ -118,14 +96,11 @@ func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorag
 
 	// networkpolicies
 	if apiResourceConfigSource.ResourceEnabled(extensionsapiv1beta1.SchemeGroupVersion.WithResource("networkpolicies")) {
-		networkExtensionsStorage, err := networkpolicystore.NewREST(restOptionsGetter)
-		if err != nil {
-			return storage, err
-		}
+		networkExtensionsStorage := networkpolicystore.NewREST(restOptionsGetter)
 		storage["networkpolicies"] = networkExtensionsStorage
 	}
 
-	return storage, nil
+	return storage
 }
 
 func (p RESTStorageProvider) GroupName() string {

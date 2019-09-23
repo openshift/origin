@@ -35,6 +35,7 @@ filegroup(
         ":package-srcs",
         "//test/images/resource-consumer/common:all-srcs",
         "//test/images/resource-consumer/consume-cpu:all-srcs",
+        "//test/images/resource-consumer/controller:all-srcs",
     ],
     tags = ["automanaged"],
 )

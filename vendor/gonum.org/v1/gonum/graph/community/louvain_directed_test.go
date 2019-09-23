@@ -204,7 +204,7 @@ func TestCommunityQDirected(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -221,7 +221,7 @@ func TestCommunityQWeightedDirected(t *testing.T) {
 		g := simple.NewWeightedDirectedGraph(0, 0)
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -257,7 +257,7 @@ func TestCommunityDeltaQDirected(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -274,7 +274,7 @@ func TestCommunityDeltaQWeightedDirected(t *testing.T) {
 		g := simple.NewWeightedDirectedGraph(0, 0)
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -382,7 +382,7 @@ func TestReduceQConsistencyDirected(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -399,7 +399,7 @@ func TestReduceQConsistencyWeightedDirected(t *testing.T) {
 		g := simple.NewWeightedDirectedGraph(0, 0)
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -500,7 +500,7 @@ func TestMoveLocalDirected(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -517,7 +517,7 @@ func TestMoveLocalWeightedDirected(t *testing.T) {
 		g := simple.NewWeightedDirectedGraph(0, 0)
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -562,7 +562,7 @@ func TestModularizeDirected(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -579,7 +579,7 @@ func TestModularizeWeightedDirected(t *testing.T) {
 		g := simple.NewWeightedDirectedGraph(0, 0)
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if g.Node(int64(u)) == nil {
+			if !g.Has(int64(u)) {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {

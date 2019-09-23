@@ -2,14 +2,17 @@
   "auth": {
     "oauth2": {
       "scopes": {
+        "https://www.googleapis.com/auth/plus.login": {
+          "description": "Know the list of people in your circles, your age range, and language"
+        },
         "https://www.googleapis.com/auth/plus.me": {
-          "description": "Associate you with your personal info on Google"
+          "description": "Know who you are on Google"
         },
         "https://www.googleapis.com/auth/userinfo.email": {
           "description": "View your email address"
         },
         "https://www.googleapis.com/auth/userinfo.profile": {
-          "description": "See your personal info, including any personal info you've made publicly available"
+          "description": "View your basic profile info"
         }
       }
     }
@@ -20,7 +23,7 @@
   "description": "Obtains end-user authorization grants for use with other Google APIs.",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/accounts/docs/OAuth2",
-  "etag": "\"VPK3KBfpaEgZ16pozGOoMYfKc0U/W-JRJm0Bex0eEJ4XYBVnRKTeRQ8\"",
+  "etag": "\"Zkyw9ACJZUvcYmlFaKGChzhmtnE/aQYw8bQfY3xIJbtzdw5QvIFJYtI\"",
   "icons": {
     "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
     "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
@@ -119,6 +122,7 @@
             "$ref": "Userinfoplus"
           },
           "scopes": [
+            "https://www.googleapis.com/auth/plus.login",
             "https://www.googleapis.com/auth/plus.me",
             "https://www.googleapis.com/auth/userinfo.email",
             "https://www.googleapis.com/auth/userinfo.profile"
@@ -138,6 +142,7 @@
                     "$ref": "Userinfoplus"
                   },
                   "scopes": [
+                    "https://www.googleapis.com/auth/plus.login",
                     "https://www.googleapis.com/auth/plus.me",
                     "https://www.googleapis.com/auth/userinfo.email",
                     "https://www.googleapis.com/auth/userinfo.profile"
@@ -150,7 +155,7 @@
       }
     }
   },
-  "revision": "20190313",
+  "revision": "20180208",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "Jwk": {

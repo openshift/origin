@@ -48,9 +48,7 @@ func TestListSearch(t *testing.T) {
 		method := &ListSearch{
 			Locs: locs,
 		}
-		settings := &Settings{
-			Converger: NeverTerminate{},
-		}
+		settings := &Settings{}
 		initX := make([]float64, c)
 		result, err := Minimize(p, initX, settings, method)
 		if err != nil {

@@ -30,7 +30,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against Role objects.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &rbac.Role{} },
 		NewListFunc:              func() runtime.Object { return &rbac.RoleList{} },
@@ -42,8 +42,8 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, err
+		panic(err) // TODO: Propagate error up
 	}
 
-	return &REST{store}, nil
+	return &REST{store}
 }

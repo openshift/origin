@@ -23,8 +23,7 @@ import (
 	"k8s.io/klog"
 
 	"fmt"
-
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -35,13 +34,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
-	jws "k8s.io/cluster-bootstrap/token/jws"
 	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/util/metrics"
 )
 
-// SignerOptions contains options for the Signer
-type SignerOptions struct {
+// BootstrapSignerOptions contains options for the BootstrapSigner
+type BootstrapSignerOptions struct {
 	// ConfigMapNamespace is the namespace of the ConfigMap
 	ConfigMapNamespace string
 
@@ -60,17 +59,18 @@ type SignerOptions struct {
 	SecretResync time.Duration
 }
 
-// DefaultSignerOptions returns a set of default options for creating a Signer.
-func DefaultSignerOptions() SignerOptions {
-	return SignerOptions{
+// DefaultBootstrapSignerOptions returns a set of default options for creating a
+// BootstrapSigner
+func DefaultBootstrapSignerOptions() BootstrapSignerOptions {
+	return BootstrapSignerOptions{
 		ConfigMapNamespace:   api.NamespacePublic,
 		ConfigMapName:        bootstrapapi.ConfigMapClusterInfo,
 		TokenSecretNamespace: api.NamespaceSystem,
 	}
 }
 
-// Signer is a controller that signs a ConfigMap with a set of tokens.
-type Signer struct {
+// BootstrapSigner is a controller that signs a ConfigMap with a set of tokens.
+type BootstrapSigner struct {
 	client             clientset.Interface
 	configMapKey       string
 	configMapName      string
@@ -90,9 +90,9 @@ type Signer struct {
 	configMapSynced cache.InformerSynced
 }
 
-// NewSigner returns a new *Signer.
-func NewSigner(cl clientset.Interface, secrets informers.SecretInformer, configMaps informers.ConfigMapInformer, options SignerOptions) (*Signer, error) {
-	e := &Signer{
+// NewBootstrapSigner returns a new *BootstrapSigner.
+func NewBootstrapSigner(cl clientset.Interface, secrets informers.SecretInformer, configMaps informers.ConfigMapInformer, options BootstrapSignerOptions) (*BootstrapSigner, error) {
+	e := &BootstrapSigner{
 		client:             cl,
 		configMapKey:       options.ConfigMapNamespace + "/" + options.ConfigMapName,
 		configMapName:      options.ConfigMapName,
@@ -153,12 +153,12 @@ func NewSigner(cl clientset.Interface, secrets informers.SecretInformer, configM
 }
 
 // Run runs controller loops and returns when they are done
-func (e *Signer) Run(stopCh <-chan struct{}) {
+func (e *BootstrapSigner) Run(stopCh <-chan struct{}) {
 	// Shut down queues
 	defer utilruntime.HandleCrash()
 	defer e.syncQueue.ShutDown()
 
-	if !cache.WaitForNamedCacheSync("bootstrap_signer", stopCh, e.configMapSynced, e.secretSynced) {
+	if !controller.WaitForCacheSync("bootstrap_signer", stopCh, e.configMapSynced, e.secretSynced) {
 		return
 	}
 
@@ -168,11 +168,11 @@ func (e *Signer) Run(stopCh <-chan struct{}) {
 	klog.V(1).Infof("Shutting down")
 }
 
-func (e *Signer) pokeConfigMapSync() {
+func (e *BootstrapSigner) pokeConfigMapSync() {
 	e.syncQueue.Add(e.configMapKey)
 }
 
-func (e *Signer) serviceConfigMapQueue() {
+func (e *BootstrapSigner) serviceConfigMapQueue() {
 	key, quit := e.syncQueue.Get()
 	if quit {
 		return
@@ -184,7 +184,7 @@ func (e *Signer) serviceConfigMapQueue() {
 
 // signConfigMap computes the signatures on our latest cached objects and writes
 // back if necessary.
-func (e *Signer) signConfigMap() {
+func (e *BootstrapSigner) signConfigMap() {
 	origCM := e.getConfigMap()
 
 	if origCM == nil {
@@ -215,7 +215,7 @@ func (e *Signer) signConfigMap() {
 	// Now recompute signatures and store them on the new map
 	tokens := e.getTokens()
 	for tokenID, tokenValue := range tokens {
-		sig, err := jws.ComputeDetachedSignature(content, tokenID, tokenValue)
+		sig, err := computeDetachedSig(content, tokenID, tokenValue)
 		if err != nil {
 			utilruntime.HandleError(err)
 		}
@@ -241,7 +241,7 @@ func (e *Signer) signConfigMap() {
 	}
 }
 
-func (e *Signer) updateConfigMap(cm *v1.ConfigMap) {
+func (e *BootstrapSigner) updateConfigMap(cm *v1.ConfigMap) {
 	_, err := e.client.CoreV1().ConfigMaps(cm.Namespace).Update(cm)
 	if err != nil && !apierrors.IsConflict(err) && !apierrors.IsNotFound(err) {
 		klog.V(3).Infof("Error updating ConfigMap: %v", err)
@@ -249,7 +249,7 @@ func (e *Signer) updateConfigMap(cm *v1.ConfigMap) {
 }
 
 // getConfigMap gets the ConfigMap we are interested in
-func (e *Signer) getConfigMap() *v1.ConfigMap {
+func (e *BootstrapSigner) getConfigMap() *v1.ConfigMap {
 	configMap, err := e.configMapLister.ConfigMaps(e.configMapNamespace).Get(e.configMapName)
 
 	// If we can't get the configmap just return nil. The resync will eventually
@@ -264,7 +264,7 @@ func (e *Signer) getConfigMap() *v1.ConfigMap {
 	return configMap
 }
 
-func (e *Signer) listSecrets() []*v1.Secret {
+func (e *BootstrapSigner) listSecrets() []*v1.Secret {
 	secrets, err := e.secretLister.Secrets(e.secretNamespace).List(labels.Everything())
 	if err != nil {
 		utilruntime.HandleError(err)
@@ -282,7 +282,7 @@ func (e *Signer) listSecrets() []*v1.Secret {
 
 // getTokens returns a map of tokenID->tokenSecret. It ensures the token is
 // valid for signing.
-func (e *Signer) getTokens() map[string]string {
+func (e *BootstrapSigner) getTokens() map[string]string {
 	ret := map[string]string{}
 	secretObjs := e.listSecrets()
 	for _, secret := range secretObjs {

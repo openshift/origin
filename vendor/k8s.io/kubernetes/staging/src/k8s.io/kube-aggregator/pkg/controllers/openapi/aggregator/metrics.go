@@ -17,30 +17,27 @@ limitations under the License.
 package aggregator
 
 import (
-	"k8s.io/component-base/metrics"
-	"k8s.io/component-base/metrics/legacyregistry"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
-	regenerationCounter = metrics.NewCounterVec(
-		&metrics.CounterOpts{
-			Name:           "aggregator_openapi_v2_regeneration_count",
-			Help:           "Counter of OpenAPI v2 spec regeneration count broken down by causing APIService name and reason.",
-			StabilityLevel: metrics.ALPHA,
+	regenerationCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "aggregator_openapi_v2_regeneration_count",
+			Help: "Counter of OpenAPI v2 spec regeneration count broken down by causing APIService name and reason.",
 		},
 		[]string{"apiservice", "reason"},
 	)
-	regenerationDurationGauge = metrics.NewGaugeVec(
-		&metrics.GaugeOpts{
-			Name:           "aggregator_openapi_v2_regeneration_duration",
-			Help:           "Gauge of OpenAPI v2 spec regeneration duration in seconds.",
-			StabilityLevel: metrics.ALPHA,
+	regenerationDurationGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "aggregator_openapi_v2_regeneration_duration",
+			Help: "Gauge of OpenAPI v2 spec regeneration duration in seconds.",
 		},
 		[]string{"reason"},
 	)
 )
 
 func init() {
-	legacyregistry.MustRegister(regenerationCounter)
-	legacyregistry.MustRegister(regenerationDurationGauge)
+	prometheus.MustRegister(regenerationCounter)
+	prometheus.MustRegister(regenerationDurationGauge)
 }

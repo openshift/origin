@@ -10,10 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"unicode/utf8"
 )
 
-// Mass represents a mass in kilograms.
+// Mass represents a mass in kilograms
 type Mass float64
 
 const (
@@ -74,18 +73,17 @@ func (m Mass) Format(fs fmt.State, c rune) {
 	case 'e', 'E', 'f', 'F', 'g', 'G':
 		p, pOk := fs.Precision()
 		w, wOk := fs.Width()
-		const unit = " kg"
 		switch {
 		case pOk && wOk:
-			fmt.Fprintf(fs, "%*.*"+string(c), pos(w-utf8.RuneCount([]byte(unit))), p, float64(m))
+			fmt.Fprintf(fs, "%*.*"+string(c), w, p, float64(m))
 		case pOk:
 			fmt.Fprintf(fs, "%.*"+string(c), p, float64(m))
 		case wOk:
-			fmt.Fprintf(fs, "%*"+string(c), pos(w-utf8.RuneCount([]byte(unit))), float64(m))
+			fmt.Fprintf(fs, "%*"+string(c), w, float64(m))
 		default:
 			fmt.Fprintf(fs, "%"+string(c), float64(m))
 		}
-		fmt.Fprint(fs, unit)
+		fmt.Fprint(fs, " kg")
 	default:
 		fmt.Fprintf(fs, "%%!%c(%T=%g kg)", c, m, float64(m))
 	}

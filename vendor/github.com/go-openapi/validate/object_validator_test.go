@@ -31,9 +31,6 @@ func TestItemsMustBeTypeArray(t *testing.T) {
 	assert.Equal(t, 0, len(res.Errors))
 	res = ov.Validate(dataInvalid)
 	assert.NotEqual(t, 0, len(res.Errors))
-	ov.Options.DisableObjectArrayTypeCheck = true
-	res = ov.Validate(dataInvalid)
-	assert.Equal(t, 0, len(res.Errors))
 }
 
 func TestItemsMustHaveType(t *testing.T) {
@@ -49,9 +46,6 @@ func TestItemsMustHaveType(t *testing.T) {
 	assert.Equal(t, 0, len(res.Errors))
 	res = ov.Validate(dataInvalid)
 	assert.NotEqual(t, 0, len(res.Errors))
-	ov.Options.DisableObjectArrayTypeCheck = true
-	res = ov.Validate(dataInvalid)
-	assert.Equal(t, 0, len(res.Errors))
 }
 
 func TestTypeArrayMustHaveItems(t *testing.T) {

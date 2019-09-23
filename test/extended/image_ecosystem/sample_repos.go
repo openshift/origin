@@ -83,7 +83,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 						o.Expect(serviceIP).ShouldNot(o.Equal(""))
 
 						g.By("expecting a db endpoint is available")
-						err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), c.dbServiceName)
+						err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), c.dbServiceName)
 						o.Expect(err).NotTo(o.HaveOccurred())
 					}
 
@@ -93,7 +93,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 					o.Expect(serviceIP).ShouldNot(o.Equal(""))
 
 					g.By("expecting an app endpoint is available")
-					err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), c.serviceName)
+					err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), c.serviceName)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("verifying string from app request")

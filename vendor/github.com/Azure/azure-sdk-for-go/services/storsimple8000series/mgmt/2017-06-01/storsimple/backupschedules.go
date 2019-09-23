@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -50,16 +49,6 @@ func NewBackupSchedulesClientWithBaseURI(baseURI string, subscriptionID string) 
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client BackupSchedulesClient) CreateOrUpdate(ctx context.Context, deviceName string, backupPolicyName string, backupScheduleName string, parameters BackupSchedule, resourceGroupName string, managerName string) (result BackupSchedulesCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BackupSchedulesClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.BackupScheduleProperties", Name: validation.Null, Rule: true,
@@ -118,9 +107,13 @@ func (client BackupSchedulesClient) CreateOrUpdatePreparer(ctx context.Context, 
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupSchedulesClient) CreateOrUpdateSender(req *http.Request) (future BackupSchedulesCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -149,16 +142,6 @@ func (client BackupSchedulesClient) CreateOrUpdateResponder(resp *http.Response)
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client BackupSchedulesClient) Delete(ctx context.Context, deviceName string, backupPolicyName string, backupScheduleName string, resourceGroupName string, managerName string) (result BackupSchedulesDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BackupSchedulesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -208,9 +191,13 @@ func (client BackupSchedulesClient) DeletePreparer(ctx context.Context, deviceNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupSchedulesClient) DeleteSender(req *http.Request) (future BackupSchedulesDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -238,16 +225,6 @@ func (client BackupSchedulesClient) DeleteResponder(resp *http.Response) (result
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client BackupSchedulesClient) Get(ctx context.Context, deviceName string, backupPolicyName string, backupScheduleName string, resourceGroupName string, managerName string) (result BackupSchedule, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BackupSchedulesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -303,8 +280,8 @@ func (client BackupSchedulesClient) GetPreparer(ctx context.Context, deviceName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupSchedulesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -327,16 +304,6 @@ func (client BackupSchedulesClient) GetResponder(resp *http.Response) (result Ba
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client BackupSchedulesClient) ListByBackupPolicy(ctx context.Context, deviceName string, backupPolicyName string, resourceGroupName string, managerName string) (result BackupScheduleList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BackupSchedulesClient.ListByBackupPolicy")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -391,8 +358,8 @@ func (client BackupSchedulesClient) ListByBackupPolicyPreparer(ctx context.Conte
 // ListByBackupPolicySender sends the ListByBackupPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupSchedulesClient) ListByBackupPolicySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByBackupPolicyResponder handles the response to the ListByBackupPolicy request. The method always

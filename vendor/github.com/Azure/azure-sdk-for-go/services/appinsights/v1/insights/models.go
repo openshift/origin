@@ -23,9 +23,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/date"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights"
-
 // EventType enumerates the values for event type.
 type EventType string
 
@@ -2550,5 +2547,5 @@ type Table struct {
 	// Columns - The list of columns in this table.
 	Columns *[]Column `json:"columns,omitempty"`
 	// Rows - The resulting rows from this query.
-	Rows *[][]interface{} `json:"rows,omitempty"`
+	Rows *[][]string `json:"rows,omitempty"`
 }

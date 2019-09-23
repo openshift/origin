@@ -5,7 +5,6 @@
 package vcs
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path"
@@ -117,20 +116,6 @@ var parseMetaGoImportsTests = []struct {
 		},
 	},
 	{
-		`<meta name="go-import" content="foo/bar git https://github.com/rsc/foo/bar">
-		<meta name="go-import" content="foo/bar mod http://github.com/rsc/baz/quux">`,
-		[]metaImport{
-			{"foo/bar", "git", "https://github.com/rsc/foo/bar"},
-		},
-	},
-	{
-		`<meta name="go-import" content="foo/bar mod http://github.com/rsc/baz/quux">
-		<meta name="go-import" content="foo/bar git https://github.com/rsc/foo/bar">`,
-		[]metaImport{
-			{"foo/bar", "git", "https://github.com/rsc/foo/bar"},
-		},
-	},
-	{
 		`<head>
 		<meta name="go-import" content="foo/bar git https://github.com/rsc/foo/bar">
 		</head>`,
@@ -140,21 +125,6 @@ var parseMetaGoImportsTests = []struct {
 		`<meta name="go-import" content="foo/bar git https://github.com/rsc/foo/bar">
 		<body>`,
 		[]metaImport{{"foo/bar", "git", "https://github.com/rsc/foo/bar"}},
-	},
-	{
-		`<!doctype html><meta name="go-import" content="foo/bar git https://github.com/rsc/foo/bar">`,
-		[]metaImport{{"foo/bar", "git", "https://github.com/rsc/foo/bar"}},
-	},
-	{
-		// XML doesn't like <div style=position:relative>.
-		`<!doctype html><title>Page Not Found</title><meta name=go-import content="chitin.io/chitin git https://github.com/chitin-io/chitin"><div style=position:relative>DRAFT</div>`,
-		[]metaImport{{"chitin.io/chitin", "git", "https://github.com/chitin-io/chitin"}},
-	},
-	{
-		`<meta name="go-import" content="myitcv.io git https://github.com/myitcv/x">
-	        <meta name="go-import" content="myitcv.io/blah2 mod https://raw.githubusercontent.com/myitcv/pubx/master">
-	        `,
-		[]metaImport{{"myitcv.io", "git", "https://github.com/myitcv/x"}},
 	},
 }
 
@@ -167,143 +137,6 @@ func TestParseMetaGoImports(t *testing.T) {
 		}
 		if !reflect.DeepEqual(out, tt.out) {
 			t.Errorf("test#%d:\n\thave %q\n\twant %q", i, out, tt.out)
-		}
-	}
-}
-
-func TestValidateRepoRoot(t *testing.T) {
-	tests := []struct {
-		root string
-		ok   bool
-	}{
-		{
-			root: "",
-			ok:   false,
-		},
-		{
-			root: "http://",
-			ok:   true,
-		},
-		{
-			root: "git+ssh://",
-			ok:   true,
-		},
-		{
-			root: "http#://",
-			ok:   false,
-		},
-		{
-			root: "-config",
-			ok:   false,
-		},
-		{
-			root: "-config://",
-			ok:   false,
-		},
-	}
-
-	for _, test := range tests {
-		err := validateRepoRoot(test.root)
-		ok := err == nil
-		if ok != test.ok {
-			want := "error"
-			if test.ok {
-				want = "nil"
-			}
-			t.Errorf("validateRepoRoot(%q) = %q, want %s", test.root, err, want)
-		}
-	}
-}
-
-func TestMatchGoImport(t *testing.T) {
-	tests := []struct {
-		imports []metaImport
-		path    string
-		mi      metaImport
-		err     error
-	}{
-		{
-			imports: []metaImport{
-				{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-			},
-			path: "example.com/user/foo",
-			mi:   metaImport{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-		},
-		{
-			imports: []metaImport{
-				{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-			},
-			path: "example.com/user/foo/",
-			mi:   metaImport{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-		},
-		{
-			imports: []metaImport{
-				{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-				{Prefix: "example.com/user/fooa", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-			},
-			path: "example.com/user/foo",
-			mi:   metaImport{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-		},
-		{
-			imports: []metaImport{
-				{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-				{Prefix: "example.com/user/fooa", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-			},
-			path: "example.com/user/fooa",
-			mi:   metaImport{Prefix: "example.com/user/fooa", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-		},
-		{
-			imports: []metaImport{
-				{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-				{Prefix: "example.com/user/foo/bar", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-			},
-			path: "example.com/user/foo/bar",
-			err:  errors.New("should not be allowed to create nested repo"),
-		},
-		{
-			imports: []metaImport{
-				{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-				{Prefix: "example.com/user/foo/bar", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-			},
-			path: "example.com/user/foo/bar/baz",
-			err:  errors.New("should not be allowed to create nested repo"),
-		},
-		{
-			imports: []metaImport{
-				{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-				{Prefix: "example.com/user/foo/bar", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-			},
-			path: "example.com/user/foo/bar/baz/qux",
-			err:  errors.New("should not be allowed to create nested repo"),
-		},
-		{
-			imports: []metaImport{
-				{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-				{Prefix: "example.com/user/foo/bar", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-			},
-			path: "example.com/user/foo/bar/baz/",
-			err:  errors.New("should not be allowed to create nested repo"),
-		},
-		{
-			imports: []metaImport{
-				{Prefix: "example.com/user/foo", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-				{Prefix: "example.com/user/foo/bar", VCS: "git", RepoRoot: "https://example.com/repo/target"},
-			},
-			path: "example.com",
-			err:  errors.New("pathologically short path"),
-		},
-	}
-
-	for _, test := range tests {
-		mi, err := matchGoImport(test.imports, test.path)
-		if mi != test.mi {
-			t.Errorf("unexpected metaImport; got %v, want %v", mi, test.mi)
-		}
-
-		got := err
-		want := test.err
-		if (got == nil) != (want == nil) {
-			t.Errorf("unexpected error; got %v, want %v", got, want)
 		}
 	}
 }

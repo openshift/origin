@@ -78,6 +78,55 @@ func TestNewSymBand(t *testing.T) {
 	}
 }
 
+func TestNewDiagonal(t *testing.T) {
+	for i, test := range []struct {
+		data  []float64
+		n     int
+		mat   *SymBandDense
+		dense *Dense
+	}{
+		{
+			data: []float64{1, 2, 3, 4, 5, 6},
+			n:    6,
+			mat: &SymBandDense{
+				mat: blas64.SymmetricBand{
+					N:      6,
+					Stride: 1,
+					Uplo:   blas.Upper,
+					Data:   []float64{1, 2, 3, 4, 5, 6},
+				},
+			},
+			dense: NewDense(6, 6, []float64{
+				1, 0, 0, 0, 0, 0,
+				0, 2, 0, 0, 0, 0,
+				0, 0, 3, 0, 0, 0,
+				0, 0, 0, 4, 0, 0,
+				0, 0, 0, 0, 5, 0,
+				0, 0, 0, 0, 0, 6,
+			}),
+		},
+	} {
+		band := NewDiagonal(test.n, test.data)
+		rows, cols := band.Dims()
+
+		if rows != test.n {
+			t.Errorf("unexpected number of rows for test %d: got: %d want: %d", i, rows, test.n)
+		}
+		if cols != test.n {
+			t.Errorf("unexpected number of cols for test %d: got: %d want: %d", i, cols, test.n)
+		}
+		if !reflect.DeepEqual(band, test.mat) {
+			t.Errorf("unexpected value via reflect for test %d: got: %v want: %v", i, band, test.mat)
+		}
+		if !Equal(band, test.mat) {
+			t.Errorf("unexpected value via mat.Equal for test %d: got: %v want: %v", i, band, test.mat)
+		}
+		if !Equal(band, test.dense) {
+			t.Errorf("unexpected value via mat.Equal(band, dense) for test %d:\ngot:\n% v\nwant:\n% v", i, Formatted(band), Formatted(test.dense))
+		}
+	}
+}
+
 func TestSymBandAtSet(t *testing.T) {
 	// 1  2  3  0  0  0
 	// 2  4  5  6  0  0
@@ -176,57 +225,6 @@ func TestSymBandAtSet(t *testing.T) {
 		band.SetSymBand(st.row, st.col, st.new)
 		if e := band.At(st.row, st.col); e != st.new {
 			t.Errorf("unexpected value for At(%d, %d) after SetSymBand(%[1]d, %d, %v): got: %v want: %[3]v", st.row, st.col, st.new, e)
-		}
-	}
-}
-
-func TestSymBandDiagView(t *testing.T) {
-	for cas, test := range []*SymBandDense{
-		NewSymBandDense(1, 0, []float64{1}),
-		NewSymBandDense(6, 2, []float64{
-			1, 2, 3,
-			4, 5, 6,
-			7, 8, 9,
-			10, 11, 12,
-			13, 14, -1,
-			16, -1, -1,
-		}),
-	} {
-		testDiagView(t, cas, test)
-	}
-}
-
-func TestSymBandDenseZero(t *testing.T) {
-	// Elements that equal 1 should be set to zero, elements that equal -1
-	// should remain unchanged.
-	for _, test := range []*SymBandDense{
-		{
-			mat: blas64.SymmetricBand{
-				Uplo:   blas.Upper,
-				N:      6,
-				K:      2,
-				Stride: 5,
-				Data: []float64{
-					1, 1, 1, -1, -1,
-					1, 1, 1, -1, -1,
-					1, 1, 1, -1, -1,
-					1, 1, 1, -1, -1,
-					1, 1, -1, -1, -1,
-					1, -1, -1, -1, -1,
-				},
-			},
-		},
-	} {
-		dataCopy := make([]float64, len(test.mat.Data))
-		copy(dataCopy, test.mat.Data)
-		test.Zero()
-		for i, v := range test.mat.Data {
-			if dataCopy[i] != -1 && v != 0 {
-				t.Errorf("Matrix not zeroed in bounds")
-			}
-			if dataCopy[i] == -1 && v != -1 {
-				t.Errorf("Matrix zeroed out of bounds")
-			}
 		}
 	}
 }

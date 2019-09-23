@@ -2,7 +2,6 @@ package securitycontextconstraints
 
 import (
 	"bytes"
-	"context"
 	"reflect"
 	"testing"
 
@@ -45,9 +44,9 @@ func TestDefaultingHappens(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	attributes := admission.NewAttributesRecord(inputUnstructured, nil, schema.GroupVersionKind{}, "", "", schema.GroupVersionResource{Group: "security.openshift.io", Resource: "securitycontextconstraints"}, "", admission.Create, nil, false, nil)
+	attributes := admission.NewAttributesRecord(inputUnstructured, nil, schema.GroupVersionKind{}, "", "", schema.GroupVersionResource{Group: "security.openshift.io", Resource: "securitycontextconstraints"}, "", admission.Create, false, nil)
 	defaulter := NewDefaulter()
-	if err := defaulter.(*defaultSCC).Admit(context.TODO(), attributes, nil); err != nil {
+	if err := defaulter.(*defaultSCC).Admit(attributes, nil); err != nil {
 		t.Fatal(err)
 	}
 

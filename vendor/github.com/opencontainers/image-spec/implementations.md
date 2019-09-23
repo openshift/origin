@@ -8,14 +8,14 @@ Projects or Companies currently adopting the OCI Image Specification
 * [cloudfoundry/grootfs](https://github.com/cloudfoundry/grootfs) ([source](https://github.com/cloudfoundry/grootfs/blob/c3da26e1e463b51be1add289032f3dca6698b335/fetcher/remote/docker_src.go))
 * [Mesos plans](https://issues.apache.org/jira/browse/MESOS-5011) ([design doc](https://docs.google.com/document/d/1Pus7D-inIBoLSIPyu3rl_apxvUhtp3rp0_b0Ttr2Xww/edit#heading=h.hrvk2wboog4p))
 * [Docker](https://github.com/docker)
-  - [docker/docker (`docker save/load` WIP)](https://github.com/docker/docker/pull/26369)
-  - [docker/distribution (registry PR)](https://github.com/docker/distribution/pull/2076)
-* [containerd/containerd](https://github.com/containerd/containerd)
+ - [docker/containerd](https://github.com/docker/containerd)
+ - [docker/docker (`docker save/load` WIP)](https://github.com/docker/docker/pull/26369)
+ - [docker/distribution (registry PR)](https://github.com/docker/distribution/pull/2076)
 * [Containers](https://github.com/containers/)
-  - [containers/build](https://github.com/containers/build)
-  - [containers/image](https://github.com/containers/image)
+ - [containers/build](https://github.com/containers/build)
+ - [containers/image](https://github.com/containers/image)
 * [coreos/rkt](https://github.com/coreos/rkt)
 * [box-builder/box](https://github.com/box-builder/box)
-* [coolljt0725/docker2oci](https://github.com/coolljt0725/docker2oci)
+
 
 _(to add your project please open a [pull-request](https://github.com/opencontainers/image-spec/pulls))_

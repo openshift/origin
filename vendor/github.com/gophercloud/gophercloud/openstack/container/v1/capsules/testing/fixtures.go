@@ -410,51 +410,6 @@ const CapsuleListBody = `
   ]
 }`
 
-const CapsuleV132ListBody = `
-{
-  "capsules": [
-    {
-      "uuid": "cc654059-1a77-47a3-bfcf-715bde5aad9e",
-      "status": "Running",
-      "user_id": "d33b18c384574fd2a3299447aac285f0",
-      "project_id": "6b8ffef2a0ac42ee87887b9cc98bdf68",
-      "cpu": 1,
-      "memory": "1024M",
-      "name": "test",
-      "labels": {"web": "app"},
-      "created_at": "2018-01-12 09:37:25",
-      "updated_at": "2018-01-12 09:37:25",
-      "links": [
-        {
-          "href": "http://10.10.10.10/v1/capsules/cc654059-1a77-47a3-bfcf-715bde5aad9e",
-          "rel": "self"
-        },
-        {
-          "href": "http://10.10.10.10/capsules/cc654059-1a77-47a3-bfcf-715bde5aad9e",
-          "rel": "bookmark"
-        }
-      ],
-      "restart_policy": {
-        "MaximumRetryCount": "0",
-        "Name": "always"
-      },
-      "addresses": {
-        "b1295212-64e1-471d-aa01-25ff46f9818d": [
-          {
-            "version": 4,
-            "preserve_on_delete": false,
-            "addr": "172.24.4.11",
-            "port": "8439060f-381a-4386-a518-33d5a4058636",
-            "subnet_id": "4a2bcd64-93ad-4436-9f48-3a7f9b267e0a"
-          }
-        ]
-      },
-      "host": "test-host",
-      "status_reason": "No reason"
-    }
-  ]
-}`
-
 var ExpectedContainer1 = capsules.Container{
 	Name:      "test-demo-omicron-13",
 	UUID:      "1739e28a-d391-4fd9-93a5-3ba3f29a4c9b",
@@ -558,49 +513,6 @@ var ExpectedCapsule = capsules.Capsule{
 	},
 }
 
-var ExpectedCapsuleV132 = capsules.CapsuleV132{
-	UUID:      "cc654059-1a77-47a3-bfcf-715bde5aad9e",
-	Status:    "Running",
-	UserID:    "d33b18c384574fd2a3299447aac285f0",
-	ProjectID: "6b8ffef2a0ac42ee87887b9cc98bdf68",
-	CPU:       float64(1),
-	Memory:    "1024M",
-	MetaName:  "test",
-	Links: []interface{}{
-		map[string]interface{}{
-			"href": "http://10.10.10.10/v1/capsules/cc654059-1a77-47a3-bfcf-715bde5aad9e",
-			"rel":  "self",
-		},
-		map[string]interface{}{
-			"href": "http://10.10.10.10/capsules/cc654059-1a77-47a3-bfcf-715bde5aad9e",
-			"rel":  "bookmark",
-		},
-	},
-	RestartPolicy: map[string]string{
-		"MaximumRetryCount": "0",
-		"Name":              "always",
-	},
-	MetaLabels: map[string]string{
-		"web": "app",
-	},
-	Addresses: map[string][]capsules.Address{
-		"b1295212-64e1-471d-aa01-25ff46f9818d": []capsules.Address{
-			{
-				PreserveOnDelete: false,
-				Addr:             "172.24.4.11",
-				Port:             "8439060f-381a-4386-a518-33d5a4058636",
-				Version:          float64(4),
-				SubnetID:         "4a2bcd64-93ad-4436-9f48-3a7f9b267e0a",
-			},
-		},
-	},
-	Host:         "test-host",
-	StatusReason: "No reason",
-	Containers: []capsules.Container{
-		ExpectedContainer1,
-	},
-}
-
 // HandleCapsuleGetOldTimeSuccessfully test setup
 func HandleCapsuleGetOldTimeSuccessfully(t *testing.T) {
 	th.Mux.HandleFunc("/capsules/cc654059-1a77-47a3-bfcf-715bde5aad9e", func(w http.ResponseWriter, r *http.Request) {
@@ -646,18 +558,6 @@ func HandleCapsuleListSuccessfully(t *testing.T) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, CapsuleListBody)
-	})
-}
-
-// HandleCapsuleV132ListSuccessfully test setup
-func HandleCapsuleV132ListSuccessfully(t *testing.T) {
-	th.Mux.HandleFunc("/capsules/", func(w http.ResponseWriter, r *http.Request) {
-		th.TestMethod(t, r, "GET")
-		th.TestHeader(t, r, "X-Auth-Token", fakeclient.TokenID)
-
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, CapsuleV132ListBody)
 	})
 }
 

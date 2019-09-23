@@ -8,18 +8,12 @@
 package redirect // import "golang.org/x/tools/godoc/redirect"
 
 import (
-	"context"
 	"fmt"
-	"html/template"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
-
-	"golang.org/x/net/context/ctxhttp"
 )
 
 // Register registers HTTP handlers that redirect old godoc paths to their new
@@ -105,7 +99,7 @@ var redirects = map[string]string{
 	"/issues":     "https://github.com/golang/go/issues",
 	"/issues/new": "https://github.com/golang/go/issues/new",
 	"/play":       "http://play.golang.org",
-	"/design":     "https://go.googlesource.com/proposal/+/master/design",
+	"/design":     "https://github.com/golang/proposal/tree/master/design",
 
 	// In Go 1.2 the references page is part of /doc/.
 	"/ref": "/doc/#references",
@@ -197,83 +191,15 @@ func clHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	target := ""
-
-	if n, err := strconv.Atoi(id); err == nil && isRietveldCL(n) {
-		// Issue 28836: if this Rietveld CL happens to
-		// also be a Gerrit CL, render a disambiguation HTML
-		// page with two links instead. We need to make a
-		// Gerrit API call to figure that out, but we cache
-		// known Gerrit CLs so it's done at most once per CL.
-		if ok, err := isGerritCL(r.Context(), n); err == nil && ok {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			clDisambiguationHTML.Execute(w, n)
-			return
-		}
-
+	// the first CL in rietveld is about 152046, so only treat the id as
+	// a rietveld CL if it is larger than 150000.
+	if n, err := strconv.Atoi(id); err == nil && n > 150000 {
 		target = "https://codereview.appspot.com/" + id
 	} else {
-		target = "https://go-review.googlesource.com/" + id
+		target = "https://go-review.googlesource.com/r/" + id
 	}
 	http.Redirect(w, r, target, http.StatusFound)
 }
-
-var clDisambiguationHTML = template.Must(template.New("").Parse(`<!DOCTYPE html>
-<html lang="en">
-	<head>
-		<title>Go CL {{.}} Disambiguation</title>
-		<meta name="viewport" content="width=device-width">
-	</head>
-	<body>
-		CL number {{.}} exists in both Gerrit (the current code review system)
-		and Rietveld (the previous code review system). Please make a choice:
-
-		<ul>
-			<li><a href="https://go-review.googlesource.com/{{.}}">Gerrit CL {{.}}</a></li>
-			<li><a href="https://codereview.appspot.com/{{.}}">Rietveld CL {{.}}</a></li>
-		</ul>
-	</body>
-</html>`))
-
-// isGerritCL reports whether a Gerrit CL with the specified numeric change ID (e.g., "4247")
-// is known to exist by querying the Gerrit API at https://go-review.googlesource.com.
-// isGerritCL uses gerritCLCache as a cache of Gerrit CL IDs that exist.
-func isGerritCL(ctx context.Context, id int) (bool, error) {
-	// Check cache first.
-	gerritCLCache.Lock()
-	ok := gerritCLCache.exist[id]
-	gerritCLCache.Unlock()
-	if ok {
-		return true, nil
-	}
-
-	// Query the Gerrit API Get Change endpoint, as documented at
-	// https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#get-change.
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	resp, err := ctxhttp.Get(ctx, nil, fmt.Sprintf("https://go-review.googlesource.com/changes/%d", id))
-	if err != nil {
-		return false, err
-	}
-	resp.Body.Close()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		// A Gerrit CL with this ID exists. Add it to cache.
-		gerritCLCache.Lock()
-		gerritCLCache.exist[id] = true
-		gerritCLCache.Unlock()
-		return true, nil
-	case http.StatusNotFound:
-		// A Gerrit CL with this ID doesn't exist. It may get created in the future.
-		return false, nil
-	default:
-		return false, fmt.Errorf("unexpected status code: %v", resp.Status)
-	}
-}
-
-var gerritCLCache = struct {
-	sync.Mutex
-	exist map[int]bool // exist is a set of Gerrit CL IDs that are known to exist.
-}{exist: make(map[int]bool)}
 
 var changeMap *hashMap
 
@@ -319,6 +245,6 @@ func designHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := r.URL.Path[len(prefix):]
-	target := "https://go.googlesource.com/proposal/+/master/design/" + name + ".md"
+	target := "https://github.com/golang/proposal/blob/master/design/" + name + ".md"
 	http.Redirect(w, r, target, http.StatusFound)
 }

@@ -169,12 +169,7 @@ func (i *Info) String() string {
 
 // Namespaced returns true if the object belongs to a namespace
 func (i *Info) Namespaced() bool {
-	if i.Mapping != nil {
-		// if we have RESTMapper info, use it
-		return i.Mapping.Scope.Name() == meta.RESTScopeNameNamespace
-	}
-	// otherwise, use the presence of a namespace in the info as an indicator
-	return len(i.Namespace) > 0
+	return i.Mapping != nil && i.Mapping.Scope.Name() == meta.RESTScopeNameNamespace
 }
 
 // Watch returns server changes to this object after it was retrieved.
@@ -372,9 +367,10 @@ func (v ContinueOnErrorVisitor) Visit(fn VisitorFunc) error {
 
 // FlattenListVisitor flattens any objects that runtime.ExtractList recognizes as a list
 // - has an "Items" public field that is a slice of runtime.Objects or objects satisfying
-// that interface - into multiple Infos. Returns nil in the case of no errors.
-// When an error is hit on sub items (for instance, if a List contains an object that does
-// not have a registered client or resource), returns an aggregate error.
+// that interface - into multiple Infos. An error on any sub item (for instance, if a List
+// contains an object that does not have a registered client or resource) will terminate
+// the visit.
+// TODO: allow errors to be aggregated?
 type FlattenListVisitor struct {
 	visitor Visitor
 	typer   runtime.ObjectTyper
@@ -424,22 +420,20 @@ func (v FlattenListVisitor) Visit(fn VisitorFunc) error {
 		if info.Mapping != nil && !info.Mapping.GroupVersionKind.Empty() {
 			preferredGVKs = append(preferredGVKs, info.Mapping.GroupVersionKind)
 		}
-		errs := []error{}
+
 		for i := range items {
 			item, err := v.mapper.infoForObject(items[i], v.typer, preferredGVKs)
 			if err != nil {
-				errs = append(errs, err)
-				continue
+				return err
 			}
 			if len(info.ResourceVersion) != 0 {
 				item.ResourceVersion = info.ResourceVersion
 			}
 			if err := fn(item, nil); err != nil {
-				errs = append(errs, err)
+				return err
 			}
 		}
-		return utilerrors.NewAggregate(errs)
-
+		return nil
 	})
 }
 

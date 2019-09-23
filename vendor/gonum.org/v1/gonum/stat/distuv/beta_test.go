@@ -45,11 +45,9 @@ func TestBetaRand(t *testing.T) {
 }
 
 func testBeta(t *testing.T, b Beta, i int) {
-	const (
-		tol  = 1e-2
-		n    = 5e4
-		bins = 10
-	)
+	tol := 1e-2
+	const n = 5e4
+	const bins = 10
 	x := make([]float64, n)
 	generateSamples(x, b)
 	sort.Float64s(x)

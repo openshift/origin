@@ -342,13 +342,6 @@ const ActionResponse = `
 
 const ExpectedActionID = "2a0ff107-e789-4660-a122-3816c43af703"
 
-const OperationActionResponse = `
-{
-  "action": "2a0ff107-e789-4660-a122-3816c43af703"
-}`
-
-const OperationExpectedActionID = "2a0ff107-e789-4660-a122-3816c43af703"
-
 const ListPoliciesResult = `{
   "cluster_policies": [
     {
@@ -689,17 +682,5 @@ func HandleClusterCollectSuccessfully(t *testing.T) {
 		w.Header().Add("X-OpenStack-Request-ID", "req-781e9bdc-4163-46eb-91c9-786c53188bbb")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, CollectResponse)
-	})
-}
-
-func HandleOpsSuccessfully(t *testing.T) {
-	th.Mux.HandleFunc("/v1/clusters/7d85f602-a948-4a30-afd4-e84f47471c15/ops", func(w http.ResponseWriter, r *http.Request) {
-		th.TestMethod(t, r, "POST")
-		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
-
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-
-		fmt.Fprint(w, OperationActionResponse)
 	})
 }

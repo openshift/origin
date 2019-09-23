@@ -51,9 +51,6 @@ func TestApply(t *testing.T) {
 		WithCredentialsJSON([]byte(`{some: "json"}`)),
 		WithCredentials(&google.DefaultCredentials{ProjectID: "p"}),
 		WithAPIKey("api-key"),
-		WithAudiences("https://example.com/"),
-		WithQuotaProject("user-project"),
-		WithRequestReason("Request Reason"),
 	}
 	var got internal.DialSettings
 	for _, opt := range opts {
@@ -68,9 +65,6 @@ func TestApply(t *testing.T) {
 		CredentialsFile: "service-account.json",
 		CredentialsJSON: []byte(`{some: "json"}`),
 		APIKey:          "api-key",
-		Audiences:       []string{"https://example.com/"},
-		QuotaProject:    "user-project",
-		RequestReason:   "Request Reason",
 	}
 	if !cmp.Equal(got, want, cmpopts.IgnoreUnexported(grpc.ClientConn{})) {
 		t.Errorf("\ngot  %#v\nwant %#v", got, want)

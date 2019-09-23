@@ -32,6 +32,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/util/metrics"
 )
 
@@ -51,7 +52,6 @@ type ServiceAccountsControllerOptions struct {
 	NamespaceResync time.Duration
 }
 
-// DefaultServiceAccountsControllerOptions returns the default options for creating a ServiceAccountsController.
 func DefaultServiceAccountsControllerOptions() ServiceAccountsControllerOptions {
 	return ServiceAccountsControllerOptions{
 		ServiceAccounts: []v1.ServiceAccount{
@@ -108,7 +108,6 @@ type ServiceAccountsController struct {
 	queue workqueue.RateLimitingInterface
 }
 
-// Run runs the ServiceAccountsController blocks until receiving signal from stopCh.
 func (c *ServiceAccountsController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
@@ -116,7 +115,7 @@ func (c *ServiceAccountsController) Run(workers int, stopCh <-chan struct{}) {
 	klog.Infof("Starting service account controller")
 	defer klog.Infof("Shutting down service account controller")
 
-	if !cache.WaitForNamedCacheSync("service account", stopCh, c.saListerSynced, c.nsListerSynced) {
+	if !controller.WaitForCacheSync("service account", stopCh, c.saListerSynced, c.nsListerSynced) {
 		return
 	}
 
@@ -200,7 +199,8 @@ func (c *ServiceAccountsController) syncNamespace(key string) error {
 	}
 
 	createFailures := []error{}
-	for _, sa := range c.serviceAccountsToEnsure {
+	for i := range c.serviceAccountsToEnsure {
+		sa := c.serviceAccountsToEnsure[i]
 		switch _, err := c.saLister.ServiceAccounts(ns.Name).Get(sa.Name); {
 		case err == nil:
 			continue

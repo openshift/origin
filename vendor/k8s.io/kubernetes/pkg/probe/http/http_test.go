@@ -17,7 +17,6 @@ limitations under the License.
 package http
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"net/http"
@@ -68,8 +67,7 @@ func TestHTTPProbeProxy(t *testing.T) {
 	defer unsetEnv("no_proxy")()
 	defer unsetEnv("NO_PROXY")()
 
-	followNonLocalRedirects := true
-	prober := New(followNonLocalRedirects)
+	prober := New(true)
 
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -124,8 +122,7 @@ func TestHTTPProbeChecker(t *testing.T) {
 		}
 	}
 
-	followNonLocalRedirects := true
-	prober := New(followNonLocalRedirects)
+	prober := New(true)
 	testCases := []struct {
 		handler    func(w http.ResponseWriter, r *http.Request)
 		reqHeaders http.Header
@@ -302,137 +299,18 @@ func TestHTTPProbeChecker_NonLocalRedirects(t *testing.T) {
 	}
 	for desc, test := range testCases {
 		t.Run(desc+"-local", func(t *testing.T) {
-			followNonLocalRedirects := false
-			prober := New(followNonLocalRedirects)
+			prober := New(false)
 			target, err := url.Parse(server.URL + "/redirect?loc=" + url.QueryEscape(test.redirect))
 			require.NoError(t, err)
 			result, _, _ := prober.Probe(target, nil, wait.ForeverTestTimeout)
 			assert.Equal(t, test.expectLocalResult, result)
 		})
 		t.Run(desc+"-nonlocal", func(t *testing.T) {
-			followNonLocalRedirects := true
-			prober := New(followNonLocalRedirects)
+			prober := New(true)
 			target, err := url.Parse(server.URL + "/redirect?loc=" + url.QueryEscape(test.redirect))
 			require.NoError(t, err)
 			result, _, _ := prober.Probe(target, nil, wait.ForeverTestTimeout)
 			assert.Equal(t, test.expectNonLocalResult, result)
 		})
 	}
-}
-
-func TestHTTPProbeChecker_HostHeaderPreservedAfterRedirect(t *testing.T) {
-	successHostHeader := "www.success.com"
-	failHostHeader := "www.fail.com"
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/redirect":
-			http.Redirect(w, r, "/success", http.StatusFound)
-		case "/success":
-			if r.Host == successHostHeader {
-				w.WriteHeader(http.StatusOK)
-			} else {
-				http.Error(w, "", http.StatusBadRequest)
-			}
-		default:
-			http.Error(w, "", http.StatusInternalServerError)
-		}
-	})
-	server := httptest.NewServer(handler)
-	defer server.Close()
-
-	testCases := map[string]struct {
-		hostHeader     string
-		expectedResult probe.Result
-	}{
-		"success": {successHostHeader, probe.Success},
-		"fail":    {failHostHeader, probe.Failure},
-	}
-	for desc, test := range testCases {
-		headers := http.Header{}
-		headers.Add("Host", test.hostHeader)
-		t.Run(desc+"local", func(t *testing.T) {
-			followNonLocalRedirects := false
-			prober := New(followNonLocalRedirects)
-			target, err := url.Parse(server.URL + "/redirect")
-			require.NoError(t, err)
-			result, _, _ := prober.Probe(target, headers, wait.ForeverTestTimeout)
-			assert.Equal(t, test.expectedResult, result)
-		})
-		t.Run(desc+"nonlocal", func(t *testing.T) {
-			followNonLocalRedirects := true
-			prober := New(followNonLocalRedirects)
-			target, err := url.Parse(server.URL + "/redirect")
-			require.NoError(t, err)
-			result, _, _ := prober.Probe(target, headers, wait.ForeverTestTimeout)
-			assert.Equal(t, test.expectedResult, result)
-		})
-	}
-}
-
-func TestHTTPProbeChecker_PayloadTruncated(t *testing.T) {
-	successHostHeader := "www.success.com"
-	oversizePayload := bytes.Repeat([]byte("a"), maxRespBodyLength+1)
-	truncatedPayload := bytes.Repeat([]byte("a"), maxRespBodyLength)
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/success":
-			if r.Host == successHostHeader {
-				w.WriteHeader(http.StatusOK)
-				w.Write(oversizePayload)
-			} else {
-				http.Error(w, "", http.StatusBadRequest)
-			}
-		default:
-			http.Error(w, "", http.StatusInternalServerError)
-		}
-	})
-	server := httptest.NewServer(handler)
-	defer server.Close()
-
-	headers := http.Header{}
-	headers.Add("Host", successHostHeader)
-	t.Run("truncated payload", func(t *testing.T) {
-		prober := New(false)
-		target, err := url.Parse(server.URL + "/success")
-		require.NoError(t, err)
-		result, body, err := prober.Probe(target, headers, wait.ForeverTestTimeout)
-		assert.NoError(t, err)
-		assert.Equal(t, result, probe.Success)
-		assert.Equal(t, body, string(truncatedPayload))
-	})
-}
-
-func TestHTTPProbeChecker_PayloadNormal(t *testing.T) {
-	successHostHeader := "www.success.com"
-	normalPayload := bytes.Repeat([]byte("a"), maxRespBodyLength-1)
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/success":
-			if r.Host == successHostHeader {
-				w.WriteHeader(http.StatusOK)
-				w.Write(normalPayload)
-			} else {
-				http.Error(w, "", http.StatusBadRequest)
-			}
-		default:
-			http.Error(w, "", http.StatusInternalServerError)
-		}
-	})
-	server := httptest.NewServer(handler)
-	defer server.Close()
-
-	headers := http.Header{}
-	headers.Add("Host", successHostHeader)
-	t.Run("normal payload", func(t *testing.T) {
-		prober := New(false)
-		target, err := url.Parse(server.URL + "/success")
-		require.NoError(t, err)
-		result, body, err := prober.Probe(target, headers, wait.ForeverTestTimeout)
-		assert.NoError(t, err)
-		assert.Equal(t, result, probe.Success)
-		assert.Equal(t, body, string(normalPayload))
-	})
 }

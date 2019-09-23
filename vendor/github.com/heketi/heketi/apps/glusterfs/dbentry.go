@@ -139,9 +139,8 @@ func EntryLoad(tx *bolt.Tx, entry DbEntry, key string) error {
 
 	err := entry.Unmarshal(val)
 	if err != nil {
-		return logger.LogError(
-			"failed to unmarshal db entry at %v/%v: %v",
-			entry.BucketName(), key, err)
+		logger.Err(err)
+		return err
 	}
 
 	return nil

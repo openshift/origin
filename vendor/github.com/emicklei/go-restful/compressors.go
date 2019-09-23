@@ -15,20 +15,20 @@ type CompressorProvider interface {
 	// Before using it, call Reset().
 	AcquireGzipWriter() *gzip.Writer
 
-	// Releases an acquired *gzip.Writer.
+	// Releases an aqcuired *gzip.Writer.
 	ReleaseGzipWriter(w *gzip.Writer)
 
 	// Returns a *gzip.Reader which needs to be released later.
 	AcquireGzipReader() *gzip.Reader
 
-	// Releases an acquired *gzip.Reader.
+	// Releases an aqcuired *gzip.Reader.
 	ReleaseGzipReader(w *gzip.Reader)
 
 	// Returns a *zlib.Writer which needs to be released later.
 	// Before using it, call Reset().
 	AcquireZlibWriter() *zlib.Writer
 
-	// Releases an acquired *zlib.Writer.
+	// Releases an aqcuired *zlib.Writer.
 	ReleaseZlibWriter(w *zlib.Writer)
 }
 
@@ -45,7 +45,7 @@ func CurrentCompressorProvider() CompressorProvider {
 	return currentCompressorProvider
 }
 
-// SetCompressorProvider sets the actual provider of compressors (zlib or gzip).
+// CompressorProvider sets the actual provider of compressors (zlib or gzip).
 func SetCompressorProvider(p CompressorProvider) {
 	if p == nil {
 		panic("cannot set compressor provider to nil")

@@ -103,16 +103,6 @@ variable "ami" {
     description = "the AMI to use"
 }
 ```
-This would be equivalent to the following json:
-``` json
-{
-  "variable": {
-      "ami": {
-          "description": "the AMI to use"
-        }
-    }
-}
-```
 
 ## Thanks
 

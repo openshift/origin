@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -52,16 +51,6 @@ func NewRecordSetsClientWithBaseURI(baseURI string, subscriptionID string) Recor
 // ifNoneMatch - defines the If-None-Match condition. Set to '*' to force Create-If-Not-Exist. Other values
 // will be ignored.
 func (client RecordSetsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, zoneName string, recordType RecordType, relativeRecordSetName string, parameters RecordSet, ifMatch string, ifNoneMatch string) (result RecordSet, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecordSetsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -129,8 +118,8 @@ func (client RecordSetsClient) CreateOrUpdatePreparer(ctx context.Context, resou
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecordSetsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -155,16 +144,6 @@ func (client RecordSetsClient) CreateOrUpdateResponder(resp *http.Response) (res
 // ifMatch - defines the If-Match condition. The delete operation will be performed only if the ETag of the
 // zone on the server matches this value.
 func (client RecordSetsClient) Delete(ctx context.Context, resourceGroupName string, zoneName string, recordType RecordType, relativeRecordSetName string, ifMatch string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecordSetsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -226,8 +205,8 @@ func (client RecordSetsClient) DeletePreparer(ctx context.Context, resourceGroup
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecordSetsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -249,16 +228,6 @@ func (client RecordSetsClient) DeleteResponder(resp *http.Response) (result auto
 // recordType - the type of DNS record.
 // relativeRecordSetName - the name of the RecordSet, relative to the name of the zone.
 func (client RecordSetsClient) Get(ctx context.Context, resourceGroupName string, zoneName string, recordType RecordType, relativeRecordSetName string) (result RecordSet, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecordSetsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -316,8 +285,8 @@ func (client RecordSetsClient) GetPreparer(ctx context.Context, resourceGroupNam
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecordSetsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -341,16 +310,6 @@ func (client RecordSetsClient) GetResponder(resp *http.Response) (result RecordS
 // top - query parameters. If null is passed returns the default number of zones.
 // filter - the filter to apply on the operation.
 func (client RecordSetsClient) List(ctx context.Context, resourceGroupName string, zoneName string, recordType RecordType, top string, filter string) (result RecordSetListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecordSetsClient.List")
-		defer func() {
-			sc := -1
-			if result.rslr.Response.Response != nil {
-				sc = result.rslr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -414,8 +373,8 @@ func (client RecordSetsClient) ListPreparer(ctx context.Context, resourceGroupNa
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecordSetsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -432,8 +391,8 @@ func (client RecordSetsClient) ListResponder(resp *http.Response) (result Record
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client RecordSetsClient) listNextResults(ctx context.Context, lastResults RecordSetListResult) (result RecordSetListResult, err error) {
-	req, err := lastResults.recordSetListResultPreparer(ctx)
+func (client RecordSetsClient) listNextResults(lastResults RecordSetListResult) (result RecordSetListResult, err error) {
+	req, err := lastResults.recordSetListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dns.RecordSetsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -454,16 +413,6 @@ func (client RecordSetsClient) listNextResults(ctx context.Context, lastResults 
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RecordSetsClient) ListComplete(ctx context.Context, resourceGroupName string, zoneName string, recordType RecordType, top string, filter string) (result RecordSetListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecordSetsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, zoneName, recordType, top, filter)
 	return
 }
@@ -475,16 +424,6 @@ func (client RecordSetsClient) ListComplete(ctx context.Context, resourceGroupNa
 // top - query parameters. If null is passed returns the default number of zones.
 // filter - the filter to apply on the operation.
 func (client RecordSetsClient) ListAll(ctx context.Context, resourceGroupName string, zoneName string, top string, filter string) (result RecordSetListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecordSetsClient.ListAll")
-		defer func() {
-			sc := -1
-			if result.rslr.Response.Response != nil {
-				sc = result.rslr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -547,8 +486,8 @@ func (client RecordSetsClient) ListAllPreparer(ctx context.Context, resourceGrou
 // ListAllSender sends the ListAll request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecordSetsClient) ListAllSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListAllResponder handles the response to the ListAll request. The method always
@@ -565,8 +504,8 @@ func (client RecordSetsClient) ListAllResponder(resp *http.Response) (result Rec
 }
 
 // listAllNextResults retrieves the next set of results, if any.
-func (client RecordSetsClient) listAllNextResults(ctx context.Context, lastResults RecordSetListResult) (result RecordSetListResult, err error) {
-	req, err := lastResults.recordSetListResultPreparer(ctx)
+func (client RecordSetsClient) listAllNextResults(lastResults RecordSetListResult) (result RecordSetListResult, err error) {
+	req, err := lastResults.recordSetListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dns.RecordSetsClient", "listAllNextResults", nil, "Failure preparing next results request")
 	}
@@ -587,16 +526,6 @@ func (client RecordSetsClient) listAllNextResults(ctx context.Context, lastResul
 
 // ListAllComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RecordSetsClient) ListAllComplete(ctx context.Context, resourceGroupName string, zoneName string, top string, filter string) (result RecordSetListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RecordSetsClient.ListAll")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListAll(ctx, resourceGroupName, zoneName, top, filter)
 	return
 }

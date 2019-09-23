@@ -220,21 +220,18 @@ func (a *App) DeviceDelete(w http.ResponseWriter, r *http.Request) {
 			return logger.Err(err)
 		}
 
+		// Check if we can delete the device
+		if device.HasBricks() {
+			http.Error(w, device.ConflictString(), http.StatusConflict)
+			logger.LogError(device.ConflictString())
+			return ErrConflict
+		}
+
 		// Access node entry
 		node, err = NewNodeEntryFromId(tx, device.NodeId)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return logger.Err(err)
-		}
-
-		// Check if we can delete the device
-		if err := device.CheckDelete(); err != nil {
-			if err == ErrConflict {
-				http.Error(w, device.ConflictString(), http.StatusConflict)
-			} else {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-			}
-			return err
 		}
 
 		return nil
@@ -353,11 +350,8 @@ func (a *App) DeviceSetState(w http.ResponseWriter, r *http.Request) {
 	// and thus needs to be checked for operations throttle
 	// However, we don't want to block "cheap" changes like setting
 	// the item offline
-	var token string
 	if msg.State == api.EntryStateFailed {
-		var throttled bool
-		throttled, token = a.optracker.ThrottleOrToken()
-		if throttled {
+		if a.opcounter.ThrottleOrInc() {
 			OperationHttpErrorf(w, ErrTooManyOperations, "")
 			return
 		}
@@ -367,7 +361,7 @@ func (a *App) DeviceSetState(w http.ResponseWriter, r *http.Request) {
 	a.asyncManager.AsyncHttpRedirectFunc(w, r, func() (string, error) {
 		defer func() {
 			if msg.State == api.EntryStateFailed {
-				a.optracker.Remove(token)
+				a.opcounter.Dec()
 			}
 		}()
 		err = device.SetState(a.db, a.executor, msg.State)

@@ -211,8 +211,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	iTrue := true
-	name := "new_network_name"
-	options := networks.UpdateOpts{Name: &name, AdminStateUp: gophercloud.Disabled, Shared: &iTrue}
+	options := networks.UpdateOpts{Name: "new_network_name", AdminStateUp: gophercloud.Disabled, Shared: &iTrue}
 	err := networks.Update(fake.ServiceClient(), "4e8e5957-649f-477b-9e5b-f1f75b21c03c", options).ExtractInto(&s)
 	th.AssertNoErr(t, err)
 

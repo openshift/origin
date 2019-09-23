@@ -254,7 +254,7 @@ func TestGetAllImages(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			imgs := GetControlPlaneImages(tc.cfg)
+			imgs := GetAllImages(tc.cfg)
 			for _, img := range imgs {
 				if strings.Contains(img, tc.expect) {
 					return

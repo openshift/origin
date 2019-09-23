@@ -18,7 +18,6 @@ type Dgelqfer interface {
 }
 
 func DgelqfTest(t *testing.T, impl Dgelqfer) {
-	const tol = 1e-12
 	rnd := rand.New(rand.NewSource(1))
 	for c, test := range []struct {
 		m, n, lda int
@@ -50,52 +49,51 @@ func DgelqfTest(t *testing.T, impl Dgelqfer) {
 		if lda == 0 {
 			lda = n
 		}
-		// Allocate m×n matrix A and fill it with random numbers.
 		a := make([]float64, m*lda)
-		for i := range a {
-			a[i] = rnd.NormFloat64()
+		for i := 0; i < m; i++ {
+			for j := 0; j < n; j++ {
+				a[i*lda+j] = rnd.Float64()
+			}
 		}
-		// Store a copy of A for later comparison.
-		aCopy := make([]float64, len(a))
-		copy(aCopy, a)
-
-		// Allocate a slice for scalar factors of elementary reflectors
-		// and fill it with random numbers.
 		tau := make([]float64, n)
 		for i := 0; i < n; i++ {
-			tau[i] = rnd.NormFloat64()
+			tau[i] = rnd.Float64()
+		}
+		aCopy := make([]float64, len(a))
+		copy(aCopy, a)
+		ans := make([]float64, len(a))
+		copy(ans, a)
+		work := make([]float64, m)
+		for i := range work {
+			work[i] = rnd.Float64()
+		}
+		// Compute unblocked QR.
+		impl.Dgelq2(m, n, ans, lda, tau, work)
+		// Compute blocked QR with small work.
+		impl.Dgelqf(m, n, a, lda, tau, work, len(work))
+		if !floats.EqualApprox(ans, a, 1e-12) {
+			t.Errorf("Case %v, mismatch small work.", c)
+		}
+		// Try the full length of work.
+		impl.Dgelqf(m, n, a, lda, tau, work, -1)
+		lwork := int(work[0])
+		work = make([]float64, lwork)
+		copy(a, aCopy)
+		impl.Dgelqf(m, n, a, lda, tau, work, lwork)
+		if !floats.EqualApprox(ans, a, 1e-12) {
+			t.Errorf("Case %v, mismatch large work.", c)
 		}
 
-		// Compute the expected result using unblocked LQ algorithm and
-		// store it want.
-		want := make([]float64, len(a))
-		copy(want, a)
-		impl.Dgelq2(m, n, want, lda, tau, make([]float64, m))
-
-		for _, wl := range []worklen{minimumWork, mediumWork, optimumWork} {
-			copy(a, aCopy)
-
-			var lwork int
-			switch wl {
-			case minimumWork:
-				lwork = m
-			case mediumWork:
-				work := make([]float64, 1)
-				impl.Dgelqf(m, n, a, lda, tau, work, -1)
-				lwork = int(work[0]) - 2*m
-			case optimumWork:
-				work := make([]float64, 1)
-				impl.Dgelqf(m, n, a, lda, tau, work, -1)
-				lwork = int(work[0])
-			}
-			work := make([]float64, lwork)
-
-			// Compute the LQ factorization of A.
-			impl.Dgelqf(m, n, a, lda, tau, work, len(work))
-			// Compare the result with Dgelq2.
-			if !floats.EqualApprox(want, a, tol) {
-				t.Errorf("Case %v, workspace type %v, unexpected result", c, wl)
-			}
+		// Try a slightly smaller version of work to test blocking code.
+		if len(work) <= m {
+			continue
+		}
+		work = work[1:]
+		lwork--
+		copy(a, aCopy)
+		impl.Dgelqf(m, n, a, lda, tau, work, lwork)
+		if !floats.EqualApprox(ans, a, 1e-12) {
+			t.Errorf("Case %v, mismatch large work.", c)
 		}
 	}
 }

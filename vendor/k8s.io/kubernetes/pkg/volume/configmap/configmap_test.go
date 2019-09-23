@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
+	"path"
 	"reflect"
 	"strings"
 	"testing"
@@ -365,10 +365,8 @@ func TestPlugin(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	var mounterArgs volume.MounterArgs
-	group := int64(1001)
-	mounterArgs.FsGroup = &group
-	err = mounter.SetUp(mounterArgs)
+	fsGroup := int64(1001)
+	err = mounter.SetUp(&fsGroup)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
 	}
@@ -425,10 +423,8 @@ func TestPluginReboot(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	var mounterArgs volume.MounterArgs
-	group := int64(1001)
-	mounterArgs.FsGroup = &group
-	err = mounter.SetUp(mounterArgs)
+	fsGroup := int64(1001)
+	err = mounter.SetUp(&fsGroup)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
 	}
@@ -489,10 +485,8 @@ func TestPluginOptional(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	var mounterArgs volume.MounterArgs
-	group := int64(1001)
-	mounterArgs.FsGroup = &group
-	err = mounter.SetUp(mounterArgs)
+	fsGroup := int64(1001)
+	err = mounter.SetUp(&fsGroup)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
 	}
@@ -504,14 +498,14 @@ func TestPluginOptional(t *testing.T) {
 		}
 	}
 
-	datadirSymlink := filepath.Join(volumePath, "..data")
+	datadirSymlink := path.Join(volumePath, "..data")
 	datadir, err := os.Readlink(datadirSymlink)
 	if err != nil && os.IsNotExist(err) {
 		t.Fatalf("couldn't find volume path's data dir, %s", datadirSymlink)
 	} else if err != nil {
 		t.Fatalf("couldn't read symlink, %s", datadirSymlink)
 	}
-	datadirPath := filepath.Join(volumePath, datadir)
+	datadirPath := path.Join(volumePath, datadir)
 
 	infos, err := ioutil.ReadDir(volumePath)
 	if err != nil {
@@ -588,10 +582,8 @@ func TestPluginKeysOptional(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	var mounterArgs volume.MounterArgs
-	group := int64(1001)
-	mounterArgs.FsGroup = &group
-	err = mounter.SetUp(mounterArgs)
+	fsGroup := int64(1001)
+	err = mounter.SetUp(&fsGroup)
 	if err != nil {
 		t.Errorf("Failed to setup volume: %v", err)
 	}
@@ -668,10 +660,8 @@ func TestInvalidConfigMapSetup(t *testing.T) {
 		t.Errorf("Got unexpected path: %s", volumePath)
 	}
 
-	var mounterArgs volume.MounterArgs
-	group := int64(1001)
-	mounterArgs.FsGroup = &group
-	err = mounter.SetUp(mounterArgs)
+	fsGroup := int64(1001)
+	err = mounter.SetUp(&fsGroup)
 	if err == nil {
 		t.Errorf("Expected setup to fail")
 	}
@@ -699,7 +689,7 @@ func configMap(namespace, name string) v1.ConfigMap {
 
 func doTestConfigMapDataInVolume(volumePath string, configMap v1.ConfigMap, t *testing.T) {
 	for key, value := range configMap.Data {
-		configMapDataHostPath := filepath.Join(volumePath, key)
+		configMapDataHostPath := path.Join(volumePath, key)
 		if _, err := os.Stat(configMapDataHostPath); err != nil {
 			t.Fatalf("SetUp() failed, couldn't find configMap data on disk: %v", configMapDataHostPath)
 		} else {

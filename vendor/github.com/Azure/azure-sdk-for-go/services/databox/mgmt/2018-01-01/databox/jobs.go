@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewJobsClientWithBaseURI(baseURI string, subscriptionID string) JobsClient 
 // 24 characters in length and use any alphanumeric and underscore only
 // shipmentPickUpRequest - details of shipment pick up request.
 func (client JobsClient) BookShipmentPickUp(ctx context.Context, resourceGroupName string, jobName string, shipmentPickUpRequest ShipmentPickUpRequest) (result ShipmentPickUpResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.BookShipmentPickUp")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: jobName,
 			Constraints: []validation.Constraint{{Target: "jobName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -117,8 +106,8 @@ func (client JobsClient) BookShipmentPickUpPreparer(ctx context.Context, resourc
 // BookShipmentPickUpSender sends the BookShipmentPickUp request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) BookShipmentPickUpSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // BookShipmentPickUpResponder handles the response to the BookShipmentPickUp request. The method always
@@ -141,16 +130,6 @@ func (client JobsClient) BookShipmentPickUpResponder(resp *http.Response) (resul
 // 24 characters in length and use any alphanumeric and underscore only
 // cancellationReason - reason for cancellation.
 func (client JobsClient) Cancel(ctx context.Context, resourceGroupName string, jobName string, cancellationReason CancellationReason) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.Cancel")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: jobName,
 			Constraints: []validation.Constraint{{Target: "jobName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -208,8 +187,8 @@ func (client JobsClient) CancelPreparer(ctx context.Context, resourceGroupName s
 // CancelSender sends the Cancel request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) CancelSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CancelResponder handles the response to the Cancel request. The method always
@@ -232,16 +211,6 @@ func (client JobsClient) CancelResponder(resp *http.Response) (result autorest.R
 // 24 characters in length and use any alphanumeric and underscore only
 // jobResource - job details from request body.
 func (client JobsClient) Create(ctx context.Context, resourceGroupName string, jobName string, jobResource JobResource) (result JobsCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: jobName,
 			Constraints: []validation.Constraint{{Target: "jobName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -294,9 +263,6 @@ func (client JobsClient) CreatePreparer(ctx context.Context, resourceGroupName s
 		"api-version": APIVersion,
 	}
 
-	jobResource.Name = nil
-	jobResource.ID = nil
-	jobResource.Type = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -310,9 +276,13 @@ func (client JobsClient) CreatePreparer(ctx context.Context, resourceGroupName s
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) CreateSender(req *http.Request) (future JobsCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -339,16 +309,6 @@ func (client JobsClient) CreateResponder(resp *http.Response) (result JobResourc
 // jobName - the name of the job Resource within the specified resource group. job names must be between 3 and
 // 24 characters in length and use any alphanumeric and underscore only
 func (client JobsClient) Delete(ctx context.Context, resourceGroupName string, jobName string) (result JobsDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: jobName,
 			Constraints: []validation.Constraint{{Target: "jobName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -396,9 +356,13 @@ func (client JobsClient) DeletePreparer(ctx context.Context, resourceGroupName s
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) DeleteSender(req *http.Request) (future JobsDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -425,16 +389,6 @@ func (client JobsClient) DeleteResponder(resp *http.Response) (result autorest.R
 // 24 characters in length and use any alphanumeric and underscore only
 // expand - $expand is supported on details parameter for job, which provides details on the job stages.
 func (client JobsClient) Get(ctx context.Context, resourceGroupName string, jobName string, expand string) (result JobResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: jobName,
 			Constraints: []validation.Constraint{{Target: "jobName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -491,8 +445,8 @@ func (client JobsClient) GetPreparer(ctx context.Context, resourceGroupName stri
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -512,16 +466,6 @@ func (client JobsClient) GetResponder(resp *http.Response) (result JobResource, 
 // Parameters:
 // skipToken - $skipToken is supported on Get list of jobs, which provides the next page in the list of jobs.
 func (client JobsClient) List(ctx context.Context, skipToken string) (result JobResourceListPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.List")
-		defer func() {
-			sc := -1
-			if result.jrl.Response.Response != nil {
-				sc = result.jrl.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, skipToken)
 	if err != nil {
@@ -569,8 +513,8 @@ func (client JobsClient) ListPreparer(ctx context.Context, skipToken string) (*h
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -587,8 +531,8 @@ func (client JobsClient) ListResponder(resp *http.Response) (result JobResourceL
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client JobsClient) listNextResults(ctx context.Context, lastResults JobResourceList) (result JobResourceList, err error) {
-	req, err := lastResults.jobResourceListPreparer(ctx)
+func (client JobsClient) listNextResults(lastResults JobResourceList) (result JobResourceList, err error) {
+	req, err := lastResults.jobResourceListPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "databox.JobsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -609,16 +553,6 @@ func (client JobsClient) listNextResults(ctx context.Context, lastResults JobRes
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client JobsClient) ListComplete(ctx context.Context, skipToken string) (result JobResourceListIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, skipToken)
 	return
 }
@@ -628,16 +562,6 @@ func (client JobsClient) ListComplete(ctx context.Context, skipToken string) (re
 // resourceGroupName - the Resource Group Name
 // skipToken - $skipToken is supported on Get list of jobs, which provides the next page in the list of jobs.
 func (client JobsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, skipToken string) (result JobResourceListPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.jrl.Response.Response != nil {
-				sc = result.jrl.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, skipToken)
 	if err != nil {
@@ -686,8 +610,8 @@ func (client JobsClient) ListByResourceGroupPreparer(ctx context.Context, resour
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -704,8 +628,8 @@ func (client JobsClient) ListByResourceGroupResponder(resp *http.Response) (resu
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client JobsClient) listByResourceGroupNextResults(ctx context.Context, lastResults JobResourceList) (result JobResourceList, err error) {
-	req, err := lastResults.jobResourceListPreparer(ctx)
+func (client JobsClient) listByResourceGroupNextResults(lastResults JobResourceList) (result JobResourceList, err error) {
+	req, err := lastResults.jobResourceListPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "databox.JobsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -726,16 +650,6 @@ func (client JobsClient) listByResourceGroupNextResults(ctx context.Context, las
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client JobsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, skipToken string) (result JobResourceListIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, skipToken)
 	return
 }
@@ -746,16 +660,6 @@ func (client JobsClient) ListByResourceGroupComplete(ctx context.Context, resour
 // jobName - the name of the job Resource within the specified resource group. job names must be between 3 and
 // 24 characters in length and use any alphanumeric and underscore only
 func (client JobsClient) ListCredentials(ctx context.Context, resourceGroupName string, jobName string) (result UnencryptedCredentialsList, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.ListCredentials")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: jobName,
 			Constraints: []validation.Constraint{{Target: "jobName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -809,8 +713,8 @@ func (client JobsClient) ListCredentialsPreparer(ctx context.Context, resourceGr
 // ListCredentialsSender sends the ListCredentials request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) ListCredentialsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListCredentialsResponder handles the response to the ListCredentials request. The method always
@@ -835,16 +739,6 @@ func (client JobsClient) ListCredentialsResponder(resp *http.Response) (result U
 // ifMatch - defines the If-Match condition. The patch will be performed only if the ETag of the job on the
 // server matches this value.
 func (client JobsClient) Update(ctx context.Context, resourceGroupName string, jobName string, jobResourceUpdateParameter JobResourceUpdateParameter, ifMatch string) (result JobsUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: jobName,
 			Constraints: []validation.Constraint{{Target: "jobName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -898,9 +792,13 @@ func (client JobsClient) UpdatePreparer(ctx context.Context, resourceGroupName s
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) UpdateSender(req *http.Request) (future JobsUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}

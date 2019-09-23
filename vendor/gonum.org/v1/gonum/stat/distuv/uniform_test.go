@@ -58,11 +58,9 @@ func TestUniform(t *testing.T) {
 }
 
 func testUniform(t *testing.T, u Uniform, i int) {
-	const (
-		tol  = 1e-2
-		n    = 1e5
-		bins = 50
-	)
+	tol := 1e-2
+	const n = 1e5
+	const bins = 50
 	x := make([]float64, n)
 	generateSamples(x, u)
 	sort.Float64s(x)

@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewBitLockerKeysClientWithBaseURI(baseURI string, subscriptionID string, ac
 // resourceGroupName - the resource group name uniquely identifies the resource group within the user
 // subscription.
 func (client BitLockerKeysClient) List(ctx context.Context, jobName string, resourceGroupName string) (result GetBitLockerKeysResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BitLockerKeysClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListPreparer(ctx, jobName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storageimportexport.BitLockerKeysClient", "List", nil, "Failure preparing request")
@@ -105,8 +94,8 @@ func (client BitLockerKeysClient) ListPreparer(ctx context.Context, jobName stri
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client BitLockerKeysClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always

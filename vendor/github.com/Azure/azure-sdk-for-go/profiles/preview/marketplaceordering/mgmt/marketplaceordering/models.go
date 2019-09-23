@@ -19,33 +19,31 @@
 
 package marketplaceordering
 
-import (
-	"context"
-
-	original "github.com/Azure/azure-sdk-for-go/services/marketplaceordering/mgmt/2015-06-01/marketplaceordering"
-)
+import original "github.com/Azure/azure-sdk-for-go/services/marketplaceordering/mgmt/2015-06-01/marketplaceordering"
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
+type BaseClient = original.BaseClient
+type MarketplaceAgreementsClient = original.MarketplaceAgreementsClient
 type AgreementProperties = original.AgreementProperties
 type AgreementTerms = original.AgreementTerms
-type BaseClient = original.BaseClient
 type ErrorResponse = original.ErrorResponse
 type ErrorResponseError = original.ErrorResponseError
-type ListAgreementTerms = original.ListAgreementTerms
-type MarketplaceAgreementsClient = original.MarketplaceAgreementsClient
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
 type OperationListResult = original.OperationListResult
 type OperationListResultIterator = original.OperationListResultIterator
 type OperationListResultPage = original.OperationListResultPage
-type OperationsClient = original.OperationsClient
 type Resource = original.Resource
+type OperationsClient = original.OperationsClient
 
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
 func NewMarketplaceAgreementsClient(subscriptionID string) MarketplaceAgreementsClient {
 	return original.NewMarketplaceAgreementsClient(subscriptionID)
@@ -53,20 +51,11 @@ func NewMarketplaceAgreementsClient(subscriptionID string) MarketplaceAgreements
 func NewMarketplaceAgreementsClientWithBaseURI(baseURI string, subscriptionID string) MarketplaceAgreementsClient {
 	return original.NewMarketplaceAgreementsClientWithBaseURI(baseURI, subscriptionID)
 }
-func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
-	return original.NewOperationListResultIterator(page)
-}
-func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
-	return original.NewOperationListResultPage(getNextPage)
-}
 func NewOperationsClient(subscriptionID string) OperationsClient {
 	return original.NewOperationsClient(subscriptionID)
 }
 func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
 	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

@@ -139,64 +139,6 @@ func TestTriAtSet(t *testing.T) {
 	}
 }
 
-func TestTriDenseZero(t *testing.T) {
-	// Elements that equal 1 should be set to zero, elements that equal -1
-	// should remain unchanged.
-	for _, test := range []*TriDense{
-		{
-			mat: blas64.Triangular{
-				Uplo:   blas.Upper,
-				N:      4,
-				Stride: 5,
-				Data: []float64{
-					1, 1, 1, 1, -1,
-					-1, 1, 1, 1, -1,
-					-1, -1, 1, 1, -1,
-					-1, -1, -1, 1, -1,
-				},
-			},
-		},
-		{
-			mat: blas64.Triangular{
-				Uplo:   blas.Lower,
-				N:      4,
-				Stride: 5,
-				Data: []float64{
-					1, -1, -1, -1, -1,
-					1, 1, -1, -1, -1,
-					1, 1, 1, -1, -1,
-					1, 1, 1, 1, -1,
-				},
-			},
-		},
-	} {
-		dataCopy := make([]float64, len(test.mat.Data))
-		copy(dataCopy, test.mat.Data)
-		test.Zero()
-		for i, v := range test.mat.Data {
-			if dataCopy[i] != -1 && v != 0 {
-				t.Errorf("Matrix not zeroed in bounds")
-			}
-			if dataCopy[i] == -1 && v != -1 {
-				t.Errorf("Matrix zeroed out of bounds")
-			}
-		}
-	}
-}
-
-func TestTriDiagView(t *testing.T) {
-	for cas, test := range []*TriDense{
-		NewTriDense(1, Upper, []float64{1}),
-		NewTriDense(2, Upper, []float64{1, 2, 0, 3}),
-		NewTriDense(3, Upper, []float64{1, 2, 3, 0, 4, 5, 0, 0, 6}),
-		NewTriDense(1, Lower, []float64{1}),
-		NewTriDense(2, Lower, []float64{1, 2, 2, 3}),
-		NewTriDense(3, Lower, []float64{1, 0, 0, 2, 3, 0, 4, 5, 6}),
-	} {
-		testDiagView(t, cas, test)
-	}
-}
-
 func TestTriDenseCopy(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		size := rand.Intn(100)
@@ -236,7 +178,7 @@ func TestTriDenseCopy(t *testing.T) {
 						if got := l.At(m, n); got != want {
 							t.Errorf("unexpected diagonal value for At(%d, %d) for test %d: got: %v want: %v", m, n, i, got, want)
 						}
-					case m > n: // Lower triangular matrix.
+					case m < n: // Lower triangular matrix.
 						if got := l.At(m, n); got != want {
 							t.Errorf("unexpected lower value for At(%d, %d) for test %d: got: %v want: %v", m, n, i, got, want)
 						}

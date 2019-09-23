@@ -113,7 +113,7 @@ func (fs FS) NewXfrmStat() (XfrmStat, error) {
 
 		if len(fields) != 2 {
 			return XfrmStat{}, fmt.Errorf(
-				"couldn't parse %s line %s", file.Name(), s.Text())
+				"couldnt parse %s line %s", file.Name(), s.Text())
 		}
 
 		name := fields[0]

@@ -26,6 +26,7 @@ import (
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 )
 
 const (
@@ -47,11 +48,10 @@ var _ = SIGDescribe("Windows volume mounts ", func() {
 				Medium: v1.StorageMediumDefault,
 			},
 		}
-		hostPathDirectoryOrCreate = v1.HostPathDirectoryOrCreate
-		hostMapSource             = v1.VolumeSource{
+
+		hostMapSource = v1.VolumeSource{
 			HostPath: &v1.HostPathVolumeSource{
 				Path: hostMapPath,
-				Type: &hostPathDirectoryOrCreate,
 			},
 		}
 	)
@@ -95,7 +95,7 @@ func doReadOnlyTest(f *framework.Framework, source v1.VolumeSource, volumePath s
 
 	_, stderr, _ := f.ExecCommandInContainerWithFullOutput(podName, containerName, cmd...)
 
-	framework.ExpectEqual(stderr, "Access is denied.")
+	gomega.Expect(stderr).To(gomega.Equal("Access is denied."))
 
 }
 
@@ -125,16 +125,16 @@ func doReadWriteReadOnlyTest(f *framework.Framework, source v1.VolumeSource, vol
 
 	stdoutRW, stderrRW, errRW := f.ExecCommandInContainerWithFullOutput(podName, rwcontainerName, cmd...)
 	msg := fmt.Sprintf("cmd: %v, stdout: %q, stderr: %q", cmd, stdoutRW, stderrRW)
-	framework.ExpectNoError(errRW, msg)
+	gomega.Expect(errRW).NotTo(gomega.HaveOccurred(), msg)
 
 	_, stderr, _ := f.ExecCommandInContainerWithFullOutput(podName, containerName, cmd...)
-	framework.ExpectEqual(stderr, "Access is denied.")
+	gomega.Expect(stderr).To(gomega.Equal("Access is denied."))
 
 	readcmd := []string{"cmd", "/c", "type", filePath}
 	readout, readerr, err := f.ExecCommandInContainerWithFullOutput(podName, containerName, readcmd...)
 	readmsg := fmt.Sprintf("cmd: %v, stdout: %q, stderr: %q", readcmd, readout, readerr)
-	framework.ExpectEqual(readout, "windows-volume-test")
-	framework.ExpectNoError(err, readmsg)
+	gomega.Expect(readout).To(gomega.Equal("windows-volume-test"))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), readmsg)
 }
 
 func testPodWithROVolume(podName string, source v1.VolumeSource, path string) *v1.Pod {

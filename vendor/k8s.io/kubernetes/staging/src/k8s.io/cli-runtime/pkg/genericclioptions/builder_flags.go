@@ -130,10 +130,6 @@ func (o *ResourceBuilderFlags) ToBuilder(restClientGetter RESTClientGetter, reso
 	builder := resource.NewBuilder(restClientGetter).
 		NamespaceParam(namespace).DefaultNamespace()
 
-	if o.AllNamespaces != nil {
-		builder.AllNamespaces(*o.AllNamespaces)
-	}
-
 	if o.Scheme != nil {
 		builder.WithScheme(o.Scheme, o.Scheme.PrioritizedVersionsAllGroups()...)
 	} else {
@@ -213,6 +209,10 @@ func ResourceFinderForResult(result resource.Visitor) ResourceFinder {
 	return ResourceFinderFunc(func() resource.Visitor {
 		return result
 	})
+}
+
+func strPtr(val string) *string {
+	return &val
 }
 
 func boolPtr(val bool) *bool {

@@ -51,6 +51,7 @@ type realFsHandler struct {
 }
 
 const (
+	timeout          = 2 * time.Minute
 	maxBackoffFactor = 20
 )
 
@@ -73,16 +74,17 @@ func NewFsHandler(period time.Duration, rootfs, extraDir string, fsInfo fs.FsInf
 
 func (fh *realFsHandler) update() error {
 	var (
-		rootUsage, extraUsage fs.UsageInfo
-		rootErr, extraErr     error
+		baseUsage, extraDirUsage, inodeUsage    uint64
+		rootDiskErr, rootInodeErr, extraDiskErr error
 	)
 	// TODO(vishh): Add support for external mounts.
 	if fh.rootfs != "" {
-		rootUsage, rootErr = fh.fsInfo.GetDirUsage(fh.rootfs)
+		baseUsage, rootDiskErr = fh.fsInfo.GetDirDiskUsage(fh.rootfs, timeout)
+		inodeUsage, rootInodeErr = fh.fsInfo.GetDirInodeUsage(fh.rootfs, timeout)
 	}
 
 	if fh.extraDir != "" {
-		extraUsage, extraErr = fh.fsInfo.GetDirUsage(fh.extraDir)
+		extraDirUsage, extraDiskErr = fh.fsInfo.GetDirDiskUsage(fh.extraDir, timeout)
 	}
 
 	// Wait to handle errors until after all operartions are run.
@@ -90,17 +92,18 @@ func (fh *realFsHandler) update() error {
 	fh.Lock()
 	defer fh.Unlock()
 	fh.lastUpdate = time.Now()
-	if fh.rootfs != "" && rootErr == nil {
-		fh.usage.InodeUsage = rootUsage.Inodes
-		fh.usage.TotalUsageBytes = rootUsage.Bytes + extraUsage.Bytes
+	if rootInodeErr == nil && fh.rootfs != "" {
+		fh.usage.InodeUsage = inodeUsage
 	}
-	if fh.extraDir != "" && extraErr == nil {
-		fh.usage.BaseUsageBytes = rootUsage.Bytes
+	if rootDiskErr == nil && fh.rootfs != "" {
+		fh.usage.TotalUsageBytes = baseUsage + extraDirUsage
 	}
-
+	if extraDiskErr == nil && fh.extraDir != "" {
+		fh.usage.BaseUsageBytes = baseUsage
+	}
 	// Combine errors into a single error to return
-	if rootErr != nil || extraErr != nil {
-		return fmt.Errorf("rootDiskErr: %v, extraDiskErr: %v", rootErr, extraErr)
+	if rootDiskErr != nil || rootInodeErr != nil || extraDiskErr != nil {
+		return fmt.Errorf("rootDiskErr: %v, rootInodeErr: %v, extraDiskErr: %v", rootDiskErr, rootInodeErr, extraDiskErr)
 	}
 	return nil
 }
@@ -129,7 +132,7 @@ func (fh *realFsHandler) trackUsage() {
 				// if the long duration is persistent either because of slow
 				// disk or lots of containers.
 				longOp = longOp + time.Second
-				klog.V(2).Infof("fs: disk usage and inodes count on following dirs took %v: %v; will not log again for this container unless duration exceeds %v", duration, []string{fh.rootfs, fh.extraDir}, longOp)
+				klog.V(2).Infof("du and find on following dirs took %v: %v; will not log again for this container unless duration exceeds %v", duration, []string{fh.rootfs, fh.extraDir}, longOp)
 			}
 		}
 	}

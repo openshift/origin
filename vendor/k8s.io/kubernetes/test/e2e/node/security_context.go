@@ -29,11 +29,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func scTestPod(hostIPC bool, hostPID bool) *v1.Pod {
@@ -64,7 +63,7 @@ func scTestPod(hostIPC bool, hostPID bool) *v1.Pod {
 var _ = SIGDescribe("Security Context", func() {
 	f := framework.NewDefaultFramework("security-context")
 
-	ginkgo.It("should support pod.Spec.SecurityContext.SupplementalGroups [LinuxOnly]", func() {
+	It("should support pod.Spec.SecurityContext.SupplementalGroups [LinuxOnly]", func() {
 		pod := scTestPod(false, false)
 		pod.Spec.Containers[0].Command = []string{"id", "-G"}
 		pod.Spec.SecurityContext.SupplementalGroups = []int64{1234, 5678}
@@ -72,7 +71,7 @@ var _ = SIGDescribe("Security Context", func() {
 		f.TestContainerOutput("pod.Spec.SecurityContext.SupplementalGroups", pod, 0, groups)
 	})
 
-	ginkgo.It("should support pod.Spec.SecurityContext.RunAsUser [LinuxOnly]", func() {
+	It("should support pod.Spec.SecurityContext.RunAsUser [LinuxOnly]", func() {
 		pod := scTestPod(false, false)
 		userID := int64(1001)
 		pod.Spec.SecurityContext.RunAsUser = &userID
@@ -84,7 +83,7 @@ var _ = SIGDescribe("Security Context", func() {
 		})
 	})
 
-	ginkgo.It("should support pod.Spec.SecurityContext.RunAsUser And pod.Spec.SecurityContext.RunAsGroup [LinuxOnly]", func() {
+	It("should support pod.Spec.SecurityContext.RunAsUser And pod.Spec.SecurityContext.RunAsGroup [LinuxOnly]", func() {
 		pod := scTestPod(false, false)
 		userID := int64(1001)
 		groupID := int64(2002)
@@ -98,7 +97,7 @@ var _ = SIGDescribe("Security Context", func() {
 		})
 	})
 
-	ginkgo.It("should support container.SecurityContext.RunAsUser [LinuxOnly]", func() {
+	It("should support container.SecurityContext.RunAsUser [LinuxOnly]", func() {
 		pod := scTestPod(false, false)
 		userID := int64(1001)
 		overrideUserID := int64(1002)
@@ -113,7 +112,7 @@ var _ = SIGDescribe("Security Context", func() {
 		})
 	})
 
-	ginkgo.It("should support container.SecurityContext.RunAsUser And container.SecurityContext.RunAsGroup [LinuxOnly]", func() {
+	It("should support container.SecurityContext.RunAsUser And container.SecurityContext.RunAsGroup [LinuxOnly]", func() {
 		pod := scTestPod(false, false)
 		userID := int64(1001)
 		groupID := int64(2001)
@@ -132,19 +131,19 @@ var _ = SIGDescribe("Security Context", func() {
 		})
 	})
 
-	ginkgo.It("should support volume SELinux relabeling [Flaky] [LinuxOnly]", func() {
+	It("should support volume SELinux relabeling [Flaky] [LinuxOnly]", func() {
 		testPodSELinuxLabeling(f, false, false)
 	})
 
-	ginkgo.It("should support volume SELinux relabeling when using hostIPC [Flaky] [LinuxOnly]", func() {
+	It("should support volume SELinux relabeling when using hostIPC [Flaky] [LinuxOnly]", func() {
 		testPodSELinuxLabeling(f, true, false)
 	})
 
-	ginkgo.It("should support volume SELinux relabeling when using hostPID [Flaky] [LinuxOnly]", func() {
+	It("should support volume SELinux relabeling when using hostPID [Flaky] [LinuxOnly]", func() {
 		testPodSELinuxLabeling(f, false, true)
 	})
 
-	ginkgo.It("should support seccomp alpha unconfined annotation on the container [Feature:Seccomp] [LinuxOnly]", func() {
+	It("should support seccomp alpha unconfined annotation on the container [Feature:Seccomp] [LinuxOnly]", func() {
 		// TODO: port to SecurityContext as soon as seccomp is out of alpha
 		pod := scTestPod(false, false)
 		pod.Annotations[v1.SeccompContainerAnnotationKeyPrefix+"test-container"] = "unconfined"
@@ -153,7 +152,7 @@ var _ = SIGDescribe("Security Context", func() {
 		f.TestContainerOutput(v1.SeccompPodAnnotationKey, pod, 0, []string{"0"}) // seccomp disabled
 	})
 
-	ginkgo.It("should support seccomp alpha unconfined annotation on the pod [Feature:Seccomp] [LinuxOnly]", func() {
+	It("should support seccomp alpha unconfined annotation on the pod [Feature:Seccomp] [LinuxOnly]", func() {
 		// TODO: port to SecurityContext as soon as seccomp is out of alpha
 		pod := scTestPod(false, false)
 		pod.Annotations[v1.SeccompPodAnnotationKey] = "unconfined"
@@ -161,7 +160,7 @@ var _ = SIGDescribe("Security Context", func() {
 		f.TestContainerOutput(v1.SeccompPodAnnotationKey, pod, 0, []string{"0"}) // seccomp disabled
 	})
 
-	ginkgo.It("should support seccomp alpha runtime/default annotation [Feature:Seccomp] [LinuxOnly]", func() {
+	It("should support seccomp alpha runtime/default annotation [Feature:Seccomp] [LinuxOnly]", func() {
 		// TODO: port to SecurityContext as soon as seccomp is out of alpha
 		pod := scTestPod(false, false)
 		pod.Annotations[v1.SeccompContainerAnnotationKeyPrefix+"test-container"] = v1.SeccompProfileRuntimeDefault
@@ -169,7 +168,7 @@ var _ = SIGDescribe("Security Context", func() {
 		f.TestContainerOutput(v1.SeccompPodAnnotationKey, pod, 0, []string{"2"}) // seccomp filtered
 	})
 
-	ginkgo.It("should support seccomp default which is unconfined [Feature:Seccomp] [LinuxOnly]", func() {
+	It("should support seccomp default which is unconfined [Feature:Seccomp] [LinuxOnly]", func() {
 		// TODO: port to SecurityContext as soon as seccomp is out of alpha
 		pod := scTestPod(false, false)
 		pod.Spec.Containers[0].Command = []string{"grep", "ecc", "/proc/self/status"}
@@ -208,23 +207,23 @@ func testPodSELinuxLabeling(f *framework.Framework, hostIPC bool, hostPID bool) 
 	pod, err := client.Create(pod)
 
 	framework.ExpectNoError(err, "Error creating pod %v", pod)
-	framework.ExpectNoError(e2epod.WaitForPodRunningInNamespace(f.ClientSet, pod))
+	framework.ExpectNoError(framework.WaitForPodRunningInNamespace(f.ClientSet, pod))
 
 	testContent := "hello"
 	testFilePath := mountPath + "/TEST"
 	err = f.WriteFileViaContainer(pod.Name, pod.Spec.Containers[0].Name, testFilePath, testContent)
-	framework.ExpectNoError(err)
+	Expect(err).To(BeNil())
 	content, err := f.ReadFileViaContainer(pod.Name, pod.Spec.Containers[0].Name, testFilePath)
-	framework.ExpectNoError(err)
-	gomega.Expect(content).To(gomega.ContainSubstring(testContent))
+	Expect(err).To(BeNil())
+	Expect(content).To(ContainSubstring(testContent))
 
 	foundPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(pod.Name, metav1.GetOptions{})
-	framework.ExpectNoError(err)
+	Expect(err).NotTo(HaveOccurred())
 
 	// Confirm that the file can be accessed from a second
 	// pod using host_path with the same MCS label
 	volumeHostPath := fmt.Sprintf("%s/pods/%s/volumes/kubernetes.io~empty-dir/%s", framework.TestContext.KubeVolumeDir, foundPod.UID, volumeName)
-	ginkgo.By(fmt.Sprintf("confirming a container with the same label can read the file under --volume-dir=%s", framework.TestContext.KubeVolumeDir))
+	By(fmt.Sprintf("confirming a container with the same label can read the file under --volume-dir=%s", framework.TestContext.KubeVolumeDir))
 	pod = scTestPod(hostIPC, hostPID)
 	pod.Spec.NodeName = foundPod.Spec.NodeName
 	volumeMounts := []v1.VolumeMount{
@@ -267,5 +266,5 @@ func testPodSELinuxLabeling(f *framework.Framework, hostIPC bool, hostPID bool) 
 	framework.ExpectNoError(err, "Error waiting for pod to run %v", pod)
 
 	content, err = f.ReadFileViaContainer(pod.Name, "test-container", testFilePath)
-	gomega.Expect(content).NotTo(gomega.ContainSubstring(testContent))
+	Expect(content).NotTo(ContainSubstring(testContent))
 }

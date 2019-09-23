@@ -53,7 +53,7 @@ func TestFindNamedType(t *testing.T) {
 func TestResolve(t *testing.T) {
 	existing := "existing"
 	notExisting := "not-existing"
-	a := Atom{List: &List{}}
+	a := Atom{Untyped: &Untyped{}}
 
 	tests := []struct {
 		testName       string
@@ -78,7 +78,7 @@ func TestResolve(t *testing.T) {
 				t.Errorf("expected Atom %v, got %v", tt.expectAtom, atom)
 			}
 			if exist != tt.expectExist {
-				t.Errorf("expected exist %t, got %t", tt.expectExist, exist)
+				t.Errorf("expeted exist %t, got %t", tt.expectExist, exist)
 			}
 		})
 	}

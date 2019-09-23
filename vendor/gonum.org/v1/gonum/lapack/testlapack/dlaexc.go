@@ -197,7 +197,7 @@ func testDlaexc(t *testing.T, impl Dlaexcer, wantq bool, n, j1, n1, n2, extra in
 		return
 	}
 
-	if !isOrthogonal(q) {
+	if !isOrthonormal(q) {
 		t.Errorf("%v: Q is not orthogonal", prefix)
 	}
 	// Check that Q is unchanged outside of columns [j1:j1+n1+n2].

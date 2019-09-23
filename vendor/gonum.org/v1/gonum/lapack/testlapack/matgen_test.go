@@ -5,6 +5,7 @@
 package testlapack
 
 import (
+	"math"
 	"testing"
 
 	"golang.org/x/exp/rand"
@@ -20,21 +21,41 @@ func TestDlagsy(t *testing.T) {
 			if lda == 0 {
 				lda = max(1, n)
 			}
-			// D is the identity matrix I.
 			d := make([]float64, n)
 			for i := range d {
 				d[i] = 1
 			}
-			// Allocate an n×n symmetric matrix A and fill it with NaNs.
-			a := nanSlice(n * lda)
-			work := make([]float64, 2*n)
-			// Compute A = U * D * U^T where U is a random orthogonal matrix.
-			Dlagsy(n, 0, d, a, lda, rnd, work)
-			// A should be the identity matrix because
-			//  A = U * D * U^T = U * I * U^T = U * U^T = I.
-			dist := distFromIdentity(n, a, lda)
-			if dist > tol {
-				t.Errorf("Case n=%v,lda=%v: |A-I|=%v is too large", n, lda, dist)
+			a := blas64.General{
+				Rows:   n,
+				Cols:   n,
+				Stride: lda,
+				Data:   nanSlice(n * lda),
+			}
+			work := make([]float64, a.Rows+a.Cols)
+
+			Dlagsy(a.Rows, 0, d, a.Data, a.Stride, rnd, work)
+
+			isIdentity := true
+		identityLoop:
+			for i := 0; i < n; i++ {
+				for j := 0; j < n; j++ {
+					aij := a.Data[i*a.Stride+j]
+					if math.IsNaN(aij) {
+						isIdentity = false
+					}
+					if i == j && math.Abs(aij-1) > tol {
+						isIdentity = false
+					}
+					if i != j && math.Abs(aij) > tol {
+						isIdentity = false
+					}
+					if !isIdentity {
+						break identityLoop
+					}
+				}
+			}
+			if !isIdentity {
+				t.Errorf("Case n=%v,lda=%v: unexpected result", n, lda)
 			}
 		}
 	}
@@ -61,20 +82,10 @@ func TestDlagge(t *testing.T) {
 
 			Dlagge(a.Rows, a.Cols, 0, 0, d, a.Data, a.Stride, rnd, work)
 
-			if !isOrthogonal(a) {
+			if !isOrthonormal(a) {
 				t.Errorf("Case n=%v,lda=%v: unexpected result", n, lda)
 			}
 		}
 	}
 
-}
-
-func TestRandomOrthogonal(t *testing.T) {
-	rnd := rand.New(rand.NewSource(1))
-	for n := 1; n <= 20; n++ {
-		q := randomOrthogonal(n, rnd)
-		if !isOrthogonal(q) {
-			t.Errorf("Case n=%v: Q not orthogonal", n)
-		}
-	}
 }

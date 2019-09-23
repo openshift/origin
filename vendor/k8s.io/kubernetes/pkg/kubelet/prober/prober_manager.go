@@ -19,32 +19,30 @@ package prober
 import (
 	"sync"
 
-	v1 "k8s.io/api/core/v1"
+	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/component-base/metrics"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/features"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/prober/results"
 	"k8s.io/kubernetes/pkg/kubelet/status"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
 )
 
-// ProberResults stores the cumulative number of a probe by result as prometheus metrics.
-var ProberResults = metrics.NewCounterVec(
-	&metrics.CounterOpts{
-		Subsystem:      "prober",
-		Name:           "probe_total",
-		Help:           "Cumulative number of a liveness, readiness or startup probe for a container by result.",
-		StabilityLevel: metrics.ALPHA,
+// ProberResults stores the results of a probe as prometheus metrics.
+var ProberResults = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Subsystem: "prober",
+		Name:      "probe_result",
+		Help:      "The result of a liveness or readiness probe for a container.",
 	},
 	[]string{"probe_type",
-		"result",
+		"container_name",
 		"container",
+		"pod_name",
 		"pod",
 		"namespace",
 		"pod_uid"},
@@ -65,8 +63,8 @@ type Manager interface {
 	RemovePod(pod *v1.Pod)
 
 	// CleanupPods handles cleaning up pods which should no longer be running.
-	// It takes a map of "desired pods" which should not be cleaned up.
-	CleanupPods(desiredPods map[types.UID]sets.Empty)
+	// It takes a list of "active pods" which should not be cleaned up.
+	CleanupPods(activePods []*v1.Pod)
 
 	// UpdatePodStatus modifies the given PodStatus with the appropriate Ready state for each
 	// container based on container running status, cached probe results and worker states.
@@ -91,14 +89,10 @@ type manager struct {
 	// livenessManager manages the results of liveness probes
 	livenessManager results.Manager
 
-	// startupManager manages the results of startup probes
-	startupManager results.Manager
-
 	// prober executes the probe actions.
 	prober *prober
 }
 
-// NewManager creates a Manager for pod probing.
 func NewManager(
 	statusManager status.Manager,
 	livenessManager results.Manager,
@@ -108,13 +102,11 @@ func NewManager(
 
 	prober := newProber(runner, refManager, recorder)
 	readinessManager := results.NewManager()
-	startupManager := results.NewManager()
 	return &manager{
 		statusManager:    statusManager,
 		prober:           prober,
 		readinessManager: readinessManager,
 		livenessManager:  livenessManager,
-		startupManager:   startupManager,
 		workers:          make(map[probeKey]*worker),
 	}
 }
@@ -123,8 +115,6 @@ func NewManager(
 func (m *manager) Start() {
 	// Start syncing readiness.
 	go wait.Forever(m.updateReadiness, 0)
-	// Start syncing startup.
-	go wait.Forever(m.updateStartup, 0)
 }
 
 // Key uniquely identifying container probes
@@ -134,17 +124,12 @@ type probeKey struct {
 	probeType     probeType
 }
 
-// Type of probe (liveness, readiness or startup)
+// Type of probe (readiness or liveness)
 type probeType int
 
 const (
 	liveness probeType = iota
 	readiness
-	startup
-
-	probeResultSuccessful string = "successful"
-	probeResultFailed     string = "failed"
-	probeResultUnknown    string = "unknown"
 )
 
 // For debugging.
@@ -154,8 +139,6 @@ func (t probeType) String() string {
 		return "Readiness"
 	case liveness:
 		return "Liveness"
-	case startup:
-		return "Startup"
 	default:
 		return "UNKNOWN"
 	}
@@ -168,18 +151,6 @@ func (m *manager) AddPod(pod *v1.Pod) {
 	key := probeKey{podUID: pod.UID}
 	for _, c := range pod.Spec.Containers {
 		key.containerName = c.Name
-
-		if c.StartupProbe != nil && utilfeature.DefaultFeatureGate.Enabled(features.StartupProbe) {
-			key.probeType = startup
-			if _, ok := m.workers[key]; ok {
-				klog.Errorf("Startup probe already exists! %v - %v",
-					format.Pod(pod), c.Name)
-				return
-			}
-			w := newWorker(m, startup, pod, c)
-			m.workers[key] = w
-			go w.run()
-		}
 
 		if c.ReadinessProbe != nil {
 			key.probeType = readiness
@@ -214,7 +185,7 @@ func (m *manager) RemovePod(pod *v1.Pod) {
 	key := probeKey{podUID: pod.UID}
 	for _, c := range pod.Spec.Containers {
 		key.containerName = c.Name
-		for _, probeType := range [...]probeType{readiness, liveness, startup} {
+		for _, probeType := range [...]probeType{readiness, liveness} {
 			key.probeType = probeType
 			if worker, ok := m.workers[key]; ok {
 				worker.stop()
@@ -223,7 +194,12 @@ func (m *manager) RemovePod(pod *v1.Pod) {
 	}
 }
 
-func (m *manager) CleanupPods(desiredPods map[types.UID]sets.Empty) {
+func (m *manager) CleanupPods(activePods []*v1.Pod) {
+	desiredPods := make(map[types.UID]sets.Empty)
+	for _, pod := range activePods {
+		desiredPods[pod.UID] = sets.Empty{}
+	}
+
 	m.workerLock.RLock()
 	defer m.workerLock.RUnlock()
 
@@ -247,21 +223,6 @@ func (m *manager) UpdatePodStatus(podUID types.UID, podStatus *v1.PodStatus) {
 			ready = !exists
 		}
 		podStatus.ContainerStatuses[i].Ready = ready
-
-		var started bool
-		if c.State.Running == nil {
-			started = false
-		} else if !utilfeature.DefaultFeatureGate.Enabled(features.StartupProbe) {
-			// the container is running, assume it is started if the StartupProbe feature is disabled
-			started = true
-		} else if result, ok := m.startupManager.Get(kubecontainer.ParseContainerID(c.ContainerID)); ok {
-			started = result == results.Success
-		} else {
-			// The check whether there is a probe which hasn't run yet.
-			_, exists := m.getWorker(podUID, c.Name, startup)
-			started = !exists
-		}
-		podStatus.ContainerStatuses[i].Started = &started
 	}
 	// init containers are ready if they have exited with success or if a readiness probe has
 	// succeeded.
@@ -300,11 +261,4 @@ func (m *manager) updateReadiness() {
 
 	ready := update.Result == results.Success
 	m.statusManager.SetContainerReadiness(update.PodUID, update.ContainerID, ready)
-}
-
-func (m *manager) updateStartup() {
-	update := <-m.startupManager.Updates()
-
-	started := update.Result == results.Success
-	m.statusManager.SetContainerStartup(update.PodUID, update.ContainerID, started)
 }

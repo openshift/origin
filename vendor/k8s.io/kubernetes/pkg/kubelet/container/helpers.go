@@ -17,7 +17,6 @@ limitations under the License.
 package container
 
 import (
-	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"strings"
@@ -30,8 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
 	"k8s.io/kubernetes/third_party/forked/golang/expansion"
@@ -93,13 +91,9 @@ func ShouldContainerBeRestarted(container *v1.Container, pod *v1.Pod, podStatus 
 
 // HashContainer returns the hash of the container. It is used to compare
 // the running container with its desired spec.
-// Note: remember to update hashValues in container_hash_test.go as well.
 func HashContainer(container *v1.Container) uint64 {
 	hash := fnv.New32a()
-	// Omit nil or empty field when calculating hash value
-	// Please see https://github.com/kubernetes/kubernetes/issues/53644
-	containerJson, _ := json.Marshal(container)
-	hashutil.DeepHashObject(hash, containerJson)
+	hashutil.DeepHashObject(hash, *container)
 	return uint64(hash.Sum32())
 }
 
@@ -284,28 +278,29 @@ func FormatPod(pod *Pod) string {
 
 // GetContainerSpec gets the container spec by containerName.
 func GetContainerSpec(pod *v1.Pod, containerName string) *v1.Container {
-	var containerSpec *v1.Container
-	podutil.VisitContainers(&pod.Spec, func(c *v1.Container) bool {
+	for i, c := range pod.Spec.Containers {
 		if containerName == c.Name {
-			containerSpec = c
-			return false
+			return &pod.Spec.Containers[i]
 		}
-		return true
-	})
-	return containerSpec
+	}
+	for i, c := range pod.Spec.InitContainers {
+		if containerName == c.Name {
+			return &pod.Spec.InitContainers[i]
+		}
+	}
+	return nil
 }
 
 // HasPrivilegedContainer returns true if any of the containers in the pod are privileged.
 func HasPrivilegedContainer(pod *v1.Pod) bool {
-	var hasPrivileged bool
-	podutil.VisitContainers(&pod.Spec, func(c *v1.Container) bool {
-		if c.SecurityContext != nil && c.SecurityContext.Privileged != nil && *c.SecurityContext.Privileged {
-			hasPrivileged = true
-			return false
+	for _, c := range append(pod.Spec.Containers, pod.Spec.InitContainers...) {
+		if c.SecurityContext != nil &&
+			c.SecurityContext.Privileged != nil &&
+			*c.SecurityContext.Privileged {
+			return true
 		}
-		return true
-	})
-	return hasPrivileged
+	}
+	return false
 }
 
 // MakePortMappings creates internal port mapping from api port mapping.

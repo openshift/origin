@@ -34,7 +34,7 @@ type strategy struct {
 	names.NameGenerator
 }
 
-// Strategy is the default logic that applies when creating and updating
+// strategy is the default logic that applies when creating and updating
 // ClusterRole objects.
 var Strategy = strategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 

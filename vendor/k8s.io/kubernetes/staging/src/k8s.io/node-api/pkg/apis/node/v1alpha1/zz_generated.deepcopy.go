@@ -55,7 +55,7 @@ func (in *RuntimeClass) DeepCopyObject() runtime.Object {
 func (in *RuntimeClassList) DeepCopyInto(out *RuntimeClassList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]RuntimeClass, len(*in))

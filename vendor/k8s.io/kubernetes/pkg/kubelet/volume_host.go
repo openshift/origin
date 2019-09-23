@@ -24,7 +24,7 @@ import (
 	"k8s.io/klog"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -43,8 +43,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
-	execmnt "k8s.io/kubernetes/pkg/volume/util/exec"
-	"k8s.io/kubernetes/pkg/volume/util/hostutil"
 	"k8s.io/kubernetes/pkg/volume/util/subpath"
 )
 
@@ -98,7 +96,7 @@ func NewInitializedVolumePluginMgr(
 
 	if err := kvh.volumePluginMgr.InitPlugins(plugins, prober, kvh); err != nil {
 		return nil, fmt.Errorf(
-			"could not initialize volume plugins for KubeletVolumePluginMgr: %v",
+			"Could not initialize volume plugins for KubeletVolumePluginMgr: %v",
 			err)
 	}
 
@@ -159,10 +157,6 @@ func (kvh *kubeletVolumeHost) GetKubeClient() clientset.Interface {
 
 func (kvh *kubeletVolumeHost) GetSubpather() subpath.Interface {
 	return kvh.kubelet.subpather
-}
-
-func (kvh *kubeletVolumeHost) GetHostUtil() hostutil.HostUtils {
-	return kvh.kubelet.hostutil
 }
 
 func (kvh *kubeletVolumeHost) GetInformerFactory() informers.SharedInformerFactory {
@@ -236,7 +230,7 @@ func (kvh *kubeletVolumeHost) GetMounter(pluginName string) mount.Interface {
 	if exec == nil {
 		return kvh.kubelet.mounter
 	}
-	return execmnt.NewExecMounter(exec, kvh.kubelet.mounter)
+	return mount.NewExecMounter(exec, kvh.kubelet.mounter)
 }
 
 func (kvh *kubeletVolumeHost) GetHostName() string {
@@ -295,7 +289,7 @@ func (kvh *kubeletVolumeHost) GetExec(pluginName string) mount.Exec {
 		exec = nil
 	}
 	if exec == nil {
-		return mount.NewOSExec()
+		return mount.NewOsExec()
 	}
 	return exec
 }

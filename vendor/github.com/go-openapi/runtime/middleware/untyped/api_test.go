@@ -247,15 +247,15 @@ func TestUntypedAppValidation(t *testing.T) {
 	api2.RegisterProducer("application/x-yaml", new(stubProducer))
 
 	expected := []string{"application/x-yaml"}
-	sort.Strings(expected)
+	sort.Sort(sort.StringSlice(expected))
 	consumes := analyzed.ConsumesFor(analyzed.AllPaths()["/"].Get)
-	sort.Strings(consumes)
+	sort.Sort(sort.StringSlice(consumes))
 	assert.Equal(t, expected, consumes)
 	consumers := api1.ConsumersFor(consumes)
 	assert.Len(t, consumers, 1)
 
 	produces := analyzed.ProducesFor(analyzed.AllPaths()["/"].Get)
-	sort.Strings(produces)
+	sort.Sort(sort.StringSlice(produces))
 	assert.Equal(t, expected, produces)
 	producers := api1.ProducersFor(produces)
 	assert.Len(t, producers, 1)

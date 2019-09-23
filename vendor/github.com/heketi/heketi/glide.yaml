@@ -15,7 +15,7 @@ import:
 - package: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - package: github.com/urfave/negroni
-  version: ^1.0.0
+  version: ^0.2.0
 - package: golang.org/x/crypto
   subpackages:
   - ssh

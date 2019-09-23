@@ -23,7 +23,8 @@ set -e
 
 PKG=google.golang.org/genproto
 PROTO_REPO=https://github.com/google/protobuf
-GOOGLEAPIS_REPO=https://github.com/googleapis/googleapis
+PROTO_SUBDIR=src/google/protobuf
+API_REPO=https://github.com/googleapis/googleapis
 
 function die() {
   echo 1>&2 $*
@@ -46,7 +47,7 @@ trap 'rm -rf $remove_dirs' EXIT
 
 if [ -z "$PROTOBUF" ]; then
   proto_repo_dir=$(mktemp -d -t regen-cds-proto.XXXXXX)
-  git clone $PROTO_REPO $proto_repo_dir
+  git clone -q $PROTO_REPO $proto_repo_dir &
   remove_dirs="$proto_repo_dir"
   # The protoc include directory is actually the "src" directory of the repo.
   protodir="$proto_repo_dir/src"
@@ -56,7 +57,7 @@ fi
 
 if [ -z "$GOOGLEAPIS" ]; then
   apidir=$(mktemp -d -t regen-cds-api.XXXXXX)
-  git clone $GOOGLEAPIS_REPO $apidir
+  git clone -q $API_REPO $apidir &
   remove_dirs="$remove_dirs $apidir"
 else
   apidir="$GOOGLEAPIS"

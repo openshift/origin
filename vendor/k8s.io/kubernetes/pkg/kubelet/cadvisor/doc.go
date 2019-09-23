@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package cadvisor provides an interface for Kubelet interactions with cAdvisor.
+// Kubelet interactions with cAdvisor.
 package cadvisor // import "k8s.io/kubernetes/pkg/kubelet/cadvisor"

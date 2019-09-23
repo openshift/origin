@@ -30,7 +30,7 @@ verify-lint:
 
 .PHONY: vet
 vet:
-	./hack/verify-govet.sh
+	go tool vet .
 
 .PHONY: update-fmt
 update-fmt:

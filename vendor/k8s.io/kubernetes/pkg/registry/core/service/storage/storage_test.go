@@ -26,12 +26,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
-	etcd3testing "k8s.io/apiserver/pkg/storage/etcd3/testing"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 )
 
-func newStorage(t *testing.T) (*GenericREST, *StatusREST, *etcd3testing.EtcdTestServer) {
+func newStorage(t *testing.T) (*GenericREST, *StatusREST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
 	restOptions := generic.RESTOptions{
 		StorageConfig:           etcdStorage,
@@ -39,10 +39,7 @@ func newStorage(t *testing.T) (*GenericREST, *StatusREST, *etcd3testing.EtcdTest
 		DeleteCollectionWorkers: 1,
 		ResourcePrefix:          "services",
 	}
-	serviceStorage, statusStorage, err := NewGenericREST(restOptions)
-	if err != nil {
-		t.Fatalf("unexpected error from REST storage: %v", err)
-	}
+	serviceStorage, statusStorage := NewGenericREST(restOptions)
 	return serviceStorage, statusStorage, server
 }
 

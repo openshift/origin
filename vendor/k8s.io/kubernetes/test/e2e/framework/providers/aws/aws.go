@@ -27,8 +27,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"k8s.io/api/core/v1"
+	awscloud "k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/test/e2e/framework"
-	awscloud "k8s.io/legacy-cloud-providers/aws"
 )
 
 func init() {
@@ -49,21 +49,13 @@ type Provider struct {
 
 // ResizeGroup resizes an instance group
 func (p *Provider) ResizeGroup(group string, size int32) error {
-	awsSession, err := session.NewSession()
-	if err != nil {
-		return err
-	}
-	client := autoscaling.New(awsSession)
+	client := autoscaling.New(session.New())
 	return awscloud.ResizeInstanceGroup(client, group, int(size))
 }
 
 // GroupSize returns the size of an instance group
 func (p *Provider) GroupSize(group string) (int, error) {
-	awsSession, err := session.NewSession()
-	if err != nil {
-		return -1, err
-	}
-	client := autoscaling.New(awsSession)
+	client := autoscaling.New(session.New())
 	instanceGroup, err := awscloud.DescribeInstanceGroup(client, group)
 	if err != nil {
 		return -1, fmt.Errorf("error describing instance group: %v", err)
@@ -158,9 +150,5 @@ func newAWSClient(zone string) *ec2.EC2 {
 		region := zone[:len(zone)-1]
 		cfg = &aws.Config{Region: aws.String(region)}
 	}
-	session, err := session.NewSession()
-	if err != nil {
-		framework.Logf("Warning: failed to create aws session")
-	}
-	return ec2.New(session, cfg)
+	return ec2.New(session.New(), cfg)
 }

@@ -1,5 +1,3 @@
-// +build !providerless
-
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -24,20 +22,19 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-07-01/compute"
+	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-03-01/compute"
 	"k8s.io/klog"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/azure"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
-	"k8s.io/legacy-cloud-providers/azure"
 )
 
 type azureDiskDetacher struct {
@@ -84,12 +81,12 @@ func (a *azureDiskAttacher) Attach(spec *volume.Spec, nodeName types.NodeName) (
 		klog.V(2).Infof("GetDiskLun returned: %v. Initiating attaching volume %q to node %q.", err, volumeSource.DataDiskURI, nodeName)
 
 		isManagedDisk := (*volumeSource.Kind == v1.AzureManagedDisk)
-		lun, err = diskController.AttachDisk(isManagedDisk, volumeSource.DiskName, volumeSource.DataDiskURI, nodeName, compute.CachingTypes(*volumeSource.CachingMode))
+		err = diskController.AttachDisk(isManagedDisk, volumeSource.DiskName, volumeSource.DataDiskURI, nodeName, compute.CachingTypes(*volumeSource.CachingMode))
 		if err == nil {
 			klog.V(2).Infof("Attach operation successful: volume %q attached to node %q.", volumeSource.DataDiskURI, nodeName)
 		} else {
 			klog.V(2).Infof("Attach volume %q to instance %q failed with %v", volumeSource.DataDiskURI, nodeName, err)
-			return "", err
+			return "", fmt.Errorf("Attach volume %q to instance %q failed with %v", volumeSource.DiskName, nodeName, err)
 		}
 	}
 
@@ -136,14 +133,12 @@ func (a *azureDiskAttacher) VolumesAreAttached(specs []*volume.Spec, nodeName ty
 }
 
 func (a *azureDiskAttacher) WaitForAttach(spec *volume.Spec, devicePath string, _ *v1.Pod, timeout time.Duration) (string, error) {
-	// devicePath could be a LUN number or
-	// "/dev/disk/azure/scsi1/lunx", "/dev/sdx" on Linux node
-	// "/dev/diskx" on Windows node
-	if strings.HasPrefix(devicePath, "/dev/") {
-		return devicePath, nil
+	volumeSource, _, err := getVolumeSource(spec)
+	if err != nil {
+		return "", err
 	}
 
-	volumeSource, _, err := getVolumeSource(spec)
+	diskController, err := getDiskController(a.plugin.host)
 	if err != nil {
 		return "", err
 	}
@@ -151,9 +146,23 @@ func (a *azureDiskAttacher) WaitForAttach(spec *volume.Spec, devicePath string, 
 	nodeName := types.NodeName(a.plugin.host.GetHostName())
 	diskName := volumeSource.DiskName
 
-	lun, err := strconv.Atoi(devicePath)
-	if err != nil {
-		return "", fmt.Errorf("parse %s failed with error: %v, diskName: %s, nodeName: %s", devicePath, err, diskName, nodeName)
+	lun := int32(-1)
+	if runtime.GOOS != "windows" {
+		// on Linux, usually devicePath is like "/dev/disk/azure/scsi1/lun2", get LUN directly
+		lun, err = getDiskLUN(devicePath)
+		if err != nil {
+			klog.V(2).Infof("azureDisk - WaitForAttach: getDiskLUN(%s) failed with error: %v", devicePath, err)
+		}
+	}
+
+	if lun < 0 {
+		klog.V(2).Infof("azureDisk - WaitForAttach: begin to GetDiskLun by diskName(%s), DataDiskURI(%s), nodeName(%s), devicePath(%s)",
+			diskName, volumeSource.DataDiskURI, nodeName, devicePath)
+		lun, err = diskController.GetDiskLun(diskName, volumeSource.DataDiskURI, nodeName)
+		if err != nil {
+			return "", err
+		}
+		klog.V(2).Infof("azureDisk - WaitForAttach: GetDiskLun succeeded, got lun(%v)", lun)
 	}
 
 	exec := a.plugin.host.GetExec(a.plugin.GetPluginName())
@@ -190,7 +199,7 @@ func (a *azureDiskAttacher) GetDeviceMountPath(spec *volume.Spec) (string, error
 	}
 
 	if volumeSource.Kind == nil { // this spec was constructed from info on the node
-		pdPath := filepath.Join(a.plugin.host.GetPluginDir(azureDataDiskPluginName), util.MountsInGlobalPDPath, volumeSource.DataDiskURI)
+		pdPath := filepath.Join(a.plugin.host.GetPluginDir(azureDataDiskPluginName), mount.MountsInGlobalPDPath, volumeSource.DataDiskURI)
 		return pdPath, nil
 	}
 
@@ -240,14 +249,6 @@ func (attacher *azureDiskAttacher) MountDevice(spec *volume.Spec, devicePath str
 	if notMnt {
 		diskMounter := util.NewSafeFormatAndMountFromHost(azureDataDiskPluginName, attacher.plugin.host)
 		mountOptions := util.MountOptionFromSpec(spec, options...)
-		if runtime.GOOS == "windows" {
-			// only parse devicePath on Windows node
-			diskNum, err := getDiskNum(devicePath)
-			if err != nil {
-				return err
-			}
-			devicePath = diskNum
-		}
 		err = diskMounter.FormatAndMount(devicePath, deviceMountPath, *volumeSource.FSType, mountOptions)
 		if err != nil {
 			if cleanErr := os.Remove(deviceMountPath); cleanErr != nil {

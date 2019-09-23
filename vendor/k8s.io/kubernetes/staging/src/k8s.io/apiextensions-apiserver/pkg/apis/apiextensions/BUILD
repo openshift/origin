@@ -46,7 +46,6 @@ filegroup(
         ":package-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/fuzzer:all-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install:all-srcs",
-        "//staging/src/k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1:all-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1:all-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/validation:all-srcs",
     ],

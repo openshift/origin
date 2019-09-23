@@ -1,7 +1,6 @@
 package admissiontimeout
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -11,7 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 )
 
-type admitFunc func(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error
+type admitFunc func(a admission.Attributes, o admission.ObjectInterfaces) error
 
 type dummyAdmit struct {
 	admitFn admitFunc
@@ -21,12 +20,12 @@ func (p dummyAdmit) Handles(operation admission.Operation) bool {
 	return true
 }
 
-func (p dummyAdmit) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
-	return p.admitFn(ctx, a, o)
+func (p dummyAdmit) Admit(a admission.Attributes, o admission.ObjectInterfaces) error {
+	return p.admitFn(a, o)
 }
 
-func (p dummyAdmit) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
-	return p.admitFn(ctx, a, o)
+func (p dummyAdmit) Validate(a admission.Attributes, o admission.ObjectInterfaces) error {
+	return p.admitFn(a, o)
 }
 
 func TestTimeoutAdmission(t *testing.T) {
@@ -44,7 +43,7 @@ func TestTimeoutAdmission(t *testing.T) {
 			timeout: 50 * time.Millisecond,
 			admissionPlugin: func() (admitFunc, chan struct{}) {
 				stopCh := make(chan struct{})
-				return func(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+				return func(a admission.Attributes, o admission.ObjectInterfaces) error {
 					<-stopCh
 					return nil
 				}, stopCh
@@ -56,7 +55,7 @@ func TestTimeoutAdmission(t *testing.T) {
 			timeout: 500 * time.Millisecond,
 			admissionPlugin: func() (admitFunc, chan struct{}) {
 				stopCh := make(chan struct{})
-				return func(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+				return func(a admission.Attributes, o admission.ObjectInterfaces) error {
 					return fmt.Errorf("fake failure to finish")
 				}, stopCh
 			},
@@ -67,7 +66,7 @@ func TestTimeoutAdmission(t *testing.T) {
 			timeout: 500 * time.Millisecond,
 			admissionPlugin: func() (admitFunc, chan struct{}) {
 				stopCh := make(chan struct{})
-				return func(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+				return func(a admission.Attributes, o admission.ObjectInterfaces) error {
 					panic("fail!")
 				}, stopCh
 			},
@@ -84,10 +83,10 @@ func TestTimeoutAdmission(t *testing.T) {
 			decorator := AdmissionTimeout{Timeout: test.timeout}
 			decoratedPlugin := decorator.WithTimeout(fakePlugin, "fake-name")
 
-			actualErr := decoratedPlugin.(admission.MutationInterface).Admit(context.TODO(), nil, nil)
+			actualErr := decoratedPlugin.(admission.MutationInterface).Admit(nil, nil)
 			validateErr(t, actualErr, test.expectedError)
 
-			actualErr = decoratedPlugin.(admission.ValidationInterface).Validate(context.TODO(), nil, nil)
+			actualErr = decoratedPlugin.(admission.ValidationInterface).Validate(nil, nil)
 			validateErr(t, actualErr, test.expectedError)
 		})
 	}

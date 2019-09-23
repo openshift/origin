@@ -1,4 +1,4 @@
-// Copyright 2014 Google LLC
+// Copyright 2014 Google Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,48 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package container contains a deprecated Google Container Engine client.
+// Package container contains a Google Container Engine client.
 //
-// Deprecated: Use cloud.google.com/go/container/apiv1 instead.
+// For more information about the API,
+// see https://cloud.google.com/container-engine/docs
 package container // import "cloud.google.com/go/container"
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
 
+	"golang.org/x/net/context"
 	raw "google.golang.org/api/container/v1"
 	"google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
+	"google.golang.org/api/transport"
 )
 
-// Type is the operation type.
 type Type string
 
 const (
-	// TypeCreate describes that the operation is "create cluster".
 	TypeCreate = Type("createCluster")
-	// TypeDelete describes that the operation is "delete cluster".
 	TypeDelete = Type("deleteCluster")
 )
 
-// Status is the current status of the operation or resource.
 type Status string
 
 const (
-	// StatusDone is a status indicating that the resource or operation is in done state.
-	StatusDone = Status("done")
-	// StatusPending is a status indicating that the resource or operation is in pending state.
-	StatusPending = Status("pending")
-	// StatusRunning is a status indicating that the resource or operation is in running state.
-	StatusRunning = Status("running")
-	// StatusError is a status indicating that the resource or operation is in error state.
-	StatusError = Status("error")
-	// StatusProvisioning is a status indicating that the resource or operation is in provisioning state.
+	StatusDone         = Status("done")
+	StatusPending      = Status("pending")
+	StatusRunning      = Status("running")
+	StatusError        = Status("error")
 	StatusProvisioning = Status("provisioning")
-	// StatusStopping is a status indicating that the resource or operation is in stopping state.
-	StatusStopping = Status("stopping")
+	StatusStopping     = Status("stopping")
 )
 
 const prodAddr = "https://container.googleapis.com/"
@@ -74,7 +65,7 @@ func NewClient(ctx context.Context, projectID string, opts ...option.ClientOptio
 		option.WithUserAgent(userAgent),
 	}
 	o = append(o, opts...)
-	httpClient, endpoint, err := htransport.NewClient(ctx, o...)
+	httpClient, endpoint, err := transport.NewHTTPClient(ctx, o...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing: %v", err)
 	}
@@ -157,7 +148,7 @@ func resourceFromRaw(c *raw.Cluster) *Resource {
 		Description:       c.Description,
 		Zone:              c.Zone,
 		Status:            Status(c.Status),
-		Num:               c.CurrentNodeCount,
+		Num:               c.InitialNodeCount,
 		APIVersion:        c.InitialClusterVersion,
 		Endpoint:          c.Endpoint,
 		Username:          c.MasterAuth.Username,
@@ -237,6 +228,12 @@ func (c *Client) Cluster(ctx context.Context, zone, name string) (*Resource, err
 		return nil, err
 	}
 	return resourceFromRaw(resp), nil
+}
+
+// CreateCluster creates a new cluster with the provided metadata
+// in the specified zone.
+func (c *Client) CreateCluster(ctx context.Context, zone string, resource *Resource) (*Resource, error) {
+	panic("not implemented")
 }
 
 // DeleteCluster deletes a cluster.

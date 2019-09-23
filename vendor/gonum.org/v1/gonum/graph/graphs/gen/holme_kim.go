@@ -15,7 +15,7 @@ import (
 	"gonum.org/v1/gonum/stat/sampleuv"
 )
 
-// TunableClusteringScaleFree constructs a subgraph in the destination, dst, of order n.
+// TunableClusteringScaleFree constructs a graph in the destination, dst, of order n.
 // The graph is constructed successively starting from an m order graph with one node
 // having degree m-1. At each iteration of graph addition, one node is added with m
 // additional edges joining existing nodes with probability proportional to the nodes'
@@ -47,11 +47,10 @@ func TunableClusteringScaleFree(dst graph.UndirectedBuilder, n, m int, p float64
 
 	// Initial condition.
 	wt := make([]float64, n)
-	id := make([]int64, n)
 	for u := 0; u < m; u++ {
-		un := dst.NewNode()
-		dst.AddNode(un)
-		id[u] = un.ID()
+		if !dst.Has(int64(0)) {
+			dst.AddNode(simple.Node(u))
+		}
 		// We need to give equal probability for
 		// adding the first generation of edges.
 		wt[u] = 1
@@ -65,24 +64,17 @@ func TunableClusteringScaleFree(dst graph.UndirectedBuilder, n, m int, p float64
 
 	// Growth.
 	for v := m; v < n; v++ {
-		vn := dst.NewNode()
-		dst.AddNode(vn)
-		id[v] = vn.ID()
 		var u int
 	pa:
 		for i := 0; i < m; i++ {
 			// Triad formation.
 			if i != 0 && rnd() < p {
-				// TODO(kortschak): Decide whether the node
-				// order in this input to permute should be
-				// sorted first to allow repeatable runs.
-				for _, w := range permute(graph.NodesOf(dst.From(id[u])), rndN) {
+				for _, w := range permute(dst.From(int64(u)), rndN) {
 					wid := w.ID()
-					if wid == id[v] || dst.HasEdgeBetween(wid, id[v]) {
+					if wid == int64(v) || dst.HasEdgeBetween(wid, int64(v)) {
 						continue
 					}
-
-					dst.SetEdge(dst.NewEdge(w, vn))
+					dst.SetEdge(simple.Edge{F: w, T: simple.Node(v)})
 					wt[wid]++
 					wt[v]++
 					continue pa
@@ -96,10 +88,10 @@ func TunableClusteringScaleFree(dst graph.UndirectedBuilder, n, m int, p float64
 				if !ok {
 					return errors.New("gen: depleted distribution")
 				}
-				if u == v || dst.HasEdgeBetween(id[u], id[v]) {
+				if u == v || dst.HasEdgeBetween(int64(u), int64(v)) {
 					continue
 				}
-				dst.SetEdge(dst.NewEdge(dst.Node(id[u]), vn))
+				dst.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
 				wt[u]++
 				wt[v]++
 				break
@@ -137,7 +129,7 @@ func PreferentialAttachment(dst graph.UndirectedBuilder, n, m int, src rand.Sour
 	// Initial condition.
 	wt := make([]float64, n)
 	for u := 0; u < m; u++ {
-		if dst.Node(int64(u)) == nil {
+		if !dst.Has(int64(u)) {
 			dst.AddNode(simple.Node(u))
 		}
 		// We need to give equal probability for

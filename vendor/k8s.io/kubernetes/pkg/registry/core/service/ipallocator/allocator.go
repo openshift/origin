@@ -32,7 +32,6 @@ type Interface interface {
 	AllocateNext() (net.IP, error)
 	Release(net.IP) error
 	ForEach(func(net.IP))
-	CIDR() net.IPNet
 
 	// For testing
 	Has(ip net.IP) bool
@@ -79,7 +78,7 @@ type Range struct {
 }
 
 // NewAllocatorCIDRRange creates a Range over a net.IPNet, calling allocatorFactory to construct the backing store.
-func NewAllocatorCIDRRange(cidr *net.IPNet, allocatorFactory allocator.AllocatorFactory) (*Range, error) {
+func NewAllocatorCIDRRange(cidr *net.IPNet, allocatorFactory allocator.AllocatorFactory) *Range {
 	max := RangeSize(cidr)
 	base := bigForIP(cidr.IP)
 	rangeSpec := cidr.String()
@@ -89,15 +88,14 @@ func NewAllocatorCIDRRange(cidr *net.IPNet, allocatorFactory allocator.Allocator
 		base: base.Add(base, big.NewInt(1)), // don't use the network base
 		max:  maximum(0, int(max-2)),        // don't use the network broadcast,
 	}
-	var err error
-	r.alloc, err = allocatorFactory(r.max, rangeSpec)
-	return &r, err
+	r.alloc = allocatorFactory(r.max, rangeSpec)
+	return &r
 }
 
 // Helper that wraps NewAllocatorCIDRRange, for creating a range backed by an in-memory store.
-func NewCIDRRange(cidr *net.IPNet) (*Range, error) {
-	return NewAllocatorCIDRRange(cidr, func(max int, rangeSpec string) (allocator.Interface, error) {
-		return allocator.NewAllocationMap(max, rangeSpec), nil
+func NewCIDRRange(cidr *net.IPNet) *Range {
+	return NewAllocatorCIDRRange(cidr, func(max int, rangeSpec string) allocator.Interface {
+		return allocator.NewAllocationMap(max, rangeSpec)
 	})
 }
 
@@ -107,10 +105,7 @@ func NewFromSnapshot(snap *api.RangeAllocation) (*Range, error) {
 	if err != nil {
 		return nil, err
 	}
-	r, err := NewCIDRRange(ipnet)
-	if err != nil {
-		return nil, err
-	}
+	r := NewCIDRRange(ipnet)
 	if err := r.Restore(ipnet, snap.Data); err != nil {
 		return nil, err
 	}

@@ -169,7 +169,6 @@ const ListResponse = `
 }`
 
 var ExpectedReceiversList = []receivers.Receiver{ExpectedUpdateReceiver}
-var ExpectedNotifyRequestID = "66a81d68-bf48-4af5-897b-a3bfef7279a8"
 
 func HandleCreateSuccessfully(t *testing.T) {
 	th.Mux.HandleFunc("/v1/receivers", func(w http.ResponseWriter, r *http.Request) {
@@ -225,17 +224,6 @@ func HandleDeleteSuccessfully(t *testing.T) {
 		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
 
 		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNoContent)
-	})
-}
-
-func HandleNotifySuccessfully(t *testing.T) {
-	th.Mux.HandleFunc("/v1/receivers/6dc6d336e3fc4c0a951b5698cd1236ee/notify", func(w http.ResponseWriter, r *http.Request) {
-		th.TestMethod(t, r, "POST")
-		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
-
-		w.Header().Add("Content-Type", "application/json")
-		w.Header().Add("X-OpenStack-Request-Id", ExpectedNotifyRequestID)
 		w.WriteHeader(http.StatusNoContent)
 	})
 }

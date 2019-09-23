@@ -6,10 +6,9 @@ package gensupport
 
 import (
 	"bytes"
-	cryptorand "crypto/rand"
+	"crypto/rand"
 	"io"
 	"io/ioutil"
-	mathrand "math/rand"
 	"net/http"
 	"reflect"
 	"strings"
@@ -273,14 +272,20 @@ func TestUploadRequestGetBody(t *testing.T) {
 	// Test that a single chunk results in a getBody function that is non-nil, and
 	// that produces the same content as the original body.
 
-	// Restore the crypto/rand.Reader mocked out below.
-	defer func(old io.Reader) { cryptorand.Reader = old }(cryptorand.Reader)
+	// Mock out rand.Reader so we use the same multipart boundary every time.
+	rr := rand.Reader
+	rand.Reader = &nullReader{1000}
+	defer func() {
+		rand.Reader = rr
+	}()
 
-	for i, test := range []struct {
-		desc        string
-		r           io.Reader
-		chunkSize   int
-		wantGetBody bool
+	for _, test := range []struct {
+		desc            string
+		r               io.Reader
+		chunkSize       int
+		wantGetBody     bool
+		wantContentType string
+		wantUploadType  string
 	}{
 		{
 			desc:        "chunk size of zero: no getBody",
@@ -303,8 +308,6 @@ func TestUploadRequestGetBody(t *testing.T) {
 			wantGetBody: false,
 		},
 	} {
-		cryptorand.Reader = mathrand.New(mathrand.NewSource(int64(i)))
-
 		mi := NewInfoFromMedia(test.r, []googleapi.MediaOption{googleapi.ChunkSize(test.chunkSize)})
 		r, getBody, _ := mi.UploadRequest(http.Header{}, bytes.NewBuffer([]byte("body")))
 		if got, want := (getBody != nil), test.wantGetBody; got != want {

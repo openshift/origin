@@ -4,10 +4,7 @@ package specconv
 
 import (
 	"os"
-	"strings"
 	"testing"
-
-	"golang.org/x/sys/unix"
 
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/configs/validate"
@@ -106,7 +103,7 @@ func TestSetupSeccomp(t *testing.T) {
 				Args: []specs.LinuxSeccompArg{
 					{
 						Index:    0,
-						Value:    unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWUSER | unix.CLONE_NEWPID | unix.CLONE_NEWNET | unix.CLONE_NEWCGROUP,
+						Value:    2080505856,
 						ValueTwo: 0,
 						Op:       "SCMP_CMP_MASKED_EQ",
 					},
@@ -156,7 +153,7 @@ func TestSetupSeccomp(t *testing.T) {
 			expectedCloneSyscallArgs := configs.Arg{
 				Index:    0,
 				Op:       7, // SCMP_CMP_MASKED_EQ
-				Value:    unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWUSER | unix.CLONE_NEWPID | unix.CLONE_NEWNET | unix.CLONE_NEWCGROUP,
+				Value:    2080505856,
 				ValueTwo: 0,
 			}
 			if expectedCloneSyscallArgs != *call.Args[0] {
@@ -398,9 +395,6 @@ func TestSpecconvExampleValidate(t *testing.T) {
 
 func TestDupNamespaces(t *testing.T) {
 	spec := &specs.Spec{
-		Root: &specs.Root{
-			Path: "rootfs",
-		},
 		Linux: &specs.Linux{
 			Namespaces: []specs.LinuxNamespace{
 				{
@@ -418,12 +412,12 @@ func TestDupNamespaces(t *testing.T) {
 		Spec: spec,
 	})
 
-	if !strings.Contains(err.Error(), "malformed spec file: duplicated ns") {
+	if err == nil {
 		t.Errorf("Duplicated namespaces should be forbidden")
 	}
 }
 
-func TestNonZeroEUIDCompatibleSpecconvValidate(t *testing.T) {
+func TestRootlessSpecconvValidate(t *testing.T) {
 	if _, err := os.Stat("/proc/self/ns/user"); os.IsNotExist(err) {
 		t.Skip("userns is unsupported")
 	}
@@ -436,8 +430,7 @@ func TestNonZeroEUIDCompatibleSpecconvValidate(t *testing.T) {
 		CgroupName:       "ContainerID",
 		UseSystemdCgroup: false,
 		Spec:             spec,
-		RootlessEUID:     true,
-		RootlessCgroups:  true,
+		Rootless:         true,
 	}
 
 	config, err := CreateLibcontainerConfig(opts)

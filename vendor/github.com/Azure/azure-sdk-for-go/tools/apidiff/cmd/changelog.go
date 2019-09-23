@@ -53,7 +53,7 @@ func theChangelogCmd(args []string) error {
 	if err != nil {
 		return err
 	}
-	if rpt.IsEmpty() {
+	if rpt.isEmpty() {
 		return nil
 	}
 
@@ -85,7 +85,7 @@ func reportUpdatedPkgs(pr pkgsReport) {
 	fmt.Printf("### Updated Packages\n\n")
 	updated := []string{}
 	for pkgName, pkgRpt := range pr.ModifiedPackages {
-		if pkgRpt.HasAdditiveChanges() && !pkgRpt.HasBreakingChanges() {
+		if pkgRpt.hasAdditiveChanges() && !pkgRpt.hasBreakingChanges() {
 			updated = append(updated, pkgName)
 		}
 	}
@@ -99,7 +99,7 @@ func reportBreakingPkgs(pr pkgsReport) {
 	fmt.Printf("### BreakingChanges\n\n")
 	breaking := []string{}
 	for pkgName, pkgRpt := range pr.ModifiedPackages {
-		if pkgRpt.HasBreakingChanges() {
+		if pkgRpt.hasBreakingChanges() {
 			breaking = append(breaking, pkgName)
 		}
 	}

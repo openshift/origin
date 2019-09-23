@@ -46,6 +46,7 @@ filegroup(
         "//pkg/credentialprovider/aws:all-srcs",
         "//pkg/credentialprovider/azure:all-srcs",
         "//pkg/credentialprovider/gcp:all-srcs",
+        "//pkg/credentialprovider/rancher:all-srcs",
         "//pkg/credentialprovider/secrets:all-srcs",
     ],
     tags = ["automanaged"],

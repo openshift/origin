@@ -116,13 +116,13 @@ func Dggsvd3Test(t *testing.T, impl Dggsvd3er) {
 		}
 
 		// Check orthogonality of U, V and Q.
-		if !isOrthogonal(u) {
+		if !isOrthonormal(u) {
 			t.Errorf("test %d: U is not orthogonal\n%+v", cas, u)
 		}
-		if !isOrthogonal(v) {
+		if !isOrthonormal(v) {
 			t.Errorf("test %d: V is not orthogonal\n%+v", cas, v)
 		}
-		if !isOrthogonal(q) {
+		if !isOrthonormal(q) {
 			t.Errorf("test %d: Q is not orthogonal\n%+v", cas, q)
 		}
 

@@ -22,9 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v1.0/spellcheck"
-
 // ActionType enumerates the values for action type.
 type ActionType string
 
@@ -111,21 +108,6 @@ func PossibleErrorTypeValues() []ErrorType {
 	return []ErrorType{RepeatedToken, UnknownToken}
 }
 
-// Mode enumerates the values for mode.
-type Mode string
-
-const (
-	// Proof ...
-	Proof Mode = "proof"
-	// Spell ...
-	Spell Mode = "spell"
-)
-
-// PossibleModeValues returns an array of possible values for the Mode const type.
-func PossibleModeValues() []Mode {
-	return []Mode{Proof, Spell}
-}
-
 // Type enumerates the values for type.
 type Type string
 
@@ -157,7 +139,7 @@ type BasicAnswer interface {
 
 // Answer ...
 type Answer struct {
-	// ID - READ-ONLY; A String identifier.
+	// ID - A String identifier.
 	ID *string `json:"id,omitempty"`
 	// Type - Possible values include: 'TypeResponseBase', 'TypeSpellCheck', 'TypeAnswer', 'TypeResponse', 'TypeIdentifiable', 'TypeErrorResponse'
 	Type Type `json:"_type,omitempty"`
@@ -204,6 +186,9 @@ func unmarshalBasicAnswerArray(body []byte) ([]BasicAnswer, error) {
 func (a Answer) MarshalJSON() ([]byte, error) {
 	a.Type = TypeAnswer
 	objectMap := make(map[string]interface{})
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
 	if a.Type != "" {
 		objectMap["_type"] = a.Type
 	}
@@ -264,15 +249,15 @@ func (a Answer) AsBasicResponseBase() (BasicResponseBase, bool) {
 type Error struct {
 	// Code - The error code that identifies the category of error. Possible values include: 'None', 'ServerError', 'InvalidRequest', 'RateLimitExceeded', 'InvalidAuthorization', 'InsufficientAuthorization'
 	Code ErrorCode `json:"code,omitempty"`
-	// SubCode - READ-ONLY; The error code that further helps to identify the error. Possible values include: 'UnexpectedError', 'ResourceError', 'NotImplemented', 'ParameterMissing', 'ParameterInvalidValue', 'HTTPNotAllowed', 'Blocked', 'AuthorizationMissing', 'AuthorizationRedundancy', 'AuthorizationDisabled', 'AuthorizationExpired'
+	// SubCode - The error code that further helps to identify the error. Possible values include: 'UnexpectedError', 'ResourceError', 'NotImplemented', 'ParameterMissing', 'ParameterInvalidValue', 'HTTPNotAllowed', 'Blocked', 'AuthorizationMissing', 'AuthorizationRedundancy', 'AuthorizationDisabled', 'AuthorizationExpired'
 	SubCode ErrorSubCode `json:"subCode,omitempty"`
 	// Message - A description of the error.
 	Message *string `json:"message,omitempty"`
-	// MoreDetails - READ-ONLY; A description that provides additional information about the error.
+	// MoreDetails - A description that provides additional information about the error.
 	MoreDetails *string `json:"moreDetails,omitempty"`
-	// Parameter - READ-ONLY; The parameter in the request that caused the error.
+	// Parameter - The parameter in the request that caused the error.
 	Parameter *string `json:"parameter,omitempty"`
-	// Value - READ-ONLY; The parameter's value in the request that was not valid.
+	// Value - The parameter's value in the request that was not valid.
 	Value *string `json:"value,omitempty"`
 }
 
@@ -280,7 +265,7 @@ type Error struct {
 type ErrorResponse struct {
 	// Errors - A list of errors that describe the reasons why the request failed.
 	Errors *[]Error `json:"errors,omitempty"`
-	// ID - READ-ONLY; A String identifier.
+	// ID - A String identifier.
 	ID *string `json:"id,omitempty"`
 	// Type - Possible values include: 'TypeResponseBase', 'TypeSpellCheck', 'TypeAnswer', 'TypeResponse', 'TypeIdentifiable', 'TypeErrorResponse'
 	Type Type `json:"_type,omitempty"`
@@ -292,6 +277,9 @@ func (er ErrorResponse) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if er.Errors != nil {
 		objectMap["errors"] = er.Errors
+	}
+	if er.ID != nil {
+		objectMap["id"] = er.ID
 	}
 	if er.Type != "" {
 		objectMap["_type"] = er.Type
@@ -362,7 +350,7 @@ type BasicIdentifiable interface {
 
 // Identifiable defines the identity of a resource.
 type Identifiable struct {
-	// ID - READ-ONLY; A String identifier.
+	// ID - A String identifier.
 	ID *string `json:"id,omitempty"`
 	// Type - Possible values include: 'TypeResponseBase', 'TypeSpellCheck', 'TypeAnswer', 'TypeResponse', 'TypeIdentifiable', 'TypeErrorResponse'
 	Type Type `json:"_type,omitempty"`
@@ -421,6 +409,9 @@ func unmarshalBasicIdentifiableArray(body []byte) ([]BasicIdentifiable, error) {
 func (i Identifiable) MarshalJSON() ([]byte, error) {
 	i.Type = TypeIdentifiable
 	objectMap := make(map[string]interface{})
+	if i.ID != nil {
+		objectMap["id"] = i.ID
+	}
 	if i.Type != "" {
 		objectMap["_type"] = i.Type
 	}
@@ -487,10 +478,10 @@ type BasicResponse interface {
 	AsResponse() (*Response, bool)
 }
 
-// Response defines a response. All schemas that could be returned at the root of a response should inherit
-// from this
+// Response defines a response. All schemas that could be returned at the root of a response should inherit from
+// this
 type Response struct {
-	// ID - READ-ONLY; A String identifier.
+	// ID - A String identifier.
 	ID *string `json:"id,omitempty"`
 	// Type - Possible values include: 'TypeResponseBase', 'TypeSpellCheck', 'TypeAnswer', 'TypeResponse', 'TypeIdentifiable', 'TypeErrorResponse'
 	Type Type `json:"_type,omitempty"`
@@ -545,6 +536,9 @@ func unmarshalBasicResponseArray(body []byte) ([]BasicResponse, error) {
 func (r Response) MarshalJSON() ([]byte, error) {
 	r.Type = TypeResponse
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
 	if r.Type != "" {
 		objectMap["_type"] = r.Type
 	}
@@ -737,7 +731,7 @@ func (rb ResponseBase) AsBasicResponseBase() (BasicResponseBase, bool) {
 type SpellCheck struct {
 	autorest.Response `json:"-"`
 	FlaggedTokens     *[]SpellingFlaggedToken `json:"flaggedTokens,omitempty"`
-	// ID - READ-ONLY; A String identifier.
+	// ID - A String identifier.
 	ID *string `json:"id,omitempty"`
 	// Type - Possible values include: 'TypeResponseBase', 'TypeSpellCheck', 'TypeAnswer', 'TypeResponse', 'TypeIdentifiable', 'TypeErrorResponse'
 	Type Type `json:"_type,omitempty"`
@@ -749,6 +743,9 @@ func (sc SpellCheck) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sc.FlaggedTokens != nil {
 		objectMap["flaggedTokens"] = sc.FlaggedTokens
+	}
+	if sc.ID != nil {
+		objectMap["id"] = sc.ID
 	}
 	if sc.Type != "" {
 		objectMap["_type"] = sc.Type
@@ -811,18 +808,14 @@ type SpellingFlaggedToken struct {
 	Offset *int32  `json:"offset,omitempty"`
 	Token  *string `json:"token,omitempty"`
 	// Type - Possible values include: 'UnknownToken', 'RepeatedToken'
-	Type ErrorType `json:"type,omitempty"`
-	// Suggestions - READ-ONLY
-	Suggestions *[]SpellingTokenSuggestion `json:"suggestions,omitempty"`
-	// PingURLSuffix - READ-ONLY
-	PingURLSuffix *string `json:"pingUrlSuffix,omitempty"`
+	Type          ErrorType                  `json:"type,omitempty"`
+	Suggestions   *[]SpellingTokenSuggestion `json:"suggestions,omitempty"`
+	PingURLSuffix *string                    `json:"pingUrlSuffix,omitempty"`
 }
 
 // SpellingTokenSuggestion ...
 type SpellingTokenSuggestion struct {
-	Suggestion *string `json:"suggestion,omitempty"`
-	// Score - READ-ONLY
-	Score *float64 `json:"score,omitempty"`
-	// PingURLSuffix - READ-ONLY
-	PingURLSuffix *string `json:"pingUrlSuffix,omitempty"`
+	Suggestion    *string  `json:"suggestion,omitempty"`
+	Score         *float64 `json:"score,omitempty"`
+	PingURLSuffix *string  `json:"pingUrlSuffix,omitempty"`
 }

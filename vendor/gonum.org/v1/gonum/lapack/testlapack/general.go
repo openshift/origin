@@ -50,18 +50,6 @@ const (
 	optimumWork
 )
 
-func (wl worklen) String() string {
-	switch wl {
-	case minimumWork:
-		return "minimum"
-	case mediumWork:
-		return "medium"
-	case optimumWork:
-		return "optimum"
-	}
-	return ""
-}
-
 // nanSlice allocates a new slice of length n filled with NaN.
 func nanSlice(n int) []float64 {
 	s := make([]float64, n)
@@ -693,7 +681,7 @@ func checkBidiagonal(t *testing.T, m, n, nb int, a []float64, lda int, d, e, tau
 
 // constructQPBidiagonal constructs Q or P from the Bidiagonal decomposition
 // computed by dlabrd and bgebd2.
-func constructQPBidiagonal(vect lapack.ApplyOrtho, m, n, nb int, a []float64, lda int, tau []float64) blas64.General {
+func constructQPBidiagonal(vect lapack.DecompUpdate, m, n, nb int, a []float64, lda int, tau []float64) blas64.General {
 	sz := n
 	if vect == lapack.ApplyQ {
 		sz = m
@@ -830,94 +818,26 @@ func printRowise(a []float64, m, n, lda int, beyond bool) {
 	}
 }
 
-// isOrthogonal returns whether a square matrix Q is orthogonal.
-func isOrthogonal(q blas64.General) bool {
+// isOrthonormal checks that a general matrix is orthonormal.
+func isOrthonormal(q blas64.General) bool {
 	n := q.Rows
-	if n != q.Cols {
-		panic("matrix not square")
-	}
-	// A real square matrix is orthogonal if and only if its rows form
-	// an orthonormal basis of the Euclidean space R^n.
-	const tol = 1e-13
 	for i := 0; i < n; i++ {
-		nrm := blas64.Nrm2(blas64.Vector{N: n, Data: q.Data[i*q.Stride:], Inc: 1})
-		if math.IsNaN(nrm) {
-			return false
-		}
-		if math.Abs(nrm-1) > tol {
-			return false
-		}
-		for j := i + 1; j < n; j++ {
-			dot := blas64.Dot(blas64.Vector{N: n, Data: q.Data[i*q.Stride:], Inc: 1},
-				blas64.Vector{N: n, Data: q.Data[j*q.Stride:], Inc: 1})
+		for j := i; j < n; j++ {
+			dot := blas64.Dot(n,
+				blas64.Vector{Inc: 1, Data: q.Data[i*q.Stride:]},
+				blas64.Vector{Inc: 1, Data: q.Data[j*q.Stride:]},
+			)
 			if math.IsNaN(dot) {
 				return false
 			}
-			if math.Abs(dot) > tol {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// hasOrthonormalColumns returns whether the columns of Q are orthonormal.
-func hasOrthonormalColumns(q blas64.General) bool {
-	m, n := q.Rows, q.Cols
-	if n > m {
-		// Wide matrix cannot have all columns orthogonal.
-		return false
-	}
-	ldq := q.Stride
-	const tol = 1e-13
-	for i := 0; i < n; i++ {
-		nrm := blas64.Nrm2(blas64.Vector{N: m, Data: q.Data[i:], Inc: ldq})
-		if math.IsNaN(nrm) {
-			return false
-		}
-		if math.Abs(nrm-1) > tol {
-			return false
-		}
-		for j := i + 1; j < n; j++ {
-			dot := blas64.Dot(blas64.Vector{N: m, Data: q.Data[i:], Inc: ldq},
-				blas64.Vector{N: m, Data: q.Data[j:], Inc: ldq})
-			if math.IsNaN(dot) {
-				return false
-			}
-			if math.Abs(dot) > tol {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// hasOrthonormalRows returns whether the rows of Q are orthonormal.
-func hasOrthonormalRows(q blas64.General) bool {
-	m, n := q.Rows, q.Cols
-	if m > n {
-		// Tall matrix cannot have all rows orthogonal.
-		return false
-	}
-	ldq := q.Stride
-	const tol = 1e-13
-	for i1 := 0; i1 < m; i1++ {
-		nrm := blas64.Nrm2(blas64.Vector{N: n, Data: q.Data[i1*ldq:], Inc: 1})
-		if math.IsNaN(nrm) {
-			return false
-		}
-		if math.Abs(nrm-1) > tol {
-			return false
-		}
-		for i2 := i1 + 1; i2 < m; i2++ {
-			dot := blas64.Dot(
-				blas64.Vector{N: n, Data: q.Data[i1*ldq:], Inc: 1},
-				blas64.Vector{N: n, Data: q.Data[i2*ldq:], Inc: 1})
-			if math.IsNaN(dot) {
-				return false
-			}
-			if math.Abs(dot) > tol {
-				return false
+			if i == j {
+				if math.Abs(dot-1) > 1e-10 {
+					return false
+				}
+			} else {
+				if math.Abs(dot) > 1e-10 {
+					return false
+				}
 			}
 		}
 	}
@@ -1331,7 +1251,7 @@ func isRightEigenvectorOf(a blas64.General, xRe, xIm []float64, lambda complex12
 
 	// Compute A real(x) and store the result into xReAns.
 	xReAns := make([]float64, n)
-	blas64.Gemv(blas.NoTrans, 1, a, blas64.Vector{Data: xRe, Inc: 1}, 0, blas64.Vector{Data: xReAns, Inc: 1})
+	blas64.Gemv(blas.NoTrans, 1, a, blas64.Vector{1, xRe}, 0, blas64.Vector{1, xReAns})
 
 	if imag(lambda) == 0 && xIm == nil {
 		// Real eigenvalue and eigenvector.
@@ -1349,7 +1269,7 @@ func isRightEigenvectorOf(a blas64.General, xRe, xIm []float64, lambda complex12
 
 	// Compute A imag(x) and store the result into xImAns.
 	xImAns := make([]float64, n)
-	blas64.Gemv(blas.NoTrans, 1, a, blas64.Vector{Data: xIm, Inc: 1}, 0, blas64.Vector{Data: xImAns, Inc: 1})
+	blas64.Gemv(blas.NoTrans, 1, a, blas64.Vector{1, xIm}, 0, blas64.Vector{1, xImAns})
 
 	// Compute λx and store the result into lambdax.
 	lambdax := make([]complex128, n)
@@ -1390,7 +1310,7 @@ func isLeftEigenvectorOf(a blas64.General, yRe, yIm []float64, lambda complex128
 
 	// Compute A^T real(y) and store the result into yReAns.
 	yReAns := make([]float64, n)
-	blas64.Gemv(blas.Trans, 1, a, blas64.Vector{Data: yRe, Inc: 1}, 0, blas64.Vector{Data: yReAns, Inc: 1})
+	blas64.Gemv(blas.Trans, 1, a, blas64.Vector{1, yRe}, 0, blas64.Vector{1, yReAns})
 
 	if imag(lambda) == 0 && yIm == nil {
 		// Real eigenvalue and eigenvector.
@@ -1408,7 +1328,7 @@ func isLeftEigenvectorOf(a blas64.General, yRe, yIm []float64, lambda complex128
 
 	// Compute A^T imag(y) and store the result into yImAns.
 	yImAns := make([]float64, n)
-	blas64.Gemv(blas.Trans, 1, a, blas64.Vector{Data: yIm, Inc: 1}, 0, blas64.Vector{Data: yImAns, Inc: 1})
+	blas64.Gemv(blas.Trans, 1, a, blas64.Vector{1, yIm}, 0, blas64.Vector{1, yImAns})
 
 	// Compute conj(λ)y and store the result into lambday.
 	lambda = cmplx.Conj(lambda)
@@ -1434,6 +1354,92 @@ func rootsOfUnity(n int) []complex128 {
 		w[i] = complex(math.Cos(angle), math.Sin(angle))
 	}
 	return w
+}
+
+// randomOrthogonal returns an n×n random orthogonal matrix.
+func randomOrthogonal(n int, rnd *rand.Rand) blas64.General {
+	q := eye(n, n)
+	x := make([]float64, n)
+	v := make([]float64, n)
+	for j := 0; j < n-1; j++ {
+		// x represents the j-th column of a random matrix.
+		for i := 0; i < j; i++ {
+			x[i] = 0
+		}
+		for i := j; i < n; i++ {
+			x[i] = rnd.NormFloat64()
+		}
+		// Compute v that represents the elementary reflector that
+		// annihilates the subdiagonal elements of x.
+		reflector(v, x, j)
+		// Compute Q * H_j and store the result into Q.
+		applyReflector(q, q, v)
+	}
+	if !isOrthonormal(q) {
+		panic("Q not orthogonal")
+	}
+	return q
+}
+
+// reflector generates a Householder reflector v that zeros out subdiagonal
+// entries in the j-th column of a matrix.
+func reflector(v, col []float64, j int) {
+	n := len(col)
+	if len(v) != n {
+		panic("slice length mismatch")
+	}
+	if j < 0 || n <= j {
+		panic("invalid column index")
+	}
+
+	for i := range v {
+		v[i] = 0
+	}
+	if j == n-1 {
+		return
+	}
+	s := floats.Norm(col[j:], 2)
+	if s == 0 {
+		return
+	}
+	v[j] = col[j] + math.Copysign(s, col[j])
+	copy(v[j+1:], col[j+1:])
+	s = floats.Norm(v[j:], 2)
+	floats.Scale(1/s, v[j:])
+}
+
+// applyReflector computes Q*H where H is a Householder matrix represented by
+// the Householder reflector v.
+func applyReflector(qh blas64.General, q blas64.General, v []float64) {
+	n := len(v)
+	if qh.Rows != n || qh.Cols != n {
+		panic("bad size of qh")
+	}
+	if q.Rows != n || q.Cols != n {
+		panic("bad size of q")
+	}
+	qv := make([]float64, n)
+	blas64.Gemv(blas.NoTrans, 1, q, blas64.Vector{1, v}, 0, blas64.Vector{1, qv})
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			qh.Data[i*qh.Stride+j] = q.Data[i*q.Stride+j]
+		}
+	}
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			qh.Data[i*qh.Stride+j] -= 2 * qv[i] * v[j]
+		}
+	}
+	var norm2 float64
+	for _, vi := range v {
+		norm2 += vi * vi
+	}
+	norm2inv := 1 / norm2
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			qh.Data[i*qh.Stride+j] *= norm2inv
+		}
+	}
 }
 
 // constructGSVDresults returns the matrices [ 0 R ], D1 and D2 described
@@ -1508,71 +1514,4 @@ func constructGSVPresults(n, p, m, k, l int, a, b blas64.General) (zeroA, zeroB 
 	copyGeneral(dst, src)
 
 	return zeroA, zeroB
-}
-
-// distFromIdentity returns the L-infinity distance of an n×n matrix A from the
-// identity. If A contains NaN elements, distFromIdentity will return +inf.
-func distFromIdentity(n int, a []float64, lda int) float64 {
-	var dist float64
-	for i := 0; i < n; i++ {
-		for j := 0; j < n; j++ {
-			aij := a[i*lda+j]
-			if math.IsNaN(aij) {
-				return math.Inf(1)
-			}
-			if i == j {
-				dist = math.Max(dist, math.Abs(aij-1))
-			} else {
-				dist = math.Max(dist, math.Abs(aij))
-			}
-		}
-	}
-	return dist
-}
-
-func sameFloat64(a, b float64) bool {
-	return a == b || math.IsNaN(a) && math.IsNaN(b)
-}
-
-// sameLowerTri returns whether n×n matrices A and B are same under the diagonal.
-func sameLowerTri(n int, a []float64, lda int, b []float64, ldb int) bool {
-	for i := 1; i < n; i++ {
-		for j := 0; j < i; j++ {
-			aij := a[i*lda+j]
-			bij := b[i*ldb+j]
-			if !sameFloat64(aij, bij) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// sameUpperTri returns whether n×n matrices A and B are same above the diagonal.
-func sameUpperTri(n int, a []float64, lda int, b []float64, ldb int) bool {
-	for i := 0; i < n-1; i++ {
-		for j := i + 1; j < n; j++ {
-			aij := a[i*lda+j]
-			bij := b[i*ldb+j]
-			if !sameFloat64(aij, bij) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// svdJobString returns a string representation of job.
-func svdJobString(job lapack.SVDJob) string {
-	switch job {
-	case lapack.SVDAll:
-		return "All"
-	case lapack.SVDStore:
-		return "Store"
-	case lapack.SVDOverwrite:
-		return "Overwrite"
-	case lapack.SVDNone:
-		return "None"
-	}
-	return "unknown SVD job"
 }

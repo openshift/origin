@@ -18,9 +18,10 @@ package vsphere
 
 import (
 	"context"
+	"os"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/vmware/govmomi/object"
 
 	clientset "k8s.io/client-go/kubernetes"
@@ -37,20 +38,22 @@ var _ = utils.SIGDescribe("Node Unregister [Feature:vsphere] [Slow] [Disruptive]
 		err        error
 	)
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		framework.SkipUnlessProviderIs("vsphere")
 		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 		framework.ExpectNoError(framework.WaitForAllNodesSchedulable(client, framework.TestContext.NodeSchedulableTimeout))
-		framework.ExpectNoError(err)
-		workingDir = GetAndExpectStringEnvVar("VSPHERE_WORKING_DIR")
+		Expect(err).NotTo(HaveOccurred())
+		workingDir = os.Getenv("VSPHERE_WORKING_DIR")
+		Expect(workingDir).NotTo(BeEmpty())
+
 	})
 
-	ginkgo.It("node unregister", func() {
-		ginkgo.By("Get total Ready nodes")
+	It("node unregister", func() {
+		By("Get total Ready nodes")
 		nodeList := framework.GetReadySchedulableNodesOrDie(f.ClientSet)
-		gomega.Expect(len(nodeList.Items) > 1).To(gomega.BeTrue(), "At least 2 nodes are required for this test")
+		Expect(len(nodeList.Items) > 1).To(BeTrue(), "At least 2 nodes are required for this test")
 
 		totalNodesCount := len(nodeList.Items)
 		nodeVM := nodeList.Items[0]
@@ -66,49 +69,50 @@ var _ = utils.SIGDescribe("Node Unregister [Feature:vsphere] [Slow] [Disruptive]
 		defer cancel()
 
 		vmHost, err := vmObject.HostSystem(ctx)
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 
 		vmPool, err := vmObject.ResourcePool(ctx)
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 
 		// Unregister Node VM
-		ginkgo.By("Unregister a node VM")
+		By("Unregister a node VM")
 		unregisterNodeVM(nodeVM.ObjectMeta.Name, vmObject)
 
 		// Ready nodes should be 1 less
-		ginkgo.By("Verifying the ready node counts")
-		gomega.Expect(verifyReadyNodeCount(f.ClientSet, totalNodesCount-1)).To(gomega.BeTrue(), "Unable to verify expected ready node count")
+		By("Verifying the ready node counts")
+		Expect(verifyReadyNodeCount(f.ClientSet, totalNodesCount-1)).To(BeTrue(), "Unable to verify expected ready node count")
 
 		nodeList = framework.GetReadySchedulableNodesOrDie(client)
-		gomega.Expect(nodeList.Items).NotTo(gomega.BeEmpty(), "Unable to find ready and schedulable Node")
+		Expect(nodeList.Items).NotTo(BeEmpty(), "Unable to find ready and schedulable Node")
 
 		var nodeNameList []string
 		for _, node := range nodeList.Items {
 			nodeNameList = append(nodeNameList, node.ObjectMeta.Name)
 		}
-		gomega.Expect(nodeNameList).NotTo(gomega.ContainElement(nodeVM.ObjectMeta.Name))
+		Expect(nodeNameList).NotTo(ContainElement(nodeVM.ObjectMeta.Name))
 
 		// Register Node VM
-		ginkgo.By("Register back the node VM")
+		By("Register back the node VM")
 		registerNodeVM(nodeVM.ObjectMeta.Name, workingDir, vmxFilePath, vmPool, vmHost)
 
 		// Ready nodes should be equal to earlier count
-		ginkgo.By("Verifying the ready node counts")
-		gomega.Expect(verifyReadyNodeCount(f.ClientSet, totalNodesCount)).To(gomega.BeTrue(), "Unable to verify expected ready node count")
+		By("Verifying the ready node counts")
+		Expect(verifyReadyNodeCount(f.ClientSet, totalNodesCount)).To(BeTrue(), "Unable to verify expected ready node count")
 
 		nodeList = framework.GetReadySchedulableNodesOrDie(client)
-		gomega.Expect(nodeList.Items).NotTo(gomega.BeEmpty(), "Unable to find ready and schedulable Node")
+		Expect(nodeList.Items).NotTo(BeEmpty(), "Unable to find ready and schedulable Node")
 
 		nodeNameList = nodeNameList[:0]
 		for _, node := range nodeList.Items {
 			nodeNameList = append(nodeNameList, node.ObjectMeta.Name)
 		}
-		gomega.Expect(nodeNameList).To(gomega.ContainElement(nodeVM.ObjectMeta.Name))
+		Expect(nodeNameList).To(ContainElement(nodeVM.ObjectMeta.Name))
 
 		// Sanity test that pod provisioning works
-		ginkgo.By("Sanity check for volume lifecycle")
+		By("Sanity check for volume lifecycle")
 		scParameters := make(map[string]string)
-		storagePolicy := GetAndExpectStringEnvVar("VSPHERE_SPBM_GOLD_POLICY")
+		storagePolicy := os.Getenv("VSPHERE_SPBM_GOLD_POLICY")
+		Expect(storagePolicy).NotTo(BeEmpty(), "Please set VSPHERE_SPBM_GOLD_POLICY system environment")
 		scParameters[SpbmStoragePolicy] = storagePolicy
 		invokeValidPolicyTest(f, client, namespace, scParameters)
 	})

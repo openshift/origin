@@ -44,15 +44,15 @@ type localMethod interface {
 	// updates loc and returns the next operation.
 	iterateLocal(loc *Location) (Operation, error)
 
-	needser
+	Needser
 }
 
-type needser interface {
-	// needs specifies information about the objective function needed by the
+type Needser interface {
+	// Needs specifies information about the objective function needed by the
 	// optimizer beyond just the function value. The information is used
 	// internally for initialization and must match evaluation types returned
 	// by Init and Iterate during the optimization process.
-	needs() struct {
+	Needs() struct {
 		Gradient bool
 		Hessian  bool
 	}

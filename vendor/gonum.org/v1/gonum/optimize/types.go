@@ -5,13 +5,15 @@
 package optimize
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"gonum.org/v1/gonum/mat"
 )
 
-const defaultGradientAbsTol = 1e-12
+const defaultGradientAbsTol = 1e-6
 
 // Operation represents the set of operations commanded by Method at each
 // iteration. It is a bitmap of various Iteration and Evaluation constants.
@@ -84,9 +86,17 @@ var operationNames = map[Operation]string{
 	signalDone:     "signalDone",
 }
 
+// Location represents a location in the optimization procedure.
+type Location struct {
+	X        []float64
+	F        float64
+	Gradient []float64
+	Hessian  *mat.SymDense
+}
+
 // Result represents the answer of an optimization run. It contains the optimum
-// function value, X location, and gradient as well as the Status at convergence
-// and Statistics taken during the run.
+// location as well as the Status at convergence and Statistics taken during the
+// run.
 type Result struct {
 	Location
 	Stats
@@ -123,17 +133,13 @@ type Problem struct {
 	// must not modify x.
 	Func func(x []float64) float64
 
-	// Grad evaluates the gradient at x and returns the result. Grad may use
-	// (and return) the provided slice if it is non-nil, or must allocate a new
-	// slice otherwise. Grad must not modify x.
-	Grad func(grad []float64, x []float64) []float64
+	// Grad evaluates the gradient at x and stores the result in-place in grad.
+	// Grad must not modify x.
+	Grad func(grad []float64, x []float64)
 
 	// Hess evaluates the Hessian at x and stores the result in-place in hess.
-	// Hess must not modify x. Hess may use (and return) the provided Symmetric
-	// if it is non-nil, or must allocate a new Symmetric otherwise. Minimize
-	// will 'give back' the returned Symmetric where possible, allowing Hess
-	// to use a type assertion on the provided matrix.
-	Hess func(hess mat.Symmetric, x []float64) mat.Symmetric
+	// Hess must not modify x.
+	Hess func(hess mat.MutableSymmetric, x []float64)
 
 	// Status reports the status of the objective function being optimized and any
 	// error. This can be used to terminate early, for example when the function is
@@ -142,82 +148,55 @@ type Problem struct {
 	Status func() (Status, error)
 }
 
-// Available describes the functions available to call in Problem.
-type Available struct {
-	Grad bool
-	Hess bool
-}
-
-func availFromProblem(prob Problem) Available {
-	return Available{Grad: prob.Grad != nil, Hess: prob.Hess != nil}
-}
-
-// function tests if the Problem described by the receiver is suitable for an
-// unconstrained Method that only calls the function, and returns the result.
-func (has Available) function() (uses Available, err error) {
-	// TODO(btracey): This needs to be modified when optimize supports
-	// constrained optimization.
-	return Available{}, nil
-}
-
-// gradient tests if the Problem described by the receiver is suitable for an
-// unconstrained gradient-based Method, and returns the result.
-func (has Available) gradient() (uses Available, err error) {
-	// TODO(btracey): This needs to be modified when optimize supports
-	// constrained optimization.
-	if !has.Grad {
-		return Available{}, ErrMissingGrad
+// TODO(btracey): Think about making this an exported function when the
+// constraint interface is designed.
+func (p Problem) satisfies(method Needser) error {
+	if method.Needs().Gradient && p.Grad == nil {
+		return errors.New("optimize: problem does not provide needed Grad function")
 	}
-	return Available{Grad: true}, nil
-}
-
-// hessian tests if the Problem described by the receiver is suitable for an
-// unconstrained Hessian-based Method, and returns the result.
-func (has Available) hessian() (uses Available, err error) {
-	// TODO(btracey): This needs to be modified when optimize supports
-	// constrained optimization.
-	if !has.Grad {
-		return Available{}, ErrMissingGrad
+	if method.Needs().Hessian && p.Hess == nil {
+		return errors.New("optimize: problem does not provide needed Hess function")
 	}
-	if !has.Hess {
-		return Available{}, ErrMissingHess
-	}
-	return Available{Grad: true, Hess: true}, nil
+	return nil
 }
 
 // Settings represents settings of the optimization run. It contains initial
-// settings, convergence information, and Recorder information. Convergence
-// settings are only checked at MajorIterations, while Evaluation thresholds
-// are checked at every Operation. See the field comments for default values.
+// settings, convergence information, and Recorder information. In general, users
+// should use DefaultSettings rather than constructing a Settings literal.
+//
+// If Recorder is nil, no information will be recorded.
 type Settings struct {
 	// InitValues specifies properties (function value, gradient, etc.) known
 	// at the initial location passed to Minimize. If InitValues is non-nil, then
 	// the function value F must be provided, the location X must not be specified
-	// and other fields may be specified. The values in Location may be modified
-	// during the call to Minimize.
+	// and other fields may be specified.
 	InitValues *Location
 
-	// GradientThreshold stops optimization with GradientThreshold status if the
-	// infinity norm of the gradient is less than this value. This defaults to
-	// a value of 0 (and so gradient convergence is not checked), however note
-	// that many Methods (LBFGS, CG, etc.) will converge with a small value of
-	// the gradient, and so to fully disable this setting the Method may need to
-	// be modified.
-	// This setting has no effect if the gradient is not used by the Method.
+	// FunctionThreshold is the threshold for acceptably small values of the
+	// objective function. FunctionThreshold status is returned if
+	// the objective function is less than this value.
+	// The default value is -inf.
+	FunctionThreshold float64
+
+	// GradientThreshold determines the accuracy to which the minimum is found.
+	// GradientThreshold status is returned if the infinity norm of
+	// the gradient is less than this value.
+	// Has no effect if gradient information is not used.
+	// The default value is 1e-6.
 	GradientThreshold float64
 
-	// Converger checks if the optimization has converged based on the (history
-	// of) locations found during the optimization. Minimize will pass the
-	// Location at every MajorIteration to the Converger.
+	// FunctionConverge tests that the function value decreases by a
+	// significant amount over the specified number of iterations.
 	//
-	// If the Converger is nil, a default value of
-	//  FunctionConverge {
-	//		Absolute: 1e-10,
-	//		Iterations: 100,
-	//  }
-	// will be used. NeverTerminated can be used to always return a
-	// NotTerminated status.
-	Converger Converger
+	// If f < f_best and
+	//  f_best - f > FunctionConverge.Relative * maxabs(f, f_best) + FunctionConverge.Absolute
+	// then a significant decrease has occurred, and f_best is updated.
+	//
+	// If there is no significant decrease for FunctionConverge.Iterations
+	// major iterations, FunctionConvergence status is returned.
+	//
+	// If this is nil or if FunctionConverge.Iterations == 0, it has no effect.
+	FunctionConverge *FunctionConverge
 
 	// MajorIterations is the maximum number of iterations allowed.
 	// IterationLimit status is returned if the number of major iterations
@@ -258,6 +237,19 @@ type Settings struct {
 
 	// Concurrent represents how many concurrent evaluations are possible.
 	Concurrent int
+}
+
+// DefaultSettingsLocal returns a new Settings struct that contains default settings
+// for running a local optimization.
+func DefaultSettingsLocal() *Settings {
+	return &Settings{
+		GradientThreshold: defaultGradientAbsTol,
+		FunctionThreshold: math.Inf(-1),
+		FunctionConverge: &FunctionConverge{
+			Absolute:   1e-10,
+			Iterations: 20,
+		},
+	}
 }
 
 // resize takes x and returns a slice of length dim. It returns a resliced x

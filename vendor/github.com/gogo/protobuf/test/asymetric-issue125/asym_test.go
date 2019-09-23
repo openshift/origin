@@ -33,7 +33,7 @@ import (
 )
 
 func TestAsym(t *testing.T) {
-	m := &M{Arr: []MyType{{}, {}}}
+	m := &M{[]MyType{{}, {}}, nil}
 	if err := m.VerboseEqual(m); err != nil {
 		t.Fatalf("should be equal: %v", err)
 	}

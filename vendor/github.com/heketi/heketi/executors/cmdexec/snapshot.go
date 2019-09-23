@@ -13,10 +13,8 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	"github.com/lpabon/godbc"
-
 	"github.com/heketi/heketi/executors"
-	rex "github.com/heketi/heketi/pkg/remoteexec"
+	"github.com/lpabon/godbc"
 )
 
 func (s *CmdExecutor) snapshotActivate(host string, snapshot string) error {
@@ -31,17 +29,16 @@ func (s *CmdExecutor) snapshotActivate(host string, snapshot string) error {
 	}
 
 	command := []string{
-		fmt.Sprintf("%v --xml snapshot activate %v", s.glusterCommand(), snapshot),
+		fmt.Sprintf("gluster --mode=script --xml snapshot activate %v", snapshot),
 	}
 
-	results, err := s.RemoteExecutor.ExecCommands(host, command,
-		s.GlusterCliExecTimeout())
-	if err := rex.AnyError(results, err); err != nil {
+	output, err := s.RemoteExecutor.RemoteCommandExecute(host, command, 10)
+	if err != nil {
 		return fmt.Errorf("Unable to activate snapshot %v: %v", snapshot, err)
 	}
 
 	var snapActivate CliOutput
-	err = xml.Unmarshal([]byte(results[0].Output), &snapActivate)
+	err = xml.Unmarshal([]byte(output[0]), &snapActivate)
 	if err != nil {
 		return fmt.Errorf("Unable to parse output from activate snapshot %v: %v", snapshot, err)
 	}
@@ -65,17 +62,16 @@ func (s *CmdExecutor) snapshotDeactivate(host string, snapshot string) error {
 	}
 
 	command := []string{
-		fmt.Sprintf("%v --xml snapshot deactivate %v", s.glusterCommand(), snapshot),
+		fmt.Sprintf("gluster --mode=script --xml snapshot deactivate %v", snapshot),
 	}
 
-	results, err := s.RemoteExecutor.ExecCommands(host, command,
-		s.GlusterCliExecTimeout())
-	if err := rex.AnyError(results, err); err != nil {
+	output, err := s.RemoteExecutor.RemoteCommandExecute(host, command, 10)
+	if err != nil {
 		return fmt.Errorf("Unable to deactivate snapshot %v: %v", snapshot, err)
 	}
 
 	var snapDeactivate CliOutput
-	err = xml.Unmarshal([]byte(results[0].Output), &snapDeactivate)
+	err = xml.Unmarshal([]byte(output[0]), &snapDeactivate)
 	if err != nil {
 		return fmt.Errorf("Unable to parse output from deactivate snapshot %v: %v", snapshot, err)
 	}
@@ -108,17 +104,16 @@ func (s *CmdExecutor) SnapshotCloneVolume(host string, vcr *executors.SnapshotCl
 	}
 
 	command := []string{
-		fmt.Sprintf("%v --xml snapshot clone %v %v", s.glusterCommand(), vcr.Volume, vcr.Snapshot),
+		fmt.Sprintf("gluster --mode=script --xml snapshot clone %v %v", vcr.Volume, vcr.Snapshot),
 	}
 
-	results, err := s.RemoteExecutor.ExecCommands(host, command,
-		s.GlusterCliExecTimeout())
-	if err := rex.AnyError(results, err); err != nil {
+	output, err := s.RemoteExecutor.RemoteCommandExecute(host, command, 10)
+	if err != nil {
 		return nil, fmt.Errorf("Unable to clone snapshot %v: %v", vcr.Snapshot, err)
 	}
 
 	var cliOutput CliOutput
-	err = xml.Unmarshal([]byte(results[0].Output), &cliOutput)
+	err = xml.Unmarshal([]byte(output[0]), &cliOutput)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse output from clone snapshot %v: %v", vcr.Snapshot, err)
 	}
@@ -129,11 +124,10 @@ func (s *CmdExecutor) SnapshotCloneVolume(host string, vcr *executors.SnapshotCl
 
 	// start the newly cloned volume
 	command = []string{
-		fmt.Sprintf("%v --xml volume start %v", s.glusterCommand(), vcr.Volume),
+		fmt.Sprintf("gluster --mode=script --xml volume start %v", vcr.Volume),
 	}
 
-	err = rex.AnyError(s.RemoteExecutor.ExecCommands(host, command,
-		s.GlusterCliExecTimeout()))
+	_, err = s.RemoteExecutor.RemoteCommandExecute(host, command, 10)
 	if err != nil {
 		s.VolumeDestroy(host, vcr.Volume)
 		return nil, fmt.Errorf("Unable to start volume %v, clone of snapshot %v: %v", vcr.Volume, vcr.Snapshot, err)
@@ -159,17 +153,16 @@ func (s *CmdExecutor) SnapshotDestroy(host string, snapshot string) error {
 	}
 
 	command := []string{
-		fmt.Sprintf("%v --xml snapshot delete %v", s.glusterCommand(), snapshot),
+		fmt.Sprintf("gluster --mode=script --xml snapshot delete %v", snapshot),
 	}
 
-	results, err := s.RemoteExecutor.ExecCommands(host, command,
-		s.GlusterCliExecTimeout())
-	if err := rex.AnyError(results, err); err != nil {
+	output, err := s.RemoteExecutor.RemoteCommandExecute(host, command, 10)
+	if err != nil {
 		return fmt.Errorf("Unable to delete snapshot %v: %v", snapshot, err)
 	}
 
 	var snapDelete CliOutput
-	err = xml.Unmarshal([]byte(results[0].Output), &snapDelete)
+	err = xml.Unmarshal([]byte(output[0]), &snapDelete)
 	if err != nil {
 		return fmt.Errorf("Unable to parse output from delete snapshot %v: %v", snapshot, err)
 	}

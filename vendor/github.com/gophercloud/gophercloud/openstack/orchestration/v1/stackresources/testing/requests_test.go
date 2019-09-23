@@ -110,16 +110,3 @@ func TestGetResourceTemplate(t *testing.T) {
 	expected := GetTemplateExpected
 	th.AssertDeepEquals(t, expected, string(actual))
 }
-
-func TestMarkUnhealthyResource(t *testing.T) {
-	th.SetupHTTP()
-	defer th.TeardownHTTP()
-	HandleMarkUnhealthySuccessfully(t)
-
-	markUnhealthyOpts := &stackresources.MarkUnhealthyOpts{
-		MarkUnhealthy:        true,
-		ResourceStatusReason: "Kubelet.Ready is Unknown more than 10 mins.",
-	}
-	err := stackresources.MarkUnhealthy(fake.ServiceClient(), "teststack", "0b1771bd-9336-4f2b-ae86-a80f971faf1e", "wordpress_instance", markUnhealthyOpts).ExtractErr()
-	th.AssertNoErr(t, err)
-}

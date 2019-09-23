@@ -20,11 +20,8 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-
 	"k8s.io/apimachinery/pkg/labels"
 	corelisters "k8s.io/client-go/listers/core/v1"
-	"k8s.io/component-base/metrics"
-	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/cache"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/util"
@@ -45,12 +42,10 @@ var (
 		"Number of volumes in A/D Controller",
 		[]string{"plugin_name", "state"}, nil)
 
-	forcedDetachMetricCounter = metrics.NewCounter(
-		&metrics.CounterOpts{
-			Name:           "attachdetach_controller_forced_detaches",
-			Help:           "Number of times the A/D Controller performed a forced detach",
-			StabilityLevel: metrics.ALPHA,
-		})
+	forcedDetachMetricCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "attachdetach_controller_forced_detaches",
+			Help: "Number of times the A/D Controller performed a forced detach"})
 )
 var registerMetrics sync.Once
 
@@ -62,13 +57,13 @@ func Register(pvcLister corelisters.PersistentVolumeClaimLister,
 	dsw cache.DesiredStateOfWorld,
 	pluginMgr *volume.VolumePluginMgr) {
 	registerMetrics.Do(func() {
-		legacyregistry.RawMustRegister(newAttachDetachStateCollector(pvcLister,
+		prometheus.MustRegister(newAttachDetachStateCollector(pvcLister,
 			podLister,
 			pvLister,
 			asw,
 			dsw,
 			pluginMgr))
-		legacyregistry.MustRegister(forcedDetachMetricCounter)
+		prometheus.MustRegister(forcedDetachMetricCounter)
 	})
 }
 

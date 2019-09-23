@@ -1,7 +1,6 @@
 module gonum.org/v1/gonum
 
 require (
-	golang.org/x/exp v0.0.0-20190125153040-c74c464bbbf2
-	golang.org/x/tools v0.0.0-20190206041539-40960b6deb8e
-	gonum.org/v1/netlib v0.0.0-20190313105609-8cb42192e0e0
+	golang.org/x/exp v0.0.0-20180321215751-8460e604b9de
+	golang.org/x/tools v0.0.0-20180525024113-a5b4c53f6e8b
 )

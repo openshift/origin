@@ -21,9 +21,7 @@ const ListResponse = `
             "provider:physical_network": null,
             "provider:network_type": "local",
             "router:external": true,
-            "port_security_enabled": true,
-            "dns_domain": "local.",
-            "mtu": 1500
+            "port_security_enabled": true
         },
         {
             "status": "ACTIVE",
@@ -39,9 +37,7 @@ const ListResponse = `
             "provider:physical_network": null,
             "provider:network_type": "local",
             "router:external": false,
-            "port_security_enabled": false,
-            "dns_domain": "",
-            "mtu": 1500
+            "port_security_enabled": false
         }
     ]
 }`
@@ -62,9 +58,7 @@ const GetResponse = `
         "provider:physical_network": null,
         "provider:network_type": "local",
         "router:external": true,
-        "port_security_enabled": true,
-        "dns_domain": "local.",
-        "mtu": 1500
+        "port_security_enabled": true
     }
 }`
 
@@ -88,8 +82,7 @@ const CreateResponse = `
         "id": "db193ab3-96e3-4cb3-8fc5-05f4296d0324",
         "provider:segmentation_id": 9876543210,
         "provider:physical_network": null,
-        "provider:network_type": "local",
-        "dns_domain": ""
+        "provider:network_type": "local"
     }
 }`
 

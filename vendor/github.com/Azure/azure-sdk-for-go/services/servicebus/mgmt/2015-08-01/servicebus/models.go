@@ -18,18 +18,13 @@ package servicebus
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/servicebus/mgmt/2015-08-01/servicebus"
 
 // AccessRights enumerates the values for access rights.
 type AccessRights string
@@ -209,7 +204,7 @@ func PossibleUnavailableReasonValues() []UnavailableReason {
 
 // CheckNameAvailability description of a Check Name availability request properties.
 type CheckNameAvailability struct {
-	// Name - The Name to check the namespace name availability and The namespace name can contain only letters, numbers, and hyphens. The namespace must start with a letter, and it must end with a letter or number.
+	// Name - The Name to check the namespce name availability and The namespace name can contain only letters, numbers, and hyphens. The namespace must start with a letter, and it must end with a letter or number.
 	Name *string `json:"name,omitempty"`
 }
 
@@ -220,21 +215,21 @@ type CheckNameAvailabilityResult struct {
 	NameAvailable *bool `json:"nameAvailable,omitempty"`
 	// Reason - The reason for unavailability of a namespace. Possible values include: 'None', 'InvalidName', 'SubscriptionIsDisabled', 'NameInUse', 'NameInLockdown', 'TooManyNamespaceInCurrentSubscription'
 	Reason UnavailableReason `json:"reason,omitempty"`
-	// Message - READ-ONLY; The detailed info regarding the reason associated with the namespace.
+	// Message - The detailed info regarding the reason associated with the namespace.
 	Message *string `json:"message,omitempty"`
 }
 
 // MessageCountDetails message Count Details.
 type MessageCountDetails struct {
-	// ActiveMessageCount - READ-ONLY; Number of active messages in the queue, topic, or subscription.
+	// ActiveMessageCount - Number of active messages in the queue, topic, or subscription.
 	ActiveMessageCount *int64 `json:"activeMessageCount,omitempty"`
-	// DeadLetterMessageCount - READ-ONLY; Number of messages that are dead lettered.
+	// DeadLetterMessageCount - Number of messages that are dead lettered.
 	DeadLetterMessageCount *int64 `json:"deadLetterMessageCount,omitempty"`
-	// ScheduledMessageCount - READ-ONLY; Number of scheduled messages.
+	// ScheduledMessageCount - Number of scheduled messages.
 	ScheduledMessageCount *int64 `json:"scheduledMessageCount,omitempty"`
-	// TransferDeadLetterMessageCount - READ-ONLY; Number of messages transferred into dead letters.
+	// TransferDeadLetterMessageCount - Number of messages transferred into dead letters.
 	TransferDeadLetterMessageCount *int64 `json:"transferDeadLetterMessageCount,omitempty"`
-	// TransferMessageCount - READ-ONLY; Number of messages transferred to another queue, topic, or subscription.
+	// TransferMessageCount - Number of messages transferred to another queue, topic, or subscription.
 	TransferMessageCount *int64 `json:"transferMessageCount,omitempty"`
 }
 
@@ -332,37 +327,20 @@ type NamespaceListResultIterator struct {
 	page NamespaceListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *NamespaceListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/NamespaceListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *NamespaceListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *NamespaceListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -384,11 +362,6 @@ func (iter NamespaceListResultIterator) Value() NamespaceResource {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the NamespaceListResultIterator type.
-func NewNamespaceListResultIterator(page NamespaceListResultPage) NamespaceListResultIterator {
-	return NamespaceListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (nlr NamespaceListResult) IsEmpty() bool {
 	return nlr.Value == nil || len(*nlr.Value) == 0
@@ -396,11 +369,11 @@ func (nlr NamespaceListResult) IsEmpty() bool {
 
 // namespaceListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (nlr NamespaceListResult) namespaceListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (nlr NamespaceListResult) namespaceListResultPreparer() (*http.Request, error) {
 	if nlr.NextLink == nil || len(to.String(nlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(nlr.NextLink)))
@@ -408,36 +381,19 @@ func (nlr NamespaceListResult) namespaceListResultPreparer(ctx context.Context) 
 
 // NamespaceListResultPage contains a page of NamespaceResource values.
 type NamespaceListResultPage struct {
-	fn  func(context.Context, NamespaceListResult) (NamespaceListResult, error)
+	fn  func(NamespaceListResult) (NamespaceListResult, error)
 	nlr NamespaceListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *NamespaceListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/NamespaceListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.nlr)
+func (page *NamespaceListResultPage) Next() error {
+	next, err := page.fn(page.nlr)
 	if err != nil {
 		return err
 	}
 	page.nlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *NamespaceListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -458,22 +414,17 @@ func (page NamespaceListResultPage) Values() []NamespaceResource {
 	return *page.nlr.Value
 }
 
-// Creates a new instance of the NamespaceListResultPage type.
-func NewNamespaceListResultPage(getNextPage func(context.Context, NamespaceListResult) (NamespaceListResult, error)) NamespaceListResultPage {
-	return NamespaceListResultPage{fn: getNextPage}
-}
-
 // NamespaceProperties properties of the namespace.
 type NamespaceProperties struct {
-	// ProvisioningState - READ-ONLY; Provisioning state of the namespace.
+	// ProvisioningState - Provisioning state of the namespace.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
 	// Status - State of the namespace. Possible values include: 'NamespaceStateUnknown', 'NamespaceStateCreating', 'NamespaceStateCreated', 'NamespaceStateActivating', 'NamespaceStateEnabling', 'NamespaceStateActive', 'NamespaceStateDisabling', 'NamespaceStateDisabled', 'NamespaceStateSoftDeleting', 'NamespaceStateSoftDeleted', 'NamespaceStateRemoving', 'NamespaceStateRemoved', 'NamespaceStateFailed'
 	Status NamespaceState `json:"status,omitempty"`
-	// CreatedAt - READ-ONLY; The time the namespace was created.
+	// CreatedAt - The time the namespace was created.
 	CreatedAt *date.Time `json:"createdAt,omitempty"`
-	// UpdatedAt - READ-ONLY; The time the namespace was updated.
+	// UpdatedAt - The time the namespace was updated.
 	UpdatedAt *date.Time `json:"updatedAt,omitempty"`
-	// ServiceBusEndpoint - READ-ONLY; Endpoint you can use to perform Service Bus operations.
+	// ServiceBusEndpoint - Endpoint you can use to perform Service Bus operations.
 	ServiceBusEndpoint *string `json:"serviceBusEndpoint,omitempty"`
 	// CreateACSNamespace - Indicates whether to create an ACS namespace.
 	CreateACSNamespace *bool `json:"createACSNamespace,omitempty"`
@@ -488,13 +439,13 @@ type NamespaceResource struct {
 	*NamespaceProperties `json:"properties,omitempty"`
 	// Tags - Resource tags
 	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
 	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -510,8 +461,17 @@ func (nr NamespaceResource) MarshalJSON() ([]byte, error) {
 	if nr.Tags != nil {
 		objectMap["tags"] = nr.Tags
 	}
+	if nr.ID != nil {
+		objectMap["id"] = nr.ID
+	}
+	if nr.Name != nil {
+		objectMap["name"] = nr.Name
+	}
 	if nr.Location != nil {
 		objectMap["location"] = nr.Location
+	}
+	if nr.Type != nil {
+		objectMap["type"] = nr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -594,8 +554,8 @@ func (nr *NamespaceResource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// NamespacesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// NamespacesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type NamespacesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -604,7 +564,7 @@ type NamespacesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *NamespacesCreateOrUpdateFuture) Result(client NamespacesClient) (nr NamespaceResource, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicebus.NamespacesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -623,8 +583,7 @@ func (future *NamespacesCreateOrUpdateFuture) Result(client NamespacesClient) (n
 	return
 }
 
-// NamespacesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// NamespacesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type NamespacesDeleteFuture struct {
 	azure.Future
 }
@@ -633,7 +592,7 @@ type NamespacesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *NamespacesDeleteFuture) Result(client NamespacesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicebus.NamespacesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -668,7 +627,7 @@ func (nup NamespaceUpdateParameters) MarshalJSON() ([]byte, error) {
 
 // Operation a ServiceBus REST API operation
 type Operation struct {
-	// Name - READ-ONLY; Operation name: {provider}/{resource}/{operation}
+	// Name - Operation name: {provider}/{resource}/{operation}
 	Name *string `json:"name,omitempty"`
 	// Display - The object that represents the operation.
 	Display *OperationDisplay `json:"display,omitempty"`
@@ -676,21 +635,21 @@ type Operation struct {
 
 // OperationDisplay the object that represents the operation.
 type OperationDisplay struct {
-	// Provider - READ-ONLY; Service provider: Microsoft.ServiceBus
+	// Provider - Service provider: Microsoft.ServiceBus
 	Provider *string `json:"provider,omitempty"`
-	// Resource - READ-ONLY; Resource on which the operation is performed: Invoice, etc.
+	// Resource - Resource on which the operation is performed: Invoice, etc.
 	Resource *string `json:"resource,omitempty"`
-	// Operation - READ-ONLY; Operation type: Read, write, delete, etc.
+	// Operation - Operation type: Read, write, delete, etc.
 	Operation *string `json:"operation,omitempty"`
 }
 
-// OperationListResult result of the request to list ServiceBus operations. It contains a list of
-// operations and a URL link to get the next set of results.
+// OperationListResult result of the request to list ServiceBus operations. It contains a list of operations and a
+// URL link to get the next set of results.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; List of ServiceBus operations supported by the Microsoft.ServiceBus resource provider.
+	// Value - List of ServiceBus operations supported by the Microsoft.ServiceBus resource provider.
 	Value *[]Operation `json:"value,omitempty"`
-	// NextLink - READ-ONLY; URL to get the next set of operation list results if there are any.
+	// NextLink - URL to get the next set of operation list results if there are any.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -700,37 +659,20 @@ type OperationListResultIterator struct {
 	page OperationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OperationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OperationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -752,11 +694,6 @@ func (iter OperationListResultIterator) Value() Operation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OperationListResultIterator type.
-func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
-	return OperationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (olr OperationListResult) IsEmpty() bool {
 	return olr.Value == nil || len(*olr.Value) == 0
@@ -764,11 +701,11 @@ func (olr OperationListResult) IsEmpty() bool {
 
 // operationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (olr OperationListResult) operationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (olr OperationListResult) operationListResultPreparer() (*http.Request, error) {
 	if olr.NextLink == nil || len(to.String(olr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(olr.NextLink)))
@@ -776,36 +713,19 @@ func (olr OperationListResult) operationListResultPreparer(ctx context.Context) 
 
 // OperationListResultPage contains a page of Operation values.
 type OperationListResultPage struct {
-	fn  func(context.Context, OperationListResult) (OperationListResult, error)
+	fn  func(OperationListResult) (OperationListResult, error)
 	olr OperationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.olr)
+func (page *OperationListResultPage) Next() error {
+	next, err := page.fn(page.olr)
 	if err != nil {
 		return err
 	}
 	page.olr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OperationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -824,11 +744,6 @@ func (page OperationListResultPage) Values() []Operation {
 		return nil
 	}
 	return *page.olr.Value
-}
-
-// Creates a new instance of the OperationListResultPage type.
-func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
-	return OperationListResultPage{fn: getNextPage}
 }
 
 // QueueCreateOrUpdateParameters parameters supplied to the Create Or Update Queue operation.
@@ -912,37 +827,20 @@ type QueueListResultIterator struct {
 	page QueueListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *QueueListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/QueueListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *QueueListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *QueueListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -964,11 +862,6 @@ func (iter QueueListResultIterator) Value() QueueResource {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the QueueListResultIterator type.
-func NewQueueListResultIterator(page QueueListResultPage) QueueListResultIterator {
-	return QueueListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (qlr QueueListResult) IsEmpty() bool {
 	return qlr.Value == nil || len(*qlr.Value) == 0
@@ -976,11 +869,11 @@ func (qlr QueueListResult) IsEmpty() bool {
 
 // queueListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (qlr QueueListResult) queueListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (qlr QueueListResult) queueListResultPreparer() (*http.Request, error) {
 	if qlr.NextLink == nil || len(to.String(qlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(qlr.NextLink)))
@@ -988,36 +881,19 @@ func (qlr QueueListResult) queueListResultPreparer(ctx context.Context) (*http.R
 
 // QueueListResultPage contains a page of QueueResource values.
 type QueueListResultPage struct {
-	fn  func(context.Context, QueueListResult) (QueueListResult, error)
+	fn  func(QueueListResult) (QueueListResult, error)
 	qlr QueueListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *QueueListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/QueueListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.qlr)
+func (page *QueueListResultPage) Next() error {
+	next, err := page.fn(page.qlr)
 	if err != nil {
 		return err
 	}
 	page.qlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *QueueListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1038,22 +914,17 @@ func (page QueueListResultPage) Values() []QueueResource {
 	return *page.qlr.Value
 }
 
-// Creates a new instance of the QueueListResultPage type.
-func NewQueueListResultPage(getNextPage func(context.Context, QueueListResult) (QueueListResult, error)) QueueListResultPage {
-	return QueueListResultPage{fn: getNextPage}
-}
-
 // QueueProperties the Queue Properties definition.
 type QueueProperties struct {
 	// LockDuration - The duration of a peek-lock; that is, the amount of time that the message is locked for other receivers. The maximum value for LockDuration is 5 minutes; the default value is 1 minute.
 	LockDuration *string `json:"lockDuration,omitempty"`
-	// AccessedAt - READ-ONLY; Last time a message was sent, or the last time there was a receive request to this queue.
+	// AccessedAt - Last time a message was sent, or the last time there was a receive request to this queue.
 	AccessedAt *date.Time `json:"accessedAt,omitempty"`
 	// AutoDeleteOnIdle - the TimeSpan idle interval after which the queue is automatically deleted. The minimum duration is 5 minutes.
 	AutoDeleteOnIdle *string `json:"autoDeleteOnIdle,omitempty"`
 	// EntityAvailabilityStatus - Entity availability status for the queue. Possible values include: 'Available', 'Limited', 'Renaming', 'Restoring', 'Unknown'
 	EntityAvailabilityStatus EntityAvailabilityStatus `json:"entityAvailabilityStatus,omitempty"`
-	// CreatedAt - READ-ONLY; The exact time the message was created.
+	// CreatedAt - The exact time the message was created.
 	CreatedAt *date.Time `json:"createdAt,omitempty"`
 	// DefaultMessageTimeToLive - The default message time to live value. This is the duration after which the message expires, starting from when the message is sent to Service Bus. This is the default value used when TimeToLive is not set on a message itself.
 	DefaultMessageTimeToLive *string `json:"defaultMessageTimeToLive,omitempty"`
@@ -1073,21 +944,20 @@ type QueueProperties struct {
 	MaxDeliveryCount *int32 `json:"maxDeliveryCount,omitempty"`
 	// MaxSizeInMegabytes - The maximum size of the queue in megabytes, which is the size of memory allocated for the queue.
 	MaxSizeInMegabytes *int64 `json:"maxSizeInMegabytes,omitempty"`
-	// MessageCount - READ-ONLY; The number of messages in the queue.
-	MessageCount *int64 `json:"messageCount,omitempty"`
-	// CountDetails - READ-ONLY
+	// MessageCount - The number of messages in the queue.
+	MessageCount *int64               `json:"messageCount,omitempty"`
 	CountDetails *MessageCountDetails `json:"countDetails,omitempty"`
 	// RequiresDuplicateDetection - A value indicating if this queue requires duplicate detection.
 	RequiresDuplicateDetection *bool `json:"requiresDuplicateDetection,omitempty"`
 	// RequiresSession - A value that indicates whether the queue supports the concept of sessions.
 	RequiresSession *bool `json:"requiresSession,omitempty"`
-	// SizeInBytes - READ-ONLY; The size of the queue, in bytes.
+	// SizeInBytes - The size of the queue, in bytes.
 	SizeInBytes *int64 `json:"sizeInBytes,omitempty"`
 	// Status - Enumerates the possible values for the status of a messaging entity. Possible values include: 'EntityStatusActive', 'EntityStatusCreating', 'EntityStatusDeleting', 'EntityStatusDisabled', 'EntityStatusReceiveDisabled', 'EntityStatusRenaming', 'EntityStatusRestoring', 'EntityStatusSendDisabled', 'EntityStatusUnknown'
 	Status EntityStatus `json:"status,omitempty"`
 	// SupportOrdering - A value that indicates whether the queue supports ordering.
 	SupportOrdering *bool `json:"supportOrdering,omitempty"`
-	// UpdatedAt - READ-ONLY; The exact time the message was updated.
+	// UpdatedAt - The exact time the message was updated.
 	UpdatedAt *date.Time `json:"updatedAt,omitempty"`
 }
 
@@ -1095,13 +965,13 @@ type QueueProperties struct {
 type QueueResource struct {
 	autorest.Response `json:"-"`
 	*QueueProperties  `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
 	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1111,8 +981,17 @@ func (qr QueueResource) MarshalJSON() ([]byte, error) {
 	if qr.QueueProperties != nil {
 		objectMap["properties"] = qr.QueueProperties
 	}
+	if qr.ID != nil {
+		objectMap["id"] = qr.ID
+	}
+	if qr.Name != nil {
+		objectMap["name"] = qr.Name
+	}
 	if qr.Location != nil {
 		objectMap["location"] = qr.Location
+	}
+	if qr.Type != nil {
+		objectMap["type"] = qr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1185,13 +1064,13 @@ type RegenerateKeysParameters struct {
 
 // Resource the Resource definition for other than namespace.
 type Resource struct {
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
 	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1210,8 +1089,8 @@ type ResourceListKeys struct {
 	KeyName *string `json:"keyName,omitempty"`
 }
 
-// SharedAccessAuthorizationRuleCreateOrUpdateParameters parameters supplied to the Create Or Update
-// Authorization Rules operation.
+// SharedAccessAuthorizationRuleCreateOrUpdateParameters parameters supplied to the Create Or Update Authorization
+// Rules operation.
 type SharedAccessAuthorizationRuleCreateOrUpdateParameters struct {
 	// Location - data center location.
 	Location *string `json:"location,omitempty"`
@@ -1293,37 +1172,20 @@ type SharedAccessAuthorizationRuleListResultIterator struct {
 	page SharedAccessAuthorizationRuleListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SharedAccessAuthorizationRuleListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SharedAccessAuthorizationRuleListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SharedAccessAuthorizationRuleListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SharedAccessAuthorizationRuleListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1345,11 +1207,6 @@ func (iter SharedAccessAuthorizationRuleListResultIterator) Value() SharedAccess
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SharedAccessAuthorizationRuleListResultIterator type.
-func NewSharedAccessAuthorizationRuleListResultIterator(page SharedAccessAuthorizationRuleListResultPage) SharedAccessAuthorizationRuleListResultIterator {
-	return SharedAccessAuthorizationRuleListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (saarlr SharedAccessAuthorizationRuleListResult) IsEmpty() bool {
 	return saarlr.Value == nil || len(*saarlr.Value) == 0
@@ -1357,49 +1214,31 @@ func (saarlr SharedAccessAuthorizationRuleListResult) IsEmpty() bool {
 
 // sharedAccessAuthorizationRuleListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (saarlr SharedAccessAuthorizationRuleListResult) sharedAccessAuthorizationRuleListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (saarlr SharedAccessAuthorizationRuleListResult) sharedAccessAuthorizationRuleListResultPreparer() (*http.Request, error) {
 	if saarlr.NextLink == nil || len(to.String(saarlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(saarlr.NextLink)))
 }
 
-// SharedAccessAuthorizationRuleListResultPage contains a page of SharedAccessAuthorizationRuleResource
-// values.
+// SharedAccessAuthorizationRuleListResultPage contains a page of SharedAccessAuthorizationRuleResource values.
 type SharedAccessAuthorizationRuleListResultPage struct {
-	fn     func(context.Context, SharedAccessAuthorizationRuleListResult) (SharedAccessAuthorizationRuleListResult, error)
+	fn     func(SharedAccessAuthorizationRuleListResult) (SharedAccessAuthorizationRuleListResult, error)
 	saarlr SharedAccessAuthorizationRuleListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SharedAccessAuthorizationRuleListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SharedAccessAuthorizationRuleListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.saarlr)
+func (page *SharedAccessAuthorizationRuleListResultPage) Next() error {
+	next, err := page.fn(page.saarlr)
 	if err != nil {
 		return err
 	}
 	page.saarlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SharedAccessAuthorizationRuleListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1420,11 +1259,6 @@ func (page SharedAccessAuthorizationRuleListResultPage) Values() []SharedAccessA
 	return *page.saarlr.Value
 }
 
-// Creates a new instance of the SharedAccessAuthorizationRuleListResultPage type.
-func NewSharedAccessAuthorizationRuleListResultPage(getNextPage func(context.Context, SharedAccessAuthorizationRuleListResult) (SharedAccessAuthorizationRuleListResult, error)) SharedAccessAuthorizationRuleListResultPage {
-	return SharedAccessAuthorizationRuleListResultPage{fn: getNextPage}
-}
-
 // SharedAccessAuthorizationRuleProperties sharedAccessAuthorizationRule properties.
 type SharedAccessAuthorizationRuleProperties struct {
 	// Rights - The rights associated with the rule.
@@ -1435,13 +1269,13 @@ type SharedAccessAuthorizationRuleProperties struct {
 type SharedAccessAuthorizationRuleResource struct {
 	autorest.Response                        `json:"-"`
 	*SharedAccessAuthorizationRuleProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
 	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1451,8 +1285,17 @@ func (saarr SharedAccessAuthorizationRuleResource) MarshalJSON() ([]byte, error)
 	if saarr.SharedAccessAuthorizationRuleProperties != nil {
 		objectMap["properties"] = saarr.SharedAccessAuthorizationRuleProperties
 	}
+	if saarr.ID != nil {
+		objectMap["id"] = saarr.ID
+	}
+	if saarr.Name != nil {
+		objectMap["name"] = saarr.Name
+	}
 	if saarr.Location != nil {
 		objectMap["location"] = saarr.Location
+	}
+	if saarr.Type != nil {
+		objectMap["type"] = saarr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1608,37 +1451,20 @@ type SubscriptionListResultIterator struct {
 	page SubscriptionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SubscriptionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SubscriptionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SubscriptionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SubscriptionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1660,11 +1486,6 @@ func (iter SubscriptionListResultIterator) Value() SubscriptionResource {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SubscriptionListResultIterator type.
-func NewSubscriptionListResultIterator(page SubscriptionListResultPage) SubscriptionListResultIterator {
-	return SubscriptionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (slr SubscriptionListResult) IsEmpty() bool {
 	return slr.Value == nil || len(*slr.Value) == 0
@@ -1672,11 +1493,11 @@ func (slr SubscriptionListResult) IsEmpty() bool {
 
 // subscriptionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (slr SubscriptionListResult) subscriptionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (slr SubscriptionListResult) subscriptionListResultPreparer() (*http.Request, error) {
 	if slr.NextLink == nil || len(to.String(slr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(slr.NextLink)))
@@ -1684,36 +1505,19 @@ func (slr SubscriptionListResult) subscriptionListResultPreparer(ctx context.Con
 
 // SubscriptionListResultPage contains a page of SubscriptionResource values.
 type SubscriptionListResultPage struct {
-	fn  func(context.Context, SubscriptionListResult) (SubscriptionListResult, error)
+	fn  func(SubscriptionListResult) (SubscriptionListResult, error)
 	slr SubscriptionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SubscriptionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SubscriptionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.slr)
+func (page *SubscriptionListResultPage) Next() error {
+	next, err := page.fn(page.slr)
 	if err != nil {
 		return err
 	}
 	page.slr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SubscriptionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1734,20 +1538,14 @@ func (page SubscriptionListResultPage) Values() []SubscriptionResource {
 	return *page.slr.Value
 }
 
-// Creates a new instance of the SubscriptionListResultPage type.
-func NewSubscriptionListResultPage(getNextPage func(context.Context, SubscriptionListResult) (SubscriptionListResult, error)) SubscriptionListResultPage {
-	return SubscriptionListResultPage{fn: getNextPage}
-}
-
 // SubscriptionProperties description of Subscription Resource.
 type SubscriptionProperties struct {
-	// AccessedAt - READ-ONLY; Last time there was a receive request to this subscription.
+	// AccessedAt - Last time there was a receive request to this subscription.
 	AccessedAt *date.Time `json:"accessedAt,omitempty"`
 	// AutoDeleteOnIdle - TimeSpan idle interval after which the topic is automatically deleted. The minimum duration is 5 minutes.
-	AutoDeleteOnIdle *string `json:"autoDeleteOnIdle,omitempty"`
-	// CountDetails - READ-ONLY
-	CountDetails *MessageCountDetails `json:"countDetails,omitempty"`
-	// CreatedAt - READ-ONLY; Exact time the message was created.
+	AutoDeleteOnIdle *string              `json:"autoDeleteOnIdle,omitempty"`
+	CountDetails     *MessageCountDetails `json:"countDetails,omitempty"`
+	// CreatedAt - Exact time the message was created.
 	CreatedAt *date.Time `json:"createdAt,omitempty"`
 	// DefaultMessageTimeToLive - Default message time to live value. This is the duration after which the message expires, starting from when the message is sent to Service Bus. This is the default value used when TimeToLive is not set on a message itself.
 	DefaultMessageTimeToLive *string `json:"defaultMessageTimeToLive,omitempty"`
@@ -1765,13 +1563,13 @@ type SubscriptionProperties struct {
 	LockDuration *string `json:"lockDuration,omitempty"`
 	// MaxDeliveryCount - Number of maximum deliveries.
 	MaxDeliveryCount *int32 `json:"maxDeliveryCount,omitempty"`
-	// MessageCount - READ-ONLY; Number of messages.
+	// MessageCount - Number of messages.
 	MessageCount *int64 `json:"messageCount,omitempty"`
 	// RequiresSession - Value indicating if a subscription supports the concept of sessions.
 	RequiresSession *bool `json:"requiresSession,omitempty"`
 	// Status - Enumerates the possible values for the status of a messaging entity. Possible values include: 'EntityStatusActive', 'EntityStatusCreating', 'EntityStatusDeleting', 'EntityStatusDisabled', 'EntityStatusReceiveDisabled', 'EntityStatusRenaming', 'EntityStatusRestoring', 'EntityStatusSendDisabled', 'EntityStatusUnknown'
 	Status EntityStatus `json:"status,omitempty"`
-	// UpdatedAt - READ-ONLY; The exact time the message was updated.
+	// UpdatedAt - The exact time the message was updated.
 	UpdatedAt *date.Time `json:"updatedAt,omitempty"`
 }
 
@@ -1779,13 +1577,13 @@ type SubscriptionProperties struct {
 type SubscriptionResource struct {
 	autorest.Response       `json:"-"`
 	*SubscriptionProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
 	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1795,8 +1593,17 @@ func (sr SubscriptionResource) MarshalJSON() ([]byte, error) {
 	if sr.SubscriptionProperties != nil {
 		objectMap["properties"] = sr.SubscriptionProperties
 	}
+	if sr.ID != nil {
+		objectMap["id"] = sr.ID
+	}
+	if sr.Name != nil {
+		objectMap["name"] = sr.Name
+	}
 	if sr.Location != nil {
 		objectMap["location"] = sr.Location
+	}
+	if sr.Type != nil {
+		objectMap["type"] = sr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1942,37 +1749,20 @@ type TopicListResultIterator struct {
 	page TopicListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *TopicListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TopicListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *TopicListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *TopicListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1994,11 +1784,6 @@ func (iter TopicListResultIterator) Value() TopicResource {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the TopicListResultIterator type.
-func NewTopicListResultIterator(page TopicListResultPage) TopicListResultIterator {
-	return TopicListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (tlr TopicListResult) IsEmpty() bool {
 	return tlr.Value == nil || len(*tlr.Value) == 0
@@ -2006,11 +1791,11 @@ func (tlr TopicListResult) IsEmpty() bool {
 
 // topicListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (tlr TopicListResult) topicListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (tlr TopicListResult) topicListResultPreparer() (*http.Request, error) {
 	if tlr.NextLink == nil || len(to.String(tlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(tlr.NextLink)))
@@ -2018,36 +1803,19 @@ func (tlr TopicListResult) topicListResultPreparer(ctx context.Context) (*http.R
 
 // TopicListResultPage contains a page of TopicResource values.
 type TopicListResultPage struct {
-	fn  func(context.Context, TopicListResult) (TopicListResult, error)
+	fn  func(TopicListResult) (TopicListResult, error)
 	tlr TopicListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *TopicListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TopicListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.tlr)
+func (page *TopicListResultPage) Next() error {
+	next, err := page.fn(page.tlr)
 	if err != nil {
 		return err
 	}
 	page.tlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *TopicListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2068,22 +1836,16 @@ func (page TopicListResultPage) Values() []TopicResource {
 	return *page.tlr.Value
 }
 
-// Creates a new instance of the TopicListResultPage type.
-func NewTopicListResultPage(getNextPage func(context.Context, TopicListResult) (TopicListResult, error)) TopicListResultPage {
-	return TopicListResultPage{fn: getNextPage}
-}
-
-// TopicProperties the Topic Properties definition.
+// TopicProperties the Tpoic Properties definition.
 type TopicProperties struct {
-	// AccessedAt - READ-ONLY; Last time the message was sent, or a request was received, for this topic.
+	// AccessedAt - Last time the message was sent, or a request was received, for this topic.
 	AccessedAt *date.Time `json:"accessedAt,omitempty"`
 	// AutoDeleteOnIdle - TimeSpan idle interval after which the topic is automatically deleted. The minimum duration is 5 minutes.
 	AutoDeleteOnIdle *string `json:"autoDeleteOnIdle,omitempty"`
 	// EntityAvailabilityStatus - Entity availability status for the topic. Possible values include: 'Available', 'Limited', 'Renaming', 'Restoring', 'Unknown'
 	EntityAvailabilityStatus EntityAvailabilityStatus `json:"entityAvailabilityStatus,omitempty"`
-	// CreatedAt - READ-ONLY; Exact time the message was created.
-	CreatedAt *date.Time `json:"createdAt,omitempty"`
-	// CountDetails - READ-ONLY
+	// CreatedAt - Exact time the message was created.
+	CreatedAt    *date.Time           `json:"createdAt,omitempty"`
 	CountDetails *MessageCountDetails `json:"countDetails,omitempty"`
 	// DefaultMessageTimeToLive - Default message time to live value. This is the duration after which the message expires, starting from when the message is sent to Service Bus. This is the default value used when TimeToLive is not set on a message itself.
 	DefaultMessageTimeToLive *string `json:"defaultMessageTimeToLive,omitempty"`
@@ -2104,15 +1866,15 @@ type TopicProperties struct {
 	MaxSizeInMegabytes *int64 `json:"maxSizeInMegabytes,omitempty"`
 	// RequiresDuplicateDetection - Value indicating if this topic requires duplicate detection.
 	RequiresDuplicateDetection *bool `json:"requiresDuplicateDetection,omitempty"`
-	// SizeInBytes - READ-ONLY; Size of the topic, in bytes.
+	// SizeInBytes - Size of the topic, in bytes.
 	SizeInBytes *int64 `json:"sizeInBytes,omitempty"`
 	// Status - Enumerates the possible values for the status of a messaging entity. Possible values include: 'EntityStatusActive', 'EntityStatusCreating', 'EntityStatusDeleting', 'EntityStatusDisabled', 'EntityStatusReceiveDisabled', 'EntityStatusRenaming', 'EntityStatusRestoring', 'EntityStatusSendDisabled', 'EntityStatusUnknown'
 	Status EntityStatus `json:"status,omitempty"`
-	// SubscriptionCount - READ-ONLY; Number of subscriptions.
+	// SubscriptionCount - Number of subscriptions.
 	SubscriptionCount *int32 `json:"subscriptionCount,omitempty"`
 	// SupportOrdering - Value that indicates whether the topic supports ordering.
 	SupportOrdering *bool `json:"supportOrdering,omitempty"`
-	// UpdatedAt - READ-ONLY; The exact time the message was updated.
+	// UpdatedAt - The exact time the message was updated.
 	UpdatedAt *date.Time `json:"updatedAt,omitempty"`
 }
 
@@ -2120,13 +1882,13 @@ type TopicProperties struct {
 type TopicResource struct {
 	autorest.Response `json:"-"`
 	*TopicProperties  `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
 	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2136,8 +1898,17 @@ func (tr TopicResource) MarshalJSON() ([]byte, error) {
 	if tr.TopicProperties != nil {
 		objectMap["properties"] = tr.TopicProperties
 	}
+	if tr.ID != nil {
+		objectMap["id"] = tr.ID
+	}
+	if tr.Name != nil {
+		objectMap["name"] = tr.Name
+	}
 	if tr.Location != nil {
 		objectMap["location"] = tr.Location
+	}
+	if tr.Type != nil {
+		objectMap["type"] = tr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -2206,13 +1977,13 @@ func (tr *TopicResource) UnmarshalJSON(body []byte) error {
 type TrackedResource struct {
 	// Tags - Resource tags
 	Tags map[string]*string `json:"tags"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
 	// Location - Resource location.
 	Location *string `json:"location,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2222,8 +1993,17 @@ func (tr TrackedResource) MarshalJSON() ([]byte, error) {
 	if tr.Tags != nil {
 		objectMap["tags"] = tr.Tags
 	}
+	if tr.ID != nil {
+		objectMap["id"] = tr.ID
+	}
+	if tr.Name != nil {
+		objectMap["name"] = tr.Name
+	}
 	if tr.Location != nil {
 		objectMap["location"] = tr.Location
+	}
+	if tr.Type != nil {
+		objectMap["type"] = tr.Type
 	}
 	return json.Marshal(objectMap)
 }

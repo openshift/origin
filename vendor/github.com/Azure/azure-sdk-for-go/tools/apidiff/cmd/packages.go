@@ -23,11 +23,8 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/tools/apidiff/exports"
 	"github.com/Azure/azure-sdk-for-go/tools/apidiff/repo"
-	"github.com/Azure/azure-sdk-for-go/tools/apidiff/report"
 	"github.com/spf13/cobra"
 )
-
-const apiDirSuffix = "api"
 
 var packagesCmd = &cobra.Command{
 	Use:   "packages <package search dir> (<base commit> <target commit(s)>) | (<commit sequence>)",
@@ -114,7 +111,6 @@ func getRepoContentForCommit(wt repo.WorkingTree, dir, commit string) (r repoCon
 		if err != nil {
 			return err
 		}
-		var skipDir error
 		if info.IsDir() {
 			// check if leaf dir
 			fi, err := ioutil.ReadDir(path)
@@ -123,19 +119,16 @@ func getRepoContentForCommit(wt repo.WorkingTree, dir, commit string) (r repoCon
 			}
 			hasSubDirs := false
 			for _, f := range fi {
-				// check if this is the interfaces subdir, if it is don't count it as a subdir
-				if f.IsDir() && f.Name() != filepath.Base(path)+apiDirSuffix {
+				if f.IsDir() {
 					hasSubDirs = true
 					break
 				}
 			}
 			if !hasSubDirs {
 				pkgDirs = append(pkgDirs, path)
-				// skip any dirs under us (i.e. interfaces subdir)
-				skipDir = filepath.SkipDir
 			}
 		}
-		return skipDir
+		return nil
 	})
 	if err != nil {
 		return
@@ -182,7 +175,7 @@ func getExportsForPackages(root string, pkgDirs []string) (repoContent, error) {
 type pkgsList []string
 
 // contains a collection of package reports, it's structured as "package path":pkgReport
-type modifiedPackages map[string]report.Package
+type modifiedPackages map[string]pkgReport
 
 // CommitPkgsReport represents a collection of reports, one for each commit hash.
 type CommitPkgsReport struct {
@@ -191,8 +184,8 @@ type CommitPkgsReport struct {
 	CommitsReports   map[string]pkgsReport `json:"deltas"`
 }
 
-// IsEmpty returns true if the report contains no data.
-func (c CommitPkgsReport) IsEmpty() bool {
+// returns true if the report contains no data
+func (c CommitPkgsReport) isEmpty() bool {
 	for _, r := range c.CommitsReports {
 		if !r.isEmpty() {
 			return false
@@ -201,8 +194,8 @@ func (c CommitPkgsReport) IsEmpty() bool {
 	return true
 }
 
-// HasBreakingChanges returns true if the report contains breaking changes.
-func (c CommitPkgsReport) HasBreakingChanges() bool {
+// returns true if the report contains breaking changes
+func (c CommitPkgsReport) hasBreakingChanges() bool {
 	for _, r := range c.CommitsReports {
 		if r.hasBreakingChanges() {
 			return true
@@ -211,8 +204,8 @@ func (c CommitPkgsReport) HasBreakingChanges() bool {
 	return false
 }
 
-// HasAdditiveChanges returns true if the package contains additive changes.
-func (c CommitPkgsReport) HasAdditiveChanges() bool {
+// returns true if the package contains additive changes
+func (c CommitPkgsReport) hasAdditiveChanges() bool {
 	for _, r := range c.CommitsReports {
 		if r.hasAdditiveChanges() {
 			return true
@@ -266,13 +259,13 @@ func (r pkgsReport) isEmpty() bool {
 
 // generates a pkgsReport based on the delta between lhs and rhs
 func getPkgsReport(lhs, rhs repoContent) pkgsReport {
-	rpt := pkgsReport{}
+	report := pkgsReport{}
 
 	if !onlyBreakingChangesFlag {
-		rpt.AddedPackages = getPkgsList(lhs, rhs)
+		report.AddedPackages = getPkgsList(lhs, rhs)
 	}
 	if !onlyAdditionsFlag {
-		rpt.RemovedPackages = getPkgsList(rhs, lhs)
+		report.RemovedPackages = getPkgsList(rhs, lhs)
 	}
 
 	// diff packages
@@ -280,22 +273,22 @@ func getPkgsReport(lhs, rhs repoContent) pkgsReport {
 		if _, ok := lhs[rhsPkg]; !ok {
 			continue
 		}
-		if r := report.Generate(lhs[rhsPkg], rhsCnt, onlyBreakingChangesFlag, onlyAdditionsFlag); !r.IsEmpty() {
-			if r.HasBreakingChanges() {
-				rpt.modPkgHasBreaking = true
+		if r := getPkgReport(lhs[rhsPkg], rhsCnt); !r.isEmpty() {
+			if r.hasBreakingChanges() {
+				report.modPkgHasBreaking = true
 			}
-			if r.HasAdditiveChanges() {
-				rpt.modPkgHasAdditions = true
+			if r.hasAdditiveChanges() {
+				report.modPkgHasAdditions = true
 			}
 			// only add an entry if the report contains data
-			if rpt.ModifiedPackages == nil {
-				rpt.ModifiedPackages = modifiedPackages{}
+			if report.ModifiedPackages == nil {
+				report.ModifiedPackages = modifiedPackages{}
 			}
-			rpt.ModifiedPackages[rhsPkg] = r
+			report.ModifiedPackages[rhsPkg] = r
 		}
 	}
 
-	return rpt
+	return report
 }
 
 // returns a list of packages in rhs that aren't in lhs

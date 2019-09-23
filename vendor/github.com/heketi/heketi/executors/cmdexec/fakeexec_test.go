@@ -42,12 +42,7 @@ type FakeExecutor struct {
 func NewFakeExecutor(f *CommandFaker) (*FakeExecutor, error) {
 	t := &FakeExecutor{}
 	t.RemoteExecutor = t
-	config := &CmdConfig{}
-	config.GlusterCliTimeout = 42
-	config.LVChunkSize = "256K"
-	config.XfsSu = 0
-	config.XfsSw = 0
-	t.CmdExecutor.Init(config)
+	t.Throttlemap = make(map[string]chan bool)
 	t.fake = f
 	t.Fstab = "/my/fstab"
 	t.portStr = "22"

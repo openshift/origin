@@ -17,7 +17,6 @@ limitations under the License.
 package admission
 
 import (
-	"context"
 	"fmt"
 
 	auditinternal "k8s.io/apiserver/pkg/apis/audit"
@@ -45,7 +44,7 @@ func WithAudit(i Interface, ae *auditinternal.Event) Interface {
 	return &auditHandler{i, ae}
 }
 
-func (handler auditHandler) Admit(ctx context.Context, a Attributes, o ObjectInterfaces) error {
+func (handler auditHandler) Admit(a Attributes, o ObjectInterfaces) error {
 	if !handler.Interface.Handles(a.GetOperation()) {
 		return nil
 	}
@@ -54,13 +53,13 @@ func (handler auditHandler) Admit(ctx context.Context, a Attributes, o ObjectInt
 	}
 	var err error
 	if mutator, ok := handler.Interface.(MutationInterface); ok {
-		err = mutator.Admit(ctx, a, o)
+		err = mutator.Admit(a, o)
 		handler.logAnnotations(a)
 	}
 	return err
 }
 
-func (handler auditHandler) Validate(ctx context.Context, a Attributes, o ObjectInterfaces) error {
+func (handler auditHandler) Validate(a Attributes, o ObjectInterfaces) error {
 	if !handler.Interface.Handles(a.GetOperation()) {
 		return nil
 	}
@@ -69,7 +68,7 @@ func (handler auditHandler) Validate(ctx context.Context, a Attributes, o Object
 	}
 	var err error
 	if validator, ok := handler.Interface.(ValidationInterface); ok {
-		err = validator.Validate(ctx, a, o)
+		err = validator.Validate(a, o)
 		handler.logAnnotations(a)
 	}
 	return err
@@ -85,18 +84,11 @@ func ensureAnnotationGetter(a Attributes) error {
 }
 
 func (handler auditHandler) logAnnotations(a Attributes) {
-	if handler.ae == nil {
-		return
-	}
 	switch a := a.(type) {
 	case privateAnnotationsGetter:
-		for key, value := range a.getAnnotations(handler.ae.Level) {
-			audit.LogAnnotation(handler.ae, key, value)
-		}
+		audit.LogAnnotations(handler.ae, a.getAnnotations())
 	case AnnotationsGetter:
-		for key, value := range a.GetAnnotations(handler.ae.Level) {
-			audit.LogAnnotation(handler.ae, key, value)
-		}
+		audit.LogAnnotations(handler.ae, a.GetAnnotations())
 	default:
 		// this will never happen, because we have already checked it in ensureAnnotationGetter
 	}

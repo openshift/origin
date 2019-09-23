@@ -145,9 +145,8 @@ func TestParallelPuller(t *testing.T) {
 
 	cases := pullerTestCases()
 
-	useSerializedEnv := false
 	for i, c := range cases {
-		puller, fakeClock, fakeRuntime, container := pullerTestEnv(c, useSerializedEnv)
+		puller, fakeClock, fakeRuntime, container := pullerTestEnv(c, false)
 
 		for tick, expected := range c.expected {
 			fakeRuntime.CalledFunctions = nil
@@ -171,9 +170,8 @@ func TestSerializedPuller(t *testing.T) {
 
 	cases := pullerTestCases()
 
-	useSerializedEnv := true
 	for i, c := range cases {
-		puller, fakeClock, fakeRuntime, container := pullerTestEnv(c, useSerializedEnv)
+		puller, fakeClock, fakeRuntime, container := pullerTestEnv(c, true)
 
 		for tick, expected := range c.expected {
 			fakeRuntime.CalledFunctions = nil

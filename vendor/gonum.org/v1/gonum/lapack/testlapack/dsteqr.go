@@ -22,7 +22,7 @@ type Dsteqrer interface {
 
 func DsteqrTest(t *testing.T, impl Dsteqrer) {
 	rnd := rand.New(rand.NewSource(1))
-	for _, compz := range []lapack.EVComp{lapack.EVOrig, lapack.EVTridiag} {
+	for _, compz := range []lapack.EVComp{lapack.OriginalEV, lapack.TridiagEV} {
 		for _, test := range []struct {
 			n, lda int
 		}{
@@ -59,15 +59,14 @@ func DsteqrTest(t *testing.T, impl Dsteqrer) {
 				copy(eCopy, e)
 				aCopy := make([]float64, len(a))
 				copy(aCopy, a)
-				if compz == lapack.EVOrig {
+				if compz == lapack.OriginalEV {
+					// Compute triangular decomposition and orthonormal matrix.
 					uplo := blas.Upper
 					tau := make([]float64, n)
 					work := make([]float64, 1)
 					impl.Dsytrd(blas.Upper, n, a, lda, d, e, tau, work, -1)
 					work = make([]float64, int(work[0]))
-					// Reduce A to symmetric tridiagonal form.
 					impl.Dsytrd(uplo, n, a, lda, d, e, tau, work, len(work))
-					// Compute the orthogonal matrix Q.
 					impl.Dorgtr(uplo, n, a, lda, tau, work, len(work))
 				} else {
 					for i := 0; i < n; i++ {
@@ -92,7 +91,7 @@ func DsteqrTest(t *testing.T, impl Dsteqrer) {
 				copy(dAns, d)
 
 				var truth blas64.General
-				if compz == lapack.EVOrig {
+				if compz == lapack.OriginalEV {
 					truth = blas64.General{
 						Rows:   n,
 						Cols:   n,
@@ -130,14 +129,14 @@ func DsteqrTest(t *testing.T, impl Dsteqrer) {
 				}
 				if !eigenDecompCorrect(d, truth, V) {
 					t.Errorf("Eigen reconstruction mismatch. fromFull = %v, n = %v",
-						compz == lapack.EVOrig, n)
+						compz == lapack.OriginalEV, n)
 				}
 
 				// Compare eigenvalues when not computing eigenvectors.
 				for i := range work {
 					work[i] = rnd.Float64()
 				}
-				impl.Dsteqr(lapack.EVCompNone, n, dDecomp, eDecomp, aDecomp, lda, work)
+				impl.Dsteqr(lapack.None, n, dDecomp, eDecomp, aDecomp, lda, work)
 				if !floats.EqualApprox(d, dAns, 1e-8) {
 					t.Errorf("Eigenvalue mismatch when eigenvectors not computed")
 				}

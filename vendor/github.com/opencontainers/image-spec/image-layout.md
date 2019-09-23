@@ -1,13 +1,13 @@
 ## OCI Image Layout Specification
 
-* The OCI Image Layout is directory structure for OCI content-addressable blobs and [location-addressable](https://en.wikipedia.org/wiki/Content-addressable_storage#Content-addressed_vs._location-addressed) references (refs).
+* The OCI Image Layout is a slash separated layout of OCI content-addressable blobs and [location-addressable](https://en.wikipedia.org/wiki/Content-addressable_storage#Content-addressed_vs._location-addressed) references (refs).
 * This layout MAY be used in a variety of different transport mechanisms: archive formats (e.g. tar, zip), shared filesystem environments (e.g. nfs), or networked file fetching (e.g. http, ftp, rsync).
 
-Given an image layout and a ref, a tool can create an [OCI Runtime Specification bundle](https://github.com/opencontainers/runtime-spec/blob/v1.0.0/bundle.md) by:
+Given an image layout and a ref, a tool can create an [OCI Runtime Specification bundle](https://github.com/opencontainers/runtime-spec/blob/v1.0.0-rc3/bundle.md) by:
 
 * Following the ref to find a [manifest](manifest.md#image-manifest), possibly via an [image index](image-index.md)
 * [Applying the filesystem layers](layer.md#applying) in the specified order
-* Converting the [image configuration](config.md) into an [OCI Runtime Specification `config.json`](https://github.com/opencontainers/runtime-spec/blob/v1.0.0/config.md)
+* Converting the [image configuration](config.md) into an [OCI Runtime Specification `config.json`](https://github.com/opencontainers/runtime-spec/blob/v1.0.0-rc3/config.md)
 
 # Content
 
@@ -53,8 +53,8 @@ afff3924849e458c5ef237db5f89539274d5e609db5db935ed3959c90f1f2d51 ./blobs/sha256/
 ## Blobs
 
 * Object names in the `blobs` subdirectories are composed of a directory for each hash algorithm, the children of which will contain the actual content.
-* The content of `blobs/<alg>/<encoded>` MUST match the digest `<alg>:<encoded>` (referenced per [descriptor](descriptor.md#digests)). For example, the content of `blobs/sha256/da39a3ee5e6b4b0d3255bfef95601890afd80709` MUST match the digest `sha256:da39a3ee5e6b4b0d3255bfef95601890afd80709`.
-* The character set of the entry name for `<alg>` and `<encoded>` MUST match the respective grammar elements described in [descriptor](descriptor.md#digests).
+* The content of `blobs/<alg>/<encoded>` MUST match the digest `<alg>:<encoded>` (referenced per [descriptor](descriptor.md#digests-and-verification)). For example, the content of `blobs/sha256/da39a3ee5e6b4b0d3255bfef95601890afd80709` MUST match the digest `sha256:da39a3ee5e6b4b0d3255bfef95601890afd80709`.
+* The character set of the entry name for `<alg>` and `<encoded>` MUST match the respective grammar elements described in [descriptor](descriptor.md#digests-and-verification).
 * The blobs directory MAY contain blobs which are not referenced by any of the [refs](#indexjson-file).
 * The blobs directory MAY be missing referenced blobs, in which case the missing blobs SHOULD be fulfilled by an external blob store.
 
@@ -90,7 +90,7 @@ $ cat ./blobs/sha256/afff3924849e458c5ef237db5f89539274d5e609db5db935ed3959c90f1
     {
       "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
       "size": 32654,
-      "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0"
+      "digest": "sha256:e692418e4cbaf90ca69d05a66403747baa33ee08806650b51fab815ad7fc331f"
     },
 ...
 ```
@@ -119,8 +119,8 @@ $ cat ./blobs/sha256/5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a43335
 ```
 
 ```
-$ cat ./blobs/sha256/9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0
-[gzipped tar stream]
+$ cat ./blobs/sha256/e692418e4cbaf90ca69d05a66403747baa33ee08806650b51fab815ad7fc331f
+[tar stream]
 ```
 
 ## oci-layout file

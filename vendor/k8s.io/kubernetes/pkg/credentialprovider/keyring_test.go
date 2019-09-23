@@ -463,17 +463,22 @@ func (d *testProvider) Enabled() bool {
 	return true
 }
 
+// LazyProvide implements dockerConfigProvider. Should never be called.
+func (d *testProvider) LazyProvide(image string) *DockerConfigEntry {
+	return nil
+}
+
 // Provide implements dockerConfigProvider
 func (d *testProvider) Provide(image string) DockerConfig {
-	d.Count++
+	d.Count += 1
 	return DockerConfig{}
 }
 
-func TestProvidersDockerKeyring(t *testing.T) {
+func TestLazyKeyring(t *testing.T) {
 	provider := &testProvider{
 		Count: 0,
 	}
-	keyring := &providersDockerKeyring{
+	lazy := &lazyDockerKeyring{
 		Providers: []DockerConfigProvider{
 			provider,
 		},
@@ -482,31 +487,35 @@ func TestProvidersDockerKeyring(t *testing.T) {
 	if provider.Count != 0 {
 		t.Errorf("Unexpected number of Provide calls: %v", provider.Count)
 	}
-	keyring.Lookup("foo")
+	lazy.Lookup("foo")
 	if provider.Count != 1 {
 		t.Errorf("Unexpected number of Provide calls: %v", provider.Count)
 	}
-	keyring.Lookup("foo")
+	lazy.Lookup("foo")
 	if provider.Count != 2 {
 		t.Errorf("Unexpected number of Provide calls: %v", provider.Count)
 	}
-	keyring.Lookup("foo")
+	lazy.Lookup("foo")
 	if provider.Count != 3 {
 		t.Errorf("Unexpected number of Provide calls: %v", provider.Count)
 	}
 }
 
 func TestDockerKeyringLookup(t *testing.T) {
-	ada := AuthConfig{
-		Username: "ada",
-		Password: "smash",
-		Email:    "ada@example.com",
+	ada := LazyAuthConfiguration{
+		AuthConfig: AuthConfig{
+			Username: "ada",
+			Password: "smash",
+			Email:    "ada@example.com",
+		},
 	}
 
-	grace := AuthConfig{
-		Username: "grace",
-		Password: "squash",
-		Email:    "grace@example.com",
+	grace := LazyAuthConfiguration{
+		AuthConfig: AuthConfig{
+			Username: "grace",
+			Password: "squash",
+			Email:    "grace@example.com",
+		},
 	}
 
 	dk := &BasicDockerKeyring{}
@@ -525,27 +534,27 @@ func TestDockerKeyringLookup(t *testing.T) {
 
 	tests := []struct {
 		image string
-		match []AuthConfig
+		match []LazyAuthConfiguration
 		ok    bool
 	}{
 		// direct match
-		{"bar.example.com", []AuthConfig{ada}, true},
+		{"bar.example.com", []LazyAuthConfiguration{ada}, true},
 
 		// direct match deeper than other possible matches
-		{"bar.example.com/pong", []AuthConfig{grace, ada}, true},
+		{"bar.example.com/pong", []LazyAuthConfiguration{grace, ada}, true},
 
 		// no direct match, deeper path ignored
-		{"bar.example.com/ping", []AuthConfig{ada}, true},
+		{"bar.example.com/ping", []LazyAuthConfiguration{ada}, true},
 
 		// match first part of path token
-		{"bar.example.com/pongz", []AuthConfig{grace, ada}, true},
+		{"bar.example.com/pongz", []LazyAuthConfiguration{grace, ada}, true},
 
 		// match regardless of sub-path
-		{"bar.example.com/pong/pang", []AuthConfig{grace, ada}, true},
+		{"bar.example.com/pong/pang", []LazyAuthConfiguration{grace, ada}, true},
 
 		// no host match
-		{"example.com", []AuthConfig{}, false},
-		{"foo.example.com", []AuthConfig{}, false},
+		{"example.com", []LazyAuthConfiguration{}, false},
+		{"foo.example.com", []LazyAuthConfiguration{}, false},
 	}
 
 	for i, tt := range tests {
@@ -564,10 +573,12 @@ func TestDockerKeyringLookup(t *testing.T) {
 // by images that only match the hostname.
 // NOTE: the above covers the case of a more specific match trumping just hostname.
 func TestIssue3797(t *testing.T) {
-	rex := AuthConfig{
-		Username: "rex",
-		Password: "tiny arms",
-		Email:    "rex@example.com",
+	rex := LazyAuthConfiguration{
+		AuthConfig: AuthConfig{
+			Username: "rex",
+			Password: "tiny arms",
+			Email:    "rex@example.com",
+		},
 	}
 
 	dk := &BasicDockerKeyring{}
@@ -581,15 +592,15 @@ func TestIssue3797(t *testing.T) {
 
 	tests := []struct {
 		image string
-		match []AuthConfig
+		match []LazyAuthConfiguration
 		ok    bool
 	}{
 		// direct match
-		{"quay.io", []AuthConfig{rex}, true},
+		{"quay.io", []LazyAuthConfiguration{rex}, true},
 
 		// partial matches
-		{"quay.io/foo", []AuthConfig{rex}, true},
-		{"quay.io/foo/bar", []AuthConfig{rex}, true},
+		{"quay.io/foo", []LazyAuthConfiguration{rex}, true},
+		{"quay.io/foo/bar", []LazyAuthConfiguration{rex}, true},
 	}
 
 	for i, tt := range tests {

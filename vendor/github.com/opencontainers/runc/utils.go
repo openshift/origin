@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 
@@ -82,13 +80,4 @@ func revisePidFile(context *cli.Context) error {
 		return err
 	}
 	return context.Set("pid-file", pidFile)
-}
-
-// parseBoolOrAuto returns (nil, nil) if s is empty or "auto"
-func parseBoolOrAuto(s string) (*bool, error) {
-	if s == "" || strings.ToLower(s) == "auto" {
-		return nil, nil
-	}
-	b, err := strconv.ParseBool(s)
-	return &b, err
 }

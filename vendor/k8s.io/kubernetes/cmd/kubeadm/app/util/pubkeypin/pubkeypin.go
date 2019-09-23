@@ -61,18 +61,12 @@ func (s *Set) Allow(pubKeyHashes ...string) error {
 	return nil
 }
 
-// CheckAny checks if at least one certificate matches one of the public keys in the set
-func (s *Set) CheckAny(certificates []*x509.Certificate) error {
-	var hashes []string
-
-	for _, certificate := range certificates {
-		if s.checkSHA256(certificate) {
-			return nil
-		}
-
-		hashes = append(hashes, Hash(certificate))
+// Check if a certificate matches one of the public keys in the set
+func (s *Set) Check(certificate *x509.Certificate) error {
+	if s.checkSHA256(certificate) {
+		return nil
 	}
-	return errors.Errorf("none of the public keys %q are pinned", strings.Join(hashes, ":"))
+	return errors.Errorf("public key %s not pinned", Hash(certificate))
 }
 
 // Empty returns true if the Set contains no pinned public keys.

@@ -48,7 +48,7 @@ func TestHOGSVD(t *testing.T) {
 					}
 				} else {
 					if ok {
-						t.Errorf("HOGSVD factorization unexpectedly succeeded for %d %d×%d matrices", n, r, c)
+						t.Errorf("HOGSVD factorization unexpectedly succeeded for for %d %d×%d matrices", n, r, c)
 					}
 					continue
 				}

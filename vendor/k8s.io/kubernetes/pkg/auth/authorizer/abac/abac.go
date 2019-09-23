@@ -14,8 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package abac authorizes Kubernetes API actions using an Attribute-based access control scheme.
 package abac
+
+// Policy authorizes Kubernetes API actions using an Attribute-based access
+// control scheme.
 
 import (
 	"bufio"
@@ -29,8 +31,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/kubernetes/pkg/apis/abac"
-
-	// Import latest API for init/side-effects
 	_ "k8s.io/kubernetes/pkg/apis/abac/latest"
 	"k8s.io/kubernetes/pkg/apis/abac/v0"
 )
@@ -49,13 +49,10 @@ func (p policyLoadError) Error() string {
 	return fmt.Sprintf("error reading policy file %s: %v", p.path, p.err)
 }
 
-// PolicyList is simply a slice of Policy structs.
-type PolicyList []*abac.Policy
+type policyList []*abac.Policy
 
-// NewFromFile attempts to create a policy list from the given file.
-//
 // TODO: Have policies be created via an API call and stored in REST storage.
-func NewFromFile(path string) (PolicyList, error) {
+func NewFromFile(path string) (policyList, error) {
 	// File format is one map per line.  This allows easy concatenation of files,
 	// comments in files, and identification of errors by line number.
 	file, err := os.Open(path)
@@ -65,7 +62,7 @@ func NewFromFile(path string) (PolicyList, error) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	pl := make(PolicyList, 0)
+	pl := make(policyList, 0)
 
 	decoder := abac.Codecs.UniversalDecoder()
 
@@ -223,8 +220,8 @@ func resourceMatches(p abac.Policy, a authorizer.Attributes) bool {
 	return false
 }
 
-// Authorize implements authorizer.Authorize
-func (pl PolicyList) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+// Authorizer implements authorizer.Authorize
+func (pl policyList) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
 	for _, p := range pl {
 		if matches(*p, a) {
 			return authorizer.DecisionAllow, "", nil
@@ -236,8 +233,7 @@ func (pl PolicyList) Authorize(a authorizer.Attributes) (authorizer.Decision, st
 	// Then, add Caching only if needed.
 }
 
-// RulesFor returns rules for the given user and namespace.
-func (pl PolicyList) RulesFor(user user.Info, namespace string) ([]authorizer.ResourceRuleInfo, []authorizer.NonResourceRuleInfo, bool, error) {
+func (pl policyList) RulesFor(user user.Info, namespace string) ([]authorizer.ResourceRuleInfo, []authorizer.NonResourceRuleInfo, bool, error) {
 	var (
 		resourceRules    []authorizer.ResourceRuleInfo
 		nonResourceRules []authorizer.NonResourceRuleInfo

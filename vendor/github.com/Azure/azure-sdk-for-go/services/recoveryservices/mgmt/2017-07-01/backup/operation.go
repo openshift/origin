@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewOperationClientWithBaseURI(baseURI string, subscriptionID string) Operat
 // resourceGroupName - the name of the resource group where the recovery services vault is present.
 // parameters - resource validate operation request
 func (client OperationClient) Validate(ctx context.Context, vaultName string, resourceGroupName string, parameters BasicValidateOperationRequest) (result ValidateOperationsResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationClient.Validate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ValidatePreparer(ctx, vaultName, resourceGroupName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "backup.OperationClient", "Validate", nil, "Failure preparing request")
@@ -103,8 +92,8 @@ func (client OperationClient) ValidatePreparer(ctx context.Context, vaultName st
 // ValidateSender sends the Validate request. The method will close the
 // http.Response Body if it receives an error.
 func (client OperationClient) ValidateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ValidateResponder handles the response to the Validate request. The method always

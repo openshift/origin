@@ -104,7 +104,7 @@ func luReconstruct(lu *LU) *Dense {
 	return &a
 }
 
-func TestLUSolveTo(t *testing.T) {
+func TestSolveLU(t *testing.T) {
 	for _, test := range []struct {
 		n, bc int
 	}{
@@ -129,19 +129,19 @@ func TestLUSolveTo(t *testing.T) {
 		var lu LU
 		lu.Factorize(a)
 		var x Dense
-		if err := lu.SolveTo(&x, false, b); err != nil {
+		if err := lu.Solve(&x, false, b); err != nil {
 			continue
 		}
 		var got Dense
 		got.Mul(a, &x)
 		if !EqualApprox(&got, b, 1e-12) {
-			t.Errorf("SolveTo mismatch for non-singular matrix. n = %v, bc = %v.\nWant: %v\nGot: %v", n, bc, b, got)
+			t.Errorf("Solve mismatch for non-singular matrix. n = %v, bc = %v.\nWant: %v\nGot: %v", n, bc, b, got)
 		}
 	}
 	// TODO(btracey): Add testOneInput test when such a function exists.
 }
 
-func TestLUSolveToCond(t *testing.T) {
+func TestSolveLUCond(t *testing.T) {
 	for _, test := range []*Dense{
 		NewDense(2, 2, []float64{1, 0, 0, 1e-20}),
 	} {
@@ -150,19 +150,19 @@ func TestLUSolveToCond(t *testing.T) {
 		lu.Factorize(test)
 		b := NewDense(m, 2, nil)
 		var x Dense
-		if err := lu.SolveTo(&x, false, b); err == nil {
+		if err := lu.Solve(&x, false, b); err == nil {
 			t.Error("No error for near-singular matrix in matrix solve.")
 		}
 
 		bvec := NewVecDense(m, nil)
 		var xvec VecDense
-		if err := lu.SolveVecTo(&xvec, false, bvec); err == nil {
+		if err := lu.SolveVec(&xvec, false, bvec); err == nil {
 			t.Error("No error for near-singular matrix in matrix solve.")
 		}
 	}
 }
 
-func TestLUSolveVecTo(t *testing.T) {
+func TestSolveLUVec(t *testing.T) {
 	for _, n := range []int{5, 10} {
 		a := NewDense(n, n, nil)
 		for i := 0; i < n; i++ {
@@ -177,13 +177,13 @@ func TestLUSolveVecTo(t *testing.T) {
 		var lu LU
 		lu.Factorize(a)
 		var x VecDense
-		if err := lu.SolveVecTo(&x, false, b); err != nil {
+		if err := lu.SolveVec(&x, false, b); err != nil {
 			continue
 		}
 		var got VecDense
 		got.MulVec(a, &x)
 		if !EqualApprox(&got, b, 1e-12) {
-			t.Errorf("SolveTo mismatch n = %v.\nWant: %v\nGot: %v", n, b, got)
+			t.Errorf("Solve mismatch n = %v.\nWant: %v\nGot: %v", n, b, got)
 		}
 	}
 	// TODO(btracey): Add testOneInput test when such a function exists.

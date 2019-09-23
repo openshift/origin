@@ -90,12 +90,8 @@ func UpdateClusterInfoComplete(tx *bolt.Tx, ci *api.ClusterInfoResponse) error {
 // an error if the db cannot be read.
 func MapPendingVolumes(tx *bolt.Tx) (map[string]string, error) {
 	return mapPendingItems(tx, func(op *PendingOperationEntry, a PendingOperationAction) bool {
-		t := op.Type
-		c := a.Change
-		return ((t == OperationCreateVolume && c == OpAddVolume) ||
-			(t == OperationDeleteVolume && c == OpDeleteVolume) ||
-			(t == OperationCreateBlockVolume && c == OpAddVolume) ||
-			(t == OperationCloneVolume && c == OpAddVolumeClone))
+		return ((op.Type == OperationCreateVolume && a.Change == OpAddVolume) ||
+			(op.Type == OperationCreateBlockVolume && a.Change == OpAddVolume))
 	})
 }
 
@@ -103,10 +99,7 @@ func MapPendingVolumes(tx *bolt.Tx) (map[string]string, error) {
 // an error if the db cannot be read.
 func MapPendingBlockVolumes(tx *bolt.Tx) (map[string]string, error) {
 	return mapPendingItems(tx, func(op *PendingOperationEntry, a PendingOperationAction) bool {
-		t := op.Type
-		c := a.Change
-		return ((t == OperationCreateBlockVolume && c == OpAddBlockVolume) ||
-			(t == OperationDeleteBlockVolume && c == OpDeleteBlockVolume))
+		return (op.Type == OperationCreateBlockVolume && a.Change == OpAddBlockVolume)
 	})
 }
 

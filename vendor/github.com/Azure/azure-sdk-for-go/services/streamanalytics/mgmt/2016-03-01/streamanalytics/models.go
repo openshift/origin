@@ -18,18 +18,13 @@ package streamanalytics
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/streamanalytics/mgmt/2016-03-01/streamanalytics"
 
 // BindingType enumerates the values for binding type.
 type BindingType string
@@ -295,8 +290,8 @@ func PossibleUdfTypeValues() []UdfType {
 	return []UdfType{Scalar}
 }
 
-// AvroSerialization describes how data from an input is serialized or how data is serialized when written
-// to an output in Avro format.
+// AvroSerialization describes how data from an input is serialized or how data is serialized when written to an
+// output in Avro format.
 type AvroSerialization struct {
 	// Properties - The properties that are associated with the Avro serialization type. Required on PUT (CreateOrReplace) requests.
 	Properties interface{} `json:"properties,omitempty"`
@@ -308,9 +303,7 @@ type AvroSerialization struct {
 func (as AvroSerialization) MarshalJSON() ([]byte, error) {
 	as.Type = TypeAvro
 	objectMap := make(map[string]interface{})
-	if as.Properties != nil {
-		objectMap["properties"] = as.Properties
-	}
+	objectMap["properties"] = as.Properties
 	if as.Type != "" {
 		objectMap["type"] = as.Type
 	}
@@ -451,8 +444,7 @@ func (adlsods *AzureDataLakeStoreOutputDataSource) UnmarshalJSON(body []byte) er
 	return nil
 }
 
-// AzureDataLakeStoreOutputDataSourceProperties the properties that are associated with an Azure Data Lake
-// Store.
+// AzureDataLakeStoreOutputDataSourceProperties the properties that are associated with an Azure Data Lake Store.
 type AzureDataLakeStoreOutputDataSourceProperties struct {
 	// AccountName - The name of the Azure Data Lake Store account. Required on PUT (CreateOrReplace) requests.
 	AccountName *string `json:"accountName,omitempty"`
@@ -546,8 +538,8 @@ func (amlwsfb *AzureMachineLearningWebServiceFunctionBinding) UnmarshalJSON(body
 	return nil
 }
 
-// AzureMachineLearningWebServiceFunctionBindingProperties the binding properties associated with an Azure
-// Machine learning web service.
+// AzureMachineLearningWebServiceFunctionBindingProperties the binding properties associated with an Azure Machine
+// learning web service.
 type AzureMachineLearningWebServiceFunctionBindingProperties struct {
 	// Endpoint - The Request-Response execute endpoint of the Azure Machine Learning web service. Find out more here: https://docs.microsoft.com/en-us/azure/machine-learning/machine-learning-consume-web-services#request-response-service-rrs
 	Endpoint *string `json:"endpoint,omitempty"`
@@ -561,8 +553,8 @@ type AzureMachineLearningWebServiceFunctionBindingProperties struct {
 	BatchSize *int32 `json:"batchSize,omitempty"`
 }
 
-// AzureMachineLearningWebServiceFunctionBindingRetrievalProperties the binding retrieval properties
-// associated with an Azure Machine learning web service.
+// AzureMachineLearningWebServiceFunctionBindingRetrievalProperties the binding retrieval properties associated
+// with an Azure Machine learning web service.
 type AzureMachineLearningWebServiceFunctionBindingRetrievalProperties struct {
 	// ExecuteEndpoint - The Request-Response execute endpoint of the Azure Machine Learning web service. Find out more here: https://docs.microsoft.com/en-us/azure/machine-learning/machine-learning-consume-web-services#request-response-service-rrs
 	ExecuteEndpoint *string `json:"executeEndpoint,omitempty"`
@@ -570,8 +562,8 @@ type AzureMachineLearningWebServiceFunctionBindingRetrievalProperties struct {
 	UdfType UdfType `json:"udfType,omitempty"`
 }
 
-// AzureMachineLearningWebServiceFunctionRetrieveDefaultDefinitionParameters the parameters needed to
-// retrieve the default function definition for an Azure Machine Learning web service function.
+// AzureMachineLearningWebServiceFunctionRetrieveDefaultDefinitionParameters the parameters needed to retrieve the
+// default function definition for an Azure Machine Learning web service function.
 type AzureMachineLearningWebServiceFunctionRetrieveDefaultDefinitionParameters struct {
 	// AzureMachineLearningWebServiceFunctionBindingRetrievalProperties - The binding retrieval properties associated with an Azure Machine learning web service.
 	*AzureMachineLearningWebServiceFunctionBindingRetrievalProperties `json:"bindingRetrievalProperties,omitempty"`
@@ -645,8 +637,8 @@ func (amlwsfrddp *AzureMachineLearningWebServiceFunctionRetrieveDefaultDefinitio
 	return nil
 }
 
-// AzureMachineLearningWebServiceInputColumn describes an input column for the Azure Machine Learning web
-// service endpoint.
+// AzureMachineLearningWebServiceInputColumn describes an input column for the Azure Machine Learning web service
+// endpoint.
 type AzureMachineLearningWebServiceInputColumn struct {
 	// Name - The name of the input column.
 	Name *string `json:"name,omitempty"`
@@ -664,8 +656,8 @@ type AzureMachineLearningWebServiceInputs struct {
 	ColumnNames *[]AzureMachineLearningWebServiceInputColumn `json:"columnNames,omitempty"`
 }
 
-// AzureMachineLearningWebServiceOutputColumn describes an output column for the Azure Machine Learning web
-// service endpoint.
+// AzureMachineLearningWebServiceOutputColumn describes an output column for the Azure Machine Learning web service
+// endpoint.
 type AzureMachineLearningWebServiceOutputColumn struct {
 	// Name - The name of the output column.
 	Name *string `json:"name,omitempty"`
@@ -673,8 +665,7 @@ type AzureMachineLearningWebServiceOutputColumn struct {
 	DataType *string `json:"dataType,omitempty"`
 }
 
-// AzureSQLDatabaseDataSourceProperties the properties that are associated with an Azure SQL database data
-// source.
+// AzureSQLDatabaseDataSourceProperties the properties that are associated with an Azure SQL database data source.
 type AzureSQLDatabaseDataSourceProperties struct {
 	// Server - The name of the SQL server containing the Azure SQL database. Required on PUT (CreateOrReplace) requests.
 	Server *string `json:"server,omitempty"`
@@ -797,8 +788,7 @@ func (asdods *AzureSQLDatabaseOutputDataSource) UnmarshalJSON(body []byte) error
 	return nil
 }
 
-// AzureSQLDatabaseOutputDataSourceProperties the properties that are associated with an Azure SQL database
-// output.
+// AzureSQLDatabaseOutputDataSourceProperties the properties that are associated with an Azure SQL database output.
 type AzureSQLDatabaseOutputDataSourceProperties struct {
 	// Server - The name of the SQL server containing the Azure SQL database. Required on PUT (CreateOrReplace) requests.
 	Server *string `json:"server,omitempty"`
@@ -1145,8 +1135,8 @@ func (brids *BlobReferenceInputDataSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobReferenceInputDataSourceProperties the properties that are associated with a blob input containing
-// reference data.
+// BlobReferenceInputDataSourceProperties the properties that are associated with a blob input containing reference
+// data.
 type BlobReferenceInputDataSourceProperties struct {
 	// StorageAccounts - A list of one or more Azure Storage accounts. Required on PUT (CreateOrReplace) requests.
 	StorageAccounts *[]StorageAccount `json:"storageAccounts,omitempty"`
@@ -1239,8 +1229,7 @@ func (bsids *BlobStreamInputDataSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobStreamInputDataSourceProperties the properties that are associated with a blob input containing
-// stream data.
+// BlobStreamInputDataSourceProperties the properties that are associated with a blob input containing stream data.
 type BlobStreamInputDataSourceProperties struct {
 	// SourcePartitionCount - The partition count of the blob input data source. Range 1 - 256.
 	SourcePartitionCount *int32 `json:"sourcePartitionCount,omitempty"`
@@ -1256,8 +1245,8 @@ type BlobStreamInputDataSourceProperties struct {
 	TimeFormat *string `json:"timeFormat,omitempty"`
 }
 
-// CsvSerialization describes how data from an input is serialized or how data is serialized when written
-// to an output in CSV format.
+// CsvSerialization describes how data from an input is serialized or how data is serialized when written to an
+// output in CSV format.
 type CsvSerialization struct {
 	// CsvSerializationProperties - The properties that are associated with the CSV serialization type. Required on PUT (CreateOrReplace) requests.
 	*CsvSerializationProperties `json:"properties,omitempty"`
@@ -1347,18 +1336,18 @@ type CsvSerializationProperties struct {
 // DiagnosticCondition condition applicable to the resource, or to the job overall, that warrant customer
 // attention.
 type DiagnosticCondition struct {
-	// Since - READ-ONLY; The UTC timestamp of when the condition started. Customers should be able to find a corresponding event in the ops log around this time.
+	// Since - The UTC timestamp of when the condition started. Customers should be able to find a corresponding event in the ops log around this time.
 	Since *string `json:"since,omitempty"`
-	// Code - READ-ONLY; The opaque diagnostic code.
+	// Code - The opaque diagnostic code.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; The human-readable message describing the condition in detail. Localized in the Accept-Language of the client request.
+	// Message - The human-readable message describing the condition in detail. Localized in the Accept-Language of the client request.
 	Message *string `json:"message,omitempty"`
 }
 
-// Diagnostics describes conditions applicable to the Input, Output, or the job overall, that warrant
-// customer attention.
+// Diagnostics describes conditions applicable to the Input, Output, or the job overall, that warrant customer
+// attention.
 type Diagnostics struct {
-	// Conditions - READ-ONLY; A collection of zero or more conditions applicable to the resource, or to the job overall, that warrant customer attention.
+	// Conditions - A collection of zero or more conditions applicable to the resource, or to the job overall, that warrant customer attention.
 	Conditions *[]DiagnosticCondition `json:"conditions,omitempty"`
 }
 
@@ -1489,9 +1478,9 @@ type DocumentDbOutputDataSourceProperties struct {
 
 // ErrorResponse describes the error that occurred.
 type ErrorResponse struct {
-	// Code - READ-ONLY; Error code associated with the error that occurred.
+	// Code - Error code associated with the error that occurred.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; Describes the error in detail.
+	// Message - Describes the error in detail.
 	Message *string `json:"message,omitempty"`
 }
 
@@ -1709,8 +1698,8 @@ func (ehsids *EventHubStreamInputDataSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// EventHubStreamInputDataSourceProperties the properties that are associated with a Event Hub input
-// containing stream data.
+// EventHubStreamInputDataSourceProperties the properties that are associated with a Event Hub input containing
+// stream data.
 type EventHubStreamInputDataSourceProperties struct {
 	// ConsumerGroupName - The name of an Event Hub Consumer Group that should be used to read events from the Event Hub. Specifying distinct consumer group names for multiple inputs allows each of those inputs to receive the same events from the Event Hub. If not specified, the input uses the Event Hub’s default consumer group.
 	ConsumerGroupName *string `json:"consumerGroupName,omitempty"`
@@ -1724,17 +1713,17 @@ type EventHubStreamInputDataSourceProperties struct {
 	SharedAccessPolicyKey *string `json:"sharedAccessPolicyKey,omitempty"`
 }
 
-// Function a function object, containing all information associated with the named function. All functions
-// are contained under a streaming job.
+// Function a function object, containing all information associated with the named function. All functions are
+// contained under a streaming job.
 type Function struct {
 	autorest.Response `json:"-"`
 	// Properties - The properties that are associated with a function.
 	Properties BasicFunctionProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
 	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1796,8 +1785,8 @@ type BasicFunctionBinding interface {
 	AsFunctionBinding() (*FunctionBinding, bool)
 }
 
-// FunctionBinding the physical binding of the function. For example, in the Azure Machine Learning web
-// service’s case, this describes the endpoint.
+// FunctionBinding the physical binding of the function. For example, in the Azure Machine Learning web service’s
+// case, this describes the endpoint.
 type FunctionBinding struct {
 	// Type - Possible values include: 'TypeFunctionBinding', 'TypeMicrosoftStreamAnalyticsJavascriptUdf', 'TypeMicrosoftMachineLearningWebService'
 	Type TypeBasicFunctionBinding `json:"type,omitempty"`
@@ -1885,9 +1874,9 @@ type FunctionInput struct {
 // FunctionListResult object containing a list of functions under a streaming job.
 type FunctionListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A list of functions under a streaming job. Populated by a 'List' operation.
+	// Value - A list of functions under a streaming job. Populated by a 'List' operation.
 	Value *[]Function `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1897,37 +1886,20 @@ type FunctionListResultIterator struct {
 	page FunctionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *FunctionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *FunctionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *FunctionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1949,11 +1921,6 @@ func (iter FunctionListResultIterator) Value() Function {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the FunctionListResultIterator type.
-func NewFunctionListResultIterator(page FunctionListResultPage) FunctionListResultIterator {
-	return FunctionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (flr FunctionListResult) IsEmpty() bool {
 	return flr.Value == nil || len(*flr.Value) == 0
@@ -1961,11 +1928,11 @@ func (flr FunctionListResult) IsEmpty() bool {
 
 // functionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (flr FunctionListResult) functionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (flr FunctionListResult) functionListResultPreparer() (*http.Request, error) {
 	if flr.NextLink == nil || len(to.String(flr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(flr.NextLink)))
@@ -1973,36 +1940,19 @@ func (flr FunctionListResult) functionListResultPreparer(ctx context.Context) (*
 
 // FunctionListResultPage contains a page of Function values.
 type FunctionListResultPage struct {
-	fn  func(context.Context, FunctionListResult) (FunctionListResult, error)
+	fn  func(FunctionListResult) (FunctionListResult, error)
 	flr FunctionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *FunctionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.flr)
+func (page *FunctionListResultPage) Next() error {
+	next, err := page.fn(page.flr)
 	if err != nil {
 		return err
 	}
 	page.flr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *FunctionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2023,11 +1973,6 @@ func (page FunctionListResultPage) Values() []Function {
 	return *page.flr.Value
 }
 
-// Creates a new instance of the FunctionListResultPage type.
-func NewFunctionListResultPage(getNextPage func(context.Context, FunctionListResult) (FunctionListResult, error)) FunctionListResultPage {
-	return FunctionListResultPage{fn: getNextPage}
-}
-
 // FunctionOutput describes the output of a function.
 type FunctionOutput struct {
 	// DataType - The (Azure Stream Analytics supported) data type of the function output. A list of valid Azure Stream Analytics data types are described at https://msdn.microsoft.com/en-us/library/azure/dn835065.aspx
@@ -2042,7 +1987,7 @@ type BasicFunctionProperties interface {
 
 // FunctionProperties the properties that are associated with a function.
 type FunctionProperties struct {
-	// Etag - READ-ONLY; The current entity tag for the function. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
+	// Etag - The current entity tag for the function. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
 	Etag *string `json:"etag,omitempty"`
 	// Type - Possible values include: 'TypeFunctionProperties', 'TypeScalar'
 	Type TypeBasicFunctionProperties `json:"type,omitempty"`
@@ -2089,6 +2034,9 @@ func unmarshalBasicFunctionPropertiesArray(body []byte) ([]BasicFunctionProperti
 func (fp FunctionProperties) MarshalJSON() ([]byte, error) {
 	fp.Type = TypeFunctionProperties
 	objectMap := make(map[string]interface{})
+	if fp.Etag != nil {
+		objectMap["etag"] = fp.Etag
+	}
 	if fp.Type != "" {
 		objectMap["type"] = fp.Type
 	}
@@ -2196,8 +2144,7 @@ func (frddp FunctionRetrieveDefaultDefinitionParameters) AsBasicFunctionRetrieve
 	return &frddp, true
 }
 
-// FunctionsTestFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// FunctionsTestFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type FunctionsTestFuture struct {
 	azure.Future
 }
@@ -2206,7 +2153,7 @@ type FunctionsTestFuture struct {
 // If the operation has not completed it will return an error.
 func (future *FunctionsTestFuture) Result(client FunctionsClient) (rts ResourceTestStatus, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsTestFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2225,17 +2172,17 @@ func (future *FunctionsTestFuture) Result(client FunctionsClient) (rts ResourceT
 	return
 }
 
-// Input an input object, containing all information associated with the named input. All inputs are
-// contained under a streaming job.
+// Input an input object, containing all information associated with the named input. All inputs are contained
+// under a streaming job.
 type Input struct {
 	autorest.Response `json:"-"`
 	// Properties - The properties that are associated with an input. Required on PUT (CreateOrReplace) requests.
 	Properties BasicInputProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
 	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -2292,9 +2239,9 @@ func (i *Input) UnmarshalJSON(body []byte) error {
 // InputListResult object containing a list of inputs under a streaming job.
 type InputListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A list of inputs under a streaming job. Populated by a 'List' operation.
+	// Value - A list of inputs under a streaming job. Populated by a 'List' operation.
 	Value *[]Input `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -2304,37 +2251,20 @@ type InputListResultIterator struct {
 	page InputListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *InputListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/InputListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *InputListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *InputListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2356,11 +2286,6 @@ func (iter InputListResultIterator) Value() Input {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the InputListResultIterator type.
-func NewInputListResultIterator(page InputListResultPage) InputListResultIterator {
-	return InputListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (ilr InputListResult) IsEmpty() bool {
 	return ilr.Value == nil || len(*ilr.Value) == 0
@@ -2368,11 +2293,11 @@ func (ilr InputListResult) IsEmpty() bool {
 
 // inputListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (ilr InputListResult) inputListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (ilr InputListResult) inputListResultPreparer() (*http.Request, error) {
 	if ilr.NextLink == nil || len(to.String(ilr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(ilr.NextLink)))
@@ -2380,36 +2305,19 @@ func (ilr InputListResult) inputListResultPreparer(ctx context.Context) (*http.R
 
 // InputListResultPage contains a page of Input values.
 type InputListResultPage struct {
-	fn  func(context.Context, InputListResult) (InputListResult, error)
+	fn  func(InputListResult) (InputListResult, error)
 	ilr InputListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *InputListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/InputListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.ilr)
+func (page *InputListResultPage) Next() error {
+	next, err := page.fn(page.ilr)
 	if err != nil {
 		return err
 	}
 	page.ilr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *InputListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2430,11 +2338,6 @@ func (page InputListResultPage) Values() []Input {
 	return *page.ilr.Value
 }
 
-// Creates a new instance of the InputListResultPage type.
-func NewInputListResultPage(getNextPage func(context.Context, InputListResult) (InputListResult, error)) InputListResultPage {
-	return InputListResultPage{fn: getNextPage}
-}
-
 // BasicInputProperties the properties that are associated with an input.
 type BasicInputProperties interface {
 	AsReferenceInputProperties() (*ReferenceInputProperties, bool)
@@ -2446,9 +2349,9 @@ type BasicInputProperties interface {
 type InputProperties struct {
 	// Serialization - Describes how data from an input is serialized or how data is serialized when written to an output. Required on PUT (CreateOrReplace) requests.
 	Serialization BasicSerialization `json:"serialization,omitempty"`
-	// Diagnostics - READ-ONLY; Describes conditions applicable to the Input, Output, or the job overall, that warrant customer attention.
+	// Diagnostics - Describes conditions applicable to the Input, Output, or the job overall, that warrant customer attention.
 	Diagnostics *Diagnostics `json:"diagnostics,omitempty"`
-	// Etag - READ-ONLY; The current entity tag for the input. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
+	// Etag - The current entity tag for the input. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
 	Etag *string `json:"etag,omitempty"`
 	// Type - Possible values include: 'TypeInputProperties', 'TypeReference', 'TypeStream'
 	Type TypeBasicInputProperties `json:"type,omitempty"`
@@ -2500,6 +2403,12 @@ func (IP InputProperties) MarshalJSON() ([]byte, error) {
 	IP.Type = TypeInputProperties
 	objectMap := make(map[string]interface{})
 	objectMap["serialization"] = IP.Serialization
+	if IP.Diagnostics != nil {
+		objectMap["diagnostics"] = IP.Diagnostics
+	}
+	if IP.Etag != nil {
+		objectMap["etag"] = IP.Etag
+	}
 	if IP.Type != "" {
 		objectMap["type"] = IP.Type
 	}
@@ -2585,7 +2494,7 @@ type InputsTestFuture struct {
 // If the operation has not completed it will return an error.
 func (future *InputsTestFuture) Result(client InputsClient) (rts ResourceTestStatus, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.InputsTestFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2683,8 +2592,8 @@ func (ithsids *IoTHubStreamInputDataSource) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// IoTHubStreamInputDataSourceProperties the properties that are associated with a IoT Hub input containing
-// stream data.
+// IoTHubStreamInputDataSourceProperties the properties that are associated with a IoT Hub input containing stream
+// data.
 type IoTHubStreamInputDataSourceProperties struct {
 	// IotHubNamespace - The name or the URI of the IoT Hub. Required on PUT (CreateOrReplace) requests.
 	IotHubNamespace *string `json:"iotHubNamespace,omitempty"`
@@ -2778,8 +2687,8 @@ type JavaScriptFunctionBindingProperties struct {
 	Script *string `json:"script,omitempty"`
 }
 
-// JavaScriptFunctionBindingRetrievalProperties the binding retrieval properties associated with a
-// JavaScript function.
+// JavaScriptFunctionBindingRetrievalProperties the binding retrieval properties associated with a JavaScript
+// function.
 type JavaScriptFunctionBindingRetrievalProperties struct {
 	// Script - The JavaScript code containing a single function definition. For example: 'function (x, y) { return x + y; }'.
 	Script *string `json:"script,omitempty"`
@@ -2787,8 +2696,8 @@ type JavaScriptFunctionBindingRetrievalProperties struct {
 	UdfType UdfType `json:"udfType,omitempty"`
 }
 
-// JavaScriptFunctionRetrieveDefaultDefinitionParameters the parameters needed to retrieve the default
-// function definition for a JavaScript function.
+// JavaScriptFunctionRetrieveDefaultDefinitionParameters the parameters needed to retrieve the default function
+// definition for a JavaScript function.
 type JavaScriptFunctionRetrieveDefaultDefinitionParameters struct {
 	// JavaScriptFunctionBindingRetrievalProperties - The binding retrieval properties associated with a JavaScript function.
 	*JavaScriptFunctionBindingRetrievalProperties `json:"bindingRetrievalProperties,omitempty"`
@@ -2862,8 +2771,8 @@ func (jsfrddp *JavaScriptFunctionRetrieveDefaultDefinitionParameters) UnmarshalJ
 	return nil
 }
 
-// JSONSerialization describes how data from an input is serialized or how data is serialized when written
-// to an output in JSON format.
+// JSONSerialization describes how data from an input is serialized or how data is serialized when written to an
+// output in JSON format.
 type JSONSerialization struct {
 	// JSONSerializationProperties - The properties that are associated with the JSON serialization type. Required on PUT (CreateOrReplace) requests.
 	*JSONSerializationProperties `json:"properties,omitempty"`
@@ -2950,8 +2859,8 @@ type JSONSerializationProperties struct {
 	Format JSONOutputSerializationFormat `json:"format,omitempty"`
 }
 
-// OAuthBasedDataSourceProperties the properties that are associated with data sources that use OAuth as
-// their authentication model.
+// OAuthBasedDataSourceProperties the properties that are associated with data sources that use OAuth as their
+// authentication model.
 type OAuthBasedDataSourceProperties struct {
 	// RefreshToken - A refresh token that can be used to obtain a valid access token that can then be used to authenticate with the data source. A valid refresh token is currently only obtainable via the Azure Portal. It is recommended to put a dummy string value here when creating the data source and then going to the Azure Portal to authenticate the data source which will update this property with a valid refresh token. Required on PUT (CreateOrReplace) requests.
 	RefreshToken *string `json:"refreshToken,omitempty"`
@@ -2963,31 +2872,31 @@ type OAuthBasedDataSourceProperties struct {
 
 // Operation a Stream Analytics REST API operation
 type Operation struct {
-	// Name - READ-ONLY; The name of the operation being performed on this particular object.
+	// Name - The name of the operation being performed on this particular object.
 	Name *string `json:"name,omitempty"`
-	// Display - READ-ONLY; Contains the localized display information for this particular operation / action.
+	// Display - Contains the localized display information for this particular operation / action.
 	Display *OperationDisplay `json:"display,omitempty"`
 }
 
 // OperationDisplay contains the localized display information for this particular operation / action.
 type OperationDisplay struct {
-	// Provider - READ-ONLY; The localized friendly form of the resource provider name.
+	// Provider - The localized friendly form of the resource provider name.
 	Provider *string `json:"provider,omitempty"`
-	// Resource - READ-ONLY; The localized friendly form of the resource type related to this action/operation.
+	// Resource - The localized friendly form of the resource type related to this action/operation.
 	Resource *string `json:"resource,omitempty"`
-	// Operation - READ-ONLY; The localized friendly name for the operation.
+	// Operation - The localized friendly name for the operation.
 	Operation *string `json:"operation,omitempty"`
-	// Description - READ-ONLY; The localized friendly description for the operation.
+	// Description - The localized friendly description for the operation.
 	Description *string `json:"description,omitempty"`
 }
 
-// OperationListResult result of the request to list Stream Analytics operations. It contains a list of
-// operations and a URL link to get the next set of results.
+// OperationListResult result of the request to list Stream Analytics operations. It contains a list of operations
+// and a URL link to get the next set of results.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; List of Stream Analytics operations supported by the Microsoft.StreamAnalytics resource provider.
+	// Value - List of Stream Analytics operations supported by the Microsoft.StreamAnalytics resource provider.
 	Value *[]Operation `json:"value,omitempty"`
-	// NextLink - READ-ONLY; URL to get the next set of operation list results if there are any.
+	// NextLink - URL to get the next set of operation list results if there are any.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -2997,37 +2906,20 @@ type OperationListResultIterator struct {
 	page OperationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OperationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OperationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -3049,11 +2941,6 @@ func (iter OperationListResultIterator) Value() Operation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OperationListResultIterator type.
-func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
-	return OperationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (olr OperationListResult) IsEmpty() bool {
 	return olr.Value == nil || len(*olr.Value) == 0
@@ -3061,11 +2948,11 @@ func (olr OperationListResult) IsEmpty() bool {
 
 // operationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (olr OperationListResult) operationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (olr OperationListResult) operationListResultPreparer() (*http.Request, error) {
 	if olr.NextLink == nil || len(to.String(olr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(olr.NextLink)))
@@ -3073,36 +2960,19 @@ func (olr OperationListResult) operationListResultPreparer(ctx context.Context) 
 
 // OperationListResultPage contains a page of Operation values.
 type OperationListResultPage struct {
-	fn  func(context.Context, OperationListResult) (OperationListResult, error)
+	fn  func(OperationListResult) (OperationListResult, error)
 	olr OperationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.olr)
+func (page *OperationListResultPage) Next() error {
+	next, err := page.fn(page.olr)
 	if err != nil {
 		return err
 	}
 	page.olr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OperationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -3123,22 +2993,17 @@ func (page OperationListResultPage) Values() []Operation {
 	return *page.olr.Value
 }
 
-// Creates a new instance of the OperationListResultPage type.
-func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
-	return OperationListResultPage{fn: getNextPage}
-}
-
-// Output an output object, containing all information associated with the named output. All outputs are
-// contained under a streaming job.
+// Output an output object, containing all information associated with the named output. All outputs are contained
+// under a streaming job.
 type Output struct {
 	autorest.Response `json:"-"`
 	// OutputProperties - The properties that are associated with an output. Required on PUT (CreateOrReplace) requests.
 	*OutputProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
 	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3148,8 +3013,14 @@ func (o Output) MarshalJSON() ([]byte, error) {
 	if o.OutputProperties != nil {
 		objectMap["properties"] = o.OutputProperties
 	}
+	if o.ID != nil {
+		objectMap["id"] = o.ID
+	}
 	if o.Name != nil {
 		objectMap["name"] = o.Name
+	}
+	if o.Type != nil {
+		objectMap["type"] = o.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -3362,9 +3233,9 @@ func (ods OutputDataSource) AsBasicOutputDataSource() (BasicOutputDataSource, bo
 // OutputListResult object containing a list of outputs under a streaming job.
 type OutputListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A list of outputs under a streaming job. Populated by a 'List' operation.
+	// Value - A list of outputs under a streaming job. Populated by a 'List' operation.
 	Value *[]Output `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -3374,37 +3245,20 @@ type OutputListResultIterator struct {
 	page OutputListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OutputListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OutputListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OutputListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OutputListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -3426,11 +3280,6 @@ func (iter OutputListResultIterator) Value() Output {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OutputListResultIterator type.
-func NewOutputListResultIterator(page OutputListResultPage) OutputListResultIterator {
-	return OutputListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (olr OutputListResult) IsEmpty() bool {
 	return olr.Value == nil || len(*olr.Value) == 0
@@ -3438,11 +3287,11 @@ func (olr OutputListResult) IsEmpty() bool {
 
 // outputListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (olr OutputListResult) outputListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (olr OutputListResult) outputListResultPreparer() (*http.Request, error) {
 	if olr.NextLink == nil || len(to.String(olr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(olr.NextLink)))
@@ -3450,36 +3299,19 @@ func (olr OutputListResult) outputListResultPreparer(ctx context.Context) (*http
 
 // OutputListResultPage contains a page of Output values.
 type OutputListResultPage struct {
-	fn  func(context.Context, OutputListResult) (OutputListResult, error)
+	fn  func(OutputListResult) (OutputListResult, error)
 	olr OutputListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OutputListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OutputListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.olr)
+func (page *OutputListResultPage) Next() error {
+	next, err := page.fn(page.olr)
 	if err != nil {
 		return err
 	}
 	page.olr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OutputListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -3500,20 +3332,15 @@ func (page OutputListResultPage) Values() []Output {
 	return *page.olr.Value
 }
 
-// Creates a new instance of the OutputListResultPage type.
-func NewOutputListResultPage(getNextPage func(context.Context, OutputListResult) (OutputListResult, error)) OutputListResultPage {
-	return OutputListResultPage{fn: getNextPage}
-}
-
 // OutputProperties the properties that are associated with an output.
 type OutputProperties struct {
 	// Datasource - Describes the data source that output will be written to. Required on PUT (CreateOrReplace) requests.
 	Datasource BasicOutputDataSource `json:"datasource,omitempty"`
 	// Serialization - Describes how data from an input is serialized or how data is serialized when written to an output. Required on PUT (CreateOrReplace) requests.
 	Serialization BasicSerialization `json:"serialization,omitempty"`
-	// Diagnostics - READ-ONLY; Describes conditions applicable to the Input, Output, or the job overall, that warrant customer attention.
+	// Diagnostics - Describes conditions applicable to the Input, Output, or the job overall, that warrant customer attention.
 	Diagnostics *Diagnostics `json:"diagnostics,omitempty"`
-	// Etag - READ-ONLY; The current entity tag for the output. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
+	// Etag - The current entity tag for the output. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
 	Etag *string `json:"etag,omitempty"`
 }
 
@@ -3575,7 +3402,7 @@ type OutputsTestFuture struct {
 // If the operation has not completed it will return an error.
 func (future *OutputsTestFuture) Result(client OutputsClient) (rts ResourceTestStatus, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.OutputsTestFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3801,9 +3628,9 @@ type ReferenceInputProperties struct {
 	Datasource BasicReferenceInputDataSource `json:"datasource,omitempty"`
 	// Serialization - Describes how data from an input is serialized or how data is serialized when written to an output. Required on PUT (CreateOrReplace) requests.
 	Serialization BasicSerialization `json:"serialization,omitempty"`
-	// Diagnostics - READ-ONLY; Describes conditions applicable to the Input, Output, or the job overall, that warrant customer attention.
+	// Diagnostics - Describes conditions applicable to the Input, Output, or the job overall, that warrant customer attention.
 	Diagnostics *Diagnostics `json:"diagnostics,omitempty"`
-	// Etag - READ-ONLY; The current entity tag for the input. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
+	// Etag - The current entity tag for the input. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
 	Etag *string `json:"etag,omitempty"`
 	// Type - Possible values include: 'TypeInputProperties', 'TypeReference', 'TypeStream'
 	Type TypeBasicInputProperties `json:"type,omitempty"`
@@ -3815,6 +3642,12 @@ func (rip ReferenceInputProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	objectMap["datasource"] = rip.Datasource
 	objectMap["serialization"] = rip.Serialization
+	if rip.Diagnostics != nil {
+		objectMap["diagnostics"] = rip.Diagnostics
+	}
+	if rip.Etag != nil {
+		objectMap["etag"] = rip.Etag
+	}
 	if rip.Type != "" {
 		objectMap["type"] = rip.Type
 	}
@@ -3901,11 +3734,11 @@ func (rip *ReferenceInputProperties) UnmarshalJSON(body []byte) error {
 
 // Resource the base resource model definition.
 type Resource struct {
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location. Required on PUT (CreateOrReplace) requests.
 	Location *string `json:"location,omitempty"`
@@ -3916,6 +3749,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}
@@ -3925,13 +3767,12 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// ResourceTestStatus describes the status of the test operation along with error information, if
-// applicable.
+// ResourceTestStatus describes the status of the test operation along with error information, if applicable.
 type ResourceTestStatus struct {
 	autorest.Response `json:"-"`
-	// Status - READ-ONLY; The status of the test operation.
+	// Status - The status of the test operation.
 	Status *string `json:"status,omitempty"`
-	// Error - READ-ONLY; Describes the error that occurred.
+	// Error - Describes the error that occurred.
 	Error *ErrorResponse `json:"error,omitempty"`
 }
 
@@ -3990,7 +3831,7 @@ func (sfc *ScalarFunctionConfiguration) UnmarshalJSON(body []byte) error {
 type ScalarFunctionProperties struct {
 	// ScalarFunctionConfiguration - Describes the configuration of the scalar function.
 	*ScalarFunctionConfiguration `json:"properties,omitempty"`
-	// Etag - READ-ONLY; The current entity tag for the function. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
+	// Etag - The current entity tag for the function. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
 	Etag *string `json:"etag,omitempty"`
 	// Type - Possible values include: 'TypeFunctionProperties', 'TypeScalar'
 	Type TypeBasicFunctionProperties `json:"type,omitempty"`
@@ -4002,6 +3843,9 @@ func (sfp ScalarFunctionProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sfp.ScalarFunctionConfiguration != nil {
 		objectMap["properties"] = sfp.ScalarFunctionConfiguration
+	}
+	if sfp.Etag != nil {
+		objectMap["etag"] = sfp.Etag
 	}
 	if sfp.Type != "" {
 		objectMap["type"] = sfp.Type
@@ -4162,8 +4006,8 @@ func (s Serialization) AsBasicSerialization() (BasicSerialization, bool) {
 	return &s, true
 }
 
-// ServiceBusDataSourceProperties the common properties that are associated with Service Bus data sources
-// (Queues, Topics, Event Hubs, etc.).
+// ServiceBusDataSourceProperties the common properties that are associated with Service Bus data sources (Queues,
+// Topics, Event Hubs, etc.).
 type ServiceBusDataSourceProperties struct {
 	// ServiceBusNamespace - The namespace that is associated with the desired Event Hub, Service Bus Queue, Service Bus Topic, etc. Required on PUT (CreateOrReplace) requests.
 	ServiceBusNamespace *string `json:"serviceBusNamespace,omitempty"`
@@ -4282,8 +4126,7 @@ func (sbqods *ServiceBusQueueOutputDataSource) UnmarshalJSON(body []byte) error 
 	return nil
 }
 
-// ServiceBusQueueOutputDataSourceProperties the properties that are associated with a Service Bus Queue
-// output.
+// ServiceBusQueueOutputDataSourceProperties the properties that are associated with a Service Bus Queue output.
 type ServiceBusQueueOutputDataSourceProperties struct {
 	// QueueName - The name of the Service Bus Queue. Required on PUT (CreateOrReplace) requests.
 	QueueName *string `json:"queueName,omitempty"`
@@ -4406,8 +4249,7 @@ func (sbtods *ServiceBusTopicOutputDataSource) UnmarshalJSON(body []byte) error 
 	return nil
 }
 
-// ServiceBusTopicOutputDataSourceProperties the properties that are associated with a Service Bus Topic
-// output.
+// ServiceBusTopicOutputDataSourceProperties the properties that are associated with a Service Bus Topic output.
 type ServiceBusTopicOutputDataSourceProperties struct {
 	// TopicName - The name of the Service Bus Topic. Required on PUT (CreateOrReplace) requests.
 	TopicName *string `json:"topicName,omitempty"`
@@ -4443,16 +4285,16 @@ type StorageAccount struct {
 	AccountKey *string `json:"accountKey,omitempty"`
 }
 
-// StreamingJob a streaming job object, containing all information associated with the named streaming job.
+// StreamingJob a streamng job object, containing all information associated with the named streaming job.
 type StreamingJob struct {
 	autorest.Response `json:"-"`
 	// StreamingJobProperties - The properties that are associated with a streaming job.  Required on PUT (CreateOrReplace) requests.
 	*StreamingJobProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location. Required on PUT (CreateOrReplace) requests.
 	Location *string `json:"location,omitempty"`
@@ -4465,6 +4307,15 @@ func (sj StreamingJob) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sj.StreamingJobProperties != nil {
 		objectMap["properties"] = sj.StreamingJobProperties
+	}
+	if sj.ID != nil {
+		objectMap["id"] = sj.ID
+	}
+	if sj.Name != nil {
+		objectMap["name"] = sj.Name
+	}
+	if sj.Type != nil {
+		objectMap["type"] = sj.Type
 	}
 	if sj.Location != nil {
 		objectMap["location"] = sj.Location
@@ -4547,9 +4398,9 @@ func (sj *StreamingJob) UnmarshalJSON(body []byte) error {
 // StreamingJobListResult object containing a list of streaming jobs.
 type StreamingJobListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A list of streaming jobs. Populated by a 'List' operation.
+	// Value - A list of streaming jobs. Populated by a 'List' operation.
 	Value *[]StreamingJob `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -4559,37 +4410,20 @@ type StreamingJobListResultIterator struct {
 	page StreamingJobListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *StreamingJobListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *StreamingJobListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *StreamingJobListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -4611,11 +4445,6 @@ func (iter StreamingJobListResultIterator) Value() StreamingJob {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the StreamingJobListResultIterator type.
-func NewStreamingJobListResultIterator(page StreamingJobListResultPage) StreamingJobListResultIterator {
-	return StreamingJobListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sjlr StreamingJobListResult) IsEmpty() bool {
 	return sjlr.Value == nil || len(*sjlr.Value) == 0
@@ -4623,11 +4452,11 @@ func (sjlr StreamingJobListResult) IsEmpty() bool {
 
 // streamingJobListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sjlr StreamingJobListResult) streamingJobListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (sjlr StreamingJobListResult) streamingJobListResultPreparer() (*http.Request, error) {
 	if sjlr.NextLink == nil || len(to.String(sjlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sjlr.NextLink)))
@@ -4635,36 +4464,19 @@ func (sjlr StreamingJobListResult) streamingJobListResultPreparer(ctx context.Co
 
 // StreamingJobListResultPage contains a page of StreamingJob values.
 type StreamingJobListResultPage struct {
-	fn   func(context.Context, StreamingJobListResult) (StreamingJobListResult, error)
+	fn   func(StreamingJobListResult) (StreamingJobListResult, error)
 	sjlr StreamingJobListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *StreamingJobListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sjlr)
+func (page *StreamingJobListResultPage) Next() error {
+	next, err := page.fn(page.sjlr)
 	if err != nil {
 		return err
 	}
 	page.sjlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *StreamingJobListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -4685,26 +4497,21 @@ func (page StreamingJobListResultPage) Values() []StreamingJob {
 	return *page.sjlr.Value
 }
 
-// Creates a new instance of the StreamingJobListResultPage type.
-func NewStreamingJobListResultPage(getNextPage func(context.Context, StreamingJobListResult) (StreamingJobListResult, error)) StreamingJobListResultPage {
-	return StreamingJobListResultPage{fn: getNextPage}
-}
-
 // StreamingJobProperties the properties that are associated with a streaming job.
 type StreamingJobProperties struct {
 	// Sku - Describes the SKU of the streaming job. Required on PUT (CreateOrReplace) requests.
 	Sku *Sku `json:"sku,omitempty"`
-	// JobID - READ-ONLY; A GUID uniquely identifying the streaming job. This GUID is generated upon creation of the streaming job.
+	// JobID - A GUID uniquely identifying the streaming job. This GUID is generated upon creation of the streaming job.
 	JobID *string `json:"jobId,omitempty"`
-	// ProvisioningState - READ-ONLY; Describes the provisioning status of the streaming job.
+	// ProvisioningState - Describes the provisioning status of the streaming job.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
-	// JobState - READ-ONLY; Describes the state of the streaming job.
+	// JobState - Describes the state of the streaming job.
 	JobState *string `json:"jobState,omitempty"`
 	// OutputStartMode - This property should only be utilized when it is desired that the job be started immediately upon creation. Value may be JobStartTime, CustomTime, or LastOutputEventTime to indicate whether the starting point of the output event stream should start whenever the job is started, start at a custom user time stamp specified via the outputStartTime property, or start from the last event output time. Possible values include: 'JobStartTime', 'CustomTime', 'LastOutputEventTime'
 	OutputStartMode OutputStartMode `json:"outputStartMode,omitempty"`
 	// OutputStartTime - Value is either an ISO-8601 formatted time stamp that indicates the starting point of the output event stream, or null to indicate that the output event stream will start whenever the streaming job is started. This property must have a value if outputStartMode is set to CustomTime.
 	OutputStartTime *date.Time `json:"outputStartTime,omitempty"`
-	// LastOutputEventTime - READ-ONLY; Value is either an ISO-8601 formatted timestamp indicating the last output event time of the streaming job or null indicating that output has not yet been produced. In case of multiple outputs or multiple streams, this shows the latest value in that set.
+	// LastOutputEventTime - Value is either an ISO-8601 formatted timestamp indicating the last output event time of the streaming job or null indicating that output has not yet been produced. In case of multiple outputs or multiple streams, this shows the latest value in that set.
 	LastOutputEventTime *date.Time `json:"lastOutputEventTime,omitempty"`
 	// EventsOutOfOrderPolicy - Indicates the policy to apply to events that arrive out of order in the input event stream. Possible values include: 'Adjust', 'Drop'
 	EventsOutOfOrderPolicy EventsOutOfOrderPolicy `json:"eventsOutOfOrderPolicy,omitempty"`
@@ -4718,22 +4525,22 @@ type StreamingJobProperties struct {
 	DataLocale *string `json:"dataLocale,omitempty"`
 	// CompatibilityLevel - Controls certain runtime behaviors of the streaming job. Possible values include: 'OneFullStopZero'
 	CompatibilityLevel CompatibilityLevel `json:"compatibilityLevel,omitempty"`
-	// CreatedDate - READ-ONLY; Value is an ISO-8601 formatted UTC timestamp indicating when the streaming job was created.
+	// CreatedDate - Value is an ISO-8601 formatted UTC timestamp indicating when the streaming job was created.
 	CreatedDate *date.Time `json:"createdDate,omitempty"`
 	// Inputs - A list of one or more inputs to the streaming job. The name property for each input is required when specifying this property in a PUT request. This property cannot be modify via a PATCH operation. You must use the PATCH API available for the individual input.
 	Inputs *[]Input `json:"inputs,omitempty"`
-	// Transformation - Indicates the query and the number of streaming units to use for the streaming job. The name property of the transformation is required when specifying this property in a PUT request. This property cannot be modify via a PATCH operation. You must use the PATCH API available for the individual transformation.
+	// Transformation - Indicates the query and the number of streaming units to use for the streaming job. The name property of the transformation is required when specifying this property in a PUT request. This property cannot be modify via a PATCH operation. You must use the PATCH API available for the individual tranformation.
 	Transformation *Transformation `json:"transformation,omitempty"`
 	// Outputs - A list of one or more outputs for the streaming job. The name property for each output is required when specifying this property in a PUT request. This property cannot be modify via a PATCH operation. You must use the PATCH API available for the individual output.
 	Outputs *[]Output `json:"outputs,omitempty"`
 	// Functions - A list of one or more functions for the streaming job. The name property for each function is required when specifying this property in a PUT request. This property cannot be modify via a PATCH operation. You must use the PATCH API available for the individual transformation.
 	Functions *[]Function `json:"functions,omitempty"`
-	// Etag - READ-ONLY; The current entity tag for the streaming job. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
+	// Etag - The current entity tag for the streaming job. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
 	Etag *string `json:"etag,omitempty"`
 }
 
-// StreamingJobsCreateOrReplaceFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// StreamingJobsCreateOrReplaceFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type StreamingJobsCreateOrReplaceFuture struct {
 	azure.Future
 }
@@ -4742,7 +4549,7 @@ type StreamingJobsCreateOrReplaceFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingJobsCreateOrReplaceFuture) Result(client StreamingJobsClient) (sj StreamingJob, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsCreateOrReplaceFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4761,8 +4568,7 @@ func (future *StreamingJobsCreateOrReplaceFuture) Result(client StreamingJobsCli
 	return
 }
 
-// StreamingJobsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// StreamingJobsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type StreamingJobsDeleteFuture struct {
 	azure.Future
 }
@@ -4771,7 +4577,7 @@ type StreamingJobsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingJobsDeleteFuture) Result(client StreamingJobsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4784,8 +4590,7 @@ func (future *StreamingJobsDeleteFuture) Result(client StreamingJobsClient) (ar 
 	return
 }
 
-// StreamingJobsStartFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// StreamingJobsStartFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type StreamingJobsStartFuture struct {
 	azure.Future
 }
@@ -4794,7 +4599,7 @@ type StreamingJobsStartFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingJobsStartFuture) Result(client StreamingJobsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsStartFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4807,8 +4612,7 @@ func (future *StreamingJobsStartFuture) Result(client StreamingJobsClient) (ar a
 	return
 }
 
-// StreamingJobsStopFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// StreamingJobsStopFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type StreamingJobsStopFuture struct {
 	azure.Future
 }
@@ -4817,7 +4621,7 @@ type StreamingJobsStopFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StreamingJobsStopFuture) Result(client StreamingJobsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsStopFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4930,9 +4734,9 @@ type StreamInputProperties struct {
 	Datasource BasicStreamInputDataSource `json:"datasource,omitempty"`
 	// Serialization - Describes how data from an input is serialized or how data is serialized when written to an output. Required on PUT (CreateOrReplace) requests.
 	Serialization BasicSerialization `json:"serialization,omitempty"`
-	// Diagnostics - READ-ONLY; Describes conditions applicable to the Input, Output, or the job overall, that warrant customer attention.
+	// Diagnostics - Describes conditions applicable to the Input, Output, or the job overall, that warrant customer attention.
 	Diagnostics *Diagnostics `json:"diagnostics,omitempty"`
-	// Etag - READ-ONLY; The current entity tag for the input. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
+	// Etag - The current entity tag for the input. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
 	Etag *string `json:"etag,omitempty"`
 	// Type - Possible values include: 'TypeInputProperties', 'TypeReference', 'TypeStream'
 	Type TypeBasicInputProperties `json:"type,omitempty"`
@@ -4944,6 +4748,12 @@ func (sip StreamInputProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	objectMap["datasource"] = sip.Datasource
 	objectMap["serialization"] = sip.Serialization
+	if sip.Diagnostics != nil {
+		objectMap["diagnostics"] = sip.Diagnostics
+	}
+	if sip.Etag != nil {
+		objectMap["etag"] = sip.Etag
+	}
 	if sip.Type != "" {
 		objectMap["type"] = sip.Type
 	}
@@ -5030,31 +4840,40 @@ func (sip *StreamInputProperties) UnmarshalJSON(body []byte) error {
 
 // SubResource the base sub-resource model definition.
 type SubResource struct {
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
 	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
 // SubscriptionQuota describes the current quota for the subscription.
 type SubscriptionQuota struct {
-	// SubscriptionQuotaProperties - READ-ONLY; Describes the properties of the quota.
+	// SubscriptionQuotaProperties - Describes the properties of the quota.
 	*SubscriptionQuotaProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
 	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for SubscriptionQuota.
 func (sq SubscriptionQuota) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if sq.SubscriptionQuotaProperties != nil {
+		objectMap["properties"] = sq.SubscriptionQuotaProperties
+	}
+	if sq.ID != nil {
+		objectMap["id"] = sq.ID
+	}
 	if sq.Name != nil {
 		objectMap["name"] = sq.Name
+	}
+	if sq.Type != nil {
+		objectMap["type"] = sq.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -5112,9 +4931,9 @@ func (sq *SubscriptionQuota) UnmarshalJSON(body []byte) error {
 
 // SubscriptionQuotaProperties describes the properties of the quota.
 type SubscriptionQuotaProperties struct {
-	// MaxCount - READ-ONLY; The max permitted usage of this resource.
+	// MaxCount - The max permitted usage of this resource.
 	MaxCount *int32 `json:"maxCount,omitempty"`
-	// CurrentCount - READ-ONLY; The current usage of this resource.
+	// CurrentCount - The current usage of this resource.
 	CurrentCount *int32 `json:"currentCount,omitempty"`
 }
 
@@ -5122,21 +4941,21 @@ type SubscriptionQuotaProperties struct {
 // subscription in a particular region.
 type SubscriptionQuotasListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; List of quotas for the subscription in a particular region.
+	// Value - List of quotas for the subscription in a particular region.
 	Value *[]SubscriptionQuota `json:"value,omitempty"`
 }
 
-// Transformation a transformation object, containing all information associated with the named
-// transformation. All transformations are contained under a streaming job.
+// Transformation a transformation object, containing all information associated with the named transformation. All
+// transformations are contained under a streaming job.
 type Transformation struct {
 	autorest.Response `json:"-"`
 	// TransformationProperties - The properties that are associated with a transformation. Required on PUT (CreateOrReplace) requests.
 	*TransformationProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
 	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -5146,8 +4965,14 @@ func (t Transformation) MarshalJSON() ([]byte, error) {
 	if t.TransformationProperties != nil {
 		objectMap["properties"] = t.TransformationProperties
 	}
+	if t.ID != nil {
+		objectMap["id"] = t.ID
+	}
 	if t.Name != nil {
 		objectMap["name"] = t.Name
+	}
+	if t.Type != nil {
+		objectMap["type"] = t.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -5209,6 +5034,6 @@ type TransformationProperties struct {
 	StreamingUnits *int32 `json:"streamingUnits,omitempty"`
 	// Query - Specifies the query that will be run in the streaming job. You can learn more about the Stream Analytics Query Language (SAQL) here: https://msdn.microsoft.com/library/azure/dn834998 . Required on PUT (CreateOrReplace) requests.
 	Query *string `json:"query,omitempty"`
-	// Etag - READ-ONLY; The current entity tag for the transformation. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
+	// Etag - The current entity tag for the transformation. This is an opaque string. You can use it to detect whether the resource has changed between requests. You can also use it in the If-Match or If-None-Match headers for write operations for optimistic concurrency.
 	Etag *string `json:"etag,omitempty"`
 }

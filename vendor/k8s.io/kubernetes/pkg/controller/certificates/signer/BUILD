@@ -27,7 +27,6 @@ go_library(
     importpath = "k8s.io/kubernetes/pkg/controller/certificates/signer",
     deps = [
         "//pkg/controller/certificates:go_default_library",
-        "//pkg/controller/certificates/csrsuicider:go_default_library",
         "//staging/src/k8s.io/api/certificates/v1beta1:go_default_library",
         "//staging/src/k8s.io/client-go/informers/certificates/v1beta1:go_default_library",
         "//staging/src/k8s.io/client-go/kubernetes:go_default_library",
@@ -47,9 +46,6 @@ filegroup(
 
 filegroup(
     name = "all-srcs",
-    srcs = [
-        ":package-srcs",
-        "//pkg/controller/certificates/signer/config:all-srcs",
-    ],
+    srcs = [":package-srcs"],
     tags = ["automanaged"],
 )

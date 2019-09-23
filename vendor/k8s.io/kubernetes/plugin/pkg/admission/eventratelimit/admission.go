@@ -17,7 +17,6 @@ limitations under the License.
 package eventratelimit
 
 import (
-	"context"
 	"io"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -82,7 +81,7 @@ func newEventRateLimit(config *eventratelimitapi.Configuration, clock flowcontro
 }
 
 // Validate makes admission decisions while enforcing event rate limits
-func (a *Plugin) Validate(ctx context.Context, attr admission.Attributes, o admission.ObjectInterfaces) (err error) {
+func (a *Plugin) Validate(attr admission.Attributes, o admission.ObjectInterfaces) (err error) {
 	// ignore all operations that do not correspond to an Event kind
 	if attr.GetKind().GroupKind() != api.Kind("Event") {
 		return nil

@@ -7,7 +7,3 @@ Google Cloud specific portions of the cloud provider logic.
 ## Building
 
 Run `make`.
-
-## Update GCE Go Client
-
-For every update on the GCE API Go client, please remember to push a new tag.

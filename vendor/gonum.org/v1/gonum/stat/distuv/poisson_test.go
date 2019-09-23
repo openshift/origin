@@ -114,10 +114,8 @@ func TestPoisson(t *testing.T) {
 }
 
 func testPoisson(t *testing.T, p Poisson, i int) {
-	const (
-		tol = 1e-2
-		n   = 1e6
-	)
+	tol := 1e-2
+	const n = 1e6
 	x := make([]float64, n)
 	generateSamples(x, p)
 	sort.Float64s(x)

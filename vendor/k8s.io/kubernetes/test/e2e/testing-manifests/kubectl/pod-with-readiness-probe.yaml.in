@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: httpd
+  name: nginx
   labels:
-    name: httpd
+    name: nginx
 spec:
   containers:
-  - name: httpd
-    image: {{.HttpdImage}}
+  - name: nginx
+    image: {{.NginxImage}}
     ports:
     - containerPort: 80
     readinessProbe:

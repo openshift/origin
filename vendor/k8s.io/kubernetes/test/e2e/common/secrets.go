@@ -23,13 +23,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-var _ = ginkgo.Describe("[sig-api-machinery] Secrets", func() {
+var _ = Describe("[sig-api-machinery] Secrets", func() {
 	f := framework.NewDefaultFramework("secrets")
 
 	/*
@@ -41,10 +41,10 @@ var _ = ginkgo.Describe("[sig-api-machinery] Secrets", func() {
 		name := "secret-test-" + string(uuid.NewUUID())
 		secret := secretForTest(f.Namespace.Name, name)
 
-		ginkgo.By(fmt.Sprintf("Creating secret with name %s", secret.Name))
+		By(fmt.Sprintf("Creating secret with name %s", secret.Name))
 		var err error
 		if secret, err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Create(secret); err != nil {
-			e2elog.Failf("unable to create test secret %s: %v", secret.Name, err)
+			framework.Failf("unable to create test secret %s: %v", secret.Name, err)
 		}
 
 		pod := &v1.Pod{
@@ -89,10 +89,10 @@ var _ = ginkgo.Describe("[sig-api-machinery] Secrets", func() {
 	framework.ConformanceIt("should be consumable via the environment [NodeConformance]", func() {
 		name := "secret-test-" + string(uuid.NewUUID())
 		secret := newEnvFromSecret(f.Namespace.Name, name)
-		ginkgo.By(fmt.Sprintf("creating secret %v/%v", f.Namespace.Name, secret.Name))
+		By(fmt.Sprintf("creating secret %v/%v", f.Namespace.Name, secret.Name))
 		var err error
 		if secret, err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Create(secret); err != nil {
-			e2elog.Failf("unable to create test secret %s: %v", secret.Name, err)
+			framework.Failf("unable to create test secret %s: %v", secret.Name, err)
 		}
 
 		pod := &v1.Pod{
@@ -126,14 +126,9 @@ var _ = ginkgo.Describe("[sig-api-machinery] Secrets", func() {
 		})
 	})
 
-	/*
-	   Release : v1.15
-	   Testname: Secrets, with empty-key
-	   Description: Attempt to create a Secret with an empty key. The creation MUST fail.
-	*/
-	framework.ConformanceIt("should fail to create secret due to empty secret key", func() {
+	It("should fail to create secret in volume due to empty secret key", func() {
 		secret, err := createEmptyKeySecretForTest(f)
-		framework.ExpectError(err, "created secret %q with empty key in namespace %q", secret.Name, f.Namespace.Name)
+		Expect(err).To(HaveOccurred(), "created secret %q with empty key in namespace %q", secret.Name, f.Namespace.Name)
 	})
 })
 
@@ -152,7 +147,7 @@ func newEnvFromSecret(namespace, name string) *v1.Secret {
 }
 
 func createEmptyKeySecretForTest(f *framework.Framework) (*v1.Secret, error) {
-	secretName := "secret-emptykey-test-" + string(uuid.NewUUID())
+	secretName := "secret-emptyKey-test-" + string(uuid.NewUUID())
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: f.Namespace.Name,
@@ -162,6 +157,6 @@ func createEmptyKeySecretForTest(f *framework.Framework) (*v1.Secret, error) {
 			"": []byte("value-1\n"),
 		},
 	}
-	ginkgo.By(fmt.Sprintf("Creating projection with secret that has name %s", secret.Name))
+	By(fmt.Sprintf("Creating projection with secret that has name %s", secret.Name))
 	return f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Create(secret)
 }

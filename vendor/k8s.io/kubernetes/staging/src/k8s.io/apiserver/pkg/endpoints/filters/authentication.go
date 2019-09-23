@@ -21,53 +21,29 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/component-base/metrics"
-	"k8s.io/component-base/metrics/legacyregistry"
-	"k8s.io/klog"
-)
-
-/*
- * By default, all the following metrics are defined as falling under
- * ALPHA stability level https://github.com/kubernetes/enhancements/blob/master/keps/sig-instrumentation/20190404-kubernetes-control-plane-metrics-stability.md#stability-classes)
- *
- * Promoting the stability level of the metric is a responsibility of the component owner, since it
- * involves explicitly acknowledging support for the metric across multiple releases, in accordance with
- * the metric stability policy.
- */
-const (
-	successLabel = "success"
-	failureLabel = "failure"
-	errorLabel   = "error"
 )
 
 var (
-	authenticatedUserCounter = metrics.NewCounterVec(
-		&metrics.CounterOpts{
-			Name:           "authenticated_user_requests",
-			Help:           "Counter of authenticated requests broken out by username.",
-			StabilityLevel: metrics.ALPHA,
+	authenticatedUserCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "authenticated_user_requests",
+			Help: "Counter of authenticated requests broken out by username.",
 		},
 		[]string{"username"},
-	)
-
-	authenticatedAttemptsCounter = metrics.NewCounterVec(
-		&metrics.CounterOpts{
-			Name: "authentication_attempts",
-			Help: "Counter of authenticated attempts.",
-		},
-		[]string{"result"},
 	)
 )
 
 func init() {
-	legacyregistry.MustRegister(authenticatedUserCounter)
-	legacyregistry.MustRegister(authenticatedAttemptsCounter)
+	prometheus.MustRegister(authenticatedUserCounter)
 }
 
 // WithAuthentication creates an http handler that tries to authenticate the given request as a user, and then
@@ -87,11 +63,7 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request, failed
 		if err != nil || !ok {
 			if err != nil {
 				klog.Errorf("Unable to authenticate the request due to an error: %v", err)
-				authenticatedAttemptsCounter.WithLabelValues(errorLabel).Inc()
-			} else if !ok {
-				authenticatedAttemptsCounter.WithLabelValues(failureLabel).Inc()
 			}
-
 			failed.ServeHTTP(w, req)
 			return
 		}
@@ -105,7 +77,6 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request, failed
 		req = req.WithContext(genericapirequest.WithUser(req.Context(), resp.User))
 
 		authenticatedUserCounter.WithLabelValues(compressUsername(resp.User.GetName())).Inc()
-		authenticatedAttemptsCounter.WithLabelValues(successLabel).Inc()
 
 		handler.ServeHTTP(w, req)
 	})

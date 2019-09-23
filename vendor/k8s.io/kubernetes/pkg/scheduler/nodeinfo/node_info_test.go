@@ -26,9 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	featuregatetesting "k8s.io/component-base/featuregate/testing"
-	"k8s.io/kubernetes/pkg/features"
 )
 
 func TestNewResource(t *testing.T) {
@@ -543,9 +540,6 @@ func TestNodeInfoClone(t *testing.T) {
 }
 
 func TestNodeInfoAddPod(t *testing.T) {
-
-	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PodOverhead, true)()
-
 	nodeName := "test-node"
 	pods := []*v1.Pod{
 		{
@@ -573,9 +567,6 @@ func TestNodeInfoAddPod(t *testing.T) {
 					},
 				},
 				NodeName: nodeName,
-				Overhead: v1.ResourceList{
-					v1.ResourceCPU: resource.MustParse("500m"),
-				},
 			},
 		},
 		{
@@ -589,7 +580,8 @@ func TestNodeInfoAddPod(t *testing.T) {
 					{
 						Resources: v1.ResourceRequirements{
 							Requests: v1.ResourceList{
-								v1.ResourceCPU: resource.MustParse("200m"),
+								v1.ResourceCPU:    resource.MustParse("200m"),
+								v1.ResourceMemory: resource.MustParse("1Ki"),
 							},
 						},
 						Ports: []v1.ContainerPort{
@@ -602,10 +594,6 @@ func TestNodeInfoAddPod(t *testing.T) {
 					},
 				},
 				NodeName: nodeName,
-				Overhead: v1.ResourceList{
-					v1.ResourceCPU:    resource.MustParse("500m"),
-					v1.ResourceMemory: resource.MustParse("500"),
-				},
 			},
 		},
 	}
@@ -616,15 +604,15 @@ func TestNodeInfoAddPod(t *testing.T) {
 			},
 		},
 		requestedResource: &Resource{
-			MilliCPU:         1300,
-			Memory:           1000,
+			MilliCPU:         300,
+			Memory:           1524,
 			EphemeralStorage: 0,
 			AllowedPodNumber: 0,
 			ScalarResources:  map[v1.ResourceName]int64(nil),
 		},
 		nonzeroRequest: &Resource{
-			MilliCPU:         1300,
-			Memory:           209716200, //200MB + 1000 specified in requests/overhead
+			MilliCPU:         300,
+			Memory:           1524,
 			EphemeralStorage: 0,
 			AllowedPodNumber: 0,
 			ScalarResources:  map[v1.ResourceName]int64(nil),
@@ -665,9 +653,6 @@ func TestNodeInfoAddPod(t *testing.T) {
 						},
 					},
 					NodeName: nodeName,
-					Overhead: v1.ResourceList{
-						v1.ResourceCPU: resource.MustParse("500m"),
-					},
 				},
 			},
 			{
@@ -681,7 +666,8 @@ func TestNodeInfoAddPod(t *testing.T) {
 						{
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{
-									v1.ResourceCPU: resource.MustParse("200m"),
+									v1.ResourceCPU:    resource.MustParse("200m"),
+									v1.ResourceMemory: resource.MustParse("1Ki"),
 								},
 							},
 							Ports: []v1.ContainerPort{
@@ -694,10 +680,6 @@ func TestNodeInfoAddPod(t *testing.T) {
 						},
 					},
 					NodeName: nodeName,
-					Overhead: v1.ResourceList{
-						v1.ResourceCPU:    resource.MustParse("500m"),
-						v1.ResourceMemory: resource.MustParse("500"),
-					},
 				},
 			},
 		},
@@ -720,21 +702,10 @@ func TestNodeInfoAddPod(t *testing.T) {
 }
 
 func TestNodeInfoRemovePod(t *testing.T) {
-
-	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PodOverhead, true)()
-
 	nodeName := "test-node"
 	pods := []*v1.Pod{
 		makeBasePod(t, nodeName, "test-1", "100m", "500", "", []v1.ContainerPort{{HostIP: "127.0.0.1", HostPort: 80, Protocol: "TCP"}}),
 		makeBasePod(t, nodeName, "test-2", "200m", "1Ki", "", []v1.ContainerPort{{HostIP: "127.0.0.1", HostPort: 8080, Protocol: "TCP"}}),
-	}
-
-	// add pod Overhead
-	for _, pod := range pods {
-		pod.Spec.Overhead = v1.ResourceList{
-			v1.ResourceCPU:    resource.MustParse("500m"),
-			v1.ResourceMemory: resource.MustParse("500"),
-		}
 	}
 
 	tests := []struct {
@@ -752,15 +723,15 @@ func TestNodeInfoRemovePod(t *testing.T) {
 					},
 				},
 				requestedResource: &Resource{
-					MilliCPU:         1300,
-					Memory:           2524,
+					MilliCPU:         300,
+					Memory:           1524,
 					EphemeralStorage: 0,
 					AllowedPodNumber: 0,
 					ScalarResources:  map[v1.ResourceName]int64(nil),
 				},
 				nonzeroRequest: &Resource{
-					MilliCPU:         1300,
-					Memory:           2524,
+					MilliCPU:         300,
+					Memory:           1524,
 					EphemeralStorage: 0,
 					AllowedPodNumber: 0,
 					ScalarResources:  map[v1.ResourceName]int64(nil),
@@ -801,10 +772,6 @@ func TestNodeInfoRemovePod(t *testing.T) {
 								},
 							},
 							NodeName: nodeName,
-							Overhead: v1.ResourceList{
-								v1.ResourceCPU:    resource.MustParse("500m"),
-								v1.ResourceMemory: resource.MustParse("500"),
-							},
 						},
 					},
 					{
@@ -832,10 +799,6 @@ func TestNodeInfoRemovePod(t *testing.T) {
 								},
 							},
 							NodeName: nodeName,
-							Overhead: v1.ResourceList{
-								v1.ResourceCPU:    resource.MustParse("500m"),
-								v1.ResourceMemory: resource.MustParse("500"),
-							},
 						},
 					},
 				},
@@ -867,10 +830,6 @@ func TestNodeInfoRemovePod(t *testing.T) {
 						},
 					},
 					NodeName: nodeName,
-					Overhead: v1.ResourceList{
-						v1.ResourceCPU:    resource.MustParse("500m"),
-						v1.ResourceMemory: resource.MustParse("500"),
-					},
 				},
 			},
 			errExpected: false,
@@ -881,15 +840,15 @@ func TestNodeInfoRemovePod(t *testing.T) {
 					},
 				},
 				requestedResource: &Resource{
-					MilliCPU:         700,
-					Memory:           1524,
+					MilliCPU:         200,
+					Memory:           1024,
 					EphemeralStorage: 0,
 					AllowedPodNumber: 0,
 					ScalarResources:  map[v1.ResourceName]int64(nil),
 				},
 				nonzeroRequest: &Resource{
-					MilliCPU:         700,
-					Memory:           1524,
+					MilliCPU:         200,
+					Memory:           1024,
 					EphemeralStorage: 0,
 					AllowedPodNumber: 0,
 					ScalarResources:  map[v1.ResourceName]int64(nil),
@@ -929,10 +888,6 @@ func TestNodeInfoRemovePod(t *testing.T) {
 								},
 							},
 							NodeName: nodeName,
-							Overhead: v1.ResourceList{
-								v1.ResourceCPU:    resource.MustParse("500m"),
-								v1.ResourceMemory: resource.MustParse("500"),
-							},
 						},
 					},
 				},

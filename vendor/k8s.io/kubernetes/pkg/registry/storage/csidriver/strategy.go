@@ -22,11 +22,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/storage/names"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/apis/storage/validation"
-	"k8s.io/kubernetes/pkg/features"
 )
 
 // csiDriverStrategy implements behavior for CSIDriver objects
@@ -43,12 +41,8 @@ func (csiDriverStrategy) NamespaceScoped() bool {
 	return false
 }
 
-// PrepareForCreate clears the VolumeLifecycleModes field if the corresponding feature is disabled.
+// ResetBeforeCreate clears the Status field which is not allowed to be set by end users on creation.
 func (csiDriverStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
-	if !utilfeature.DefaultFeatureGate.Enabled(features.CSIInlineVolume) {
-		csiDriver := obj.(*storage.CSIDriver)
-		csiDriver.Spec.VolumeLifecycleModes = nil
-	}
 }
 
 func (csiDriverStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
@@ -68,15 +62,8 @@ func (csiDriverStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
-// PrepareForUpdate clears the VolumeLifecycleModes field if the corresponding feature is disabled and
-// existing object does not already have that field set. This allows the field to remain when
-// downgrading to a version that has the feature disabled.
+// PrepareForUpdate sets the Status fields which is not allowed to be set by an end user updating a CSIDriver
 func (csiDriverStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
-	if old.(*storage.CSIDriver).Spec.VolumeLifecycleModes == nil &&
-		!utilfeature.DefaultFeatureGate.Enabled(features.CSIInlineVolume) {
-		newCSIDriver := obj.(*storage.CSIDriver)
-		newCSIDriver.Spec.VolumeLifecycleModes = nil
-	}
 }
 
 func (csiDriverStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {

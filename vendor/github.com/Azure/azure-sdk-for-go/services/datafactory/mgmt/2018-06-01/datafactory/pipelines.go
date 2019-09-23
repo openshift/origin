@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -51,16 +50,6 @@ func NewPipelinesClientWithBaseURI(baseURI string, subscriptionID string) Pipeli
 // ifMatch - eTag of the pipeline entity.  Should only be specified for update, for which it should match
 // existing entity or can be * for unconditional update.
 func (client PipelinesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, factoryName string, pipelineName string, pipeline PipelineResource, ifMatch string) (result PipelineResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelinesClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -134,8 +123,8 @@ func (client PipelinesClient) CreateOrUpdatePreparer(ctx context.Context, resour
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client PipelinesClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -156,25 +145,11 @@ func (client PipelinesClient) CreateOrUpdateResponder(resp *http.Response) (resu
 // resourceGroupName - the resource group name.
 // factoryName - the factory name.
 // pipelineName - the pipeline name.
-// referencePipelineRunID - the pipeline run identifier. If run ID is specified the parameters of the specified
-// run will be used to create a new run.
-// isRecovery - recovery mode flag. If recovery mode is set to true, the specified referenced pipeline run and
-// the new run will be grouped under the same groupId.
-// startActivityName - in recovery mode, the rerun will start from this activity. If not specified, all
-// activities will run.
+// referencePipelineRunID - the pipeline run identifier. If run ID is specified the parameters of the the
+// specified run will be used to create a new run.
 // parameters - parameters of the pipeline run. These parameters will be used only if the runId is not
 // specified.
-func (client PipelinesClient) CreateRun(ctx context.Context, resourceGroupName string, factoryName string, pipelineName string, referencePipelineRunID string, isRecovery *bool, startActivityName string, parameters map[string]interface{}) (result CreateRunResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelinesClient.CreateRun")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client PipelinesClient) CreateRun(ctx context.Context, resourceGroupName string, factoryName string, pipelineName string, referencePipelineRunID string, parameters map[string]interface{}) (result CreateRunResponse, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -191,7 +166,7 @@ func (client PipelinesClient) CreateRun(ctx context.Context, resourceGroupName s
 		return result, validation.NewError("datafactory.PipelinesClient", "CreateRun", err.Error())
 	}
 
-	req, err := client.CreateRunPreparer(ctx, resourceGroupName, factoryName, pipelineName, referencePipelineRunID, isRecovery, startActivityName, parameters)
+	req, err := client.CreateRunPreparer(ctx, resourceGroupName, factoryName, pipelineName, referencePipelineRunID, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "datafactory.PipelinesClient", "CreateRun", nil, "Failure preparing request")
 		return
@@ -213,7 +188,7 @@ func (client PipelinesClient) CreateRun(ctx context.Context, resourceGroupName s
 }
 
 // CreateRunPreparer prepares the CreateRun request.
-func (client PipelinesClient) CreateRunPreparer(ctx context.Context, resourceGroupName string, factoryName string, pipelineName string, referencePipelineRunID string, isRecovery *bool, startActivityName string, parameters map[string]interface{}) (*http.Request, error) {
+func (client PipelinesClient) CreateRunPreparer(ctx context.Context, resourceGroupName string, factoryName string, pipelineName string, referencePipelineRunID string, parameters map[string]interface{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"factoryName":       autorest.Encode("path", factoryName),
 		"pipelineName":      autorest.Encode("path", pipelineName),
@@ -227,12 +202,6 @@ func (client PipelinesClient) CreateRunPreparer(ctx context.Context, resourceGro
 	}
 	if len(referencePipelineRunID) > 0 {
 		queryParameters["referencePipelineRunId"] = autorest.Encode("query", referencePipelineRunID)
-	}
-	if isRecovery != nil {
-		queryParameters["isRecovery"] = autorest.Encode("query", *isRecovery)
-	}
-	if len(startActivityName) > 0 {
-		queryParameters["startActivityName"] = autorest.Encode("query", startActivityName)
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -251,8 +220,8 @@ func (client PipelinesClient) CreateRunPreparer(ctx context.Context, resourceGro
 // CreateRunSender sends the CreateRun request. The method will close the
 // http.Response Body if it receives an error.
 func (client PipelinesClient) CreateRunSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateRunResponder handles the response to the CreateRun request. The method always
@@ -274,16 +243,6 @@ func (client PipelinesClient) CreateRunResponder(resp *http.Response) (result Cr
 // factoryName - the factory name.
 // pipelineName - the pipeline name.
 func (client PipelinesClient) Delete(ctx context.Context, resourceGroupName string, factoryName string, pipelineName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelinesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -346,8 +305,8 @@ func (client PipelinesClient) DeletePreparer(ctx context.Context, resourceGroupN
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client PipelinesClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -370,16 +329,6 @@ func (client PipelinesClient) DeleteResponder(resp *http.Response) (result autor
 // ifNoneMatch - eTag of the pipeline entity. Should only be specified for get. If the ETag matches the
 // existing entity tag, or if * was provided, then no content will be returned.
 func (client PipelinesClient) Get(ctx context.Context, resourceGroupName string, factoryName string, pipelineName string, ifNoneMatch string) (result PipelineResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelinesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -446,8 +395,8 @@ func (client PipelinesClient) GetPreparer(ctx context.Context, resourceGroupName
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client PipelinesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -468,16 +417,6 @@ func (client PipelinesClient) GetResponder(resp *http.Response) (result Pipeline
 // resourceGroupName - the resource group name.
 // factoryName - the factory name.
 func (client PipelinesClient) ListByFactory(ctx context.Context, resourceGroupName string, factoryName string) (result PipelineListResponsePage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelinesClient.ListByFactory")
-		defer func() {
-			sc := -1
-			if result.plr.Response.Response != nil {
-				sc = result.plr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -536,8 +475,8 @@ func (client PipelinesClient) ListByFactoryPreparer(ctx context.Context, resourc
 // ListByFactorySender sends the ListByFactory request. The method will close the
 // http.Response Body if it receives an error.
 func (client PipelinesClient) ListByFactorySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByFactoryResponder handles the response to the ListByFactory request. The method always
@@ -554,8 +493,8 @@ func (client PipelinesClient) ListByFactoryResponder(resp *http.Response) (resul
 }
 
 // listByFactoryNextResults retrieves the next set of results, if any.
-func (client PipelinesClient) listByFactoryNextResults(ctx context.Context, lastResults PipelineListResponse) (result PipelineListResponse, err error) {
-	req, err := lastResults.pipelineListResponsePreparer(ctx)
+func (client PipelinesClient) listByFactoryNextResults(lastResults PipelineListResponse) (result PipelineListResponse, err error) {
+	req, err := lastResults.pipelineListResponsePreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "datafactory.PipelinesClient", "listByFactoryNextResults", nil, "Failure preparing next results request")
 	}
@@ -576,16 +515,6 @@ func (client PipelinesClient) listByFactoryNextResults(ctx context.Context, last
 
 // ListByFactoryComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PipelinesClient) ListByFactoryComplete(ctx context.Context, resourceGroupName string, factoryName string) (result PipelineListResponseIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PipelinesClient.ListByFactory")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByFactory(ctx, resourceGroupName, factoryName)
 	return
 }

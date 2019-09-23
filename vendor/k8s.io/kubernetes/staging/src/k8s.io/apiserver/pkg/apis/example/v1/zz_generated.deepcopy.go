@@ -74,7 +74,7 @@ func (in *PodCondition) DeepCopy() *PodCondition {
 func (in *PodList) DeepCopyInto(out *PodList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Pod, len(*in))

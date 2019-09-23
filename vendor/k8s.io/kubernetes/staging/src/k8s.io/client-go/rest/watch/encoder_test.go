@@ -25,6 +25,7 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	runtimejson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/watch"
@@ -35,7 +36,7 @@ import (
 // getEncoder mimics how k8s.io/client-go/rest.createSerializers creates a encoder
 func getEncoder() runtime.Encoder {
 	jsonSerializer := runtimejson.NewSerializer(runtimejson.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, false)
-	directCodecFactory := scheme.Codecs.WithoutConversion()
+	directCodecFactory := serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
 	return directCodecFactory.EncoderForVersion(jsonSerializer, v1.SchemeGroupVersion)
 }
 
@@ -54,10 +55,6 @@ func TestEncodeDecodeRoundTrip(t *testing.T) {
 		},
 		{
 			watch.Deleted,
-			&v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
-		},
-		{
-			watch.Bookmark,
 			&v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
 		},
 	}

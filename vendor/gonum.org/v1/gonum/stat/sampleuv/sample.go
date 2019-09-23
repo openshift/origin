@@ -359,7 +359,7 @@ func metropolisHastings(batch []float64, initial float64, target distuv.LogProbe
 	}
 }
 
-// IIDer generates a set of independently and identically distributed samples from
+// IID generates a set of independently and identically distributed samples from
 // the input distribution.
 type IIDer struct {
 	Dist distuv.Rander

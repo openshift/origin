@@ -262,32 +262,6 @@ func (v *VolumeEntry) prepForBrickReplacement(db wdb.DB,
 	return
 }
 
-func (v *VolumeEntry) generateDeviceFilter(db wdb.RODB) (DeviceFilter, error) {
-
-	var filter DeviceFilter = nil
-	zoneChecking := v.GetZoneCheckingStrategy()
-	if zoneChecking == ZONE_CHECKING_UNSET {
-		zoneChecking = ZoneChecking
-	}
-
-	switch zoneChecking {
-	case ZONE_CHECKING_STRICT:
-		dzm, err := NewDeviceZoneMapFromDb(db)
-		if err != nil {
-			return nil, err
-		}
-
-		filter = dzm.Filter
-	case ZONE_CHECKING_NONE:
-	default:
-		logger.Warning(
-			"ZoneChecking set to unknown value '%v', "+
-				"treating as 'none'", ZoneChecking)
-	}
-
-	return filter, nil
-}
-
 func (v *VolumeEntry) allocBrickReplacement(db wdb.DB,
 	oldBrickEntry *BrickEntry,
 	oldDeviceEntry *DeviceEntry,
@@ -303,25 +277,11 @@ func (v *VolumeEntry) allocBrickReplacement(db wdb.DB,
 		}
 
 		var err error
-		txdb := wdb.WrapTx(tx)
-		defaultFilter, err := v.generateDeviceFilter(txdb)
-		if err != nil {
-			return err
-		}
-
-		deviceFilter := func(bs *BrickSet, d *DeviceEntry) bool {
-			if defaultFilter != nil && !defaultFilter(bs, d) {
-				return false
-			}
-
-			return diffDevice(bs, d)
-		}
-
 		placer := PlacerForVolume(v)
 		r, err = placer.Replace(
 			NewClusterDeviceSource(tx, v.Info.Cluster),
 			NewVolumePlacementOpts(v, oldBrickEntry.Info.Size, bs.SetSize),
-			deviceFilter, bs, index)
+			diffDevice, bs, index)
 		if err == ErrNoSpace {
 			// swap error conditions to better match the intent
 			return ErrNoReplacement
@@ -461,7 +421,7 @@ func (v *VolumeEntry) replaceBrickInVolume(db wdb.DB, executor executors.Executo
 			return err
 		}
 		reReadVolEntry.BrickAdd(newBrickEntry.Id())
-		err = oldBrickEntry.remove(tx, reReadVolEntry)
+		err = reReadVolEntry.removeBrickFromDb(tx, oldBrickEntry)
 		if err != nil {
 			return err
 		}
@@ -495,7 +455,7 @@ func (v *VolumeEntry) allocBricks(
 			logger.Debug("Error detected.  Cleaning up volume %v: Len(%v) ", v.Info.Id, len(brick_entries))
 			db.Update(func(tx *bolt.Tx) error {
 				for _, brick := range brick_entries {
-					brick.remove(tx, v)
+					v.removeBrickFromDb(tx, brick)
 				}
 				return nil
 			})
@@ -503,18 +463,9 @@ func (v *VolumeEntry) allocBricks(
 	}()
 
 	// mimic the previous unconditional db update behavior
-	opts := NewVolumePlacementOpts(v, brick_size, bricksets)
 	err := db.Update(func(tx *bolt.Tx) error {
-		dsrc := NewClusterDeviceSource(tx, cluster)
-		placer := PlacerForVolume(v)
-
-		txdb := wdb.WrapTx(tx)
-		deviceFilter, err := v.generateDeviceFilter(txdb)
-		if err != nil {
-			return err
-		}
-
-		r, e := placer.PlaceAll(dsrc, opts, deviceFilter)
+		wtx := wdb.WrapTx(tx)
+		r, e := allocateBricks(wtx, cluster, v, bricksets, brick_size)
 		if e != nil {
 			return e
 		}
@@ -545,4 +496,28 @@ func (v *VolumeEntry) allocBricks(
 	}
 
 	return brick_entries, nil
+}
+
+func (v *VolumeEntry) removeBrickFromDb(tx *bolt.Tx, brick *BrickEntry) error {
+	err := brick.RemoveFromDevice(tx)
+	if err != nil {
+		logger.Err(err)
+		return err
+	}
+
+	// Delete brick entryfrom db
+	err = brick.Delete(tx)
+	if err != nil {
+		logger.Err(err)
+		return err
+	}
+
+	// Delete brick from volume db
+	v.BrickDelete(brick.Info.Id)
+	if err != nil {
+		logger.Err(err)
+		return err
+	}
+
+	return nil
 }

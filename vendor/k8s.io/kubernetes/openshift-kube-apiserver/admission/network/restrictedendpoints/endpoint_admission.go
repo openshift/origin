@@ -1,7 +1,6 @@
 package restrictedendpoints
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
@@ -156,7 +155,7 @@ func (r *restrictedEndpointsAdmission) checkAccess(attr admission.Attributes) (b
 }
 
 // Admit determines if the endpoints object should be admitted
-func (r *restrictedEndpointsAdmission) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) error {
+func (r *restrictedEndpointsAdmission) Validate(a admission.Attributes, _ admission.ObjectInterfaces) error {
 	if a.GetResource().GroupResource() != kapi.Resource("endpoints") {
 		return nil
 	}

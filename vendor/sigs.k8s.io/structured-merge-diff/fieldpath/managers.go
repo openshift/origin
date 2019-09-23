@@ -16,42 +16,16 @@ package fieldpath
 // APIVersion describes the version of an object or of a fieldset.
 type APIVersion string
 
-type VersionedSet interface {
-	Set() *Set
-	APIVersion() APIVersion
-	Applied() bool
-}
-
 // VersionedSet associates a version to a set.
-type versionedSet struct {
-	set        *Set
-	apiVersion APIVersion
-	applied    bool
-}
-
-func NewVersionedSet(set *Set, apiVersion APIVersion, applied bool) VersionedSet {
-	return versionedSet{
-		set:        set,
-		apiVersion: apiVersion,
-		applied:    applied,
-	}
-}
-
-func (v versionedSet) Set() *Set {
-	return v.set
-}
-
-func (v versionedSet) APIVersion() APIVersion {
-	return v.apiVersion
-}
-
-func (v versionedSet) Applied() bool {
-	return v.applied
+type VersionedSet struct {
+	*Set
+	APIVersion APIVersion
+	Applied    bool
 }
 
 // ManagedFields is a map from manager to VersionedSet (what they own in
 // what version).
-type ManagedFields map[string]VersionedSet
+type ManagedFields map[string]*VersionedSet
 
 // Difference returns a symmetric difference between two Managers. If a
 // given user's entry has version X in lhs and version Y in rhs, then
@@ -63,7 +37,7 @@ func (lhs ManagedFields) Difference(rhs ManagedFields) ManagedFields {
 	for manager, left := range lhs {
 		right, ok := rhs[manager]
 		if !ok {
-			if !left.Set().Empty() {
+			if !left.Empty() {
 				diff[manager] = left
 			}
 			continue
@@ -72,14 +46,17 @@ func (lhs ManagedFields) Difference(rhs ManagedFields) ManagedFields {
 		// If we have sets in both but their version
 		// differs, we don't even diff and keep the
 		// entire thing.
-		if left.APIVersion() != right.APIVersion() {
+		if left.APIVersion != right.APIVersion {
 			diff[manager] = right
 			continue
 		}
 
-		newSet := left.Set().Difference(right.Set()).Union(right.Set().Difference(left.Set()))
+		newSet := left.Difference(right.Set).Union(right.Difference(left.Set))
 		if !newSet.Empty() {
-			diff[manager] = NewVersionedSet(newSet, right.APIVersion(), false)
+			diff[manager] = &VersionedSet{
+				Set:        newSet,
+				APIVersion: right.APIVersion,
+			}
 		}
 	}
 
@@ -88,7 +65,7 @@ func (lhs ManagedFields) Difference(rhs ManagedFields) ManagedFields {
 			// Already done
 			continue
 		}
-		if !set.Set().Empty() {
+		if !set.Empty() {
 			diff[manager] = set
 		}
 	}

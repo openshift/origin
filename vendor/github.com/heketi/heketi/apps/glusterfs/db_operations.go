@@ -16,11 +16,10 @@ import (
 	"strings"
 
 	"github.com/boltdb/bolt"
-	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 )
 
-func dbDumpInternal(db wdb.DB) (Db, error) {
+func dbDumpInternal(db *bolt.DB) (Db, error) {
 	var dump Db
 	clusterEntryList := make(map[string]ClusterEntry, 0)
 	volEntryList := make(map[string]VolumeEntry, 0)
@@ -212,17 +211,11 @@ func dbDumpInternal(db wdb.DB) (Db, error) {
 // running.
 func DbDump(jsonfile string, dbfile string) error {
 
-	var fp *os.File
-	if jsonfile == "-" {
-		fp = os.Stdout
-	} else {
-		var err error
-		fp, err = os.OpenFile(jsonfile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-		if err != nil {
-			return fmt.Errorf("Could not create json file: %v", err.Error())
-		}
-		defer fp.Close()
+	fp, err := os.OpenFile(jsonfile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return fmt.Errorf("Could not create json file: %v", err.Error())
 	}
+	defer fp.Close()
 
 	db, err := OpenDB(dbfile, false)
 	if err != nil {
@@ -272,7 +265,6 @@ func DbCreate(jsonfile string, dbfile string) error {
 	if err != nil {
 		return fmt.Errorf("Could not open db file: %v", err.Error())
 	}
-	defer dbhandle.Close()
 
 	err = dbhandle.Update(func(tx *bolt.Tx) error {
 		return initializeBuckets(tx)
@@ -384,7 +376,7 @@ func DbCreate(jsonfile string, dbfile string) error {
 	return nil
 }
 
-func DeleteBricksWithEmptyPath(db wdb.DB, all bool, clusterIDs []string, nodeIDs []string, deviceIDs []string) error {
+func DeleteBricksWithEmptyPath(db *bolt.DB, all bool, clusterIDs []string, nodeIDs []string, deviceIDs []string) error {
 
 	for _, id := range clusterIDs {
 		if err := api.ValidateUUID(id); err != nil {
@@ -463,190 +455,299 @@ func DeleteBricksWithEmptyPath(db wdb.DB, all bool, clusterIDs []string, nodeIDs
 	return nil
 }
 
-// DbCheck ... is the offline version
-func DbCheck(dbfile string) error {
+func deleteChangeOwnerEntry(tx *bolt.Tx, action PendingOperationAction, dryRun bool) error {
+	switch action.Change {
 
-	db, err := OpenDB(dbfile, false)
-	if err != nil {
-		return fmt.Errorf("Unable to open database: %v", err)
+	case OpAddBrick:
+		logger.Debug("Found a pending add brick change with id: %v", action.Id)
+		logger.Info("Deleting brick with id: %v", action.Id)
+		brickEntry, err := NewBrickEntryFromId(tx, action.Id)
+		if err != nil {
+			return err
+		}
+		logger.Info("brickentry %+v", brickEntry)
+		logger.Info("USER ACTION REQUIRED: cleanup brick or create brick(in case of expand op) with path:%v on node:%v", brickEntry.Info.Path, brickEntry.Info.NodeId)
+		if !dryRun {
+			err = brickEntry.Delete(tx)
+			if err != nil {
+				return err
+			}
+		}
+	case OpDeleteBrick:
+		logger.Debug("Found a pending delete brick change with id: %v", action.Id)
+		logger.Info("Deleting brick with id: %v", action.Id)
+		brickEntry, err := NewBrickEntryFromId(tx, action.Id)
+		if err != nil {
+			return err
+		}
+		logger.Info("brickEntry %+v", brickEntry)
+		logger.Info("USER ACTION REQUIRED: cleanup brick with path:%v on node:%v", brickEntry.Info.Path, brickEntry.Info.NodeId)
+		if !dryRun {
+			err = brickEntry.Delete(tx)
+			if err != nil {
+				return err
+			}
+		}
+	case OpAddVolume:
+		logger.Debug("Found a pending add volume change with id: %v", action.Id)
+		logger.Info("Deleting volume with id: %v", action.Id)
+		volumeEntry, err := NewVolumeEntryFromId(tx, action.Id)
+		if err != nil {
+			return err
+		}
+		logger.Info("volumeEntry %+v", volumeEntry)
+		logger.Info("USER ACTION REQUIRED: cleanup volume:%v on cluster:%v", volumeEntry.Info.Name, volumeEntry.Info.Cluster)
+		if !dryRun {
+			err = volumeEntry.Delete(tx)
+			if err != nil {
+				return err
+			}
+		}
+	case OpDeleteVolume:
+		logger.Debug("Found a pending delete volume change with id: %v", action.Id)
+		logger.Info("Deleting volume with id: %v", action.Id)
+		volumeEntry, err := NewVolumeEntryFromId(tx, action.Id)
+		if err != nil {
+			return err
+		}
+		logger.Info("volumeEntry %+v", volumeEntry)
+		logger.Info("USER ACTION REQUIRED: cleanup volume:%v on cluster:%v", volumeEntry.Info.Name, volumeEntry.Info.Cluster)
+		if !dryRun {
+			err = volumeEntry.Delete(tx)
+			if err != nil {
+				return err
+			}
+		}
+	case OpExpandVolume:
+		logger.Debug("Found a pending expand volume change with id: %v", action.Id)
+		volumeEntry, err := NewVolumeEntryFromId(tx, action.Id)
+		if err != nil {
+			return err
+		}
+		logger.Info("USER ACTION REQUIRED: complete volume expand operation on %v using bricks listed above", volumeEntry.Info.Name)
+		if !dryRun {
+			logger.Info("volumeEntry %+v", volumeEntry)
+			err = volumeEntry.Delete(tx)
+			if err != nil {
+				return err
+			}
+		}
+	case OpAddBlockVolume:
+		logger.Debug("Found a pending add blockvolume change with id: %v", action.Id)
+		logger.Info("Deleting blockvolume with id: %v", action.Id)
+		blockVolumeEntry, err := NewBlockVolumeEntryFromId(tx, action.Id)
+		if err != nil {
+			return err
+		}
+		logger.Info("blockVolumeEntry %+v", blockVolumeEntry)
+		logger.Info("USER ACTION REQUIRED: cleanup blockvolume:%v on hostingvolume:%v", blockVolumeEntry.Info.Name, blockVolumeEntry.Info.BlockHostingVolume)
+		if !dryRun {
+			err = blockVolumeEntry.Delete(tx)
+			if err != nil {
+				return err
+			}
+		}
+	case OpDeleteBlockVolume:
+		logger.Debug("Found a pending delete blockvolume change with id: %v", action.Id)
+		logger.Info("Deleting blockvolume with id: %v", action.Id)
+		blockVolumeEntry, err := NewBlockVolumeEntryFromId(tx, action.Id)
+		if err != nil {
+			return err
+		}
+		logger.Info("blockVolumeEntry %+v", blockVolumeEntry)
+		logger.Info("USER ACTION REQUIRED: cleanup blockvolume:%v on hostingvolume:%v", blockVolumeEntry.Info.Name, blockVolumeEntry.Info.BlockHostingVolume)
+		if !dryRun {
+			err = blockVolumeEntry.Delete(tx)
+			if err != nil {
+				return err
+			}
+		}
+	case OpRemoveDevice:
+		logger.Debug("Found a pending remove device change with id: %v", action.Id)
+		logger.Info("Deleting device with id: %v", action.Id)
+		deviceEntry, err := NewDeviceEntryFromId(tx, action.Id)
+		if err != nil {
+			return err
+		}
+		logger.Info("deviceEntry %+v", deviceEntry)
+		logger.Info("USER ACTION REQUIRED: cleanup device:%v on node:%v", deviceEntry.Info.Name, deviceEntry.NodeId)
+		if !dryRun {
+			err = deviceEntry.Delete(tx)
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		logger.Debug("Not a known change type: %v", action.Change)
 	}
+	return nil
+}
 
-	checkresponse, err := dbCheckConsistency(db)
-	if err != nil {
-		return fmt.Errorf("Unable to check the database: %v", err)
+func deleteChangeEntriesInOp(tx *bolt.Tx, pendingOpEntry *PendingOperationEntry, dryRun bool) error {
+	switch pendingOpEntry.Type {
+
+	case OperationCreateVolume:
+		logger.Info("Found a pending volume create operation with id: %v and timestamp: %v", pendingOpEntry.Id, pendingOpEntry.Timestamp)
+
+	case OperationDeleteVolume:
+		logger.Info("Found a pending volume delete operation with id: %v and timestamp: %v", pendingOpEntry.Id, pendingOpEntry.Timestamp)
+
+	case OperationExpandVolume:
+		logger.Info("Found a pending volume expand operation with id: %v and timestamp: %v", pendingOpEntry.Id, pendingOpEntry.Timestamp)
+
+	case OperationCreateBlockVolume:
+		logger.Info("Found a pending blockvolume create operation with id: %v and timestamp: %v", pendingOpEntry.Id, pendingOpEntry.Timestamp)
+
+	case OperationDeleteBlockVolume:
+		logger.Info("Found a pending blockvolume delete operation with id: %v and timestamp: %v", pendingOpEntry.Id, pendingOpEntry.Timestamp)
+
+	case OperationRemoveDevice:
+		logger.Info("Found a pending device remove operation with id: %v and timestamp: %v", pendingOpEntry.Id, pendingOpEntry.Timestamp)
+
+	default:
+		logger.Debug("Not a known pending Operation type: %v", pendingOpEntry.Type)
 	}
-
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "    ")
-
-	if err := encoder.Encode(checkresponse); err != nil {
-		return fmt.Errorf("Unable to encode the response into json: %v", err)
+	for _, action := range pendingOpEntry.Actions {
+		err := deleteChangeOwnerEntry(tx, action, dryRun)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// dbCheckConsistency ... checks the current db state to determine if contents
-// of all the buckets represent a consistent view.
-func dbCheckConsistency(db *bolt.DB) (response DbCheckResponse, err error) {
+func DeletePendingEntries(db *bolt.DB, dryRun bool, force bool) error {
 
-	dump, err := dbDumpInternal(db)
+	err := db.Update(func(tx *bolt.Tx) error {
+		if b := tx.Bucket([]byte(BOLTDB_BUCKET_PENDING_OPS)); b == nil {
+			return logger.LogError("unable to find pending ops bucket... exiting")
+		}
+		var pendingOpsFoundCount int
+		var pendingOpsDeletedCount int
+
+		logger.Info("traversing through pending ops bucket to delete pending entries")
+		logger.Debug("pendingops bucket")
+		pendingops, err := PendingOperationList(tx)
+		if err != nil {
+			return err
+		}
+		for _, opid := range pendingops {
+			pendingOpEntry, err := NewPendingOperationEntryFromId(tx, opid)
+			if err != nil {
+				return err
+			}
+			pendingOpsFoundCount++
+			logger.Info("\nPending Operation %v Start", pendingOpsFoundCount)
+			// Special case for expand volume operation
+			// Always dry-run
+			if pendingOpEntry.Type == OperationExpandVolume {
+				logger.Info("USER ACTION REQUIRED: Found an expand volume operation, it won't be cleaned")
+				logger.Info("USER ACTION REQUIRED: Note the add brick action printed below and complete the action on Gluster if not completed already")
+				err = deleteChangeEntriesInOp(tx, pendingOpEntry, true)
+				if err != nil {
+					return err
+				}
+			} else {
+				err = deleteChangeEntriesInOp(tx, pendingOpEntry, dryRun)
+				if err != nil {
+					return err
+				}
+			}
+			// Again, skip deleting main op if it is expand volume
+			if !dryRun && pendingOpEntry.Type != OperationExpandVolume {
+				err = pendingOpEntry.Delete(tx)
+				if err != nil {
+					return err
+				}
+				pendingOpsDeletedCount++
+			}
+			logger.Info("\nPending Operation %v End", pendingOpsFoundCount)
+		}
+		logger.Info("Found %v pending entries and deleted %v", pendingOpsFoundCount, pendingOpsDeletedCount)
+
+		// Here onwards, we should not find any entry with pending id set if dry-run is not used
+		// If we do find any entries with pending ID, then it is case of db corruption
+		// Warn users if force flag is not set
+		// Clean the entries if force flag is set
+		if !dryRun {
+			logger.Info("traversing through other buckets to ensure no pending entries are left")
+			logger.Debug("volume bucket")
+			volumes, err := VolumeList(tx)
+			if err != nil {
+				return err
+			}
+
+			for _, volume := range volumes {
+				volEntry, err := NewVolumeEntryFromId(tx, volume)
+				if err != nil {
+					return err
+				}
+				if volEntry.Pending.Id != "" {
+					logger.Info("found untracked pending volume entry %v, use force flag to delete it", volume)
+					if force {
+						logger.Info("deleting untracked pending volume entry %v", volume)
+						err = volEntry.Delete(tx)
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
+
+			logger.Debug("brick bucket")
+			bricks, err := BrickList(tx)
+			if err != nil {
+				return err
+			}
+
+			for _, brick := range bricks {
+				brickEntry, err := NewBrickEntryFromId(tx, brick)
+				if err != nil {
+					return err
+				}
+				if brickEntry.Pending.Id != "" {
+					logger.Info("found untracked pending brick entry %v, use force flag to delete it", brick)
+					if force {
+						logger.Info("deleting untracked pending brick entry %v", brick)
+						err = brickEntry.Delete(tx)
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
+
+			// BlockVolume Bucket
+			logger.Debug("blockvolume bucket")
+			blockvolumes, err := BlockVolumeList(tx)
+			if err != nil {
+				return err
+			}
+
+			for _, blockvolume := range blockvolumes {
+				blockvolEntry, err := NewBlockVolumeEntryFromId(tx, blockvolume)
+				if err != nil {
+					return err
+				}
+				if blockvolEntry.Pending.Id != "" {
+					logger.Info("found untracked pending blockvolume entry %v, use force flag to delete it", blockvolume)
+					if force {
+						logger.Info("deleting untracked pending blockvolume entry %v", blockvolume)
+						err = blockvolEntry.Delete(tx)
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
+
+		}
+
+		return nil
+	})
 	if err != nil {
-		return response, fmt.Errorf("Could not construct dump from DB: %v", err.Error())
+		return err
 	}
-
-	response.Volumes = dbCheckVolumes(dump)
-	response.TotalInconsistencies += len(response.Volumes.Inconsistencies)
-	response.Clusters = dbCheckClusters(dump)
-	response.TotalInconsistencies += len(response.Clusters.Inconsistencies)
-	response.Nodes = dbCheckNodes(dump)
-	response.TotalInconsistencies += len(response.Nodes.Inconsistencies)
-	response.Devices = dbCheckDevices(dump)
-	response.TotalInconsistencies += len(response.Devices.Inconsistencies)
-	response.BlockVolumes = dbCheckBlockVolumes(dump)
-	response.TotalInconsistencies += len(response.BlockVolumes.Inconsistencies)
-	response.Bricks = dbCheckBricks(dump)
-	response.TotalInconsistencies += len(response.Bricks.Inconsistencies)
-	response.PendingOperations = dbCheckPendingOps(dump)
-	response.TotalInconsistencies += len(response.PendingOperations.Inconsistencies)
-
-	return
-}
-
-func dbCheckVolumes(dump Db) (volumesCheckResponse DbBucketCheckResponse) {
-
-	for _, volumeEntry := range dump.Volumes {
-
-		volumesCheckResponse.Total++
-
-		volumeCheckResponse := volumeEntry.consistencyCheck(dump)
-		if volumeCheckResponse.Pending {
-			volumesCheckResponse.Pending++
-		}
-
-		if len(volumeCheckResponse.Inconsistencies) > 0 {
-			volumesCheckResponse.Inconsistencies = append(volumesCheckResponse.Inconsistencies, volumeCheckResponse.Inconsistencies...)
-			volumesCheckResponse.NotOk++
-		} else {
-			volumesCheckResponse.Ok++
-		}
-	}
-
-	return
-}
-
-func dbCheckClusters(dump Db) (clustersCheckResponse DbBucketCheckResponse) {
-	for _, clusterEntry := range dump.Clusters {
-
-		clustersCheckResponse.Total++
-		// Cluster Entries don't have pending operations
-
-		clusterCheckResponse := clusterEntry.consistencyCheck(dump)
-
-		if len(clusterCheckResponse.Inconsistencies) > 0 {
-			clustersCheckResponse.Inconsistencies = append(clustersCheckResponse.Inconsistencies, clusterCheckResponse.Inconsistencies...)
-			clustersCheckResponse.NotOk++
-		} else {
-			clustersCheckResponse.Ok++
-		}
-	}
-
-	return
-}
-
-func dbCheckNodes(dump Db) (nodesCheckResponse DbBucketCheckResponse) {
-	for _, nodeEntry := range dump.Nodes {
-
-		nodesCheckResponse.Total++
-		// Node Entries don't have pending operations
-
-		nodeCheckResponse := nodeEntry.consistencyCheck(dump)
-
-		if len(nodeCheckResponse.Inconsistencies) > 0 {
-			nodesCheckResponse.Inconsistencies = append(nodesCheckResponse.Inconsistencies, nodeCheckResponse.Inconsistencies...)
-			nodesCheckResponse.NotOk++
-		} else {
-			nodesCheckResponse.Ok++
-		}
-	}
-
-	return
-}
-
-func dbCheckDevices(dump Db) (devicesCheckResponse DbBucketCheckResponse) {
-	for _, deviceEntry := range dump.Devices {
-
-		devicesCheckResponse.Total++
-		// Device Entries don't have pending operations
-
-		deviceCheckResponse := deviceEntry.consistencyCheck(dump)
-
-		if len(deviceCheckResponse.Inconsistencies) > 0 {
-			devicesCheckResponse.Inconsistencies = append(devicesCheckResponse.Inconsistencies, deviceCheckResponse.Inconsistencies...)
-			devicesCheckResponse.NotOk++
-		} else {
-			devicesCheckResponse.Ok++
-		}
-	}
-
-	return
-}
-
-func dbCheckBlockVolumes(dump Db) (blockVolumesCheckResponse DbBucketCheckResponse) {
-	for _, blockVolumeEntry := range dump.BlockVolumes {
-
-		blockVolumesCheckResponse.Total++
-
-		blockVolumeCheckResponse := blockVolumeEntry.consistencyCheck(dump)
-		if blockVolumeCheckResponse.Pending {
-			blockVolumesCheckResponse.Pending++
-		}
-		if len(blockVolumeCheckResponse.Inconsistencies) > 0 {
-			blockVolumesCheckResponse.Inconsistencies = append(blockVolumesCheckResponse.Inconsistencies, blockVolumeCheckResponse.Inconsistencies...)
-			blockVolumesCheckResponse.NotOk++
-		} else {
-			blockVolumesCheckResponse.Ok++
-		}
-	}
-
-	return
-}
-
-func dbCheckBricks(dump Db) (bricksCheckResponse DbBucketCheckResponse) {
-	for _, brickEntry := range dump.Bricks {
-
-		bricksCheckResponse.Total++
-
-		brickCheckResponse := brickEntry.consistencyCheck(dump)
-		if brickCheckResponse.Pending {
-			bricksCheckResponse.Pending++
-		}
-
-		if len(brickCheckResponse.Inconsistencies) > 0 {
-			bricksCheckResponse.Inconsistencies = append(bricksCheckResponse.Inconsistencies, brickCheckResponse.Inconsistencies...)
-			bricksCheckResponse.NotOk++
-		} else {
-			bricksCheckResponse.Ok++
-		}
-	}
-
-	return
-}
-
-func dbCheckPendingOps(dump Db) (pendingOpsCheckResponse DbBucketCheckResponse) {
-	for _, pendingOpEntry := range dump.PendingOperations {
-
-		pendingOpsCheckResponse.Total++
-
-		pendingOpCheckResponse := pendingOpEntry.consistencyCheck(dump)
-
-		if len(pendingOpCheckResponse.Inconsistencies) > 0 {
-			pendingOpsCheckResponse.Inconsistencies = append(pendingOpsCheckResponse.Inconsistencies, pendingOpCheckResponse.Inconsistencies...)
-			pendingOpsCheckResponse.NotOk++
-		} else {
-			pendingOpsCheckResponse.Ok++
-		}
-	}
-
-	return
+	return nil
 }

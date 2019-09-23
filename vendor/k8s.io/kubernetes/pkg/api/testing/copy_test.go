@@ -69,7 +69,7 @@ func doDeepCopyTest(t *testing.T, kind schema.GroupVersionKind, f *fuzz.Fuzzer) 
 		return
 	}
 
-	if !bytes.Equal(prefuzzData.Bytes(), postfuzzData.Bytes()) {
+	if bytes.Compare(prefuzzData.Bytes(), postfuzzData.Bytes()) != 0 {
 		t.Log(diff.StringDiff(prefuzzData.String(), postfuzzData.String()))
 		t.Errorf("Fuzzing copy modified original of %#v", kind)
 		return

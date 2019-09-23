@@ -26,11 +26,8 @@ import (
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-	e2ekubelet "k8s.io/kubernetes/test/e2e/framework/kubelet"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
-	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = SIGDescribe("Ports Security Check [Feature:KubeletSecurity]", func() {
@@ -39,35 +36,35 @@ var _ = SIGDescribe("Ports Security Check [Feature:KubeletSecurity]", func() {
 	var node *v1.Node
 	var nodeName string
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		nodes := framework.GetReadySchedulableNodesOrDie(f.ClientSet)
-		gomega.Expect(len(nodes.Items)).NotTo(gomega.BeZero())
+		Expect(len(nodes.Items)).NotTo(BeZero())
 		node = &nodes.Items[0]
 		nodeName = node.Name
 	})
 
 	// make sure kubelet readonly (10255) and cadvisor (4194) ports are disabled via API server proxy
-	ginkgo.It(fmt.Sprintf("should not be able to proxy to the readonly kubelet port %v using proxy subresource", ports.KubeletReadOnlyPort), func() {
-		result, err := e2ekubelet.ProxyRequest(f.ClientSet, nodeName, "pods/", ports.KubeletReadOnlyPort)
-		framework.ExpectNoError(err)
+	It(fmt.Sprintf("should not be able to proxy to the readonly kubelet port %v using proxy subresource", ports.KubeletReadOnlyPort), func() {
+		result, err := framework.NodeProxyRequest(f.ClientSet, nodeName, "pods/", ports.KubeletReadOnlyPort)
+		Expect(err).NotTo(HaveOccurred())
 
 		var statusCode int
 		result.StatusCode(&statusCode)
-		framework.ExpectNotEqual(statusCode, http.StatusOK)
+		Expect(statusCode).NotTo(Equal(http.StatusOK))
 	})
-	ginkgo.It("should not be able to proxy to cadvisor port 4194 using proxy subresource", func() {
-		result, err := e2ekubelet.ProxyRequest(f.ClientSet, nodeName, "containers/", 4194)
-		framework.ExpectNoError(err)
+	It("should not be able to proxy to cadvisor port 4194 using proxy subresource", func() {
+		result, err := framework.NodeProxyRequest(f.ClientSet, nodeName, "containers/", 4194)
+		Expect(err).NotTo(HaveOccurred())
 
 		var statusCode int
 		result.StatusCode(&statusCode)
-		framework.ExpectNotEqual(statusCode, http.StatusOK)
+		Expect(statusCode).NotTo(Equal(http.StatusOK))
 	})
 
 	// make sure kubelet readonly (10255) and cadvisor (4194) ports are closed on the public IP address
 	disabledPorts := []int{ports.KubeletReadOnlyPort, 4194}
 	for _, port := range disabledPorts {
-		ginkgo.It(fmt.Sprintf("should not have port %d open on its all public IP addresses", port), func() {
+		It(fmt.Sprintf("should not have port %d open on its all public IP addresses", port), func() {
 			portClosedTest(f, node, port)
 		})
 	}
@@ -75,14 +72,14 @@ var _ = SIGDescribe("Ports Security Check [Feature:KubeletSecurity]", func() {
 
 // checks whether the target port is closed
 func portClosedTest(f *framework.Framework, pickNode *v1.Node, port int) {
-	nodeAddrs := e2enode.GetAddresses(pickNode, v1.NodeExternalIP)
-	gomega.Expect(len(nodeAddrs)).NotTo(gomega.BeZero())
+	nodeAddrs := framework.GetNodeAddresses(pickNode, v1.NodeExternalIP)
+	Expect(len(nodeAddrs)).NotTo(BeZero())
 
 	for _, addr := range nodeAddrs {
 		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", addr, port), 1*time.Minute)
 		if err == nil {
 			conn.Close()
-			e2elog.Failf("port %d is not disabled", port)
+			framework.Failf("port %d is not disabled", port)
 		}
 	}
 }

@@ -22,7 +22,6 @@ package fake
 import (
 	autoscalingapi "k8s.io/api/autoscaling/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/testing"
 )
@@ -64,15 +63,5 @@ func (f *fakeNamespacedScaleClient) Update(resource schema.GroupResource, scale 
 	}
 
 	return obj.(*autoscalingapi.Scale), err
-}
 
-func (f *fakeNamespacedScaleClient) Patch(gvr schema.GroupVersionResource, name string, pt types.PatchType, patch []byte) (*autoscalingapi.Scale, error) {
-	obj, err := f.fake.
-		Invokes(testing.NewPatchSubresourceAction(gvr, f.namespace, name, pt, patch, "scale"), &autoscalingapi.Scale{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return obj.(*autoscalingapi.Scale), err
 }

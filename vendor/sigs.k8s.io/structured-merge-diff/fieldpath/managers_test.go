@@ -44,112 +44,98 @@ func TestManagersDifference(t *testing.T) {
 		{
 			name: "Empty RHS",
 			lhs: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v1",
-					false,
-				),
+				"default": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v1",
+				},
 			},
 			out: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v1",
-					false,
-				),
+				"default": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v1",
+				},
 			},
 		},
 		{
 			name: "Empty LHS",
 			rhs: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v1",
-					false,
-				),
+				"default": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v1",
+				},
 			},
 			out: fieldpath.ManagedFields{
-				"default": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v1",
-					false,
-				),
+				"default": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v1",
+				},
 			},
 		},
 		{
 			name: "Different managers",
 			lhs: fieldpath.ManagedFields{
-				"one": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v1",
-					false,
-				),
+				"one": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v1",
+				},
 			},
 			rhs: fieldpath.ManagedFields{
-				"two": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v1",
-					false,
-				),
+				"two": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v1",
+				},
 			},
 			out: fieldpath.ManagedFields{
-				"one": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v1",
-					false,
-				),
-				"two": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v1",
-					false,
-				),
+				"one": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v1",
+				},
+				"two": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v1",
+				},
 			},
 		},
 		{
 			name: "Same manager, different version",
 			lhs: fieldpath.ManagedFields{
-				"one": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("integer")),
-					"v1",
-					false,
-				),
+				"one": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("integer")),
+					APIVersion: "v1",
+				},
 			},
 			rhs: fieldpath.ManagedFields{
-				"one": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v2",
-					false,
-				),
+				"one": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v2",
+				},
 			},
 			out: fieldpath.ManagedFields{
-				"one": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string"), _P("bool")),
-					"v2",
-					false,
-				),
+				"one": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string"), _P("bool")),
+					APIVersion: "v2",
+				},
 			},
 		},
 		{
 			name: "Set difference",
 			lhs: fieldpath.ManagedFields{
-				"one": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("string")),
-					"v1",
-					false,
-				),
+				"one": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("string")),
+					APIVersion: "v1",
+				},
 			},
 			rhs: fieldpath.ManagedFields{
-				"one": fieldpath.NewVersionedSet(
-					_NS(_P("string"), _P("bool")),
-					"v1",
-					false,
-				),
+				"one": &fieldpath.VersionedSet{
+					Set:        _NS(_P("string"), _P("bool")),
+					APIVersion: "v1",
+				},
 			},
 			out: fieldpath.ManagedFields{
-				"one": fieldpath.NewVersionedSet(
-					_NS(_P("numeric"), _P("bool")),
-					"v1",
-					false,
-				),
+				"one": &fieldpath.VersionedSet{
+					Set:        _NS(_P("numeric"), _P("bool")),
+					APIVersion: "v1",
+				},
 			},
 		},
 	}

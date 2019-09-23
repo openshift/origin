@@ -1,4 +1,4 @@
-// Package textanalytics implements the Azure ARM Textanalytics service API version v2.1.
+// Package textanalytics implements the Azure ARM Textanalytics service API version v2.1-preview.
 //
 // The Text Analytics API is a suite of text analytics web services built with best-in-class Microsoft machine learning
 // algorithms. The API can be used to analyze unstructured text for tasks such as sentiment analysis, key phrase
@@ -28,7 +28,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -54,20 +53,9 @@ func NewWithoutDefaults(endpoint string) BaseClient {
 // DetectLanguage scores close to 1 indicate 100% certainty that the identified language is true. A total of 120
 // languages are supported.
 // Parameters:
-// showStats - (optional) if set to true, response will contain input and document level statistics.
-// languageBatchInput - collection of documents to analyze.
-func (client BaseClient) DetectLanguage(ctx context.Context, showStats *bool, languageBatchInput *LanguageBatchInput) (result LanguageBatchResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DetectLanguage")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.DetectLanguagePreparer(ctx, showStats, languageBatchInput)
+// input - collection of documents to analyze.
+func (client BaseClient) DetectLanguage(ctx context.Context, input BatchInput) (result LanguageBatchResult, err error) {
+	req, err := client.DetectLanguagePreparer(ctx, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "textanalytics.BaseClient", "DetectLanguage", nil, "Failure preparing request")
 		return
@@ -89,34 +77,25 @@ func (client BaseClient) DetectLanguage(ctx context.Context, showStats *bool, la
 }
 
 // DetectLanguagePreparer prepares the DetectLanguage request.
-func (client BaseClient) DetectLanguagePreparer(ctx context.Context, showStats *bool, languageBatchInput *LanguageBatchInput) (*http.Request, error) {
+func (client BaseClient) DetectLanguagePreparer(ctx context.Context, input BatchInput) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
-	}
-
-	queryParameters := map[string]interface{}{}
-	if showStats != nil {
-		queryParameters["showStats"] = autorest.Encode("query", *showStats)
 	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithCustomBaseURL("{Endpoint}/text/analytics/v2.1", urlParameters),
+		autorest.WithCustomBaseURL("{Endpoint}/text/analytics/v2.1-preview", urlParameters),
 		autorest.WithPath("/languages"),
-		autorest.WithQueryParameters(queryParameters))
-	if languageBatchInput != nil {
-		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithJSON(languageBatchInput))
-	}
+		autorest.WithJSON(input))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // DetectLanguageSender sends the DetectLanguage request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DetectLanguageSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DetectLanguageResponder handles the response to the DetectLanguage request. The method always
@@ -132,25 +111,23 @@ func (client BaseClient) DetectLanguageResponder(resp *http.Response) (result La
 	return
 }
 
-// Entities to get even more information on each recognized entity we recommend using the Bing Entity Search API by
-// querying for the recognized entities names. See the <a
+// Entities the API returns a list of recognized entities in a given document. To get even more information on each
+// recognized entity we recommend using the Bing Entity Search API by querying for the recognized entities names. See
+// the <a
+// href="https://docs.microsoft.com/en-us/azure/cognitive-services/text-analytics/text-analytics-supported-languages">Supported
+// languages in Text Analytics API</a> for the list of enabled languages.The API returns a list of known entities and
+// general named entities ("Person", "Location", "Organization" etc) in a given document. Known entities are returned
+// with Wikipedia Id and Wikipedia link, and also Bing Id which can be used in Bing Entity Search API. General named
+// entities are returned with entity types. If a general named entity is also a known entity, then all information
+// regarding it (Wikipedia Id, Bing Id, entity type etc) will be returned. See the <a
+// href="https://docs.microsoft.com/en-us/azure/cognitive-services/text-analytics/how-tos/text-analytics-how-to-entity-linking#supported-types-for-named-entity-recognition">Supported
+// Entity Types in Text Analytics API</a> for the list of supported Entity Types. See the <a
 // href="https://docs.microsoft.com/en-us/azure/cognitive-services/text-analytics/text-analytics-supported-languages">Supported
 // languages in Text Analytics API</a> for the list of enabled languages.
 // Parameters:
-// showStats - (optional) if set to true, response will contain input and document level statistics.
-// multiLanguageBatchInput - collection of documents to analyze.
-func (client BaseClient) Entities(ctx context.Context, showStats *bool, multiLanguageBatchInput *MultiLanguageBatchInput) (result EntitiesBatchResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.Entities")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.EntitiesPreparer(ctx, showStats, multiLanguageBatchInput)
+// input - collection of documents to analyze.
+func (client BaseClient) Entities(ctx context.Context, input MultiLanguageBatchInput) (result EntitiesBatchResultV2dot1, err error) {
+	req, err := client.EntitiesPreparer(ctx, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "textanalytics.BaseClient", "Entities", nil, "Failure preparing request")
 		return
@@ -172,39 +149,30 @@ func (client BaseClient) Entities(ctx context.Context, showStats *bool, multiLan
 }
 
 // EntitiesPreparer prepares the Entities request.
-func (client BaseClient) EntitiesPreparer(ctx context.Context, showStats *bool, multiLanguageBatchInput *MultiLanguageBatchInput) (*http.Request, error) {
+func (client BaseClient) EntitiesPreparer(ctx context.Context, input MultiLanguageBatchInput) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
-	}
-
-	queryParameters := map[string]interface{}{}
-	if showStats != nil {
-		queryParameters["showStats"] = autorest.Encode("query", *showStats)
 	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithCustomBaseURL("{Endpoint}/text/analytics/v2.1", urlParameters),
+		autorest.WithCustomBaseURL("{Endpoint}/text/analytics/v2.1-preview", urlParameters),
 		autorest.WithPath("/entities"),
-		autorest.WithQueryParameters(queryParameters))
-	if multiLanguageBatchInput != nil {
-		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithJSON(multiLanguageBatchInput))
-	}
+		autorest.WithJSON(input))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // EntitiesSender sends the Entities request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) EntitiesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // EntitiesResponder handles the response to the Entities request. The method always
 // closes the http.Response Body.
-func (client BaseClient) EntitiesResponder(resp *http.Response) (result EntitiesBatchResult, err error) {
+func (client BaseClient) EntitiesResponder(resp *http.Response) (result EntitiesBatchResultV2dot1, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -219,21 +187,10 @@ func (client BaseClient) EntitiesResponder(resp *http.Response) (result Entities
 // href="https://docs.microsoft.com/en-us/azure/cognitive-services/text-analytics/overview#supported-languages">Text
 // Analytics Documentation</a> for details about the languages that are supported by key phrase extraction.
 // Parameters:
-// showStats - (optional) if set to true, response will contain input and document level statistics.
-// multiLanguageBatchInput - collection of documents to analyze. Documents can now contain a language field to
-// indicate the text language
-func (client BaseClient) KeyPhrases(ctx context.Context, showStats *bool, multiLanguageBatchInput *MultiLanguageBatchInput) (result KeyPhraseBatchResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.KeyPhrases")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.KeyPhrasesPreparer(ctx, showStats, multiLanguageBatchInput)
+// input - collection of documents to analyze. Documents can now contain a language field to indicate the text
+// language
+func (client BaseClient) KeyPhrases(ctx context.Context, input MultiLanguageBatchInput) (result KeyPhraseBatchResult, err error) {
+	req, err := client.KeyPhrasesPreparer(ctx, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "textanalytics.BaseClient", "KeyPhrases", nil, "Failure preparing request")
 		return
@@ -255,34 +212,25 @@ func (client BaseClient) KeyPhrases(ctx context.Context, showStats *bool, multiL
 }
 
 // KeyPhrasesPreparer prepares the KeyPhrases request.
-func (client BaseClient) KeyPhrasesPreparer(ctx context.Context, showStats *bool, multiLanguageBatchInput *MultiLanguageBatchInput) (*http.Request, error) {
+func (client BaseClient) KeyPhrasesPreparer(ctx context.Context, input MultiLanguageBatchInput) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
-	}
-
-	queryParameters := map[string]interface{}{}
-	if showStats != nil {
-		queryParameters["showStats"] = autorest.Encode("query", *showStats)
 	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithCustomBaseURL("{Endpoint}/text/analytics/v2.1", urlParameters),
+		autorest.WithCustomBaseURL("{Endpoint}/text/analytics/v2.1-preview", urlParameters),
 		autorest.WithPath("/keyPhrases"),
-		autorest.WithQueryParameters(queryParameters))
-	if multiLanguageBatchInput != nil {
-		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithJSON(multiLanguageBatchInput))
-	}
+		autorest.WithJSON(input))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // KeyPhrasesSender sends the KeyPhrases request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) KeyPhrasesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // KeyPhrasesResponder handles the response to the KeyPhrases request. The method always
@@ -303,20 +251,9 @@ func (client BaseClient) KeyPhrasesResponder(resp *http.Response) (result KeyPhr
 // href="https://docs.microsoft.com/en-us/azure/cognitive-services/text-analytics/overview#supported-languages">Text
 // Analytics Documentation</a> for details about the languages that are supported by sentiment analysis.
 // Parameters:
-// showStats - (optional) if set to true, response will contain input and document level statistics.
-// multiLanguageBatchInput - collection of documents to analyze.
-func (client BaseClient) Sentiment(ctx context.Context, showStats *bool, multiLanguageBatchInput *MultiLanguageBatchInput) (result SetObject, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.Sentiment")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.SentimentPreparer(ctx, showStats, multiLanguageBatchInput)
+// input - collection of documents to analyze.
+func (client BaseClient) Sentiment(ctx context.Context, input MultiLanguageBatchInput) (result SentimentBatchResult, err error) {
+	req, err := client.SentimentPreparer(ctx, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "textanalytics.BaseClient", "Sentiment", nil, "Failure preparing request")
 		return
@@ -338,44 +275,35 @@ func (client BaseClient) Sentiment(ctx context.Context, showStats *bool, multiLa
 }
 
 // SentimentPreparer prepares the Sentiment request.
-func (client BaseClient) SentimentPreparer(ctx context.Context, showStats *bool, multiLanguageBatchInput *MultiLanguageBatchInput) (*http.Request, error) {
+func (client BaseClient) SentimentPreparer(ctx context.Context, input MultiLanguageBatchInput) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
-	}
-
-	queryParameters := map[string]interface{}{}
-	if showStats != nil {
-		queryParameters["showStats"] = autorest.Encode("query", *showStats)
 	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithCustomBaseURL("{Endpoint}/text/analytics/v2.1", urlParameters),
+		autorest.WithCustomBaseURL("{Endpoint}/text/analytics/v2.1-preview", urlParameters),
 		autorest.WithPath("/sentiment"),
-		autorest.WithQueryParameters(queryParameters))
-	if multiLanguageBatchInput != nil {
-		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithJSON(multiLanguageBatchInput))
-	}
+		autorest.WithJSON(input))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // SentimentSender sends the Sentiment request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) SentimentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // SentimentResponder handles the response to the Sentiment request. The method always
 // closes the http.Response Body.
-func (client BaseClient) SentimentResponder(resp *http.Response) (result SetObject, err error) {
+func (client BaseClient) SentimentResponder(resp *http.Response) (result SentimentBatchResult, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusInternalServerError),
-		autorest.ByUnmarshallingJSON(&result.Value),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
 	return

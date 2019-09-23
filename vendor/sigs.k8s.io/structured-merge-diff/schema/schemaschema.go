@@ -20,7 +20,7 @@ package schema
 // It will validate itself. It can be unmarshalled into a Schema type.
 var SchemaSchemaYAML = `types:
 - name: schema
-  map:
+  struct:
     fields:
       - name: types
         type:
@@ -31,7 +31,7 @@ var SchemaSchemaYAML = `types:
             keys:
             - name
 - name: typeDef
-  map:
+  struct:
     fields:
     - name: name
       type:
@@ -39,17 +39,20 @@ var SchemaSchemaYAML = `types:
     - name: scalar
       type:
         scalar: string
-    - name: map
+    - name: struct
       type:
-        namedType: map
+        namedType: struct
     - name: list
       type:
         namedType: list
+    - name: map
+      type:
+        namedType: map
     - name: untyped
       type:
         namedType: untyped
 - name: typeRef
-  map:
+  struct:
     fields:
     - name: namedType
       type:
@@ -57,19 +60,22 @@ var SchemaSchemaYAML = `types:
     - name: scalar
       type:
         scalar: string
-    - name: map
+    - name: struct
       type:
-        namedType: map
+        namedType: struct
     - name: list
       type:
         namedType: list
+    - name: map
+      type:
+        namedType: map
     - name: untyped
       type:
         namedType: untyped
 - name: scalar
   scalar: string
-- name: map
-  map:
+- name: struct
+  struct:
     fields:
     - name: fields
       type:
@@ -78,46 +84,11 @@ var SchemaSchemaYAML = `types:
             namedType: structField
           elementRelationship: associative
           keys: [ "name" ]
-    - name: unions
-      type:
-        list:
-          elementType:
-            namedType: union
-          elementRelationship: atomic
-    - name: elementType
-      type:
-        namedType: typeRef
     - name: elementRelationship
       type:
         scalar: string
-- name: unionField
-  map:
-    fields:
-    - name: fieldName
-      type:
-        scalar: string
-    - name: discriminatorValue
-      type:
-        scalar: string
-- name: union
-  map:
-    fields:
-    - name: discriminator
-      type:
-        scalar: string
-    - name: deduceInvalidDiscriminator
-      type:
-        scalar: bool
-    - name: fields
-      type:
-        list:
-          elementRelationship: associative
-          elementType:
-            namedType: unionField
-          keys:
-          - fieldName
 - name: structField
-  map:
+  struct:
     fields:
     - name: name
       type:
@@ -126,7 +97,7 @@ var SchemaSchemaYAML = `types:
       type:
         namedType: typeRef
 - name: list
-  map:
+  struct:
     fields:
     - name: elementType
       type:
@@ -139,8 +110,17 @@ var SchemaSchemaYAML = `types:
         list:
           elementType:
             scalar: string
+- name: map
+  struct:
+    fields:
+    - name: elementType
+      type:
+        namedType: typeRef
+    - name: elementRelationship
+      type:
+        scalar: string
 - name: untyped
-  map:
+  struct:
     fields:
     - name: elementRelationship
       type:

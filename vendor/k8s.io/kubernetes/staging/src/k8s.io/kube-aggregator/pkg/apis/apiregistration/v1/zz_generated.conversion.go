@@ -23,7 +23,6 @@ package v1
 import (
 	unsafe "unsafe"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	apiregistration "k8s.io/kube-aggregator/pkg/apis/apiregistration"
@@ -161,17 +160,7 @@ func Convert_apiregistration_APIServiceCondition_To_v1_APIServiceCondition(in *a
 
 func autoConvert_v1_APIServiceList_To_apiregistration_APIServiceList(in *APIServiceList, out *apiregistration.APIServiceList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]apiregistration.APIService, len(*in))
-		for i := range *in {
-			if err := Convert_v1_APIService_To_apiregistration_APIService(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]apiregistration.APIService)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -182,17 +171,7 @@ func Convert_v1_APIServiceList_To_apiregistration_APIServiceList(in *APIServiceL
 
 func autoConvert_apiregistration_APIServiceList_To_v1_APIServiceList(in *apiregistration.APIServiceList, out *APIServiceList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]APIService, len(*in))
-		for i := range *in {
-			if err := Convert_apiregistration_APIService_To_v1_APIService(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]APIService)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -202,15 +181,7 @@ func Convert_apiregistration_APIServiceList_To_v1_APIServiceList(in *apiregistra
 }
 
 func autoConvert_v1_APIServiceSpec_To_apiregistration_APIServiceSpec(in *APIServiceSpec, out *apiregistration.APIServiceSpec, s conversion.Scope) error {
-	if in.Service != nil {
-		in, out := &in.Service, &out.Service
-		*out = new(apiregistration.ServiceReference)
-		if err := Convert_v1_ServiceReference_To_apiregistration_ServiceReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Service = nil
-	}
+	out.Service = (*apiregistration.ServiceReference)(unsafe.Pointer(in.Service))
 	out.Group = in.Group
 	out.Version = in.Version
 	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
@@ -226,15 +197,7 @@ func Convert_v1_APIServiceSpec_To_apiregistration_APIServiceSpec(in *APIServiceS
 }
 
 func autoConvert_apiregistration_APIServiceSpec_To_v1_APIServiceSpec(in *apiregistration.APIServiceSpec, out *APIServiceSpec, s conversion.Scope) error {
-	if in.Service != nil {
-		in, out := &in.Service, &out.Service
-		*out = new(ServiceReference)
-		if err := Convert_apiregistration_ServiceReference_To_v1_ServiceReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Service = nil
-	}
+	out.Service = (*ServiceReference)(unsafe.Pointer(in.Service))
 	out.Group = in.Group
 	out.Version = in.Version
 	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
@@ -272,9 +235,6 @@ func Convert_apiregistration_APIServiceStatus_To_v1_APIServiceStatus(in *apiregi
 func autoConvert_v1_ServiceReference_To_apiregistration_ServiceReference(in *ServiceReference, out *apiregistration.ServiceReference, s conversion.Scope) error {
 	out.Namespace = in.Namespace
 	out.Name = in.Name
-	if err := metav1.Convert_Pointer_int32_To_int32(&in.Port, &out.Port, s); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -286,9 +246,6 @@ func Convert_v1_ServiceReference_To_apiregistration_ServiceReference(in *Service
 func autoConvert_apiregistration_ServiceReference_To_v1_ServiceReference(in *apiregistration.ServiceReference, out *ServiceReference, s conversion.Scope) error {
 	out.Namespace = in.Namespace
 	out.Name = in.Name
-	if err := metav1.Convert_int32_To_Pointer_int32(&in.Port, &out.Port, s); err != nil {
-		return err
-	}
 	return nil
 }
 

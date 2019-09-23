@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Reads the pod configuration from the Kubernetes apiserver.
 package config
 
 import (

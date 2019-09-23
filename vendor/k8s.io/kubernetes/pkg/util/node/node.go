@@ -31,7 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 )
@@ -108,31 +107,17 @@ func GetNodeHostIP(node *v1.Node) (net.IP, error) {
 }
 
 // GetNodeIP returns the ip of node with the provided hostname
-// If required, wait for the node to be defined.
 func GetNodeIP(client clientset.Interface, hostname string) net.IP {
 	var nodeIP net.IP
-	backoff := wait.Backoff{
-		Steps:    5,
-		Duration: 1 * time.Second,
-		Factor:   2.0,
-		Jitter:   0.2,
+	node, err := client.CoreV1().Nodes().Get(hostname, metav1.GetOptions{})
+	if err != nil {
+		klog.Warningf("Failed to retrieve node info: %v", err)
+		return nil
 	}
-
-	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		node, err := client.CoreV1().Nodes().Get(hostname, metav1.GetOptions{})
-		if err != nil {
-			klog.Errorf("Failed to retrieve node info: %v", err)
-			return false, nil
-		}
-		nodeIP, err = GetNodeHostIP(node)
-		if err != nil {
-			klog.Errorf("Failed to retrieve node IP: %v", err)
-			return false, err
-		}
-		return true, nil
-	})
-	if err == nil {
-		klog.Infof("Successfully retrieved node IP: %v", nodeIP)
+	nodeIP, err = GetNodeHostIP(node)
+	if err != nil {
+		klog.Warningf("Failed to retrieve node IP: %v", err)
+		return nil
 	}
 	return nodeIP
 }
@@ -185,27 +170,6 @@ func PatchNodeCIDR(c clientset.Interface, node types.NodeName, cidr string) erro
 
 	patchBytes := []byte(fmt.Sprintf(`{"spec":{"podCIDR":%s}}`, raw))
 
-	if _, err := c.CoreV1().Nodes().Patch(string(node), types.StrategicMergePatchType, patchBytes); err != nil {
-		return fmt.Errorf("failed to patch node CIDR: %v", err)
-	}
-	return nil
-}
-
-// PatchNodeCIDRs patches the specified node.CIDR=cidrs[0] and node.CIDRs to the given value.
-func PatchNodeCIDRs(c clientset.Interface, node types.NodeName, cidrs []string) error {
-	rawCidrs, err := json.Marshal(cidrs)
-	if err != nil {
-		return fmt.Errorf("failed to json.Marshal CIDRs: %v", err)
-	}
-
-	rawCidr, err := json.Marshal(cidrs[0])
-	if err != nil {
-		return fmt.Errorf("failed to json.Marshal CIDR: %v", err)
-	}
-
-	// set the pod cidrs list and set the old pod cidr field
-	patchBytes := []byte(fmt.Sprintf(`{"spec":{"podCIDR":%s , "podCIDRs":%s}}`, rawCidr, rawCidrs))
-	klog.V(4).Infof("cidrs patch bytes are:%s", string(patchBytes))
 	if _, err := c.CoreV1().Nodes().Patch(string(node), types.StrategicMergePatchType, patchBytes); err != nil {
 		return fmt.Errorf("failed to patch node CIDR: %v", err)
 	}

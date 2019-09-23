@@ -17,7 +17,6 @@ limitations under the License.
 package admission
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -46,14 +45,14 @@ var _ Interface = &fakeHandler{}
 var _ MutationInterface = &fakeHandler{}
 var _ ValidationInterface = &fakeHandler{}
 
-func (h fakeHandler) Admit(ctx context.Context, a Attributes, o ObjectInterfaces) error {
+func (h fakeHandler) Admit(a Attributes, o ObjectInterfaces) error {
 	for k, v := range h.admitAnnotations {
 		a.AddAnnotation(k, v)
 	}
 	return h.admit
 }
 
-func (h fakeHandler) Validate(ctx context.Context, a Attributes, o ObjectInterfaces) error {
+func (h fakeHandler) Validate(a Attributes, o ObjectInterfaces) error {
 	for k, v := range h.validateAnnotations {
 		a.AddAnnotation(k, v)
 	}
@@ -65,7 +64,7 @@ func (h fakeHandler) Handles(o Operation) bool {
 }
 
 func attributes() Attributes {
-	return NewAttributesRecord(nil, nil, schema.GroupVersionKind{}, "", "", schema.GroupVersionResource{}, "", "", nil, false, nil)
+	return NewAttributesRecord(nil, nil, schema.GroupVersionKind{}, "", "", schema.GroupVersionResource{}, "", "", false, nil)
 }
 
 func TestWithAudit(t *testing.T) {
@@ -150,13 +149,13 @@ func TestWithAudit(t *testing.T) {
 		require.True(t, ok)
 		auditMutator, ok := auditHandler.(MutationInterface)
 		require.True(t, ok)
-		assert.Equal(t, mutator.Admit(context.TODO(), a, nil), auditMutator.Admit(context.TODO(), a, nil), tcName+": WithAudit decorator should not effect the return value")
+		assert.Equal(t, mutator.Admit(a, nil), auditMutator.Admit(a, nil), tcName+": WithAudit decorator should not effect the return value")
 
 		validator, ok := handler.(ValidationInterface)
 		require.True(t, ok)
 		auditValidator, ok := auditHandler.(ValidationInterface)
 		require.True(t, ok)
-		assert.Equal(t, validator.Validate(context.TODO(), a, nil), auditValidator.Validate(context.TODO(), a, nil), tcName+": WithAudit decorator should not effect the return value")
+		assert.Equal(t, validator.Validate(a, nil), auditValidator.Validate(a, nil), tcName+": WithAudit decorator should not effect the return value")
 
 		annotations := make(map[string]string, len(tc.admitAnnotations)+len(tc.validateAnnotations))
 		for k, v := range tc.admitAnnotations {

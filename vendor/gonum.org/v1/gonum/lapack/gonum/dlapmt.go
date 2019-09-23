@@ -19,29 +19,12 @@ import "gonum.org/v1/gonum/blas/blas64"
 //
 // k must have length n, otherwise Dlapmt will panic. k is zero-indexed.
 func (impl Implementation) Dlapmt(forward bool, m, n int, x []float64, ldx int, k []int) {
-	switch {
-	case m < 0:
-		panic(mLT0)
-	case n < 0:
-		panic(nLT0)
-	case ldx < max(1, n):
-		panic(badLdX)
+	checkMatrix(m, n, x, ldx)
+	if len(k) != n {
+		panic(badKperm)
 	}
 
-	// Quick return if possible.
-	if m == 0 || n == 0 {
-		return
-	}
-
-	switch {
-	case len(x) < (m-1)*ldx+n:
-		panic(shortX)
-	case len(k) != n:
-		panic(badLenK)
-	}
-
-	// Quick return if possible.
-	if n == 1 {
+	if n <= 1 {
 		return
 	}
 

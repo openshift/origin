@@ -24,7 +24,6 @@ import (
 	unsafe "unsafe"
 
 	v1alpha1 "k8s.io/api/auditregistration/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	auditregistration "k8s.io/kubernetes/pkg/apis/auditregistration"
@@ -148,17 +147,7 @@ func Convert_auditregistration_AuditSink_To_v1alpha1_AuditSink(in *auditregistra
 
 func autoConvert_v1alpha1_AuditSinkList_To_auditregistration_AuditSinkList(in *v1alpha1.AuditSinkList, out *auditregistration.AuditSinkList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]auditregistration.AuditSink, len(*in))
-		for i := range *in {
-			if err := Convert_v1alpha1_AuditSink_To_auditregistration_AuditSink(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]auditregistration.AuditSink)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -169,17 +158,7 @@ func Convert_v1alpha1_AuditSinkList_To_auditregistration_AuditSinkList(in *v1alp
 
 func autoConvert_auditregistration_AuditSinkList_To_v1alpha1_AuditSinkList(in *auditregistration.AuditSinkList, out *v1alpha1.AuditSinkList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]v1alpha1.AuditSink, len(*in))
-		for i := range *in {
-			if err := Convert_auditregistration_AuditSink_To_v1alpha1_AuditSink(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]v1alpha1.AuditSink)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -244,9 +223,6 @@ func autoConvert_v1alpha1_ServiceReference_To_auditregistration_ServiceReference
 	out.Namespace = in.Namespace
 	out.Name = in.Name
 	out.Path = (*string)(unsafe.Pointer(in.Path))
-	if err := v1.Convert_Pointer_int32_To_int32(&in.Port, &out.Port, s); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -259,9 +235,6 @@ func autoConvert_auditregistration_ServiceReference_To_v1alpha1_ServiceReference
 	out.Namespace = in.Namespace
 	out.Name = in.Name
 	out.Path = (*string)(unsafe.Pointer(in.Path))
-	if err := v1.Convert_int32_To_Pointer_int32(&in.Port, &out.Port, s); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -298,15 +271,7 @@ func Convert_auditregistration_Webhook_To_v1alpha1_Webhook(in *auditregistration
 
 func autoConvert_v1alpha1_WebhookClientConfig_To_auditregistration_WebhookClientConfig(in *v1alpha1.WebhookClientConfig, out *auditregistration.WebhookClientConfig, s conversion.Scope) error {
 	out.URL = (*string)(unsafe.Pointer(in.URL))
-	if in.Service != nil {
-		in, out := &in.Service, &out.Service
-		*out = new(auditregistration.ServiceReference)
-		if err := Convert_v1alpha1_ServiceReference_To_auditregistration_ServiceReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Service = nil
-	}
+	out.Service = (*auditregistration.ServiceReference)(unsafe.Pointer(in.Service))
 	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
 	return nil
 }
@@ -318,15 +283,7 @@ func Convert_v1alpha1_WebhookClientConfig_To_auditregistration_WebhookClientConf
 
 func autoConvert_auditregistration_WebhookClientConfig_To_v1alpha1_WebhookClientConfig(in *auditregistration.WebhookClientConfig, out *v1alpha1.WebhookClientConfig, s conversion.Scope) error {
 	out.URL = (*string)(unsafe.Pointer(in.URL))
-	if in.Service != nil {
-		in, out := &in.Service, &out.Service
-		*out = new(v1alpha1.ServiceReference)
-		if err := Convert_auditregistration_ServiceReference_To_v1alpha1_ServiceReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Service = nil
-	}
+	out.Service = (*v1alpha1.ServiceReference)(unsafe.Pointer(in.Service))
 	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
 	return nil
 }

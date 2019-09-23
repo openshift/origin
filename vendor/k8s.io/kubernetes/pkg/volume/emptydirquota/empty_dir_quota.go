@@ -1,7 +1,7 @@
 package emptydirquota
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/volume"
 )
@@ -67,14 +67,14 @@ func (edq *emptyDirQuotaMounter) CanMount() error {
 // Must implement SetUp as well, otherwise the internal Mounter.SetUp calls its
 // own SetUpAt method, not the one we need.
 
-func (edq *emptyDirQuotaMounter) SetUp(opts volume.MounterArgs) error {
-	return edq.SetUpAt(edq.GetPath(), opts)
+func (edq *emptyDirQuotaMounter) SetUp(fsGroup *int64) error {
+	return edq.SetUpAt(edq.GetPath(), fsGroup)
 }
 
-func (edq *emptyDirQuotaMounter) SetUpAt(dir string, opts volume.MounterArgs) error {
-	err := edq.wrapped.SetUpAt(dir, opts)
+func (edq *emptyDirQuotaMounter) SetUpAt(dir string, fsGroup *int64) error {
+	err := edq.wrapped.SetUpAt(dir, fsGroup)
 	if err == nil {
-		err = edq.quotaApplicator.Apply(dir, edq.medium, edq.pod, opts.FsGroup, edq.quota)
+		err = edq.quotaApplicator.Apply(dir, edq.medium, edq.pod, fsGroup, edq.quota)
 	}
 	return err
 }

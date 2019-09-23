@@ -45,9 +45,9 @@ func RegisterCredentialProvider(name string, provider DockerConfigProvider) {
 }
 
 // NewDockerKeyring creates a DockerKeyring to use for resolving credentials,
-// which draws from the set of registered credential providers.
+// which lazily draws from the set of registered credential providers.
 func NewDockerKeyring() DockerKeyring {
-	keyring := &providersDockerKeyring{
+	keyring := &lazyDockerKeyring{
 		Providers: make([]DockerConfigProvider, 0),
 	}
 

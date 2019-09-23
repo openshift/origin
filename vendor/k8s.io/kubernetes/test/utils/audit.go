@@ -20,14 +20,12 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"reflect"
 	"sort"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
 	auditinternal "k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/apiserver/pkg/audit"
 )
@@ -48,11 +46,6 @@ type AuditEvent struct {
 	RequestObject      bool
 	ResponseObject     bool
 	AuthorizeDecision  string
-
-	// The Check functions in this package takes ownerships of these maps. You should
-	// not reference these maps after calling the Check functions.
-	AdmissionWebhookMutationAnnotations map[string]string
-	AdmissionWebhookPatchAnnotations    map[string]string
 }
 
 // MissingEventsReport provides an analysis if any events are missing
@@ -78,7 +71,7 @@ func (m *MissingEventsReport) String() string {
 
 // CheckAuditLines searches the audit log for the expected audit lines.
 func CheckAuditLines(stream io.Reader, expected []AuditEvent, version schema.GroupVersion) (missingReport *MissingEventsReport, err error) {
-	expectations := newAuditEventTracker(expected)
+	expectations := buildEventExpectations(expected)
 
 	scanner := bufio.NewScanner(stream)
 
@@ -105,20 +98,24 @@ func CheckAuditLines(stream io.Reader, expected []AuditEvent, version schema.Gro
 			return missingReport, err
 		}
 
-		expectations.Mark(event)
+		// If the event was expected, mark it as found.
+		if _, found := expectations[event]; found {
+			expectations[event] = true
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		return missingReport, err
 	}
 
-	missingReport.MissingEvents = expectations.Missing()
+	missingEvents := findMissing(expectations)
+	missingReport.MissingEvents = missingEvents
 	missingReport.NumEventsChecked = i
 	return missingReport, nil
 }
 
 // CheckAuditList searches an audit event list for the expected audit events.
 func CheckAuditList(el auditinternal.EventList, expected []AuditEvent) (missing []AuditEvent, err error) {
-	expectations := newAuditEventTracker(expected)
+	expectations := buildEventExpectations(expected)
 
 	for _, e := range el.Items {
 		event, err := testEventFromInternal(&e)
@@ -126,16 +123,20 @@ func CheckAuditList(el auditinternal.EventList, expected []AuditEvent) (missing 
 			return expected, err
 		}
 
-		expectations.Mark(event)
+		// If the event was expected, mark it as found.
+		if _, found := expectations[event]; found {
+			expectations[event] = true
+		}
 	}
 
-	return expectations.Missing(), nil
+	missing = findMissing(expectations)
+	return missing, nil
 }
 
 // CheckForDuplicates checks a list for duplicate events
 func CheckForDuplicates(el auditinternal.EventList) (auditinternal.EventList, error) {
-	// existingEvents holds a slice of audit events that have been seen
-	existingEvents := []AuditEvent{}
+	// eventMap holds a map of audit events with just a nil value
+	eventMap := map[AuditEvent]*bool{}
 	duplicates := auditinternal.EventList{}
 	var err error
 	for _, e := range el.Items {
@@ -144,16 +145,23 @@ func CheckForDuplicates(el auditinternal.EventList) (auditinternal.EventList, er
 			return duplicates, err
 		}
 		event.ID = e.AuditID
-		for _, existing := range existingEvents {
-			if reflect.DeepEqual(existing, event) {
-				duplicates.Items = append(duplicates.Items, e)
-				err = fmt.Errorf("failed duplicate check")
-				continue
-			}
+		if _, ok := eventMap[event]; ok {
+			duplicates.Items = append(duplicates.Items, e)
+			err = fmt.Errorf("failed duplicate check")
+			continue
 		}
-		existingEvents = append(existingEvents, event)
+		eventMap[event] = nil
 	}
 	return duplicates, err
+}
+
+// buildEventExpectations creates a bool map out of a list of audit events
+func buildEventExpectations(expected []AuditEvent) map[AuditEvent]bool {
+	expectations := map[AuditEvent]bool{}
+	for _, event := range expected {
+		expectations[event] = false
+	}
+	return expectations
 }
 
 // testEventFromInternal takes an internal audit event and returns a test event
@@ -184,58 +192,15 @@ func testEventFromInternal(e *auditinternal.Event) (AuditEvent, error) {
 		event.ImpersonatedGroups = strings.Join(e.ImpersonatedUser.Groups, ",")
 	}
 	event.AuthorizeDecision = e.Annotations["authorization.k8s.io/decision"]
-	for k, v := range e.Annotations {
-		if strings.HasPrefix(k, mutating.PatchAuditAnnotationPrefix) {
-			if event.AdmissionWebhookPatchAnnotations == nil {
-				event.AdmissionWebhookPatchAnnotations = map[string]string{}
-			}
-			event.AdmissionWebhookPatchAnnotations[k] = v
-		} else if strings.HasPrefix(k, mutating.MutationAuditAnnotationPrefix) {
-			if event.AdmissionWebhookMutationAnnotations == nil {
-				event.AdmissionWebhookMutationAnnotations = map[string]string{}
-			}
-			event.AdmissionWebhookMutationAnnotations[k] = v
-		}
-	}
 	return event, nil
 }
 
-// auditEvent is a private wrapper on top of AuditEvent used by auditEventTracker
-type auditEvent struct {
-	event AuditEvent
-	found bool
-}
-
-// auditEventTracker keeps track of AuditEvent expectations and marks matching events as found
-type auditEventTracker struct {
-	events []*auditEvent
-}
-
-// newAuditEventTracker creates a tracker that tracks whether expect events are found
-func newAuditEventTracker(expected []AuditEvent) *auditEventTracker {
-	expectations := &auditEventTracker{events: []*auditEvent{}}
-	for _, event := range expected {
-		// we copy the references to the maps in event
-		expectations.events = append(expectations.events, &auditEvent{event: event, found: false})
-	}
-	return expectations
-}
-
-// Mark marks the given event as found if it's expected
-func (t *auditEventTracker) Mark(event AuditEvent) {
-	for _, e := range t.events {
-		if reflect.DeepEqual(e.event, event) {
-			e.found = true
-		}
-	}
-}
-
-// Missing reports events that are expected but not found
-func (t *auditEventTracker) Missing() []AuditEvent {
+// findMissing checks for false values in the expectations map and returns them as a list
+func findMissing(expectations map[AuditEvent]bool) []AuditEvent {
 	var missing []AuditEvent
-	for _, e := range t.events {
-		if !e.found {
-			missing = append(missing, e.event)
+	for event, found := range expectations {
+		if !found {
+			missing = append(missing, event)
 		}
 	}
 	return missing

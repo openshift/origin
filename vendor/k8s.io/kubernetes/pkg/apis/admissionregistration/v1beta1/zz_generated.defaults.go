@@ -47,10 +47,7 @@ func RegisterDefaults(scheme *runtime.Scheme) error {
 func SetObjectDefaults_MutatingWebhookConfiguration(in *v1beta1.MutatingWebhookConfiguration) {
 	for i := range in.Webhooks {
 		a := &in.Webhooks[i]
-		SetDefaults_MutatingWebhook(a)
-		if a.ClientConfig.Service != nil {
-			SetDefaults_ServiceReference(a.ClientConfig.Service)
-		}
+		SetDefaults_Webhook(a)
 		for j := range a.Rules {
 			b := &a.Rules[j]
 			SetDefaults_Rule(&b.Rule)
@@ -68,10 +65,7 @@ func SetObjectDefaults_MutatingWebhookConfigurationList(in *v1beta1.MutatingWebh
 func SetObjectDefaults_ValidatingWebhookConfiguration(in *v1beta1.ValidatingWebhookConfiguration) {
 	for i := range in.Webhooks {
 		a := &in.Webhooks[i]
-		SetDefaults_ValidatingWebhook(a)
-		if a.ClientConfig.Service != nil {
-			SetDefaults_ServiceReference(a.ClientConfig.Service)
-		}
+		SetDefaults_Webhook(a)
 		for j := range a.Rules {
 			b := &a.Rules[j]
 			SetDefaults_Rule(&b.Rule)

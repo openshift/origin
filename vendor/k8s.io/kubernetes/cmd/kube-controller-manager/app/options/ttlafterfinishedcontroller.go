@@ -19,12 +19,12 @@ package options
 import (
 	"github.com/spf13/pflag"
 
-	ttlafterfinishedconfig "k8s.io/kubernetes/pkg/controller/ttlafterfinished/config"
+	kubectrlmgrconfig "k8s.io/kubernetes/pkg/controller/apis/config"
 )
 
 // TTLAfterFinishedControllerOptions holds the TTLAfterFinishedController options.
 type TTLAfterFinishedControllerOptions struct {
-	*ttlafterfinishedconfig.TTLAfterFinishedControllerConfiguration
+	*kubectrlmgrconfig.TTLAfterFinishedControllerConfiguration
 }
 
 // AddFlags adds flags related to TTLAfterFinishedController for controller manager to the specified FlagSet.
@@ -37,7 +37,7 @@ func (o *TTLAfterFinishedControllerOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 // ApplyTo fills up TTLAfterFinishedController config with options.
-func (o *TTLAfterFinishedControllerOptions) ApplyTo(cfg *ttlafterfinishedconfig.TTLAfterFinishedControllerConfiguration) error {
+func (o *TTLAfterFinishedControllerOptions) ApplyTo(cfg *kubectrlmgrconfig.TTLAfterFinishedControllerConfiguration) error {
 	if o == nil {
 		return nil
 	}

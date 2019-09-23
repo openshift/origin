@@ -18,15 +18,11 @@ package analysisservices
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/analysisservices/mgmt/2017-07-14/analysisservices"
 
 // ProvisioningState enumerates the values for provisioning state.
 type ProvisioningState string
@@ -136,7 +132,7 @@ type CheckServerNameAvailabilityParameters struct {
 	Type *string `json:"type,omitempty"`
 }
 
-// CheckServerNameAvailabilityResult the checking result of server name availability.
+// CheckServerNameAvailabilityResult the checking result of server name availibility.
 type CheckServerNameAvailabilityResult struct {
 	autorest.Response `json:"-"`
 	// NameAvailable - Indicator of available of the server name.
@@ -159,9 +155,9 @@ type ErrorResponse struct {
 type GatewayDetails struct {
 	// GatewayResourceID - Gateway resource to be associated with the server.
 	GatewayResourceID *string `json:"gatewayResourceId,omitempty"`
-	// GatewayObjectID - READ-ONLY; Gateway object id from in the DMTS cluster for the gateway resource.
+	// GatewayObjectID - Gateway object id from in the DMTS cluster for the gateway resource.
 	GatewayObjectID *string `json:"gatewayObjectId,omitempty"`
-	// DmtsClusterURI - READ-ONLY; Uri of the DMTS cluster.
+	// DmtsClusterURI - Uri of the DMTS cluster.
 	DmtsClusterURI *string `json:"dmtsClusterUri,omitempty"`
 }
 
@@ -205,11 +201,11 @@ type OperationStatus struct {
 
 // Resource represents an instance of an Analysis Services resource.
 type Resource struct {
-	// ID - READ-ONLY; An identifier that represents the Analysis Services resource.
+	// ID - An identifier that represents the Analysis Services resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the Analysis Services resource.
+	// Name - The name of the Analysis Services resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the Analysis Services resource.
+	// Type - The type of the Analysis Services resource.
 	Type *string `json:"type,omitempty"`
 	// Location - Location of the Analysis Services resource.
 	Location *string `json:"location,omitempty"`
@@ -222,6 +218,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}
@@ -247,11 +252,11 @@ type Server struct {
 	autorest.Response `json:"-"`
 	// ServerProperties - Properties of the provision operation request.
 	*ServerProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; An identifier that represents the Analysis Services resource.
+	// ID - An identifier that represents the Analysis Services resource.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the Analysis Services resource.
+	// Name - The name of the Analysis Services resource.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the Analysis Services resource.
+	// Type - The type of the Analysis Services resource.
 	Type *string `json:"type,omitempty"`
 	// Location - Location of the Analysis Services resource.
 	Location *string `json:"location,omitempty"`
@@ -266,6 +271,15 @@ func (s Server) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if s.ServerProperties != nil {
 		objectMap["properties"] = s.ServerProperties
+	}
+	if s.ID != nil {
+		objectMap["id"] = s.ID
+	}
+	if s.Name != nil {
+		objectMap["name"] = s.Name
+	}
+	if s.Type != nil {
+		objectMap["type"] = s.Type
 	}
 	if s.Location != nil {
 		objectMap["location"] = s.Location
@@ -363,8 +377,7 @@ type ServerAdministrators struct {
 	Members *[]string `json:"members,omitempty"`
 }
 
-// ServerMutableProperties an object that represents a set of mutable Analysis Services resource
-// properties.
+// ServerMutableProperties an object that represents a set of mutable Analysis Services resource properties.
 type ServerMutableProperties struct {
 	// AsAdministrators - A collection of AS server administrators
 	AsAdministrators *ServerAdministrators `json:"asAdministrators,omitempty"`
@@ -376,11 +389,11 @@ type ServerMutableProperties struct {
 
 // ServerProperties properties of Analysis Services resource.
 type ServerProperties struct {
-	// State - READ-ONLY; The current state of Analysis Services resource. The state is to indicate more states outside of resource provisioning. Possible values include: 'StateDeleting', 'StateSucceeded', 'StateFailed', 'StatePaused', 'StateSuspended', 'StateProvisioning', 'StateUpdating', 'StateSuspending', 'StatePausing', 'StateResuming', 'StatePreparing', 'StateScaling'
+	// State - The current state of Analysis Services resource. The state is to indicate more states outside of resource provisioning. Possible values include: 'StateDeleting', 'StateSucceeded', 'StateFailed', 'StatePaused', 'StateSuspended', 'StateProvisioning', 'StateUpdating', 'StateSuspending', 'StatePausing', 'StateResuming', 'StatePreparing', 'StateScaling'
 	State State `json:"state,omitempty"`
-	// ProvisioningState - READ-ONLY; The current deployment state of Analysis Services resource. The provisioningState is to indicate states for resource provisioning. Possible values include: 'Deleting', 'Succeeded', 'Failed', 'Paused', 'Suspended', 'Provisioning', 'Updating', 'Suspending', 'Pausing', 'Resuming', 'Preparing', 'Scaling'
+	// ProvisioningState - The current deployment state of Analysis Services resource. The provisioningState is to indicate states for resource provisioning. Possible values include: 'Deleting', 'Succeeded', 'Failed', 'Paused', 'Suspended', 'Provisioning', 'Updating', 'Suspending', 'Pausing', 'Resuming', 'Preparing', 'Scaling'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
-	// ServerFullName - READ-ONLY; The full name of the Analysis Services resource.
+	// ServerFullName - The full name of the Analysis Services resource.
 	ServerFullName *string `json:"serverFullName,omitempty"`
 	// AsAdministrators - A collection of AS server administrators
 	AsAdministrators *ServerAdministrators `json:"asAdministrators,omitempty"`
@@ -397,8 +410,7 @@ type Servers struct {
 	Value *[]Server `json:"value,omitempty"`
 }
 
-// ServersCreateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ServersCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ServersCreateFuture struct {
 	azure.Future
 }
@@ -407,7 +419,7 @@ type ServersCreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServersCreateFuture) Result(client ServersClient) (s Server, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "analysisservices.ServersCreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -426,8 +438,7 @@ func (future *ServersCreateFuture) Result(client ServersClient) (s Server, err e
 	return
 }
 
-// ServersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ServersDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ServersDeleteFuture struct {
 	azure.Future
 }
@@ -436,7 +447,7 @@ type ServersDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServersDeleteFuture) Result(client ServersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "analysisservices.ServersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -449,8 +460,7 @@ func (future *ServersDeleteFuture) Result(client ServersClient) (ar autorest.Res
 	return
 }
 
-// ServersResumeFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ServersResumeFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ServersResumeFuture struct {
 	azure.Future
 }
@@ -459,7 +469,7 @@ type ServersResumeFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServersResumeFuture) Result(client ServersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "analysisservices.ServersResumeFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -472,8 +482,7 @@ func (future *ServersResumeFuture) Result(client ServersClient) (ar autorest.Res
 	return
 }
 
-// ServersSuspendFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ServersSuspendFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ServersSuspendFuture struct {
 	azure.Future
 }
@@ -482,7 +491,7 @@ type ServersSuspendFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServersSuspendFuture) Result(client ServersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "analysisservices.ServersSuspendFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -495,8 +504,7 @@ func (future *ServersSuspendFuture) Result(client ServersClient) (ar autorest.Re
 	return
 }
 
-// ServersUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// ServersUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ServersUpdateFuture struct {
 	azure.Future
 }
@@ -505,7 +513,7 @@ type ServersUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ServersUpdateFuture) Result(client ServersClient) (s Server, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "analysisservices.ServersUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -597,8 +605,7 @@ type SkuDetailsForExistingResource struct {
 	Sku *ResourceSku `json:"sku,omitempty"`
 }
 
-// SkuEnumerationForExistingResourceResult an object that represents enumerating SKUs for existing
-// resources
+// SkuEnumerationForExistingResourceResult an object that represents enumerating SKUs for existing resources
 type SkuEnumerationForExistingResourceResult struct {
 	autorest.Response `json:"-"`
 	// Value - The collection of available SKUs for existing resources

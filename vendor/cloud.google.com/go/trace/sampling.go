@@ -1,4 +1,4 @@
-// Copyright 2016 Google LLC
+// Copyright 2016 Google Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,86 +25,49 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// SamplingPolicy provides an interface for sampling.
-//
-// Deprecated: see https://cloud.google.com/trace/docs/setup/go.
 type SamplingPolicy interface {
-	// Sample returns a Decision.
-	// If Trace is false in the returned Decision, then the Decision should be
-	// the zero value.
-	Sample(p Parameters) Decision
-}
-
-// Parameters contains the values passed to a SamplingPolicy's Sample method.
-//
-// Deprecated: see https://cloud.google.com/trace/docs/setup/go.
-type Parameters struct {
-	HasTraceHeader bool // whether the incoming request has a valid X-Cloud-Trace-Context header.
-}
-
-// Decision is the value returned by a call to a SamplingPolicy's Sample method.
-//
-// Deprecated: see https://cloud.google.com/trace/docs/setup/go.
-type Decision struct {
-	Trace  bool    // Whether to trace the request.
-	Sample bool    // Whether the trace is included in the random sample.
-	Policy string  // Name of the sampling policy.
-	Weight float64 // Sample weight to be used in statistical calculations.
+	// Sample determines whether to sample the next request.  If so, it also
+	// returns a string and rate describing the reason the request was chosen.
+	Sample() (sample bool, policy string, rate float64)
 }
 
 type sampler struct {
 	fraction float64
-	skipped  float64
 	*rate.Limiter
 	*rand.Rand
 	sync.Mutex
 }
 
-// Deprecated: see https://cloud.google.com/trace/docs/setup/go.
-func (s *sampler) Sample(p Parameters) Decision {
+func (s *sampler) Sample() (sample bool, reason string, rate float64) {
 	s.Lock()
 	x := s.Float64()
-	d := s.sample(p, time.Now(), x)
 	s.Unlock()
-	return d
+	return s.sample(time.Now(), x)
 }
 
 // sample contains the a deterministic, time-independent logic of Sample.
-func (s *sampler) sample(p Parameters, now time.Time, x float64) (d Decision) {
-	d.Sample = x < s.fraction
-	d.Trace = p.HasTraceHeader || d.Sample
-	if !d.Trace {
-		// We have no reason to trace this request.
-		return Decision{}
+func (s *sampler) sample(now time.Time, x float64) (bool, string, float64) {
+	if x >= s.fraction || !s.AllowN(now, 1) {
+		return false, "", 0.0
 	}
-	// We test separately that the rate limit is not tiny before calling AllowN,
-	// because of overflow problems in x/time/rate.
-	if s.Limit() < 1e-9 || !s.AllowN(now, 1) {
-		// Rejected by the rate limit.
-		if d.Sample {
-			s.skipped++
-		}
-		return Decision{}
+	if s.fraction < 1.0 {
+		return true, "fraction", s.fraction
 	}
-	if d.Sample {
-		d.Policy, d.Weight = "default", (1.0+s.skipped)/s.fraction
-		s.skipped = 0.0
-	}
-	return
+	return true, "qps", float64(s.Limit())
 }
 
-// NewLimitedSampler returns a sampling policy that randomly samples a given
-// fraction of requests.  It also enforces a limit on the number of traces per
-// second.  It tries to trace every request with a trace header, but will not
-// exceed the qps limit to do it.
-//
-// Deprecated: see https://cloud.google.com/trace/docs/setup/go.
+// NewLimitedSampler returns a sampling policy that traces a given fraction of
+// requests, and enforces a limit on the number of traces per second.
+// Returns a nil SamplingPolicy if either fraction or maxqps is zero.
 func NewLimitedSampler(fraction, maxqps float64) (SamplingPolicy, error) {
 	if !(fraction >= 0) {
 		return nil, fmt.Errorf("invalid fraction %f", fraction)
 	}
 	if !(maxqps >= 0) {
 		return nil, fmt.Errorf("invalid maxqps %f", maxqps)
+	}
+	if fraction == 0 || maxqps == 0 {
+		return nil, nil
 	}
 	// Set a limit on the number of accumulated "tokens", to limit bursts of
 	// traced requests.  Use one more than a second's worth of tokens, or 100,

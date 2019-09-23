@@ -22,12 +22,11 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
 
-// ServiceMembersClient is the REST APIs for Azure Active Directory Connect Health
+// ServiceMembersClient is the REST APIs for Azure Active Drectory Connect Health
 type ServiceMembersClient struct {
 	BaseClient
 }
@@ -47,16 +46,6 @@ func NewServiceMembersClientWithBaseURI(baseURI string) ServiceMembersClient {
 // serviceName - the name of the service under which the server is to be onboarded.
 // serviceMember - the server object.
 func (client ServiceMembersClient) Add(ctx context.Context, serviceName string, serviceMember ServiceMember) (result ServiceMember, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.Add")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.AddPreparer(ctx, serviceName, serviceMember)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "Add", nil, "Failure preparing request")
@@ -102,8 +91,8 @@ func (client ServiceMembersClient) AddPreparer(ctx context.Context, serviceName 
 // AddSender sends the Add request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) AddSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddResponder handles the response to the Add request. The method always
@@ -127,16 +116,6 @@ func (client ServiceMembersClient) AddResponder(resp *http.Response) (result Ser
 // will be permanently deleted and False indicates that the server will be marked disabled and then deleted
 // after 30 days, if it is not re-registered.
 func (client ServiceMembersClient) Delete(ctx context.Context, serviceName string, serviceMemberID uuid.UUID, confirm *bool) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, serviceName, serviceMemberID, confirm)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "Delete", nil, "Failure preparing request")
@@ -184,8 +163,8 @@ func (client ServiceMembersClient) DeletePreparer(ctx context.Context, serviceNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -205,16 +184,6 @@ func (client ServiceMembersClient) DeleteResponder(resp *http.Response) (result 
 // serviceName - the name of the service.
 // serviceMemberID - the server Id.
 func (client ServiceMembersClient) DeleteData(ctx context.Context, serviceName string, serviceMemberID uuid.UUID) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.DeleteData")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteDataPreparer(ctx, serviceName, serviceMemberID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "DeleteData", nil, "Failure preparing request")
@@ -259,8 +228,8 @@ func (client ServiceMembersClient) DeleteDataPreparer(ctx context.Context, servi
 // DeleteDataSender sends the DeleteData request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) DeleteDataSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteDataResponder handles the response to the DeleteData request. The method always
@@ -281,16 +250,6 @@ func (client ServiceMembersClient) DeleteDataResponder(resp *http.Response) (res
 // serviceName - the name of the service.
 // serviceMemberID - the server Id.
 func (client ServiceMembersClient) Get(ctx context.Context, serviceName string, serviceMemberID uuid.UUID) (result ServiceMember, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, serviceName, serviceMemberID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "Get", nil, "Failure preparing request")
@@ -335,91 +294,13 @@ func (client ServiceMembersClient) GetPreparer(ctx context.Context, serviceName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
 // closes the http.Response Body.
 func (client ServiceMembersClient) GetResponder(resp *http.Response) (result ServiceMember, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// GetConnectorMetadata gets the list of connectors and run profile names.
-// Parameters:
-// serviceName - the name of the service.
-// serviceMemberID - the service member id.
-// metricName - the name of the metric.
-func (client ServiceMembersClient) GetConnectorMetadata(ctx context.Context, serviceName string, serviceMemberID uuid.UUID, metricName string) (result ConnectorMetadata, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.GetConnectorMetadata")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.GetConnectorMetadataPreparer(ctx, serviceName, serviceMemberID, metricName)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "GetConnectorMetadata", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.GetConnectorMetadataSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "GetConnectorMetadata", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.GetConnectorMetadataResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "GetConnectorMetadata", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// GetConnectorMetadataPreparer prepares the GetConnectorMetadata request.
-func (client ServiceMembersClient) GetConnectorMetadataPreparer(ctx context.Context, serviceName string, serviceMemberID uuid.UUID, metricName string) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"metricName":      autorest.Encode("path", metricName),
-		"serviceMemberId": autorest.Encode("path", serviceMemberID),
-		"serviceName":     autorest.Encode("path", serviceName),
-	}
-
-	const APIVersion = "2014-01-01"
-	queryParameters := map[string]interface{}{
-		"api-version": APIVersion,
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/providers/Microsoft.ADHybridHealthService/services/{serviceName}/servicemembers/{serviceMemberId}/metrics/{metricName}", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// GetConnectorMetadataSender sends the GetConnectorMetadata request. The method will close the
-// http.Response Body if it receives an error.
-func (client ServiceMembersClient) GetConnectorMetadataSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// GetConnectorMetadataResponder handles the response to the GetConnectorMetadata request. The method always
-// closes the http.Response Body.
-func (client ServiceMembersClient) GetConnectorMetadataResponder(resp *http.Response) (result ConnectorMetadata, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -440,16 +321,6 @@ func (client ServiceMembersClient) GetConnectorMetadataResponder(resp *http.Resp
 // fromDate - the start date.
 // toDate - the end date.
 func (client ServiceMembersClient) GetMetrics(ctx context.Context, serviceName string, metricName string, groupName string, serviceMemberID uuid.UUID, groupKey string, fromDate *date.Time, toDate *date.Time) (result MetricSets, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.GetMetrics")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetMetricsPreparer(ctx, serviceName, metricName, groupName, serviceMemberID, groupKey, fromDate, toDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "GetMetrics", nil, "Failure preparing request")
@@ -505,8 +376,8 @@ func (client ServiceMembersClient) GetMetricsPreparer(ctx context.Context, servi
 // GetMetricsSender sends the GetMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) GetMetricsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetMetricsResponder handles the response to the GetMetrics request. The method always
@@ -527,16 +398,6 @@ func (client ServiceMembersClient) GetMetricsResponder(resp *http.Response) (res
 // serviceName - the name of the service.
 // serviceMemberID - the server Id.
 func (client ServiceMembersClient) GetServiceConfiguration(ctx context.Context, serviceName string, serviceMemberID string) (result ServiceConfiguration, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.GetServiceConfiguration")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetServiceConfigurationPreparer(ctx, serviceName, serviceMemberID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "GetServiceConfiguration", nil, "Failure preparing request")
@@ -581,8 +442,8 @@ func (client ServiceMembersClient) GetServiceConfigurationPreparer(ctx context.C
 // GetServiceConfigurationSender sends the GetServiceConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) GetServiceConfigurationSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetServiceConfigurationResponder handles the response to the GetServiceConfiguration request. The method always
@@ -606,16 +467,6 @@ func (client ServiceMembersClient) GetServiceConfigurationResponder(resp *http.R
 // dimensionType - the server specific dimension.
 // dimensionSignature - the value of the dimension.
 func (client ServiceMembersClient) List(ctx context.Context, serviceName string, filter string, dimensionType string, dimensionSignature string) (result ServiceMembersPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.List")
-		defer func() {
-			sc := -1
-			if result.sm.Response.Response != nil {
-				sc = result.sm.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, serviceName, filter, dimensionType, dimensionSignature)
 	if err != nil {
@@ -669,8 +520,8 @@ func (client ServiceMembersClient) ListPreparer(ctx context.Context, serviceName
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -687,8 +538,8 @@ func (client ServiceMembersClient) ListResponder(resp *http.Response) (result Se
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ServiceMembersClient) listNextResults(ctx context.Context, lastResults ServiceMembers) (result ServiceMembers, err error) {
-	req, err := lastResults.serviceMembersPreparer(ctx)
+func (client ServiceMembersClient) listNextResults(lastResults ServiceMembers) (result ServiceMembers, err error) {
+	req, err := lastResults.serviceMembersPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -709,39 +560,19 @@ func (client ServiceMembersClient) listNextResults(ctx context.Context, lastResu
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ServiceMembersClient) ListComplete(ctx context.Context, serviceName string, filter string, dimensionType string, dimensionSignature string) (result ServiceMembersIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, serviceName, filter, dimensionType, dimensionSignature)
 	return
 }
 
 // ListAlerts gets the details of an alert for a given service and server combination.
 // Parameters:
-// serviceMemberID - the server Id for which the alert details needs to be queried.
+// serviceMemberID - the server Id for which the laert details needs to be queried.
 // serviceName - the name of the service.
 // filter - the alert property filter to apply.
 // state - the alert state to query for.
 // from - the start date to query for.
 // toParameter - the end date till when to query for.
 func (client ServiceMembersClient) ListAlerts(ctx context.Context, serviceMemberID uuid.UUID, serviceName string, filter string, state string, from *date.Time, toParameter *date.Time) (result AlertsPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.ListAlerts")
-		defer func() {
-			sc := -1
-			if result.a.Response.Response != nil {
-				sc = result.a.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listAlertsNextResults
 	req, err := client.ListAlertsPreparer(ctx, serviceMemberID, serviceName, filter, state, from, toParameter)
 	if err != nil {
@@ -799,8 +630,8 @@ func (client ServiceMembersClient) ListAlertsPreparer(ctx context.Context, servi
 // ListAlertsSender sends the ListAlerts request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) ListAlertsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListAlertsResponder handles the response to the ListAlerts request. The method always
@@ -817,8 +648,8 @@ func (client ServiceMembersClient) ListAlertsResponder(resp *http.Response) (res
 }
 
 // listAlertsNextResults retrieves the next set of results, if any.
-func (client ServiceMembersClient) listAlertsNextResults(ctx context.Context, lastResults Alerts) (result Alerts, err error) {
-	req, err := lastResults.alertsPreparer(ctx)
+func (client ServiceMembersClient) listAlertsNextResults(lastResults Alerts) (result Alerts, err error) {
+	req, err := lastResults.alertsPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "listAlertsNextResults", nil, "Failure preparing next results request")
 	}
@@ -839,16 +670,6 @@ func (client ServiceMembersClient) listAlertsNextResults(ctx context.Context, la
 
 // ListAlertsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ServiceMembersClient) ListAlertsComplete(ctx context.Context, serviceMemberID uuid.UUID, serviceName string, filter string, state string, from *date.Time, toParameter *date.Time) (result AlertsIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.ListAlerts")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListAlerts(ctx, serviceMemberID, serviceName, filter, state, from, toParameter)
 	return
 }
@@ -858,16 +679,6 @@ func (client ServiceMembersClient) ListAlertsComplete(ctx context.Context, servi
 // serviceName - the name of the service.
 // serviceMemberID - the server Id.
 func (client ServiceMembersClient) ListConnectors(ctx context.Context, serviceName string, serviceMemberID uuid.UUID) (result Connectors, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.ListConnectors")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListConnectorsPreparer(ctx, serviceName, serviceMemberID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "ListConnectors", nil, "Failure preparing request")
@@ -912,8 +723,8 @@ func (client ServiceMembersClient) ListConnectorsPreparer(ctx context.Context, s
 // ListConnectorsSender sends the ListConnectors request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) ListConnectorsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListConnectorsResponder handles the response to the ListConnectors request. The method always
@@ -936,16 +747,6 @@ func (client ServiceMembersClient) ListConnectorsResponder(resp *http.Response) 
 // serviceMemberID - the server Id.
 // filter - the property filter to apply.
 func (client ServiceMembersClient) ListCredentials(ctx context.Context, serviceName string, serviceMemberID uuid.UUID, filter string) (result Credentials, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.ListCredentials")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListCredentialsPreparer(ctx, serviceName, serviceMemberID, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "ListCredentials", nil, "Failure preparing request")
@@ -993,8 +794,8 @@ func (client ServiceMembersClient) ListCredentialsPreparer(ctx context.Context, 
 // ListCredentialsSender sends the ListCredentials request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) ListCredentialsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListCredentialsResponder handles the response to the ListCredentials request. The method always
@@ -1015,16 +816,6 @@ func (client ServiceMembersClient) ListCredentialsResponder(resp *http.Response)
 // serviceName - the name of the service.
 // serviceMemberID - the server Id.
 func (client ServiceMembersClient) ListDataFreshness(ctx context.Context, serviceName string, serviceMemberID uuid.UUID) (result DataFreshnessDetails, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.ListDataFreshness")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListDataFreshnessPreparer(ctx, serviceName, serviceMemberID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "ListDataFreshness", nil, "Failure preparing request")
@@ -1069,8 +860,8 @@ func (client ServiceMembersClient) ListDataFreshnessPreparer(ctx context.Context
 // ListDataFreshnessSender sends the ListDataFreshness request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) ListDataFreshnessSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListDataFreshnessResponder handles the response to the ListDataFreshness request. The method always
@@ -1091,16 +882,6 @@ func (client ServiceMembersClient) ListDataFreshnessResponder(resp *http.Respons
 // serviceName - the name of the service.
 // serviceMemberID - the server Id.
 func (client ServiceMembersClient) ListExportStatus(ctx context.Context, serviceName string, serviceMemberID uuid.UUID) (result ExportStatusesPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.ListExportStatus")
-		defer func() {
-			sc := -1
-			if result.es.Response.Response != nil {
-				sc = result.es.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listExportStatusNextResults
 	req, err := client.ListExportStatusPreparer(ctx, serviceName, serviceMemberID)
 	if err != nil {
@@ -1146,8 +927,8 @@ func (client ServiceMembersClient) ListExportStatusPreparer(ctx context.Context,
 // ListExportStatusSender sends the ListExportStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) ListExportStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListExportStatusResponder handles the response to the ListExportStatus request. The method always
@@ -1164,8 +945,8 @@ func (client ServiceMembersClient) ListExportStatusResponder(resp *http.Response
 }
 
 // listExportStatusNextResults retrieves the next set of results, if any.
-func (client ServiceMembersClient) listExportStatusNextResults(ctx context.Context, lastResults ExportStatuses) (result ExportStatuses, err error) {
-	req, err := lastResults.exportStatusesPreparer(ctx)
+func (client ServiceMembersClient) listExportStatusNextResults(lastResults ExportStatuses) (result ExportStatuses, err error) {
+	req, err := lastResults.exportStatusesPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "listExportStatusNextResults", nil, "Failure preparing next results request")
 	}
@@ -1186,16 +967,6 @@ func (client ServiceMembersClient) listExportStatusNextResults(ctx context.Conte
 
 // ListExportStatusComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ServiceMembersClient) ListExportStatusComplete(ctx context.Context, serviceName string, serviceMemberID uuid.UUID) (result ExportStatusesIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.ListExportStatus")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListExportStatus(ctx, serviceName, serviceMemberID)
 	return
 }
@@ -1205,16 +976,6 @@ func (client ServiceMembersClient) ListExportStatusComplete(ctx context.Context,
 // serviceName - the name of the service.
 // serviceMemberID - the server id.
 func (client ServiceMembersClient) ListGlobalConfiguration(ctx context.Context, serviceName string, serviceMemberID string) (result GlobalConfigurations, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceMembersClient.ListGlobalConfiguration")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListGlobalConfigurationPreparer(ctx, serviceName, serviceMemberID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ServiceMembersClient", "ListGlobalConfiguration", nil, "Failure preparing request")
@@ -1259,8 +1020,8 @@ func (client ServiceMembersClient) ListGlobalConfigurationPreparer(ctx context.C
 // ListGlobalConfigurationSender sends the ListGlobalConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceMembersClient) ListGlobalConfigurationSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListGlobalConfigurationResponder handles the response to the ListGlobalConfiguration request. The method always

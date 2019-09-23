@@ -10,6 +10,28 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func TestGenerateName(t *testing.T) {
+	name, err := GenerateRandomName("veth", 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := 5 + len("veth")
+	if len(name) != expected {
+		t.Fatalf("expected name to be %d chars but received %d", expected, len(name))
+	}
+
+	name, err = GenerateRandomName("veth", 65)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected = 64 + len("veth")
+	if len(name) != expected {
+		t.Fatalf("expected name to be %d chars but received %d", expected, len(name))
+	}
+}
+
 var labelTest = []struct {
 	labels        []string
 	query         string
@@ -128,15 +150,5 @@ func TestCleanPath(t *testing.T) {
 	path = CleanPath("/../../../var")
 	if path != "/var" {
 		t.Errorf("expected to receive '/var' and received %s", path)
-	}
-
-	path = CleanPath("/foo/bar/")
-	if path != "/foo/bar" {
-		t.Errorf("expected to receive '/foo/bar' and received %s", path)
-	}
-
-	path = CleanPath("/foo/bar/../")
-	if path != "/foo" {
-		t.Errorf("expected to receive '/foo' and received %s", path)
 	}
 }

@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${KUBE_ROOT}/cluster/common.sh"
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
@@ -38,8 +38,8 @@ GINKGO_NO_COLOR=${GINKGO_NO_COLOR:-n}
 # If 'y', will rerun failed tests once to give them a second chance.
 GINKGO_TOLERATE_FLAKES=${GINKGO_TOLERATE_FLAKES:-n}
 
-: "${KUBECTL:="${KUBE_ROOT}/cluster/kubectl.sh"}"
-: "${KUBE_CONFIG_FILE:="config-test.sh"}"
+: ${KUBECTL:="${KUBE_ROOT}/cluster/kubectl.sh"}
+: ${KUBE_CONFIG_FILE:="config-test.sh"}
 
 export KUBECTL KUBE_CONFIG_FILE
 
@@ -48,13 +48,11 @@ source "${KUBE_ROOT}/cluster/kube-util.sh"
 function detect-master-from-kubeconfig() {
     export KUBECONFIG=${KUBECONFIG:-$DEFAULT_KUBECONFIG}
 
-    local cc
-    cc=$("${KUBE_ROOT}/cluster/kubectl.sh" config view -o jsonpath="{.current-context}")
-    if [[ -n "${KUBE_CONTEXT:-}" ]]; then
+    local cc=$("${KUBE_ROOT}/cluster/kubectl.sh" config view -o jsonpath="{.current-context}")
+    if [[ ! -z "${KUBE_CONTEXT:-}" ]]; then
       cc="${KUBE_CONTEXT}"
     fi
-    local cluster
-    cluster=$("${KUBE_ROOT}/cluster/kubectl.sh" config view -o jsonpath="{.contexts[?(@.name == \"${cc}\")].context.cluster}")
+    local cluster=$("${KUBE_ROOT}/cluster/kubectl.sh" config view -o jsonpath="{.contexts[?(@.name == \"${cc}\")].context.cluster}")
     KUBE_MASTER_URL=$("${KUBE_ROOT}/cluster/kubectl.sh" config view -o jsonpath="{.clusters[?(@.name == \"${cluster}\")].cluster.server}")
 }
 
@@ -88,8 +86,8 @@ fi
 if [[ "${KUBERNETES_PROVIDER}" == "gce" ]]; then
   set_num_migs
   NODE_INSTANCE_GROUP=""
-  for ((i=1; i<=NUM_MIGS; i++)); do
-    if [[ ${i} == "${NUM_MIGS}" ]]; then
+  for ((i=1; i<=${NUM_MIGS}; i++)); do
+    if [[ ${i} == ${NUM_MIGS} ]]; then
       # We are assigning the same mig names as create-nodes function from cluster/gce/util.sh.
       NODE_INSTANCE_GROUP="${NODE_INSTANCE_GROUP}${NODE_INSTANCE_PREFIX}-group"
     else
@@ -103,7 +101,7 @@ fi
 # KUBERNETES_CONFORMANCE_PROVIDER is set to "gke".
 if [[ -z "${NODE_INSTANCE_GROUP:-}" ]] && [[ "${KUBERNETES_PROVIDER}" == "gke" ]]; then
   detect-node-instance-groups
-  NODE_INSTANCE_GROUP=$(kube::util::join , "${NODE_INSTANCE_GROUP[@]}")
+  NODE_INSTANCE_GROUP=$(kube::util::join , "${NODE_INSTANCE_GROUPS[@]}")
 fi
 
 if [[ "${KUBERNETES_PROVIDER}" == "azure" ]]; then
@@ -140,9 +138,8 @@ fi
 # The --host setting is used only when providing --auth_config
 # If --kubeconfig is used, the host to use is retrieved from the .kubeconfig
 # file and the one provided with --host is ignored.
-# Add path for things like running kubectl binary. 
-PATH=$(dirname "${e2e_test}"):"${PATH}"
-export PATH
+# Add path for things like running kubectl binary.
+export PATH=$(dirname "${e2e_test}"):"${PATH}"
 "${ginkgo}" "${ginkgo_args[@]:+${ginkgo_args[@]}}" "${e2e_test}" -- \
   "${auth_config[@]:+${auth_config[@]}}" \
   --ginkgo.flakeAttempts="${FLAKE_ATTEMPTS}" \

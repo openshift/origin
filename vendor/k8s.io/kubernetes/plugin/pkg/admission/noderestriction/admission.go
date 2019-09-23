@@ -17,7 +17,6 @@ limitations under the License.
 package noderestriction
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -33,7 +32,6 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/informers"
 	corev1lister "k8s.io/client-go/listers/core/v1"
-	"k8s.io/component-base/featuregate"
 	"k8s.io/klog"
 	podutil "k8s.io/kubernetes/pkg/api/pod"
 	authenticationapi "k8s.io/kubernetes/pkg/apis/authentication"
@@ -46,8 +44,9 @@ import (
 	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 )
 
-// PluginName is a string with the name of the plugin
-const PluginName = "NodeRestriction"
+const (
+	PluginName = "NodeRestriction"
+)
 
 // Register registers a plugin
 func Register(plugins *admission.Plugins) {
@@ -58,35 +57,33 @@ func Register(plugins *admission.Plugins) {
 
 // NewPlugin creates a new NodeRestriction admission plugin.
 // This plugin identifies requests from nodes
-func NewPlugin(nodeIdentifier nodeidentifier.NodeIdentifier) *Plugin {
-	return &Plugin{
+func NewPlugin(nodeIdentifier nodeidentifier.NodeIdentifier) *nodePlugin {
+	return &nodePlugin{
 		Handler:        admission.NewHandler(admission.Create, admission.Update, admission.Delete),
 		nodeIdentifier: nodeIdentifier,
 		features:       utilfeature.DefaultFeatureGate,
 	}
 }
 
-// Plugin holds state for and implements the admission plugin.
-type Plugin struct {
+// nodePlugin holds state for and implements the admission plugin.
+type nodePlugin struct {
 	*admission.Handler
 	nodeIdentifier nodeidentifier.NodeIdentifier
 	podsGetter     corev1lister.PodLister
 	// allows overriding for testing
-	features featuregate.FeatureGate
+	features utilfeature.FeatureGate
 }
 
 var (
-	_ = admission.Interface(&Plugin{})
-	_ = apiserveradmission.WantsExternalKubeInformerFactory(&Plugin{})
+	_ = admission.Interface(&nodePlugin{})
+	_ = apiserveradmission.WantsExternalKubeInformerFactory(&nodePlugin{})
 )
 
-// SetExternalKubeInformerFactory registers an informer factory into Plugin
-func (p *Plugin) SetExternalKubeInformerFactory(f informers.SharedInformerFactory) {
+func (p *nodePlugin) SetExternalKubeInformerFactory(f informers.SharedInformerFactory) {
 	p.podsGetter = f.Core().V1().Pods().Lister()
 }
 
-// ValidateInitialization validates the Plugin was initialized properly
-func (p *Plugin) ValidateInitialization() error {
+func (p *nodePlugin) ValidateInitialization() error {
 	if p.nodeIdentifier == nil {
 		return fmt.Errorf("%s requires a node identifier", PluginName)
 	}
@@ -105,9 +102,8 @@ var (
 	csiNodeResource = storage.Resource("csinodes")
 )
 
-// Admit checks the admission policy and triggers corresponding actions
-func (p *Plugin) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
-	nodeName, isNode := p.nodeIdentifier.NodeIdentity(a.GetUserInfo())
+func (c *nodePlugin) Admit(a admission.Attributes, o admission.ObjectInterfaces) error {
+	nodeName, isNode := c.nodeIdentifier.NodeIdentity(a.GetUserInfo())
 
 	// Our job is just to restrict nodes
 	if !isNode {
@@ -123,52 +119,50 @@ func (p *Plugin) Admit(ctx context.Context, a admission.Attributes, o admission.
 	case podResource:
 		switch a.GetSubresource() {
 		case "":
-			return p.admitPod(nodeName, a)
+			return c.admitPod(nodeName, a)
 		case "status":
-			return p.admitPodStatus(nodeName, a)
+			return c.admitPodStatus(nodeName, a)
 		case "eviction":
-			return p.admitPodEviction(nodeName, a)
+			return c.admitPodEviction(nodeName, a)
 		default:
 			return admission.NewForbidden(a, fmt.Errorf("unexpected pod subresource %q, only 'status' and 'eviction' are allowed", a.GetSubresource()))
 		}
 
 	case nodeResource:
-		return p.admitNode(nodeName, a)
+		return c.admitNode(nodeName, a)
 
 	case pvcResource:
 		switch a.GetSubresource() {
 		case "status":
-			return p.admitPVCStatus(nodeName, a)
+			return c.admitPVCStatus(nodeName, a)
 		default:
 			return admission.NewForbidden(a, fmt.Errorf("may only update PVC status"))
 		}
 
 	case svcacctResource:
-		if p.features.Enabled(features.TokenRequest) {
-			return p.admitServiceAccount(nodeName, a)
+		if c.features.Enabled(features.TokenRequest) {
+			return c.admitServiceAccount(nodeName, a)
 		}
 		return nil
 
 	case leaseResource:
-		if p.features.Enabled(features.NodeLease) {
-			return p.admitLease(nodeName, a)
+		if c.features.Enabled(features.NodeLease) {
+			return c.admitLease(nodeName, a)
 		}
 		return admission.NewForbidden(a, fmt.Errorf("disabled by feature gate %s", features.NodeLease))
 
 	case csiNodeResource:
-		if p.features.Enabled(features.CSINodeInfo) {
-			return p.admitCSINode(nodeName, a)
+		if c.features.Enabled(features.KubeletPluginsWatcher) && c.features.Enabled(features.CSINodeInfo) {
+			return c.admitCSINode(nodeName, a)
 		}
-		return admission.NewForbidden(a, fmt.Errorf("disabled by feature gates %s", features.CSINodeInfo))
+		return admission.NewForbidden(a, fmt.Errorf("disabled by feature gates %s and %s", features.KubeletPluginsWatcher, features.CSINodeInfo))
 
 	default:
 		return nil
 	}
 }
 
-// admitPod allows creating or deleting a pod if it is assigned to the
-// current node and fulfills related criteria.
-func (p *Plugin) admitPod(nodeName string, a admission.Attributes) error {
+func (c *nodePlugin) admitPod(nodeName string, a admission.Attributes) error {
 	switch a.GetOperation() {
 	case admission.Create:
 		// require a pod object
@@ -211,7 +205,7 @@ func (p *Plugin) admitPod(nodeName string, a admission.Attributes) error {
 
 	case admission.Delete:
 		// get the existing pod
-		existingPod, err := p.podsGetter.Pods(a.GetNamespace()).Get(a.GetName())
+		existingPod, err := c.podsGetter.Pods(a.GetNamespace()).Get(a.GetName())
 		if errors.IsNotFound(err) {
 			return err
 		}
@@ -229,9 +223,7 @@ func (p *Plugin) admitPod(nodeName string, a admission.Attributes) error {
 	}
 }
 
-// admitPodStatus allows to update the status of a pod if it is
-// assigned to the current node.
-func (p *Plugin) admitPodStatus(nodeName string, a admission.Attributes) error {
+func (c *nodePlugin) admitPodStatus(nodeName string, a admission.Attributes) error {
 	switch a.GetOperation() {
 	case admission.Update:
 		// require an existing pod
@@ -250,8 +242,7 @@ func (p *Plugin) admitPodStatus(nodeName string, a admission.Attributes) error {
 	}
 }
 
-// admitPodEviction allows to evict a pod if it is assigned to the current node.
-func (p *Plugin) admitPodEviction(nodeName string, a admission.Attributes) error {
+func (c *nodePlugin) admitPodEviction(nodeName string, a admission.Attributes) error {
 	switch a.GetOperation() {
 	case admission.Create:
 		// require eviction to an existing pod object
@@ -268,7 +259,7 @@ func (p *Plugin) admitPodEviction(nodeName string, a admission.Attributes) error
 			podName = eviction.Name
 		}
 		// get the existing pod
-		existingPod, err := p.podsGetter.Pods(a.GetNamespace()).Get(podName)
+		existingPod, err := c.podsGetter.Pods(a.GetNamespace()).Get(podName)
 		if errors.IsNotFound(err) {
 			return err
 		}
@@ -286,10 +277,10 @@ func (p *Plugin) admitPodEviction(nodeName string, a admission.Attributes) error
 	}
 }
 
-func (p *Plugin) admitPVCStatus(nodeName string, a admission.Attributes) error {
+func (c *nodePlugin) admitPVCStatus(nodeName string, a admission.Attributes) error {
 	switch a.GetOperation() {
 	case admission.Update:
-		if !p.features.Enabled(features.ExpandPersistentVolumes) {
+		if !c.features.Enabled(features.ExpandPersistentVolumes) {
 			return admission.NewForbidden(a, fmt.Errorf("node %q is not allowed to update persistentvolumeclaim metadata", nodeName))
 		}
 
@@ -336,7 +327,7 @@ func (p *Plugin) admitPVCStatus(nodeName string, a admission.Attributes) error {
 	}
 }
 
-func (p *Plugin) admitNode(nodeName string, a admission.Attributes) error {
+func (c *nodePlugin) admitNode(nodeName string, a admission.Attributes) error {
 	requestedName := a.GetName()
 	if a.GetOperation() == admission.Create {
 		node, ok := a.GetObject().(*api.Node)
@@ -353,13 +344,18 @@ func (p *Plugin) admitNode(nodeName string, a admission.Attributes) error {
 		// Don't allow a node to register with labels outside the allowed set.
 		// This would allow a node to add or modify its labels in a way that would let it steer privileged workloads to itself.
 		modifiedLabels := getModifiedLabels(node.Labels, nil)
-		if forbiddenLabels := p.getForbiddenCreateLabels(modifiedLabels); len(forbiddenLabels) > 0 {
+		if forbiddenLabels := c.getForbiddenCreateLabels(modifiedLabels); len(forbiddenLabels) > 0 {
 			return admission.NewForbidden(a, fmt.Errorf("node %q is not allowed to set the following labels: %s", nodeName, strings.Join(forbiddenLabels.List(), ", ")))
 		}
 		// check and warn if nodes set labels on create that would have been forbidden on update
 		// TODO(liggitt): in 1.17, expand getForbiddenCreateLabels to match getForbiddenUpdateLabels and drop this
-		if forbiddenUpdateLabels := p.getForbiddenUpdateLabels(modifiedLabels); len(forbiddenUpdateLabels) > 0 {
+		if forbiddenUpdateLabels := c.getForbiddenUpdateLabels(modifiedLabels); len(forbiddenUpdateLabels) > 0 {
 			klog.Warningf("node %q added disallowed labels on node creation: %s", nodeName, strings.Join(forbiddenUpdateLabels.List(), ", "))
+		}
+
+		// On create, get name from new object if unset in admission
+		if len(requestedName) == 0 {
+			requestedName = node.Name
 		}
 	}
 	if requestedName != nodeName {
@@ -392,7 +388,7 @@ func (p *Plugin) admitNode(nodeName string, a admission.Attributes) error {
 		// Don't allow a node to update labels outside the allowed set.
 		// This would allow a node to add or modify its labels in a way that would let it steer privileged workloads to itself.
 		modifiedLabels := getModifiedLabels(node.Labels, oldNode.Labels)
-		if forbiddenUpdateLabels := p.getForbiddenUpdateLabels(modifiedLabels); len(forbiddenUpdateLabels) > 0 {
+		if forbiddenUpdateLabels := c.getForbiddenUpdateLabels(modifiedLabels); len(forbiddenUpdateLabels) > 0 {
 			return admission.NewForbidden(a, fmt.Errorf("is not allowed to modify labels: %s", strings.Join(forbiddenUpdateLabels.List(), ", ")))
 		}
 	}
@@ -436,7 +432,7 @@ func getLabelNamespace(key string) string {
 
 // getForbiddenCreateLabels returns the set of labels that may not be set by the node.
 // TODO(liggitt): in 1.17, expand to match getForbiddenUpdateLabels()
-func (p *Plugin) getForbiddenCreateLabels(modifiedLabels sets.String) sets.String {
+func (c *nodePlugin) getForbiddenCreateLabels(modifiedLabels sets.String) sets.String {
 	if len(modifiedLabels) == 0 {
 		return nil
 	}
@@ -453,7 +449,7 @@ func (p *Plugin) getForbiddenCreateLabels(modifiedLabels sets.String) sets.Strin
 }
 
 // getForbiddenLabels returns the set of labels that may not be set by the node on update.
-func (p *Plugin) getForbiddenUpdateLabels(modifiedLabels sets.String) sets.String {
+func (c *nodePlugin) getForbiddenUpdateLabels(modifiedLabels sets.String) sets.String {
 	if len(modifiedLabels) == 0 {
 		return nil
 	}
@@ -474,7 +470,7 @@ func (p *Plugin) getForbiddenUpdateLabels(modifiedLabels sets.String) sets.Strin
 	return forbiddenLabels
 }
 
-func (p *Plugin) admitServiceAccount(nodeName string, a admission.Attributes) error {
+func (c *nodePlugin) admitServiceAccount(nodeName string, a admission.Attributes) error {
 	if a.GetOperation() != admission.Create {
 		return nil
 	}
@@ -498,7 +494,7 @@ func (p *Plugin) admitServiceAccount(nodeName string, a admission.Attributes) er
 	if ref.UID == "" {
 		return admission.NewForbidden(a, fmt.Errorf("node requested token with a pod binding without a uid"))
 	}
-	pod, err := p.podsGetter.Pods(a.GetNamespace()).Get(ref.Name)
+	pod, err := c.podsGetter.Pods(a.GetNamespace()).Get(ref.Name)
 	if errors.IsNotFound(err) {
 		return err
 	}
@@ -515,7 +511,7 @@ func (p *Plugin) admitServiceAccount(nodeName string, a admission.Attributes) er
 	return nil
 }
 
-func (p *Plugin) admitLease(nodeName string, a admission.Attributes) error {
+func (r *nodePlugin) admitLease(nodeName string, a admission.Attributes) error {
 	// the request must be against the system namespace reserved for node leases
 	if a.GetNamespace() != api.NamespaceNodeLease {
 		return admission.NewForbidden(a, fmt.Errorf("can only access leases in the %q system namespace", api.NamespaceNodeLease))
@@ -540,7 +536,7 @@ func (p *Plugin) admitLease(nodeName string, a admission.Attributes) error {
 	return nil
 }
 
-func (p *Plugin) admitCSINode(nodeName string, a admission.Attributes) error {
+func (c *nodePlugin) admitCSINode(nodeName string, a admission.Attributes) error {
 	// the request must come from a node with the same name as the CSINode object
 	if a.GetOperation() == admission.Create {
 		// a.GetName() won't return the name on create, so we drill down to the proposed object

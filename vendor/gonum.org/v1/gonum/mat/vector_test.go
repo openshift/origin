@@ -24,10 +24,10 @@ func TestNewVecDense(t *testing.T) {
 			data: []float64{4, 5, 6},
 			vector: &VecDense{
 				mat: blas64.Vector{
-					N:    3,
 					Data: []float64{4, 5, 6},
 					Inc:  1,
 				},
+				n: 3,
 			},
 		},
 		{
@@ -35,10 +35,10 @@ func TestNewVecDense(t *testing.T) {
 			data: nil,
 			vector: &VecDense{
 				mat: blas64.Vector{
-					N:    3,
 					Data: []float64{0, 0, 0},
 					Inc:  1,
 				},
+				n: 3,
 			},
 		},
 	} {
@@ -65,50 +65,50 @@ func TestCap(t *testing.T) {
 		{
 			vector: &VecDense{
 				mat: blas64.Vector{
-					N:    3,
 					Data: make([]float64, 7, 10),
 					Inc:  3,
 				},
+				n: 3,
 			},
 			want: 4,
 		},
 		{
 			vector: &VecDense{
 				mat: blas64.Vector{
-					N:    4,
 					Data: make([]float64, 10),
 					Inc:  3,
 				},
+				n: 4,
 			},
 			want: 4,
 		},
 		{
 			vector: &VecDense{
 				mat: blas64.Vector{
-					N:    4,
 					Data: make([]float64, 11),
 					Inc:  3,
 				},
+				n: 4,
 			},
 			want: 4,
 		},
 		{
 			vector: &VecDense{
 				mat: blas64.Vector{
-					N:    4,
 					Data: make([]float64, 12),
 					Inc:  3,
 				},
+				n: 4,
 			},
 			want: 4,
 		},
 		{
 			vector: &VecDense{
 				mat: blas64.Vector{
-					N:    4,
 					Data: make([]float64, 13),
 					Inc:  3,
 				},
+				n: 4,
 			},
 			want: 5,
 		},
@@ -127,24 +127,24 @@ func TestVecDenseAtSet(t *testing.T) {
 		{
 			vector: &VecDense{
 				mat: blas64.Vector{
-					N:    3,
 					Data: []float64{0, 1, 2},
 					Inc:  1,
 				},
+				n: 3,
 			},
 		},
 		{
 			vector: &VecDense{
 				mat: blas64.Vector{
-					N:    3,
 					Data: []float64{0, 10, 10, 1, 10, 10, 2},
 					Inc:  3,
 				},
+				n: 3,
 			},
 		},
 	} {
 		v := test.vector
-		n := test.vector.mat.N
+		n := test.vector.n
 
 		for _, row := range []int{-1, n} {
 			panicked, message := panics(func() { v.At(row, 0) })
@@ -176,38 +176,6 @@ func TestVecDenseAtSet(t *testing.T) {
 			v.SetVec(row, 100+float64(inc))
 			if e := v.At(row, 0); e != 100+float64(inc) {
 				t.Errorf("unexpected value for At(%d, 0) after SetVec(%[1]d, %v) for test %d: got: %v want: %[2]v", row, 100+float64(inc), i, e)
-			}
-		}
-	}
-}
-
-func TestVecDenseZero(t *testing.T) {
-	// Elements that equal 1 should be set to zero, elements that equal -1
-	// should remain unchanged.
-	for _, test := range []*VecDense{
-		{
-			mat: blas64.Vector{
-				N:   5,
-				Inc: 2,
-				Data: []float64{
-					1, -1,
-					1, -1,
-					1, -1,
-					1, -1,
-					1,
-				},
-			},
-		},
-	} {
-		dataCopy := make([]float64, len(test.mat.Data))
-		copy(dataCopy, test.mat.Data)
-		test.Zero()
-		for i, v := range test.mat.Data {
-			if dataCopy[i] != -1 && v != 0 {
-				t.Errorf("Matrix not zeroed in bounds")
-			}
-			if dataCopy[i] == -1 && v != -1 {
-				t.Errorf("Matrix zeroed out of bounds")
 			}
 		}
 	}
@@ -555,9 +523,9 @@ func randVecDense(size, inc int, rho float64, rnd func() float64) *VecDense {
 	}
 	return &VecDense{
 		mat: blas64.Vector{
-			N:    size,
 			Inc:  inc,
 			Data: data,
 		},
+		n: size,
 	}
 }

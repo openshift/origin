@@ -23,7 +23,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -59,16 +58,6 @@ func NewJobClientWithBaseURI(baseURI string) JobClient {
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client JobClient) Add(ctx context.Context, job JobAddParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.Add")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: job,
 			Constraints: []validation.Constraint{{Target: "job.ID", Name: validation.Null, Rule: true, Chain: nil},
@@ -196,8 +185,8 @@ func (client JobClient) AddPreparer(ctx context.Context, job JobAddParameter, ti
 // AddSender sends the Add request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) AddSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddResponder handles the response to the Add request. The method always
@@ -239,16 +228,6 @@ func (client JobClient) AddResponder(resp *http.Response) (result autorest.Respo
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobClient) Delete(ctx context.Context, jobID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, jobID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobClient", "Delete", nil, "Failure preparing request")
@@ -328,8 +307,8 @@ func (client JobClient) DeletePreparer(ctx context.Context, jobID string, timeou
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -372,16 +351,6 @@ func (client JobClient) DeleteResponder(resp *http.Response) (result autorest.Re
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobClient) Disable(ctx context.Context, jobID string, jobDisableParameter JobDisableParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.Disable")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DisablePreparer(ctx, jobID, jobDisableParameter, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobClient", "Disable", nil, "Failure preparing request")
@@ -463,8 +432,8 @@ func (client JobClient) DisablePreparer(ctx context.Context, jobID string, jobDi
 // DisableSender sends the Disable request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) DisableSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DisableResponder handles the response to the Disable request. The method always
@@ -504,16 +473,6 @@ func (client JobClient) DisableResponder(resp *http.Response) (result autorest.R
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobClient) Enable(ctx context.Context, jobID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.Enable")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.EnablePreparer(ctx, jobID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobClient", "Enable", nil, "Failure preparing request")
@@ -593,8 +552,8 @@ func (client JobClient) EnablePreparer(ctx context.Context, jobID string, timeou
 // EnableSender sends the Enable request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) EnableSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // EnableResponder handles the response to the Enable request. The method always
@@ -633,16 +592,6 @@ func (client JobClient) EnableResponder(resp *http.Response) (result autorest.Re
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobClient) Get(ctx context.Context, jobID string, selectParameter string, expand string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result CloudJob, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, jobID, selectParameter, expand, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobClient", "Get", nil, "Failure preparing request")
@@ -728,8 +677,8 @@ func (client JobClient) GetPreparer(ctx context.Context, jobID string, selectPar
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -757,16 +706,6 @@ func (client JobClient) GetResponder(resp *http.Response) (result CloudJob, err 
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client JobClient) GetAllLifetimeStatistics(ctx context.Context, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result JobStatistics, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.GetAllLifetimeStatistics")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetAllLifetimeStatisticsPreparer(ctx, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobClient", "GetAllLifetimeStatistics", nil, "Failure preparing request")
@@ -826,8 +765,8 @@ func (client JobClient) GetAllLifetimeStatisticsPreparer(ctx context.Context, ti
 // GetAllLifetimeStatisticsSender sends the GetAllLifetimeStatistics request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) GetAllLifetimeStatisticsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetAllLifetimeStatisticsResponder handles the response to the GetAllLifetimeStatistics request. The method always
@@ -857,16 +796,6 @@ func (client JobClient) GetAllLifetimeStatisticsResponder(resp *http.Response) (
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client JobClient) GetTaskCounts(ctx context.Context, jobID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result TaskCounts, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.GetTaskCounts")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetTaskCountsPreparer(ctx, jobID, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobClient", "GetTaskCounts", nil, "Failure preparing request")
@@ -930,8 +859,8 @@ func (client JobClient) GetTaskCountsPreparer(ctx context.Context, jobID string,
 // GetTaskCountsSender sends the GetTaskCounts request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) GetTaskCountsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetTaskCountsResponder handles the response to the GetTaskCounts request. The method always
@@ -962,16 +891,6 @@ func (client JobClient) GetTaskCountsResponder(resp *http.Response) (result Task
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client JobClient) List(ctx context.Context, filter string, selectParameter string, expand string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudJobListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.List")
-		defer func() {
-			sc := -1
-			if result.cjlr.Response.Response != nil {
-				sc = result.cjlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -1055,8 +974,8 @@ func (client JobClient) ListPreparer(ctx context.Context, filter string, selectP
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -1073,8 +992,8 @@ func (client JobClient) ListResponder(resp *http.Response) (result CloudJobListR
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client JobClient) listNextResults(ctx context.Context, lastResults CloudJobListResult) (result CloudJobListResult, err error) {
-	req, err := lastResults.cloudJobListResultPreparer(ctx)
+func (client JobClient) listNextResults(lastResults CloudJobListResult) (result CloudJobListResult, err error) {
+	req, err := lastResults.cloudJobListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.JobClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -1095,16 +1014,6 @@ func (client JobClient) listNextResults(ctx context.Context, lastResults CloudJo
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client JobClient) ListComplete(ctx context.Context, filter string, selectParameter string, expand string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudJobListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, filter, selectParameter, expand, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }
@@ -1125,16 +1034,6 @@ func (client JobClient) ListComplete(ctx context.Context, filter string, selectP
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client JobClient) ListFromJobSchedule(ctx context.Context, jobScheduleID string, filter string, selectParameter string, expand string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudJobListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.ListFromJobSchedule")
-		defer func() {
-			sc := -1
-			if result.cjlr.Response.Response != nil {
-				sc = result.cjlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -1222,8 +1121,8 @@ func (client JobClient) ListFromJobSchedulePreparer(ctx context.Context, jobSche
 // ListFromJobScheduleSender sends the ListFromJobSchedule request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) ListFromJobScheduleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListFromJobScheduleResponder handles the response to the ListFromJobSchedule request. The method always
@@ -1240,8 +1139,8 @@ func (client JobClient) ListFromJobScheduleResponder(resp *http.Response) (resul
 }
 
 // listFromJobScheduleNextResults retrieves the next set of results, if any.
-func (client JobClient) listFromJobScheduleNextResults(ctx context.Context, lastResults CloudJobListResult) (result CloudJobListResult, err error) {
-	req, err := lastResults.cloudJobListResultPreparer(ctx)
+func (client JobClient) listFromJobScheduleNextResults(lastResults CloudJobListResult) (result CloudJobListResult, err error) {
+	req, err := lastResults.cloudJobListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.JobClient", "listFromJobScheduleNextResults", nil, "Failure preparing next results request")
 	}
@@ -1262,16 +1161,6 @@ func (client JobClient) listFromJobScheduleNextResults(ctx context.Context, last
 
 // ListFromJobScheduleComplete enumerates all values, automatically crossing page boundaries as required.
 func (client JobClient) ListFromJobScheduleComplete(ctx context.Context, jobScheduleID string, filter string, selectParameter string, expand string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudJobListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.ListFromJobSchedule")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListFromJobSchedule(ctx, jobScheduleID, filter, selectParameter, expand, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }
@@ -1294,16 +1183,6 @@ func (client JobClient) ListFromJobScheduleComplete(ctx context.Context, jobSche
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client JobClient) ListPreparationAndReleaseTaskStatus(ctx context.Context, jobID string, filter string, selectParameter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudJobListPreparationAndReleaseTaskStatusResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.ListPreparationAndReleaseTaskStatus")
-		defer func() {
-			sc := -1
-			if result.cjlpartsr.Response.Response != nil {
-				sc = result.cjlpartsr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -1388,8 +1267,8 @@ func (client JobClient) ListPreparationAndReleaseTaskStatusPreparer(ctx context.
 // ListPreparationAndReleaseTaskStatusSender sends the ListPreparationAndReleaseTaskStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) ListPreparationAndReleaseTaskStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListPreparationAndReleaseTaskStatusResponder handles the response to the ListPreparationAndReleaseTaskStatus request. The method always
@@ -1406,8 +1285,8 @@ func (client JobClient) ListPreparationAndReleaseTaskStatusResponder(resp *http.
 }
 
 // listPreparationAndReleaseTaskStatusNextResults retrieves the next set of results, if any.
-func (client JobClient) listPreparationAndReleaseTaskStatusNextResults(ctx context.Context, lastResults CloudJobListPreparationAndReleaseTaskStatusResult) (result CloudJobListPreparationAndReleaseTaskStatusResult, err error) {
-	req, err := lastResults.cloudJobListPreparationAndReleaseTaskStatusResultPreparer(ctx)
+func (client JobClient) listPreparationAndReleaseTaskStatusNextResults(lastResults CloudJobListPreparationAndReleaseTaskStatusResult) (result CloudJobListPreparationAndReleaseTaskStatusResult, err error) {
+	req, err := lastResults.cloudJobListPreparationAndReleaseTaskStatusResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.JobClient", "listPreparationAndReleaseTaskStatusNextResults", nil, "Failure preparing next results request")
 	}
@@ -1428,16 +1307,6 @@ func (client JobClient) listPreparationAndReleaseTaskStatusNextResults(ctx conte
 
 // ListPreparationAndReleaseTaskStatusComplete enumerates all values, automatically crossing page boundaries as required.
 func (client JobClient) ListPreparationAndReleaseTaskStatusComplete(ctx context.Context, jobID string, filter string, selectParameter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudJobListPreparationAndReleaseTaskStatusResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.ListPreparationAndReleaseTaskStatus")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListPreparationAndReleaseTaskStatus(ctx, jobID, filter, selectParameter, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }
@@ -1466,16 +1335,6 @@ func (client JobClient) ListPreparationAndReleaseTaskStatusComplete(ctx context.
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobClient) Patch(ctx context.Context, jobID string, jobPatchParameter JobPatchParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.Patch")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.PatchPreparer(ctx, jobID, jobPatchParameter, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobClient", "Patch", nil, "Failure preparing request")
@@ -1557,8 +1416,8 @@ func (client JobClient) PatchPreparer(ctx context.Context, jobID string, jobPatc
 // PatchSender sends the Patch request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) PatchSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // PatchResponder handles the response to the Patch request. The method always
@@ -1600,16 +1459,6 @@ func (client JobClient) PatchResponder(resp *http.Response) (result autorest.Res
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobClient) Terminate(ctx context.Context, jobID string, jobTerminateParameter *JobTerminateParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.Terminate")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.TerminatePreparer(ctx, jobID, jobTerminateParameter, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobClient", "Terminate", nil, "Failure preparing request")
@@ -1694,8 +1543,8 @@ func (client JobClient) TerminatePreparer(ctx context.Context, jobID string, job
 // TerminateSender sends the Terminate request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) TerminateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // TerminateResponder handles the response to the Terminate request. The method always
@@ -1710,7 +1559,7 @@ func (client JobClient) TerminateResponder(resp *http.Response) (result autorest
 	return
 }
 
-// Update this fully replaces all the updatable properties of the job. For example, if the job has constraints
+// Update this fully replaces all the updateable properties of the job. For example, if the job has constraints
 // associated with it and if constraints is not specified with this request, then the Batch service will remove the
 // existing constraints.
 // Parameters:
@@ -1735,16 +1584,6 @@ func (client JobClient) TerminateResponder(resp *http.Response) (result autorest
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobClient) Update(ctx context.Context, jobID string, jobUpdateParameter JobUpdateParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: jobUpdateParameter,
 			Constraints: []validation.Constraint{{Target: "jobUpdateParameter.PoolInfo", Name: validation.Null, Rule: true,
@@ -1860,8 +1699,8 @@ func (client JobClient) UpdatePreparer(ctx context.Context, jobID string, jobUpd
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

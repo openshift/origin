@@ -12,12 +12,6 @@ type GetResult struct {
 	commonResult
 }
 
-// CreateResult is the result of import Create operation. Call its ExtractErr
-// method to determine if the request succeeded or failed.
-type CreateResult struct {
-	gophercloud.ErrResult
-}
-
 // ImportInfo represents information data for the Import API.
 type ImportInfo struct {
 	ImportMethods ImportMethods `json:"import-methods"`

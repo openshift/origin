@@ -64,11 +64,9 @@ func NewTransport(ctx context.Context, base http.RoundTripper, opts ...option.Cl
 
 func newTransport(ctx context.Context, base http.RoundTripper, settings *internal.DialSettings) (http.RoundTripper, error) {
 	trans := base
-	trans = parameterTransport{
-		base:          trans,
-		userAgent:     settings.UserAgent,
-		quotaProject:  settings.QuotaProject,
-		requestReason: settings.RequestReason,
+	trans = userAgentTransport{
+		base:      trans,
+		userAgent: settings.UserAgent,
 	}
 	trans = addOCTransport(trans)
 	switch {
@@ -106,15 +104,12 @@ func newSettings(opts []option.ClientOption) (*internal.DialSettings, error) {
 	return &o, nil
 }
 
-type parameterTransport struct {
-	userAgent     string
-	quotaProject  string
-	requestReason string
-
-	base http.RoundTripper
+type userAgentTransport struct {
+	userAgent string
+	base      http.RoundTripper
 }
 
-func (t parameterTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	rt := t.base
 	if rt == nil {
 		return nil, errors.New("transport: no Transport specified")
@@ -128,16 +123,7 @@ func (t parameterTransport) RoundTrip(req *http.Request) (*http.Response, error)
 		newReq.Header[k] = vv
 	}
 	// TODO(cbro): append to existing User-Agent header?
-	newReq.Header.Set("User-Agent", t.userAgent)
-
-	// Attach system parameters into the header
-	if t.quotaProject != "" {
-		newReq.Header.Set("X-Goog-User-Project", t.quotaProject)
-	}
-	if t.requestReason != "" {
-		newReq.Header.Set("X-Goog-Request-Reason", t.requestReason)
-	}
-
+	newReq.Header["User-Agent"] = []string{t.userAgent}
 	return rt.RoundTrip(&newReq)
 }
 

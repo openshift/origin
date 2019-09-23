@@ -67,86 +67,20 @@ func TestListNetwork(t *testing.T) {
 	}
 }
 
-func testNetworkPolicy(t *testing.T, policiesToTest *PolicyNetworkRequest) {
+func TestAddRemoveRemoteSubnetRoutePolicy(t *testing.T) {
+
 	network, err := CreateTestOverlayNetwork()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	network.AddPolicy(*policiesToTest)
-
-	//Reload the network object from HNS.
-	network, err = GetNetworkByID(network.Id)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, policyToTest := range policiesToTest.Policies {
-		foundPolicy := false
-		for _, policy := range network.Policies {
-			if policy.Type == policyToTest.Type {
-				foundPolicy = true
-				break
-			}
-		}
-		if !foundPolicy {
-			t.Fatalf("Could not find %s policy on network.", policyToTest.Type)
-		}
-	}
-
-	network.RemovePolicy(*policiesToTest)
-
-	//Reload the network object from HNS.
-	network, err = GetNetworkByID(network.Id)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, policyToTest := range policiesToTest.Policies {
-		foundPolicy := false
-		for _, policy := range network.Policies {
-			if policy.Type == policyToTest.Type {
-				foundPolicy = true
-				break
-			}
-		}
-		if foundPolicy {
-			t.Fatalf("Found %s policy on network when it should have been deleted.", policyToTest.Type)
-		}
-	}
-
-	err = network.Delete()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestAddRemoveRemoteSubnetRoutePolicy(t *testing.T) {
 
 	remoteSubnetRoutePolicy, err := HcnCreateTestRemoteSubnetRoute()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testNetworkPolicy(t, remoteSubnetRoutePolicy)
-}
-
-func TestAddRemoveHostRoutePolicy(t *testing.T) {
-
-	hostRoutePolicy, err := HcnCreateTestHostRoute()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testNetworkPolicy(t, hostRoutePolicy)
-}
-
-func TestNetworkFlags(t *testing.T) {
-
-	network, err := CreateTestOverlayNetwork()
-	if err != nil {
-		t.Fatal(err)
-	}
+	//Add Policy
+	network.AddPolicy(*remoteSubnetRoutePolicy)
 
 	//Reload the network object from HNS.
 	network, err = GetNetworkByID(network.Id)
@@ -154,8 +88,35 @@ func TestNetworkFlags(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if network.Flags != EnableNonPersistent {
-		t.Errorf("EnableNonPersistent flag (%d) is not set on network", EnableNonPersistent)
+	foundPolicy := false
+	for _, policy := range network.Policies {
+		if policy.Type == RemoteSubnetRoute {
+			foundPolicy = true
+			break
+		}
+	}
+	if !foundPolicy {
+		t.Fatalf("Could not find remote subnet route policy on network.")
+	}
+
+	//Remove Policy.
+	network.RemovePolicy(*remoteSubnetRoutePolicy)
+
+	//Reload the network object from HNS.
+	network, err = GetNetworkByID(network.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	foundPolicy = false
+	for _, policy := range network.Policies {
+		if policy.Type == RemoteSubnetRoute {
+			foundPolicy = true
+			break
+		}
+	}
+	if foundPolicy {
+		t.Fatalf("Found remote subnet route policy on network when it should have been deleted.")
 	}
 
 	err = network.Delete()

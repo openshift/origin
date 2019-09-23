@@ -38,21 +38,6 @@ var testCases = []struct {
 	{&IntsValue, IntsString},
 	{&mapStringStringValue, mapStringStringString},
 	{&namedTypeValue, namedTypeValueString},
-	{&customMapKeyTypeValue, customMapKeyTypeValueString},
-	{&embeddedTypeValue, embeddedTypeValueString},
-	{&mapMyIntStringValue, mapMyIntStringValueString},
-	{&mapIntStringValue, mapIntStringValueString},
-	{&mapInt32StringValue, mapInt32StringValueString},
-	{&mapInt64StringValue, mapInt64StringValueString},
-	{&mapUintStringValue, mapUintStringValueString},
-	{&mapUint32StringValue, mapUint32StringValueString},
-	{&mapUint64StringValue, mapUint64StringValueString},
-	{&mapUintptrStringValue, mapUintptrStringValueString},
-	{&intKeyedMapStructValue, intKeyedMapStructValueString},
-	{&intArrayStructValue, intArrayStructValueString},
-	{&myUInt8SliceValue, myUInt8SliceString},
-	{&myUInt8ArrayValue, myUInt8ArrayString},
-	{&mapWithEncodingMarshaler, mapWithEncodingMarshalerString},
 }
 
 func TestMarshal(t *testing.T) {
@@ -233,13 +218,5 @@ func TestUnmarshalStructWithEmbeddedPtrStruct(t *testing.T) {
 	}
 	if !reflect.DeepEqual(s, structWithInterfaceValueFilled) {
 		t.Errorf("easyjson.Unmarshal() = %#v; want %#v", s, structWithInterfaceValueFilled)
-	}
-}
-
-func TestDisallowUnknown(t *testing.T) {
-	var d DisallowUnknown
-	err := easyjson.Unmarshal([]byte(disallowUnknownString), &d)
-	if err == nil {
-		t.Error("want error, got nil")
 	}
 }

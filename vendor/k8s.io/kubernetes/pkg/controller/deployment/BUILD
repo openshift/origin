@@ -99,7 +99,6 @@ filegroup(
     name = "all-srcs",
     srcs = [
         ":package-srcs",
-        "//pkg/controller/deployment/config:all-srcs",
         "//pkg/controller/deployment/util:all-srcs",
     ],
     tags = ["automanaged"],

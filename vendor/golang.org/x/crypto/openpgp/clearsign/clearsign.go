@@ -13,7 +13,6 @@ import (
 	"bufio"
 	"bytes"
 	"crypto"
-	"fmt"
 	"hash"
 	"io"
 	"net/textproto"
@@ -178,9 +177,8 @@ func Decode(data []byte) (b *Block, rest []byte) {
 // message.
 type dashEscaper struct {
 	buffered *bufio.Writer
-	hashers  []hash.Hash // one per key in privateKeys
+	h        hash.Hash
 	hashType crypto.Hash
-	toHash   io.Writer // writes to all the hashes in hashers
 
 	atBeginningOfLine bool
 	isFirstLine       bool
@@ -188,8 +186,8 @@ type dashEscaper struct {
 	whitespace []byte
 	byteBuf    []byte // a one byte buffer to save allocations
 
-	privateKeys []*packet.PrivateKey
-	config      *packet.Config
+	privateKey *packet.PrivateKey
+	config     *packet.Config
 }
 
 func (d *dashEscaper) Write(data []byte) (n int, err error) {
@@ -200,7 +198,7 @@ func (d *dashEscaper) Write(data []byte) (n int, err error) {
 			// The final CRLF isn't included in the hash so we have to wait
 			// until this point (the start of the next line) before writing it.
 			if !d.isFirstLine {
-				d.toHash.Write(crlf)
+				d.h.Write(crlf)
 			}
 			d.isFirstLine = false
 		}
@@ -221,12 +219,12 @@ func (d *dashEscaper) Write(data []byte) (n int, err error) {
 				if _, err = d.buffered.Write(dashEscape); err != nil {
 					return
 				}
-				d.toHash.Write(d.byteBuf)
+				d.h.Write(d.byteBuf)
 				d.atBeginningOfLine = false
 			} else if b == '\n' {
 				// Nothing to do because we delay writing CRLF to the hash.
 			} else {
-				d.toHash.Write(d.byteBuf)
+				d.h.Write(d.byteBuf)
 				d.atBeginningOfLine = false
 			}
 			if err = d.buffered.WriteByte(b); err != nil {
@@ -247,13 +245,13 @@ func (d *dashEscaper) Write(data []byte) (n int, err error) {
 				// Any buffered whitespace wasn't at the end of the line so
 				// we need to write it out.
 				if len(d.whitespace) > 0 {
-					d.toHash.Write(d.whitespace)
+					d.h.Write(d.whitespace)
 					if _, err = d.buffered.Write(d.whitespace); err != nil {
 						return
 					}
 					d.whitespace = d.whitespace[:0]
 				}
-				d.toHash.Write(d.byteBuf)
+				d.h.Write(d.byteBuf)
 				if err = d.buffered.WriteByte(b); err != nil {
 					return
 				}
@@ -271,29 +269,25 @@ func (d *dashEscaper) Close() (err error) {
 			return
 		}
 	}
+	sig := new(packet.Signature)
+	sig.SigType = packet.SigTypeText
+	sig.PubKeyAlgo = d.privateKey.PubKeyAlgo
+	sig.Hash = d.hashType
+	sig.CreationTime = d.config.Now()
+	sig.IssuerKeyId = &d.privateKey.KeyId
+
+	if err = sig.Sign(d.h, d.privateKey, d.config); err != nil {
+		return
+	}
 
 	out, err := armor.Encode(d.buffered, "PGP SIGNATURE", nil)
 	if err != nil {
 		return
 	}
 
-	t := d.config.Now()
-	for i, k := range d.privateKeys {
-		sig := new(packet.Signature)
-		sig.SigType = packet.SigTypeText
-		sig.PubKeyAlgo = k.PubKeyAlgo
-		sig.Hash = d.hashType
-		sig.CreationTime = t
-		sig.IssuerKeyId = &k.KeyId
-
-		if err = sig.Sign(d.hashers[i], k, d.config); err != nil {
-			return
-		}
-		if err = sig.Serialize(out); err != nil {
-			return
-		}
+	if err = sig.Serialize(out); err != nil {
+		return
 	}
-
 	if err = out.Close(); err != nil {
 		return
 	}
@@ -306,17 +300,8 @@ func (d *dashEscaper) Close() (err error) {
 // Encode returns a WriteCloser which will clear-sign a message with privateKey
 // and write it to w. If config is nil, sensible defaults are used.
 func Encode(w io.Writer, privateKey *packet.PrivateKey, config *packet.Config) (plaintext io.WriteCloser, err error) {
-	return EncodeMulti(w, []*packet.PrivateKey{privateKey}, config)
-}
-
-// EncodeMulti returns a WriteCloser which will clear-sign a message with all the
-// private keys indicated and write it to w. If config is nil, sensible defaults
-// are used.
-func EncodeMulti(w io.Writer, privateKeys []*packet.PrivateKey, config *packet.Config) (plaintext io.WriteCloser, err error) {
-	for _, k := range privateKeys {
-		if k.Encrypted {
-			return nil, errors.InvalidArgumentError(fmt.Sprintf("signing key %s is encrypted", k.KeyIdString()))
-		}
+	if privateKey.Encrypted {
+		return nil, errors.InvalidArgumentError("signing key is encrypted")
 	}
 
 	hashType := config.Hash()
@@ -328,14 +313,7 @@ func EncodeMulti(w io.Writer, privateKeys []*packet.PrivateKey, config *packet.C
 	if !hashType.Available() {
 		return nil, errors.UnsupportedError("unsupported hash type: " + strconv.Itoa(int(hashType)))
 	}
-	var hashers []hash.Hash
-	var ws []io.Writer
-	for range privateKeys {
-		h := hashType.New()
-		hashers = append(hashers, h)
-		ws = append(ws, h)
-	}
-	toHash := io.MultiWriter(ws...)
+	h := hashType.New()
 
 	buffered := bufio.NewWriter(w)
 	// start has a \n at the beginning that we don't want here.
@@ -360,17 +338,16 @@ func EncodeMulti(w io.Writer, privateKeys []*packet.PrivateKey, config *packet.C
 
 	plaintext = &dashEscaper{
 		buffered: buffered,
-		hashers:  hashers,
+		h:        h,
 		hashType: hashType,
-		toHash:   toHash,
 
 		atBeginningOfLine: true,
 		isFirstLine:       true,
 
 		byteBuf: make([]byte, 1),
 
-		privateKeys: privateKeys,
-		config:      config,
+		privateKey: privateKey,
+		config:     config,
 	}
 
 	return

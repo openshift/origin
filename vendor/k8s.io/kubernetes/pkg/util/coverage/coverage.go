@@ -23,12 +23,11 @@ package coverage
 import (
 	"flag"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 	"os"
 	"testing"
 	"time"
-
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog"
 )
 
 var coverageFile string

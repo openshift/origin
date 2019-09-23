@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewHybridRunbookWorkerGroupClientWithBaseURI(baseURI string, subscriptionID
 // automationAccountName - the name of the automation account.
 // hybridRunbookWorkerGroupName - the hybrid runbook worker group name
 func (client HybridRunbookWorkerGroupClient) Delete(ctx context.Context, resourceGroupName string, automationAccountName string, hybridRunbookWorkerGroupName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/HybridRunbookWorkerGroupClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -111,8 +100,8 @@ func (client HybridRunbookWorkerGroupClient) DeletePreparer(ctx context.Context,
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client HybridRunbookWorkerGroupClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -133,16 +122,6 @@ func (client HybridRunbookWorkerGroupClient) DeleteResponder(resp *http.Response
 // automationAccountName - the name of the automation account.
 // hybridRunbookWorkerGroupName - the hybrid runbook worker group name
 func (client HybridRunbookWorkerGroupClient) Get(ctx context.Context, resourceGroupName string, automationAccountName string, hybridRunbookWorkerGroupName string) (result HybridRunbookWorkerGroup, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/HybridRunbookWorkerGroupClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -197,8 +176,8 @@ func (client HybridRunbookWorkerGroupClient) GetPreparer(ctx context.Context, re
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client HybridRunbookWorkerGroupClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -220,16 +199,6 @@ func (client HybridRunbookWorkerGroupClient) GetResponder(resp *http.Response) (
 // automationAccountName - the name of the automation account.
 // filter - the filter to apply on the operation.
 func (client HybridRunbookWorkerGroupClient) ListByAutomationAccount(ctx context.Context, resourceGroupName string, automationAccountName string, filter string) (result HybridRunbookWorkerGroupsListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/HybridRunbookWorkerGroupClient.ListByAutomationAccount")
-		defer func() {
-			sc := -1
-			if result.hrwglr.Response.Response != nil {
-				sc = result.hrwglr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -287,8 +256,8 @@ func (client HybridRunbookWorkerGroupClient) ListByAutomationAccountPreparer(ctx
 // ListByAutomationAccountSender sends the ListByAutomationAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client HybridRunbookWorkerGroupClient) ListByAutomationAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByAutomationAccountResponder handles the response to the ListByAutomationAccount request. The method always
@@ -305,8 +274,8 @@ func (client HybridRunbookWorkerGroupClient) ListByAutomationAccountResponder(re
 }
 
 // listByAutomationAccountNextResults retrieves the next set of results, if any.
-func (client HybridRunbookWorkerGroupClient) listByAutomationAccountNextResults(ctx context.Context, lastResults HybridRunbookWorkerGroupsListResult) (result HybridRunbookWorkerGroupsListResult, err error) {
-	req, err := lastResults.hybridRunbookWorkerGroupsListResultPreparer(ctx)
+func (client HybridRunbookWorkerGroupClient) listByAutomationAccountNextResults(lastResults HybridRunbookWorkerGroupsListResult) (result HybridRunbookWorkerGroupsListResult, err error) {
+	req, err := lastResults.hybridRunbookWorkerGroupsListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "automation.HybridRunbookWorkerGroupClient", "listByAutomationAccountNextResults", nil, "Failure preparing next results request")
 	}
@@ -327,16 +296,6 @@ func (client HybridRunbookWorkerGroupClient) listByAutomationAccountNextResults(
 
 // ListByAutomationAccountComplete enumerates all values, automatically crossing page boundaries as required.
 func (client HybridRunbookWorkerGroupClient) ListByAutomationAccountComplete(ctx context.Context, resourceGroupName string, automationAccountName string, filter string) (result HybridRunbookWorkerGroupsListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/HybridRunbookWorkerGroupClient.ListByAutomationAccount")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByAutomationAccount(ctx, resourceGroupName, automationAccountName, filter)
 	return
 }
@@ -348,16 +307,6 @@ func (client HybridRunbookWorkerGroupClient) ListByAutomationAccountComplete(ctx
 // hybridRunbookWorkerGroupName - the hybrid runbook worker group name
 // parameters - the hybrid runbook worker group
 func (client HybridRunbookWorkerGroupClient) Update(ctx context.Context, resourceGroupName string, automationAccountName string, hybridRunbookWorkerGroupName string, parameters HybridRunbookWorkerGroupUpdateParameters) (result HybridRunbookWorkerGroup, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/HybridRunbookWorkerGroupClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -414,8 +363,8 @@ func (client HybridRunbookWorkerGroupClient) UpdatePreparer(ctx context.Context,
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client HybridRunbookWorkerGroupClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

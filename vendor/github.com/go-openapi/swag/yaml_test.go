@@ -20,8 +20,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/stretchr/testify/assert"
 )
 
 /* currently unused:

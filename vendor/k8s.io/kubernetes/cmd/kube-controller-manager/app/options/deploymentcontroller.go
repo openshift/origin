@@ -19,12 +19,12 @@ package options
 import (
 	"github.com/spf13/pflag"
 
-	deploymentconfig "k8s.io/kubernetes/pkg/controller/deployment/config"
+	kubectrlmgrconfig "k8s.io/kubernetes/pkg/controller/apis/config"
 )
 
 // DeploymentControllerOptions holds the DeploymentController options.
 type DeploymentControllerOptions struct {
-	*deploymentconfig.DeploymentControllerConfiguration
+	*kubectrlmgrconfig.DeploymentControllerConfiguration
 }
 
 // AddFlags adds flags related to DeploymentController for controller manager to the specified FlagSet.
@@ -38,7 +38,7 @@ func (o *DeploymentControllerOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 // ApplyTo fills up DeploymentController config with options.
-func (o *DeploymentControllerOptions) ApplyTo(cfg *deploymentconfig.DeploymentControllerConfiguration) error {
+func (o *DeploymentControllerOptions) ApplyTo(cfg *kubectrlmgrconfig.DeploymentControllerConfiguration) error {
 	if o == nil {
 		return nil
 	}

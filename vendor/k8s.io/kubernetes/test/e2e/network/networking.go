@@ -23,45 +23,42 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = SIGDescribe("Networking", func() {
 	var svcname = "nettest"
 	f := framework.NewDefaultFramework(svcname)
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		// Assert basic external connectivity.
 		// Since this is not really a test of kubernetes in any way, we
 		// leave it as a pre-test assertion, rather than a Ginko test.
-		ginkgo.By("Executing a successful http request from the external internet")
+		By("Executing a successful http request from the external internet")
 		resp, err := http.Get("http://google.com")
 		if err != nil {
-			e2elog.Failf("Unable to connect/talk to the internet: %v", err)
+			framework.Failf("Unable to connect/talk to the internet: %v", err)
 		}
 		if resp.StatusCode != http.StatusOK {
-			e2elog.Failf("Unexpected error code, expected 200, got, %v (%v)", resp.StatusCode, resp)
+			framework.Failf("Unexpected error code, expected 200, got, %v (%v)", resp.StatusCode, resp)
 		}
 	})
 
-	ginkgo.It("should provide Internet connection for containers [Feature:Networking-IPv4]", func() {
-		ginkgo.By("Running container which tries to connect to 8.8.8.8")
+	It("should provide Internet connection for containers [Feature:Networking-IPv4]", func() {
+		By("Running container which tries to ping 8.8.8.8")
 		framework.ExpectNoError(
-			framework.CheckConnectivityToHost(f, "", "connectivity-test", "8.8.8.8", 53, 30))
+			framework.CheckConnectivityToHost(f, "", "ping-test", "8.8.8.8", framework.IPv4PingCommand, 30))
 	})
 
-	ginkgo.It("should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly]", func() {
-		// IPv6 is not supported on Windows.
-		framework.SkipIfNodeOSDistroIs("windows")
-		ginkgo.By("Running container which tries to connect to 2001:4860:4860::8888")
+	It("should provide Internet connection for containers [Feature:Networking-IPv6][Experimental]", func() {
+		By("Running container which tries to ping google.com")
 		framework.ExpectNoError(
-			framework.CheckConnectivityToHost(f, "", "connectivity-test", "2001:4860:4860::8888", 53, 30))
+			framework.CheckConnectivityToHost(f, "", "ping-test", "google.com", framework.IPv6PingCommand, 30))
 	})
 
 	// First test because it has no dependencies on variables created later on.
-	ginkgo.It("should provide unchanging, static URL paths for kubernetes api services", func() {
+	It("should provide unchanging, static URL paths for kubernetes api services", func() {
 		tests := []struct {
 			path string
 		}{
@@ -77,22 +74,22 @@ var _ = SIGDescribe("Networking", func() {
 			tests = append(tests, struct{ path string }{path: "/logs"})
 		}
 		for _, test := range tests {
-			ginkgo.By(fmt.Sprintf("testing: %s", test.path))
+			By(fmt.Sprintf("testing: %s", test.path))
 			data, err := f.ClientSet.CoreV1().RESTClient().Get().
 				AbsPath(test.path).
 				DoRaw()
 			if err != nil {
-				e2elog.Failf("ginkgo.Failed: %v\nBody: %s", err, string(data))
+				framework.Failf("Failed: %v\nBody: %s", err, string(data))
 			}
 		}
 	})
 
-	ginkgo.It("should check kube-proxy urls", func() {
+	It("should check kube-proxy urls", func() {
 		// TODO: this is overkill we just need the host networking pod
 		// to hit kube-proxy urls.
 		config := framework.NewNetworkingTestConfig(f)
 
-		ginkgo.By("checking kube-proxy URLs")
+		By("checking kube-proxy URLs")
 		config.GetSelfURL(ports.ProxyHealthzPort, "/healthz", "200 OK")
 		// Verify /healthz returns the proper content.
 		config.GetSelfURL(ports.ProxyHealthzPort, "/healthz", "lastUpdated")
@@ -100,139 +97,140 @@ var _ = SIGDescribe("Networking", func() {
 		config.GetSelfURLStatusCode(ports.ProxyStatusPort, "/proxyMode", "200")
 	})
 
-	ginkgo.Describe("Granular Checks: Services", func() {
+	// TODO: Remove [Slow] when this has had enough bake time to prove presubmit worthiness.
+	Describe("Granular Checks: Services [Slow]", func() {
 
-		ginkgo.It("should function for pod-Service: http", func() {
+		It("should function for pod-Service: http", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(http) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterHTTPPort))
-			config.DialFromTestContainer("http", config.ClusterIP, framework.ClusterHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(http) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterHttpPort))
+			config.DialFromTestContainer("http", config.ClusterIP, framework.ClusterHttpPort, config.MaxTries, 0, config.EndpointHostnames())
 
-			ginkgo.By(fmt.Sprintf("dialing(http) %v --> %v:%v (nodeIP)", config.TestContainerPod.Name, config.NodeIP, config.NodeHTTPPort))
-			config.DialFromTestContainer("http", config.NodeIP, config.NodeHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(http) %v --> %v:%v (nodeIP)", config.TestContainerPod.Name, config.NodeIP, config.NodeHttpPort))
+			config.DialFromTestContainer("http", config.NodeIP, config.NodeHttpPort, config.MaxTries, 0, config.EndpointHostnames())
 		})
 
-		ginkgo.It("should function for pod-Service: udp", func() {
+		It("should function for pod-Service: udp", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterUDPPort))
-			config.DialFromTestContainer("udp", config.ClusterIP, framework.ClusterUDPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(udp) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterUdpPort))
+			config.DialFromTestContainer("udp", config.ClusterIP, framework.ClusterUdpPort, config.MaxTries, 0, config.EndpointHostnames())
 
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v --> %v:%v (nodeIP)", config.TestContainerPod.Name, config.NodeIP, config.NodeUDPPort))
-			config.DialFromTestContainer("udp", config.NodeIP, config.NodeUDPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(udp) %v --> %v:%v (nodeIP)", config.TestContainerPod.Name, config.NodeIP, config.NodeUdpPort))
+			config.DialFromTestContainer("udp", config.NodeIP, config.NodeUdpPort, config.MaxTries, 0, config.EndpointHostnames())
 		})
 
-		ginkgo.It("should function for node-Service: http", func() {
+		It("should function for node-Service: http", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (config.clusterIP)", config.NodeIP, config.ClusterIP, framework.ClusterHTTPPort))
-			config.DialFromNode("http", config.ClusterIP, framework.ClusterHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (config.clusterIP)", config.NodeIP, config.ClusterIP, framework.ClusterHttpPort))
+			config.DialFromNode("http", config.ClusterIP, framework.ClusterHttpPort, config.MaxTries, 0, config.EndpointHostnames())
 
-			ginkgo.By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeHTTPPort))
-			config.DialFromNode("http", config.NodeIP, config.NodeHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeHttpPort))
+			config.DialFromNode("http", config.NodeIP, config.NodeHttpPort, config.MaxTries, 0, config.EndpointHostnames())
 		})
 
-		ginkgo.It("should function for node-Service: udp", func() {
+		It("should function for node-Service: udp", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (config.clusterIP)", config.NodeIP, config.ClusterIP, framework.ClusterUDPPort))
-			config.DialFromNode("udp", config.ClusterIP, framework.ClusterUDPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (config.clusterIP)", config.NodeIP, config.ClusterIP, framework.ClusterUdpPort))
+			config.DialFromNode("udp", config.ClusterIP, framework.ClusterUdpPort, config.MaxTries, 0, config.EndpointHostnames())
 
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeUDPPort))
-			config.DialFromNode("udp", config.NodeIP, config.NodeUDPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeUdpPort))
+			config.DialFromNode("udp", config.NodeIP, config.NodeUdpPort, config.MaxTries, 0, config.EndpointHostnames())
 		})
 
-		ginkgo.It("should function for endpoint-Service: http", func() {
+		It("should function for endpoint-Service: http", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(http) %v (endpoint) --> %v:%v (config.clusterIP)", config.EndpointPods[0].Name, config.ClusterIP, framework.ClusterHTTPPort))
-			config.DialFromEndpointContainer("http", config.ClusterIP, framework.ClusterHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(http) %v (endpoint) --> %v:%v (config.clusterIP)", config.EndpointPods[0].Name, config.ClusterIP, framework.ClusterHttpPort))
+			config.DialFromEndpointContainer("http", config.ClusterIP, framework.ClusterHttpPort, config.MaxTries, 0, config.EndpointHostnames())
 
-			ginkgo.By(fmt.Sprintf("dialing(http) %v (endpoint) --> %v:%v (nodeIP)", config.EndpointPods[0].Name, config.NodeIP, config.NodeHTTPPort))
-			config.DialFromEndpointContainer("http", config.NodeIP, config.NodeHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(http) %v (endpoint) --> %v:%v (nodeIP)", config.EndpointPods[0].Name, config.NodeIP, config.NodeHttpPort))
+			config.DialFromEndpointContainer("http", config.NodeIP, config.NodeHttpPort, config.MaxTries, 0, config.EndpointHostnames())
 		})
 
-		ginkgo.It("should function for endpoint-Service: udp", func() {
+		It("should function for endpoint-Service: udp", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v (endpoint) --> %v:%v (config.clusterIP)", config.EndpointPods[0].Name, config.ClusterIP, framework.ClusterUDPPort))
-			config.DialFromEndpointContainer("udp", config.ClusterIP, framework.ClusterUDPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(udp) %v (endpoint) --> %v:%v (config.clusterIP)", config.EndpointPods[0].Name, config.ClusterIP, framework.ClusterUdpPort))
+			config.DialFromEndpointContainer("udp", config.ClusterIP, framework.ClusterUdpPort, config.MaxTries, 0, config.EndpointHostnames())
 
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v (endpoint) --> %v:%v (nodeIP)", config.EndpointPods[0].Name, config.NodeIP, config.NodeUDPPort))
-			config.DialFromEndpointContainer("udp", config.NodeIP, config.NodeUDPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(udp) %v (endpoint) --> %v:%v (nodeIP)", config.EndpointPods[0].Name, config.NodeIP, config.NodeUdpPort))
+			config.DialFromEndpointContainer("udp", config.NodeIP, config.NodeUdpPort, config.MaxTries, 0, config.EndpointHostnames())
 		})
 
-		ginkgo.It("should update endpoints: http", func() {
+		It("should update endpoints: http", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(http) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterHTTPPort))
-			config.DialFromTestContainer("http", config.ClusterIP, framework.ClusterHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(http) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterHttpPort))
+			config.DialFromTestContainer("http", config.ClusterIP, framework.ClusterHttpPort, config.MaxTries, 0, config.EndpointHostnames())
 
 			config.DeleteNetProxyPod()
 
-			ginkgo.By(fmt.Sprintf("dialing(http) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterHTTPPort))
-			config.DialFromTestContainer("http", config.ClusterIP, framework.ClusterHTTPPort, config.MaxTries, config.MaxTries, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(http) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterHttpPort))
+			config.DialFromTestContainer("http", config.ClusterIP, framework.ClusterHttpPort, config.MaxTries, config.MaxTries, config.EndpointHostnames())
 		})
 
-		ginkgo.It("should update endpoints: udp", func() {
+		It("should update endpoints: udp", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterUDPPort))
-			config.DialFromTestContainer("udp", config.ClusterIP, framework.ClusterUDPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(udp) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterUdpPort))
+			config.DialFromTestContainer("udp", config.ClusterIP, framework.ClusterUdpPort, config.MaxTries, 0, config.EndpointHostnames())
 
 			config.DeleteNetProxyPod()
 
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterUDPPort))
-			config.DialFromTestContainer("udp", config.ClusterIP, framework.ClusterUDPPort, config.MaxTries, config.MaxTries, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(udp) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, framework.ClusterUdpPort))
+			config.DialFromTestContainer("udp", config.ClusterIP, framework.ClusterUdpPort, config.MaxTries, config.MaxTries, config.EndpointHostnames())
 		})
 
 		// Slow because we confirm that the nodePort doesn't serve traffic, which requires a period of polling.
-		ginkgo.It("should update nodePort: http [Slow]", func() {
+		It("should update nodePort: http [Slow]", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeHTTPPort))
-			config.DialFromNode("http", config.NodeIP, config.NodeHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeHttpPort))
+			config.DialFromNode("http", config.NodeIP, config.NodeHttpPort, config.MaxTries, 0, config.EndpointHostnames())
 
 			config.DeleteNodePortService()
 
-			ginkgo.By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeHTTPPort))
-			config.DialFromNode("http", config.NodeIP, config.NodeHTTPPort, config.MaxTries, config.MaxTries, sets.NewString())
+			By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeHttpPort))
+			config.DialFromNode("http", config.NodeIP, config.NodeHttpPort, config.MaxTries, config.MaxTries, sets.NewString())
 		})
 
 		// Slow because we confirm that the nodePort doesn't serve traffic, which requires a period of polling.
-		ginkgo.It("should update nodePort: udp [Slow]", func() {
+		It("should update nodePort: udp [Slow]", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeUDPPort))
-			config.DialFromNode("udp", config.NodeIP, config.NodeUDPPort, config.MaxTries, 0, config.EndpointHostnames())
+			By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeUdpPort))
+			config.DialFromNode("udp", config.NodeIP, config.NodeUdpPort, config.MaxTries, 0, config.EndpointHostnames())
 
 			config.DeleteNodePortService()
 
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeUDPPort))
-			config.DialFromNode("udp", config.NodeIP, config.NodeUDPPort, config.MaxTries, config.MaxTries, sets.NewString())
+			By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeUdpPort))
+			config.DialFromNode("udp", config.NodeIP, config.NodeUdpPort, config.MaxTries, config.MaxTries, sets.NewString())
 		})
 
-		ginkgo.It("should function for client IP based session affinity: http", func() {
+		It("should function for client IP based session affinity: http", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(http) %v --> %v:%v", config.TestContainerPod.Name, config.SessionAffinityService.Spec.ClusterIP, framework.ClusterHTTPPort))
+			By(fmt.Sprintf("dialing(http) %v --> %v:%v", config.TestContainerPod.Name, config.SessionAffinityService.Spec.ClusterIP, framework.ClusterHttpPort))
 
 			// Check if number of endpoints returned are exactly one.
-			eps, err := config.GetEndpointsFromTestContainer("http", config.SessionAffinityService.Spec.ClusterIP, framework.ClusterHTTPPort, framework.SessionAffinityChecks)
+			eps, err := config.GetEndpointsFromTestContainer("http", config.SessionAffinityService.Spec.ClusterIP, framework.ClusterHttpPort, framework.SessionAffinityChecks)
 			if err != nil {
-				e2elog.Failf("ginkgo.Failed to get endpoints from test container, error: %v", err)
+				framework.Failf("Failed to get endpoints from test container, error: %v", err)
 			}
 			if len(eps) == 0 {
-				e2elog.Failf("Unexpected no endpoints return")
+				framework.Failf("Unexpected no endpoints return")
 			}
 			if len(eps) > 1 {
-				e2elog.Failf("Unexpected endpoints return: %v, expect 1 endpoints", eps)
+				framework.Failf("Unexpected endpoints return: %v, expect 1 endpoints", eps)
 			}
 		})
 
-		ginkgo.It("should function for client IP based session affinity: udp", func() {
+		It("should function for client IP based session affinity: udp", func() {
 			config := framework.NewNetworkingTestConfig(f)
-			ginkgo.By(fmt.Sprintf("dialing(udp) %v --> %v:%v", config.TestContainerPod.Name, config.SessionAffinityService.Spec.ClusterIP, framework.ClusterUDPPort))
+			By(fmt.Sprintf("dialing(udp) %v --> %v:%v", config.TestContainerPod.Name, config.SessionAffinityService.Spec.ClusterIP, framework.ClusterUdpPort))
 
 			// Check if number of endpoints returned are exactly one.
-			eps, err := config.GetEndpointsFromTestContainer("udp", config.SessionAffinityService.Spec.ClusterIP, framework.ClusterUDPPort, framework.SessionAffinityChecks)
+			eps, err := config.GetEndpointsFromTestContainer("udp", config.SessionAffinityService.Spec.ClusterIP, framework.ClusterUdpPort, framework.SessionAffinityChecks)
 			if err != nil {
-				e2elog.Failf("ginkgo.Failed to get endpoints from test container, error: %v", err)
+				framework.Failf("Failed to get endpoints from test container, error: %v", err)
 			}
 			if len(eps) == 0 {
-				e2elog.Failf("Unexpected no endpoints return")
+				framework.Failf("Unexpected no endpoints return")
 			}
 			if len(eps) > 1 {
-				e2elog.Failf("Unexpected endpoints return: %v, expect 1 endpoints", eps)
+				framework.Failf("Unexpected endpoints return: %v, expect 1 endpoints", eps)
 			}
 		})
 	})

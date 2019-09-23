@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -43,16 +42,6 @@ func NewProductAPIClient() ProductAPIClient {
 // productID - product identifier. Must be unique in the current API Management service instance.
 // apiid - API identifier. Must be unique in the current API Management service instance.
 func (client ProductAPIClient) CreateOrUpdate(ctx context.Context, apimBaseURL string, productID string, apiid string) (result APIContract, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProductAPIClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: productID,
 			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -113,8 +102,8 @@ func (client ProductAPIClient) CreateOrUpdatePreparer(ctx context.Context, apimB
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProductAPIClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -137,16 +126,6 @@ func (client ProductAPIClient) CreateOrUpdateResponder(resp *http.Response) (res
 // productID - product identifier. Must be unique in the current API Management service instance.
 // apiid - API identifier. Must be unique in the current API Management service instance.
 func (client ProductAPIClient) Delete(ctx context.Context, apimBaseURL string, productID string, apiid string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProductAPIClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: productID,
 			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -207,8 +186,8 @@ func (client ProductAPIClient) DeletePreparer(ctx context.Context, apimBaseURL s
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProductAPIClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -238,16 +217,6 @@ func (client ProductAPIClient) DeleteResponder(resp *http.Response) (result auto
 // top - number of records to return.
 // skip - number of records to skip.
 func (client ProductAPIClient) ListByProduct(ctx context.Context, apimBaseURL string, productID string, filter string, top *int32, skip *int32) (result APICollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProductAPIClient.ListByProduct")
-		defer func() {
-			sc := -1
-			if result.ac.Response.Response != nil {
-				sc = result.ac.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: productID,
 			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -319,8 +288,8 @@ func (client ProductAPIClient) ListByProductPreparer(ctx context.Context, apimBa
 // ListByProductSender sends the ListByProduct request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProductAPIClient) ListByProductSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListByProductResponder handles the response to the ListByProduct request. The method always
@@ -337,8 +306,8 @@ func (client ProductAPIClient) ListByProductResponder(resp *http.Response) (resu
 }
 
 // listByProductNextResults retrieves the next set of results, if any.
-func (client ProductAPIClient) listByProductNextResults(ctx context.Context, lastResults APICollection) (result APICollection, err error) {
-	req, err := lastResults.aPICollectionPreparer(ctx)
+func (client ProductAPIClient) listByProductNextResults(lastResults APICollection) (result APICollection, err error) {
+	req, err := lastResults.aPICollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.ProductAPIClient", "listByProductNextResults", nil, "Failure preparing next results request")
 	}
@@ -359,16 +328,6 @@ func (client ProductAPIClient) listByProductNextResults(ctx context.Context, las
 
 // ListByProductComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ProductAPIClient) ListByProductComplete(ctx context.Context, apimBaseURL string, productID string, filter string, top *int32, skip *int32) (result APICollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProductAPIClient.ListByProduct")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByProduct(ctx, apimBaseURL, productID, filter, top, skip)
 	return
 }

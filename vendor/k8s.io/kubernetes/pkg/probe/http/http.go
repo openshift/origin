@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -29,11 +30,6 @@ import (
 	"k8s.io/kubernetes/pkg/version"
 
 	"k8s.io/klog"
-	utilio "k8s.io/utils/io"
-)
-
-const (
-	maxRespBodyLength = 10 * 1 << 10 // 10KB
 )
 
 // New creates Prober that will skip TLS verification while probing.
@@ -111,13 +107,9 @@ func DoHTTPProbe(url *url.URL, headers http.Header, client GetHTTPInterface) (pr
 		return probe.Failure, err.Error(), nil
 	}
 	defer res.Body.Close()
-	b, err := utilio.ReadAtMost(res.Body, maxRespBodyLength)
+	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		if err == utilio.ErrLimitReached {
-			klog.V(4).Infof("Non fatal body truncation for %s, Response: %v", url.String(), *res)
-		} else {
-			return probe.Failure, "", err
-		}
+		return probe.Failure, "", err
 	}
 	body := string(b)
 	if res.StatusCode >= http.StatusOK && res.StatusCode < http.StatusBadRequest {

@@ -205,19 +205,17 @@ func $.type|public$KeySet(theMap interface{}) $.type|public$ {
 }
 
 // Insert adds items to the set.
-func (s $.type|public$) Insert(items ...$.type|raw$) $.type|public$ {
+func (s $.type|public$) Insert(items ...$.type|raw$) {
 	for _, item := range items {
 		s[item] = Empty{}
 	}
-	return s
 }
 
 // Delete removes all items from the set.
-func (s $.type|public$) Delete(items ...$.type|raw$) $.type|public$ {
+func (s $.type|public$) Delete(items ...$.type|raw$) {
 	for _, item := range items {
 		delete(s, item)
 	}
-	return s
 }
 
 // Has returns true if and only if item is contained in the set.

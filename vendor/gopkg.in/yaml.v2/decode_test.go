@@ -714,14 +714,6 @@ var unmarshalTests = []struct {
 		"---\nhello\n...\n}not yaml",
 		"hello",
 	},
-	{
-		"a: 5\n",
-		&struct{ A jsonNumberT }{"5"},
-	},
-	{
-		"a: 5.5\n",
-		&struct{ A jsonNumberT }{"5.5"},
-	},
 }
 
 type M map[interface{}]interface{}

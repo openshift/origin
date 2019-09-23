@@ -1,5 +1,3 @@
-// +build !providerless
-
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -24,17 +22,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2019-04-01/storage"
-	v1 "k8s.io/api/core/v1"
+	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-07-01/storage"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	volumehelpers "k8s.io/cloud-provider/volume/helpers"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/azure"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
-	"k8s.io/legacy-cloud-providers/azure"
 )
 
 type azureDiskProvisioner struct {
@@ -269,7 +267,7 @@ func (p *azureDiskProvisioner) Provision(selectedNode *v1.Node, allowedTopologie
 				return nil, err
 			}
 		} else {
-			diskURI, err = diskController.CreateBlobDisk(name, storage.SkuName(skuName), requestGiB)
+			diskURI, err = diskController.CreateBlobDisk(name, storage.SkuName(storageAccountType), requestGiB)
 			if err != nil {
 				return nil, err
 			}

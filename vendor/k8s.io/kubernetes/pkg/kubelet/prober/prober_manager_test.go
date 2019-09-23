@@ -22,16 +22,12 @@ import (
 	"testing"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/features"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/prober/results"
 	"k8s.io/kubernetes/pkg/probe"
@@ -41,7 +37,7 @@ func init() {
 	runtime.ReallyCrash = true
 }
 
-var defaultProbe = &v1.Probe{
+var defaultProbe *v1.Probe = &v1.Probe{
 	Handler: v1.Handler{
 		Exec: &v1.ExecAction{},
 	},
@@ -61,8 +57,6 @@ func TestAddRemovePods(t *testing.T) {
 				Name: "no_probe1",
 			}, {
 				Name: "no_probe2",
-			}, {
-				Name: "no_probe3",
 			}},
 		},
 	}
@@ -73,26 +67,20 @@ func TestAddRemovePods(t *testing.T) {
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{{
-				Name: "probe1",
+				Name: "no_probe1",
 			}, {
 				Name:           "readiness",
 				ReadinessProbe: defaultProbe,
 			}, {
-				Name: "probe2",
+				Name: "no_probe2",
 			}, {
 				Name:          "liveness",
 				LivenessProbe: defaultProbe,
-			}, {
-				Name: "probe3",
-			}, {
-				Name:         "startup",
-				StartupProbe: defaultProbe,
 			}},
 		},
 	}
 
 	m := newTestManager()
-	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StartupProbe, true)()
 	defer cleanup(t, m)
 	if err := expectProbes(m, nil); err != nil {
 		t.Error(err)
@@ -109,7 +97,6 @@ func TestAddRemovePods(t *testing.T) {
 	probePaths := []probeKey{
 		{"probe_pod", "readiness", readiness},
 		{"probe_pod", "liveness", liveness},
-		{"probe_pod", "startup", startup},
 	}
 	if err := expectProbes(m, probePaths); err != nil {
 		t.Error(err)
@@ -139,7 +126,6 @@ func TestAddRemovePods(t *testing.T) {
 
 func TestCleanupPods(t *testing.T) {
 	m := newTestManager()
-	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StartupProbe, true)()
 	defer cleanup(t, m)
 	podToCleanup := v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -152,9 +138,6 @@ func TestCleanupPods(t *testing.T) {
 			}, {
 				Name:          "prober2",
 				LivenessProbe: defaultProbe,
-			}, {
-				Name:         "prober3",
-				StartupProbe: defaultProbe,
 			}},
 		},
 	}
@@ -169,28 +152,21 @@ func TestCleanupPods(t *testing.T) {
 			}, {
 				Name:          "prober2",
 				LivenessProbe: defaultProbe,
-			}, {
-				Name:         "prober3",
-				StartupProbe: defaultProbe,
 			}},
 		},
 	}
 	m.AddPod(&podToCleanup)
 	m.AddPod(&podToKeep)
 
-	desiredPods := map[types.UID]sets.Empty{}
-	desiredPods[podToKeep.UID] = sets.Empty{}
-	m.CleanupPods(desiredPods)
+	m.CleanupPods([]*v1.Pod{&podToKeep})
 
 	removedProbes := []probeKey{
 		{"pod_cleanup", "prober1", readiness},
 		{"pod_cleanup", "prober2", liveness},
-		{"pod_cleanup", "prober3", startup},
 	}
 	expectedProbes := []probeKey{
 		{"pod_keep", "prober1", readiness},
 		{"pod_keep", "prober2", liveness},
-		{"pod_keep", "prober3", startup},
 	}
 	if err := waitForWorkerExit(m, removedProbes); err != nil {
 		t.Fatal(err)
@@ -202,7 +178,6 @@ func TestCleanupPods(t *testing.T) {
 
 func TestCleanupRepeated(t *testing.T) {
 	m := newTestManager()
-	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StartupProbe, true)()
 	defer cleanup(t, m)
 	podTemplate := v1.Pod{
 		Spec: v1.PodSpec{
@@ -210,7 +185,6 @@ func TestCleanupRepeated(t *testing.T) {
 				Name:           "prober1",
 				ReadinessProbe: defaultProbe,
 				LivenessProbe:  defaultProbe,
-				StartupProbe:   defaultProbe,
 			}},
 		},
 	}
@@ -223,7 +197,7 @@ func TestCleanupRepeated(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-		m.CleanupPods(map[types.UID]sets.Empty{})
+		m.CleanupPods([]*v1.Pod{})
 	}
 }
 

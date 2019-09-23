@@ -15,32 +15,25 @@ import (
 // norm == lapack.MaxColumnSum or norm == lapackMaxRowSum work must have length
 // at least n, otherwise work is unused.
 func (impl Implementation) Dlansy(norm lapack.MatrixNorm, uplo blas.Uplo, n int, a []float64, lda int, work []float64) float64 {
-	switch {
-	case norm != lapack.MaxRowSum && norm != lapack.MaxColumnSum && norm != lapack.Frobenius && norm != lapack.MaxAbs:
+	checkMatrix(n, n, a, lda)
+	switch norm {
+	case lapack.MaxRowSum, lapack.MaxColumnSum, lapack.NormFrob, lapack.MaxAbs:
+	default:
 		panic(badNorm)
-	case uplo != blas.Upper && uplo != blas.Lower:
+	}
+	if (norm == lapack.MaxColumnSum || norm == lapack.MaxRowSum) && len(work) < n {
+		panic(badWork)
+	}
+	if uplo != blas.Upper && uplo != blas.Lower {
 		panic(badUplo)
-	case n < 0:
-		panic(nLT0)
-	case lda < max(1, n):
-		panic(badLdA)
 	}
 
-	// Quick return if possible.
 	if n == 0 {
 		return 0
 	}
-
-	switch {
-	case len(a) < (n-1)*lda+n:
-		panic(shortA)
-	case (norm == lapack.MaxColumnSum || norm == lapack.MaxRowSum) && len(work) < n:
-		panic(shortWork)
-	}
-
 	switch norm {
 	default:
-		panic(badNorm)
+		panic("unreachable")
 	case lapack.MaxAbs:
 		if uplo == blas.Upper {
 			var max float64
@@ -105,7 +98,7 @@ func (impl Implementation) Dlansy(norm lapack.MatrixNorm, uplo blas.Uplo, n int,
 			}
 		}
 		return max
-	case lapack.Frobenius:
+	case lapack.NormFrob:
 		if uplo == blas.Upper {
 			var sum float64
 			for i := 0; i < n; i++ {

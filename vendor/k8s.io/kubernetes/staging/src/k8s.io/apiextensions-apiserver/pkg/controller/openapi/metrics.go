@@ -17,21 +17,19 @@ limitations under the License.
 package openapi
 
 import (
-	"k8s.io/component-base/metrics"
-	"k8s.io/component-base/metrics/legacyregistry"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
-	regenerationCounter = metrics.NewCounterVec(
-		&metrics.CounterOpts{
-			Name:           "apiextensions_openapi_v2_regeneration_count",
-			Help:           "Counter of OpenAPI v2 spec regeneration count broken down by causing CRD name and reason.",
-			StabilityLevel: metrics.ALPHA,
+	regenerationCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "apiextensions_openapi_v2_regeneration_count",
+			Help: "Counter of OpenAPI v2 spec regeneration count broken down by causing CRD name and reason.",
 		},
 		[]string{"crd", "reason"},
 	)
 )
 
 func init() {
-	legacyregistry.MustRegister(regenerationCounter)
+	prometheus.MustRegister(regenerationCounter)
 }

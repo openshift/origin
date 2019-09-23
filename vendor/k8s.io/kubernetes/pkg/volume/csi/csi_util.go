@@ -18,10 +18,9 @@ package csi
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"time"
 
 	api "k8s.io/api/core/v1"
@@ -35,17 +34,16 @@ import (
 )
 
 const (
-	// TestInformerSyncPeriod is informer sync period duration for testing
-	TestInformerSyncPeriod = 100 * time.Millisecond
-	// TestInformerSyncTimeout is informer timeout duration for testing
-	TestInformerSyncTimeout = 30 * time.Second
+	testInformerSyncPeriod  = 100 * time.Millisecond
+	testInformerSyncTimeout = 30 * time.Second
 )
 
 func getCredentialsFromSecret(k8s kubernetes.Interface, secretRef *api.SecretReference) (map[string]string, error) {
 	credentials := map[string]string{}
 	secret, err := k8s.CoreV1().Secrets(secretRef.Namespace).Get(secretRef.Name, meta.GetOptions{})
 	if err != nil {
-		return credentials, errors.New(log("failed to find the secret %s in the namespace %s with error: %v", secretRef.Name, secretRef.Namespace, err))
+		klog.Errorf("failed to find the secret %s in the namespace %s with error: %v\n", secretRef.Name, secretRef.Namespace, err)
+		return credentials, err
 	}
 	for key, value := range secret.Data {
 		credentials[key] = string(value)
@@ -56,15 +54,17 @@ func getCredentialsFromSecret(k8s kubernetes.Interface, secretRef *api.SecretRef
 
 // saveVolumeData persists parameter data as json file at the provided location
 func saveVolumeData(dir string, fileName string, data map[string]string) error {
-	dataFilePath := filepath.Join(dir, fileName)
+	dataFilePath := path.Join(dir, fileName)
 	klog.V(4).Info(log("saving volume data file [%s]", dataFilePath))
 	file, err := os.Create(dataFilePath)
 	if err != nil {
-		return errors.New(log("failed to save volume data file %s: %v", dataFilePath, err))
+		klog.Error(log("failed to save volume data file %s: %v", dataFilePath, err))
+		return err
 	}
 	defer file.Close()
 	if err := json.NewEncoder(file).Encode(data); err != nil {
-		return errors.New(log("failed to save volume data file %s: %v", dataFilePath, err))
+		klog.Error(log("failed to save volume data file %s: %v", dataFilePath, err))
+		return err
 	}
 	klog.V(4).Info(log("volume data file saved successfully [%s]", dataFilePath))
 	return nil
@@ -73,17 +73,19 @@ func saveVolumeData(dir string, fileName string, data map[string]string) error {
 // loadVolumeData loads volume info from specified json file/location
 func loadVolumeData(dir string, fileName string) (map[string]string, error) {
 	// remove /mount at the end
-	dataFileName := filepath.Join(dir, fileName)
+	dataFileName := path.Join(dir, fileName)
 	klog.V(4).Info(log("loading volume data file [%s]", dataFileName))
 
 	file, err := os.Open(dataFileName)
 	if err != nil {
-		return nil, errors.New(log("failed to open volume data file [%s]: %v", dataFileName, err))
+		klog.Error(log("failed to open volume data file [%s]: %v", dataFileName, err))
+		return nil, err
 	}
 	defer file.Close()
 	data := map[string]string{}
 	if err := json.NewDecoder(file).Decode(&data); err != nil {
-		return nil, errors.New(log("failed to parse volume data file [%s]: %v", dataFileName, err))
+		klog.Error(log("failed to parse volume data file [%s]: %v", dataFileName, err))
+		return nil, err
 	}
 
 	return data, nil
@@ -112,7 +114,7 @@ func log(msg string, parts ...interface{}) string {
 // path: plugins/kubernetes.io/csi/volumeDevices/{specVolumeID}/dev
 func getVolumeDevicePluginDir(specVolID string, host volume.VolumeHost) string {
 	sanitizedSpecVolID := utilstrings.EscapeQualifiedName(specVolID)
-	return filepath.Join(host.GetVolumeDevicePluginDir(CSIPluginName), sanitizedSpecVolID, "dev")
+	return path.Join(host.GetVolumeDevicePluginDir(CSIPluginName), sanitizedSpecVolID, "dev")
 }
 
 // getVolumeDeviceDataDir returns the path where the CSI plugin keeps the
@@ -120,7 +122,7 @@ func getVolumeDevicePluginDir(specVolID string, host volume.VolumeHost) string {
 // path: plugins/kubernetes.io/csi/volumeDevices/{specVolumeID}/data
 func getVolumeDeviceDataDir(specVolID string, host volume.VolumeHost) string {
 	sanitizedSpecVolID := utilstrings.EscapeQualifiedName(specVolID)
-	return filepath.Join(host.GetVolumeDevicePluginDir(CSIPluginName), sanitizedSpecVolID, "data")
+	return path.Join(host.GetVolumeDevicePluginDir(CSIPluginName), sanitizedSpecVolID, "data")
 }
 
 // hasReadWriteOnce returns true if modes contains v1.ReadWriteOnce

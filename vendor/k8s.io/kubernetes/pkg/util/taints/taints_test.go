@@ -42,25 +42,15 @@ func TestTaintsVar(t *testing.T) {
 			t: []api.Taint{{Key: "foo", Value: "bar", Effect: "NoSchedule"}},
 		},
 		{
-			f: "--t=baz:NoSchedule",
-			t: []api.Taint{{Key: "baz", Value: "", Effect: "NoSchedule"}},
-		},
-		{
-			f: "--t=foo=bar:NoSchedule,baz:NoSchedule,bing=bang:PreferNoSchedule,qux=:NoSchedule",
+			f: "--t=foo=bar:NoSchedule,bing=bang:PreferNoSchedule",
 			t: []api.Taint{
 				{Key: "foo", Value: "bar", Effect: api.TaintEffectNoSchedule},
-				{Key: "baz", Value: "", Effect: "NoSchedule"},
 				{Key: "bing", Value: "bang", Effect: api.TaintEffectPreferNoSchedule},
-				{Key: "qux", Value: "", Effect: "NoSchedule"},
 			},
 		},
 		{
-			f: "--t=dedicated-for=user1:NoExecute,baz:NoSchedule,foo-bar=:NoSchedule",
-			t: []api.Taint{
-				{Key: "dedicated-for", Value: "user1", Effect: "NoExecute"},
-				{Key: "baz", Value: "", Effect: "NoSchedule"},
-				{Key: "foo-bar", Value: "", Effect: "NoSchedule"},
-			},
+			f: "--t=dedicated-for=user1:NoExecute",
+			t: []api.Taint{{Key: "dedicated-for", Value: "user1", Effect: "NoExecute"}},
 		},
 	}
 
@@ -605,27 +595,7 @@ func TestParseTaints(t *testing.T) {
 	}{
 		{
 			name:        "invalid spec format",
-			spec:        []string{""},
-			expectedErr: true,
-		},
-		{
-			name:        "invalid spec format",
 			spec:        []string{"foo=abc"},
-			expectedErr: true,
-		},
-		{
-			name:        "invalid spec format",
-			spec:        []string{"foo=abc=xyz:NoSchedule"},
-			expectedErr: true,
-		},
-		{
-			name:        "invalid spec format",
-			spec:        []string{"foo=abc:xyz:NoSchedule"},
-			expectedErr: true,
-		},
-		{
-			name:        "invalid spec format for adding taint",
-			spec:        []string{"foo"},
 			expectedErr: true,
 		},
 		{
@@ -640,7 +610,7 @@ func TestParseTaints(t *testing.T) {
 		},
 		{
 			name: "add new taints",
-			spec: []string{"foo=abc:NoSchedule", "bar=abc:NoSchedule", "baz:NoSchedule", "qux:NoSchedule", "foobar=:NoSchedule"},
+			spec: []string{"foo=abc:NoSchedule", "bar=abc:NoSchedule"},
 			expectedTaints: []v1.Taint{
 				{
 					Key:    "foo",
@@ -650,21 +620,6 @@ func TestParseTaints(t *testing.T) {
 				{
 					Key:    "bar",
 					Value:  "abc",
-					Effect: v1.TaintEffectNoSchedule,
-				},
-				{
-					Key:    "baz",
-					Value:  "",
-					Effect: v1.TaintEffectNoSchedule,
-				},
-				{
-					Key:    "qux",
-					Value:  "",
-					Effect: v1.TaintEffectNoSchedule,
-				},
-				{
-					Key:    "foobar",
-					Value:  "",
 					Effect: v1.TaintEffectNoSchedule,
 				},
 			},
@@ -672,7 +627,7 @@ func TestParseTaints(t *testing.T) {
 		},
 		{
 			name: "delete taints",
-			spec: []string{"foo:NoSchedule-", "bar:NoSchedule-", "qux=:NoSchedule-", "dedicated-"},
+			spec: []string{"foo:NoSchedule-", "bar:NoSchedule-"},
 			expectedTaintsToRemove: []v1.Taint{
 				{
 					Key:    "foo",
@@ -682,19 +637,12 @@ func TestParseTaints(t *testing.T) {
 					Key:    "bar",
 					Effect: v1.TaintEffectNoSchedule,
 				},
-				{
-					Key:    "qux",
-					Effect: v1.TaintEffectNoSchedule,
-				},
-				{
-					Key: "dedicated",
-				},
 			},
 			expectedErr: false,
 		},
 		{
 			name: "add taints and delete taints",
-			spec: []string{"foo=abc:NoSchedule", "bar=abc:NoSchedule", "baz:NoSchedule", "qux:NoSchedule", "foobar=:NoSchedule", "foo:NoSchedule-", "bar:NoSchedule-", "baz=:NoSchedule-"},
+			spec: []string{"foo=abc:NoSchedule", "bar=abc:NoSchedule", "foo:NoSchedule-", "bar:NoSchedule-"},
 			expectedTaints: []v1.Taint{
 				{
 					Key:    "foo",
@@ -706,21 +654,6 @@ func TestParseTaints(t *testing.T) {
 					Value:  "abc",
 					Effect: v1.TaintEffectNoSchedule,
 				},
-				{
-					Key:    "baz",
-					Value:  "",
-					Effect: v1.TaintEffectNoSchedule,
-				},
-				{
-					Key:    "qux",
-					Value:  "",
-					Effect: v1.TaintEffectNoSchedule,
-				},
-				{
-					Key:    "foobar",
-					Value:  "",
-					Effect: v1.TaintEffectNoSchedule,
-				},
 			},
 			expectedTaintsToRemove: []v1.Taint{
 				{
@@ -729,11 +662,6 @@ func TestParseTaints(t *testing.T) {
 				},
 				{
 					Key:    "bar",
-					Effect: v1.TaintEffectNoSchedule,
-				},
-				{
-					Key:    "baz",
-					Value:  "",
 					Effect: v1.TaintEffectNoSchedule,
 				},
 			},
@@ -744,10 +672,10 @@ func TestParseTaints(t *testing.T) {
 	for _, c := range cases {
 		taints, taintsToRemove, err := ParseTaints(c.spec)
 		if c.expectedErr && err == nil {
-			t.Errorf("[%s] expected error for spec %s, but got nothing", c.name, c.spec)
+			t.Errorf("[%s] expected error, but got nothing", c.name)
 		}
 		if !c.expectedErr && err != nil {
-			t.Errorf("[%s] expected no error for spec %s, but got: %v", c.name, c.spec, err)
+			t.Errorf("[%s] expected no error, but got: %v", c.name, err)
 		}
 		if !reflect.DeepEqual(c.expectedTaints, taints) {
 			t.Errorf("[%s] expected returen taints as %v, but got: %v", c.name, c.expectedTaints, taints)

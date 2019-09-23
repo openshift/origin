@@ -19,7 +19,6 @@ The goal of this specification is to enable the creation of interoperable tools 
 - [Filesystem Layers](layer.md)
 - [Image Configuration](config.md)
 - [Annotations](annotations.md)
-- [Conversion](conversion.md)
 - [Considerations](considerations.md)
     - [Extensibility](considerations.md#extensibility)
     - [Canonicalization](considerations.md#canonicalization)
@@ -57,7 +56,6 @@ The high-level components of the spec include:
 * [Image Layout](image-layout.md) - a filesystem layout representing the contents of an image
 * [Filesystem Layer](layer.md) - a changeset that describes a container's filesystem
 * [Image Configuration](config.md) - a document determining layer ordering and configuration of the image suitable for translation into a [runtime bundle][runtime-spec]
-* [Conversion](conversion.md) - a document describing how this translation should occur
 * [Descriptor](descriptor.md) - a reference that describes the type, metadata and content address of referenced content
 
 Future versions of this specification may include the following OPTIONAL features:

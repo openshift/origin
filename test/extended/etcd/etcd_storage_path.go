@@ -11,7 +11,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	"golang.org/x/net/context"
 
-	kapiv1 "k8s.io/api/core/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,10 +22,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	discocache "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
-	kclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
 	etcdv3 "github.com/coreos/etcd/clientv3"
@@ -252,11 +252,11 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(kubeConfig)}
 
-	if _, err := kubeClient.CoreV1().Namespaces().Create(&kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
+	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
 	}
 	defer func() {
-		if err := kubeClient.CoreV1().Namespaces().Delete(testNamespace, nil); err != nil {
+		if err := kubeClient.Core().Namespaces().Delete(testNamespace, nil); err != nil {
 			t.Fatalf("error deleting test namespace: %#v", err)
 		}
 	}()
@@ -275,7 +275,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"),
 		gvr("settings.k8s.io", "v1alpha1", "podpresets"),
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
-		gvr("discovery.k8s.io", "v1alpha1", "endpointslices"),
 	)
 
 	// we use a different default path prefix for kube resources

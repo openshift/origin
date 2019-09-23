@@ -19,12 +19,12 @@ package options
 import (
 	"github.com/spf13/pflag"
 
-	podgcconfig "k8s.io/kubernetes/pkg/controller/podgc/config"
+	kubectrlmgrconfig "k8s.io/kubernetes/pkg/controller/apis/config"
 )
 
 // PodGCControllerOptions holds the PodGCController options.
 type PodGCControllerOptions struct {
-	*podgcconfig.PodGCControllerConfiguration
+	*kubectrlmgrconfig.PodGCControllerConfiguration
 }
 
 // AddFlags adds flags related to PodGCController for controller manager to the specified FlagSet.
@@ -37,7 +37,7 @@ func (o *PodGCControllerOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 // ApplyTo fills up PodGCController config with options.
-func (o *PodGCControllerOptions) ApplyTo(cfg *podgcconfig.PodGCControllerConfiguration) error {
+func (o *PodGCControllerOptions) ApplyTo(cfg *kubectrlmgrconfig.PodGCControllerConfiguration) error {
 	if o == nil {
 		return nil
 	}

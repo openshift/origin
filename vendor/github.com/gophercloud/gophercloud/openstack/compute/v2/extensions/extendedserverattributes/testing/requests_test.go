@@ -28,31 +28,10 @@ func TestServerWithUsageExt(t *testing.T) {
 		extendedserverattributes.ServerAttributesExt
 	}
 	var serverWithAttributesExt serverAttributesExt
-
-	result := servers.Get(fake.ServiceClient(), "d650a0ce-17c3-497d-961a-43c4af80998a")
-
-	// Extract basic fields.
 	err := servers.Get(fake.ServiceClient(), "d650a0ce-17c3-497d-961a-43c4af80998a").ExtractInto(&serverWithAttributesExt)
-	th.AssertNoErr(t, err)
-
-	// Extract additional fields.
-	reservationID, err := extendedserverattributes.ExtractReservationID(result.Result)
-	th.AssertNoErr(t, err)
-
-	launchIndex, err := extendedserverattributes.ExtractLaunchIndex(result.Result)
-	th.AssertNoErr(t, err)
-
-	hostname, err := extendedserverattributes.ExtractHostname(result.Result)
-	th.AssertNoErr(t, err)
-
-	rootDeviceName, err := extendedserverattributes.ExtractRootDeviceName(result.Result)
 	th.AssertNoErr(t, err)
 
 	th.AssertEquals(t, serverWithAttributesExt.Host, "compute01")
 	th.AssertEquals(t, serverWithAttributesExt.InstanceName, "instance-00000001")
 	th.AssertEquals(t, serverWithAttributesExt.HypervisorHostname, "compute01")
-	th.AssertEquals(t, reservationID, "r-ky9gim1l")
-	th.AssertEquals(t, launchIndex, 0)
-	th.AssertEquals(t, hostname, "test00")
-	th.AssertEquals(t, rootDeviceName, "/dev/sda")
 }

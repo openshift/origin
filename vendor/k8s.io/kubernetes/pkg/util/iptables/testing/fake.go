@@ -34,25 +34,21 @@ const (
 	ToDest      = "--to-destination "
 	Recent      = "recent "
 	MatchSet    = "--match-set "
-	SrcType     = "--src-type "
-	Masquerade  = "MASQUERADE "
 )
 
 type Rule map[string]string
 
 // no-op implementation of iptables Interface
 type FakeIPTables struct {
-	hasRandomFully bool
-	Lines          []byte
+	Lines []byte
 }
 
 func NewFake() *FakeIPTables {
 	return &FakeIPTables{}
 }
 
-func (f *FakeIPTables) SetHasRandomFully(can bool) *FakeIPTables {
-	f.hasRandomFully = can
-	return f
+func (*FakeIPTables) GetVersion() (string, error) {
+	return "0.0.0", nil
 }
 
 func (*FakeIPTables) EnsureChain(table iptables.Table, chain iptables.Chain) (bool, error) {
@@ -117,7 +113,7 @@ func (f *FakeIPTables) GetRules(chainName string) (rules []Rule) {
 	for _, l := range strings.Split(string(f.Lines), "\n") {
 		if strings.Contains(l, fmt.Sprintf("-A %v", chainName)) {
 			newRule := Rule(map[string]string{})
-			for _, arg := range []string{Destination, Source, DPort, Protocol, Jump, ToDest, Recent, MatchSet, SrcType, Masquerade} {
+			for _, arg := range []string{Destination, Source, DPort, Protocol, Jump, ToDest, Recent, MatchSet} {
 				tok := getToken(l, arg)
 				if tok != "" {
 					newRule[arg] = tok
@@ -127,10 +123,6 @@ func (f *FakeIPTables) GetRules(chainName string) (rules []Rule) {
 		}
 	}
 	return
-}
-
-func (f *FakeIPTables) HasRandomFully() bool {
-	return f.hasRandomFully
 }
 
 var _ = iptables.Interface(&FakeIPTables{})

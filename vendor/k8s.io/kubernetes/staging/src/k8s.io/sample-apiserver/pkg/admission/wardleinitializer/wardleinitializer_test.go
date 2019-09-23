@@ -17,7 +17,6 @@ limitations under the License.
 package wardleinitializer_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -49,7 +48,7 @@ type wantInternalWardleInformerFactory struct {
 func (self *wantInternalWardleInformerFactory) SetInternalWardleInformerFactory(sf informers.SharedInformerFactory) {
 	self.sf = sf
 }
-func (self *wantInternalWardleInformerFactory) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+func (self *wantInternalWardleInformerFactory) Admit(a admission.Attributes, o admission.ObjectInterfaces) error {
 	return nil
 }
 func (self *wantInternalWardleInformerFactory) Handles(o admission.Operation) bool { return false }

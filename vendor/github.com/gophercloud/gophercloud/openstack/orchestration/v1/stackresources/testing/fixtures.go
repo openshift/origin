@@ -441,16 +441,3 @@ func HandleGetTemplateSuccessfully(t *testing.T, output string) {
 		fmt.Fprintf(w, output)
 	})
 }
-
-// HandleMarkUnhealthySuccessfully creates an HTTP handler at `/stacks/teststack/0b1771bd-9336-4f2b-ae86-a80f971faf1e/resources/wordpress_instance`
-// on the test handler mux that responds with a `MarkUnhealthy` response.
-func HandleMarkUnhealthySuccessfully(t *testing.T) {
-	th.Mux.HandleFunc("/stacks/teststack/0b1771bd-9336-4f2b-ae86-a80f971faf1e/resources/wordpress_instance", func(w http.ResponseWriter, r *http.Request) {
-		th.TestMethod(t, r, "PATCH")
-		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
-		th.TestHeader(t, r, "Accept", "application/json")
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-	})
-}

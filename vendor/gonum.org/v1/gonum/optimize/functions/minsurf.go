@@ -75,15 +75,12 @@ func (ms *MinimalSurface) Func(x []float64) (area float64) {
 }
 
 // Grad evaluates the area gradient of the surface represented by the vector.
-func (ms *MinimalSurface) Grad(grad, x []float64) []float64 {
+func (ms *MinimalSurface) Grad(grad, x []float64) {
 	nx, ny := ms.Dims()
 	if len(x) != (nx-2)*(ny-2) {
 		panic("functions: problem size mismatch")
 	}
-	if grad == nil {
-		grad = make([]float64, len(x))
-	}
-	if len(x) != len(grad) {
+	if grad != nil && len(x) != len(grad) {
 		panic("functions: unexpected size mismatch")
 	}
 
@@ -131,7 +128,6 @@ func (ms *MinimalSurface) Grad(grad, x []float64) []float64 {
 	for i := range grad {
 		grad[i] *= cellSize
 	}
-	return grad
 }
 
 // InitX returns a starting location for the minimization problem. Length of

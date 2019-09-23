@@ -13,7 +13,7 @@ var _ = Describe("Interrupt", func() {
 	var pathToTest string
 	BeforeEach(func() {
 		pathToTest = tmpPath("hanging")
-		copyIn(fixturePath("hanging_suite"), pathToTest, false)
+		copyIn("hanging_suite", pathToTest)
 	})
 
 	Context("when interrupting a suite", func() {

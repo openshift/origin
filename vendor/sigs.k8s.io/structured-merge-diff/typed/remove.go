@@ -31,7 +31,7 @@ func removeItemsWithSchema(value *value.Value, toRemove *fieldpath.Set, schema *
 		schema:   schema,
 		toRemove: toRemove,
 	}
-	resolveSchema(schema, typeRef, value, w)
+	resolveSchema(schema, typeRef, w)
 }
 
 // doLeaf should be called on leaves before descending into children, if there
@@ -39,6 +39,29 @@ func removeItemsWithSchema(value *value.Value, toRemove *fieldpath.Set, schema *
 func (w *removingWalker) doLeaf() ValidationErrors { return nil }
 
 func (w *removingWalker) doScalar(t schema.Scalar) ValidationErrors { return nil }
+
+func (w *removingWalker) doStruct(t schema.Struct) ValidationErrors {
+	s := w.value.MapValue
+
+	// If struct is null, empty, or atomic just return
+	if s == nil || len(s.Items) == 0 || t.ElementRelationship == schema.Atomic {
+		return nil
+	}
+
+	fieldTypes := map[string]schema.TypeRef{}
+	for _, structField := range t.Fields {
+		fieldTypes[structField.Name] = structField.Type
+	}
+
+	for i, _ := range s.Items {
+		item := s.Items[i]
+		pe := fieldpath.PathElement{FieldName: &item.Name}
+		if subset := w.toRemove.WithPrefix(pe); !subset.Empty() {
+			removeItemsWithSchema(&s.Items[i].Value, subset, w.schema, fieldTypes[item.Name])
+		}
+	}
+	return nil
+}
 
 func (w *removingWalker) doList(t schema.List) (errs ValidationErrors) {
 	l := w.value.ListValue
@@ -49,7 +72,7 @@ func (w *removingWalker) doList(t schema.List) (errs ValidationErrors) {
 	}
 
 	newItems := []value.Value{}
-	for i := range l.Items {
+	for i, _ := range l.Items {
 		item := l.Items[i]
 		// Ignore error because we have already validated this list
 		pe, _ := listItemToPathElement(t, i, item)
@@ -78,26 +101,16 @@ func (w *removingWalker) doMap(t schema.Map) ValidationErrors {
 		return nil
 	}
 
-	fieldTypes := map[string]schema.TypeRef{}
-	for _, structField := range t.Fields {
-		fieldTypes[structField.Name] = structField.Type
-	}
-
 	newMap := &value.Map{}
-	for i := range m.Items {
+	for i, _ := range m.Items {
 		item := m.Items[i]
 		pe := fieldpath.PathElement{FieldName: &item.Name}
 		path, _ := fieldpath.MakePath(pe)
-		fieldType := t.ElementType
-		if ft, ok := fieldTypes[item.Name]; ok {
-			fieldType = ft
-		} else {
-			if w.toRemove.Has(path) {
-				continue
-			}
+		if w.toRemove.Has(path) {
+			continue
 		}
 		if subset := w.toRemove.WithPrefix(pe); !subset.Empty() {
-			removeItemsWithSchema(&m.Items[i].Value, subset, w.schema, fieldType)
+			removeItemsWithSchema(&m.Items[i].Value, subset, w.schema, t.ElementType)
 		}
 		newMap.Set(item.Name, m.Items[i].Value)
 	}
@@ -108,5 +121,7 @@ func (w *removingWalker) doMap(t schema.Map) ValidationErrors {
 	}
 	return nil
 }
+
+func (*removingWalker) doUntyped(_ schema.Untyped) ValidationErrors { return nil }
 
 func (*removingWalker) errorf(_ string, _ ...interface{}) ValidationErrors { return nil }

@@ -20,52 +20,50 @@ import (
 	"fmt"
 	"time"
 
-	coordinationv1 "k8s.io/api/coordination/v1"
-	v1 "k8s.io/api/core/v1"
+	coordv1beta1 "k8s.io/api/coordination/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
-	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	testutils "k8s.io/kubernetes/test/utils"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = framework.KubeDescribe("NodeLease", func() {
 	var nodeName string
 	f := framework.NewDefaultFramework("node-lease-test")
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		nodes := framework.GetReadySchedulableNodesOrDie(f.ClientSet)
-		gomega.Expect(len(nodes.Items)).NotTo(gomega.BeZero())
+		Expect(len(nodes.Items)).NotTo(BeZero())
 		nodeName = nodes.Items[0].ObjectMeta.Name
 	})
 
-	ginkgo.Context("when the NodeLease feature is enabled", func() {
-		ginkgo.It("the kubelet should create and update a lease in the kube-node-lease namespace", func() {
-			leaseClient := f.ClientSet.CoordinationV1().Leases(v1.NamespaceNodeLease)
+	Context("when the NodeLease feature is enabled", func() {
+		It("the kubelet should create and update a lease in the kube-node-lease namespace", func() {
+			leaseClient := f.ClientSet.CoordinationV1beta1().Leases(corev1.NamespaceNodeLease)
 			var (
 				err   error
-				lease *coordinationv1.Lease
+				lease *coordv1beta1.Lease
 			)
-			ginkgo.By("check that lease for this Kubelet exists in the kube-node-lease namespace")
-			gomega.Eventually(func() error {
+			By("check that lease for this Kubelet exists in the kube-node-lease namespace")
+			Eventually(func() error {
 				lease, err = leaseClient.Get(nodeName, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
 				return nil
-			}, 5*time.Minute, 5*time.Second).Should(gomega.BeNil())
+			}, 5*time.Minute, 5*time.Second).Should(BeNil())
 			// check basic expectations for the lease
-			gomega.Expect(expectLease(lease, nodeName)).To(gomega.BeNil())
+			Expect(expectLease(lease, nodeName)).To(BeNil())
 
-			ginkgo.By("check that node lease is updated at least once within the lease duration")
-			gomega.Eventually(func() error {
+			By("check that node lease is updated at least once within the lease duration")
+			Eventually(func() error {
 				newLease, err := leaseClient.Get(nodeName, metav1.GetOptions{})
 				if err != nil {
 					return err
@@ -85,25 +83,25 @@ var _ = framework.KubeDescribe("NodeLease", func() {
 				time.Duration(*lease.Spec.LeaseDurationSeconds/4)*time.Second)
 		})
 
-		ginkgo.It("the kubelet should report node status infrequently", func() {
-			ginkgo.By("wait until node is ready")
-			e2enode.WaitForNodeToBeReady(f.ClientSet, nodeName, 5*time.Minute)
+		It("the kubelet should report node status infrequently", func() {
+			By("wait until node is ready")
+			framework.WaitForNodeToBeReady(f.ClientSet, nodeName, 5*time.Minute)
 
-			ginkgo.By("wait until there is node lease")
+			By("wait until there is node lease")
 			var err error
-			var lease *coordinationv1.Lease
-			gomega.Eventually(func() error {
-				lease, err = f.ClientSet.CoordinationV1().Leases(v1.NamespaceNodeLease).Get(nodeName, metav1.GetOptions{})
+			var lease *coordv1beta1.Lease
+			Eventually(func() error {
+				lease, err = f.ClientSet.CoordinationV1beta1().Leases(corev1.NamespaceNodeLease).Get(nodeName, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
 				return nil
-			}, 5*time.Minute, 5*time.Second).Should(gomega.BeNil())
+			}, 5*time.Minute, 5*time.Second).Should(BeNil())
 			// check basic expectations for the lease
-			gomega.Expect(expectLease(lease, nodeName)).To(gomega.BeNil())
+			Expect(expectLease(lease, nodeName)).To(BeNil())
 			leaseDuration := time.Duration(*lease.Spec.LeaseDurationSeconds) * time.Second
 
-			ginkgo.By("verify NodeStatus report period is longer than lease duration")
+			By("verify NodeStatus report period is longer than lease duration")
 			// NodeStatus is reported from node to master when there is some change or
 			// enough time has passed. So for here, keep checking the time diff
 			// between 2 NodeStatus report, until it is longer than lease duration
@@ -117,23 +115,23 @@ var _ = framework.KubeDescribe("NodeLease", func() {
 				if currentHeartbeatTime == lastHeartbeatTime {
 					if currentObserved.Sub(lastObserved) > 2*leaseDuration {
 						// heartbeat hasn't changed while watching for at least 2*leaseDuration, success!
-						e2elog.Logf("node status heartbeat is unchanged for %s, was waiting for at least %s, success!", currentObserved.Sub(lastObserved), 2*leaseDuration)
+						framework.Logf("node status heartbeat is unchanged for %s, was waiting for at least %s, success!", currentObserved.Sub(lastObserved), 2*leaseDuration)
 						return true, nil
 					}
-					e2elog.Logf("node status heartbeat is unchanged for %s, waiting for %s", currentObserved.Sub(lastObserved), 2*leaseDuration)
+					framework.Logf("node status heartbeat is unchanged for %s, waiting for %s", currentObserved.Sub(lastObserved), 2*leaseDuration)
 					return false, nil
 				}
 
 				if currentHeartbeatTime.Sub(lastHeartbeatTime) >= leaseDuration {
 					// heartbeat time changed, but the diff was greater than leaseDuration, success!
-					e2elog.Logf("node status heartbeat changed in %s, was waiting for at least %s, success!", currentHeartbeatTime.Sub(lastHeartbeatTime), leaseDuration)
+					framework.Logf("node status heartbeat changed in %s, was waiting for at least %s, success!", currentHeartbeatTime.Sub(lastHeartbeatTime), leaseDuration)
 					return true, nil
 				}
 
 				if !apiequality.Semantic.DeepEqual(lastStatus, currentStatus) {
 					// heartbeat time changed, but there were relevant changes in the status, keep waiting
-					e2elog.Logf("node status heartbeat changed in %s (with other status changes), waiting for %s", currentHeartbeatTime.Sub(lastHeartbeatTime), leaseDuration)
-					e2elog.Logf("%s", diff.ObjectReflectDiff(lastStatus, currentStatus))
+					framework.Logf("node status heartbeat changed in %s (with other status changes), waiting for %s", currentHeartbeatTime.Sub(lastHeartbeatTime), leaseDuration)
+					framework.Logf("%s", diff.ObjectReflectDiff(lastStatus, currentStatus))
 					lastHeartbeatTime = currentHeartbeatTime
 					lastObserved = currentObserved
 					lastStatus = currentStatus
@@ -145,32 +143,32 @@ var _ = framework.KubeDescribe("NodeLease", func() {
 			})
 			// a timeout is acceptable, since it means we waited 5 minutes and didn't see any unwarranted node status updates
 			if err != nil && err != wait.ErrWaitTimeout {
-				framework.ExpectNoError(err, "error waiting for infrequent nodestatus update")
+				Expect(err).NotTo(HaveOccurred(), "error waiting for infrequent nodestatus update")
 			}
 
-			ginkgo.By("verify node is still in ready status even though node status report is infrequent")
+			By("verify node is still in ready status even though node status report is infrequent")
 			// This check on node status is only meaningful when this e2e test is
 			// running as cluster e2e test, because node e2e test does not create and
 			// run controller manager, i.e., no node lifecycle controller.
 			node, err := f.ClientSet.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
-			gomega.Expect(err).To(gomega.BeNil())
-			_, readyCondition := testutils.GetNodeCondition(&node.Status, v1.NodeReady)
-			framework.ExpectEqual(readyCondition.Status, v1.ConditionTrue)
+			Expect(err).To(BeNil())
+			_, readyCondition := testutils.GetNodeCondition(&node.Status, corev1.NodeReady)
+			Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
 		})
 	})
 })
 
-func getHeartbeatTimeAndStatus(clientSet clientset.Interface, nodeName string) (time.Time, v1.NodeStatus) {
+func getHeartbeatTimeAndStatus(clientSet clientset.Interface, nodeName string) (time.Time, corev1.NodeStatus) {
 	node, err := clientSet.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
-	gomega.Expect(err).To(gomega.BeNil())
-	_, readyCondition := testutils.GetNodeCondition(&node.Status, v1.NodeReady)
-	framework.ExpectEqual(readyCondition.Status, v1.ConditionTrue)
+	Expect(err).To(BeNil())
+	_, readyCondition := testutils.GetNodeCondition(&node.Status, corev1.NodeReady)
+	Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
 	heartbeatTime := readyCondition.LastHeartbeatTime.Time
 	readyCondition.LastHeartbeatTime = metav1.Time{}
 	return heartbeatTime, node.Status
 }
 
-func expectLease(lease *coordinationv1.Lease, nodeName string) error {
+func expectLease(lease *coordv1beta1.Lease, nodeName string) error {
 	// expect values for HolderIdentity, LeaseDurationSeconds, and RenewTime
 	if lease.Spec.HolderIdentity == nil {
 		return fmt.Errorf("Spec.HolderIdentity should not be nil")

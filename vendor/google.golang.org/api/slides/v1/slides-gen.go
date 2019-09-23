@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2018 Google Inc. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,39 +6,13 @@
 
 // Package slides provides access to the Google Slides API.
 //
-// For product documentation, see: https://developers.google.com/slides/
-//
-// Creating a client
+// See https://developers.google.com/slides/
 //
 // Usage example:
 //
 //   import "google.golang.org/api/slides/v1"
 //   ...
-//   ctx := context.Background()
-//   slidesService, err := slides.NewService(ctx)
-//
-// In this example, Google Application Default Credentials are used for authentication.
-//
-// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
-//
-// Other authentication options
-//
-// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
-//
-//   slidesService, err := slides.NewService(ctx, option.WithScopes(slides.SpreadsheetsReadonlyScope))
-//
-// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
-//
-//   slidesService, err := slides.NewService(ctx, option.WithAPIKey("AIza..."))
-//
-// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
-//
-//   config := &oauth2.Config{...}
-//   // ...
-//   token, err := config.Exchange(ctx, ...)
-//   slidesService, err := slides.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
-//
-// See https://godoc.org/google.golang.org/api/option/ for details on options.
+//   slidesService, err := slides.New(oauthHttpClient)
 package slides // import "google.golang.org/api/slides/v1"
 
 import (
@@ -55,8 +29,6 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
-	option "google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -103,38 +75,6 @@ const (
 	SpreadsheetsReadonlyScope = "https://www.googleapis.com/auth/spreadsheets.readonly"
 )
 
-// NewService creates a new Service.
-func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
-	scopesOption := option.WithScopes(
-		"https://www.googleapis.com/auth/drive",
-		"https://www.googleapis.com/auth/drive.file",
-		"https://www.googleapis.com/auth/drive.readonly",
-		"https://www.googleapis.com/auth/presentations",
-		"https://www.googleapis.com/auth/presentations.readonly",
-		"https://www.googleapis.com/auth/spreadsheets",
-		"https://www.googleapis.com/auth/spreadsheets.readonly",
-	)
-	// NOTE: prepend, so we don't override user-specified scopes.
-	opts = append([]option.ClientOption{scopesOption}, opts...)
-	client, endpoint, err := htransport.NewClient(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	s, err := New(client)
-	if err != nil {
-		return nil, err
-	}
-	if endpoint != "" {
-		s.BasePath = endpoint
-	}
-	return s, nil
-}
-
-// New creates a new Service. It uses the provided http.Client for requests.
-//
-// Deprecated: please use NewService instead.
-// To provide a custom HTTP client, use option.WithHTTPClient.
-// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -6356,7 +6296,7 @@ func (s *TableColumnProperties) MarshalJSON() ([]byte, error) {
 // specifies the following cells:
 //
 //       x     x
-//      [ x    x    x ]
+//      [      x      ]
 type TableRange struct {
 	// ColumnSpan: The column span of the table range.
 	ColumnSpan int64 `json:"columnSpan,omitempty"`
@@ -7952,8 +7892,7 @@ type WeightedFontFamily struct {
 	// range
 	// corresponds to the numerical values described in the CSS
 	// 2.1
-	// Specification,
-	// [section
+	// Specification, [section
 	// 15.6](https://www.w3.org/TR/CSS21/fonts.html#font-boldness),
 	// with non-numerical values disallowed. Weights greater than or equal
 	// to

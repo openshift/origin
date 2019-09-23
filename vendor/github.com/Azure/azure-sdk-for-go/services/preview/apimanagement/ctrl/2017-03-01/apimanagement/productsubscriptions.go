@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -52,16 +51,6 @@ func NewProductSubscriptionsClient() ProductSubscriptionsClient {
 // top - number of records to return.
 // skip - number of records to skip.
 func (client ProductSubscriptionsClient) List(ctx context.Context, apimBaseURL string, productID string, filter string, top *int32, skip *int32) (result SubscriptionCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProductSubscriptionsClient.List")
-		defer func() {
-			sc := -1
-			if result.sc.Response.Response != nil {
-				sc = result.sc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: productID,
 			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 256, Chain: nil},
@@ -133,8 +122,8 @@ func (client ProductSubscriptionsClient) ListPreparer(ctx context.Context, apimB
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProductSubscriptionsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -151,8 +140,8 @@ func (client ProductSubscriptionsClient) ListResponder(resp *http.Response) (res
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ProductSubscriptionsClient) listNextResults(ctx context.Context, lastResults SubscriptionCollection) (result SubscriptionCollection, err error) {
-	req, err := lastResults.subscriptionCollectionPreparer(ctx)
+func (client ProductSubscriptionsClient) listNextResults(lastResults SubscriptionCollection) (result SubscriptionCollection, err error) {
+	req, err := lastResults.subscriptionCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.ProductSubscriptionsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -173,16 +162,6 @@ func (client ProductSubscriptionsClient) listNextResults(ctx context.Context, la
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ProductSubscriptionsClient) ListComplete(ctx context.Context, apimBaseURL string, productID string, filter string, top *int32, skip *int32) (result SubscriptionCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProductSubscriptionsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, apimBaseURL, productID, filter, top, skip)
 	return
 }

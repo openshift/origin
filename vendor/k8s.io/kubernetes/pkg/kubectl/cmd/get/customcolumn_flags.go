@@ -25,7 +25,7 @@ import (
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
-	"k8s.io/kubectl/pkg/scheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 var columnsFormats = map[string]bool{

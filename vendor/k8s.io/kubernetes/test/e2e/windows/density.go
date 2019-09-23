@@ -30,10 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2ekubelet "k8s.io/kubernetes/test/e2e/framework/kubelet"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
-	e2emetrics "k8s.io/kubernetes/test/e2e/framework/metrics"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/onsi/ginkgo"
@@ -51,7 +47,7 @@ var _ = SIGDescribe("[Feature:Windows] Density [Serial] [Slow]", func() {
 				podsNr:   10,
 				interval: 0 * time.Millisecond,
 				// percentile limit of single pod startup latency
-				podStartupLimits: e2emetrics.LatencyMetric{
+				podStartupLimits: framework.LatencyMetric{
 					Perc50: 30 * time.Second,
 					Perc90: 54 * time.Second,
 					Perc99: 59 * time.Second,
@@ -85,14 +81,14 @@ type densityTest struct {
 	// API QPS limit
 	APIQPSLimit int
 	// performance limits
-	cpuLimits            e2ekubelet.ContainersCPUSummary
-	memLimits            e2ekubelet.ResourceUsagePerContainer
-	podStartupLimits     e2emetrics.LatencyMetric
+	cpuLimits            framework.ContainersCPUSummary
+	memLimits            framework.ResourceUsagePerContainer
+	podStartupLimits     framework.LatencyMetric
 	podBatchStartupLimit time.Duration
 }
 
 // runDensityBatchTest runs the density batch pod creation test
-func runDensityBatchTest(f *framework.Framework, testArg densityTest) (time.Duration, []e2emetrics.PodLatencyData) {
+func runDensityBatchTest(f *framework.Framework, testArg densityTest) (time.Duration, []framework.PodLatencyData) {
 	const (
 		podType = "density_test_pod"
 	)
@@ -121,7 +117,7 @@ func runDensityBatchTest(f *framework.Framework, testArg densityTest) (time.Dura
 	}, 10*time.Minute, 10*time.Second).Should(gomega.BeTrue())
 
 	if len(watchTimes) < testArg.podsNr {
-		e2elog.Failf("Timeout reached waiting for all Pods to be observed by the watch.")
+		framework.Failf("Timeout reached waiting for all Pods to be observed by the watch.")
 	}
 
 	// Analyze results
@@ -129,15 +125,15 @@ func runDensityBatchTest(f *framework.Framework, testArg densityTest) (time.Dura
 		firstCreate metav1.Time
 		lastRunning metav1.Time
 		init        = true
-		e2eLags     = make([]e2emetrics.PodLatencyData, 0)
+		e2eLags     = make([]framework.PodLatencyData, 0)
 	)
 
 	for name, create := range createTimes {
 		watch, ok := watchTimes[name]
-		framework.ExpectEqual(ok, true)
+		gomega.Expect(ok).To(gomega.Equal(true))
 
 		e2eLags = append(e2eLags,
-			e2emetrics.PodLatencyData{Name: name, Latency: watch.Time.Sub(create.Time)})
+			framework.PodLatencyData{Name: name, Latency: watch.Time.Sub(create.Time)})
 
 		if !init {
 			if firstCreate.Time.After(create.Time) {
@@ -152,7 +148,7 @@ func runDensityBatchTest(f *framework.Framework, testArg densityTest) (time.Dura
 		}
 	}
 
-	sort.Sort(e2emetrics.LatencySlice(e2eLags))
+	sort.Sort(framework.LatencySlice(e2eLags))
 	batchLag := lastRunning.Time.Sub(firstCreate.Time)
 
 	deletePodsSync(f, pods)
@@ -204,12 +200,12 @@ func newInformerWatchPod(f *framework.Framework, mutex *sync.Mutex, watchTimes m
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				p, ok := obj.(*v1.Pod)
-				framework.ExpectEqual(ok, true)
+				gomega.Expect(ok).To(gomega.Equal(true))
 				go checkPodRunning(p)
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				p, ok := newObj.(*v1.Pod)
-				framework.ExpectEqual(ok, true)
+				gomega.Expect(ok).To(gomega.Equal(true))
 				go checkPodRunning(p)
 			},
 		},
@@ -271,11 +267,10 @@ func deletePodsSync(f *framework.Framework, pods []*v1.Pod) {
 			defer wg.Done()
 
 			err := f.PodClient().Delete(pod.ObjectMeta.Name, metav1.NewDeleteOptions(30))
-			framework.ExpectNoError(err)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			err = e2epod.WaitForPodToDisappear(f.ClientSet, f.Namespace.Name, pod.ObjectMeta.Name, labels.Everything(),
-				30*time.Second, 10*time.Minute)
-			framework.ExpectNoError(err)
+			gomega.Expect(framework.WaitForPodToDisappear(f.ClientSet, f.Namespace.Name, pod.ObjectMeta.Name, labels.Everything(),
+				30*time.Second, 10*time.Minute)).NotTo(gomega.HaveOccurred())
 		}(pod)
 	}
 	wg.Wait()

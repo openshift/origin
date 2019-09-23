@@ -25,13 +25,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
-	etcd3testing "k8s.io/apiserver/pkg/storage/etcd3/testing"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 )
 
-func newStorage(t *testing.T) (*JobStorage, *etcd3testing.EtcdTestServer) {
+func newStorage(t *testing.T) (*JobStorage, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, batch.GroupName)
 	restOptions := generic.RESTOptions{
 		StorageConfig:           etcdStorage,
@@ -39,10 +39,7 @@ func newStorage(t *testing.T) (*JobStorage, *etcd3testing.EtcdTestServer) {
 		DeleteCollectionWorkers: 1,
 		ResourcePrefix:          "jobs",
 	}
-	jobStorage, err := NewStorage(restOptions)
-	if err != nil {
-		t.Fatalf("unexpected error from REST storage: %v", err)
-	}
+	jobStorage := NewStorage(restOptions)
 	return &jobStorage, server
 }
 

@@ -38,32 +38,6 @@ func CreateFloatingIP(t *testing.T, client *gophercloud.ServiceClient, networkID
 	return floatingIP, err
 }
 
-// CreateFloatingIPWithFixedIP creates a floating IP on a given network and port with a
-// defined fixed IP. An error will be returned if the creation failed.
-func CreateFloatingIPWithFixedIP(t *testing.T, client *gophercloud.ServiceClient, networkID, portID, fixedIP string) (*floatingips.FloatingIP, error) {
-	t.Logf("Attempting to create floating IP on port: %s and address: %s", portID, fixedIP)
-
-	fipDescription := "Test floating IP"
-	createOpts := &floatingips.CreateOpts{
-		Description:       fipDescription,
-		FloatingNetworkID: networkID,
-		PortID:            portID,
-		FixedIP:           fixedIP,
-	}
-
-	floatingIP, err := floatingips.Create(client, createOpts).Extract()
-	if err != nil {
-		return floatingIP, err
-	}
-
-	t.Logf("Created floating IP.")
-
-	th.AssertEquals(t, floatingIP.Description, fipDescription)
-	th.AssertEquals(t, floatingIP.FixedIP, fixedIP)
-
-	return floatingIP, err
-}
-
 // CreateExternalRouter creates a router on the external network. This requires
 // the OS_EXTGW_ID environment variable to be set. An error is returned if the
 // creation failed.
@@ -161,28 +135,6 @@ func CreateRouterInterface(t *testing.T, client *gophercloud.ServiceClient, port
 	}
 
 	t.Logf("Successfully added port %s to router %s", portID, routerID)
-	return iface, nil
-}
-
-// CreateRouterInterfaceOnSubnet will attach a subnet to a router. An error will be
-// returned if the operation fails.
-func CreateRouterInterfaceOnSubnet(t *testing.T, client *gophercloud.ServiceClient, subnetID, routerID string) (*routers.InterfaceInfo, error) {
-	t.Logf("Attempting to add subnet %s to router %s", subnetID, routerID)
-
-	aiOpts := routers.AddInterfaceOpts{
-		SubnetID: subnetID,
-	}
-
-	iface, err := routers.AddInterface(client, routerID, aiOpts).Extract()
-	if err != nil {
-		return iface, err
-	}
-
-	if err := WaitForRouterInterfaceToAttach(client, iface.PortID, 60); err != nil {
-		return iface, err
-	}
-
-	t.Logf("Successfully added subnet %s to router %s", subnetID, routerID)
 	return iface, nil
 }
 

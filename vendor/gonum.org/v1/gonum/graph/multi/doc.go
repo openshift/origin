@@ -4,6 +4,4 @@
 
 // Package multi provides a suite of multigraph implementations satisfying
 // the gonum/graph interfaces.
-//
-// All types in multi return the graph.Empty value for empty iterators.
 package multi // import "gonum.org/v1/gonum/graph/multi"

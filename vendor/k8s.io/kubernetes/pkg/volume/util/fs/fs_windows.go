@@ -20,7 +20,6 @@ package fs
 
 import (
 	"fmt"
-	"os"
 	"syscall"
 	"unsafe"
 
@@ -59,12 +58,7 @@ func FsInfo(path string) (int64, int64, int64, int64, int64, int64, error) {
 
 // DiskUsage gets disk usage of specified path.
 func DiskUsage(path string) (*resource.Quantity, error) {
-	info, err := os.Lstat(path)
-	if err != nil {
-		return nil, err
-	}
-
-	usage, err := diskUsage(path, info)
+	_, _, usage, _, _, _, err := FsInfo(path)
 	if err != nil {
 		return nil, err
 	}
@@ -80,42 +74,4 @@ func DiskUsage(path string) (*resource.Quantity, error) {
 // Always return zero since inodes is not supported on Windows.
 func Find(path string) (int64, error) {
 	return 0, nil
-}
-
-func diskUsage(currPath string, info os.FileInfo) (int64, error) {
-	var size int64
-
-	if info.Mode()&os.ModeSymlink != 0 {
-		return size, nil
-	}
-
-	size += info.Size()
-
-	if !info.IsDir() {
-		return size, nil
-	}
-
-	dir, err := os.Open(currPath)
-	if err != nil {
-		return size, err
-	}
-	defer dir.Close()
-
-	files, err := dir.Readdir(-1)
-	if err != nil {
-		return size, err
-	}
-
-	for _, file := range files {
-		if file.IsDir() {
-			s, err := diskUsage(fmt.Sprintf("%s/%s", currPath, file.Name()), file)
-			if err != nil {
-				return size, err
-			}
-			size += s
-		} else {
-			size += file.Size()
-		}
-	}
-	return size, nil
 }

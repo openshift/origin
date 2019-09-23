@@ -50,6 +50,7 @@ clientConnection:
 clusterCIDR: 10.148.0.0/16
 configSyncPeriod: 15m0s
 conntrack:
+  max: null
   maxPerCore: 32768
   min: 131072
   tcpCloseWaitTimeout: 1h0m0s
@@ -73,6 +74,7 @@ mode: ""
 nodePortAddresses: null
 oomScoreAdj: -999
 portRange: ""
+resourceContainer: /kube-proxy
 udpIdleTimeout: 250ms
 winkernel:
   enableDSR: false
@@ -99,7 +101,7 @@ cgroupsPerQOS: true
 clusterDNS:
 - 10.192.0.10
 clusterDomain: cluster.global
-configMapAndSecretChangeDetectionStrategy: Watch
+configMapAndSecretChangeDetectionStrategy: Cache
 containerLogMaxFiles: 5
 containerLogMaxSize: 10Mi
 contentType: application/vnd.kubernetes.protobuf

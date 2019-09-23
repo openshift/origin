@@ -36,7 +36,6 @@ import (
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	"k8s.io/kubernetes/cmd/kubeadm/app/componentconfigs"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
 )
 
 // FetchInitConfigurationFromCluster fetches configuration from a ConfigMap in the cluster
@@ -61,7 +60,7 @@ func FetchInitConfigurationFromCluster(client clientset.Interface, w io.Writer, 
 // getInitConfigurationFromCluster is separate only for testing purposes, don't call it directly, use FetchInitConfigurationFromCluster instead
 func getInitConfigurationFromCluster(kubeconfigDir string, client clientset.Interface, newControlPlane bool) (*kubeadmapi.InitConfiguration, error) {
 	// Also, the config map really should be KubeadmConfigConfigMap...
-	configMap, err := apiclient.GetConfigMapWithRetry(client, metav1.NamespaceSystem, constants.KubeadmConfigConfigMap)
+	configMap, err := client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Get(constants.KubeadmConfigConfigMap, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get config map")
 	}
@@ -115,10 +114,10 @@ func getNodeRegistration(kubeconfigDir string, client clientset.Interface, nodeR
 		return errors.Wrap(err, "failed to get node name from kubelet config")
 	}
 
-	// gets the corresponding node and retrieves attributes stored there.
+	// gets the corresponding node and retrives attributes stored there.
 	node, err := client.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
 	if err != nil {
-		return errors.Wrap(err, "failed to get corresponding node")
+		return errors.Wrap(err, "faild to get corresponding node")
 	}
 
 	criSocket, ok := node.ObjectMeta.Annotations[constants.AnnotationKubeadmCRISocket]
@@ -136,7 +135,7 @@ func getNodeRegistration(kubeconfigDir string, client clientset.Interface, nodeR
 	return nil
 }
 
-// getNodeNameFromKubeletConfig gets the node name from a kubelet config file
+// getNodeNameFromConfig gets the node name from a kubelet config file
 // TODO: in future we want to switch to a more canonical way for doing this e.g. by having this
 //       information in the local kubelet config.yaml
 func getNodeNameFromKubeletConfig(kubeconfigDir string) (string, error) {
@@ -203,11 +202,6 @@ func getComponentConfigs(client clientset.Interface, clusterConfiguration *kubea
 			return err
 		}
 
-		// Some components may not be installed or managed by kubeadm, hence GetFromConfigMap won't return an error or an object
-		if obj == nil {
-			continue
-		}
-
 		if ok := registration.SetToInternalConfig(obj, clusterConfiguration); !ok {
 			return errors.Errorf("couldn't save componentconfig value for kind %q", string(kind))
 		}
@@ -217,7 +211,7 @@ func getComponentConfigs(client clientset.Interface, clusterConfiguration *kubea
 
 // GetClusterStatus returns the kubeadm cluster status read from the kubeadm-config ConfigMap
 func GetClusterStatus(client clientset.Interface) (*kubeadmapi.ClusterStatus, error) {
-	configMap, err := apiclient.GetConfigMapWithRetry(client, metav1.NamespaceSystem, constants.KubeadmConfigConfigMap)
+	configMap, err := client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Get(constants.KubeadmConfigConfigMap, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return &kubeadmapi.ClusterStatus{}, nil
 	}

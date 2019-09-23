@@ -21,12 +21,7 @@ set -o xtrace
 
 retry() {
   for i in {1..5}; do
-    if "$@"
-    then      
-      return 0
-    else
-      sleep "${i}"
-    fi
+    "$@" && return 0 || sleep "${i}"
   done
   "$@"
 }
@@ -39,7 +34,7 @@ retry() {
 export PATH=${GOPATH}/bin:${PWD}/third_party/etcd:/usr/local/go/bin:${PATH}
 
 go install k8s.io/kubernetes/vendor/github.com/cespare/prettybench
-go install k8s.io/kubernetes/vendor/gotest.tools/gotestsum
+go install k8s.io/kubernetes/vendor/github.com/jstemmer/go-junit-report
 
 # Disable the Go race detector.
 export KUBE_RACE=" "
@@ -56,5 +51,5 @@ cd /go/src/k8s.io/kubernetes
 # Run the benchmark tests and pretty-print the results into a separate file.
 make test-integration WHAT="$*" KUBE_TEST_ARGS="-run='XXX' -bench=. -benchmem" \
   | tee \
-   >(prettybench -no-passthrough > "${ARTIFACTS}/BenchmarkResults.txt") \
-   >(go run test/integration/benchmark/jsonify/main.go "${ARTIFACTS}/BenchmarkResults_benchmark_$(date -u +%Y-%m-%dT%H:%M:%SZ).json" || cat > /dev/null)
+   >(prettybench -no-passthrough > ${ARTIFACTS}/BenchmarkResults.txt) \
+   >(go run test/integration/benchmark/jsonify/main.go ${ARTIFACTS}/BenchmarkResults_benchmark_$(date -u +%Y-%m-%dT%H:%M:%SZ).json || cat > /dev/null)

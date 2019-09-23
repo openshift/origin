@@ -17,11 +17,9 @@ limitations under the License.
 package vsphere
 
 import (
+	. "github.com/onsi/gomega"
 	"os"
 	"strconv"
-
-	"github.com/onsi/gomega"
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
@@ -67,13 +65,13 @@ const (
 
 func GetAndExpectStringEnvVar(varName string) string {
 	varValue := os.Getenv(varName)
-	gomega.Expect(varValue).NotTo(gomega.BeEmpty(), "ENV "+varName+" is not set")
+	Expect(varValue).NotTo(BeEmpty(), "ENV "+varName+" is not set")
 	return varValue
 }
 
 func GetAndExpectIntEnvVar(varName string) int {
 	varValue := GetAndExpectStringEnvVar(varName)
 	varIntValue, err := strconv.Atoi(varValue)
-	framework.ExpectNoError(err, "Error Parsing "+varName)
+	Expect(err).NotTo(HaveOccurred(), "Error Parsing "+varName)
 	return varIntValue
 }

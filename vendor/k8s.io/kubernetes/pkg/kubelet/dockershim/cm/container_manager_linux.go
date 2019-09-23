@@ -37,13 +37,11 @@ import (
 )
 
 const (
-	// The percent of the machine memory capacity. The value is used to calculate
-	// docker memory resource container's hardlimit to workaround docker memory
-	// leakage issue. Please see kubernetes/issues/9881 for more detail.
-	dockerMemoryLimitThresholdPercent = 70
+	// The percent of the machine memory capacity.
+	dockerMemoryLimitThresholdPercent = kubecm.DockerMemoryLimitThresholdPercent
 
-	// The minimum memory limit allocated to docker container: 150Mi
-	minDockerMemoryLimit = 150 * 1024 * 1024
+	// The minimum memory limit allocated to docker container.
+	minDockerMemoryLimit = kubecm.MinDockerMemoryLimit
 
 	// The Docker OOM score adjustment.
 	dockerOOMScoreAdj = qos.DockerOOMScoreAdj
@@ -53,7 +51,6 @@ var (
 	memoryCapacityRegexp = regexp.MustCompile(`MemTotal:\s*([0-9]+) kB`)
 )
 
-// NewContainerManager creates a new instance of ContainerManager
 func NewContainerManager(cgroupsName string, client libdocker.Interface) ContainerManager {
 	return &containerManager{
 		cgroupsName: cgroupsName,

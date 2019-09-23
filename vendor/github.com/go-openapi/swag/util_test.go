@@ -33,53 +33,9 @@ func init() {
 	AddInitialisms("elb", "cap", "capwd", "wd")
 }
 
-func TestIndexOfInitialismsSorted(t *testing.T) {
-	configuredInitialisms := map[string]bool{
-		"ACL":   true,
-		"API":   true,
-		"ASCII": true,
-		"CPU":   true,
-		"CSS":   true,
-		"DNS":   true,
-		"VM":    true,
-		"XML":   true,
-		"XMPP":  true,
-		"XSRF":  true,
-		"XSS":   true,
-	}
-
-	goldenSample := []string{
-		"ASCII",
-		"XMPP",
-		"XSRF",
-		"ACL",
-		"API",
-		"CPU",
-		"CSS",
-		"DNS",
-		"XML",
-		"XSS",
-		"VM",
-	}
-	for i := 0; i < 50; i++ {
-		sample := newIndexOfInitialisms().load(configuredInitialisms).sorted()
-		failMsg := "equal sorted initialisms should be always equal"
-
-		if !assert.Equal(t, goldenSample, sample, failMsg) {
-			t.FailNow()
-		}
-	}
-}
-
 func TestToGoName(t *testing.T) {
 	samples := []translationSample{
-		{"@Type", "AtType"},
-		{"Sample@where", "SampleAtWhere"},
-		{"Id", "ID"},
-		{"SomethingTTLSeconds", "SomethingTTLSeconds"},
 		{"sample text", "SampleText"},
-		{"IPv6Address", "IPV6Address"},
-		{"IPv4Address", "IPV4Address"},
 		{"sample-text", "SampleText"},
 		{"sample_text", "SampleText"},
 		{"sampleText", "SampleText"},
@@ -91,8 +47,6 @@ func TestToGoName(t *testing.T) {
 	}
 
 	for _, k := range commonInitialisms.sorted() {
-		k = upper(k)
-
 		samples = append(samples,
 			translationSample{"sample " + lower(k) + " text", "Sample" + k + "Text"},
 			translationSample{"sample-" + lower(k) + "-text", "Sample" + k + "Text"},
@@ -109,28 +63,7 @@ func TestToGoName(t *testing.T) {
 	}
 
 	for _, sample := range samples {
-		result := ToGoName(sample.str)
-		assert.Equal(t, sample.out, result,
-			"ToGoName(%q) == %q but %q", sample.str, sample.out, result)
-	}
-}
-
-func BenchmarkToGoName(b *testing.B) {
-	samples := []string{
-		"sample text",
-		"sample-text",
-		"sample_text",
-		"sampleText",
-		"sample 2 Text",
-		"findThingById",
-		"日本語sample 2 Text",
-		"日本語findThingById",
-		"findTHINGSbyID",
-	}
-	for i := 0; i < b.N; i++ {
-		for _, s := range samples {
-			ToGoName(s)
-		}
+		assert.Equal(t, sample.out, ToGoName(sample.str))
 	}
 }
 
@@ -211,7 +144,7 @@ func TestToFileName(t *testing.T) {
 		{"SampleText", "sample_text"},
 		{"FindThingByID", "find_thing_by_id"},
 		{"CAPWD.folwdBylc", "capwd_folwd_bylc"},
-		{"CAPWDfolwdBylc", "cap_w_dfolwd_bylc"},
+		{"CAPWDfolwdBylc", "capwdfolwd_bylc"},
 		{"CAP_WD_folwdBylc", "cap_wd_folwd_bylc"},
 		{"TypeOAI_alias", "type_oai_alias"},
 		{"Type_OAI_alias", "type_oai_alias"},
@@ -227,9 +160,7 @@ func TestToFileName(t *testing.T) {
 	}
 
 	for _, sample := range samples {
-		result := ToFileName(sample.str)
-		assert.Equal(t, sample.out, ToFileName(sample.str),
-			"ToFileName(%q) == %q but got %q", sample.str, sample.out, result)
+		assert.Equal(t, sample.out, ToFileName(sample.str))
 	}
 }
 
@@ -253,7 +184,6 @@ func TestToCommandName(t *testing.T) {
 
 func TestToHumanName(t *testing.T) {
 	samples := []translationSample{
-		{"Id", "Id"},
 		{"SampleText", "sample text"},
 		{"FindThingByID", "find thing by ID"},
 		{"elbHTTPLoadBalancer", "elb HTTP load balancer"},
@@ -404,7 +334,7 @@ func TestToHumanNameTitle(t *testing.T) {
 		{"SampleText", "Sample Text"},
 		{"FindThingByID", "Find Thing By ID"},
 		{"CAPWD.folwdBylc", "CAPWD Folwd Bylc"},
-		{"CAPWDfolwdBylc", "CAP W Dfolwd Bylc"},
+		{"CAPWDfolwdBylc", "Capwdfolwd Bylc"},
 		{"CAP_WD_folwdBylc", "CAP WD Folwd Bylc"},
 		{"TypeOAI_alias", "Type OAI Alias"},
 		{"Type_OAI_alias", "Type OAI Alias"},
@@ -425,7 +355,7 @@ func TestToVarName(t *testing.T) {
 		{"SampleText", "sampleText"},
 		{"FindThingByID", "findThingByID"},
 		{"CAPWD.folwdBylc", "cAPWDFolwdBylc"},
-		{"CAPWDfolwdBylc", "cAPWDfolwdBylc"},
+		{"CAPWDfolwdBylc", "capwdfolwdBylc"},
 		{"CAP_WD_folwdBylc", "cAPWDFolwdBylc"},
 		{"TypeOAI_alias", "typeOAIAlias"},
 		{"Type_OAI_alias", "typeOAIAlias"},

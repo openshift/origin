@@ -185,7 +185,7 @@ func (c *threadSafeMap) ByIndex(indexName, indexKey string) ([]interface{}, erro
 
 	set := index[indexKey]
 	list := make([]interface{}, 0, set.Len())
-	for key := range set {
+	for _, key := range set.List() {
 		list = append(list, c.items[key])
 	}
 
@@ -302,7 +302,6 @@ func (c *threadSafeMap) Resync() error {
 	return nil
 }
 
-// NewThreadSafeStore creates a new instance of ThreadSafeStore.
 func NewThreadSafeStore(indexers Indexers, indices Indices) ThreadSafeStore {
 	return &threadSafeMap{
 		items:    map[string]interface{}{},

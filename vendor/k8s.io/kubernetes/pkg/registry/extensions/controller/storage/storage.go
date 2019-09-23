@@ -40,17 +40,14 @@ type ContainerStorage struct {
 	Scale                 *ScaleREST
 }
 
-func NewStorage(optsGetter generic.RESTOptionsGetter) (ContainerStorage, error) {
+func NewStorage(optsGetter generic.RESTOptionsGetter) ContainerStorage {
 	// scale does not set status, only updates spec so we ignore the status
-	controllerREST, _, err := controllerstore.NewREST(optsGetter)
-	if err != nil {
-		return ContainerStorage{}, err
-	}
+	controllerREST, _ := controllerstore.NewREST(optsGetter)
 
 	return ContainerStorage{
 		ReplicationController: &RcREST{},
 		Scale:                 &ScaleREST{store: controllerREST.Store},
-	}, nil
+	}
 }
 
 type ScaleREST struct {
@@ -98,36 +95,12 @@ func (r *ScaleREST) Update(ctx context.Context, name string, objInfo rest.Update
 
 	rc.Spec.Replicas = scale.Spec.Replicas
 	rc.ResourceVersion = scale.ResourceVersion
-	obj, _, err = r.store.Update(
-		ctx,
-		rc.Name,
-		rest.DefaultUpdatedObjectInfo(rc),
-		toScaleCreateValidation(createValidation),
-		toScaleUpdateValidation(updateValidation),
-		false,
-		options,
-	)
+	obj, _, err = r.store.Update(ctx, rc.Name, rest.DefaultUpdatedObjectInfo(rc), createValidation, updateValidation, false, options)
 	if err != nil {
 		return nil, false, errors.NewConflict(extensions.Resource("replicationcontrollers/scale"), scale.Name, err)
 	}
 	rc = obj.(*api.ReplicationController)
 	return scaleFromRC(rc), false, nil
-}
-
-func toScaleCreateValidation(f rest.ValidateObjectFunc) rest.ValidateObjectFunc {
-	return func(ctx context.Context, obj runtime.Object) error {
-		return f(ctx, scaleFromRC(obj.(*api.ReplicationController)))
-	}
-}
-
-func toScaleUpdateValidation(f rest.ValidateObjectUpdateFunc) rest.ValidateObjectUpdateFunc {
-	return func(ctx context.Context, obj, old runtime.Object) error {
-		return f(
-			ctx,
-			scaleFromRC(obj.(*api.ReplicationController)),
-			scaleFromRC(old.(*api.ReplicationController)),
-		)
-	}
 }
 
 // scaleFromRC returns a scale subresource for a replication controller.

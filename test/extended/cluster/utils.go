@@ -14,7 +14,7 @@ import (
 	"unicode"
 
 	"github.com/ghodss/yaml"
-
+	"github.com/openshift/origin/test/extended/cluster/metrics"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -25,10 +25,8 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/pod"
 
 	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
-	"github.com/openshift/origin/test/extended/cluster/metrics"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -89,7 +87,7 @@ func SyncPods(c kclientset.Interface, ns string, selectors map[string]string, ti
 
 	err = wait.Poll(2*time.Second, timeout,
 		func() (bool, error) {
-			podList, err := pod.WaitForPodsWithLabel(c, ns, label)
+			podList, err := framework.WaitForPodsWithLabel(c, ns, label)
 			if err != nil {
 				framework.Failf("Failed getting pods: %v", err)
 				return false, nil // Ignore this error (nil) and try again in "Poll" time

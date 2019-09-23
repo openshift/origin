@@ -17,8 +17,6 @@ func BenchmarkLoad(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := Load([]byte(input), ISO_8859_1); err != nil {
-			b.Fatal(err)
-		}
+		Load([]byte(input), ISO_8859_1)
 	}
 }

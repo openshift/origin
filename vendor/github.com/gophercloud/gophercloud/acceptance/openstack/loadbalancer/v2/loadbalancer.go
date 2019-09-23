@@ -15,8 +15,8 @@ import (
 	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
-const loadbalancerActiveTimeoutSeconds = 600
-const loadbalancerDeleteTimeoutSeconds = 600
+const loadbalancerActiveTimeoutSeconds = 300
+const loadbalancerDeleteTimeoutSeconds = 300
 
 // CreateListener will create a listener for a given load balancer on a random
 // port with a random name. An error will be returned if the listener could not
@@ -58,20 +58,19 @@ func CreateListener(t *testing.T, client *gophercloud.ServiceClient, lb *loadbal
 
 // CreateLoadBalancer will create a load balancer with a random name on a given
 // subnet. An error will be returned if the loadbalancer could not be created.
-func CreateLoadBalancer(t *testing.T, client *gophercloud.ServiceClient, subnetID string, tags []string) (*loadbalancers.LoadBalancer, error) {
+func CreateLoadBalancer(t *testing.T, client *gophercloud.ServiceClient, subnetID string) (*loadbalancers.LoadBalancer, error) {
 	lbName := tools.RandomString("TESTACCT-", 8)
 	lbDescription := tools.RandomString("TESTACCT-DESC-", 8)
 
 	t.Logf("Attempting to create loadbalancer %s on subnet %s", lbName, subnetID)
 
+	tags := []string{"test"}
 	createOpts := loadbalancers.CreateOpts{
 		Name:         lbName,
 		Description:  lbDescription,
 		VipSubnetID:  subnetID,
 		AdminStateUp: gophercloud.Enabled,
-	}
-	if len(tags) > 0 {
-		createOpts.Tags = tags
+		Tags:         tags,
 	}
 
 	lb, err := loadbalancers.Create(client, createOpts).Extract()
@@ -92,10 +91,7 @@ func CreateLoadBalancer(t *testing.T, client *gophercloud.ServiceClient, subnetI
 	th.AssertEquals(t, lb.Description, lbDescription)
 	th.AssertEquals(t, lb.VipSubnetID, subnetID)
 	th.AssertEquals(t, lb.AdminStateUp, true)
-
-	if len(tags) > 0 {
-		th.AssertDeepEquals(t, lb.Tags, tags)
-	}
+	th.AssertDeepEquals(t, lb.Tags, tags)
 
 	return lb, nil
 }

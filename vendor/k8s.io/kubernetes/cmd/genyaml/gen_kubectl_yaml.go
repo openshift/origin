@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -65,7 +64,8 @@ func main() {
 	// Set environment variables used by kubectl so the output is consistent,
 	// regardless of where we run.
 	os.Setenv("HOME", "/home/username")
-	kubectl := cmd.NewKubectlCommand(bytes.NewReader(nil), ioutil.Discard, ioutil.Discard)
+	// TODO os.Stdin should really be something like ioutil.Discard, but a Reader
+	kubectl := cmd.NewKubectlCommand(os.Stdin, ioutil.Discard, ioutil.Discard)
 	genYaml(kubectl, "", outDir)
 	for _, c := range kubectl.Commands() {
 		genYaml(c, "kubectl", outDir)

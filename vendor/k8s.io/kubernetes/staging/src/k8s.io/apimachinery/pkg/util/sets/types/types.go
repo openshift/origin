@@ -29,5 +29,4 @@ type ReferenceSetTypes struct {
 	b int
 	c byte
 	d string
-	e int32
 }

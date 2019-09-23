@@ -18,8 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/text/internal/language/compact"
-
+	"golang.org/x/text/internal"
 	"golang.org/x/text/internal/gen"
 	"golang.org/x/text/internal/tag"
 	"golang.org/x/text/language"
@@ -266,7 +265,7 @@ func (b *builder) genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 		numTypes
 	)
 	// language -> currency -> type ->  symbol
-	var symbols [compact.NumCompactTags][][numTypes]*string
+	var symbols [language.NumCompactTags][][numTypes]*string
 
 	// Collect symbol information per language.
 	for _, lang := range data.Locales() {
@@ -275,7 +274,7 @@ func (b *builder) genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 			continue
 		}
 
-		langIndex, ok := compact.LanguageID(compact.Tag(language.MustParse(lang)))
+		langIndex, ok := language.CompactIndex(language.MustParse(lang))
 		if !ok {
 			log.Fatalf("No compact index for language %s", lang)
 		}
@@ -319,8 +318,8 @@ func (b *builder) genSymbols(w *gen.CodeWriter, data *cldr.CLDR) {
 				if sym == nil {
 					continue
 				}
-				for p := compact.ID(langIndex); p != 0; {
-					p = p.Parent()
+				for p := uint16(langIndex); p != 0; {
+					p = internal.Parent[p]
 					x := symbols[p]
 					if x == nil {
 						continue

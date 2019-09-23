@@ -19,7 +19,6 @@ import (
 
 	client "github.com/heketi/heketi/client/api/go-client"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
-	tutils "github.com/heketi/heketi/pkg/testutils"
 
 	"github.com/heketi/tests"
 )
@@ -32,7 +31,7 @@ var (
 )
 
 func TestCreateClusterTLSCert(t *testing.T) {
-	heketiServer := tutils.NewServerCtlFromEnv("..")
+	heketiServer := NewServerCtlFromEnv("..")
 	err := heketiServer.Start()
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	defer heketiServer.Stop()
@@ -47,7 +46,7 @@ func TestCreateClusterTLSCert(t *testing.T) {
 }
 
 func TestCreateClusterTLSNoVerify(t *testing.T) {
-	heketiServer := tutils.NewServerCtlFromEnv("..")
+	heketiServer := NewServerCtlFromEnv("..")
 	err := heketiServer.Start()
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	defer heketiServer.Stop()
@@ -65,7 +64,7 @@ func TestCreateClusterTLSNoVerify(t *testing.T) {
 // a self signed cert and none of the options needed for it
 // are provided.
 func TestClientFailUnknownAuthority(t *testing.T) {
-	heketiServer := tutils.NewServerCtlFromEnv("..")
+	heketiServer := NewServerCtlFromEnv("..")
 	err := heketiServer.Start()
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	defer heketiServer.Stop()

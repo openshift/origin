@@ -36,11 +36,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
+	"k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/server/resourceconfig"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
-	etcd3testing "k8s.io/apiserver/pkg/storage/etcd3/testing"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	utilfeaturetesting "k8s.io/apiserver/pkg/util/feature/testing"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -49,7 +52,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/apis/batch"
-	"k8s.io/kubernetes/pkg/apis/networking"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	apisstorage "k8s.io/kubernetes/pkg/apis/storage"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master/reconcilers"
@@ -63,8 +66,8 @@ import (
 )
 
 // setUp is a convience function for setting up for (most) tests.
-func setUp(t *testing.T) (*etcd3testing.EtcdTestServer, Config, *assert.Assertions) {
-	server, storageConfig := etcd3testing.NewUnsecuredEtcd3TestClientServer(t)
+func setUp(t *testing.T) (*etcdtesting.EtcdTestServer, Config, *assert.Assertions) {
+	server, storageConfig := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
 
 	config := &Config{
 		GenericConfig: genericapiserver.NewConfig(legacyscheme.Codecs),
@@ -83,7 +86,6 @@ func setUp(t *testing.T) (*etcd3testing.EtcdTestServer, Config, *assert.Assertio
 	resourceEncodingOverrides := []schema.GroupVersionResource{
 		batch.Resource("cronjobs").WithVersion("v1beta1"),
 		apisstorage.Resource("volumeattachments").WithVersion("v1beta1"),
-		networking.Resource("ingresses").WithVersion("v1beta1"),
 	}
 	resourceEncoding = resourceconfig.MergeResourceEncodingConfigs(resourceEncoding, resourceEncodingOverrides)
 	storageFactory := serverstorage.NewDefaultStorageFactory(*storageConfig, testapi.StorageMediaType(), legacyscheme.Codecs, resourceEncoding, DefaultAPIResourceConfigSource(), nil)
@@ -182,10 +184,7 @@ func TestCertificatesRestStorageStrategies(t *testing.T) {
 	defer etcdserver.Terminate(t)
 
 	certStorageProvider := certificatesrest.RESTStorageProvider{}
-	apiGroupInfo, _, err := certStorageProvider.NewRESTStorage(masterCfg.ExtraConfig.APIResourceConfigSource, masterCfg.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		t.Fatalf("unexpected error from REST storage: %v", err)
-	}
+	apiGroupInfo, _ := certStorageProvider.NewRESTStorage(masterCfg.ExtraConfig.APIResourceConfigSource, masterCfg.GenericConfig.RESTOptionsGetter)
 
 	exceptions := registrytest.StrategyExceptions{
 		HasExportStrategy: []string{
@@ -200,7 +199,7 @@ func TestCertificatesRestStorageStrategies(t *testing.T) {
 	}
 }
 
-func newMaster(t *testing.T) (*Master, *etcd3testing.EtcdTestServer, Config, *assert.Assertions) {
+func newMaster(t *testing.T) (*Master, *etcdtesting.EtcdTestServer, Config, *assert.Assertions) {
 	etcdserver, config, assert := setUp(t)
 
 	master, err := config.Complete().New(genericapiserver.NewEmptyDelegate())
@@ -232,6 +231,12 @@ func TestVersion(t *testing.T) {
 	if !reflect.DeepEqual(kubeversion.Get(), info) {
 		t.Errorf("Expected %#v, Got %#v", kubeversion.Get(), info)
 	}
+}
+
+type fakeEndpointReconciler struct{}
+
+func (*fakeEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.IP, endpointPorts []api.EndpointPort, reconcilePorts bool) error {
+	return nil
 }
 
 func makeNodeList(nodes []string, nodeResources apiv1.NodeResources) *apiv1.NodeList {
@@ -378,6 +383,7 @@ func TestAPIVersionOfDiscoveryEndpoints(t *testing.T) {
 
 // This test doesn't cover the apiregistration and apiextensions group, as they are installed by other apiservers.
 func TestStorageVersionHashes(t *testing.T) {
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StorageVersionHash, true)()
 	master, etcdserver, _, _ := newMaster(t)
 	defer etcdserver.Terminate(t)
 
@@ -422,6 +428,7 @@ func TestStorageVersionHashes(t *testing.T) {
 }
 
 func TestStorageVersionHashEqualities(t *testing.T) {
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StorageVersionHash, true)()
 	master, etcdserver, _, assert := newMaster(t)
 	defer etcdserver.Terminate(t)
 
@@ -437,9 +444,9 @@ func TestStorageVersionHashEqualities(t *testing.T) {
 	for _, r := range extList.APIResources {
 		if r.Name == "replicasets" {
 			extReplicasetHash = r.StorageVersionHash
-			assert.NotEmpty(extReplicasetHash)
 		}
 	}
+	assert.NotEmpty(extReplicasetHash)
 
 	resp, err = http.Get(server.URL + "/apis/apps/v1")
 	assert.Empty(err)
@@ -448,12 +455,9 @@ func TestStorageVersionHashEqualities(t *testing.T) {
 	for _, r := range appsList.APIResources {
 		if r.Name == "replicasets" {
 			appsReplicasetHash = r.StorageVersionHash
-			assert.NotEmpty(appsReplicasetHash)
 		}
 	}
-	if len(extReplicasetHash) > 0 && len(appsReplicasetHash) > 0 {
-		assert.Equal(extReplicasetHash, appsReplicasetHash)
-	}
+	assert.Equal(extReplicasetHash, appsReplicasetHash)
 
 	// Test 2: batch/v1/jobs and batch/v1beta1/cronjobs have different
 	// storage version hashes.

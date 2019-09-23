@@ -21,11 +21,10 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
-// AddsServicesReplicationStatusClient is the REST APIs for Azure Active Directory Connect Health
+// AddsServicesReplicationStatusClient is the REST APIs for Azure Active Drectory Connect Health
 type AddsServicesReplicationStatusClient struct {
 	BaseClient
 }
@@ -46,16 +45,6 @@ func NewAddsServicesReplicationStatusClientWithBaseURI(baseURI string) AddsServi
 // Parameters:
 // serviceName - the name of the service.
 func (client AddsServicesReplicationStatusClient) Get(ctx context.Context, serviceName string) (result ReplicationStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AddsServicesReplicationStatusClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, serviceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.AddsServicesReplicationStatusClient", "Get", nil, "Failure preparing request")
@@ -99,8 +88,8 @@ func (client AddsServicesReplicationStatusClient) GetPreparer(ctx context.Contex
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client AddsServicesReplicationStatusClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always

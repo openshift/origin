@@ -18,17 +18,27 @@ package iotcentral
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/iotcentral/mgmt/2018-09-01/iotcentral"
+// AppNameUnavailabilityReason enumerates the values for app name unavailability reason.
+type AppNameUnavailabilityReason string
+
+const (
+	// AlreadyExists ...
+	AlreadyExists AppNameUnavailabilityReason = "AlreadyExists"
+	// Invalid ...
+	Invalid AppNameUnavailabilityReason = "Invalid"
+)
+
+// PossibleAppNameUnavailabilityReasonValues returns an array of possible values for the AppNameUnavailabilityReason const type.
+func PossibleAppNameUnavailabilityReasonValues() []AppNameUnavailabilityReason {
+	return []AppNameUnavailabilityReason{AlreadyExists, Invalid}
+}
 
 // AppSku enumerates the values for app sku.
 type AppSku string
@@ -52,11 +62,11 @@ type App struct {
 	*AppProperties `json:"properties,omitempty"`
 	// Sku - A valid instance SKU.
 	Sku *AppSkuInfo `json:"sku,omitempty"`
-	// ID - READ-ONLY; The ARM resource identifier.
+	// ID - The ARM resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The ARM resource name.
+	// Name - The ARM resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -72,6 +82,15 @@ func (a App) MarshalJSON() ([]byte, error) {
 	}
 	if a.Sku != nil {
 		objectMap["sku"] = a.Sku
+	}
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
 	}
 	if a.Location != nil {
 		objectMap["location"] = a.Location
@@ -160,18 +179,6 @@ func (a *App) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// AppAvailabilityInfo the properties indicating whether a given IoT Central application name or subdomain
-// is available.
-type AppAvailabilityInfo struct {
-	autorest.Response `json:"-"`
-	// NameAvailable - READ-ONLY; The value which indicates whether the provided name is available.
-	NameAvailable *bool `json:"nameAvailable,omitempty"`
-	// Reason - READ-ONLY; The reason for unavailability.
-	Reason *string `json:"reason,omitempty"`
-	// Message - READ-ONLY; The detailed reason message.
-	Message *string `json:"message,omitempty"`
-}
-
 // AppListResult a list of IoT Central Applications with a next link.
 type AppListResult struct {
 	autorest.Response `json:"-"`
@@ -187,37 +194,20 @@ type AppListResultIterator struct {
 	page AppListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AppListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AppListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AppListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -239,11 +229,6 @@ func (iter AppListResultIterator) Value() App {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AppListResultIterator type.
-func NewAppListResultIterator(page AppListResultPage) AppListResultIterator {
-	return AppListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (alr AppListResult) IsEmpty() bool {
 	return alr.Value == nil || len(*alr.Value) == 0
@@ -251,11 +236,11 @@ func (alr AppListResult) IsEmpty() bool {
 
 // appListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (alr AppListResult) appListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (alr AppListResult) appListResultPreparer() (*http.Request, error) {
 	if alr.NextLink == nil || len(to.String(alr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(alr.NextLink)))
@@ -263,36 +248,19 @@ func (alr AppListResult) appListResultPreparer(ctx context.Context) (*http.Reque
 
 // AppListResultPage contains a page of App values.
 type AppListResultPage struct {
-	fn  func(context.Context, AppListResult) (AppListResult, error)
+	fn  func(AppListResult) (AppListResult, error)
 	alr AppListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AppListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.alr)
+func (page *AppListResultPage) Next() error {
+	next, err := page.fn(page.alr)
 	if err != nil {
 		return err
 	}
 	page.alr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AppListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -313,9 +281,15 @@ func (page AppListResultPage) Values() []App {
 	return *page.alr.Value
 }
 
-// Creates a new instance of the AppListResultPage type.
-func NewAppListResultPage(getNextPage func(context.Context, AppListResult) (AppListResult, error)) AppListResultPage {
-	return AppListResultPage{fn: getNextPage}
+// AppNameAvailabilityInfo the properties indicating whether a given IoT Central application name is available.
+type AppNameAvailabilityInfo struct {
+	autorest.Response `json:"-"`
+	// NameAvailable - The value which indicates whether the provided name is available.
+	NameAvailable *bool `json:"nameAvailable,omitempty"`
+	// Reason - The reason for unavailability. Possible values include: 'Invalid', 'AlreadyExists'
+	Reason AppNameUnavailabilityReason `json:"reason,omitempty"`
+	// Message - The detailed reason message.
+	Message *string `json:"message,omitempty"`
 }
 
 // AppPatch the description of the IoT Central application.
@@ -373,7 +347,7 @@ func (ap *AppPatch) UnmarshalJSON(body []byte) error {
 
 // AppProperties the properties of an IoT Central application.
 type AppProperties struct {
-	// ApplicationID - READ-ONLY; The ID of the application.
+	// ApplicationID - The ID of the application.
 	ApplicationID *string `json:"applicationId,omitempty"`
 	// DisplayName - The display name of the application.
 	DisplayName *string `json:"displayName,omitempty"`
@@ -383,8 +357,7 @@ type AppProperties struct {
 	Template *string `json:"template,omitempty"`
 }
 
-// AppsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// AppsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type AppsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -393,7 +366,7 @@ type AppsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AppsCreateOrUpdateFuture) Result(client AppsClient) (a App, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iotcentral.AppsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -421,7 +394,7 @@ type AppsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AppsDeleteFuture) Result(client AppsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iotcentral.AppsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -449,7 +422,7 @@ type AppsUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AppsUpdateFuture) Result(client AppsClient) (a App, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "iotcentral.AppsUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -468,222 +441,19 @@ func (future *AppsUpdateFuture) Result(client AppsClient) (a App, err error) {
 	return
 }
 
-// AppTemplate ioT Central Application Template.
-type AppTemplate struct {
-	// ManifestID - READ-ONLY; The ID of the template.
-	ManifestID *string `json:"manifestId,omitempty"`
-	// ManifestVersion - READ-ONLY; The version of the template.
-	ManifestVersion *string `json:"manifestVersion,omitempty"`
-	// AppTemplateName - READ-ONLY; The name of the template.
-	AppTemplateName *string `json:"appTemplateName,omitempty"`
-	// Title - READ-ONLY; The title of the template.
-	Title *string `json:"title,omitempty"`
-	// Order - READ-ONLY; The order of the template in the templates list.
-	Order *float64 `json:"order,omitempty"`
-	// Description - READ-ONLY; The description of the template.
-	Description *string `json:"description,omitempty"`
-}
-
-// AppTemplatesResult a list of IoT Central Application Templates with a next link.
-type AppTemplatesResult struct {
-	autorest.Response `json:"-"`
-	// NextLink - The link used to get the next page of IoT Central application templates.
-	NextLink *string `json:"nextLink,omitempty"`
-	// Value - READ-ONLY; A list of IoT Central Application Templates.
-	Value *[]AppTemplate `json:"value,omitempty"`
-}
-
-// AppTemplatesResultIterator provides access to a complete listing of AppTemplate values.
-type AppTemplatesResultIterator struct {
-	i    int
-	page AppTemplatesResultPage
-}
-
-// NextWithContext advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *AppTemplatesResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppTemplatesResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err = iter.page.NextWithContext(ctx)
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AppTemplatesResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter AppTemplatesResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter AppTemplatesResultIterator) Response() AppTemplatesResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter AppTemplatesResultIterator) Value() AppTemplate {
-	if !iter.page.NotDone() {
-		return AppTemplate{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// Creates a new instance of the AppTemplatesResultIterator type.
-func NewAppTemplatesResultIterator(page AppTemplatesResultPage) AppTemplatesResultIterator {
-	return AppTemplatesResultIterator{page: page}
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (atr AppTemplatesResult) IsEmpty() bool {
-	return atr.Value == nil || len(*atr.Value) == 0
-}
-
-// appTemplatesResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (atr AppTemplatesResult) appTemplatesResultPreparer(ctx context.Context) (*http.Request, error) {
-	if atr.NextLink == nil || len(to.String(atr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(atr.NextLink)))
-}
-
-// AppTemplatesResultPage contains a page of AppTemplate values.
-type AppTemplatesResultPage struct {
-	fn  func(context.Context, AppTemplatesResult) (AppTemplatesResult, error)
-	atr AppTemplatesResult
-}
-
-// NextWithContext advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *AppTemplatesResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppTemplatesResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.atr)
-	if err != nil {
-		return err
-	}
-	page.atr = next
-	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AppTemplatesResultPage) Next() error {
-	return page.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page AppTemplatesResultPage) NotDone() bool {
-	return !page.atr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page AppTemplatesResultPage) Response() AppTemplatesResult {
-	return page.atr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page AppTemplatesResultPage) Values() []AppTemplate {
-	if page.atr.IsEmpty() {
-		return nil
-	}
-	return *page.atr.Value
-}
-
-// Creates a new instance of the AppTemplatesResultPage type.
-func NewAppTemplatesResultPage(getNextPage func(context.Context, AppTemplatesResult) (AppTemplatesResult, error)) AppTemplatesResultPage {
-	return AppTemplatesResultPage{fn: getNextPage}
-}
-
 // ErrorDetails error details.
 type ErrorDetails struct {
-	// ErrorResponseBody - Error response body.
-	*ErrorResponseBody `json:"error,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for ErrorDetails.
-func (ed ErrorDetails) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if ed.ErrorResponseBody != nil {
-		objectMap["error"] = ed.ErrorResponseBody
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for ErrorDetails struct.
-func (ed *ErrorDetails) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "error":
-			if v != nil {
-				var errorResponseBody ErrorResponseBody
-				err = json.Unmarshal(*v, &errorResponseBody)
-				if err != nil {
-					return err
-				}
-				ed.ErrorResponseBody = &errorResponseBody
-			}
-		}
-	}
-
-	return nil
-}
-
-// ErrorResponseBody details of error response.
-type ErrorResponseBody struct {
-	// Code - READ-ONLY; The error code.
+	// Code - The error code.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; The error message.
+	// Message - The error message.
 	Message *string `json:"message,omitempty"`
-	// Target - READ-ONLY; The target of the particular error.
+	// Target - The target of the particular error.
 	Target *string `json:"target,omitempty"`
-	// Details - A list of additional details about the error.
-	Details *[]ErrorResponseBody `json:"details,omitempty"`
 }
 
 // Operation ioT Central REST API operation
 type Operation struct {
-	// Name - READ-ONLY; Operation name: {provider}/{resource}/{read | write | action | delete}
+	// Name - Operation name: {provider}/{resource}/{read | write | action | delete}
 	Name *string `json:"name,omitempty"`
 	// Display - The object that represents the operation.
 	Display *OperationDisplay `json:"display,omitempty"`
@@ -691,13 +461,13 @@ type Operation struct {
 
 // OperationDisplay the object that represents the operation.
 type OperationDisplay struct {
-	// Provider - READ-ONLY; Service provider: Microsoft IoT Central
+	// Provider - Service provider: Microsoft IoT Central
 	Provider *string `json:"provider,omitempty"`
-	// Resource - READ-ONLY; Resource Type: IoT Central
+	// Resource - Resource Type: IoT Central
 	Resource *string `json:"resource,omitempty"`
-	// Operation - READ-ONLY; Name of the operation
+	// Operation - Name of the operation
 	Operation *string `json:"operation,omitempty"`
-	// Description - READ-ONLY; Friendly description for the operation,
+	// Description - Friendly description for the operation,
 	Description *string `json:"description,omitempty"`
 }
 
@@ -705,17 +475,15 @@ type OperationDisplay struct {
 type OperationInputs struct {
 	// Name - The name of the IoT Central application instance to check.
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the IoT Central resource to query.
-	Type *string `json:"type,omitempty"`
 }
 
-// OperationListResult a list of IoT Central operations. It contains a list of operations and a URL link to
-// get the next set of results.
+// OperationListResult a list of IoT Central operations. It contains a list of operations and a URL link to get the
+// next set of results.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
 	// NextLink - The link used to get the next page of IoT Central description objects.
 	NextLink *string `json:"nextLink,omitempty"`
-	// Value - READ-ONLY; A list of operations supported by the Microsoft.IoTCentral resource provider.
+	// Value - A list of operations supported by the Microsoft.IoTCentral resource provider.
 	Value *[]Operation `json:"value,omitempty"`
 }
 
@@ -725,37 +493,20 @@ type OperationListResultIterator struct {
 	page OperationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OperationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OperationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -777,11 +528,6 @@ func (iter OperationListResultIterator) Value() Operation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OperationListResultIterator type.
-func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
-	return OperationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (olr OperationListResult) IsEmpty() bool {
 	return olr.Value == nil || len(*olr.Value) == 0
@@ -789,11 +535,11 @@ func (olr OperationListResult) IsEmpty() bool {
 
 // operationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (olr OperationListResult) operationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (olr OperationListResult) operationListResultPreparer() (*http.Request, error) {
 	if olr.NextLink == nil || len(to.String(olr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(olr.NextLink)))
@@ -801,36 +547,19 @@ func (olr OperationListResult) operationListResultPreparer(ctx context.Context) 
 
 // OperationListResultPage contains a page of Operation values.
 type OperationListResultPage struct {
-	fn  func(context.Context, OperationListResult) (OperationListResult, error)
+	fn  func(OperationListResult) (OperationListResult, error)
 	olr OperationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.olr)
+func (page *OperationListResultPage) Next() error {
+	next, err := page.fn(page.olr)
 	if err != nil {
 		return err
 	}
 	page.olr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OperationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -851,18 +580,13 @@ func (page OperationListResultPage) Values() []Operation {
 	return *page.olr.Value
 }
 
-// Creates a new instance of the OperationListResultPage type.
-func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
-	return OperationListResultPage{fn: getNextPage}
-}
-
 // Resource the common properties of an ARM resource.
 type Resource struct {
-	// ID - READ-ONLY; The ARM resource identifier.
+	// ID - The ARM resource identifier.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The ARM resource name.
+	// Name - The ARM resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -873,6 +597,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}

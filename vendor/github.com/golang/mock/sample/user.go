@@ -1,5 +1,3 @@
-//go:generate mockgen -destination mock_user/mock_user.go github.com/golang/mock/sample Index,Embed,Embedded
-
 // An example package with an interface.
 package user
 

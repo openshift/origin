@@ -22,10 +22,8 @@ import (
 )
 
 var (
-	// SchemeBuilder is a pointer used to call AddToScheme
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	// AddToScheme is used to register the types to API encoding/decoding machinery
-	AddToScheme = SchemeBuilder.AddToScheme
+	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
 // GroupName is the group name use in this package

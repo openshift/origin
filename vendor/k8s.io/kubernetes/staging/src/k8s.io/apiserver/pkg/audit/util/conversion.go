@@ -35,12 +35,6 @@ func HookClientConfigForSink(a *v1alpha1.AuditSink) webhook.ClientConfig {
 			Name:      c.Service.Name,
 			Namespace: c.Service.Namespace,
 		}
-		if c.Service.Port != nil {
-			ret.Service.Port = *c.Service.Port
-		} else {
-			ret.Service.Port = 443
-		}
-
 		if c.Service.Path != nil {
 			ret.Service.Path = *c.Service.Path
 		}

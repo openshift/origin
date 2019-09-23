@@ -42,7 +42,7 @@ func cgroupMountsAt(path string, subsystems []string) []cgroups.Mount {
 }
 
 func TestGetCgroupSubsystems(t *testing.T) {
-	ourSubsystems := []string{"cpu,cpuacct", "devices", "memory", "cpuset", "blkio", "pids"}
+	ourSubsystems := []string{"cpu,cpuacct", "devices", "memory", "cpuset", "blkio"}
 
 	testCases := []struct {
 		mounts   []cgroups.Mount
@@ -64,7 +64,6 @@ func TestGetCgroupSubsystems(t *testing.T) {
 					"cpuset":  "/sys/fs/cgroup/cpuset",
 					"devices": "/sys/fs/cgroup/devices",
 					"memory":  "/sys/fs/cgroup/memory",
-					"pids":    "/sys/fs/cgroup/pids",
 				},
 				Mounts: cgroupMountsAt("/sys/fs/cgroup", ourSubsystems),
 			},
@@ -81,7 +80,6 @@ func TestGetCgroupSubsystems(t *testing.T) {
 					"cpuset":  "/sys/fs/cgroup/cpuset",
 					"devices": "/sys/fs/cgroup/devices",
 					"memory":  "/sys/fs/cgroup/memory",
-					"pids":    "/sys/fs/cgroup/pids",
 				},
 				Mounts: cgroupMountsAt("/sys/fs/cgroup", ourSubsystems),
 			},
@@ -99,7 +97,7 @@ func TestGetCgroupSubsystems(t *testing.T) {
 	}
 
 	for i, testCase := range testCases {
-		subSystems, err := getCgroupSubsystemsHelper(testCase.mounts, map[string]struct{}{})
+		subSystems, err := getCgroupSubsystemsHelper(testCase.mounts)
 		if testCase.err {
 			if err == nil {
 				t.Fatalf("[case %d] Expected error but didn't get one", i)

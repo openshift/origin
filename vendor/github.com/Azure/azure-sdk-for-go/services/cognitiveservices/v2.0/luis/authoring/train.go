@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -43,16 +42,6 @@ func NewTrainClient(endpoint string) TrainClient {
 // appID - the application ID.
 // versionID - the version ID.
 func (client TrainClient) GetStatus(ctx context.Context, appID uuid.UUID, versionID string) (result ListModelTrainingInfo, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TrainClient.GetStatus")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetStatusPreparer(ctx, appID, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.TrainClient", "GetStatus", nil, "Failure preparing request")
@@ -95,8 +84,8 @@ func (client TrainClient) GetStatusPreparer(ctx context.Context, appID uuid.UUID
 // GetStatusSender sends the GetStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client TrainClient) GetStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetStatusResponder handles the response to the GetStatus request. The method always
@@ -121,16 +110,6 @@ func (client TrainClient) GetStatusResponder(resp *http.Response) (result ListMo
 // appID - the application ID.
 // versionID - the version ID.
 func (client TrainClient) TrainVersion(ctx context.Context, appID uuid.UUID, versionID string) (result EnqueueTrainingResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/TrainClient.TrainVersion")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.TrainVersionPreparer(ctx, appID, versionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authoring.TrainClient", "TrainVersion", nil, "Failure preparing request")
@@ -173,8 +152,8 @@ func (client TrainClient) TrainVersionPreparer(ctx context.Context, appID uuid.U
 // TrainVersionSender sends the TrainVersion request. The method will close the
 // http.Response Body if it receives an error.
 func (client TrainClient) TrainVersionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // TrainVersionResponder handles the response to the TrainVersion request. The method always

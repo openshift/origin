@@ -1,6 +1,7 @@
 // Package cdn implements the Azure ARM Cdn service API version 2016-10-02.
 //
-// Cdn Management Client
+// Use these APIs to manage Azure CDN resources through the Azure Resource Manager. You must make sure that requests
+// made to these resources are secure.
 package cdn
 
 // Copyright (c) Microsoft and contributors.  All rights reserved.
@@ -25,7 +26,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -60,16 +60,6 @@ func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 // Parameters:
 // checkNameAvailabilityInput - input to check.
 func (client BaseClient) CheckNameAvailability(ctx context.Context, checkNameAvailabilityInput CheckNameAvailabilityInput) (result CheckNameAvailabilityOutput, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CheckNameAvailability")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: checkNameAvailabilityInput,
 			Constraints: []validation.Constraint{{Target: "checkNameAvailabilityInput.Name", Name: validation.Null, Rule: true, Chain: nil},
@@ -118,8 +108,8 @@ func (client BaseClient) CheckNameAvailabilityPreparer(ctx context.Context, chec
 // CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always
@@ -137,16 +127,6 @@ func (client BaseClient) CheckNameAvailabilityResponder(resp *http.Response) (re
 
 // ListOperations lists all of the available CDN REST API operations.
 func (client BaseClient) ListOperations(ctx context.Context) (result OperationListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListOperations")
-		defer func() {
-			sc := -1
-			if result.olr.Response.Response != nil {
-				sc = result.olr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listOperationsNextResults
 	req, err := client.ListOperationsPreparer(ctx)
 	if err != nil {
@@ -187,8 +167,8 @@ func (client BaseClient) ListOperationsPreparer(ctx context.Context) (*http.Requ
 // ListOperationsSender sends the ListOperations request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ListOperationsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListOperationsResponder handles the response to the ListOperations request. The method always
@@ -205,8 +185,8 @@ func (client BaseClient) ListOperationsResponder(resp *http.Response) (result Op
 }
 
 // listOperationsNextResults retrieves the next set of results, if any.
-func (client BaseClient) listOperationsNextResults(ctx context.Context, lastResults OperationListResult) (result OperationListResult, err error) {
-	req, err := lastResults.operationListResultPreparer(ctx)
+func (client BaseClient) listOperationsNextResults(lastResults OperationListResult) (result OperationListResult, err error) {
+	req, err := lastResults.operationListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.BaseClient", "listOperationsNextResults", nil, "Failure preparing next results request")
 	}
@@ -227,32 +207,12 @@ func (client BaseClient) listOperationsNextResults(ctx context.Context, lastResu
 
 // ListOperationsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BaseClient) ListOperationsComplete(ctx context.Context) (result OperationListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListOperations")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListOperations(ctx)
 	return
 }
 
 // ListResourceUsage check the quota and actual usage of the CDN profiles under the given subscription.
 func (client BaseClient) ListResourceUsage(ctx context.Context) (result ResourceUsageListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListResourceUsage")
-		defer func() {
-			sc := -1
-			if result.rulr.Response.Response != nil {
-				sc = result.rulr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listResourceUsageNextResults
 	req, err := client.ListResourceUsagePreparer(ctx)
 	if err != nil {
@@ -297,8 +257,8 @@ func (client BaseClient) ListResourceUsagePreparer(ctx context.Context) (*http.R
 // ListResourceUsageSender sends the ListResourceUsage request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ListResourceUsageSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResourceUsageResponder handles the response to the ListResourceUsage request. The method always
@@ -315,8 +275,8 @@ func (client BaseClient) ListResourceUsageResponder(resp *http.Response) (result
 }
 
 // listResourceUsageNextResults retrieves the next set of results, if any.
-func (client BaseClient) listResourceUsageNextResults(ctx context.Context, lastResults ResourceUsageListResult) (result ResourceUsageListResult, err error) {
-	req, err := lastResults.resourceUsageListResultPreparer(ctx)
+func (client BaseClient) listResourceUsageNextResults(lastResults ResourceUsageListResult) (result ResourceUsageListResult, err error) {
+	req, err := lastResults.resourceUsageListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.BaseClient", "listResourceUsageNextResults", nil, "Failure preparing next results request")
 	}
@@ -337,16 +297,6 @@ func (client BaseClient) listResourceUsageNextResults(ctx context.Context, lastR
 
 // ListResourceUsageComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BaseClient) ListResourceUsageComplete(ctx context.Context) (result ResourceUsageListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ListResourceUsage")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListResourceUsage(ctx)
 	return
 }

@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,16 +48,6 @@ func NewSuppressionsClientWithBaseURI(baseURI string, subscriptionID string) Sup
 // name - the name of the suppression.
 // suppressionContract - the snoozed or dismissed attribute; for example, the snooze duration.
 func (client SuppressionsClient) Create(ctx context.Context, resourceURI string, recommendationID string, name string, suppressionContract SuppressionContract) (result SuppressionContract, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SuppressionsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePreparer(ctx, resourceURI, recommendationID, name, suppressionContract)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "advisor.SuppressionsClient", "Create", nil, "Failure preparing request")
@@ -106,8 +95,8 @@ func (client SuppressionsClient) CreatePreparer(ctx context.Context, resourceURI
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client SuppressionsClient) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -131,16 +120,6 @@ func (client SuppressionsClient) CreateResponder(resp *http.Response) (result Su
 // recommendationID - the recommendation ID.
 // name - the name of the suppression.
 func (client SuppressionsClient) Delete(ctx context.Context, resourceURI string, recommendationID string, name string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SuppressionsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceURI, recommendationID, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "advisor.SuppressionsClient", "Delete", nil, "Failure preparing request")
@@ -186,8 +165,8 @@ func (client SuppressionsClient) DeletePreparer(ctx context.Context, resourceURI
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client SuppressionsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -209,16 +188,6 @@ func (client SuppressionsClient) DeleteResponder(resp *http.Response) (result au
 // recommendationID - the recommendation ID.
 // name - the name of the suppression.
 func (client SuppressionsClient) Get(ctx context.Context, resourceURI string, recommendationID string, name string) (result SuppressionContract, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SuppressionsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceURI, recommendationID, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "advisor.SuppressionsClient", "Get", nil, "Failure preparing request")
@@ -264,8 +233,8 @@ func (client SuppressionsClient) GetPreparer(ctx context.Context, resourceURI st
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client SuppressionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -287,16 +256,6 @@ func (client SuppressionsClient) GetResponder(resp *http.Response) (result Suppr
 // top - the number of suppressions per page if a paged version of this API is being used.
 // skipToken - the page-continuation token to use with a paged version of this API.
 func (client SuppressionsClient) List(ctx context.Context, top *int32, skipToken string) (result SuppressionContractListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SuppressionsClient.List")
-		defer func() {
-			sc := -1
-			if result.sclr.Response.Response != nil {
-				sc = result.sclr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, top, skipToken)
 	if err != nil {
@@ -347,8 +306,8 @@ func (client SuppressionsClient) ListPreparer(ctx context.Context, top *int32, s
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client SuppressionsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -365,8 +324,8 @@ func (client SuppressionsClient) ListResponder(resp *http.Response) (result Supp
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client SuppressionsClient) listNextResults(ctx context.Context, lastResults SuppressionContractListResult) (result SuppressionContractListResult, err error) {
-	req, err := lastResults.suppressionContractListResultPreparer(ctx)
+func (client SuppressionsClient) listNextResults(lastResults SuppressionContractListResult) (result SuppressionContractListResult, err error) {
+	req, err := lastResults.suppressionContractListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "advisor.SuppressionsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -387,16 +346,6 @@ func (client SuppressionsClient) listNextResults(ctx context.Context, lastResult
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client SuppressionsClient) ListComplete(ctx context.Context, top *int32, skipToken string) (result SuppressionContractListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SuppressionsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, top, skipToken)
 	return
 }

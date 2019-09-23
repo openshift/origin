@@ -31,14 +31,14 @@ import (
 	"k8s.io/klog"
 )
 
-// HealthChecker is a named healthz checker.
-type HealthChecker interface {
+// HealthzChecker is a named healthz checker.
+type HealthzChecker interface {
 	Name() string
 	Check(req *http.Request) error
 }
 
 // PingHealthz returns true automatically when checked
-var PingHealthz HealthChecker = ping{}
+var PingHealthz HealthzChecker = ping{}
 
 // ping implements the simplest possible healthz checker.
 type ping struct{}
@@ -53,7 +53,7 @@ func (ping) Check(_ *http.Request) error {
 }
 
 // LogHealthz returns true if logging is not blocked
-var LogHealthz HealthChecker = &log{}
+var LogHealthz HealthzChecker = &log{}
 
 type log struct {
 	startOnce    sync.Once
@@ -81,7 +81,7 @@ func (l *log) Check(_ *http.Request) error {
 }
 
 // NamedCheck returns a healthz checker for the given name and function.
-func NamedCheck(name string, check func(r *http.Request) error) HealthChecker {
+func NamedCheck(name string, check func(r *http.Request) error) HealthzChecker {
 	return &healthzCheck{name, check}
 }
 
@@ -89,24 +89,8 @@ func NamedCheck(name string, check func(r *http.Request) error) HealthChecker {
 // "/healthz" to mux. *All handlers* for mux must be specified in
 // exactly one call to InstallHandler. Calling InstallHandler more
 // than once for the same mux will result in a panic.
-func InstallHandler(mux mux, checks ...HealthChecker) {
+func InstallHandler(mux mux, checks ...HealthzChecker) {
 	InstallPathHandler(mux, "/healthz", checks...)
-}
-
-// InstallReadyzHandler registers handlers for health checking on the path
-// "/readyz" to mux. *All handlers* for mux must be specified in
-// exactly one call to InstallHandler. Calling InstallHandler more
-// than once for the same mux will result in a panic.
-func InstallReadyzHandler(mux mux, checks ...HealthChecker) {
-	InstallPathHandler(mux, "/readyz", checks...)
-}
-
-// InstallLivezHandler registers handlers for liveness checking on the path
-// "/livez" to mux. *All handlers* for mux must be specified in
-// exactly one call to InstallHandler. Calling InstallHandler more
-// than once for the same mux will result in a panic.
-func InstallLivezHandler(mux mux, checks ...HealthChecker) {
-	InstallPathHandler(mux, "/livez", checks...)
 }
 
 // InstallPathHandler registers handlers for health checking on
@@ -114,13 +98,13 @@ func InstallLivezHandler(mux mux, checks ...HealthChecker) {
 // specified in exactly one call to InstallPathHandler. Calling
 // InstallPathHandler more than once for the same path and mux will
 // result in a panic.
-func InstallPathHandler(mux mux, path string, checks ...HealthChecker) {
+func InstallPathHandler(mux mux, path string, checks ...HealthzChecker) {
 	if len(checks) == 0 {
 		klog.V(5).Info("No default health checks specified. Installing the ping handler.")
-		checks = []HealthChecker{PingHealthz}
+		checks = []HealthzChecker{PingHealthz}
 	}
 
-	klog.V(5).Infof("Installing health checkers for (%v): %v", path, formatQuoted(checkerNames(checks...)...))
+	klog.V(5).Info("Installing healthz checkers:", formatQuoted(checkerNames(checks...)...))
 
 	mux.Handle(path, handleRootHealthz(checks...))
 	for _, check := range checks {
@@ -133,13 +117,13 @@ type mux interface {
 	Handle(pattern string, handler http.Handler)
 }
 
-// healthzCheck implements HealthChecker on an arbitrary name and check function.
+// healthzCheck implements HealthzChecker on an arbitrary name and check function.
 type healthzCheck struct {
 	name  string
 	check func(r *http.Request) error
 }
 
-var _ HealthChecker = &healthzCheck{}
+var _ HealthzChecker = &healthzCheck{}
 
 func (c *healthzCheck) Name() string {
 	return c.name
@@ -159,7 +143,7 @@ func getExcludedChecks(r *http.Request) sets.String {
 }
 
 // handleRootHealthz returns an http.HandlerFunc that serves the provided checks.
-func handleRootHealthz(checks ...HealthChecker) http.HandlerFunc {
+func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		failed := false
 		excluded := getExcludedChecks(r)
@@ -218,7 +202,7 @@ func adaptCheckToHandler(c func(r *http.Request) error) http.HandlerFunc {
 }
 
 // checkerNames returns the names of the checks in the same order as passed in.
-func checkerNames(checks ...HealthChecker) []string {
+func checkerNames(checks ...HealthzChecker) []string {
 	// accumulate the names of checks for printing them out.
 	checkerNames := make([]string, 0, len(checks))
 	for _, check := range checks {

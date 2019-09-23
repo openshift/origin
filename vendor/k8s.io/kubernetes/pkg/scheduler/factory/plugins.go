@@ -43,7 +43,6 @@ type PluginFactoryArgs struct {
 	NodeLister                     algorithm.NodeLister
 	PDBLister                      algorithm.PDBLister
 	NodeInfo                       predicates.NodeInfo
-	CSINodeInfo                    predicates.CSINodeInfo
 	PVInfo                         predicates.PersistentVolumeInfo
 	PVCInfo                        predicates.PersistentVolumeClaimInfo
 	StorageClassInfo               predicates.StorageClassInfo
@@ -78,7 +77,7 @@ type PriorityConfigFactory struct {
 }
 
 var (
-	schedulerFactoryMutex sync.RWMutex
+	schedulerFactoryMutex sync.Mutex
 
 	// maps that hold registered algorithm types
 	fitPredicateMap        = make(map[string]FitPredicateFactory)
@@ -100,60 +99,6 @@ const (
 type AlgorithmProviderConfig struct {
 	FitPredicateKeys     sets.String
 	PriorityFunctionKeys sets.String
-}
-
-// Snapshot is used to store current state of registered predicates and priorities.
-type Snapshot struct {
-	fitPredicateMap        map[string]FitPredicateFactory
-	mandatoryFitPredicates sets.String
-	priorityFunctionMap    map[string]PriorityConfigFactory
-	algorithmProviderMap   map[string]AlgorithmProviderConfig
-}
-
-// Copy returns a snapshot of current registered predicates and priorities.
-func Copy() *Snapshot {
-	schedulerFactoryMutex.RLock()
-	defer schedulerFactoryMutex.RUnlock()
-
-	copy := Snapshot{
-		fitPredicateMap:        make(map[string]FitPredicateFactory),
-		mandatoryFitPredicates: sets.NewString(),
-		priorityFunctionMap:    make(map[string]PriorityConfigFactory),
-		algorithmProviderMap:   make(map[string]AlgorithmProviderConfig),
-	}
-	for k, v := range fitPredicateMap {
-		copy.fitPredicateMap[k] = v
-	}
-	for k := range mandatoryFitPredicates {
-		copy.mandatoryFitPredicates[k] = struct{}{}
-	}
-	for k, v := range priorityFunctionMap {
-		copy.priorityFunctionMap[k] = v
-	}
-	for provider, config := range algorithmProviderMap {
-		copyPredKeys, copyPrioKeys := sets.NewString(), sets.NewString()
-		for k := range config.FitPredicateKeys {
-			copyPredKeys[k] = struct{}{}
-		}
-		for k := range config.PriorityFunctionKeys {
-			copyPrioKeys[k] = struct{}{}
-		}
-		copy.algorithmProviderMap[provider] = AlgorithmProviderConfig{
-			FitPredicateKeys:     copyPredKeys,
-			PriorityFunctionKeys: copyPrioKeys,
-		}
-	}
-	return &copy
-}
-
-// Apply sets state of predicates and priorities to `s`.
-func Apply(s *Snapshot) {
-	schedulerFactoryMutex.Lock()
-	fitPredicateMap = s.fitPredicateMap
-	mandatoryFitPredicates = s.mandatoryFitPredicates
-	priorityFunctionMap = s.priorityFunctionMap
-	algorithmProviderMap = s.algorithmProviderMap
-	schedulerFactoryMutex.Unlock()
 }
 
 // RegisterFitPredicate registers a fit predicate with the algorithm
@@ -194,6 +139,7 @@ func RemovePredicateKeyFromAlgorithmProviderMap(key string) {
 	for _, provider := range algorithmProviderMap {
 		provider.FitPredicateKeys.Delete(key)
 	}
+	return
 }
 
 // InsertPredicateKeyToAlgoProvider insert a fit predicate key to algorithmProvider.
@@ -300,8 +246,8 @@ func RegisterCustomFitPredicate(policy schedulerapi.PredicatePolicy) string {
 
 // IsFitPredicateRegistered is useful for testing providers.
 func IsFitPredicateRegistered(name string) bool {
-	schedulerFactoryMutex.RLock()
-	defer schedulerFactoryMutex.RUnlock()
+	schedulerFactoryMutex.Lock()
+	defer schedulerFactoryMutex.Unlock()
 	_, ok := fitPredicateMap[name]
 	return ok
 }
@@ -333,9 +279,10 @@ func RegisterPriorityFunction(name string, function priorities.PriorityFunction,
 	})
 }
 
-// RegisterPriorityMapReduceFunction registers a priority function with the algorithm registry. Returns the name,
+// RegisterPriorityFunction2 registers a priority function with the algorithm registry. Returns the name,
 // with which the function was registered.
-func RegisterPriorityMapReduceFunction(
+// FIXME: Rename to PriorityFunctionFactory.
+func RegisterPriorityFunction2(
 	name string,
 	mapFunction priorities.PriorityMapFunction,
 	reduceFunction priorities.PriorityReduceFunction,
@@ -390,8 +337,8 @@ func RegisterCustomPriorityFunction(policy schedulerapi.PriorityPolicy) string {
 		} else if policy.Argument.RequestedToCapacityRatioArguments != nil {
 			pcf = &PriorityConfigFactory{
 				MapReduceFunction: func(args PluginFactoryArgs) (priorities.PriorityMapFunction, priorities.PriorityReduceFunction) {
-					scoringFunctionShape, resources := buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(policy.Argument.RequestedToCapacityRatioArguments)
-					p := priorities.RequestedToCapacityRatioResourceAllocationPriority(scoringFunctionShape, resources)
+					scoringFunctionShape := buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(policy.Argument.RequestedToCapacityRatioArguments)
+					p := priorities.RequestedToCapacityRatioResourceAllocationPriority(scoringFunctionShape)
 					return p.PriorityMap, nil
 				},
 				Weight: policy.Weight,
@@ -414,7 +361,7 @@ func RegisterCustomPriorityFunction(policy schedulerapi.PriorityPolicy) string {
 	return RegisterPriorityConfigFactory(policy.Name, *pcf)
 }
 
-func buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(arguments *schedulerapi.RequestedToCapacityRatioArguments) (priorities.FunctionShape, priorities.ResourceToWeightMap) {
+func buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(arguments *schedulerapi.RequestedToCapacityRatioArguments) priorities.FunctionShape {
 	n := len(arguments.UtilizationShape)
 	points := make([]priorities.FunctionShapePoint, 0, n)
 	for _, point := range arguments.UtilizationShape {
@@ -424,24 +371,13 @@ func buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(arguments *s
 	if err != nil {
 		klog.Fatalf("invalid RequestedToCapacityRatioPriority arguments: %s", err.Error())
 	}
-	resourceToWeightMap := make(priorities.ResourceToWeightMap, 0)
-	if len(arguments.Resources) == 0 {
-		resourceToWeightMap = priorities.DefaultRequestedRatioResources
-		return shape, resourceToWeightMap
-	}
-	for _, resource := range arguments.Resources {
-		resourceToWeightMap[resource.Name] = int64(resource.Weight)
-		if resource.Weight == 0 {
-			resourceToWeightMap[resource.Name] = 1
-		}
-	}
-	return shape, resourceToWeightMap
+	return shape
 }
 
 // IsPriorityFunctionRegistered is useful for testing providers.
 func IsPriorityFunctionRegistered(name string) bool {
-	schedulerFactoryMutex.RLock()
-	defer schedulerFactoryMutex.RUnlock()
+	schedulerFactoryMutex.Lock()
+	defer schedulerFactoryMutex.Unlock()
 	_, ok := priorityFunctionMap[name]
 	return ok
 }
@@ -461,8 +397,8 @@ func RegisterAlgorithmProvider(name string, predicateKeys, priorityKeys sets.Str
 
 // GetAlgorithmProvider should not be used to modify providers. It is publicly visible for testing.
 func GetAlgorithmProvider(name string) (*AlgorithmProviderConfig, error) {
-	schedulerFactoryMutex.RLock()
-	defer schedulerFactoryMutex.RUnlock()
+	schedulerFactoryMutex.Lock()
+	defer schedulerFactoryMutex.Unlock()
 
 	provider, ok := algorithmProviderMap[name]
 	if !ok {
@@ -473,8 +409,8 @@ func GetAlgorithmProvider(name string) (*AlgorithmProviderConfig, error) {
 }
 
 func getFitPredicateFunctions(names sets.String, args PluginFactoryArgs) (map[string]predicates.FitPredicate, error) {
-	schedulerFactoryMutex.RLock()
-	defer schedulerFactoryMutex.RUnlock()
+	schedulerFactoryMutex.Lock()
+	defer schedulerFactoryMutex.Unlock()
 
 	fitPredicates := map[string]predicates.FitPredicate{}
 	for _, name := range names.List() {
@@ -516,8 +452,8 @@ func getPredicateMetadataProducer(args PluginFactoryArgs) (predicates.PredicateM
 }
 
 func getPriorityFunctionConfigs(names sets.String, args PluginFactoryArgs) ([]priorities.PriorityConfig, error) {
-	schedulerFactoryMutex.RLock()
-	defer schedulerFactoryMutex.RUnlock()
+	schedulerFactoryMutex.Lock()
+	defer schedulerFactoryMutex.Unlock()
 
 	var configs []priorities.PriorityConfig
 	for _, name := range names.List() {
@@ -603,8 +539,8 @@ func validatePriorityOrDie(priority schedulerapi.PriorityPolicy) {
 
 // ListRegisteredFitPredicates returns the registered fit predicates.
 func ListRegisteredFitPredicates() []string {
-	schedulerFactoryMutex.RLock()
-	defer schedulerFactoryMutex.RUnlock()
+	schedulerFactoryMutex.Lock()
+	defer schedulerFactoryMutex.Unlock()
 
 	var names []string
 	for name := range fitPredicateMap {
@@ -615,8 +551,8 @@ func ListRegisteredFitPredicates() []string {
 
 // ListRegisteredPriorityFunctions returns the registered priority functions.
 func ListRegisteredPriorityFunctions() []string {
-	schedulerFactoryMutex.RLock()
-	defer schedulerFactoryMutex.RUnlock()
+	schedulerFactoryMutex.Lock()
+	defer schedulerFactoryMutex.Unlock()
 
 	var names []string
 	for name := range priorityFunctionMap {

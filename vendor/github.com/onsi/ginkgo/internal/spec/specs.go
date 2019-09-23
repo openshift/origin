@@ -37,13 +37,13 @@ func (e *Specs) Shuffle(r *rand.Rand) {
 	sort.Sort(e)
 	permutation := r.Perm(len(e.specs))
 	shuffledSpecs := make([]*Spec, len(e.specs))
-	names := make([]string, len(e.specs))
 	for i, j := range permutation {
 		shuffledSpecs[i] = e.specs[j]
-		names[i] = e.names[j]
 	}
 	e.specs = shuffledSpecs
-	e.names = names
+	for i, spec := range e.specs {
+		e.names[i] = spec.ConcatenatedString()
+	}
 }
 
 func (e *Specs) ApplyFocus(description string, focusString string, skipString string) {
@@ -97,7 +97,7 @@ func (e *Specs) applyRegExpFocusAndSkip(description string, focusString string, 
 	}
 	var skipFilter *regexp.Regexp
 	if skipString != "" {
-		skipFilter = regexp.MustCompile(skipString)
+		skipFilter = regexp.MustCompile(focusString)
 	}
 
 	for i, spec := range e.specs {

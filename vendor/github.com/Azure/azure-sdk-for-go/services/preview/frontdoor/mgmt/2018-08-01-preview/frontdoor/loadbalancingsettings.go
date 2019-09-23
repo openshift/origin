@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewLoadBalancingSettingsClientWithBaseURI(baseURI string, subscriptionID st
 // loadBalancingSettingsName - name of the load balancing settings which is unique within the Front Door.
 // loadBalancingSettingsParameters - loadBalancingSettings properties needed to create a new Front Door.
 func (client LoadBalancingSettingsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, frontDoorName string, loadBalancingSettingsName string, loadBalancingSettingsParameters LoadBalancingSettingsModel) (result LoadBalancingSettingsCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LoadBalancingSettingsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 80, Chain: nil},
@@ -103,7 +92,6 @@ func (client LoadBalancingSettingsClient) CreateOrUpdatePreparer(ctx context.Con
 		"api-version": APIVersion,
 	}
 
-	loadBalancingSettingsParameters.Type = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -117,9 +105,13 @@ func (client LoadBalancingSettingsClient) CreateOrUpdatePreparer(ctx context.Con
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client LoadBalancingSettingsClient) CreateOrUpdateSender(req *http.Request) (future LoadBalancingSettingsCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -146,16 +138,6 @@ func (client LoadBalancingSettingsClient) CreateOrUpdateResponder(resp *http.Res
 // frontDoorName - name of the Front Door which is globally unique.
 // loadBalancingSettingsName - name of the load balancing settings which is unique within the Front Door.
 func (client LoadBalancingSettingsClient) Delete(ctx context.Context, resourceGroupName string, frontDoorName string, loadBalancingSettingsName string) (result LoadBalancingSettingsDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LoadBalancingSettingsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 80, Chain: nil},
@@ -212,9 +194,13 @@ func (client LoadBalancingSettingsClient) DeletePreparer(ctx context.Context, re
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client LoadBalancingSettingsClient) DeleteSender(req *http.Request) (future LoadBalancingSettingsDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -240,16 +226,6 @@ func (client LoadBalancingSettingsClient) DeleteResponder(resp *http.Response) (
 // frontDoorName - name of the Front Door which is globally unique.
 // loadBalancingSettingsName - name of the load balancing settings which is unique within the Front Door.
 func (client LoadBalancingSettingsClient) Get(ctx context.Context, resourceGroupName string, frontDoorName string, loadBalancingSettingsName string) (result LoadBalancingSettingsModel, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LoadBalancingSettingsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 80, Chain: nil},
@@ -312,8 +288,8 @@ func (client LoadBalancingSettingsClient) GetPreparer(ctx context.Context, resou
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client LoadBalancingSettingsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -334,16 +310,6 @@ func (client LoadBalancingSettingsClient) GetResponder(resp *http.Response) (res
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // frontDoorName - name of the Front Door which is globally unique.
 func (client LoadBalancingSettingsClient) ListByFrontDoor(ctx context.Context, resourceGroupName string, frontDoorName string) (result LoadBalancingSettingsListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LoadBalancingSettingsClient.ListByFrontDoor")
-		defer func() {
-			sc := -1
-			if result.lbslr.Response.Response != nil {
-				sc = result.lbslr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 80, Chain: nil},
@@ -402,8 +368,8 @@ func (client LoadBalancingSettingsClient) ListByFrontDoorPreparer(ctx context.Co
 // ListByFrontDoorSender sends the ListByFrontDoor request. The method will close the
 // http.Response Body if it receives an error.
 func (client LoadBalancingSettingsClient) ListByFrontDoorSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByFrontDoorResponder handles the response to the ListByFrontDoor request. The method always
@@ -420,8 +386,8 @@ func (client LoadBalancingSettingsClient) ListByFrontDoorResponder(resp *http.Re
 }
 
 // listByFrontDoorNextResults retrieves the next set of results, if any.
-func (client LoadBalancingSettingsClient) listByFrontDoorNextResults(ctx context.Context, lastResults LoadBalancingSettingsListResult) (result LoadBalancingSettingsListResult, err error) {
-	req, err := lastResults.loadBalancingSettingsListResultPreparer(ctx)
+func (client LoadBalancingSettingsClient) listByFrontDoorNextResults(lastResults LoadBalancingSettingsListResult) (result LoadBalancingSettingsListResult, err error) {
+	req, err := lastResults.loadBalancingSettingsListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "frontdoor.LoadBalancingSettingsClient", "listByFrontDoorNextResults", nil, "Failure preparing next results request")
 	}
@@ -442,16 +408,6 @@ func (client LoadBalancingSettingsClient) listByFrontDoorNextResults(ctx context
 
 // ListByFrontDoorComplete enumerates all values, automatically crossing page boundaries as required.
 func (client LoadBalancingSettingsClient) ListByFrontDoorComplete(ctx context.Context, resourceGroupName string, frontDoorName string) (result LoadBalancingSettingsListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LoadBalancingSettingsClient.ListByFrontDoor")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByFrontDoor(ctx, resourceGroupName, frontDoorName)
 	return
 }

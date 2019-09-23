@@ -87,7 +87,7 @@ func (in *NodeMetrics) DeepCopyObject() runtime.Object {
 func (in *NodeMetricsList) DeepCopyInto(out *NodeMetricsList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]NodeMetrics, len(*in))
@@ -155,7 +155,7 @@ func (in *PodMetrics) DeepCopyObject() runtime.Object {
 func (in *PodMetricsList) DeepCopyInto(out *PodMetricsList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]PodMetrics, len(*in))

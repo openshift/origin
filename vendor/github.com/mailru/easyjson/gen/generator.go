@@ -33,10 +33,9 @@ type Generator struct {
 
 	varCounter int
 
-	noStdMarshalers       bool
-	omitEmpty             bool
-	disallowUnknownFields bool
-	fieldNamer            FieldNamer
+	noStdMarshalers bool
+	omitEmpty       bool
+	fieldNamer      FieldNamer
 
 	// package path to local alias map for tracking imports
 	imports map[string]string
@@ -109,11 +108,6 @@ func (g *Generator) UseLowerCamelCase() {
 // methods (only the custom interface).
 func (g *Generator) NoStdMarshalers() {
 	g.noStdMarshalers = true
-}
-
-// DisallowUnknownFields instructs not to skip unknown fields in json and return error.
-func (g *Generator) DisallowUnknownFields() {
-	g.disallowUnknownFields = true
 }
 
 // OmitEmpty triggers `json=",omitempty"` behaviour by default.
@@ -230,10 +224,6 @@ func fixAliasName(alias string) string {
 		"_",
 		-1,
 	)
-
-	if alias[0] == 'v' { // to void conflicting with var names, say v1
-		alias = "_" + alias
-	}
 	return alias
 }
 
@@ -290,11 +280,7 @@ func (g *Generator) getType(t reflect.Type) string {
 			lines := make([]string, 0, nf)
 			for i := 0; i < nf; i++ {
 				f := t.Field(i)
-				var line string
-				if !f.Anonymous {
-					line = f.Name + " "
-				} // else the field is anonymous (an embedded type)
-				line += g.getType(f.Type)
+				line := f.Name + " " + g.getType(f.Type)
 				t := f.Tag
 				if t != "" {
 					line += " " + escapeTag(t)
@@ -394,7 +380,7 @@ func (DefaultFieldNamer) GetJSONFieldName(t reflect.Type, f reflect.StructField)
 }
 
 // LowerCamelCaseFieldNamer
-type LowerCamelCaseFieldNamer struct{}
+type LowerCamelCaseFieldNamer struct {}
 
 func isLower(b byte) bool {
 	return b <= 122 && b >= 97
@@ -421,16 +407,15 @@ func lowerFirst(s string) string {
 	    If the following char is upper OR numeric, LOWER it
 	    If is the end of string, LEAVE it
 	  Else lowercase
-	*/
+	 */
 
 	foundLower := false
 	for i := range s {
 		ch := s[i]
 		if isUpper(ch) {
-			switch {
-			case i == 0:
+			if i == 0 {
 				str += string(ch + 32)
-			case !foundLower: // Currently just a stream of capitals, eg JSONRESTS[erver]
+			} else if !foundLower { // Currently just a stream of capitals, eg JSONRESTS[erver]
 				if strlen > (i+1) && isLower(s[i+1]) {
 					// Next char is lower, keep this a capital
 					str += string(ch)
@@ -438,7 +423,7 @@ func lowerFirst(s string) string {
 					// Either at end of string or next char is capital
 					str += string(ch + 32)
 				}
-			default:
+			} else {
 				str += string(ch)
 			}
 		} else {

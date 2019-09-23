@@ -22,37 +22,19 @@ import (
 //
 // Dlarf is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dlarf(side blas.Side, m, n int, v []float64, incv int, tau float64, c []float64, ldc int, work []float64) {
-	switch {
-	case side != blas.Left && side != blas.Right:
-		panic(badSide)
-	case m < 0:
-		panic(mLT0)
-	case n < 0:
-		panic(nLT0)
-	case incv == 0:
-		panic(zeroIncV)
-	case ldc < max(1, n):
-		panic(badLdC)
-	}
-
-	if m == 0 || n == 0 {
-		return
-	}
-
 	applyleft := side == blas.Left
+	if (applyleft && len(work) < n) || (!applyleft && len(work) < m) {
+		panic(badWork)
+	}
+	checkMatrix(m, n, c, ldc)
+
+	// v has length m if applyleft and n otherwise.
 	lenV := n
 	if applyleft {
 		lenV = m
 	}
 
-	switch {
-	case len(v) < 1+(lenV-1)*abs(incv):
-		panic(shortV)
-	case len(c) < (m-1)*ldc+n:
-		panic(shortC)
-	case (applyleft && len(work) < n) || (!applyleft && len(work) < m):
-		panic(shortWork)
-	}
+	checkVector(lenV, v, incv)
 
 	lastv := 0 // last non-zero element of v
 	lastc := 0 // last non-zero row/column of c

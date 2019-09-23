@@ -21,11 +21,10 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
-// ReportsClient is the REST APIs for Azure Active Directory Connect Health
+// ReportsClient is the REST APIs for Azure Active Drectory Connect Health
 type ReportsClient struct {
 	BaseClient
 }
@@ -42,16 +41,6 @@ func NewReportsClientWithBaseURI(baseURI string) ReportsClient {
 
 // GetDevOps checks if the user is enabled for Dev Ops access.
 func (client ReportsClient) GetDevOps(ctx context.Context) (result Result, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.GetDevOps")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetDevOpsPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.ReportsClient", "GetDevOps", nil, "Failure preparing request")
@@ -91,8 +80,8 @@ func (client ReportsClient) GetDevOpsPreparer(ctx context.Context) (*http.Reques
 // GetDevOpsSender sends the GetDevOps request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) GetDevOpsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetDevOpsResponder handles the response to the GetDevOps request. The method always

@@ -77,9 +77,9 @@ func (m *KeysMatcher) matchKeys(actual interface{}) (errs []error) {
 				return nil
 			}
 
-			valInterface := actualValue.MapIndex(keyValue).Interface()
+			valValue := actualValue.MapIndex(keyValue)
 
-			match, err := matcher.Match(valInterface)
+			match, err := matcher.Match(valValue.Interface())
 			if err != nil {
 				return err
 			}
@@ -88,7 +88,7 @@ func (m *KeysMatcher) matchKeys(actual interface{}) (errs []error) {
 				if nesting, ok := matcher.(errorsutil.NestingMatcher); ok {
 					return errorsutil.AggregateError(nesting.Failures())
 				}
-				return errors.New(matcher.FailureMessage(valInterface))
+				return errors.New(matcher.FailureMessage(valValue))
 			}
 			return nil
 		}()

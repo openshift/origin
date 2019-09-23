@@ -230,20 +230,3 @@ func TestDateTime_BSON(t *testing.T) {
 		assert.Equal(t, dt, dtCopy)
 	}
 }
-
-func TestDeepCopyDateTime(t *testing.T) {
-	p, err := ParseDateTime("2011-08-18T19:03:37.000000000+01:00")
-	assert.NoError(t, err)
-	in := &p
-
-	out := new(DateTime)
-	in.DeepCopyInto(out)
-	assert.Equal(t, in, out)
-
-	out2 := in.DeepCopy()
-	assert.Equal(t, in, out2)
-
-	var inNil *DateTime
-	out3 := inNil.DeepCopy()
-	assert.Nil(t, out3)
-}

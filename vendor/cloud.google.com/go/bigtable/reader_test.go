@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Google LLC
+Copyright 2016 Google Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"strings"
 	"testing"
 
-	"cloud.google.com/go/internal/testutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	btspb "google.golang.org/genproto/googleapis/bigtable/v2"
@@ -48,7 +48,7 @@ func TestSingleCell(t *testing.T) {
 		t.Fatalf("Family name length mismatch %d, %d", 1, len(row["fm"]))
 	}
 	want := []ReadItem{ri("rk", "fm", "col", 1, "value")}
-	if !testutil.Equal(row["fm"], want) {
+	if !reflect.DeepEqual(row["fm"], want) {
 		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm"], want)
 	}
 	if err := cr.Close(); err != nil {
@@ -59,10 +59,10 @@ func TestSingleCell(t *testing.T) {
 func TestMultipleCells(t *testing.T) {
 	cr := newChunkReader()
 
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "val1", 0, false))
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 1, "val2", 0, false))
-	mustProcess(t, cr, cc("rs", "fm1", "col2", 0, "val3", 0, false))
-	mustProcess(t, cr, cc("rs", "fm2", "col1", 0, "val4", 0, false))
+	cr.Process(cc("rs", "fm1", "col1", 0, "val1", 0, false))
+	cr.Process(cc("rs", "fm1", "col1", 1, "val2", 0, false))
+	cr.Process(cc("rs", "fm1", "col2", 0, "val3", 0, false))
+	cr.Process(cc("rs", "fm2", "col1", 0, "val4", 0, false))
 	row, err := cr.Process(cc("rs", "fm2", "col2", 1, "extralongval5", 0, true))
 	if err != nil {
 		t.Fatalf("Processing chunk: %v", err)
@@ -76,14 +76,14 @@ func TestMultipleCells(t *testing.T) {
 		ri("rs", "fm1", "col1", 1, "val2"),
 		ri("rs", "fm1", "col2", 0, "val3"),
 	}
-	if !testutil.Equal(row["fm1"], want) {
+	if !reflect.DeepEqual(row["fm1"], want) {
 		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
 	}
 	want = []ReadItem{
 		ri("rs", "fm2", "col1", 0, "val4"),
 		ri("rs", "fm2", "col2", 1, "extralongval5"),
 	}
-	if !testutil.Equal(row["fm2"], want) {
+	if !reflect.DeepEqual(row["fm2"], want) {
 		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm2"], want)
 	}
 	if err := cr.Close(); err != nil {
@@ -94,8 +94,8 @@ func TestMultipleCells(t *testing.T) {
 func TestSplitCells(t *testing.T) {
 	cr := newChunkReader()
 
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "hello ", 11, false))
-	mustProcess(t, cr, ccData("world", 0, false))
+	cr.Process(cc("rs", "fm1", "col1", 0, "hello ", 11, false))
+	cr.Process(ccData("world", 0, false))
 	row, err := cr.Process(cc("rs", "fm1", "col2", 0, "val2", 0, true))
 	if err != nil {
 		t.Fatalf("Processing chunk: %v", err)
@@ -108,7 +108,7 @@ func TestSplitCells(t *testing.T) {
 		ri("rs", "fm1", "col1", 0, "hello world"),
 		ri("rs", "fm1", "col2", 0, "val2"),
 	}
-	if !testutil.Equal(row["fm1"], want) {
+	if !reflect.DeepEqual(row["fm1"], want) {
 		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
 	}
 	if err := cr.Close(); err != nil {
@@ -124,7 +124,7 @@ func TestMultipleRows(t *testing.T) {
 		t.Fatalf("Processing chunk: %v", err)
 	}
 	want := []ReadItem{ri("rs1", "fm1", "col1", 1, "val1")}
-	if !testutil.Equal(row["fm1"], want) {
+	if !reflect.DeepEqual(row["fm1"], want) {
 		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
 	}
 
@@ -133,7 +133,7 @@ func TestMultipleRows(t *testing.T) {
 		t.Fatalf("Processing chunk: %v", err)
 	}
 	want = []ReadItem{ri("rs2", "fm2", "col2", 2, "val2")}
-	if !testutil.Equal(row["fm2"], want) {
+	if !reflect.DeepEqual(row["fm2"], want) {
 		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm2"], want)
 	}
 
@@ -150,7 +150,7 @@ func TestBlankQualifier(t *testing.T) {
 		t.Fatalf("Processing chunk: %v", err)
 	}
 	want := []ReadItem{ri("rs1", "fm1", "", 1, "val1")}
-	if !testutil.Equal(row["fm1"], want) {
+	if !reflect.DeepEqual(row["fm1"], want) {
 		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm1"], want)
 	}
 
@@ -159,7 +159,7 @@ func TestBlankQualifier(t *testing.T) {
 		t.Fatalf("Processing chunk: %v", err)
 	}
 	want = []ReadItem{ri("rs2", "fm2", "col2", 2, "val2")}
-	if !testutil.Equal(row["fm2"], want) {
+	if !reflect.DeepEqual(row["fm2"], want) {
 		t.Fatalf("Incorrect ReadItem: got: %v\nwant: %v\n", row["fm2"], want)
 	}
 
@@ -170,13 +170,14 @@ func TestBlankQualifier(t *testing.T) {
 
 func TestReset(t *testing.T) {
 	cr := newChunkReader()
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "val1", 0, false))
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 1, "val2", 0, false))
-	mustProcess(t, cr, cc("rs", "fm1", "col2", 0, "val3", 0, false))
-	mustProcess(t, cr, ccReset())
-	row := mustProcess(t, cr, cc("rs1", "fm1", "col1", 1, "val1", 0, true))
+
+	cr.Process(cc("rs", "fm1", "col1", 0, "val1", 0, false))
+	cr.Process(cc("rs", "fm1", "col1", 1, "val2", 0, false))
+	cr.Process(cc("rs", "fm1", "col2", 0, "val3", 0, false))
+	cr.Process(ccReset())
+	row, _ := cr.Process(cc("rs1", "fm1", "col1", 1, "val1", 0, true))
 	want := []ReadItem{ri("rs1", "fm1", "col1", 1, "val1")}
-	if !testutil.Equal(row["fm1"], want) {
+	if !reflect.DeepEqual(row["fm1"], want) {
 		t.Fatalf("Reset: got: %v\nwant: %v\n", row["fm1"], want)
 	}
 	if err := cr.Close(); err != nil {
@@ -187,19 +188,11 @@ func TestReset(t *testing.T) {
 func TestNewFamEmptyQualifier(t *testing.T) {
 	cr := newChunkReader()
 
-	mustProcess(t, cr, cc("rs", "fm1", "col1", 0, "val1", 0, false))
+	cr.Process(cc("rs", "fm1", "col1", 0, "val1", 0, false))
 	_, err := cr.Process(cc(nilStr, "fm2", nilStr, 0, "val2", 0, true))
 	if err == nil {
 		t.Fatalf("Expected error on second chunk with no qualifier set")
 	}
-}
-
-func mustProcess(t *testing.T, cr *chunkReader, cc *btspb.ReadRowsResponse_CellChunk) Row {
-	row, err := cr.Process(cc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return row
 }
 
 // The read rows acceptance test reads a json file specifying a number of tests,
@@ -225,13 +218,13 @@ type TestResult struct {
 }
 
 func TestAcceptance(t *testing.T) {
-	testJSON, err := ioutil.ReadFile("./testdata/read-rows-acceptance-test.json")
+	testJson, err := ioutil.ReadFile("./testdata/read-rows-acceptance-test.json")
 	if err != nil {
 		t.Fatalf("could not open acceptance test file %v", err)
 	}
 
 	var accTest AcceptanceTest
-	err = json.Unmarshal(testJSON, &accTest)
+	err = json.Unmarshal(testJson, &accTest)
 	if err != nil {
 		t.Fatalf("could not parse acceptance test file: %v", err)
 	}
@@ -286,7 +279,7 @@ func runTestCase(t *testing.T, test TestCase) {
 
 	got := toSet(results)
 	want := toSet(test.Results)
-	if !testutil.Equal(got, want) {
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("[%s]: got: %v\nwant: %v\n", test.Name, got, want)
 	}
 }

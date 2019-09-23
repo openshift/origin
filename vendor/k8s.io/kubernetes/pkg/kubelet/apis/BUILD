@@ -37,6 +37,7 @@ filegroup(
     srcs = [
         ":package-srcs",
         "//pkg/kubelet/apis/config:all-srcs",
+        "//pkg/kubelet/apis/cri:all-srcs",
         "//pkg/kubelet/apis/deviceplugin/v1alpha:all-srcs",
         "//pkg/kubelet/apis/deviceplugin/v1beta1:all-srcs",
         "//pkg/kubelet/apis/pluginregistration/v1:all-srcs",

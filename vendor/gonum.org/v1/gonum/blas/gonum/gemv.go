@@ -29,6 +29,7 @@ func (Implementation) Dgemv(tA blas.Transpose, m, n int, alpha float64, a []floa
 	if lda < max(1, n) {
 		panic(badLdA)
 	}
+
 	if incX == 0 {
 		panic(zeroIncX)
 	}
@@ -42,24 +43,18 @@ func (Implementation) Dgemv(tA blas.Transpose, m, n int, alpha float64, a []floa
 		lenX = n
 		lenY = m
 	}
-
-	// Quick return if possible
-	if m == 0 || n == 0 {
-		return
-	}
-
 	if (incX > 0 && (lenX-1)*incX >= len(x)) || (incX < 0 && (1-lenX)*incX >= len(x)) {
-		panic(shortX)
+		panic(badX)
 	}
 	if (incY > 0 && (lenY-1)*incY >= len(y)) || (incY < 0 && (1-lenY)*incY >= len(y)) {
-		panic(shortY)
+		panic(badY)
 	}
-	if len(a) < lda*(m-1)+n {
-		panic(shortA)
+	if lda*(m-1)+n > len(a) || lda < max(1, n) {
+		panic(badLdA)
 	}
 
 	// Quick return if possible
-	if alpha == 0 && beta == 1 {
+	if m == 0 || n == 0 || (alpha == 0 && beta == 1) {
 		return
 	}
 
@@ -101,18 +96,13 @@ func (Implementation) Sgemv(tA blas.Transpose, m, n int, alpha float32, a []floa
 	if lda < max(1, n) {
 		panic(badLdA)
 	}
+
 	if incX == 0 {
 		panic(zeroIncX)
 	}
 	if incY == 0 {
 		panic(zeroIncY)
 	}
-
-	// Quick return if possible.
-	if m == 0 || n == 0 {
-		return
-	}
-
 	// Set up indexes
 	lenX := m
 	lenY := n
@@ -121,18 +111,26 @@ func (Implementation) Sgemv(tA blas.Transpose, m, n int, alpha float32, a []floa
 		lenY = m
 	}
 	if (incX > 0 && (lenX-1)*incX >= len(x)) || (incX < 0 && (1-lenX)*incX >= len(x)) {
-		panic(shortX)
+		panic(badX)
 	}
 	if (incY > 0 && (lenY-1)*incY >= len(y)) || (incY < 0 && (1-lenY)*incY >= len(y)) {
-		panic(shortY)
+		panic(badY)
 	}
-	if len(a) < lda*(m-1)+n {
-		panic(shortA)
+	if lda*(m-1)+n > len(a) || lda < max(1, n) {
+		panic(badLdA)
 	}
 
-	// Quick return if possible.
-	if alpha == 0 && beta == 1 {
+	// Quick return if possible
+	if m == 0 || n == 0 || (alpha == 0 && beta == 1) {
 		return
+	}
+
+	var kx, ky int
+	if incX < 0 {
+		kx = -(lenX - 1) * incX
+	}
+	if incY < 0 {
+		ky = -(lenY - 1) * incY
 	}
 
 	// First form y = beta * y
@@ -146,19 +144,11 @@ func (Implementation) Sgemv(tA blas.Transpose, m, n int, alpha float32, a []floa
 		return
 	}
 
-	var kx, ky int
-	if incX < 0 {
-		kx = -(lenX - 1) * incX
-	}
-	if incY < 0 {
-		ky = -(lenY - 1) * incY
-	}
-
 	// Form y = alpha * A * x + y
 	if tA == blas.NoTrans {
 		if incX == 1 && incY == 1 {
 			for i := 0; i < m; i++ {
-				y[i] += alpha * f32.DotUnitary(a[lda*i:lda*i+n], x[:n])
+				y[i] += alpha * f32.DotUnitary(a[lda*i:lda*i+n], x)
 			}
 			return
 		}
@@ -174,7 +164,7 @@ func (Implementation) Sgemv(tA blas.Transpose, m, n int, alpha float32, a []floa
 		for i := 0; i < m; i++ {
 			tmp := alpha * x[i]
 			if tmp != 0 {
-				f32.AxpyUnitaryTo(y, tmp, a[lda*i:lda*i+n], y[:n])
+				f32.AxpyUnitaryTo(y, tmp, a[lda*i:lda*i+n], y)
 			}
 		}
 		return

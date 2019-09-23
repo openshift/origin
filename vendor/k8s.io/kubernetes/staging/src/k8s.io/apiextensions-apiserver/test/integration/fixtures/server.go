@@ -31,7 +31,7 @@ import (
 )
 
 // StartDefaultServer starts a test server.
-func StartDefaultServer(t servertesting.Logger, flags ...string) (func(), *rest.Config, *options.CustomResourceDefinitionsServerOptions, error) {
+func StartDefaultServer(t servertesting.Logger) (func(), *rest.Config, *options.CustomResourceDefinitionsServerOptions, error) {
 	// create kubeconfig which will not actually be used. But authz/authn needs it to startup.
 	fakeKubeConfig, err := ioutil.TempFile("", "kubeconfig")
 	fakeKubeConfig.WriteString(`
@@ -55,16 +55,15 @@ users:
 `)
 	fakeKubeConfig.Close()
 
-	s, err := servertesting.StartTestServer(t, nil, append([]string{
+	s, err := servertesting.StartTestServer(t, nil, []string{
 		"--etcd-prefix", uuid.New(),
 		"--etcd-servers", strings.Join(IntegrationEtcdServers(), ","),
 		"--authentication-skip-lookup",
 		"--authentication-kubeconfig", fakeKubeConfig.Name(),
 		"--authorization-kubeconfig", fakeKubeConfig.Name(),
 		"--kubeconfig", fakeKubeConfig.Name(),
-		"--disable-admission-plugins", "NamespaceLifecycle,MutatingAdmissionWebhook,ValidatingAdmissionWebhook"},
-		flags...,
-	), nil)
+		"--disable-admission-plugins", "NamespaceLifecycle,MutatingAdmissionWebhook,ValidatingAdmissionWebhook",
+	}, nil)
 	if err != nil {
 		os.Remove(fakeKubeConfig.Name())
 		return nil, nil, nil, err
@@ -79,8 +78,8 @@ users:
 }
 
 // StartDefaultServerWithClients starts a test server and returns clients for it.
-func StartDefaultServerWithClients(t servertesting.Logger, extraFlags ...string) (func(), clientset.Interface, dynamic.Interface, error) {
-	tearDown, config, _, err := StartDefaultServer(t, extraFlags...)
+func StartDefaultServerWithClients(t servertesting.Logger) (func(), clientset.Interface, dynamic.Interface, error) {
+	tearDown, config, _, err := StartDefaultServer(t)
 	if err != nil {
 		return nil, nil, nil, err
 	}

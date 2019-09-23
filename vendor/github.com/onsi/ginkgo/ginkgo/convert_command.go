@@ -3,9 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-
 	"github.com/onsi/ginkgo/ginkgo/convert"
+	"os"
 )
 
 func BuildConvertCommand() *Command {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -17,7 +18,6 @@ import (
 	"github.com/onsi/ginkgo/ginkgo/testsuite"
 	"github.com/onsi/ginkgo/internal/remote"
 	"github.com/onsi/ginkgo/reporters/stenographer"
-	colorable "github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable"
 	"github.com/onsi/ginkgo/types"
 )
 
@@ -29,23 +29,17 @@ type TestRunner struct {
 
 	numCPU         int
 	parallelStream bool
-	timeout        time.Duration
 	goOpts         map[string]interface{}
 	additionalArgs []string
-	stderr         *bytes.Buffer
-
-	CoverageFile string
 }
 
-func New(suite testsuite.TestSuite, numCPU int, parallelStream bool, timeout time.Duration, goOpts map[string]interface{}, additionalArgs []string) *TestRunner {
+func New(suite testsuite.TestSuite, numCPU int, parallelStream bool, goOpts map[string]interface{}, additionalArgs []string) *TestRunner {
 	runner := &TestRunner{
 		Suite:          suite,
 		numCPU:         numCPU,
 		parallelStream: parallelStream,
 		goOpts:         goOpts,
 		additionalArgs: additionalArgs,
-		timeout:        timeout,
-		stderr:         new(bytes.Buffer),
 	}
 
 	if !suite.Precompiled {
@@ -64,14 +58,12 @@ func (t *TestRunner) Compile() error {
 }
 
 func (t *TestRunner) BuildArgs(path string) []string {
-	args := make([]string, len(buildArgs), len(buildArgs)+3)
-	copy(args, buildArgs)
-	args = append(args, "-o", path, t.Suite.Path)
+	args := []string{"test", "-c", "-i", "-o", path, t.Suite.Path}
 
-	if t.getCoverMode() != "" {
-		args = append(args, "-cover", fmt.Sprintf("-covermode=%s", t.getCoverMode()))
+	if *t.goOpts["covermode"].(*string) != "" {
+		args = append(args, "-cover", fmt.Sprintf("-covermode=%s", *t.goOpts["covermode"].(*string)))
 	} else {
-		if t.shouldCover() || t.getCoverPackage() != "" {
+		if *t.goOpts["cover"].(*bool) || *t.goOpts["coverpkg"].(*string) != "" {
 			args = append(args, "-cover", "-covermode=atomic")
 		}
 	}
@@ -119,8 +111,6 @@ func (t *TestRunner) BuildArgs(path string) []string {
 		"coverpkg",
 		"tags",
 		"gcflags",
-		"vet",
-		"mod",
 	}
 
 	for _, opt := range stringOpts {
@@ -146,14 +136,11 @@ func (t *TestRunner) CompileTo(path string) error {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
+		fixedOutput := fixCompilationOutput(string(output), t.Suite.Path)
 		if len(output) > 0 {
-			return fmt.Errorf("Failed to compile %s:\n\n%s", t.Suite.PackageName, output)
+			return fmt.Errorf("Failed to compile %s:\n\n%s", t.Suite.PackageName, fixedOutput)
 		}
 		return fmt.Errorf("Failed to compile %s", t.Suite.PackageName)
-	}
-
-	if len(output) > 0 {
-		fmt.Println(string(output))
 	}
 
 	if fileExists(path) == false {
@@ -226,6 +213,38 @@ func copyFile(src, dst string) error {
 	}
 
 	return out.Chmod(mode)
+}
+
+/*
+go test -c -i spits package.test out into the cwd. there's no way to change this.
+
+to make sure it doesn't generate conflicting .test files in the cwd, Compile() must switch the cwd to the test package.
+
+unfortunately, this causes go test's compile output to be expressed *relative to the test package* instead of the cwd.
+
+this makes it hard to reason about what failed, and also prevents iterm's Cmd+click from working.
+
+fixCompilationOutput..... rewrites the output to fix the paths.
+
+yeah......
+*/
+func fixCompilationOutput(output string, relToPath string) string {
+	relToPath = filepath.Join(relToPath)
+	re := regexp.MustCompile(`^(\S.*\.go)\:\d+\:`)
+	lines := strings.Split(output, "\n")
+	for i, line := range lines {
+		indices := re.FindStringSubmatchIndex(line)
+		if len(indices) == 0 {
+			continue
+		}
+
+		path := line[indices[2]:indices[3]]
+		if filepath.Dir(path) != relToPath {
+			path = filepath.Join(relToPath, path)
+			lines[i] = path + line[indices[3]:]
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (t *TestRunner) Run() RunResult {
@@ -305,7 +324,7 @@ func (t *TestRunner) runAndStreamParallelGinkgoSuite() RunResult {
 
 	os.Stdout.Sync()
 
-	if t.shouldCombineCoverprofiles() {
+	if *t.goOpts["cover"].(*bool) || *t.goOpts["coverpkg"].(*string) != "" || *t.goOpts["covermode"].(*string) != "" {
 		t.combineCoverprofiles()
 	}
 
@@ -318,7 +337,7 @@ func (t *TestRunner) runParallelGinkgoSuite() RunResult {
 	writers := make([]*logWriter, t.numCPU)
 	reports := make([]*bytes.Buffer, t.numCPU)
 
-	stenographer := stenographer.New(!config.DefaultReporterConfig.NoColor, config.GinkgoConfig.FlakeAttempts > 1, colorable.NewColorableStdout())
+	stenographer := stenographer.New(!config.DefaultReporterConfig.NoColor, config.GinkgoConfig.FlakeAttempts > 1)
 	aggregator := remote.NewAggregator(t.numCPU, result, config.DefaultReporterConfig, stenographer)
 
 	server, err := remote.NewServer(t.numCPU)
@@ -371,8 +390,9 @@ func (t *TestRunner) runParallelGinkgoSuite() RunResult {
 	|                                                                   |
 	|  Ginkgo timed out waiting for all parallel nodes to report back!  |
 	|                                                                   |
-	 -------------------------------------------------------------------`)
-		fmt.Println("\n", t.Suite.PackageName, "timed out. path:", t.Suite.Path)
+	 -------------------------------------------------------------------
+`)
+
 		os.Stdout.Sync()
 
 		for _, writer := range writers {
@@ -386,40 +406,21 @@ func (t *TestRunner) runParallelGinkgoSuite() RunResult {
 		os.Stdout.Sync()
 	}
 
-	if t.shouldCombineCoverprofiles() {
+	if *t.goOpts["cover"].(*bool) || *t.goOpts["coverpkg"].(*string) != "" || *t.goOpts["covermode"].(*string) != "" {
 		t.combineCoverprofiles()
 	}
 
 	return res
 }
 
-const CoverProfileSuffix = ".coverprofile"
-
 func (t *TestRunner) cmd(ginkgoArgs []string, stream io.Writer, node int) *exec.Cmd {
-	args := []string{"--test.timeout=" + t.timeout.String()}
-
-	coverProfile := t.getCoverProfile()
-
-	if t.shouldCombineCoverprofiles() {
-
-		testCoverProfile := "--test.coverprofile="
-
-		coverageFile := ""
-		// Set default name for coverage results
-		if coverProfile == "" {
-			coverageFile = t.Suite.PackageName + CoverProfileSuffix
-		} else {
-			coverageFile = coverProfile
-		}
-
-		testCoverProfile += coverageFile
-
-		t.CoverageFile = filepath.Join(t.Suite.Path, coverageFile)
-
+	args := []string{"--test.timeout=24h"}
+	if *t.goOpts["cover"].(*bool) || *t.goOpts["coverpkg"].(*string) != "" || *t.goOpts["covermode"].(*string) != "" {
+		coverprofile := "--test.coverprofile=" + t.Suite.PackageName + ".coverprofile"
 		if t.numCPU > 1 {
-			testCoverProfile = fmt.Sprintf("%s.%d", testCoverProfile, node)
+			coverprofile = fmt.Sprintf("%s.%d", coverprofile, node)
 		}
-		args = append(args, testCoverProfile)
+		args = append(args, coverprofile)
 	}
 
 	args = append(args, ginkgoArgs...)
@@ -433,34 +434,10 @@ func (t *TestRunner) cmd(ginkgoArgs []string, stream io.Writer, node int) *exec.
 	cmd := exec.Command(path, args...)
 
 	cmd.Dir = t.Suite.Path
-	cmd.Stderr = io.MultiWriter(stream, t.stderr)
+	cmd.Stderr = stream
 	cmd.Stdout = stream
 
 	return cmd
-}
-
-func (t *TestRunner) shouldCover() bool {
-	return *t.goOpts["cover"].(*bool)
-}
-
-func (t *TestRunner) shouldRequireSuite() bool {
-	return *t.goOpts["requireSuite"].(*bool)
-}
-
-func (t *TestRunner) getCoverProfile() string {
-	return *t.goOpts["coverprofile"].(*string)
-}
-
-func (t *TestRunner) getCoverPackage() string {
-	return *t.goOpts["coverpkg"].(*string)
-}
-
-func (t *TestRunner) getCoverMode() string {
-	return *t.goOpts["covermode"].(*string)
-}
-
-func (t *TestRunner) shouldCombineCoverprofiles() bool {
-	return t.shouldCover() || t.getCoverPackage() != "" || t.getCoverMode() != ""
 }
 
 func (t *TestRunner) run(cmd *exec.Cmd, completions chan RunResult) RunResult {
@@ -479,34 +456,17 @@ func (t *TestRunner) run(cmd *exec.Cmd, completions chan RunResult) RunResult {
 	}
 
 	cmd.Wait()
-
 	exitStatus := cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 	res.Passed = (exitStatus == 0) || (exitStatus == types.GINKGO_FOCUS_EXIT_CODE)
 	res.HasProgrammaticFocus = (exitStatus == types.GINKGO_FOCUS_EXIT_CODE)
-
-	if strings.Contains(t.stderr.String(), "warning: no tests to run") {
-		if t.shouldRequireSuite() {
-			res.Passed = false
-		}
-		fmt.Fprintf(os.Stderr, `Found no test suites, did you forget to run "ginkgo bootstrap"?`)
-	}
 
 	return res
 }
 
 func (t *TestRunner) combineCoverprofiles() {
 	profiles := []string{}
-
-	coverProfile := t.getCoverProfile()
-
 	for cpu := 1; cpu <= t.numCPU; cpu++ {
-		var coverFile string
-		if coverProfile == "" {
-			coverFile = fmt.Sprintf("%s%s.%d", t.Suite.PackageName, CoverProfileSuffix, cpu)
-		} else {
-			coverFile = fmt.Sprintf("%s.%d", coverProfile, cpu)
-		}
-
+		coverFile := fmt.Sprintf("%s.coverprofile.%d", t.Suite.PackageName, cpu)
 		coverFile = filepath.Join(t.Suite.Path, coverFile)
 		coverProfile, err := ioutil.ReadFile(coverFile)
 		os.Remove(coverFile)
@@ -542,17 +502,5 @@ func (t *TestRunner) combineCoverprofiles() {
 		output = append(output, fmt.Sprintf("%s %d", line, lines[line]))
 	}
 	finalOutput := strings.Join(output, "\n")
-
-	finalFilename := ""
-
-	if coverProfile != "" {
-		finalFilename = coverProfile
-	} else {
-		finalFilename = fmt.Sprintf("%s%s", t.Suite.PackageName, CoverProfileSuffix)
-	}
-
-	coverageFilepath := filepath.Join(t.Suite.Path, finalFilename)
-	ioutil.WriteFile(coverageFilepath, []byte(finalOutput), 0666)
-
-	t.CoverageFile = coverageFilepath
+	ioutil.WriteFile(filepath.Join(t.Suite.Path, fmt.Sprintf("%s.coverprofile", t.Suite.PackageName)), []byte(finalOutput), 0666)
 }

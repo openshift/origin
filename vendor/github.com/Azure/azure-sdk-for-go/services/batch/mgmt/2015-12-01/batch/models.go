@@ -18,18 +18,13 @@ package batch
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/batch/mgmt/2015-12-01/batch"
 
 // AccountKeyType enumerates the values for account key type.
 type AccountKeyType string
@@ -91,11 +86,11 @@ type Account struct {
 	autorest.Response `json:"-"`
 	// AccountProperties - The properties associated with the account.
 	*AccountProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The ID of the resource
+	// ID - The ID of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource
+	// Type - The type of the resource
 	Type *string `json:"type,omitempty"`
 	// Location - The location of the resource
 	Location *string `json:"location,omitempty"`
@@ -108,6 +103,15 @@ func (a Account) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if a.AccountProperties != nil {
 		objectMap["properties"] = a.AccountProperties
+	}
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
 	}
 	if a.Location != nil {
 		objectMap["location"] = a.Location
@@ -193,8 +197,7 @@ type AccountBaseProperties struct {
 	AutoStorage *AutoStorageBaseProperties `json:"autoStorage,omitempty"`
 }
 
-// AccountCreateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// AccountCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type AccountCreateFuture struct {
 	azure.Future
 }
@@ -203,7 +206,7 @@ type AccountCreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AccountCreateFuture) Result(client AccountClient) (a Account, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.AccountCreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -289,8 +292,7 @@ func (acp *AccountCreateParameters) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// AccountDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// AccountDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type AccountDeleteFuture struct {
 	azure.Future
 }
@@ -299,7 +301,7 @@ type AccountDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AccountDeleteFuture) Result(client AccountClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.AccountDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -336,37 +338,20 @@ type AccountListResultIterator struct {
 	page AccountListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AccountListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AccountListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AccountListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -388,11 +373,6 @@ func (iter AccountListResultIterator) Value() Account {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AccountListResultIterator type.
-func NewAccountListResultIterator(page AccountListResultPage) AccountListResultIterator {
-	return AccountListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (alr AccountListResult) IsEmpty() bool {
 	return alr.Value == nil || len(*alr.Value) == 0
@@ -400,11 +380,11 @@ func (alr AccountListResult) IsEmpty() bool {
 
 // accountListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (alr AccountListResult) accountListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (alr AccountListResult) accountListResultPreparer() (*http.Request, error) {
 	if alr.NextLink == nil || len(to.String(alr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(alr.NextLink)))
@@ -412,36 +392,19 @@ func (alr AccountListResult) accountListResultPreparer(ctx context.Context) (*ht
 
 // AccountListResultPage contains a page of Account values.
 type AccountListResultPage struct {
-	fn  func(context.Context, AccountListResult) (AccountListResult, error)
+	fn  func(AccountListResult) (AccountListResult, error)
 	alr AccountListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AccountListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.alr)
+func (page *AccountListResultPage) Next() error {
+	next, err := page.fn(page.alr)
 	if err != nil {
 		return err
 	}
 	page.alr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AccountListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -462,14 +425,9 @@ func (page AccountListResultPage) Values() []Account {
 	return *page.alr.Value
 }
 
-// Creates a new instance of the AccountListResultPage type.
-func NewAccountListResultPage(getNextPage func(context.Context, AccountListResult) (AccountListResult, error)) AccountListResultPage {
-	return AccountListResultPage{fn: getNextPage}
-}
-
 // AccountProperties account specific properties.
 type AccountProperties struct {
-	// AccountEndpoint - READ-ONLY; The endpoint used by this account to interact with the Batch services.
+	// AccountEndpoint - The endpoint used by this account to interact with the Batch services.
 	AccountEndpoint *string `json:"accountEndpoint,omitempty"`
 	// ProvisioningState - The provisioned state of the resource. Possible values include: 'Invalid', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Cancelled'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
@@ -542,8 +500,7 @@ func (aup *AccountUpdateParameters) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ActivateApplicationPackageParameters parameters for an ApplicationOperations.ActivateApplicationPackage
-// request.
+// ActivateApplicationPackageParameters parameters for an ApplicationOperations.ActivateApplicationPackage request.
 type ActivateApplicationPackageParameters struct {
 	// Format - The format of the application package binary file.
 	Format *string `json:"format,omitempty"`
@@ -597,8 +554,7 @@ type AutoStorageBaseProperties struct {
 	StorageAccountID *string `json:"storageAccountId,omitempty"`
 }
 
-// AutoStorageProperties contains information about the auto storage account associated with a Batch
-// account.
+// AutoStorageProperties contains information about the auto storage account associated with a Batch account.
 type AutoStorageProperties struct {
 	// StorageAccountID - The resource ID of the storage account to be used for auto storage account.
 	StorageAccountID *string `json:"storageAccountId,omitempty"`
@@ -633,37 +589,20 @@ type ListApplicationsResultIterator struct {
 	page ListApplicationsResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ListApplicationsResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListApplicationsResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ListApplicationsResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ListApplicationsResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -685,11 +624,6 @@ func (iter ListApplicationsResultIterator) Value() Application {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ListApplicationsResultIterator type.
-func NewListApplicationsResultIterator(page ListApplicationsResultPage) ListApplicationsResultIterator {
-	return ListApplicationsResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (lar ListApplicationsResult) IsEmpty() bool {
 	return lar.Value == nil || len(*lar.Value) == 0
@@ -697,11 +631,11 @@ func (lar ListApplicationsResult) IsEmpty() bool {
 
 // listApplicationsResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (lar ListApplicationsResult) listApplicationsResultPreparer(ctx context.Context) (*http.Request, error) {
+func (lar ListApplicationsResult) listApplicationsResultPreparer() (*http.Request, error) {
 	if lar.NextLink == nil || len(to.String(lar.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(lar.NextLink)))
@@ -709,36 +643,19 @@ func (lar ListApplicationsResult) listApplicationsResultPreparer(ctx context.Con
 
 // ListApplicationsResultPage contains a page of Application values.
 type ListApplicationsResultPage struct {
-	fn  func(context.Context, ListApplicationsResult) (ListApplicationsResult, error)
+	fn  func(ListApplicationsResult) (ListApplicationsResult, error)
 	lar ListApplicationsResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ListApplicationsResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListApplicationsResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.lar)
+func (page *ListApplicationsResultPage) Next() error {
+	next, err := page.fn(page.lar)
 	if err != nil {
 		return err
 	}
 	page.lar = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ListApplicationsResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -759,11 +676,6 @@ func (page ListApplicationsResultPage) Values() []Application {
 	return *page.lar.Value
 }
 
-// Creates a new instance of the ListApplicationsResultPage type.
-func NewListApplicationsResultPage(getNextPage func(context.Context, ListApplicationsResult) (ListApplicationsResult, error)) ListApplicationsResultPage {
-	return ListApplicationsResultPage{fn: getNextPage}
-}
-
 // LocationQuota quotas associated with a Batch region for a particular subscription.
 type LocationQuota struct {
 	autorest.Response `json:"-"`
@@ -773,11 +685,11 @@ type LocationQuota struct {
 
 // Resource a definition of an Azure resource.
 type Resource struct {
-	// ID - READ-ONLY; The ID of the resource
+	// ID - The ID of the resource
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the resource
+	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The type of the resource
+	// Type - The type of the resource
 	Type *string `json:"type,omitempty"`
 	// Location - The location of the resource
 	Location *string `json:"location,omitempty"`
@@ -788,6 +700,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}

@@ -1,4 +1,4 @@
-// Package apimanagement implements the Azure ARM Apimanagement service API version .
+// Package apimanagement implements the Azure ARM Apimanagement service API version 2018-06-01-preview.
 //
 // ApiManagement Client
 package apimanagement

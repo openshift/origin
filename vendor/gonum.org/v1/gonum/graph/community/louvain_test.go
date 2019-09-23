@@ -244,7 +244,7 @@ func init() {
 	// such that every edge dupGraph is replaced
 	// with an edge that flows from the low node
 	// ID to the high node ID.
-	for _, e := range graph.EdgesOf(dupGraph.Edges()) {
+	for _, e := range dupGraph.Edges() {
 		if e.To().ID() < e.From().ID() {
 			se := e.(simple.Edge)
 			se.F, se.T = se.T, se.F

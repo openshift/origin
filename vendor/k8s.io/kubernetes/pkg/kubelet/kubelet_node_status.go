@@ -22,8 +22,9 @@ import (
 	"net"
 	goruntime "runtime"
 	"sort"
-	"strings"
 	"time"
+
+	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -33,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	cloudprovider "k8s.io/cloud-provider"
-	"k8s.io/klog"
 	k8s_api_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	"k8s.io/kubernetes/pkg/features"
@@ -132,15 +132,12 @@ func (kl *Kubelet) tryRegisterWithAPIServer(node *v1.Node) bool {
 // Zeros out extended resource capacity during reconciliation.
 func (kl *Kubelet) reconcileExtendedResource(initialNode, node *v1.Node) bool {
 	requiresUpdate := false
-	// Check with the device manager to see if node has been recreated, in which case extended resources should be zeroed until they are available
-	if kl.containerManager.ShouldResetExtendedResourceCapacity() {
-		for k := range node.Status.Capacity {
-			if v1helper.IsExtendedResourceName(k) {
-				klog.Infof("Zero out resource %s capacity in existing node.", k)
-				node.Status.Capacity[k] = *resource.NewQuantity(int64(0), resource.DecimalSI)
-				node.Status.Allocatable[k] = *resource.NewQuantity(int64(0), resource.DecimalSI)
-				requiresUpdate = true
-			}
+	for k := range node.Status.Capacity {
+		if v1helper.IsExtendedResourceName(k) {
+			klog.Infof("Zero out resource %s capacity in existing node.", k)
+			node.Status.Capacity[k] = *resource.NewQuantity(int64(0), resource.DecimalSI)
+			node.Status.Allocatable[k] = *resource.NewQuantity(int64(0), resource.DecimalSI)
+			requiresUpdate = true
 		}
 	}
 	return requiresUpdate
@@ -417,12 +414,11 @@ func (kl *Kubelet) tryUpdateNodeStatus(tryNumber int) error {
 	}
 
 	podCIDRChanged := false
-	if len(node.Spec.PodCIDRs) != 0 {
+	if node.Spec.PodCIDR != "" {
 		// Pod CIDR could have been updated before, so we cannot rely on
 		// node.Spec.PodCIDR being non-empty. We also need to know if pod CIDR is
 		// actually changed.
-		podCIDRs := strings.Join(node.Spec.PodCIDRs, ",")
-		if podCIDRChanged, err = kl.updatePodCIDR(podCIDRs); err != nil {
+		if podCIDRChanged, err = kl.updatePodCIDR(node.Spec.PodCIDR); err != nil {
 			klog.Errorf(err.Error())
 		}
 	}
@@ -514,8 +510,8 @@ func (kl *Kubelet) setLastObservedNodeAddresses(addresses []v1.NodeAddress) {
 	kl.lastObservedNodeAddresses = addresses
 }
 func (kl *Kubelet) getLastObservedNodeAddresses() []v1.NodeAddress {
-	kl.lastObservedNodeAddressesMux.RLock()
-	defer kl.lastObservedNodeAddressesMux.RUnlock()
+	kl.lastObservedNodeAddressesMux.Lock()
+	defer kl.lastObservedNodeAddressesMux.Unlock()
 	return kl.lastObservedNodeAddresses
 }
 
@@ -550,6 +546,7 @@ func (kl *Kubelet) defaultNodeStatusFuncs() []func(*v1.Node) error {
 		nodestatus.PIDPressureCondition(kl.clock.Now, kl.evictionManager.IsUnderPIDPressure, kl.recordNodeStatusEvent),
 		nodestatus.ReadyCondition(kl.clock.Now, kl.runtimeState.runtimeErrors, kl.runtimeState.networkErrors, kl.runtimeState.storageErrors, validateHostFunc, kl.containerManager.Status, kl.recordNodeStatusEvent),
 		nodestatus.VolumesInUse(kl.volumeManager.ReconcilerStatesHasBeenSynced, kl.volumeManager.GetVolumesInUse),
+		nodestatus.RemoveOutOfDiskCondition(),
 		// TODO(mtaufen): I decided not to move this setter for now, since all it does is send an event
 		// and record state back to the Kubelet runtime object. In the future, I'd like to isolate
 		// these side-effects by decoupling the decisions to send events and partial status recording
@@ -594,7 +591,7 @@ func validateNodeIP(nodeIP net.IP) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("node IP: %q not found in the host's network interfaces", nodeIP.String())
+	return fmt.Errorf("Node IP: %q not found in the host's network interfaces", nodeIP.String())
 }
 
 // nodeStatusHasChanged compares the original node and current node's status and

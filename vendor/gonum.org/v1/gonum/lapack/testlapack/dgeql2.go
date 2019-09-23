@@ -71,8 +71,8 @@ func Dgeql2Test(t *testing.T, impl Dgeql2er) {
 			copy(qTmp.Data, q.Data)
 			blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, h, qTmp, 0, q)
 		}
-		if !isOrthogonal(q) {
-			t.Errorf("Q is not orthogonal")
+		if !isOrthonormal(q) {
+			t.Errorf("Q is not orthonormal")
 		}
 		l := blas64.General{
 			Rows:   m,

@@ -16,24 +16,8 @@ package fs
 
 import (
 	"errors"
+	"time"
 )
-
-type Context struct {
-	// docker root directory.
-	Docker  DockerContext
-	RktPath string
-	Crio    CrioContext
-}
-
-type DockerContext struct {
-	Root         string
-	Driver       string
-	DriverStatus map[string]string
-}
-
-type CrioContext struct {
-	Root string
-}
 
 type DeviceInfo struct {
 	Device string
@@ -78,11 +62,6 @@ type DiskStats struct {
 	WeightedIoTime  uint64
 }
 
-type UsageInfo struct {
-	Bytes  uint64
-	Inodes uint64
-}
-
 // ErrNoSuchDevice is the error indicating the requested device does not exist.
 var ErrNoSuchDevice = errors.New("cadvisor: no such device")
 
@@ -93,8 +72,11 @@ type FsInfo interface {
 	// Returns capacity and free space, in bytes, of the set of mounts passed.
 	GetFsInfoForPath(mountSet map[string]struct{}) ([]Fs, error)
 
-	// GetDirUsage returns a usage information for 'dir'.
-	GetDirUsage(dir string) (UsageInfo, error)
+	// Returns number of bytes occupied by 'dir'.
+	GetDirDiskUsage(dir string, timeout time.Duration) (uint64, error)
+
+	// Returns number of inodes used by 'dir'.
+	GetDirInodeUsage(dir string, timeout time.Duration) (uint64, error)
 
 	// GetDeviceInfoByFsUUID returns the information of the device with the
 	// specified filesystem uuid. If no such device exists, this function will

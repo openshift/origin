@@ -7,7 +7,6 @@ package norm_test
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"unicode/utf8"
 
 	"golang.org/x/text/unicode/norm"
@@ -49,8 +48,8 @@ func EqualOpt(a, b string) bool {
 			return false
 		}
 		if n := int64(FindPrefix(a[ia.Pos():], b[ib.Pos():])); n != 0 {
-			ia.Seek(n, io.SeekCurrent)
-			ib.Seek(n, io.SeekCurrent)
+			ia.Seek(n, 1)
+			ib.Seek(n, 1)
 		}
 	}
 	return ia.Done() && ib.Done()

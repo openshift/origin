@@ -1,5 +1,11 @@
 package portsbinding
 
+// IP is a sub-struct that represents an individual IP.
+type IP struct {
+	SubnetID  string `json:"subnet_id"`
+	IPAddress string `json:"ip_address"`
+}
+
 // PortsBindingExt represents a decorated form of a Port with the additional
 // port binding information.
 type PortsBindingExt struct {
@@ -20,5 +26,5 @@ type PortsBindingExt struct {
 	// A dictionary that enables the application running on the specified
 	// host to pass and receive virtual network interface (VIF) port-specific
 	// information to the plug-in.
-	Profile map[string]interface{} `json:"binding:profile"`
+	Profile map[string]string `json:"binding:profile"`
 }

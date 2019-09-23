@@ -21,16 +21,15 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	// TODO: Migrate kubelet to either use its own internal objects or client library.
-	v1 "k8s.io/api/core/v1"
-	internalapi "k8s.io/cri-api/pkg/apis"
+	"k8s.io/api/core/v1"
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	podresourcesapi "k8s.io/kubernetes/pkg/kubelet/apis/podresources/v1alpha1"
-	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager"
 	"k8s.io/kubernetes/pkg/kubelet/config"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	evictionapi "k8s.io/kubernetes/pkg/kubelet/eviction/api"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
-	"k8s.io/kubernetes/pkg/kubelet/pluginmanager/cache"
 	"k8s.io/kubernetes/pkg/kubelet/status"
+	"k8s.io/kubernetes/pkg/kubelet/util/pluginwatcher"
 	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 
 	"fmt"
@@ -101,17 +100,10 @@ type ContainerManager interface {
 	// GetPluginRegistrationHandler returns a plugin registration handler
 	// The pluginwatcher's Handlers allow to have a single module for handling
 	// registration.
-	GetPluginRegistrationHandler() cache.PluginHandler
+	GetPluginRegistrationHandler() pluginwatcher.PluginHandler
 
 	// GetDevices returns information about the devices assigned to pods and containers
 	GetDevices(podUID, containerName string) []*podresourcesapi.ContainerDevices
-
-	// ShouldResetExtendedResourceCapacity returns whether or not the extended resources should be zeroed,
-	// due to node recreation.
-	ShouldResetExtendedResourceCapacity() bool
-
-	// GetTopologyPodAdmitHandler returns an instance of the TopologyManager for Pod Admission
-	GetTopologyPodAdmitHandler() topologymanager.Manager
 }
 
 type NodeConfig struct {
@@ -131,7 +123,6 @@ type NodeConfig struct {
 	ExperimentalPodPidsLimit              int64
 	EnforceCPULimits                      bool
 	CPUCFSQuotaPeriod                     time.Duration
-	ExperimentalTopologyManagerPolicy     string
 }
 
 type NodeAllocatableConfig struct {

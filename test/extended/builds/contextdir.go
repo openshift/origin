@@ -7,9 +7,11 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	imageeco "github.com/openshift/origin/test/extended/image_ecosystem"
 	exutil "github.com/openshift/origin/test/extended/util"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", func() {
@@ -67,7 +69,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for endpoint")
-				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), serviceName)
+				err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), serviceName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				assertPageContent := func(content string) {

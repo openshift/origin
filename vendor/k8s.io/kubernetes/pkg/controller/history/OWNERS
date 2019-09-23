@@ -1,8 +1,17 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-- sig-apps-approvers
+- enisoc
+- foxish
+- janetkuo
+- kow3ns
+- smarterclayton
 reviewers:
-- sig-apps-reviewers
+- enisoc
+- foxish
+- janetkuo
+- kow3ns
+- smarterclayton
+- tnozicka
 labels:
 - sig/apps

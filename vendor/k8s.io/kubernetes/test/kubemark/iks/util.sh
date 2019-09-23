@@ -20,44 +20,39 @@ KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/../../..
 function create-clusters {
 	# shellcheck disable=SC2154	# Color defined in sourced script
 	echo -e "${color_yellow}CHECKING CLUSTERS${color_norm}"
-	if ibmcloud ks clusters | grep -Fq 'deleting'; then
+	if bx cs clusters | grep -Fq 'deleting'; then
 		echo -n "Deleting old clusters"
 	fi
-	while ibmcloud ks clusters | grep -Fq 'deleting'
+	while bx cs clusters | grep -Fq 'deleting'
 	do
 		echo -n "."
 		sleep 10
 	done
 	echo ""
-	ibmcloud ks region-set us-east >/dev/null
-	ibmcloud ks vlans wdc06 >/dev/null
-	PRIVLAN=$(ibmcloud ks vlans wdc06 --json | jq '. | .[] | select(.type == "private") | .id' | sed -e "s/\"//g")
-	PUBVLAN=$(ibmcloud ks vlans wdc06 --json | jq '. | .[] | select(.type == "public") | .id' | sed -e "s/\"//g")
-	if ! ibmcloud ks clusters | grep -Fq 'kubeSpawnTester'; then
+	bx cs region-set us-east >/dev/null
+	bx cs vlans wdc06 >/dev/null
+	PRIVLAN=$(bx cs vlans wdc06 --json | jq '. | .[] | select(.type == "private") | .id' | sed -e "s/\"//g")
+	PUBVLAN=$(bx cs vlans wdc06 --json | jq '. | .[] | select(.type == "public") | .id' | sed -e "s/\"//g")
+	if ! bx cs clusters | grep -Fq 'kubeSpawnTester'; then
 		echo "Creating spawning cluster"
-		# make number and spec of node workers configurable
-		# otherwise it can't afford tests like kubemark-5000
-		# TODO: dynamically adjust the number and spec
-		ibmcloud ks cluster-create --location "${CLUSTER_LOCATION}" --public-vlan "${PUBVLAN}" --private-vlan "${PRIVLAN}" --workers "${NUM_NODES:-2}" --machine-type "${NODE_SIZE}" --name kubeSpawnTester
+		bx cs cluster-create --location "${CLUSTER_LOCATION}" --public-vlan "${PUBVLAN}" --private-vlan "${PRIVLAN}" --workers 2 --machine-type u2c.2x4 --name kubeSpawnTester
 	fi
-	if ! ibmcloud ks clusters | grep -Fq 'kubeMasterTester'; then
+	if ! bx cs clusters | grep -Fq 'kubeMasterTester'; then
 		echo "Creating master cluster"
-		# if we can't make it a bare master (workers = 0)
-		# then make workers = 1 with the smallest machine spec
-		ibmcloud ks cluster-create --location "${CLUSTER_LOCATION}" --public-vlan "${PUBVLAN}" --private-vlan "${PRIVLAN}" --workers 1 --machine-type u2c.2x4 --name kubeMasterTester
+		bx cs cluster-create --location "${CLUSTER_LOCATION}" --public-vlan "${PUBVLAN}" --private-vlan "${PRIVLAN}" --workers 2 --machine-type u2c.2x4 --name kubeMasterTester
 	fi
 	push-image
-	if ! ibmcloud ks clusters | grep 'kubeSpawnTester' | grep -Fq 'normal'; then
+	if ! bx cs clusters | grep 'kubeSpawnTester' | grep -Fq 'normal'; then
 		# shellcheck disable=SC2154 # Color defined in sourced script
 		echo -e "${color_cyan}Warning: new clusters may take up to 60 minutes to be ready${color_norm}"
 		echo -n "Clusters loading"
 	fi
-	while ! ibmcloud ks clusters | grep 'kubeSpawnTester' | grep -Fq 'normal'
+	while ! bx cs clusters | grep 'kubeSpawnTester' | grep -Fq 'normal'
 	do
 		echo -n "."
 		sleep 5
 	done
-	while ! ibmcloud ks clusters | grep 'kubeMasterTester' | grep -Fq 'normal'
+	while ! bx cs clusters | grep 'kubeMasterTester' | grep -Fq 'normal'
 	do
 		echo -n "."
 		sleep 5
@@ -68,17 +63,17 @@ function create-clusters {
 # Builds and pushes image to registry
 function push-image {
 	if [[ "${ISBUILD}" = "y" ]]; then
-		if ! ibmcloud cr namespaces | grep -Fq "${KUBE_NAMESPACE}"; then
+		if ! bx cr namespaces | grep -Fq "${KUBE_NAMESPACE}"; then
 			echo "Creating registry namespace"
-			ibmcloud cr namespace-add "${KUBE_NAMESPACE}"
-			echo "ibmcloud cr namespace-rm ${KUBE_NAMESPACE}" >> "${RESOURCE_DIRECTORY}/iks-namespacelist.sh"
+			bx cr namespace-add "${KUBE_NAMESPACE}"
+			echo "bx cr namespace-rm ${KUBE_NAMESPACE}" >> "${RESOURCE_DIRECTORY}/iks-namespacelist.sh"
 		fi
 		docker build -t "${KUBEMARK_INIT_TAG}" "${KUBEMARK_IMAGE_LOCATION}"
 		docker tag "${KUBEMARK_INIT_TAG}" "${KUBEMARK_IMAGE_REGISTRY}${KUBE_NAMESPACE}/${PROJECT}:${KUBEMARK_IMAGE_TAG}"
 		docker push "${KUBEMARK_IMAGE_REGISTRY}${KUBE_NAMESPACE}/${PROJECT}:${KUBEMARK_IMAGE_TAG}"
 		echo "Image pushed"
 	else
-		KUBEMARK_IMAGE_REGISTRY="${KUBEMARK_IMAGE_REGISTRY:-brandondr96}"
+		KUBEMARK_IMAGE_REGISTRY="brandondr96"
 		KUBE_NAMESPACE=""
 	fi
 }
@@ -127,7 +122,7 @@ function master-config {
 	if [[ "${USE_EXISTING}" = "y" ]]; then
 		export KUBECONFIG=${CUSTOM_MASTER_CONFIG}
 	else
-		eval "$(ibmcloud ks cluster-config kubeMasterTester --admin | grep export)"
+		eval "$(bx cs cluster-config kubeMasterTester --admin | grep export)"
 	fi
 }
 
@@ -138,20 +133,20 @@ function spawn-config {
 	if [[ "${USE_EXISTING}" = "y" ]]; then
 		export KUBECONFIG=${CUSTOM_SPAWN_CONFIG}
 	else
-		eval "$(ibmcloud ks cluster-config kubeSpawnTester --admin | grep export)"
+		eval "$(bx cs cluster-config kubeSpawnTester --admin | grep export)"
 	fi
 }
 
 # Deletes existing clusters
 function delete-clusters {
 	echo "DELETING CLUSTERS"
-	ibmcloud ks cluster-rm kubeSpawnTester
-	ibmcloud ks cluster-rm kubeMasterTester
-	while ! ibmcloud ks clusters | grep 'kubeSpawnTester' | grep -Fq 'deleting'
-	do
-		sleep 5
-	done
-	while ! ibmcloud ks clusters | grep 'kubeMasterTester' | grep -Fq 'deleting'
+ 	bx cs cluster-rm kubeSpawnTester
+ 	bx cs cluster-rm kubeMasterTester
+ 	while ! bx cs clusters | grep 'kubeSpawnTester' | grep -Fq 'deleting'
+ 	do
+ 		sleep 5
+ 	done
+	while ! bx cs clusters | grep 'kubeMasterTester' | grep -Fq 'deleting'
 	do
 		sleep 5
 	done
@@ -164,14 +159,14 @@ function complete-login {
 	echo -n -e "Do you have a federated IBM cloud login? [y/N]${color_cyan}>${color_norm} "
 	read -r ISFED
 	if [[ "${ISFED}" = "y" ]]; then
-		ibmcloud login --sso -a "${REGISTRY_LOGIN_URL}"
+		bx login --sso -a "${REGISTRY_LOGIN_URL}"
 	elif [[ "${ISFED}" = "N" ]]; then
-		ibmcloud login -a "${REGISTRY_LOGIN_URL}"
+		bx login -a "${REGISTRY_LOGIN_URL}"
 	else
 		echo -e "${color_red}Invalid response, please try again:${color_norm}"
 		complete-login
 	fi
-	ibmcloud cr login
+	bx cr login
 }
 
 # Generate values to fill the hollow-node configuration templates.

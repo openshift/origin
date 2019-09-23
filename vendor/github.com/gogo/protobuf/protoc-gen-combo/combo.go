@@ -147,6 +147,8 @@ func main() {
 		Old: []string{
 			"option (gogoproto.unmarshaler_all) = false;",
 			"option (gogoproto.marshaler_all) = false;",
+			"option (gogoproto.unsafe_unmarshaler_all) = false;",
+			"option (gogoproto.unsafe_marshaler_all) = false;",
 		},
 		Filename: filename,
 		Args:     flags,
@@ -155,18 +157,26 @@ func main() {
 		m.Gen("./combos/neither/", []string{
 			"option (gogoproto.unmarshaler_all) = false;",
 			"option (gogoproto.marshaler_all) = false;",
+			"option (gogoproto.unsafe_unmarshaler_all) = false;",
+			"option (gogoproto.unsafe_marshaler_all) = false;",
 		})
 	}
 	m.Gen("./combos/marshaler/", []string{
 		"option (gogoproto.unmarshaler_all) = false;",
 		"option (gogoproto.marshaler_all) = true;",
+		"option (gogoproto.unsafe_unmarshaler_all) = false;",
+		"option (gogoproto.unsafe_marshaler_all) = false;",
 	})
 	m.Gen("./combos/unmarshaler/", []string{
 		"option (gogoproto.unmarshaler_all) = true;",
 		"option (gogoproto.marshaler_all) = false;",
+		"option (gogoproto.unsafe_unmarshaler_all) = false;",
+		"option (gogoproto.unsafe_marshaler_all) = false;",
 	})
 	m.Gen("./combos/both/", []string{
 		"option (gogoproto.unmarshaler_all) = true;",
 		"option (gogoproto.marshaler_all) = true;",
+		"option (gogoproto.unsafe_unmarshaler_all) = false;",
+		"option (gogoproto.unsafe_marshaler_all) = false;",
 	})
 }

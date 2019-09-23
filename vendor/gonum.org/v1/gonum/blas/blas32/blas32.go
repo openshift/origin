@@ -12,8 +12,7 @@ import (
 var blas32 blas.Float32 = gonum.Implementation{}
 
 // Use sets the BLAS float32 implementation to be used by subsequent BLAS calls.
-// The default implementation is
-// gonum.org/v1/gonum/blas/gonum.Implementation.
+// The default implementation is native.Implementation.
 func Use(b blas.Float32) {
 	blas32 = b
 }

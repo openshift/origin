@@ -33,8 +33,6 @@ go_library(
         "//pkg/apis/coordination/install:go_default_library",
         "//pkg/apis/core:go_default_library",
         "//pkg/apis/core/install:go_default_library",
-        "//pkg/apis/discovery:go_default_library",
-        "//pkg/apis/discovery/install:go_default_library",
         "//pkg/apis/events:go_default_library",
         "//pkg/apis/events/install:go_default_library",
         "//pkg/apis/extensions:go_default_library",

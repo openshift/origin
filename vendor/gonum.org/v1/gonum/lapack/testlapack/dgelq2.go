@@ -5,6 +5,7 @@
 package testlapack
 
 import (
+	"math"
 	"testing"
 
 	"golang.org/x/exp/rand"
@@ -69,9 +70,21 @@ func Dgelq2Test(t *testing.T, impl Dgelq2er) {
 
 		Q := constructQ("LQ", m, n, a, lda, tau)
 
-		// Check that Q is orthogonal.
-		if !isOrthogonal(Q) {
-			t.Errorf("Case %v: Q not orthogonal", c)
+		// Check that Q is orthonormal
+		for i := 0; i < Q.Rows; i++ {
+			nrm := blas64.Nrm2(Q.Cols, blas64.Vector{Inc: 1, Data: Q.Data[i*Q.Stride:]})
+			if math.Abs(nrm-1) > 1e-14 {
+				t.Errorf("Q not normal. Norm is %v", nrm)
+			}
+			for j := 0; j < i; j++ {
+				dot := blas64.Dot(Q.Rows,
+					blas64.Vector{Inc: 1, Data: Q.Data[i*Q.Stride:]},
+					blas64.Vector{Inc: 1, Data: Q.Data[j*Q.Stride:]},
+				)
+				if math.Abs(dot) > 1e-14 {
+					t.Errorf("Q not orthogonal. Dot is %v", dot)
+				}
+			}
 		}
 
 		L := blas64.General{

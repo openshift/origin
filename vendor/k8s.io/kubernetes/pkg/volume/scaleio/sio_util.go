@@ -76,12 +76,13 @@ var (
 	sdcGUIDLabelName = "scaleio.sdcGUID"
 	sdcRootPath      = "/opt/emc/scaleio/sdc/bin"
 
-	errSecretNotFound              = errors.New("secret not found")
-	errGatewayNotProvided          = errors.New("ScaleIO gateway not provided")
-	errSecretRefNotProvided        = errors.New("secret ref not provided")
-	errSystemNotProvided           = errors.New("ScaleIO system not provided")
-	errStoragePoolNotProvided      = errors.New("ScaleIO storage pool not provided")
-	errProtectionDomainNotProvided = errors.New("ScaleIO protection domain not provided")
+	secretNotFoundErr              = errors.New("secret not found")
+	configMapNotFoundErr           = errors.New("configMap not found")
+	gatewayNotProvidedErr          = errors.New("ScaleIO gateway not provided")
+	secretRefNotProvidedErr        = errors.New("secret ref not provided")
+	systemNotProvidedErr           = errors.New("ScaleIO system not provided")
+	storagePoolNotProvidedErr      = errors.New("ScaleIO storage pool not provided")
+	protectionDomainNotProvidedErr = errors.New("ScaleIO protection domain not provided")
 )
 
 // mapVolumeSpec maps attributes from either ScaleIOVolumeSource  or ScaleIOPersistentVolumeSource to config
@@ -117,19 +118,19 @@ func mapVolumeSpec(config map[string]string, spec *volume.Spec) {
 
 func validateConfigs(config map[string]string) error {
 	if config[confKey.gateway] == "" {
-		return errGatewayNotProvided
+		return gatewayNotProvidedErr
 	}
 	if config[confKey.secretName] == "" {
-		return errSecretRefNotProvided
+		return secretRefNotProvidedErr
 	}
 	if config[confKey.system] == "" {
-		return errSystemNotProvided
+		return systemNotProvidedErr
 	}
 	if config[confKey.storagePool] == "" {
-		return errStoragePoolNotProvided
+		return storagePoolNotProvidedErr
 	}
 	if config[confKey.protectionDomain] == "" {
-		return errProtectionDomainNotProvided
+		return protectionDomainNotProvidedErr
 	}
 
 	return nil
@@ -221,7 +222,7 @@ func attachSecret(plug *sioPlugin, namespace string, configData map[string]strin
 	secretMap, err := volutil.GetSecretForPV(namespace, secretRefName, sioPluginName, kubeClient)
 	if err != nil {
 		klog.Error(log("failed to get secret: %v", err))
-		return errSecretNotFound
+		return secretNotFoundErr
 	}
 	// merge secret data
 	for key, val := range secretMap {

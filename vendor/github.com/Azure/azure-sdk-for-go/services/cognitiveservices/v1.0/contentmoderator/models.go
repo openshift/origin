@@ -22,9 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v1.0/contentmoderator"
-
 // StatusEnum enumerates the values for status enum.
 type StatusEnum string
 
@@ -93,6 +90,12 @@ func (b Body) MarshalJSON() ([]byte, error) {
 		objectMap["Metadata"] = b.Metadata
 	}
 	return json.Marshal(objectMap)
+}
+
+// BodyModel ...
+type BodyModel struct {
+	DataRepresentation *string `json:"DataRepresentation,omitempty"`
+	Value              *string `json:"Value,omitempty"`
 }
 
 // Candidate OCR candidate text.
@@ -275,7 +278,7 @@ type Evaluate struct {
 	AdultClassificationScore *float64 `json:"AdultClassificationScore,omitempty"`
 	// IsImageAdultClassified - Indicates if an image is classified as adult.
 	IsImageAdultClassified *bool `json:"IsImageAdultClassified,omitempty"`
-	// RacyClassificationScore - The racy classification score.
+	// RacyClassificationScore - The racy classication score.
 	RacyClassificationScore *float64 `json:"RacyClassificationScore,omitempty"`
 	// IsImageRacyClassified - Indicates if the image is classified as racy.
 	IsImageRacyClassified *bool `json:"IsImageRacyClassified,omitempty"`
@@ -399,12 +402,6 @@ func (il ImageList) MarshalJSON() ([]byte, error) {
 		objectMap["Metadata"] = il.Metadata
 	}
 	return json.Marshal(objectMap)
-}
-
-// ImageURL ...
-type ImageURL struct {
-	DataRepresentation *string `json:"DataRepresentation,omitempty"`
-	Value              *string `json:"Value,omitempty"`
 }
 
 // IPA IP Address details.
@@ -616,6 +613,12 @@ type Screen struct {
 	Terms    *[]DetectedTerms `json:"Terms,omitempty"`
 	// TrackingID - Unique Content Moderator transaction Id.
 	TrackingID *string `json:"TrackingId,omitempty"`
+}
+
+// SetObject ...
+type SetObject struct {
+	autorest.Response `json:"-"`
+	Value             interface{} `json:"value,omitempty"`
 }
 
 // SSN detected SSN details.

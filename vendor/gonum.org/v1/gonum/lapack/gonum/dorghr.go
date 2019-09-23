@@ -33,24 +33,17 @@ package gonum
 //
 // Dorghr is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dorghr(n, ilo, ihi int, a []float64, lda int, tau, work []float64, lwork int) {
+	checkMatrix(n, n, a, lda)
 	nh := ihi - ilo
 	switch {
 	case ilo < 0 || max(1, n) <= ilo:
 		panic(badIlo)
 	case ihi < min(ilo, n-1) || n <= ihi:
 		panic(badIhi)
-	case lda < max(1, n):
-		panic(badLdA)
 	case lwork < max(1, nh) && lwork != -1:
-		panic(badLWork)
+		panic(badWork)
 	case len(work) < max(1, lwork):
 		panic(shortWork)
-	}
-
-	// Quick return if possible.
-	if n == 0 {
-		work[0] = 1
-		return
 	}
 
 	lwkopt := max(1, nh) * impl.Ilaenv(1, "DORGQR", " ", nh, nh, nh, -1)
@@ -59,11 +52,10 @@ func (impl Implementation) Dorghr(n, ilo, ihi int, a []float64, lda int, tau, wo
 		return
 	}
 
-	switch {
-	case len(a) < (n-1)*lda+n:
-		panic(shortA)
-	case len(tau) < n-1:
-		panic(shortTau)
+	// Quick return if possible.
+	if n == 0 {
+		work[0] = 1
+		return
 	}
 
 	// Shift the vectors which define the elementary reflectors one column

@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
-	bootstrapsecretutil "k8s.io/cluster-bootstrap/util/secrets"
 )
 
 // ToSecret converts the given BootstrapToken object to its Secret representation that
@@ -56,7 +55,7 @@ func encodeTokenSecretData(token *BootstrapToken, now time.Time) map[string][]by
 	}
 
 	// If for some strange reason both token.TTL and token.Expires would be set
-	// (they are mutually exclusive in validation so this shouldn't be the case),
+	// (they are mutually exlusive in validation so this shouldn't be the case),
 	// token.Expires has higher priority, as can be seen in the logic here.
 	if token.Expires != nil {
 		// Format the expiration date accordingly
@@ -84,7 +83,7 @@ func encodeTokenSecretData(token *BootstrapToken, now time.Time) map[string][]by
 // BootstrapTokenFromSecret returns a BootstrapToken object from the given Secret
 func BootstrapTokenFromSecret(secret *v1.Secret) (*BootstrapToken, error) {
 	// Get the Token ID field from the Secret data
-	tokenID := bootstrapsecretutil.GetData(secret, bootstrapapi.BootstrapTokenIDKey)
+	tokenID := getSecretString(secret, bootstrapapi.BootstrapTokenIDKey)
 	if len(tokenID) == 0 {
 		return nil, errors.Errorf("bootstrap Token Secret has no token-id data: %s", secret.Name)
 	}
@@ -95,7 +94,7 @@ func BootstrapTokenFromSecret(secret *v1.Secret) (*BootstrapToken, error) {
 			bootstrapapi.BootstrapTokenSecretPrefix, secret.Name, bootstraputil.BootstrapTokenSecretName(tokenID))
 	}
 
-	tokenSecret := bootstrapsecretutil.GetData(secret, bootstrapapi.BootstrapTokenSecretKey)
+	tokenSecret := getSecretString(secret, bootstrapapi.BootstrapTokenSecretKey)
 	if len(tokenSecret) == 0 {
 		return nil, errors.Errorf("bootstrap Token Secret has no token-secret data: %s", secret.Name)
 	}
@@ -107,11 +106,11 @@ func BootstrapTokenFromSecret(secret *v1.Secret) (*BootstrapToken, error) {
 	}
 
 	// Get the description (if any) from the Secret
-	description := bootstrapsecretutil.GetData(secret, bootstrapapi.BootstrapTokenDescriptionKey)
+	description := getSecretString(secret, bootstrapapi.BootstrapTokenDescriptionKey)
 
 	// Expiration time is optional, if not specified this implies the token
 	// never expires.
-	secretExpiration := bootstrapsecretutil.GetData(secret, bootstrapapi.BootstrapTokenExpirationKey)
+	secretExpiration := getSecretString(secret, bootstrapapi.BootstrapTokenExpirationKey)
 	var expires *metav1.Time
 	if len(secretExpiration) > 0 {
 		expTime, err := time.Parse(time.RFC3339, secretExpiration)
@@ -143,7 +142,7 @@ func BootstrapTokenFromSecret(secret *v1.Secret) (*BootstrapToken, error) {
 	// It's done this way to make .Groups be nil in case there is no items, rather than an
 	// empty slice or an empty slice with a "" string only
 	var groups []string
-	groupsString := bootstrapsecretutil.GetData(secret, bootstrapapi.BootstrapTokenExtraGroupsKey)
+	groupsString := getSecretString(secret, bootstrapapi.BootstrapTokenExtraGroupsKey)
 	g := strings.Split(groupsString, ",")
 	if len(g) > 0 && len(g[0]) > 0 {
 		groups = g
@@ -156,4 +155,15 @@ func BootstrapTokenFromSecret(secret *v1.Secret) (*BootstrapToken, error) {
 		Usages:      usages,
 		Groups:      groups,
 	}, nil
+}
+
+// getSecretString returns the string value for the given key in the specified Secret
+func getSecretString(secret *v1.Secret, key string) string {
+	if secret.Data == nil {
+		return ""
+	}
+	if val, ok := secret.Data[key]; ok {
+		return string(val)
+	}
+	return ""
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -52,16 +51,6 @@ func NewClientGroupsClientWithBaseURI(baseURI string, subscriptionID string) Cli
 // endTime - UTC date and time specifying the end time of an interval. When not specified the service uses
 // DateTime.UtcNow
 func (client ClientGroupsClient) Get(ctx context.Context, resourceGroupName string, workspaceName string, clientGroupName string, startTime *date.Time, endTime *date.Time) (result ClientGroup, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ClientGroupsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 64, Chain: nil},
@@ -129,8 +118,8 @@ func (client ClientGroupsClient) GetPreparer(ctx context.Context, resourceGroupN
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClientGroupsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -156,16 +145,6 @@ func (client ClientGroupsClient) GetResponder(resp *http.Response) (result Clien
 // endTime - UTC date and time specifying the end time of an interval. When not specified the service uses
 // DateTime.UtcNow
 func (client ClientGroupsClient) GetMembersCount(ctx context.Context, resourceGroupName string, workspaceName string, clientGroupName string, startTime *date.Time, endTime *date.Time) (result ClientGroupMembersCount, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ClientGroupsClient.GetMembersCount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 64, Chain: nil},
@@ -233,8 +212,8 @@ func (client ClientGroupsClient) GetMembersCountPreparer(ctx context.Context, re
 // GetMembersCountSender sends the GetMembersCount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClientGroupsClient) GetMembersCountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetMembersCountResponder handles the response to the GetMembersCount request. The method always
@@ -261,16 +240,6 @@ func (client ClientGroupsClient) GetMembersCountResponder(resp *http.Response) (
 // DateTime.UtcNow
 // top - page size to use. When not specified, the default page size is 100 records.
 func (client ClientGroupsClient) ListMembers(ctx context.Context, resourceGroupName string, workspaceName string, clientGroupName string, startTime *date.Time, endTime *date.Time, top *int32) (result ClientGroupMembersCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ClientGroupsClient.ListMembers")
-		defer func() {
-			sc := -1
-			if result.cgmc.Response.Response != nil {
-				sc = result.cgmc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 64, Chain: nil},
@@ -347,8 +316,8 @@ func (client ClientGroupsClient) ListMembersPreparer(ctx context.Context, resour
 // ListMembersSender sends the ListMembers request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClientGroupsClient) ListMembersSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListMembersResponder handles the response to the ListMembers request. The method always
@@ -365,8 +334,8 @@ func (client ClientGroupsClient) ListMembersResponder(resp *http.Response) (resu
 }
 
 // listMembersNextResults retrieves the next set of results, if any.
-func (client ClientGroupsClient) listMembersNextResults(ctx context.Context, lastResults ClientGroupMembersCollection) (result ClientGroupMembersCollection, err error) {
-	req, err := lastResults.clientGroupMembersCollectionPreparer(ctx)
+func (client ClientGroupsClient) listMembersNextResults(lastResults ClientGroupMembersCollection) (result ClientGroupMembersCollection, err error) {
+	req, err := lastResults.clientGroupMembersCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicemap.ClientGroupsClient", "listMembersNextResults", nil, "Failure preparing next results request")
 	}
@@ -387,16 +356,6 @@ func (client ClientGroupsClient) listMembersNextResults(ctx context.Context, las
 
 // ListMembersComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ClientGroupsClient) ListMembersComplete(ctx context.Context, resourceGroupName string, workspaceName string, clientGroupName string, startTime *date.Time, endTime *date.Time, top *int32) (result ClientGroupMembersCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ClientGroupsClient.ListMembers")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListMembers(ctx, resourceGroupName, workspaceName, clientGroupName, startTime, endTime, top)
 	return
 }

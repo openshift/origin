@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewCapacitiesClientWithBaseURI(baseURI string, subscriptionID string) Capac
 // location - the region name which the operation will lookup into.
 // capacityParameters - the name of the capacity.
 func (client CapacitiesClient) CheckNameAvailability(ctx context.Context, location string, capacityParameters CheckCapacityNameAvailabilityParameters) (result CheckCapacityNameAvailabilityResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.CheckNameAvailability")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: capacityParameters,
 			Constraints: []validation.Constraint{{Target: "capacityParameters.Name", Name: validation.Null, Rule: false,
@@ -113,8 +102,8 @@ func (client CapacitiesClient) CheckNameAvailabilityPreparer(ctx context.Context
 // CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always
@@ -138,16 +127,6 @@ func (client CapacitiesClient) CheckNameAvailabilityResponder(resp *http.Respons
 // maximum of 63.
 // capacityParameters - contains the information used to provision the Dedicated capacity.
 func (client CapacitiesClient) Create(ctx context.Context, resourceGroupName string, dedicatedCapacityName string, capacityParameters DedicatedCapacity) (result CapacitiesCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -201,9 +180,13 @@ func (client CapacitiesClient) CreatePreparer(ctx context.Context, resourceGroup
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) CreateSender(req *http.Request) (future CapacitiesCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}
@@ -231,16 +214,6 @@ func (client CapacitiesClient) CreateResponder(resp *http.Response) (result Dedi
 // dedicatedCapacityName - the name of the Dedicated capacity. It must be at least 3 characters in length, and
 // no more than 63.
 func (client CapacitiesClient) Delete(ctx context.Context, resourceGroupName string, dedicatedCapacityName string) (result CapacitiesDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -292,9 +265,13 @@ func (client CapacitiesClient) DeletePreparer(ctx context.Context, resourceGroup
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) DeleteSender(req *http.Request) (future CapacitiesDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -321,16 +298,6 @@ func (client CapacitiesClient) DeleteResponder(resp *http.Response) (result auto
 // dedicatedCapacityName - the name of the dedicated capacity. It must be a minimum of 3 characters, and a
 // maximum of 63.
 func (client CapacitiesClient) GetDetails(ctx context.Context, resourceGroupName string, dedicatedCapacityName string) (result DedicatedCapacity, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.GetDetails")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -388,8 +355,8 @@ func (client CapacitiesClient) GetDetailsPreparer(ctx context.Context, resourceG
 // GetDetailsSender sends the GetDetails request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) GetDetailsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetDetailsResponder handles the response to the GetDetails request. The method always
@@ -407,16 +374,6 @@ func (client CapacitiesClient) GetDetailsResponder(resp *http.Response) (result 
 
 // List lists all the Dedicated capacities for the given subscription.
 func (client CapacitiesClient) List(ctx context.Context) (result DedicatedCapacities, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesClient", "List", nil, "Failure preparing request")
@@ -460,8 +417,8 @@ func (client CapacitiesClient) ListPreparer(ctx context.Context) (*http.Request,
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -482,16 +439,6 @@ func (client CapacitiesClient) ListResponder(resp *http.Response) (result Dedica
 // resourceGroupName - the name of the Azure Resource group of which a given PowerBIDedicated capacity is part.
 // This name must be at least 1 character in length, and no more than 90.
 func (client CapacitiesClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result DedicatedCapacities, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -544,8 +491,8 @@ func (client CapacitiesClient) ListByResourceGroupPreparer(ctx context.Context, 
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -563,16 +510,6 @@ func (client CapacitiesClient) ListByResourceGroupResponder(resp *http.Response)
 
 // ListSkus lists eligible SKUs for PowerBI Dedicated resource provider.
 func (client CapacitiesClient) ListSkus(ctx context.Context) (result SkuEnumerationForNewResourceResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.ListSkus")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListSkusPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesClient", "ListSkus", nil, "Failure preparing request")
@@ -616,8 +553,8 @@ func (client CapacitiesClient) ListSkusPreparer(ctx context.Context) (*http.Requ
 // ListSkusSender sends the ListSkus request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) ListSkusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListSkusResponder handles the response to the ListSkus request. The method always
@@ -640,16 +577,6 @@ func (client CapacitiesClient) ListSkusResponder(resp *http.Response) (result Sk
 // dedicatedCapacityName - the name of the Dedicated capacity. It must be at least 3 characters in length, and
 // no more than 63.
 func (client CapacitiesClient) ListSkusForCapacity(ctx context.Context, resourceGroupName string, dedicatedCapacityName string) (result SkuEnumerationForExistingResourceResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.ListSkusForCapacity")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -707,8 +634,8 @@ func (client CapacitiesClient) ListSkusForCapacityPreparer(ctx context.Context, 
 // ListSkusForCapacitySender sends the ListSkusForCapacity request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) ListSkusForCapacitySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListSkusForCapacityResponder handles the response to the ListSkusForCapacity request. The method always
@@ -731,16 +658,6 @@ func (client CapacitiesClient) ListSkusForCapacityResponder(resp *http.Response)
 // dedicatedCapacityName - the name of the Dedicated capacity. It must be at least 3 characters in length, and
 // no more than 63.
 func (client CapacitiesClient) Resume(ctx context.Context, resourceGroupName string, dedicatedCapacityName string) (result CapacitiesResumeFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.Resume")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -792,9 +709,13 @@ func (client CapacitiesClient) ResumePreparer(ctx context.Context, resourceGroup
 // ResumeSender sends the Resume request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) ResumeSender(req *http.Request) (future CapacitiesResumeFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -821,16 +742,6 @@ func (client CapacitiesClient) ResumeResponder(resp *http.Response) (result auto
 // dedicatedCapacityName - the name of the Dedicated capacity. It must be at least 3 characters in length, and
 // no more than 63.
 func (client CapacitiesClient) Suspend(ctx context.Context, resourceGroupName string, dedicatedCapacityName string) (result CapacitiesSuspendFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.Suspend")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -882,9 +793,13 @@ func (client CapacitiesClient) SuspendPreparer(ctx context.Context, resourceGrou
 // SuspendSender sends the Suspend request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) SuspendSender(req *http.Request) (future CapacitiesSuspendFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -912,16 +827,6 @@ func (client CapacitiesClient) SuspendResponder(resp *http.Response) (result aut
 // no more than 63.
 // capacityUpdateParameters - request object that contains the updated information for the capacity.
 func (client CapacitiesClient) Update(ctx context.Context, resourceGroupName string, dedicatedCapacityName string, capacityUpdateParameters DedicatedCapacityUpdateParameters) (result CapacitiesUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CapacitiesClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -975,9 +880,13 @@ func (client CapacitiesClient) UpdatePreparer(ctx context.Context, resourceGroup
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client CapacitiesClient) UpdateSender(req *http.Request) (future CapacitiesUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}

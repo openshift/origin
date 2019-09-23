@@ -1,8 +1,6 @@
 package lumberjack
 
 import (
-	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,7 +10,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v1"
 )
 
 // !!!NOTE!!!
@@ -43,7 +41,7 @@ func TestNewFile(t *testing.T) {
 	n, err := l.Write(b)
 	isNil(err, t)
 	equals(len(b), n, t)
-	existsWithContent(logFile(dir), b, t)
+	existsWithLen(logFile(dir), n, t)
 	fileCount(dir, 1, t)
 }
 
@@ -56,7 +54,7 @@ func TestOpenExisting(t *testing.T) {
 	data := []byte("foo!")
 	err := ioutil.WriteFile(filename, data, 0644)
 	isNil(err, t)
-	existsWithContent(filename, data, t)
+	existsWithLen(filename, len(data), t)
 
 	l := &Logger{
 		Filename: filename,
@@ -68,7 +66,7 @@ func TestOpenExisting(t *testing.T) {
 	equals(len(b), n, t)
 
 	// make sure the file got appended
-	existsWithContent(filename, append(data, b...), t)
+	existsWithLen(filename, len(data)+n, t)
 
 	// make sure no other files were created
 	fileCount(dir, 1, t)
@@ -108,7 +106,7 @@ func TestMakeLogDir(t *testing.T) {
 	n, err := l.Write(b)
 	isNil(err, t)
 	equals(len(b), n, t)
-	existsWithContent(logFile(dir), b, t)
+	existsWithLen(logFile(dir), n, t)
 	fileCount(dir, 1, t)
 }
 
@@ -124,7 +122,7 @@ func TestDefaultFilename(t *testing.T) {
 
 	isNil(err, t)
 	equals(len(b), n, t)
-	existsWithContent(filename, b, t)
+	existsWithLen(filename, n, t)
 }
 
 func TestAutoRotate(t *testing.T) {
@@ -145,7 +143,7 @@ func TestAutoRotate(t *testing.T) {
 	isNil(err, t)
 	equals(len(b), n, t)
 
-	existsWithContent(filename, b, t)
+	existsWithLen(filename, n, t)
 	fileCount(dir, 1, t)
 
 	newFakeTime()
@@ -157,10 +155,10 @@ func TestAutoRotate(t *testing.T) {
 
 	// the old logfile should be moved aside and the main logfile should have
 	// only the last write in it.
-	existsWithContent(filename, b2, t)
+	existsWithLen(filename, n, t)
 
 	// the backup file will use the current fake time and have the old contents.
-	existsWithContent(backupFile(dir), b, t)
+	existsWithLen(backupFile(dir), len(b), t)
 
 	fileCount(dir, 2, t)
 }
@@ -190,8 +188,8 @@ func TestFirstWriteRotate(t *testing.T) {
 	isNil(err, t)
 	equals(len(b), n, t)
 
-	existsWithContent(filename, b, t)
-	existsWithContent(backupFile(dir), start, t)
+	existsWithLen(filename, n, t)
+	existsWithLen(backupFile(dir), len(start), t)
 
 	fileCount(dir, 2, t)
 }
@@ -214,7 +212,7 @@ func TestMaxBackups(t *testing.T) {
 	isNil(err, t)
 	equals(len(b), n, t)
 
-	existsWithContent(filename, b, t)
+	existsWithLen(filename, n, t)
 	fileCount(dir, 1, t)
 
 	newFakeTime()
@@ -227,26 +225,25 @@ func TestMaxBackups(t *testing.T) {
 
 	// this will use the new fake time
 	secondFilename := backupFile(dir)
-	existsWithContent(secondFilename, b, t)
+	existsWithLen(secondFilename, len(b), t)
 
-	// make sure the old file still exists with the same content.
-	existsWithContent(filename, b2, t)
+	// make sure the old file still exists with the same size.
+	existsWithLen(filename, n, t)
 
 	fileCount(dir, 2, t)
 
 	newFakeTime()
 
 	// this will make us rotate again
-	b3 := []byte("baaaaaar!")
-	n, err = l.Write(b3)
+	n, err = l.Write(b2)
 	isNil(err, t)
-	equals(len(b3), n, t)
+	equals(len(b2), n, t)
 
 	// this will use the new fake time
 	thirdFilename := backupFile(dir)
-	existsWithContent(thirdFilename, b2, t)
+	existsWithLen(thirdFilename, len(b2), t)
 
-	existsWithContent(filename, b3, t)
+	existsWithLen(filename, n, t)
 
 	// we need to wait a little bit since the files get deleted on a different
 	// goroutine.
@@ -256,7 +253,7 @@ func TestMaxBackups(t *testing.T) {
 	fileCount(dir, 2, t)
 
 	// second file name should still exist
-	existsWithContent(thirdFilename, b2, t)
+	existsWithLen(thirdFilename, len(b2), t)
 
 	// should have deleted the first backup
 	notExist(secondFilename, t)
@@ -279,24 +276,14 @@ func TestMaxBackups(t *testing.T) {
 
 	newFakeTime()
 
+	// this will make us rotate again
+	n, err = l.Write(b2)
+	isNil(err, t)
+	equals(len(b2), n, t)
+
 	// this will use the new fake time
 	fourthFilename := backupFile(dir)
-
-	// Create a log file that is/was being compressed - this should
-	// not be counted since both the compressed and the uncompressed
-	// log files still exist.
-	compLogFile := fourthFilename + compressSuffix
-	err = ioutil.WriteFile(compLogFile, []byte("compress"), 0644)
-	isNil(err, t)
-
-	// this will make us rotate again
-	b4 := []byte("baaaaaaz!")
-	n, err = l.Write(b4)
-	isNil(err, t)
-	equals(len(b4), n, t)
-
-	existsWithContent(fourthFilename, b3, t)
-	existsWithContent(fourthFilename+compressSuffix, []byte("compress"), t)
+	existsWithLen(fourthFilename, len(b2), t)
 
 	// we need to wait a little bit since the files get deleted on a different
 	// goroutine.
@@ -304,12 +291,12 @@ func TestMaxBackups(t *testing.T) {
 
 	// We should have four things in the directory now - the 2 log files, the
 	// not log file, and the directory
-	fileCount(dir, 5, t)
+	fileCount(dir, 4, t)
 
 	// third file name should still exist
-	existsWithContent(filename, b4, t)
+	existsWithLen(filename, n, t)
 
-	existsWithContent(fourthFilename, b3, t)
+	existsWithLen(fourthFilename, len(b2), t)
 
 	// should have deleted the first filename
 	notExist(thirdFilename, t)
@@ -341,7 +328,7 @@ func TestCleanupExistingBackups(t *testing.T) {
 	newFakeTime()
 
 	backup = backupFile(dir)
-	err = ioutil.WriteFile(backup+compressSuffix, data, 0644)
+	err = ioutil.WriteFile(backup, data, 0644)
 	isNil(err, t)
 
 	newFakeTime()
@@ -396,7 +383,7 @@ func TestMaxAge(t *testing.T) {
 	isNil(err, t)
 	equals(len(b), n, t)
 
-	existsWithContent(filename, b, t)
+	existsWithLen(filename, n, t)
 	fileCount(dir, 1, t)
 
 	// two days later
@@ -406,7 +393,7 @@ func TestMaxAge(t *testing.T) {
 	n, err = l.Write(b2)
 	isNil(err, t)
 	equals(len(b2), n, t)
-	existsWithContent(backupFile(dir), b, t)
+	existsWithLen(backupFile(dir), len(b), t)
 
 	// we need to wait a little bit since the files get deleted on a different
 	// goroutine.
@@ -416,19 +403,19 @@ func TestMaxAge(t *testing.T) {
 	// created.
 	fileCount(dir, 2, t)
 
-	existsWithContent(filename, b2, t)
+	existsWithLen(filename, len(b2), t)
 
 	// we should have deleted the old file due to being too old
-	existsWithContent(backupFile(dir), b, t)
+	existsWithLen(backupFile(dir), len(b), t)
 
 	// two days later
 	newFakeTime()
 
-	b3 := []byte("baaaaar!")
-	n, err = l.Write(b3)
+	b3 := []byte("foooooo!")
+	n, err = l.Write(b2)
 	isNil(err, t)
 	equals(len(b3), n, t)
-	existsWithContent(backupFile(dir), b2, t)
+	existsWithLen(backupFile(dir), len(b2), t)
 
 	// we need to wait a little bit since the files get deleted on a different
 	// goroutine.
@@ -438,10 +425,11 @@ func TestMaxAge(t *testing.T) {
 	// backup.  The earlier backup is past the cutoff and should be gone.
 	fileCount(dir, 2, t)
 
-	existsWithContent(filename, b3, t)
+	existsWithLen(filename, len(b3), t)
 
 	// we should have deleted the old file due to being too old
-	existsWithContent(backupFile(dir), b2, t)
+	existsWithLen(backupFile(dir), len(b2), t)
+
 }
 
 func TestOldLogFiles(t *testing.T) {
@@ -487,23 +475,17 @@ func TestOldLogFiles(t *testing.T) {
 func TestTimeFromName(t *testing.T) {
 	l := &Logger{Filename: "/var/log/myfoo/foo.log"}
 	prefix, ext := l.prefixAndExt()
+	val := l.timeFromName("foo-2014-05-04T14-44-33.555.log", prefix, ext)
+	equals("2014-05-04T14-44-33.555", val, t)
 
-	tests := []struct {
-		filename string
-		want     time.Time
-		wantErr  bool
-	}{
-		{"foo-2014-05-04T14-44-33.555.log", time.Date(2014, 5, 4, 14, 44, 33, 555000000, time.UTC), false},
-		{"foo-2014-05-04T14-44-33.555", time.Time{}, true},
-		{"2014-05-04T14-44-33.555.log", time.Time{}, true},
-		{"foo.log", time.Time{}, true},
-	}
+	val = l.timeFromName("foo-2014-05-04T14-44-33.555", prefix, ext)
+	equals("", val, t)
 
-	for _, test := range tests {
-		got, err := l.timeFromName(test.filename, prefix, ext)
-		equals(got, test.want, t)
-		equals(err != nil, test.wantErr, t)
-	}
+	val = l.timeFromName("2014-05-04T14-44-33.555.log", prefix, ext)
+	equals("", val, t)
+
+	val = l.timeFromName("foo.log", prefix, ext)
+	equals("", val, t)
 }
 
 func TestLocalTime(t *testing.T) {
@@ -529,8 +511,8 @@ func TestLocalTime(t *testing.T) {
 	isNil(err, t)
 	equals(len(b2), n2, t)
 
-	existsWithContent(logFile(dir), b2, t)
-	existsWithContent(backupFileLocal(dir), b, t)
+	existsWithLen(logFile(dir), n2, t)
+	existsWithLen(backupFileLocal(dir), n, t)
 }
 
 func TestRotate(t *testing.T) {
@@ -551,7 +533,7 @@ func TestRotate(t *testing.T) {
 	isNil(err, t)
 	equals(len(b), n, t)
 
-	existsWithContent(filename, b, t)
+	existsWithLen(filename, n, t)
 	fileCount(dir, 1, t)
 
 	newFakeTime()
@@ -564,8 +546,8 @@ func TestRotate(t *testing.T) {
 	<-time.After(10 * time.Millisecond)
 
 	filename2 := backupFile(dir)
-	existsWithContent(filename2, b, t)
-	existsWithContent(filename, []byte{}, t)
+	existsWithLen(filename2, n, t)
+	existsWithLen(filename, 0, t)
 	fileCount(dir, 2, t)
 	newFakeTime()
 
@@ -577,8 +559,8 @@ func TestRotate(t *testing.T) {
 	<-time.After(10 * time.Millisecond)
 
 	filename3 := backupFile(dir)
-	existsWithContent(filename3, []byte{}, t)
-	existsWithContent(filename, []byte{}, t)
+	existsWithLen(filename3, 0, t)
+	existsWithLen(filename, 0, t)
 	fileCount(dir, 2, t)
 
 	b2 := []byte("foooooo!")
@@ -587,105 +569,7 @@ func TestRotate(t *testing.T) {
 	equals(len(b2), n, t)
 
 	// this will use the new fake time
-	existsWithContent(filename, b2, t)
-}
-
-func TestCompressOnRotate(t *testing.T) {
-	currentTime = fakeTime
-	megabyte = 1
-
-	dir := makeTempDir("TestCompressOnRotate", t)
-	defer os.RemoveAll(dir)
-
-	filename := logFile(dir)
-	l := &Logger{
-		Compress: true,
-		Filename: filename,
-		MaxSize:  10,
-	}
-	defer l.Close()
-	b := []byte("boo!")
-	n, err := l.Write(b)
-	isNil(err, t)
-	equals(len(b), n, t)
-
-	existsWithContent(filename, b, t)
-	fileCount(dir, 1, t)
-
-	newFakeTime()
-
-	err = l.Rotate()
-	isNil(err, t)
-
-	// the old logfile should be moved aside and the main logfile should have
-	// nothing in it.
-	existsWithContent(filename, []byte{}, t)
-
-	// we need to wait a little bit since the files get compressed on a different
-	// goroutine.
-	<-time.After(300 * time.Millisecond)
-
-	// a compressed version of the log file should now exist and the original
-	// should have been removed.
-	bc := new(bytes.Buffer)
-	gz := gzip.NewWriter(bc)
-	_, err = gz.Write(b)
-	isNil(err, t)
-	err = gz.Close()
-	isNil(err, t)
-	existsWithContent(backupFile(dir)+compressSuffix, bc.Bytes(), t)
-	notExist(backupFile(dir), t)
-
-	fileCount(dir, 2, t)
-}
-
-func TestCompressOnResume(t *testing.T) {
-	currentTime = fakeTime
-	megabyte = 1
-
-	dir := makeTempDir("TestCompressOnResume", t)
-	defer os.RemoveAll(dir)
-
-	filename := logFile(dir)
-	l := &Logger{
-		Compress: true,
-		Filename: filename,
-		MaxSize:  10,
-	}
-	defer l.Close()
-
-	// Create a backup file and empty "compressed" file.
-	filename2 := backupFile(dir)
-	b := []byte("foo!")
-	err := ioutil.WriteFile(filename2, b, 0644)
-	isNil(err, t)
-	err = ioutil.WriteFile(filename2+compressSuffix, []byte{}, 0644)
-	isNil(err, t)
-
-	newFakeTime()
-
-	b2 := []byte("boo!")
-	n, err := l.Write(b2)
-	isNil(err, t)
-	equals(len(b2), n, t)
-	existsWithContent(filename, b2, t)
-
-	// we need to wait a little bit since the files get compressed on a different
-	// goroutine.
-	<-time.After(300 * time.Millisecond)
-
-	// The write should have started the compression - a compressed version of
-	// the log file should now exist and the original should have been removed.
-	bc := new(bytes.Buffer)
-	gz := gzip.NewWriter(bc)
-	_, err = gz.Write(b)
-	isNil(err, t)
-	err = gz.Close()
-	isNil(err, t)
-	existsWithContent(filename2+compressSuffix, bc.Bytes(), t)
-	notExist(filename2, t)
-
-	fileCount(dir, 2, t)
+	existsWithLen(filename, n, t)
 }
 
 func TestJson(t *testing.T) {
@@ -695,8 +579,7 @@ func TestJson(t *testing.T) {
 	"maxsize": 5,
 	"maxage": 10,
 	"maxbackups": 3,
-	"localtime": true,
-	"compress": true
+	"localtime": true
 }`[1:])
 
 	l := Logger{}
@@ -707,7 +590,6 @@ func TestJson(t *testing.T) {
 	equals(10, l.MaxAge, t)
 	equals(3, l.MaxBackups, t)
 	equals(true, l.LocalTime, t)
-	equals(true, l.Compress, t)
 }
 
 func TestYaml(t *testing.T) {
@@ -716,8 +598,7 @@ filename: foo
 maxsize: 5
 maxage: 10
 maxbackups: 3
-localtime: true
-compress: true`[1:])
+localtime: true`[1:])
 
 	l := Logger{}
 	err := yaml.Unmarshal(data, &l)
@@ -727,7 +608,6 @@ compress: true`[1:])
 	equals(10, l.MaxAge, t)
 	equals(3, l.MaxBackups, t)
 	equals(true, l.LocalTime, t)
-	equals(true, l.Compress, t)
 }
 
 func TestToml(t *testing.T) {
@@ -736,8 +616,7 @@ filename = "foo"
 maxsize = 5
 maxage = 10
 maxbackups = 3
-localtime = true
-compress = true`[1:]
+localtime = true`[1:]
 
 	l := Logger{}
 	md, err := toml.Decode(data, &l)
@@ -747,7 +626,6 @@ compress = true`[1:]
 	equals(10, l.MaxAge, t)
 	equals(3, l.MaxBackups, t)
 	equals(true, l.LocalTime, t)
-	equals(true, l.Compress, t)
 	equals(0, len(md.Undecoded()), t)
 }
 
@@ -757,19 +635,15 @@ compress = true`[1:]
 func makeTempDir(name string, t testing.TB) string {
 	dir := time.Now().Format(name + backupTimeFormat)
 	dir = filepath.Join(os.TempDir(), dir)
-	isNilUp(os.Mkdir(dir, 0700), t, 1)
+	isNilUp(os.Mkdir(dir, 0777), t, 1)
 	return dir
 }
 
-// existsWithContent checks that the given file exists and has the correct content.
-func existsWithContent(path string, content []byte, t testing.TB) {
+// existsWithLen checks that the given file exists and has the correct length.
+func existsWithLen(path string, length int, t testing.TB) {
 	info, err := os.Stat(path)
 	isNilUp(err, t, 1)
-	equalsUp(int64(len(content)), info.Size(), t, 1)
-
-	b, err := ioutil.ReadFile(path)
-	isNilUp(err, t, 1)
-	equalsUp(content, b, t, 1)
+	equalsUp(int64(length), info.Size(), t, 1)
 }
 
 // logFile returns the log file name in the given directory for the current fake

@@ -92,6 +92,27 @@ $ heketi-cli device add \
 Device added successfully
 ```
 
+A much easier way is to expand a cluster is to add a new node to your
+topology file file. When adding the new node you **must** add this node
+information after the existing ones so that the Heketi cli figures out
+which cluster this new node should be part of. Here is an example:
+
+```
+...
+        Found node 192.168.10.103 on cluster 3e21671bc4f290fca6bce464ae7bb6e7
+                Found device /dev/sdb
+                Found device /dev/sdc
+                Found device /dev/sdd
+                Found device /dev/sde
+                Found device /dev/sdf
+                Found device /dev/sdg
+                Found device /dev/sdh
+                Found device /dev/sdi
+        Creating node 192.168.10.105 ... ID: be0e8f7fba6ec1e5aa0337141f356013
+                Adding device /dev/sdb ... OK
+                Adding device /dev/sdc ... OK
+```
+
 ## Adding a new cluster
 
 Storage capacity can also be increased by adding new clusters of GlusterFS.

@@ -24,29 +24,22 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	etcd3testing "k8s.io/apiserver/pkg/storage/etcd3/testing"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 )
 
-func newStorage(t *testing.T) (*ScaleREST, *etcd3testing.EtcdTestServer, storage.Interface, factory.DestroyFunc) {
+func newStorage(t *testing.T) (*ScaleREST, *etcdtesting.EtcdTestServer, storage.Interface, factory.DestroyFunc) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
 	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1, ResourcePrefix: "controllers"}
-	s, d, err := generic.NewRawStorage(etcdStorage)
-	if err != nil {
-		t.Fatalf("Couldn't create storage: %v", err)
-	}
+	s, d := generic.NewRawStorage(etcdStorage)
 	destroyFunc := func() {
 		d()
 		server.Terminate(t)
 	}
-	storage, err := NewStorage(restOptions)
-	if err != nil {
-		t.Fatalf("unexpected error from REST storage: %v", err)
-	}
-	return storage.Scale, server, s, destroyFunc
+	return NewStorage(restOptions).Scale, server, s, destroyFunc
 }
 
 var validPodTemplate = api.PodTemplate{

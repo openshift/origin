@@ -86,15 +86,15 @@ func Max(a corev1.ResourceList, b corev1.ResourceList) corev1.ResourceList {
 	for key, value := range a {
 		if other, found := b[key]; found {
 			if value.Cmp(other) <= 0 {
-				result[key] = other.DeepCopy()
+				result[key] = *other.Copy()
 				continue
 			}
 		}
-		result[key] = value.DeepCopy()
+		result[key] = *value.Copy()
 	}
 	for key, value := range b {
 		if _, found := result[key]; !found {
-			result[key] = value.DeepCopy()
+			result[key] = *value.Copy()
 		}
 	}
 	return result
@@ -104,7 +104,7 @@ func Max(a corev1.ResourceList, b corev1.ResourceList) corev1.ResourceList {
 func Add(a corev1.ResourceList, b corev1.ResourceList) corev1.ResourceList {
 	result := corev1.ResourceList{}
 	for key, value := range a {
-		quantity := value.DeepCopy()
+		quantity := *value.Copy()
 		if other, found := b[key]; found {
 			quantity.Add(other)
 		}
@@ -112,7 +112,8 @@ func Add(a corev1.ResourceList, b corev1.ResourceList) corev1.ResourceList {
 	}
 	for key, value := range b {
 		if _, found := result[key]; !found {
-			result[key] = value.DeepCopy()
+			quantity := *value.Copy()
+			result[key] = quantity
 		}
 	}
 	return result
@@ -125,7 +126,7 @@ func SubtractWithNonNegativeResult(a corev1.ResourceList, b corev1.ResourceList)
 
 	result := corev1.ResourceList{}
 	for key, value := range a {
-		quantity := value.DeepCopy()
+		quantity := *value.Copy()
 		if other, found := b[key]; found {
 			quantity.Sub(other)
 		}
@@ -148,7 +149,7 @@ func SubtractWithNonNegativeResult(a corev1.ResourceList, b corev1.ResourceList)
 func Subtract(a corev1.ResourceList, b corev1.ResourceList) corev1.ResourceList {
 	result := corev1.ResourceList{}
 	for key, value := range a {
-		quantity := value.DeepCopy()
+		quantity := *value.Copy()
 		if other, found := b[key]; found {
 			quantity.Sub(other)
 		}
@@ -156,7 +157,7 @@ func Subtract(a corev1.ResourceList, b corev1.ResourceList) corev1.ResourceList 
 	}
 	for key, value := range b {
 		if _, found := result[key]; !found {
-			quantity := value.DeepCopy()
+			quantity := *value.Copy()
 			quantity.Neg()
 			result[key] = quantity
 		}
@@ -170,7 +171,7 @@ func Mask(resources corev1.ResourceList, names []corev1.ResourceName) corev1.Res
 	result := corev1.ResourceList{}
 	for key, value := range resources {
 		if nameSet.Has(string(key)) {
-			result[key] = value.DeepCopy()
+			result[key] = *value.Copy()
 		}
 	}
 	return result

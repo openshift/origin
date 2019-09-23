@@ -23,7 +23,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -54,16 +53,6 @@ func NewJobScheduleClientWithBaseURI(baseURI string) JobScheduleClient {
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client JobScheduleClient) Add(ctx context.Context, cloudJobSchedule JobScheduleAddParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.Add")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: cloudJobSchedule,
 			Constraints: []validation.Constraint{{Target: "cloudJobSchedule.ID", Name: validation.Null, Rule: true, Chain: nil},
@@ -194,8 +183,8 @@ func (client JobScheduleClient) AddPreparer(ctx context.Context, cloudJobSchedul
 // AddSender sends the Add request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) AddSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // AddResponder handles the response to the Add request. The method always
@@ -235,16 +224,6 @@ func (client JobScheduleClient) AddResponder(resp *http.Response) (result autore
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobScheduleClient) Delete(ctx context.Context, jobScheduleID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, jobScheduleID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobScheduleClient", "Delete", nil, "Failure preparing request")
@@ -324,8 +303,8 @@ func (client JobScheduleClient) DeletePreparer(ctx context.Context, jobScheduleI
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -362,16 +341,6 @@ func (client JobScheduleClient) DeleteResponder(resp *http.Response) (result aut
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobScheduleClient) Disable(ctx context.Context, jobScheduleID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.Disable")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DisablePreparer(ctx, jobScheduleID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobScheduleClient", "Disable", nil, "Failure preparing request")
@@ -451,8 +420,8 @@ func (client JobScheduleClient) DisablePreparer(ctx context.Context, jobSchedule
 // DisableSender sends the Disable request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) DisableSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DisableResponder handles the response to the Disable request. The method always
@@ -489,16 +458,6 @@ func (client JobScheduleClient) DisableResponder(resp *http.Response) (result au
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobScheduleClient) Enable(ctx context.Context, jobScheduleID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.Enable")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.EnablePreparer(ctx, jobScheduleID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobScheduleClient", "Enable", nil, "Failure preparing request")
@@ -578,8 +537,8 @@ func (client JobScheduleClient) EnablePreparer(ctx context.Context, jobScheduleI
 // EnableSender sends the Enable request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) EnableSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // EnableResponder handles the response to the Enable request. The method always
@@ -616,16 +575,6 @@ func (client JobScheduleClient) EnableResponder(resp *http.Response) (result aut
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobScheduleClient) Exists(ctx context.Context, jobScheduleID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.Exists")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ExistsPreparer(ctx, jobScheduleID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobScheduleClient", "Exists", nil, "Failure preparing request")
@@ -705,8 +654,8 @@ func (client JobScheduleClient) ExistsPreparer(ctx context.Context, jobScheduleI
 // ExistsSender sends the Exists request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) ExistsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ExistsResponder handles the response to the Exists request. The method always
@@ -745,16 +694,6 @@ func (client JobScheduleClient) ExistsResponder(resp *http.Response) (result aut
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobScheduleClient) Get(ctx context.Context, jobScheduleID string, selectParameter string, expand string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result CloudJobSchedule, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, jobScheduleID, selectParameter, expand, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobScheduleClient", "Get", nil, "Failure preparing request")
@@ -840,8 +779,8 @@ func (client JobScheduleClient) GetPreparer(ctx context.Context, jobScheduleID s
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -873,16 +812,6 @@ func (client JobScheduleClient) GetResponder(resp *http.Response) (result CloudJ
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client JobScheduleClient) List(ctx context.Context, filter string, selectParameter string, expand string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudJobScheduleListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.List")
-		defer func() {
-			sc := -1
-			if result.cjslr.Response.Response != nil {
-				sc = result.cjslr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -966,8 +895,8 @@ func (client JobScheduleClient) ListPreparer(ctx context.Context, filter string,
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -984,8 +913,8 @@ func (client JobScheduleClient) ListResponder(resp *http.Response) (result Cloud
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client JobScheduleClient) listNextResults(ctx context.Context, lastResults CloudJobScheduleListResult) (result CloudJobScheduleListResult, err error) {
-	req, err := lastResults.cloudJobScheduleListResultPreparer(ctx)
+func (client JobScheduleClient) listNextResults(lastResults CloudJobScheduleListResult) (result CloudJobScheduleListResult, err error) {
+	req, err := lastResults.cloudJobScheduleListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.JobScheduleClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -1006,16 +935,6 @@ func (client JobScheduleClient) listNextResults(ctx context.Context, lastResults
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client JobScheduleClient) ListComplete(ctx context.Context, filter string, selectParameter string, expand string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result CloudJobScheduleListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, filter, selectParameter, expand, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }
@@ -1046,16 +965,6 @@ func (client JobScheduleClient) ListComplete(ctx context.Context, filter string,
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobScheduleClient) Patch(ctx context.Context, jobScheduleID string, jobSchedulePatchParameter JobSchedulePatchParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.Patch")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.PatchPreparer(ctx, jobScheduleID, jobSchedulePatchParameter, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobScheduleClient", "Patch", nil, "Failure preparing request")
@@ -1137,8 +1046,8 @@ func (client JobScheduleClient) PatchPreparer(ctx context.Context, jobScheduleID
 // PatchSender sends the Patch request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) PatchSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // PatchResponder handles the response to the Patch request. The method always
@@ -1175,16 +1084,6 @@ func (client JobScheduleClient) PatchResponder(resp *http.Response) (result auto
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobScheduleClient) Terminate(ctx context.Context, jobScheduleID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.Terminate")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.TerminatePreparer(ctx, jobScheduleID, timeout, clientRequestID, returnClientRequestID, ocpDate, ifMatch, ifNoneMatch, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.JobScheduleClient", "Terminate", nil, "Failure preparing request")
@@ -1264,8 +1163,8 @@ func (client JobScheduleClient) TerminatePreparer(ctx context.Context, jobSchedu
 // TerminateSender sends the Terminate request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) TerminateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // TerminateResponder handles the response to the Terminate request. The method always
@@ -1280,7 +1179,7 @@ func (client JobScheduleClient) TerminateResponder(resp *http.Response) (result 
 	return
 }
 
-// Update this fully replaces all the updatable properties of the job schedule. For example, if the schedule property
+// Update this fully replaces all the updateable properties of the job schedule. For example, if the schedule property
 // is not specified with this request, then the Batch service will remove the existing schedule. Changes to a job
 // schedule only impact jobs created by the schedule after the update has taken place; currently running jobs are
 // unaffected.
@@ -1306,16 +1205,6 @@ func (client JobScheduleClient) TerminateResponder(resp *http.Response) (result 
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client JobScheduleClient) Update(ctx context.Context, jobScheduleID string, jobScheduleUpdateParameter JobScheduleUpdateParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifMatch string, ifNoneMatch string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobScheduleClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: jobScheduleUpdateParameter,
 			Constraints: []validation.Constraint{{Target: "jobScheduleUpdateParameter.Schedule", Name: validation.Null, Rule: true, Chain: nil},
@@ -1465,8 +1354,8 @@ func (client JobScheduleClient) UpdatePreparer(ctx context.Context, jobScheduleI
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobScheduleClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

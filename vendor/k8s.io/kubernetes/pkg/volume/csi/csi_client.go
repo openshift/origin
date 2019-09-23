@@ -32,8 +32,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/features"
 	csipbv0 "k8s.io/kubernetes/pkg/volume/csi/csiv0"
 )
 
@@ -155,15 +157,21 @@ func newCsiDriverClient(driverName csiDriverName) (*csiDriverClient, error) {
 		return nil, fmt.Errorf("driver name is empty")
 	}
 
-	existingDriver, driverExists := csiDrivers.Get(string(driverName))
-	if !driverExists {
-		return nil, fmt.Errorf("driver name %s not found in the list of registered CSI drivers", driverName)
+	addr := fmt.Sprintf(csiAddrTemplate, driverName)
+	requiresV0Client := true
+	if utilfeature.DefaultFeatureGate.Enabled(features.KubeletPluginsWatcher) {
+		existingDriver, driverExists := csiDrivers.Get(string(driverName))
+		if !driverExists {
+			return nil, fmt.Errorf("driver name %s not found in the list of registered CSI drivers", driverName)
+		}
+
+		addr = existingDriver.endpoint
+		requiresV0Client = versionRequiresV0Client(existingDriver.highestSupportedVersion)
 	}
 
 	nodeV1ClientCreator := newV1NodeClient
 	nodeV0ClientCreator := newV0NodeClient
-
-	if versionRequiresV0Client(existingDriver.highestSupportedVersion) {
+	if requiresV0Client {
 		nodeV1ClientCreator = nil
 	} else {
 		nodeV0ClientCreator = nil
@@ -171,7 +179,7 @@ func newCsiDriverClient(driverName csiDriverName) (*csiDriverClient, error) {
 
 	return &csiDriverClient{
 		driverName:          driverName,
-		addr:                csiAddr(existingDriver.endpoint),
+		addr:                csiAddr(addr),
 		nodeV1ClientCreator: nodeV1ClientCreator,
 		nodeV0ClientCreator: nodeV0ClientCreator,
 	}, nil
@@ -687,15 +695,16 @@ func (c *csiDriverClient) NodeSupportsNodeExpand(ctx context.Context) (bool, err
 
 		capabilities := resp.GetCapabilities()
 
+		nodeExpandSet := false
 		if capabilities == nil {
 			return false, nil
 		}
 		for _, capability := range capabilities {
 			if capability.GetRpc().GetType() == csipbv1.NodeServiceCapability_RPC_EXPAND_VOLUME {
-				return true, nil
+				nodeExpandSet = true
 			}
 		}
-		return false, nil
+		return nodeExpandSet, nil
 	} else if c.nodeV0ClientCreator != nil {
 		return false, nil
 	}
@@ -927,9 +936,6 @@ func (c *csiDriverClient) nodeGetVolumeStatsV1(
 		InodesFree: resource.NewQuantity(int64(0), resource.BinarySI),
 	}
 	for _, usage := range usages {
-		if usage == nil {
-			continue
-		}
 		unit := usage.GetUnit()
 		switch unit {
 		case csipbv1.VolumeUsage_BYTES:

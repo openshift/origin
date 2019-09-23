@@ -129,10 +129,7 @@ func newWalkFunc(invalidLink *bool, client *http.Client) filepath.WalkFunc {
 				if err != nil {
 					break
 				}
-				// This header is used in 301, 429 and 503.
-				// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
-				// And Go client will follow redirects automatically so the 301 check is probably unnecessary.
-				if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable {
+				if resp.StatusCode == http.StatusTooManyRequests {
 					retryAfter := resp.Header.Get("Retry-After")
 					if seconds, err := strconv.Atoi(retryAfter); err != nil {
 						backoff = seconds + 10

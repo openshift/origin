@@ -21,7 +21,6 @@ import (
 
 	"k8s.io/api/core/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 // HostExec represents interface we require to execute commands on remote host.
@@ -51,7 +50,7 @@ func (h *hostExecutor) launchNodeExecPod(node string) *v1.Pod {
 	f := h.Framework
 	cs := f.ClientSet
 	ns := f.Namespace
-	hostExecPod := e2epod.NewExecPodSpec(ns.Name, fmt.Sprintf("hostexec-%s", node), true)
+	hostExecPod := framework.NewExecPodSpec(ns.Name, fmt.Sprintf("hostexec-%s", node), true)
 	hostExecPod.Spec.NodeName = node
 	hostExecPod.Spec.Volumes = []v1.Volume{
 		{
@@ -78,7 +77,7 @@ func (h *hostExecutor) launchNodeExecPod(node string) *v1.Pod {
 	}
 	pod, err := cs.CoreV1().Pods(ns.Name).Create(hostExecPod)
 	framework.ExpectNoError(err)
-	err = e2epod.WaitForPodRunningInNamespace(cs, pod)
+	err = framework.WaitForPodRunningInNamespace(cs, pod)
 	framework.ExpectNoError(err)
 	return pod
 }
@@ -119,7 +118,7 @@ func (h *hostExecutor) IssueCommand(cmd string, node *v1.Node) error {
 // pods under test namespace which will be destroyed in teardown phase.
 func (h *hostExecutor) Cleanup() {
 	for _, pod := range h.nodeExecPods {
-		e2epod.DeletePodOrFail(h.Framework.ClientSet, pod.Namespace, pod.Name)
+		framework.DeletePodOrFail(h.Framework.ClientSet, pod.Namespace, pod.Name)
 	}
 	h.nodeExecPods = make(map[string]*v1.Pod)
 }

@@ -1,20 +1,20 @@
 package apiversions
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/utils"
 )
 
 func getURL(c *gophercloud.ServiceClient, version string) string {
-	baseEndpoint, _ := utils.BaseEndpoint(c.Endpoint)
-	endpoint := strings.TrimRight(baseEndpoint, "/") + "/" + strings.TrimRight(version, "/") + "/"
-	return endpoint
+	u, _ := url.Parse(c.ServiceURL(""))
+	u.Path = "/" + strings.TrimRight(version, "/") + "/"
+	return u.String()
 }
 
 func listURL(c *gophercloud.ServiceClient) string {
-	baseEndpoint, _ := utils.BaseEndpoint(c.Endpoint)
-	endpoint := strings.TrimRight(baseEndpoint, "/") + "/"
-	return endpoint
+	u, _ := url.Parse(c.ServiceURL(""))
+	u.Path = "/"
+	return u.String()
 }

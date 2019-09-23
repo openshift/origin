@@ -17,6 +17,7 @@ limitations under the License.
 package customresource_test
 
 import (
+	"io"
 	"reflect"
 	"strings"
 	"testing"
@@ -36,7 +37,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	registrytest "k8s.io/apiserver/pkg/registry/generic/testing"
 	"k8s.io/apiserver/pkg/registry/rest"
-	etcd3testing "k8s.io/apiserver/pkg/storage/etcd3/testing"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver"
@@ -45,9 +46,9 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor"
 )
 
-func newStorage(t *testing.T) (customresource.CustomResourceStorage, *etcd3testing.EtcdTestServer) {
-	server, etcdStorage := etcd3testing.NewUnsecuredEtcd3TestClientServer(t)
-	etcdStorage.Codec = unstructured.UnstructuredJSONScheme
+func newStorage(t *testing.T) (customresource.CustomResourceStorage, *etcdtesting.EtcdTestServer) {
+	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
+	etcdStorage.Codec = unstructuredJsonCodec{}
 	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1, ResourcePrefix: "noxus"}
 
 	parameterScheme := runtime.NewScheme()
@@ -96,7 +97,6 @@ func newStorage(t *testing.T) (customresource.CustomResourceStorage, *etcd3testi
 			typer,
 			true,
 			kind,
-			nil,
 			nil,
 			nil,
 			status,
@@ -381,10 +381,6 @@ func TestScaleGet(t *testing.T) {
 	}
 
 	want := &autoscalingv1.Scale{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Scale",
-			APIVersion: "autoscaling/v1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              cr.GetName(),
 			Namespace:         metav1.NamespaceDefault,
@@ -524,6 +520,28 @@ func TestScaleUpdateWithoutSpecReplicas(t *testing.T) {
 	if scale.Spec.Replicas != int32(replicas) {
 		t.Errorf("wrong replicas count: expected: %d got: %d", replicas, scale.Spec.Replicas)
 	}
+}
+
+type unstructuredJsonCodec struct{}
+
+func (c unstructuredJsonCodec) Decode(data []byte, defaults *schema.GroupVersionKind, into runtime.Object) (runtime.Object, *schema.GroupVersionKind, error) {
+	obj := into.(*unstructured.Unstructured)
+	err := obj.UnmarshalJSON(data)
+	if err != nil {
+		return nil, nil, err
+	}
+	gvk := obj.GroupVersionKind()
+	return obj, &gvk, nil
+}
+
+func (c unstructuredJsonCodec) Encode(obj runtime.Object, w io.Writer) error {
+	u := obj.(*unstructured.Unstructured)
+	bs, err := u.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	w.Write(bs)
+	return nil
 }
 
 func setSpecReplicas(u *unstructured.Unstructured, replicas int64) {

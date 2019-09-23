@@ -12,7 +12,7 @@ var _ = Describe("TestDescription", func() {
 
 	BeforeEach(func() {
 		pathToTest = tmpPath("test_description")
-		copyIn(fixturePath("test_description"), pathToTest, false)
+		copyIn("test_description", pathToTest)
 	})
 
 	It("should capture and emit information about the current test", func() {

@@ -19,16 +19,14 @@
 
 package databox
 
-import (
-	"context"
-
-	original "github.com/Azure/azure-sdk-for-go/services/databox/mgmt/2018-01-01/databox"
-)
+import original "github.com/Azure/azure-sdk-for-go/services/databox/mgmt/2018-01-01/databox"
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
+type BaseClient = original.BaseClient
+type JobsClient = original.JobsClient
 type AccessProtocol = original.AccessProtocol
 
 const (
@@ -72,14 +70,6 @@ const (
 	NotStarted          CopyStatus = original.NotStarted
 )
 
-type DataDestinationType = original.DataDestinationType
-
-const (
-	DataDestinationTypeDestinationAccountDetails DataDestinationType = original.DataDestinationTypeDestinationAccountDetails
-	DataDestinationTypeManagedDisk               DataDestinationType = original.DataDestinationTypeManagedDisk
-	DataDestinationTypeStorageAccount            DataDestinationType = original.DataDestinationTypeStorageAccount
-)
-
 type JobDetailsTypeEnum = original.JobDetailsTypeEnum
 
 const (
@@ -115,7 +105,6 @@ const (
 	AzureFile   ShareDestinationFormatType = original.AzureFile
 	BlockBlob   ShareDestinationFormatType = original.BlockBlob
 	HCS         ShareDestinationFormatType = original.HCS
-	ManagedDisk ShareDestinationFormatType = original.ManagedDisk
 	PageBlob    ShareDestinationFormatType = original.PageBlob
 	UnknownType ShareDestinationFormatType = original.UnknownType
 )
@@ -123,12 +112,11 @@ const (
 type SkuDisabledReason = original.SkuDisabledReason
 
 const (
-	SkuDisabledReasonCountry            SkuDisabledReason = original.SkuDisabledReasonCountry
-	SkuDisabledReasonFeature            SkuDisabledReason = original.SkuDisabledReasonFeature
-	SkuDisabledReasonNone               SkuDisabledReason = original.SkuDisabledReasonNone
-	SkuDisabledReasonNoSubscriptionInfo SkuDisabledReason = original.SkuDisabledReasonNoSubscriptionInfo
-	SkuDisabledReasonOfferType          SkuDisabledReason = original.SkuDisabledReasonOfferType
-	SkuDisabledReasonRegion             SkuDisabledReason = original.SkuDisabledReasonRegion
+	SkuDisabledReasonCountry   SkuDisabledReason = original.SkuDisabledReasonCountry
+	SkuDisabledReasonFeature   SkuDisabledReason = original.SkuDisabledReasonFeature
+	SkuDisabledReasonNone      SkuDisabledReason = original.SkuDisabledReasonNone
+	SkuDisabledReasonOfferType SkuDisabledReason = original.SkuDisabledReasonOfferType
+	SkuDisabledReasonRegion    SkuDisabledReason = original.SkuDisabledReasonRegion
 )
 
 type SkuName = original.SkuName
@@ -179,18 +167,12 @@ type AvailableSkuRequest = original.AvailableSkuRequest
 type AvailableSkusResult = original.AvailableSkusResult
 type AvailableSkusResultIterator = original.AvailableSkusResultIterator
 type AvailableSkusResultPage = original.AvailableSkusResultPage
-type BaseClient = original.BaseClient
-type BasicCopyLogDetails = original.BasicCopyLogDetails
-type BasicDestinationAccountDetails = original.BasicDestinationAccountDetails
-type BasicJobDetails = original.BasicJobDetails
-type BasicJobSecrets = original.BasicJobSecrets
 type CancellationReason = original.CancellationReason
 type ContactDetails = original.ContactDetails
+type BasicCopyLogDetails = original.BasicCopyLogDetails
 type CopyLogDetails = original.CopyLogDetails
 type CopyProgress = original.CopyProgress
 type DestinationAccountDetails = original.DestinationAccountDetails
-type DestinationManagedDiskDetails = original.DestinationManagedDiskDetails
-type DestinationStorageAccountDetails = original.DestinationStorageAccountDetails
 type DestinationToServiceLocationMap = original.DestinationToServiceLocationMap
 type DiskCopyLogDetails = original.DiskCopyLogDetails
 type DiskCopyProgress = original.DiskCopyProgress
@@ -202,6 +184,7 @@ type HeavyAccountCopyLogDetails = original.HeavyAccountCopyLogDetails
 type HeavyJobDetails = original.HeavyJobDetails
 type HeavyJobSecrets = original.HeavyJobSecrets
 type HeavySecret = original.HeavySecret
+type BasicJobDetails = original.BasicJobDetails
 type JobDetails = original.JobDetails
 type JobDetailsType = original.JobDetailsType
 type JobErrorDetails = original.JobErrorDetails
@@ -211,12 +194,12 @@ type JobResourceList = original.JobResourceList
 type JobResourceListIterator = original.JobResourceListIterator
 type JobResourceListPage = original.JobResourceListPage
 type JobResourceUpdateParameter = original.JobResourceUpdateParameter
+type JobsCreateFuture = original.JobsCreateFuture
+type JobsDeleteFuture = original.JobsDeleteFuture
+type BasicJobSecrets = original.BasicJobSecrets
 type JobSecrets = original.JobSecrets
 type JobSecretsType = original.JobSecretsType
 type JobStages = original.JobStages
-type JobsClient = original.JobsClient
-type JobsCreateFuture = original.JobsCreateFuture
-type JobsDeleteFuture = original.JobsDeleteFuture
 type JobsUpdateFuture = original.JobsUpdateFuture
 type NotificationPreference = original.NotificationPreference
 type Operation = original.Operation
@@ -224,12 +207,10 @@ type OperationDisplay = original.OperationDisplay
 type OperationList = original.OperationList
 type OperationListIterator = original.OperationListIterator
 type OperationListPage = original.OperationListPage
-type OperationsClient = original.OperationsClient
 type PackageShippingDetails = original.PackageShippingDetails
 type Preferences = original.Preferences
 type Resource = original.Resource
 type Secret = original.Secret
-type ServiceClient = original.ServiceClient
 type ShareCredentialDetails = original.ShareCredentialDetails
 type ShipmentPickUpRequest = original.ShipmentPickUpRequest
 type ShipmentPickUpResponse = original.ShipmentPickUpResponse
@@ -244,48 +225,20 @@ type UnencryptedCredentialsList = original.UnencryptedCredentialsList
 type UpdateJobDetails = original.UpdateJobDetails
 type UpdateJobProperties = original.UpdateJobProperties
 type ValidateAddress = original.ValidateAddress
+type OperationsClient = original.OperationsClient
+type ServiceClient = original.ServiceClient
 
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
 }
-func NewAvailableSkusResultIterator(page AvailableSkusResultPage) AvailableSkusResultIterator {
-	return original.NewAvailableSkusResultIterator(page)
-}
-func NewAvailableSkusResultPage(getNextPage func(context.Context, AvailableSkusResult) (AvailableSkusResult, error)) AvailableSkusResultPage {
-	return original.NewAvailableSkusResultPage(getNextPage)
-}
-func NewJobResourceListIterator(page JobResourceListPage) JobResourceListIterator {
-	return original.NewJobResourceListIterator(page)
-}
-func NewJobResourceListPage(getNextPage func(context.Context, JobResourceList) (JobResourceList, error)) JobResourceListPage {
-	return original.NewJobResourceListPage(getNextPage)
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
 func NewJobsClient(subscriptionID string) JobsClient {
 	return original.NewJobsClient(subscriptionID)
 }
 func NewJobsClientWithBaseURI(baseURI string, subscriptionID string) JobsClient {
 	return original.NewJobsClientWithBaseURI(baseURI, subscriptionID)
-}
-func NewOperationListIterator(page OperationListPage) OperationListIterator {
-	return original.NewOperationListIterator(page)
-}
-func NewOperationListPage(getNextPage func(context.Context, OperationList) (OperationList, error)) OperationListPage {
-	return original.NewOperationListPage(getNextPage)
-}
-func NewOperationsClient(subscriptionID string) OperationsClient {
-	return original.NewOperationsClient(subscriptionID)
-}
-func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
-	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
-}
-func NewServiceClient(subscriptionID string) ServiceClient {
-	return original.NewServiceClient(subscriptionID)
-}
-func NewServiceClientWithBaseURI(baseURI string, subscriptionID string) ServiceClient {
-	return original.NewServiceClientWithBaseURI(baseURI, subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
 func PossibleAccessProtocolValues() []AccessProtocol {
 	return original.PossibleAccessProtocolValues()
@@ -301,9 +254,6 @@ func PossibleCopyLogDetailsTypeValues() []CopyLogDetailsType {
 }
 func PossibleCopyStatusValues() []CopyStatus {
 	return original.PossibleCopyStatusValues()
-}
-func PossibleDataDestinationTypeValues() []DataDestinationType {
-	return original.PossibleDataDestinationTypeValues()
 }
 func PossibleJobDetailsTypeEnumValues() []JobDetailsTypeEnum {
 	return original.PossibleJobDetailsTypeEnumValues()
@@ -328,6 +278,18 @@ func PossibleStageNameValues() []StageName {
 }
 func PossibleStageStatusValues() []StageStatus {
 	return original.PossibleStageStatusValues()
+}
+func NewOperationsClient(subscriptionID string) OperationsClient {
+	return original.NewOperationsClient(subscriptionID)
+}
+func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
+	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServiceClient(subscriptionID string) ServiceClient {
+	return original.NewServiceClient(subscriptionID)
+}
+func NewServiceClientWithBaseURI(baseURI string, subscriptionID string) ServiceClient {
+	return original.NewServiceClientWithBaseURI(baseURI, subscriptionID)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

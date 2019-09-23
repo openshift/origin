@@ -31,28 +31,29 @@ import (
 	kubeletphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/kubelet"
 	patchnodephase "k8s.io/kubernetes/cmd/kubeadm/app/phases/patchnode"
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/uploadconfig"
+	"k8s.io/kubernetes/pkg/util/normalizer"
 )
 
 var (
-	uploadKubeadmConfigLongDesc = fmt.Sprintf(cmdutil.LongDesc(`
-		Upload the kubeadm ClusterConfiguration to a ConfigMap called %s in the %s namespace.
+	uploadKubeadmConfigLongDesc = fmt.Sprintf(normalizer.LongDesc(`
+		Uploads the kubeadm ClusterConfiguration to a ConfigMap called %s in the %s namespace.
 		This enables correct configuration of system components and a seamless user experience when upgrading.
 
 		Alternatively, you can use kubeadm config.
 		`), kubeadmconstants.KubeadmConfigConfigMap, metav1.NamespaceSystem)
 
-	uploadKubeadmConfigExample = cmdutil.Examples(`
-		# upload the configuration of your cluster
+	uploadKubeadmConfigExample = normalizer.Examples(`
+		# uploads the configuration of your cluster
 		kubeadm init phase upload-config --config=myConfig.yaml
 		`)
 
-	uploadKubeletConfigLongDesc = cmdutil.LongDesc(`
-		Upload kubelet configuration extracted from the kubeadm InitConfiguration object to a ConfigMap
+	uploadKubeletConfigLongDesc = normalizer.LongDesc(`
+		Uploads kubelet configuration extracted from the kubeadm InitConfiguration object to a ConfigMap
 		of the form kubelet-config-1.X in the cluster, where X is the minor version of the current (API Server) Kubernetes version.
 		`)
 
-	uploadKubeletConfigExample = cmdutil.Examples(`
-		# Upload the kubelet configuration from the kubeadm Config file to a ConfigMap in the cluster.
+	uploadKubeletConfigExample = normalizer.Examples(`
+		# Uploads the kubelet configuration from the kubeadm Config file to a ConfigMap in the cluster.
 		kubeadm init phase upload-config kubelet --config kubeadm.yaml
 		`)
 )
@@ -62,18 +63,18 @@ func NewUploadConfigPhase() workflow.Phase {
 	return workflow.Phase{
 		Name:    "upload-config",
 		Aliases: []string{"uploadconfig"},
-		Short:   "Upload the kubeadm and kubelet configuration to a ConfigMap",
+		Short:   "Uploads the kubeadm and kubelet configuration to a ConfigMap",
 		Long:    cmdutil.MacroCommandLongDescription,
 		Phases: []workflow.Phase{
 			{
 				Name:           "all",
-				Short:          "Upload all configuration to a config map",
+				Short:          "Uploads all configuration to a config map",
 				RunAllSiblings: true,
 				InheritFlags:   getUploadConfigPhaseFlags(),
 			},
 			{
 				Name:         "kubeadm",
-				Short:        "Upload the kubeadm ClusterConfiguration to a ConfigMap",
+				Short:        "Uploads the kubeadm ClusterConfiguration to a ConfigMap",
 				Long:         uploadKubeadmConfigLongDesc,
 				Example:      uploadKubeadmConfigExample,
 				Run:          runUploadKubeadmConfig,
@@ -81,7 +82,7 @@ func NewUploadConfigPhase() workflow.Phase {
 			},
 			{
 				Name:         "kubelet",
-				Short:        "Upload the kubelet component config to a ConfigMap",
+				Short:        "Uploads the kubelet component config to a ConfigMap",
 				Long:         uploadKubeletConfigLongDesc,
 				Example:      uploadKubeletConfigExample,
 				Run:          runUploadKubeletConfig,

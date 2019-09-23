@@ -20,6 +20,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/docker/docker/pkg/mount"
 	"github.com/stretchr/testify/assert"
@@ -100,9 +101,9 @@ func TestDirDiskUsage(t *testing.T) {
 	fi, err := f.Stat()
 	as.NoError(err)
 	expectedSize := uint64(fi.Size())
-	usage, err := fsInfo.GetDirUsage(dir)
+	size, err := fsInfo.GetDirDiskUsage(dir, time.Minute)
 	as.NoError(err)
-	as.True(expectedSize <= usage.Bytes, "expected dir size to be at-least %d; got size: %d", expectedSize, usage.Bytes)
+	as.True(expectedSize <= size, "expected dir size to be at-least %d; got size: %d", expectedSize, size)
 }
 
 func TestDirInodeUsage(t *testing.T) {
@@ -117,10 +118,10 @@ func TestDirInodeUsage(t *testing.T) {
 		_, err := ioutil.TempFile(dir, "")
 		require.NoError(t, err)
 	}
-	usage, err := fsInfo.GetDirUsage(dir)
+	inodes, err := fsInfo.GetDirInodeUsage(dir, time.Minute)
 	as.NoError(err)
 	// We sould get numFiles+1 inodes, since we get 1 inode for each file, plus 1 for the directory
-	as.True(uint64(numFiles+1) == usage.Inodes, "expected inodes in dir to be %d; got inodes: %d", numFiles+1, usage.Inodes)
+	as.True(uint64(numFiles+1) == inodes, "expected inodes in dir to be %d; got inodes: %d", numFiles+1, inodes)
 }
 
 var dmStatusTests = []struct {

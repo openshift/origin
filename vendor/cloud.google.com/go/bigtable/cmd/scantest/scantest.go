@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Google LLC
+Copyright 2016 Google Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -34,8 +33,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigtable"
-	"cloud.google.com/go/bigtable/internal/cbtconfig"
+	"cloud.google.com/go/bigtable/internal/cbtrc"
 	"cloud.google.com/go/bigtable/internal/stat"
+	"golang.org/x/net/context"
 )
 
 var (
@@ -43,7 +43,7 @@ var (
 	numScans = flag.Int("concurrent_scans", 1, "number of concurrent scans")
 	rowLimit = flag.Int("row_limit", 10000, "max number of records per scan")
 
-	config *cbtconfig.Config
+	config *cbtrc.Config
 	client *bigtable.Client
 )
 
@@ -54,14 +54,14 @@ func main() {
 	}
 
 	var err error
-	config, err = cbtconfig.Load()
+	config, err = cbtrc.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
 	config.RegisterFlags()
 
 	flag.Parse()
-	if err := config.CheckFlags(cbtconfig.ProjectAndInstanceRequired); err != nil {
+	if err := config.CheckFlags(); err != nil {
 		log.Fatal(err)
 	}
 	if config.Creds != "" {

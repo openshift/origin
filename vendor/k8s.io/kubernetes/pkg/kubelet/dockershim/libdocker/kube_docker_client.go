@@ -85,12 +85,15 @@ func newKubeDockerClient(dockerClient *dockerapi.Client, requestTimeout, imagePu
 		timeout:                   requestTimeout,
 		imagePullProgressDeadline: imagePullProgressDeadline,
 	}
-
 	// Notice that this assumes that docker is running before kubelet is started.
-	ctx, cancel := k.getTimeoutContext()
-	defer cancel()
-	dockerClient.NegotiateAPIVersion(ctx)
-
+	v, err := k.Version()
+	if err != nil {
+		klog.Errorf("failed to retrieve docker version: %v", err)
+		klog.Warningf("Using empty version for docker client, this may sometimes cause compatibility issue.")
+	} else {
+		// Update client version with real api version.
+		dockerClient.NegotiateAPIVersionPing(dockertypes.Ping{APIVersion: v.APIVersion})
+	}
 	return k
 }
 
@@ -396,7 +399,7 @@ func (d *kubeDockerClient) RemoveImage(image string, opts dockertypes.ImageRemov
 	if ctxErr := contextError(ctx); ctxErr != nil {
 		return nil, ctxErr
 	}
-	if dockerapi.IsErrNotFound(err) {
+	if isImageNotFoundError(err) {
 		return nil, ImageNotFoundError{ID: image}
 	}
 	return resp, err

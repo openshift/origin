@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -345,7 +346,7 @@ func (b *storageosMounter) CanMount() error {
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (b *storageosMounter) SetUp(mounterArgs volume.MounterArgs) error {
+func (b *storageosMounter) SetUp(fsGroup *int64) error {
 	// Need a namespace to find the volume, try pod's namespace if not set.
 	if b.volNamespace == "" {
 		klog.V(2).Infof("Setting StorageOS volume namespace to pod namespace: %s", b.podNamespace)
@@ -375,11 +376,11 @@ func (b *storageosMounter) SetUp(mounterArgs volume.MounterArgs) error {
 	klog.V(4).Infof("Successfully mounted StorageOS volume %s into global mount directory", b.volName)
 
 	// Bind mount the volume into the pod
-	return b.SetUpAt(b.GetPath(), mounterArgs)
+	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
 // SetUp bind mounts the disk global mount to the give volume path.
-func (b *storageosMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) error {
+func (b *storageosMounter) SetUpAt(dir string, fsGroup *int64) error {
 	notMnt, err := b.mounter.IsLikelyNotMountPoint(dir)
 	klog.V(4).Infof("StorageOS volume set up: %s %v %v", dir, !notMnt, err)
 	if err != nil && !os.IsNotExist(err) {
@@ -433,14 +434,14 @@ func (b *storageosMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) e
 	}
 
 	if !b.readOnly {
-		volume.SetVolumeOwnership(b, mounterArgs.FsGroup)
+		volume.SetVolumeOwnership(b, fsGroup)
 	}
 	klog.V(4).Infof("StorageOS volume setup complete on %s", dir)
 	return nil
 }
 
 func makeGlobalPDName(host volume.VolumeHost, pvName, volNamespace, volName string) string {
-	return filepath.Join(host.GetPluginDir(utilstrings.EscapeQualifiedName(storageosPluginName)), util.MountsInGlobalPDPath, pvName+"."+volNamespace+"."+volName)
+	return path.Join(host.GetPluginDir(utilstrings.EscapeQualifiedName(storageosPluginName)), mount.MountsInGlobalPDPath, pvName+"."+volNamespace+"."+volName)
 }
 
 // Given the pod id and PV name, finds the volume's namespace and name from the

@@ -27,7 +27,6 @@ import (
 type unsupportedContainerManager struct {
 }
 
-// NewContainerManager creates a new instance of ContainerManager
 func NewContainerManager(_ string, _ libdocker.Interface) ContainerManager {
 	return &unsupportedContainerManager{}
 }

@@ -19,17 +19,18 @@
 
 package storagedatalake
 
-import original "github.com/Azure/azure-sdk-for-go/services/storage/datalake/2018-11-09/storagedatalake"
+import original "github.com/Azure/azure-sdk-for-go/services/storage/datalake/2018-06-17/storagedatalake"
 
 const (
 	DefaultDNSSuffix = original.DefaultDNSSuffix
 )
 
+type BaseClient = original.BaseClient
+type FilesystemClient = original.FilesystemClient
 type PathGetPropertiesAction = original.PathGetPropertiesAction
 
 const (
 	GetAccessControl PathGetPropertiesAction = original.GetAccessControl
-	GetStatus        PathGetPropertiesAction = original.GetStatus
 )
 
 type PathLeaseAction = original.PathLeaseAction
@@ -65,28 +66,30 @@ const (
 	SetProperties    PathUpdateAction = original.SetProperties
 )
 
-type BaseClient = original.BaseClient
+type PathUpdateLeaseAction = original.PathUpdateLeaseAction
+
+const (
+	PathUpdateLeaseActionRelease PathUpdateLeaseAction = original.PathUpdateLeaseActionRelease
+	PathUpdateLeaseActionRenew   PathUpdateLeaseAction = original.PathUpdateLeaseActionRenew
+)
+
 type DataLakeStorageError = original.DataLakeStorageError
 type DataLakeStorageErrorError = original.DataLakeStorageErrorError
 type Filesystem = original.Filesystem
-type FilesystemClient = original.FilesystemClient
 type FilesystemList = original.FilesystemList
 type Path = original.Path
-type PathClient = original.PathClient
 type PathList = original.PathList
 type ReadCloser = original.ReadCloser
+type PathClient = original.PathClient
 
 func New(xMsVersion string, accountName string) BaseClient {
 	return original.New(xMsVersion, accountName)
 }
-func NewFilesystemClient(xMsVersion string, accountName string) FilesystemClient {
-	return original.NewFilesystemClient(xMsVersion, accountName)
-}
-func NewPathClient(xMsVersion string, accountName string) PathClient {
-	return original.NewPathClient(xMsVersion, accountName)
-}
 func NewWithoutDefaults(xMsVersion string, accountName string, dNSSuffix string) BaseClient {
 	return original.NewWithoutDefaults(xMsVersion, accountName, dNSSuffix)
+}
+func NewFilesystemClient(xMsVersion string, accountName string) FilesystemClient {
+	return original.NewFilesystemClient(xMsVersion, accountName)
 }
 func PossiblePathGetPropertiesActionValues() []PathGetPropertiesAction {
 	return original.PossiblePathGetPropertiesActionValues()
@@ -102,6 +105,12 @@ func PossiblePathResourceTypeValues() []PathResourceType {
 }
 func PossiblePathUpdateActionValues() []PathUpdateAction {
 	return original.PossiblePathUpdateActionValues()
+}
+func PossiblePathUpdateLeaseActionValues() []PathUpdateLeaseAction {
+	return original.PossiblePathUpdateLeaseActionValues()
+}
+func NewPathClient(xMsVersion string, accountName string) PathClient {
+	return original.NewPathClient(xMsVersion, accountName)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

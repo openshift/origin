@@ -15,14 +15,9 @@ func TestTunableClusteringScaleFree(t *testing.T) {
 		for m := 0; m < n; m++ {
 			for p := 0.; p <= 1; p += 0.1 {
 				g := &gnUndirected{UndirectedBuilder: simple.NewUndirectedGraph()}
-				orig := g.NewNode()
-				g.AddNode(orig)
 				err := TunableClusteringScaleFree(g, n, m, p, nil)
 				if err != nil {
 					t.Fatalf("unexpected error: n=%d, m=%d, p=%v: %v", n, m, p, err)
-				}
-				if g.From(orig.ID()).Len() != 0 {
-					t.Errorf("edge added from already existing node: n=%d, m=%d, p=%v", n, m, p)
 				}
 				if g.addBackwards {
 					t.Errorf("edge added with From.ID > To.ID: n=%d, m=%d, p=%v", n, m, p)

@@ -15,13 +15,13 @@ import (
 )
 
 type Dorgbrer interface {
-	Dorgbr(vect lapack.GenOrtho, m, n, k int, a []float64, lda int, tau, work []float64, lwork int)
+	Dorgbr(vect lapack.DecompUpdate, m, n, k int, a []float64, lda int, tau, work []float64, lwork int)
 	Dgebrder
 }
 
 func DorgbrTest(t *testing.T, impl Dorgbrer) {
 	rnd := rand.New(rand.NewSource(1))
-	for _, vect := range []lapack.GenOrtho{lapack.GenerateQ, lapack.GeneratePT} {
+	for _, vect := range []lapack.DecompUpdate{lapack.ApplyQ, lapack.ApplyP} {
 		for _, test := range []struct {
 			m, n, k, lda int
 		}{
@@ -52,7 +52,7 @@ func DorgbrTest(t *testing.T, impl Dorgbrer) {
 			k := test.k
 			lda := test.lda
 			// Filter out bad tests
-			if vect == lapack.GenerateQ {
+			if vect == lapack.ApplyQ {
 				if m < n || n < min(m, k) || m < min(m, k) {
 					continue
 				}
@@ -63,7 +63,7 @@ func DorgbrTest(t *testing.T, impl Dorgbrer) {
 			}
 			// Sizes for Dorgbr.
 			var ma, na int
-			if vect == lapack.GenerateQ {
+			if vect == lapack.ApplyQ {
 				if m >= k {
 					ma = m
 					na = k
@@ -83,7 +83,7 @@ func DorgbrTest(t *testing.T, impl Dorgbrer) {
 			// a eventually needs to store either P or Q, so it must be
 			// sufficiently big.
 			var a []float64
-			if vect == lapack.GenerateQ {
+			if vect == lapack.ApplyQ {
 				lda = max(m, lda)
 				a = make([]float64, m*lda)
 			} else {
@@ -110,7 +110,7 @@ func DorgbrTest(t *testing.T, impl Dorgbrer) {
 			copy(aCopy, a)
 
 			var tau []float64
-			if vect == lapack.GenerateQ {
+			if vect == lapack.ApplyQ {
 				tau = tauQ
 			} else {
 				tau = tauP
@@ -124,20 +124,20 @@ func DorgbrTest(t *testing.T, impl Dorgbrer) {
 			var ans blas64.General
 			var nRows, nCols int
 			equal := true
-			if vect == lapack.GenerateQ {
+			if vect == lapack.ApplyQ {
 				nRows = m
 				nCols = m
 				if m >= k {
 					nCols = n
 				}
-				ans = constructQPBidiagonal(lapack.ApplyQ, ma, na, min(m, k), aCopy, lda, tau)
+				ans = constructQPBidiagonal(vect, ma, na, min(m, k), aCopy, lda, tau)
 			} else {
 				nRows = n
 				if k < n {
 					nRows = m
 				}
 				nCols = n
-				ansTmp := constructQPBidiagonal(lapack.ApplyP, ma, na, min(k, n), aCopy, lda, tau)
+				ansTmp := constructQPBidiagonal(vect, ma, na, min(k, n), aCopy, lda, tau)
 				// Dorgbr actually computes P^T
 				ans = transposeGeneral(ansTmp)
 			}
@@ -149,7 +149,8 @@ func DorgbrTest(t *testing.T, impl Dorgbrer) {
 				}
 			}
 			if !equal {
-				t.Errorf("Extracted matrix mismatch. gen = %v, m = %v, n = %v, k = %v", string(vect), m, n, k)
+				applyQ := vect == lapack.ApplyQ
+				t.Errorf("Extracted matrix mismatch. applyQ: %v, m = %v, n = %v, k = %v", applyQ, m, n, k)
 			}
 		}
 	}

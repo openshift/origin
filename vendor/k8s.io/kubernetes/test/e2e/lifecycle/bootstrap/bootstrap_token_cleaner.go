@@ -19,7 +19,8 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -35,50 +36,50 @@ var _ = lifecycle.SIGDescribe("[Feature:BootstrapTokens]", func() {
 
 	f := framework.NewDefaultFramework("bootstrap-token-cleaner")
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		c = f.ClientSet
 	})
 
-	ginkgo.AfterEach(func() {
+	AfterEach(func() {
 		if len(secretNeedClean) > 0 {
-			ginkgo.By("delete the bootstrap token secret")
+			By("delete the bootstrap token secret")
 			err := c.CoreV1().Secrets(metav1.NamespaceSystem).Delete(secretNeedClean, &metav1.DeleteOptions{})
 			secretNeedClean = ""
-			framework.ExpectNoError(err)
+			Expect(err).NotTo(HaveOccurred())
 		}
 	})
-	ginkgo.It("should delete the token secret when the secret expired", func() {
-		ginkgo.By("create a new expired bootstrap token secret")
+	It("should delete the token secret when the secret expired", func() {
+		By("create a new expired bootstrap token secret")
 		tokenId, err := GenerateTokenId()
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 		tokenSecret, err := GenerateTokenSecret()
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 
 		secret := newTokenSecret(tokenId, tokenSecret)
 		addSecretExpiration(secret, TimeStringFromNow(-time.Hour))
 		_, err = c.CoreV1().Secrets(metav1.NamespaceSystem).Create(secret)
 
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 
-		ginkgo.By("wait for the bootstrap token secret be deleted")
+		By("wait for the bootstrap token secret be deleted")
 		err = WaitForBootstrapTokenSecretToDisappear(c, tokenId)
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
-	ginkgo.It("should not delete the token secret when the secret is not expired", func() {
-		ginkgo.By("create a new expired bootstrap token secret")
+	It("should not delete the token secret when the secret is not expired", func() {
+		By("create a new expired bootstrap token secret")
 		tokenId, err := GenerateTokenId()
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 		tokenSecret, err := GenerateTokenSecret()
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 		secret := newTokenSecret(tokenId, tokenSecret)
 		addSecretExpiration(secret, TimeStringFromNow(time.Hour))
 		_, err = c.CoreV1().Secrets(metav1.NamespaceSystem).Create(secret)
 		secretNeedClean = bootstrapapi.BootstrapTokenSecretPrefix + tokenId
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 
-		ginkgo.By("wait for the bootstrap token secret not be deleted")
+		By("wait for the bootstrap token secret not be deleted")
 		err = WaitForBootstrapTokenSecretNotDisappear(c, tokenId, 20*time.Second)
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 	})
 })

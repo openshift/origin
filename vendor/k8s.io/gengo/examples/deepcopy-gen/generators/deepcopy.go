@@ -40,38 +40,33 @@ type CustomArgs struct {
 
 // This is the comment tag that carries parameters for deep-copy generation.
 const (
-	tagEnabledName              = "k8s:deepcopy-gen"
-	interfacesTagName           = tagEnabledName + ":interfaces"
-	interfacesNonPointerTagName = tagEnabledName + ":nonpointer-interfaces" // attach the DeepCopy<Interface> methods to the
+	tagName                     = "k8s:deepcopy-gen"
+	interfacesTagName           = tagName + ":interfaces"
+	interfacesNonPointerTagName = tagName + ":nonpointer-interfaces" // attach the DeepCopy<Interface> methods to the
 )
 
 // Known values for the comment tag.
 const tagValuePackage = "package"
 
-// enabledTagValue holds parameters from a tagName tag.
-type enabledTagValue struct {
+// tagValue holds parameters from a tagName tag.
+type tagValue struct {
 	value    string
 	register bool
 }
 
-func extractEnabledTypeTag(t *types.Type) *enabledTagValue {
-	comments := append(append([]string{}, t.SecondClosestCommentLines...), t.CommentLines...)
-	return extractEnabledTag(comments)
-}
-
-func extractEnabledTag(comments []string) *enabledTagValue {
-	tagVals := types.ExtractCommentTags("+", comments)[tagEnabledName]
+func extractTag(comments []string) *tagValue {
+	tagVals := types.ExtractCommentTags("+", comments)[tagName]
 	if tagVals == nil {
 		// No match for the tag.
 		return nil
 	}
 	// If there are multiple values, abort.
 	if len(tagVals) > 1 {
-		klog.Fatalf("Found %d %s tags: %q", len(tagVals), tagEnabledName, tagVals)
+		klog.Fatalf("Found %d %s tags: %q", len(tagVals), tagName, tagVals)
 	}
 
 	// If we got here we are returning something.
-	tag := &enabledTagValue{}
+	tag := &tagValue{}
 
 	// Get the primary value.
 	parts := strings.Split(tagVals[0], ",")
@@ -94,7 +89,7 @@ func extractEnabledTag(comments []string) *enabledTagValue {
 				tag.register = true
 			}
 		default:
-			klog.Fatalf("Unsupported %s param: %q", tagEnabledName, parts[i])
+			klog.Fatalf("Unsupported %s param: %q", tagName, parts[i])
 		}
 	}
 	return tag
@@ -155,13 +150,13 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 			continue
 		}
 
-		ptag := extractEnabledTag(pkg.Comments)
+		ptag := extractTag(pkg.Comments)
 		ptagValue := ""
 		ptagRegister := false
 		if ptag != nil {
 			ptagValue = ptag.value
 			if ptagValue != tagValuePackage {
-				klog.Fatalf("Package %v: unsupported %s value: %q", i, tagEnabledName, ptagValue)
+				klog.Fatalf("Package %v: unsupported %s value: %q", i, tagName, ptagValue)
 			}
 			ptagRegister = ptag.register
 			klog.V(5).Infof("  tag.value: %q, tag.register: %t", ptagValue, ptagRegister)
@@ -176,7 +171,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 			// explicitly wants generation.
 			for _, t := range pkg.Types {
 				klog.V(5).Infof("  considering type %q", t.Name.String())
-				ttag := extractEnabledTypeTag(t)
+				ttag := extractTag(t.CommentLines)
 				if ttag != nil && ttag.value == "true" {
 					klog.V(5).Infof("    tag=true")
 					if !copyableType(t) {
@@ -259,7 +254,7 @@ func (g *genDeepCopy) Filter(c *generator.Context, t *types.Type) bool {
 	// Filter out types not being processed or not copyable within the package.
 	enabled := g.allTypes
 	if !enabled {
-		ttag := extractEnabledTypeTag(t)
+		ttag := extractTag(t.CommentLines)
 		if ttag != nil && ttag.value == "true" {
 			enabled = true
 		}
@@ -396,7 +391,7 @@ func isRootedUnder(pkg string, roots []string) bool {
 
 func copyableType(t *types.Type) bool {
 	// If the type opts out of copy-generation, stop.
-	ttag := extractEnabledTypeTag(t)
+	ttag := extractTag(t.CommentLines)
 	if ttag != nil && ttag.value == "false" {
 		return false
 	}
@@ -465,12 +460,12 @@ func (g *genDeepCopy) Init(c *generator.Context, w io.Writer) error {
 }
 
 func (g *genDeepCopy) needsGeneration(t *types.Type) bool {
-	tag := extractEnabledTypeTag(t)
+	tag := extractTag(t.CommentLines)
 	tv := ""
 	if tag != nil {
 		tv = tag.value
 		if tv != "true" && tv != "false" {
-			klog.Fatalf("Type %v: unsupported %s value: %q", t, tagEnabledName, tag.value)
+			klog.Fatalf("Type %v: unsupported %s value: %q", t, tagName, tag.value)
 		}
 	}
 	if g.allTypes && tv == "false" {
@@ -486,9 +481,8 @@ func (g *genDeepCopy) needsGeneration(t *types.Type) bool {
 	return true
 }
 
-func extractInterfacesTag(t *types.Type) []string {
+func extractInterfacesTag(comments []string) []string {
 	var result []string
-	comments := append(append([]string{}, t.SecondClosestCommentLines...), t.CommentLines...)
 	values := types.ExtractCommentTags("+", comments)[interfacesTagName]
 	for _, v := range values {
 		if len(v) == 0 {
@@ -505,8 +499,7 @@ func extractInterfacesTag(t *types.Type) []string {
 	return result
 }
 
-func extractNonPointerInterfaces(t *types.Type) (bool, error) {
-	comments := append(append([]string{}, t.SecondClosestCommentLines...), t.CommentLines...)
+func extractNonPointerInterfaces(comments []string) (bool, error) {
 	values := types.ExtractCommentTags("+", comments)[interfacesNonPointerTagName]
 	if len(values) == 0 {
 		return false, nil
@@ -525,7 +518,7 @@ func (g *genDeepCopy) deepCopyableInterfacesInner(c *generator.Context, t *types
 		return nil, nil
 	}
 
-	intfs := extractInterfacesTag(t)
+	intfs := extractInterfacesTag(append(t.SecondClosestCommentLines, t.CommentLines...))
 
 	var ts []*types.Type
 	for _, intf := range intfs {
@@ -564,7 +557,7 @@ func (g *genDeepCopy) deepCopyableInterfaces(c *generator.Context, t *types.Type
 
 	TypeSlice(result).Sort() // we need a stable sorting because it determines the order in generation
 
-	nonPointerReceiver, err := extractNonPointerInterfaces(t)
+	nonPointerReceiver, err := extractNonPointerInterfaces(append(t.SecondClosestCommentLines, t.CommentLines...))
 	if err != nil {
 		return nil, false, err
 	}
@@ -718,7 +711,7 @@ func (g *genDeepCopy) doMap(t *types.Type, sw *generator.SnippetWriter) {
 	}
 
 	if !ut.Key.IsAssignable() {
-		klog.Fatalf("Hit an unsupported type %v for: %v", uet, t)
+		klog.Fatalf("Hit an unsupported type %v.", uet)
 	}
 
 	sw.Do("*out = make($.|raw$, len(*in))\n", t)
@@ -745,10 +738,6 @@ func (g *genDeepCopy) doMap(t *types.Type, sw *generator.SnippetWriter) {
 	case uet.IsAssignable():
 		sw.Do("(*out)[key] = val\n", nil)
 	case uet.Kind == types.Interface:
-		// Note: do not generate code that won't compile as `DeepCopyinterface{}()` is not a valid function
-		if uet.Name.Name == "interface{}" {
-			klog.Fatalf("DeepCopy of %q is unsupported. Instead, use named interfaces with DeepCopy<named-interface> as one of the methods.", uet.Name.Name)
-		}
 		sw.Do("if val == nil {(*out)[key]=nil} else {\n", nil)
 		// Note: if t.Elem has been an alias "J" of an interface "I" in Go, we will see it
 		// as kind Interface of name "J" here, i.e. generate val.DeepCopyJ(). The golang
@@ -765,7 +754,7 @@ func (g *genDeepCopy) doMap(t *types.Type, sw *generator.SnippetWriter) {
 	case uet.Kind == types.Struct:
 		sw.Do("(*out)[key] = *val.DeepCopy()\n", uet)
 	default:
-		klog.Fatalf("Hit an unsupported type %v for %v", uet, t)
+		klog.Fatalf("Hit an unsupported type %v.", uet)
 	}
 	sw.Do("}\n", nil)
 }
@@ -797,10 +786,6 @@ func (g *genDeepCopy) doSlice(t *types.Type, sw *generator.SnippetWriter) {
 			g.generateFor(ut.Elem, sw)
 			sw.Do("}\n", nil)
 		} else if uet.Kind == types.Interface {
-			// Note: do not generate code that won't compile as `DeepCopyinterface{}()` is not a valid function
-			if uet.Name.Name == "interface{}" {
-				klog.Fatalf("DeepCopy of %q is unsupported. Instead, use named interfaces with DeepCopy<named-interface> as one of the methods.", uet.Name.Name)
-			}
 			sw.Do("if (*in)[i] != nil {\n", nil)
 			// Note: if t.Elem has been an alias "J" of an interface "I" in Go, we will see it
 			// as kind Interface of name "J" here, i.e. generate val.DeepCopyJ(). The golang
@@ -810,7 +795,7 @@ func (g *genDeepCopy) doSlice(t *types.Type, sw *generator.SnippetWriter) {
 		} else if uet.Kind == types.Struct {
 			sw.Do("(*in)[i].DeepCopyInto(&(*out)[i])\n", nil)
 		} else {
-			klog.Fatalf("Hit an unsupported type %v for %v", uet, t)
+			klog.Fatalf("Hit an unsupported type %v.", uet)
 		}
 		sw.Do("}\n", nil)
 	}
@@ -871,10 +856,6 @@ func (g *genDeepCopy) doStruct(t *types.Type, sw *generator.SnippetWriter) {
 				sw.Do("in.$.name$.DeepCopyInto(&out.$.name$)\n", args)
 			}
 		case uft.Kind == types.Interface:
-			// Note: do not generate code that won't compile as `DeepCopyinterface{}()` is not a valid function
-			if uft.Name.Name == "interface{}" {
-				klog.Fatalf("DeepCopy of %q is unsupported. Instead, use named interfaces with DeepCopy<named-interface> as one of the methods.", uft.Name.Name)
-			}
 			sw.Do("if in.$.name$ != nil {\n", args)
 			// Note: if t.Elem has been an alias "J" of an interface "I" in Go, we will see it
 			// as kind Interface of name "J" here, i.e. generate val.DeepCopyJ(). The golang
@@ -882,7 +863,7 @@ func (g *genDeepCopy) doStruct(t *types.Type, sw *generator.SnippetWriter) {
 			sw.Do(fmt.Sprintf("out.$.name$ = in.$.name$.DeepCopy%s()\n", uft.Name.Name), args)
 			sw.Do("}\n", nil)
 		default:
-			klog.Fatalf("Hit an unsupported type %v for %v, from %v", uft, ft, t)
+			klog.Fatalf("Hit an unsupported type %v.", uft)
 		}
 	}
 }
@@ -919,6 +900,6 @@ func (g *genDeepCopy) doPointer(t *types.Type, sw *generator.SnippetWriter) {
 		sw.Do("*out = new($.Elem|raw$)\n", ut)
 		sw.Do("(*in).DeepCopyInto(*out)\n", nil)
 	default:
-		klog.Fatalf("Hit an unsupported type %v for %v", uet, t)
+		klog.Fatalf("Hit an unsupported type %v.", uet)
 	}
 }

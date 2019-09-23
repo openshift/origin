@@ -32,7 +32,6 @@ import (
 	"k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	appsv1listers "k8s.io/client-go/listers/apps/v1"
-	utilpod "k8s.io/kubernetes/pkg/api/v1/pod"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
@@ -135,12 +134,9 @@ func MarkAllPodsNotReady(kubeClient clientset.Interface, node *v1.Node) error {
 			continue
 		}
 
-		for _, cond := range pod.Status.Conditions {
+		for i, cond := range pod.Status.Conditions {
 			if cond.Type == v1.PodReady {
-				cond.Status = v1.ConditionFalse
-				if !utilpod.UpdatePodCondition(&pod.Status, &cond) {
-					break
-				}
+				pod.Status.Conditions[i].Status = v1.ConditionFalse
 				klog.V(2).Infof("Updating ready status of pod %v to false", pod.Name)
 				_, err := kubeClient.CoreV1().Pods(pod.Namespace).UpdateStatus(&pod)
 				if err != nil {

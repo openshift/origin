@@ -34,31 +34,14 @@ func (impl Implementation) Dgeqr2(m, n int, a []float64, lda int, tau, work []fl
 	// TODO(btracey): This is oriented such that columns of a are eliminated.
 	// This likely could be re-arranged to take better advantage of row-major
 	// storage.
-
-	switch {
-	case m < 0:
-		panic(mLT0)
-	case n < 0:
-		panic(nLT0)
-	case lda < max(1, n):
-		panic(badLdA)
-	case len(work) < n:
-		panic(shortWork)
+	checkMatrix(m, n, a, lda)
+	if len(work) < n {
+		panic(badWork)
 	}
-
-	// Quick return if possible.
 	k := min(m, n)
-	if k == 0 {
-		return
+	if len(tau) < k {
+		panic(badTau)
 	}
-
-	switch {
-	case len(a) < (m-1)*lda+n:
-		panic(shortA)
-	case len(tau) < k:
-		panic(shortTau)
-	}
-
 	for i := 0; i < k; i++ {
 		// Generate elementary reflector H_i.
 		a[i*lda+i], tau[i] = impl.Dlarfg(m-i, a[i*lda+i], a[min((i+1), m-1)*lda+i:], lda)

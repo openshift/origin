@@ -27,7 +27,6 @@ type Options struct {
 	JUnitDir    string
 	TestFile    string
 	OutFile     string
-	Regex       string
 
 	IncludeSuccessOutput bool
 
@@ -86,12 +85,6 @@ func (opt *Options) Run(args []string) error {
 	if suite == nil {
 		fmt.Fprintf(opt.ErrOut, SuitesString(opt.Suites, "Select a test suite to run against the server:\n\n"))
 		return fmt.Errorf("suite %q does not exist", args[0])
-	}
-
-	if len(opt.Regex) > 0 {
-		if err := filterWithRegex(suite, opt.Regex); err != nil {
-			return fmt.Errorf("regular expression passed to -run is invalid: %v", err)
-		}
 	}
 
 	tests, err := testsForSuite(config.GinkgoConfig)

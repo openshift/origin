@@ -19,30 +19,27 @@
 
 package textanalytics
 
-import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.1/textanalytics"
+import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.0/textanalytics"
 
 type BaseClient = original.BaseClient
+type BatchInput = original.BatchInput
 type DetectedLanguage = original.DetectedLanguage
-type DocumentStatistics = original.DocumentStatistics
 type EntitiesBatchResult = original.EntitiesBatchResult
 type EntitiesBatchResultItem = original.EntitiesBatchResultItem
 type EntityRecord = original.EntityRecord
 type ErrorRecord = original.ErrorRecord
 type ErrorResponse = original.ErrorResponse
+type Input = original.Input
 type InternalError = original.InternalError
 type KeyPhraseBatchResult = original.KeyPhraseBatchResult
 type KeyPhraseBatchResultItem = original.KeyPhraseBatchResultItem
-type LanguageBatchInput = original.LanguageBatchInput
 type LanguageBatchResult = original.LanguageBatchResult
 type LanguageBatchResultItem = original.LanguageBatchResultItem
-type LanguageInput = original.LanguageInput
 type MatchRecord = original.MatchRecord
 type MultiLanguageBatchInput = original.MultiLanguageBatchInput
 type MultiLanguageInput = original.MultiLanguageInput
-type RequestStatistics = original.RequestStatistics
 type SentimentBatchResult = original.SentimentBatchResult
 type SentimentBatchResultItem = original.SentimentBatchResultItem
-type SetObject = original.SetObject
 
 func New(endpoint string) BaseClient {
 	return original.New(endpoint)

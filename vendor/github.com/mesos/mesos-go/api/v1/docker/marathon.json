@@ -1,0 +1,28 @@
+{
+  "id": "/example-scheduler",
+  "instances": 1,
+  "cpus": 2,
+  "mem": 128,
+  "env": {
+    "NUM_TASKS": "10000",
+    "MESOS_CONNECT_TIMEOUT": "10s",
+    "MAX_REFUSE_SECONDS": "3s",
+    "REVIVE_BURST": "5",
+    "TASK_CPU": "0.1",
+    "TASK_MEMORY": "0.1",
+    "EXEC_CPU": "0.9",
+    "EXEC_MEMORY": "256"
+  },
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "jdef/example-scheduler-httpv1",
+      "network": "HOST",
+      "forcePullImage": true
+    }
+  },
+  "upgradeStrategy": {
+    "minimumHealthCapacity": 0,
+    "maximumOverCapacity": 0
+  }
+}

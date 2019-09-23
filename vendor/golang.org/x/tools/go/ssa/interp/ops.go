@@ -7,10 +7,9 @@ package interp
 import (
 	"bytes"
 	"fmt"
-	"go/constant"
+	exact "go/constant"
 	"go/token"
 	"go/types"
-	"os"
 	"strings"
 	"sync"
 	"unsafe"
@@ -41,7 +40,7 @@ func constValue(c *ssa.Const) value {
 		// TODO(adonovan): eliminate untyped constants from SSA form.
 		switch t.Kind() {
 		case types.Bool, types.UntypedBool:
-			return constant.BoolVal(c.Value)
+			return exact.BoolVal(c.Value)
 		case types.Int, types.UntypedInt:
 			// Assume sizeof(int) is same on host and target.
 			return int(c.Int64())
@@ -76,8 +75,8 @@ func constValue(c *ssa.Const) value {
 		case types.Complex128, types.UntypedComplex:
 			return c.Complex128()
 		case types.String, types.UntypedString:
-			if c.Value.Kind() == constant.String {
-				return constant.StringVal(c.Value)
+			if c.Value.Kind() == exact.String {
+				return exact.StringVal(c.Value)
 			}
 			return string(rune(c.Int64()))
 		}
@@ -919,17 +918,20 @@ func typeAssert(i *interpreter, instr *ssa.TypeAssert, itf iface) value {
 var CapturedOutput *bytes.Buffer
 var capturedOutputMu sync.Mutex
 
-// write writes bytes b to the target program's standard output.
+// write writes bytes b to the target program's file descriptor fd.
 // The print/println built-ins and the write() system call funnel
 // through here so they can be captured by the test driver.
-func print(b []byte) (int, error) {
-	if CapturedOutput != nil {
+func write(fd int, b []byte) (int, error) {
+	// TODO(adonovan): fix: on Windows, std{out,err} are not 1, 2.
+	if CapturedOutput != nil && (fd == 1 || fd == 2) {
 		capturedOutputMu.Lock()
 		CapturedOutput.Write(b) // ignore errors
 		capturedOutputMu.Unlock()
 	}
-	return os.Stdout.Write(b)
+	return syswrite(fd, b)
 }
+
+var syswrite func(int, []byte) (int, error) // set on darwin/linux only
 
 // callBuiltin interprets a call to builtin fn with arguments args,
 // returning its result.
@@ -985,7 +987,7 @@ func callBuiltin(caller *frame, callpos token.Pos, fn *ssa.Builtin, args []value
 		if ln {
 			buf.WriteRune('\n')
 		}
-		print(buf.Bytes())
+		write(1, buf.Bytes())
 		return nil
 
 	case "len":

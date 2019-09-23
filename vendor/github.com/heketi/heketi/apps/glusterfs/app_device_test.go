@@ -226,29 +226,14 @@ func TestDeviceAddDelete(t *testing.T) {
 	})
 	tests.Assert(t, err == nil)
 
-	// Now delete device and check for bad request
+	// Now delete device and check for conflict
 	req, err := http.NewRequest("DELETE", ts.URL+"/devices/"+fakeid, nil)
-	tests.Assert(t, err == nil)
-	r, err = http.DefaultClient.Do(req)
-	tests.Assert(t, err == nil)
-	tests.Assert(t, r.StatusCode == http.StatusBadRequest)
-
-	err = app.db.Update(func(tx *bolt.Tx) error {
-		device, err := NewDeviceEntryFromId(tx, fakeid)
-		if err != nil {
-			return err
-		}
-		device.State = api.EntryStateFailed
-		return device.Save(tx)
-	})
-	tests.Assert(t, err == nil)
-	// Now delete device and check for bad request
-	req, err = http.NewRequest("DELETE", ts.URL+"/devices/"+fakeid, nil)
 	tests.Assert(t, err == nil)
 	r, err = http.DefaultClient.Do(req)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, r.StatusCode == http.StatusConflict)
 	tests.Assert(t, utils.GetErrorFromResponse(r).Error() == devicemap["/dev/fake1"].ConflictString())
+
 	// Check the db is still intact
 	err = app.db.View(func(tx *bolt.Tx) error {
 		device, err := NewDeviceEntryFromId(tx, fakeid)

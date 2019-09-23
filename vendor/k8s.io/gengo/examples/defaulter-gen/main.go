@@ -50,7 +50,6 @@ import (
 )
 
 func main() {
-	klog.InitFlags(nil)
 	arguments := args.Default()
 
 	// Override defaults.

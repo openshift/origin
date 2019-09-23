@@ -39,8 +39,7 @@ var unquotetests = []unQuoteTest{
 	{`"${file("\"foo\"")}"`, `${file("\"foo\"")}`},
 	{`"echo ${var.region}${element(split(",",var.zones),0)}"`,
 		`echo ${var.region}${element(split(",",var.zones),0)}`},
-	{`"${HH\\:mm\\:ss}"`, `${HH\\:mm\\:ss}`},
-	{`"${\n}"`, `${\n}`},
+	{`"${HH\\:mm\\:ss}"`, `${HH\:mm\:ss}`},
 }
 
 var misquoted = []string{
@@ -66,12 +65,9 @@ var misquoted = []string{
 	"`\"",
 	`"\'"`,
 	`'\"'`,
-	"\"\n\"",
-	"\"\\n\n\"",
 	"'\n'",
 	`"${"`,
 	`"${foo{}"`,
-	"\"${foo}\n\"",
 }
 
 func TestUnquote(t *testing.T) {

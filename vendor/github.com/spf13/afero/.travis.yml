@@ -2,8 +2,9 @@ sudo: false
 language: go
 
 go:
-  - 1.9
-  - "1.10"
+  - 1.5.4
+  - 1.6.3
+  - 1.7
   - tip
 
 os:
@@ -16,6 +17,5 @@ matrix:
   fast_finish: true
 
 script:
+  - go test -v ./...
   - go build
-  - go test -race -v ./...
-

@@ -48,11 +48,9 @@ func TestGamma(t *testing.T) {
 
 func testGamma(t *testing.T, f Gamma, i int) {
 	// TODO(btracey): Replace this when Gamma implements FullDist.
-	const (
-		tol  = 1e-2
-		n    = 1e5
-		bins = 50
-	)
+	tol := 1e-2
+	const n = 1e5
+	const bins = 50
 	x := make([]float64, n)
 	generateSamples(x, f)
 	sort.Float64s(x)

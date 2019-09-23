@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,16 +44,6 @@ func NewReplicationPoliciesClientWithBaseURI(baseURI string, subscriptionID stri
 // policyName - replication policy name
 // input - create policy input
 func (client ReplicationPoliciesClient) Create(ctx context.Context, policyName string, input CreatePolicyInput) (result ReplicationPoliciesCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationPoliciesClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePreparer(ctx, policyName, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesClient", "Create", nil, "Failure preparing request")
@@ -97,9 +86,13 @@ func (client ReplicationPoliciesClient) CreatePreparer(ctx context.Context, poli
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationPoliciesClient) CreateSender(req *http.Request) (future ReplicationPoliciesCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -124,16 +117,6 @@ func (client ReplicationPoliciesClient) CreateResponder(resp *http.Response) (re
 // Parameters:
 // policyName - replication policy name.
 func (client ReplicationPoliciesClient) Delete(ctx context.Context, policyName string) (result ReplicationPoliciesDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationPoliciesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, policyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesClient", "Delete", nil, "Failure preparing request")
@@ -174,9 +157,13 @@ func (client ReplicationPoliciesClient) DeletePreparer(ctx context.Context, poli
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationPoliciesClient) DeleteSender(req *http.Request) (future ReplicationPoliciesDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -200,16 +187,6 @@ func (client ReplicationPoliciesClient) DeleteResponder(resp *http.Response) (re
 // Parameters:
 // policyName - replication policy name.
 func (client ReplicationPoliciesClient) Get(ctx context.Context, policyName string) (result Policy, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationPoliciesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, policyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesClient", "Get", nil, "Failure preparing request")
@@ -256,8 +233,8 @@ func (client ReplicationPoliciesClient) GetPreparer(ctx context.Context, policyN
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationPoliciesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -275,16 +252,6 @@ func (client ReplicationPoliciesClient) GetResponder(resp *http.Response) (resul
 
 // List lists the replication policies for a vault.
 func (client ReplicationPoliciesClient) List(ctx context.Context) (result PolicyCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationPoliciesClient.List")
-		defer func() {
-			sc := -1
-			if result.pc.Response.Response != nil {
-				sc = result.pc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -331,8 +298,8 @@ func (client ReplicationPoliciesClient) ListPreparer(ctx context.Context) (*http
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationPoliciesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -349,8 +316,8 @@ func (client ReplicationPoliciesClient) ListResponder(resp *http.Response) (resu
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ReplicationPoliciesClient) listNextResults(ctx context.Context, lastResults PolicyCollection) (result PolicyCollection, err error) {
-	req, err := lastResults.policyCollectionPreparer(ctx)
+func (client ReplicationPoliciesClient) listNextResults(lastResults PolicyCollection) (result PolicyCollection, err error) {
+	req, err := lastResults.policyCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -371,16 +338,6 @@ func (client ReplicationPoliciesClient) listNextResults(ctx context.Context, las
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ReplicationPoliciesClient) ListComplete(ctx context.Context) (result PolicyCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationPoliciesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -390,16 +347,6 @@ func (client ReplicationPoliciesClient) ListComplete(ctx context.Context) (resul
 // policyName - policy Id.
 // input - update Policy Input
 func (client ReplicationPoliciesClient) Update(ctx context.Context, policyName string, input UpdatePolicyInput) (result ReplicationPoliciesUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationPoliciesClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, policyName, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesClient", "Update", nil, "Failure preparing request")
@@ -442,9 +389,13 @@ func (client ReplicationPoliciesClient) UpdatePreparer(ctx context.Context, poli
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationPoliciesClient) UpdateSender(req *http.Request) (future ReplicationPoliciesUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}

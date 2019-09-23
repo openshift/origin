@@ -46,10 +46,10 @@ func Test_GetAddedExports(t *testing.T) {
 	}
 
 	cAdded := map[string]exports.Const{
-		"Blue":    {Type: "Color", Value: "Blue"},
-		"Green":   {Type: "Color", Value: "Green"},
-		"Red":     {Type: "Color", Value: "Red"},
-		"Holiday": {Type: "DayOfWeek", Value: "Holiday"},
+		"Blue":    exports.Const{Type: "Color", Value: "Blue"},
+		"Green":   exports.Const{Type: "Color", Value: "Green"},
+		"Red":     exports.Const{Type: "Color", Value: "Red"},
+		"Holiday": exports.Const{Type: "DayOfWeek", Value: "Holiday"},
 	}
 
 	for k, v := range cAdded {
@@ -72,12 +72,12 @@ func Test_GetAddedExports(t *testing.T) {
 	}
 
 	fAdded := map[string]exports.Func{
-		"DoNothing2":                 {},
-		"Client.ExportData":          {Params: strPtr("context.Context,string,string,ExportRDBParameters"), Returns: strPtr("ExportDataFuture,error")},
-		"Client.ExportDataPreparer":  {Params: strPtr("context.Context,string,string,ExportRDBParameters"), Returns: strPtr("*http.Request,error")},
-		"Client.ExportDataSender":    {Params: strPtr("*http.Request"), Returns: strPtr("ExportDataFuture,error")},
-		"Client.ExportDataResponder": {Params: strPtr("*http.Response"), Returns: strPtr("autorest.Response,error")},
-		"ExportDataFuture.Result":    {Params: strPtr("Client"), Returns: strPtr("autorest.Response,error")},
+		"DoNothing2":                 exports.Func{},
+		"Client.ExportData":          exports.Func{Params: strPtr("context.Context,string,string,ExportRDBParameters"), Returns: strPtr("ExportDataFuture,error")},
+		"Client.ExportDataPreparer":  exports.Func{Params: strPtr("context.Context,string,string,ExportRDBParameters"), Returns: strPtr("*http.Request,error")},
+		"Client.ExportDataSender":    exports.Func{Params: strPtr("*http.Request"), Returns: strPtr("ExportDataFuture,error")},
+		"Client.ExportDataResponder": exports.Func{Params: strPtr("*http.Response"), Returns: strPtr("autorest.Response,error")},
+		"ExportDataFuture.Result":    exports.Func{Params: strPtr("Client"), Returns: strPtr("autorest.Response,error")},
 	}
 
 	for k, v := range fAdded {
@@ -100,12 +100,12 @@ func Test_GetAddedExports(t *testing.T) {
 	}
 
 	iAdded := map[string]exports.Interface{
-		"NewInterface": {Methods: map[string]exports.Func{
-			"One": {Params: strPtr("int")},
-			"Two": {Returns: strPtr("error")},
+		"NewInterface": exports.Interface{Methods: map[string]exports.Func{
+			"One": exports.Func{Params: strPtr("int")},
+			"Two": exports.Func{Returns: strPtr("error")},
 		}},
-		"SomeInterface": {Methods: map[string]exports.Func{
-			"NewMethod": {Params: strPtr("string"), Returns: strPtr("bool,error")},
+		"SomeInterface": exports.Interface{Methods: map[string]exports.Func{
+			"NewMethod": exports.Func{Params: strPtr("string"), Returns: strPtr("bool,error")},
 		}},
 	}
 
@@ -129,23 +129,23 @@ func Test_GetAddedExports(t *testing.T) {
 	}
 
 	sAdded := map[string]exports.Struct{
-		"ExportDataFuture": {
+		"ExportDataFuture": exports.Struct{
 			AnonymousFields: []string{"azure.Future"},
 			Fields:          map[string]string{"NewField": "string"},
 		},
-		"ExportRDBParameters": {
+		"ExportRDBParameters": exports.Struct{
 			Fields: map[string]string{
 				"Format":    "*string",
 				"Prefix":    "*string",
 				"Container": "*string",
 			},
 		},
-		"CreateProperties": {
+		"CreateProperties": exports.Struct{
 			Fields: map[string]string{
 				"NewField": "*float64",
 			},
 		},
-		"DeleteFuture": {
+		"DeleteFuture": exports.Struct{
 			Fields: map[string]string{
 				"NewField": "string",
 			},
@@ -174,10 +174,10 @@ func Test_GetAddedStructFields(t *testing.T) {
 	}
 
 	added := map[string]exports.Struct{
-		"CreateProperties": {
+		"CreateProperties": exports.Struct{
 			Fields: map[string]string{"NewField": "*float64"},
 		},
-		"DeleteFuture": {
+		"DeleteFuture": exports.Struct{
 			Fields: map[string]string{"NewField": "string"},
 		},
 	}
@@ -197,9 +197,9 @@ func Test_GetAddedInterfaceMethods(t *testing.T) {
 	}
 
 	added := map[string]exports.Interface{
-		"SomeInterface": {
+		"SomeInterface": exports.Interface{
 			Methods: map[string]exports.Func{
-				"NewMethod": {Params: strPtr("string"), Returns: strPtr("bool,error")},
+				"NewMethod": exports.Func{Params: strPtr("string"), Returns: strPtr("bool,error")},
 			},
 		},
 	}
@@ -212,7 +212,7 @@ func Test_GetAddedInterfaceMethods(t *testing.T) {
 
 func Test_GetNoChanges(t *testing.T) {
 	nc := delta.GetExports(nContent, nContent)
-	if !reflect.DeepEqual(nc, delta.NewContent()) {
+	if !reflect.DeepEqual(nc, exports.NewContent()) {
 		t.Log("expected empty exports")
 		t.Fail()
 	}
@@ -268,23 +268,23 @@ func Test_GetFuncSigChanges(t *testing.T) {
 	}
 
 	changed := map[string]delta.FuncSig{
-		"DoNothing": {
+		"DoNothing": delta.FuncSig{
 			Params: &delta.Signature{From: delta.None, To: "string"},
 		},
-		"DoNothingWithParam": {
+		"DoNothingWithParam": delta.FuncSig{
 			Params: &delta.Signature{From: "int", To: delta.None},
 		},
-		"Client.List": {
+		"Client.List": delta.FuncSig{
 			Params:  &delta.Signature{From: "context.Context", To: "context.Context,string"},
 			Returns: &delta.Signature{From: "ListResultPage,error", To: "ListResult,error"},
 		},
-		"Client.ListPreparer": {
+		"Client.ListPreparer": delta.FuncSig{
 			Params: &delta.Signature{From: "context.Context", To: "context.Context,string"},
 		},
-		"Client.Delete": {
+		"Client.Delete": delta.FuncSig{
 			Params: &delta.Signature{From: "context.Context,string,string", To: "context.Context,string"},
 		},
-		"Client.DeletePreparer": {
+		"Client.DeletePreparer": delta.FuncSig{
 			Params: &delta.Signature{From: "context.Context,string,string", To: "context.Context,string"},
 		},
 	}
@@ -313,10 +313,10 @@ func Test_GetInterfaceMethodSigChanges(t *testing.T) {
 	}
 
 	changed := map[string]delta.InterfaceDef{
-		"SomeInterface": {
+		"SomeInterface": delta.InterfaceDef{
 			MethodSigs: map[string]delta.FuncSig{
-				"One": {Params: &delta.Signature{From: delta.None, To: "string"}},
-				"Two": {Params: &delta.Signature{From: "bool", To: "bool,int"}},
+				"One": delta.FuncSig{Params: &delta.Signature{From: delta.None, To: "string"}},
+				"Two": delta.FuncSig{Params: &delta.Signature{From: "bool", To: "bool,int"}},
 			},
 		},
 	}
@@ -345,15 +345,15 @@ func Test_GetStructFieldChanges(t *testing.T) {
 	}
 
 	changed := map[string]delta.StructDef{
-		"CreateProperties": {
+		"CreateProperties": delta.StructDef{
 			Fields: map[string]delta.Signature{
-				"SubnetID":           {From: "*string", To: "*int"},
-				"RedisConfiguration": {From: "map[string]*string", To: "interface{}"},
+				"SubnetID":           delta.Signature{From: "*string", To: "*int"},
+				"RedisConfiguration": delta.Signature{From: "map[string]*string", To: "interface{}"},
 			},
 		},
-		"ListResult": {
+		"ListResult": delta.StructDef{
 			Fields: map[string]delta.Signature{
-				"NextLink": {From: "*string", To: "string"},
+				"NextLink": delta.Signature{From: "*string", To: "string"},
 			},
 		},
 	}

@@ -17,21 +17,20 @@ limitations under the License.
 package testpatterns
 
 import (
-	v1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/kubernetes/test/e2e/framework/volume"
+	"k8s.io/api/core/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
 	// MinFileSize represents minimum file size (1 MiB) for testing
-	MinFileSize = 1 * volume.MiB
+	MinFileSize = 1 * framework.MiB
 
 	// FileSizeSmall represents small file size (1 MiB) for testing
-	FileSizeSmall = 1 * volume.MiB
+	FileSizeSmall = 1 * framework.MiB
 	// FileSizeMedium represents medium file size (100 MiB) for testing
-	FileSizeMedium = 100 * volume.MiB
+	FileSizeMedium = 100 * framework.MiB
 	// FileSizeLarge represents large file size (1 GiB) for testing
-	FileSizeLarge = 1 * volume.GiB
+	FileSizeLarge = 1 * framework.GiB
 )
 
 // TestVolType represents a volume type to be tested in a TestSuite
@@ -44,8 +43,6 @@ var (
 	PreprovisionedPV TestVolType = "PreprovisionedPV"
 	// DynamicPV represents a volume type for dynamic provisioned Persistent Volume
 	DynamicPV TestVolType = "DynamicPV"
-	// CSIInlineVolume represents a volume type that is defined inline and provided by a CSI driver.
-	CSIInlineVolume TestVolType = "CSIInlineVolume"
 )
 
 // TestSnapshotType represents a snapshot type to be tested in a TestSuite
@@ -58,14 +55,12 @@ var (
 
 // TestPattern represents a combination of parameters to be tested in a TestSuite
 type TestPattern struct {
-	Name           string                      // Name of TestPattern
-	FeatureTag     string                      // featureTag for the TestSuite
-	VolType        TestVolType                 // Volume type of the volume
-	FsType         string                      // Fstype of the volume
-	VolMode        v1.PersistentVolumeMode     // PersistentVolumeMode of the volume
-	SnapshotType   TestSnapshotType            // Snapshot type of the snapshot
-	BindingMode    storagev1.VolumeBindingMode // VolumeBindingMode of the volume
-	AllowExpansion bool                        // AllowVolumeExpansion flag of the StorageClass
+	Name         string                  // Name of TestPattern
+	FeatureTag   string                  // featureTag for the TestSuite
+	VolType      TestVolType             // Volume type of the volume
+	FsType       string                  // Fstype of the volume
+	VolMode      v1.PersistentVolumeMode // PersistentVolumeMode of the volume
+	SnapshotType TestSnapshotType        // Snapshot type of the snapshot
 }
 
 var (
@@ -133,24 +128,21 @@ var (
 
 	// XfsInlineVolume is TestPattern for "Inline-volume (xfs)"
 	XfsInlineVolume = TestPattern{
-		Name:       "Inline-volume (xfs)",
-		VolType:    InlineVolume,
-		FsType:     "xfs",
-		FeatureTag: "[Slow]",
+		Name:    "Inline-volume (xfs)",
+		VolType: InlineVolume,
+		FsType:  "xfs",
 	}
 	// XfsPreprovisionedPV is TestPattern for "Pre-provisioned PV (xfs)"
 	XfsPreprovisionedPV = TestPattern{
-		Name:       "Pre-provisioned PV (xfs)",
-		VolType:    PreprovisionedPV,
-		FsType:     "xfs",
-		FeatureTag: "[Slow]",
+		Name:    "Pre-provisioned PV (xfs)",
+		VolType: PreprovisionedPV,
+		FsType:  "xfs",
 	}
 	// XfsDynamicPV is TestPattern for "Dynamic PV (xfs)"
 	XfsDynamicPV = TestPattern{
-		Name:       "Dynamic PV (xfs)",
-		VolType:    DynamicPV,
-		FsType:     "xfs",
-		FeatureTag: "[Slow]",
+		Name:    "Dynamic PV (xfs)",
+		VolType: DynamicPV,
+		FsType:  "xfs",
 	}
 
 	// Definitions for ntfs
@@ -200,7 +192,7 @@ var (
 		VolType: PreprovisionedPV,
 		VolMode: v1.PersistentVolumeBlock,
 	}
-	// BlockVolModeDynamicPV is TestPattern for "Dynamic PV (block)"
+	// BlockVolModeDynamicPV is TestPattern for "Dynamic PV (block)(immediate bind)"
 	BlockVolModeDynamicPV = TestPattern{
 		Name:    "Dynamic PV (block volmode)",
 		VolType: DynamicPV,
@@ -214,29 +206,4 @@ var (
 		Name:         "Dynamic Snapshot",
 		SnapshotType: DynamicCreatedSnapshot,
 	}
-
-	// Definitions for volume expansion case
-
-	// DefaultFsDynamicPVAllowExpansion is TestPattern for "Dynamic PV (default fs)(allowExpansion)"
-	DefaultFsDynamicPVAllowExpansion = TestPattern{
-		Name:           "Dynamic PV (default fs)(allowExpansion)",
-		VolType:        DynamicPV,
-		AllowExpansion: true,
-	}
-	// BlockVolModeDynamicPVAllowExpansion is TestPattern for "Dynamic PV (block volmode)(allowExpansion)"
-	BlockVolModeDynamicPVAllowExpansion = TestPattern{
-		Name:           "Dynamic PV (block volmode)(allowExpansion)",
-		VolType:        DynamicPV,
-		VolMode:        v1.PersistentVolumeBlock,
-		AllowExpansion: true,
-	}
 )
-
-// NewVolTypeMap creates a map with the given TestVolTypes enabled
-func NewVolTypeMap(types ...TestVolType) map[TestVolType]bool {
-	m := map[TestVolType]bool{}
-	for _, t := range types {
-		m[t] = true
-	}
-	return m
-}

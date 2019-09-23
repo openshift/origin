@@ -28,7 +28,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -56,16 +55,6 @@ func NewWithoutDefaults(endpoint string) BaseClient {
 // Parameters:
 // input - collection of documents to analyze.
 func (client BaseClient) DetectLanguage(ctx context.Context, input BatchInput) (result LanguageBatchResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DetectLanguage")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DetectLanguagePreparer(ctx, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "textanalytics.BaseClient", "DetectLanguage", nil, "Failure preparing request")
@@ -105,8 +94,8 @@ func (client BaseClient) DetectLanguagePreparer(ctx context.Context, input Batch
 // DetectLanguageSender sends the DetectLanguage request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DetectLanguageSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DetectLanguageResponder handles the response to the DetectLanguage request. The method always
@@ -129,16 +118,6 @@ func (client BaseClient) DetectLanguageResponder(resp *http.Response) (result La
 // Parameters:
 // input - collection of documents to analyze.
 func (client BaseClient) Entities(ctx context.Context, input MultiLanguageBatchInput) (result EntitiesBatchResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.Entities")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.EntitiesPreparer(ctx, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "textanalytics.BaseClient", "Entities", nil, "Failure preparing request")
@@ -178,8 +157,8 @@ func (client BaseClient) EntitiesPreparer(ctx context.Context, input MultiLangua
 // EntitiesSender sends the Entities request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) EntitiesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // EntitiesResponder handles the response to the Entities request. The method always
@@ -202,16 +181,6 @@ func (client BaseClient) EntitiesResponder(resp *http.Response) (result Entities
 // input - collection of documents to analyze. Documents can now contain a language field to indicate the text
 // language
 func (client BaseClient) KeyPhrases(ctx context.Context, input MultiLanguageBatchInput) (result KeyPhraseBatchResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.KeyPhrases")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.KeyPhrasesPreparer(ctx, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "textanalytics.BaseClient", "KeyPhrases", nil, "Failure preparing request")
@@ -251,8 +220,8 @@ func (client BaseClient) KeyPhrasesPreparer(ctx context.Context, input MultiLang
 // KeyPhrasesSender sends the KeyPhrases request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) KeyPhrasesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // KeyPhrasesResponder handles the response to the KeyPhrases request. The method always
@@ -275,16 +244,6 @@ func (client BaseClient) KeyPhrasesResponder(resp *http.Response) (result KeyPhr
 // Parameters:
 // input - collection of documents to analyze.
 func (client BaseClient) Sentiment(ctx context.Context, input MultiLanguageBatchInput) (result SentimentBatchResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.Sentiment")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.SentimentPreparer(ctx, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "textanalytics.BaseClient", "Sentiment", nil, "Failure preparing request")
@@ -324,8 +283,8 @@ func (client BaseClient) SentimentPreparer(ctx context.Context, input MultiLangu
 // SentimentSender sends the Sentiment request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) SentimentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // SentimentResponder handles the response to the Sentiment request. The method always

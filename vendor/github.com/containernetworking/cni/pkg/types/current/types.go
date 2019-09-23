@@ -17,7 +17,6 @@ package current
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"os"
 
@@ -25,9 +24,9 @@ import (
 	"github.com/containernetworking/cni/pkg/types/020"
 )
 
-const ImplementedSpecVersion string = "0.4.0"
+const ImplementedSpecVersion string = "0.3.1"
 
-var SupportedVersions = []string{"0.3.0", "0.3.1", ImplementedSpecVersion}
+var SupportedVersions = []string{"0.3.0", ImplementedSpecVersion}
 
 func NewResult(data []byte) (types.Result, error) {
 	result := &Result{}
@@ -76,9 +75,13 @@ func convertFrom020(result types.Result) (*Result, error) {
 			Gateway: oldResult.IP4.Gateway,
 		})
 		for _, route := range oldResult.IP4.Routes {
+			gw := route.GW
+			if gw == nil {
+				gw = oldResult.IP4.Gateway
+			}
 			newResult.Routes = append(newResult.Routes, &types.Route{
 				Dst: route.Dst,
-				GW:  route.GW,
+				GW:  gw,
 			})
 		}
 	}
@@ -90,11 +93,19 @@ func convertFrom020(result types.Result) (*Result, error) {
 			Gateway: oldResult.IP6.Gateway,
 		})
 		for _, route := range oldResult.IP6.Routes {
+			gw := route.GW
+			if gw == nil {
+				gw = oldResult.IP6.Gateway
+			}
 			newResult.Routes = append(newResult.Routes, &types.Route{
 				Dst: route.Dst,
-				GW:  route.GW,
+				GW:  gw,
 			})
 		}
+	}
+
+	if len(newResult.IPs) == 0 {
+		return nil, fmt.Errorf("cannot convert: no valid IP addresses")
 	}
 
 	return newResult, nil
@@ -185,7 +196,7 @@ func (r *Result) Version() string {
 
 func (r *Result) GetAsVersion(version string) (types.Result, error) {
 	switch version {
-	case "0.3.0", "0.3.1", ImplementedSpecVersion:
+	case "0.3.0", ImplementedSpecVersion:
 		r.CNIVersion = version
 		return r, nil
 	case types020.SupportedVersions[0], types020.SupportedVersions[1], types020.SupportedVersions[2]:
@@ -195,15 +206,11 @@ func (r *Result) GetAsVersion(version string) (types.Result, error) {
 }
 
 func (r *Result) Print() error {
-	return r.PrintTo(os.Stdout)
-}
-
-func (r *Result) PrintTo(writer io.Writer) error {
 	data, err := json.MarshalIndent(r, "", "    ")
 	if err != nil {
 		return err
 	}
-	_, err = writer.Write(data)
+	_, err = os.Stdout.Write(data)
 	return err
 }
 

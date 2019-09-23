@@ -18,23 +18,18 @@ package billing
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/billing/mgmt/2018-03-01-preview/billing"
-
 // DownloadURL a secure URL that can be used to download a PDF invoice until the URL expires.
 type DownloadURL struct {
-	// ExpiryTime - READ-ONLY; The time in UTC at which this download URL will expire.
+	// ExpiryTime - The time in UTC at which this download URL will expire.
 	ExpiryTime *date.Time `json:"expiryTime,omitempty"`
-	// URL - READ-ONLY; The URL to the PDF file.
+	// URL - The URL to the PDF file.
 	URL *string `json:"url,omitempty"`
 }
 
@@ -43,11 +38,11 @@ type EnrollmentAccount struct {
 	autorest.Response `json:"-"`
 	// EnrollmentAccountProperties - An enrollment account.
 	*EnrollmentAccountProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id.
+	// ID - Resource Id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -56,6 +51,15 @@ func (ea EnrollmentAccount) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ea.EnrollmentAccountProperties != nil {
 		objectMap["properties"] = ea.EnrollmentAccountProperties
+	}
+	if ea.ID != nil {
+		objectMap["id"] = ea.ID
+	}
+	if ea.Name != nil {
+		objectMap["name"] = ea.Name
+	}
+	if ea.Type != nil {
+		objectMap["type"] = ea.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -114,9 +118,9 @@ func (ea *EnrollmentAccount) UnmarshalJSON(body []byte) error {
 // EnrollmentAccountListResult result of listing enrollment accounts.
 type EnrollmentAccountListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The list of enrollment accounts.
+	// Value - The list of enrollment accounts.
 	Value *[]EnrollmentAccount `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -126,37 +130,20 @@ type EnrollmentAccountListResultIterator struct {
 	page EnrollmentAccountListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *EnrollmentAccountListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/EnrollmentAccountListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *EnrollmentAccountListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *EnrollmentAccountListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -178,11 +165,6 @@ func (iter EnrollmentAccountListResultIterator) Value() EnrollmentAccount {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the EnrollmentAccountListResultIterator type.
-func NewEnrollmentAccountListResultIterator(page EnrollmentAccountListResultPage) EnrollmentAccountListResultIterator {
-	return EnrollmentAccountListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (ealr EnrollmentAccountListResult) IsEmpty() bool {
 	return ealr.Value == nil || len(*ealr.Value) == 0
@@ -190,11 +172,11 @@ func (ealr EnrollmentAccountListResult) IsEmpty() bool {
 
 // enrollmentAccountListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (ealr EnrollmentAccountListResult) enrollmentAccountListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (ealr EnrollmentAccountListResult) enrollmentAccountListResultPreparer() (*http.Request, error) {
 	if ealr.NextLink == nil || len(to.String(ealr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(ealr.NextLink)))
@@ -202,36 +184,19 @@ func (ealr EnrollmentAccountListResult) enrollmentAccountListResultPreparer(ctx 
 
 // EnrollmentAccountListResultPage contains a page of EnrollmentAccount values.
 type EnrollmentAccountListResultPage struct {
-	fn   func(context.Context, EnrollmentAccountListResult) (EnrollmentAccountListResult, error)
+	fn   func(EnrollmentAccountListResult) (EnrollmentAccountListResult, error)
 	ealr EnrollmentAccountListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *EnrollmentAccountListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/EnrollmentAccountListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.ealr)
+func (page *EnrollmentAccountListResultPage) Next() error {
+	next, err := page.fn(page.ealr)
 	if err != nil {
 		return err
 	}
 	page.ealr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *EnrollmentAccountListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -252,29 +217,24 @@ func (page EnrollmentAccountListResultPage) Values() []EnrollmentAccount {
 	return *page.ealr.Value
 }
 
-// Creates a new instance of the EnrollmentAccountListResultPage type.
-func NewEnrollmentAccountListResultPage(getNextPage func(context.Context, EnrollmentAccountListResult) (EnrollmentAccountListResult, error)) EnrollmentAccountListResultPage {
-	return EnrollmentAccountListResultPage{fn: getNextPage}
-}
-
 // EnrollmentAccountProperties the properties of the enrollment account.
 type EnrollmentAccountProperties struct {
-	// PrincipalName - READ-ONLY; The account owner's principal name.
+	// PrincipalName - The account owner's principal name.
 	PrincipalName *string `json:"principalName,omitempty"`
 }
 
 // ErrorDetails the details of the error.
 type ErrorDetails struct {
-	// Code - READ-ONLY; Error code.
+	// Code - Error code.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; Error message indicating why the operation failed.
+	// Message - Error message indicating why the operation failed.
 	Message *string `json:"message,omitempty"`
-	// Target - READ-ONLY; The target of the particular error.
+	// Target - The target of the particular error.
 	Target *string `json:"target,omitempty"`
 }
 
-// ErrorResponse error response indicates that the service is not able to process the incoming request. The
-// reason is provided in the error message.
+// ErrorResponse error response indicates that the service is not able to process the incoming request. The reason
+// is provided in the error message.
 type ErrorResponse struct {
 	// Error - The details of the error.
 	Error *ErrorDetails `json:"error,omitempty"`
@@ -285,11 +245,11 @@ type Invoice struct {
 	autorest.Response `json:"-"`
 	// InvoiceProperties - An invoice.
 	*InvoiceProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id.
+	// ID - Resource Id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -298,6 +258,15 @@ func (i Invoice) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if i.InvoiceProperties != nil {
 		objectMap["properties"] = i.InvoiceProperties
+	}
+	if i.ID != nil {
+		objectMap["id"] = i.ID
+	}
+	if i.Name != nil {
+		objectMap["name"] = i.Name
+	}
+	if i.Type != nil {
+		objectMap["type"] = i.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -357,21 +326,21 @@ func (i *Invoice) UnmarshalJSON(body []byte) error {
 type InvoiceProperties struct {
 	// DownloadURL - A secure link to download the PDF version of an invoice. The link will cease to work after its expiry time is reached.
 	DownloadURL *DownloadURL `json:"downloadUrl,omitempty"`
-	// InvoicePeriodStartDate - READ-ONLY; The start of the date range covered by the invoice.
+	// InvoicePeriodStartDate - The start of the date range covered by the invoice.
 	InvoicePeriodStartDate *date.Date `json:"invoicePeriodStartDate,omitempty"`
-	// InvoicePeriodEndDate - READ-ONLY; The end of the date range covered by the invoice.
+	// InvoicePeriodEndDate - The end of the date range covered by the invoice.
 	InvoicePeriodEndDate *date.Date `json:"invoicePeriodEndDate,omitempty"`
-	// BillingPeriodIds - READ-ONLY; Array of billing period ids that the invoice is attributed to.
+	// BillingPeriodIds - Array of billing perdiod ids that the invoice is attributed to.
 	BillingPeriodIds *[]string `json:"billingPeriodIds,omitempty"`
 }
 
-// InvoicesListResult result of listing invoices. It contains a list of available invoices in reverse
-// chronological order.
+// InvoicesListResult result of listing invoices. It contains a list of available invoices in reverse chronological
+// order.
 type InvoicesListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The list of invoices.
+	// Value - The list of invoices.
 	Value *[]Invoice `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -381,37 +350,20 @@ type InvoicesListResultIterator struct {
 	page InvoicesListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *InvoicesListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/InvoicesListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *InvoicesListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *InvoicesListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -433,11 +385,6 @@ func (iter InvoicesListResultIterator) Value() Invoice {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the InvoicesListResultIterator type.
-func NewInvoicesListResultIterator(page InvoicesListResultPage) InvoicesListResultIterator {
-	return InvoicesListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (ilr InvoicesListResult) IsEmpty() bool {
 	return ilr.Value == nil || len(*ilr.Value) == 0
@@ -445,11 +392,11 @@ func (ilr InvoicesListResult) IsEmpty() bool {
 
 // invoicesListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (ilr InvoicesListResult) invoicesListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (ilr InvoicesListResult) invoicesListResultPreparer() (*http.Request, error) {
 	if ilr.NextLink == nil || len(to.String(ilr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(ilr.NextLink)))
@@ -457,36 +404,19 @@ func (ilr InvoicesListResult) invoicesListResultPreparer(ctx context.Context) (*
 
 // InvoicesListResultPage contains a page of Invoice values.
 type InvoicesListResultPage struct {
-	fn  func(context.Context, InvoicesListResult) (InvoicesListResult, error)
+	fn  func(InvoicesListResult) (InvoicesListResult, error)
 	ilr InvoicesListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *InvoicesListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/InvoicesListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.ilr)
+func (page *InvoicesListResultPage) Next() error {
+	next, err := page.fn(page.ilr)
 	if err != nil {
 		return err
 	}
 	page.ilr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *InvoicesListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -507,14 +437,9 @@ func (page InvoicesListResultPage) Values() []Invoice {
 	return *page.ilr.Value
 }
 
-// Creates a new instance of the InvoicesListResultPage type.
-func NewInvoicesListResultPage(getNextPage func(context.Context, InvoicesListResult) (InvoicesListResult, error)) InvoicesListResultPage {
-	return InvoicesListResultPage{fn: getNextPage}
-}
-
 // Operation a Billing REST API operation.
 type Operation struct {
-	// Name - READ-ONLY; Operation name: {provider}/{resource}/{operation}.
+	// Name - Operation name: {provider}/{resource}/{operation}.
 	Name *string `json:"name,omitempty"`
 	// Display - The object that represents the operation.
 	Display *OperationDisplay `json:"display,omitempty"`
@@ -522,21 +447,21 @@ type Operation struct {
 
 // OperationDisplay the object that represents the operation.
 type OperationDisplay struct {
-	// Provider - READ-ONLY; Service provider: Microsoft.Billing.
+	// Provider - Service provider: Microsoft.Billing.
 	Provider *string `json:"provider,omitempty"`
-	// Resource - READ-ONLY; Resource on which the operation is performed: Invoice, etc.
+	// Resource - Resource on which the operation is performed: Invoice, etc.
 	Resource *string `json:"resource,omitempty"`
-	// Operation - READ-ONLY; Operation type: Read, write, delete, etc.
+	// Operation - Operation type: Read, write, delete, etc.
 	Operation *string `json:"operation,omitempty"`
 }
 
-// OperationListResult result listing billing operations. It contains a list of operations and a URL link
-// to get the next set of results.
+// OperationListResult result listing billing operations. It contains a list of operations and a URL link to get
+// the next set of results.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; List of billing operations supported by the Microsoft.Billing resource provider.
+	// Value - List of billing operations supported by the Microsoft.Billing resource provider.
 	Value *[]Operation `json:"value,omitempty"`
-	// NextLink - READ-ONLY; URL to get the next set of operation list results if there are any.
+	// NextLink - URL to get the next set of operation list results if there are any.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -546,37 +471,20 @@ type OperationListResultIterator struct {
 	page OperationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OperationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OperationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -598,11 +506,6 @@ func (iter OperationListResultIterator) Value() Operation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OperationListResultIterator type.
-func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
-	return OperationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (olr OperationListResult) IsEmpty() bool {
 	return olr.Value == nil || len(*olr.Value) == 0
@@ -610,11 +513,11 @@ func (olr OperationListResult) IsEmpty() bool {
 
 // operationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (olr OperationListResult) operationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (olr OperationListResult) operationListResultPreparer() (*http.Request, error) {
 	if olr.NextLink == nil || len(to.String(olr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(olr.NextLink)))
@@ -622,36 +525,19 @@ func (olr OperationListResult) operationListResultPreparer(ctx context.Context) 
 
 // OperationListResultPage contains a page of Operation values.
 type OperationListResultPage struct {
-	fn  func(context.Context, OperationListResult) (OperationListResult, error)
+	fn  func(OperationListResult) (OperationListResult, error)
 	olr OperationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.olr)
+func (page *OperationListResultPage) Next() error {
+	next, err := page.fn(page.olr)
 	if err != nil {
 		return err
 	}
 	page.olr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OperationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -672,21 +558,16 @@ func (page OperationListResultPage) Values() []Operation {
 	return *page.olr.Value
 }
 
-// Creates a new instance of the OperationListResultPage type.
-func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
-	return OperationListResultPage{fn: getNextPage}
-}
-
 // Period a billing period resource.
 type Period struct {
 	autorest.Response `json:"-"`
 	// PeriodProperties - A billing period.
 	*PeriodProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id.
+	// ID - Resource Id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -695,6 +576,15 @@ func (p Period) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if p.PeriodProperties != nil {
 		objectMap["properties"] = p.PeriodProperties
+	}
+	if p.ID != nil {
+		objectMap["id"] = p.ID
+	}
+	if p.Name != nil {
+		objectMap["name"] = p.Name
+	}
+	if p.Type != nil {
+		objectMap["type"] = p.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -752,21 +642,21 @@ func (p *Period) UnmarshalJSON(body []byte) error {
 
 // PeriodProperties the properties of the billing period.
 type PeriodProperties struct {
-	// BillingPeriodStartDate - READ-ONLY; The start of the date range covered by the billing period.
+	// BillingPeriodStartDate - The start of the date range covered by the billing period.
 	BillingPeriodStartDate *date.Date `json:"billingPeriodStartDate,omitempty"`
-	// BillingPeriodEndDate - READ-ONLY; The end of the date range covered by the billing period.
+	// BillingPeriodEndDate - The end of the date range covered by the billing period.
 	BillingPeriodEndDate *date.Date `json:"billingPeriodEndDate,omitempty"`
-	// InvoiceIds - READ-ONLY; Array of invoice ids that associated with.
+	// InvoiceIds - Array of invoice ids that associated with.
 	InvoiceIds *[]string `json:"invoiceIds,omitempty"`
 }
 
-// PeriodsListResult result of listing billing periods. It contains a list of available billing periods in
-// reverse chronological order.
+// PeriodsListResult result of listing billing periods. It contains a list of available billing periods in reverse
+// chronological order.
 type PeriodsListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The list of billing periods.
+	// Value - The list of billing periods.
 	Value *[]Period `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	// NextLink - The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -776,37 +666,20 @@ type PeriodsListResultIterator struct {
 	page PeriodsListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *PeriodsListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PeriodsListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *PeriodsListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *PeriodsListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -828,11 +701,6 @@ func (iter PeriodsListResultIterator) Value() Period {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the PeriodsListResultIterator type.
-func NewPeriodsListResultIterator(page PeriodsListResultPage) PeriodsListResultIterator {
-	return PeriodsListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (plr PeriodsListResult) IsEmpty() bool {
 	return plr.Value == nil || len(*plr.Value) == 0
@@ -840,11 +708,11 @@ func (plr PeriodsListResult) IsEmpty() bool {
 
 // periodsListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (plr PeriodsListResult) periodsListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (plr PeriodsListResult) periodsListResultPreparer() (*http.Request, error) {
 	if plr.NextLink == nil || len(to.String(plr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(plr.NextLink)))
@@ -852,36 +720,19 @@ func (plr PeriodsListResult) periodsListResultPreparer(ctx context.Context) (*ht
 
 // PeriodsListResultPage contains a page of Period values.
 type PeriodsListResultPage struct {
-	fn  func(context.Context, PeriodsListResult) (PeriodsListResult, error)
+	fn  func(PeriodsListResult) (PeriodsListResult, error)
 	plr PeriodsListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *PeriodsListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PeriodsListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.plr)
+func (page *PeriodsListResultPage) Next() error {
+	next, err := page.fn(page.plr)
 	if err != nil {
 		return err
 	}
 	page.plr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *PeriodsListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -902,17 +753,12 @@ func (page PeriodsListResultPage) Values() []Period {
 	return *page.plr.Value
 }
 
-// Creates a new instance of the PeriodsListResultPage type.
-func NewPeriodsListResultPage(getNextPage func(context.Context, PeriodsListResult) (PeriodsListResult, error)) PeriodsListResultPage {
-	return PeriodsListResultPage{fn: getNextPage}
-}
-
 // Resource the Resource model definition.
 type Resource struct {
-	// ID - READ-ONLY; Resource Id.
+	// ID - Resource Id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }

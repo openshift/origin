@@ -12,8 +12,7 @@ import (
 var blas64 blas.Float64 = gonum.Implementation{}
 
 // Use sets the BLAS float64 implementation to be used by subsequent BLAS calls.
-// The default implementation is
-// gonum.org/v1/gonum/blas/gonum.Implementation.
+// The default implementation is native.Implementation.
 func Use(b blas.Float64) {
 	blas64 = b
 }
@@ -28,111 +27,104 @@ func Implementation() blas.Float64 {
 
 // Vector represents a vector with an associated element increment.
 type Vector struct {
-	N    int
-	Data []float64
 	Inc  int
+	Data []float64
 }
 
 // General represents a matrix using the conventional storage scheme.
 type General struct {
 	Rows, Cols int
-	Data       []float64
 	Stride     int
+	Data       []float64
 }
 
 // Band represents a band matrix using the band storage scheme.
 type Band struct {
 	Rows, Cols int
 	KL, KU     int
-	Data       []float64
 	Stride     int
+	Data       []float64
 }
 
 // Triangular represents a triangular matrix using the conventional storage scheme.
 type Triangular struct {
+	N      int
+	Stride int
+	Data   []float64
 	Uplo   blas.Uplo
 	Diag   blas.Diag
-	N      int
-	Data   []float64
-	Stride int
 }
 
 // TriangularBand represents a triangular matrix using the band storage scheme.
 type TriangularBand struct {
+	N, K   int
+	Stride int
+	Data   []float64
 	Uplo   blas.Uplo
 	Diag   blas.Diag
-	N, K   int
-	Data   []float64
-	Stride int
 }
 
 // TriangularPacked represents a triangular matrix using the packed storage scheme.
 type TriangularPacked struct {
-	Uplo blas.Uplo
-	Diag blas.Diag
 	N    int
 	Data []float64
+	Uplo blas.Uplo
+	Diag blas.Diag
 }
 
 // Symmetric represents a symmetric matrix using the conventional storage scheme.
 type Symmetric struct {
-	Uplo   blas.Uplo
 	N      int
-	Data   []float64
 	Stride int
+	Data   []float64
+	Uplo   blas.Uplo
 }
 
 // SymmetricBand represents a symmetric matrix using the band storage scheme.
 type SymmetricBand struct {
-	Uplo   blas.Uplo
 	N, K   int
-	Data   []float64
 	Stride int
+	Data   []float64
+	Uplo   blas.Uplo
 }
 
 // SymmetricPacked represents a symmetric matrix using the packed storage scheme.
 type SymmetricPacked struct {
-	Uplo blas.Uplo
 	N    int
 	Data []float64
+	Uplo blas.Uplo
 }
 
 // Level 1
 
-const (
-	negInc    = "blas64: negative vector increment"
-	badLength = "blas64: vector length mismatch"
-)
+const negInc = "blas64: negative vector increment"
 
 // Dot computes the dot product of the two vectors:
 //  \sum_i x[i]*y[i].
-func Dot(x, y Vector) float64 {
-	if x.N != y.N {
-		panic(badLength)
-	}
-	return blas64.Ddot(x.N, x.Data, x.Inc, y.Data, y.Inc)
+func Dot(n int, x, y Vector) float64 {
+	return blas64.Ddot(n, x.Data, x.Inc, y.Data, y.Inc)
 }
 
 // Nrm2 computes the Euclidean norm of the vector x:
 //  sqrt(\sum_i x[i]*x[i]).
 //
 // Nrm2 will panic if the vector increment is negative.
-func Nrm2(x Vector) float64 {
+func Nrm2(n int, x Vector) float64 {
 	if x.Inc < 0 {
 		panic(negInc)
 	}
-	return blas64.Dnrm2(x.N, x.Data, x.Inc)
+	return blas64.Dnrm2(n, x.Data, x.Inc)
 }
 
 // Asum computes the sum of the absolute values of the elements of x:
 //  \sum_i |x[i]|.
 //
 // Asum will panic if the vector increment is negative.
-func Asum(x Vector) float64 {
+func Asum(n int, x Vector) float64 {
 	if x.Inc < 0 {
 		panic(negInc)
 	}
-	return blas64.Dasum(x.N, x.Data, x.Inc)
+	return blas64.Dasum(n, x.Data, x.Inc)
 }
 
 // Iamax returns the index of an element of x with the largest absolute value.
@@ -140,39 +132,29 @@ func Asum(x Vector) float64 {
 // Iamax returns -1 if n == 0.
 //
 // Iamax will panic if the vector increment is negative.
-func Iamax(x Vector) int {
+func Iamax(n int, x Vector) int {
 	if x.Inc < 0 {
 		panic(negInc)
 	}
-	return blas64.Idamax(x.N, x.Data, x.Inc)
+	return blas64.Idamax(n, x.Data, x.Inc)
 }
 
 // Swap exchanges the elements of the two vectors:
 //  x[i], y[i] = y[i], x[i] for all i.
-func Swap(x, y Vector) {
-	if x.N != y.N {
-		panic(badLength)
-	}
-	blas64.Dswap(x.N, x.Data, x.Inc, y.Data, y.Inc)
+func Swap(n int, x, y Vector) {
+	blas64.Dswap(n, x.Data, x.Inc, y.Data, y.Inc)
 }
 
 // Copy copies the elements of x into the elements of y:
 //  y[i] = x[i] for all i.
-// Copy requires that the lengths of x and y match and will panic otherwise.
-func Copy(x, y Vector) {
-	if x.N != y.N {
-		panic(badLength)
-	}
-	blas64.Dcopy(x.N, x.Data, x.Inc, y.Data, y.Inc)
+func Copy(n int, x, y Vector) {
+	blas64.Dcopy(n, x.Data, x.Inc, y.Data, y.Inc)
 }
 
 // Axpy adds x scaled by alpha to y:
 //  y[i] += alpha*x[i] for all i.
-func Axpy(alpha float64, x, y Vector) {
-	if x.N != y.N {
-		panic(badLength)
-	}
-	blas64.Daxpy(x.N, alpha, x.Data, x.Inc, y.Data, y.Inc)
+func Axpy(n int, alpha float64, x, y Vector) {
+	blas64.Daxpy(n, alpha, x.Data, x.Inc, y.Data, y.Inc)
 }
 
 // Rotg computes the parameters of a Givens plane rotation so that
@@ -202,31 +184,25 @@ func Rotmg(d1, d2, b1, b2 float64) (p blas.DrotmParams, rd1, rd2, rb1 float64) {
 // and y:
 //  x[i] =  c*x[i] + s*y[i],
 //  y[i] = -s*x[i] + c*y[i], for all i.
-func Rot(x, y Vector, c, s float64) {
-	if x.N != y.N {
-		panic(badLength)
-	}
-	blas64.Drot(x.N, x.Data, x.Inc, y.Data, y.Inc, c, s)
+func Rot(n int, x, y Vector, c, s float64) {
+	blas64.Drot(n, x.Data, x.Inc, y.Data, y.Inc, c, s)
 }
 
 // Rotm applies the modified Givens rotation to n points represented by the
 // vectors x and y.
-func Rotm(x, y Vector, p blas.DrotmParams) {
-	if x.N != y.N {
-		panic(badLength)
-	}
-	blas64.Drotm(x.N, x.Data, x.Inc, y.Data, y.Inc, p)
+func Rotm(n int, x, y Vector, p blas.DrotmParams) {
+	blas64.Drotm(n, x.Data, x.Inc, y.Data, y.Inc, p)
 }
 
 // Scal scales the vector x by alpha:
 //  x[i] *= alpha for all i.
 //
 // Scal will panic if the vector increment is negative.
-func Scal(alpha float64, x Vector) {
+func Scal(n int, alpha float64, x Vector) {
 	if x.Inc < 0 {
 		panic(negInc)
 	}
-	blas64.Dscal(x.N, alpha, x.Data, x.Inc)
+	blas64.Dscal(n, alpha, x.Data, x.Inc)
 }
 
 // Level 2

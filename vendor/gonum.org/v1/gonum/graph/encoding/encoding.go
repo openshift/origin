@@ -12,12 +12,6 @@ type Builder interface {
 	graph.Builder
 }
 
-// MultiBuilder is a graph that can have user-defined nodes and edges added.
-type MultiBuilder interface {
-	graph.Multigraph
-	graph.MultigraphBuilder
-}
-
 // AttributeSetter is implemented by types that can set an encoded graph
 // attribute.
 type AttributeSetter interface {

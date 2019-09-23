@@ -30,7 +30,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against runtime classes.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &genericregistry.Store{
 		NewFunc:     func() runtime.Object { return &node.RuntimeClass{} },
 		NewListFunc: func() runtime.Object { return &node.RuntimeClassList{} },
@@ -45,7 +45,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, err
+		panic(err) // TODO: Propagate error up
 	}
-	return &REST{store}, nil
+	return &REST{store}
 }

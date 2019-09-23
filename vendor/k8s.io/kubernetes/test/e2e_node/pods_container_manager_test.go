@@ -25,10 +25,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"k8s.io/klog"
 )
 
@@ -150,24 +150,24 @@ func makePodToVerifyCgroupRemoved(baseName string) *v1.Pod {
 
 var _ = framework.KubeDescribe("Kubelet Cgroup Manager", func() {
 	f := framework.NewDefaultFramework("kubelet-cgroup-manager")
-	ginkgo.Describe("QOS containers", func() {
-		ginkgo.Context("On enabling QOS cgroup hierarchy", func() {
-			ginkgo.It("Top level QoS containers should have been created [NodeConformance]", func() {
+	Describe("QOS containers", func() {
+		Context("On enabling QOS cgroup hierarchy", func() {
+			It("Top level QoS containers should have been created [NodeConformance]", func() {
 				if !framework.TestContext.KubeletConfig.CgroupsPerQOS {
 					return
 				}
 				cgroupsToVerify := []string{burstableCgroup, bestEffortCgroup}
 				pod := makePodToVerifyCgroups(cgroupsToVerify)
 				f.PodClient().Create(pod)
-				err := e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
-				framework.ExpectNoError(err)
+				err := framework.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 	})
 
-	ginkgo.Describe("Pod containers [NodeConformance]", func() {
-		ginkgo.Context("On scheduling a Guaranteed Pod", func() {
-			ginkgo.It("Pod containers should have been created under the cgroup-root", func() {
+	Describe("Pod containers [NodeConformance]", func() {
+		Context("On scheduling a Guaranteed Pod", func() {
+			It("Pod containers should have been created under the cgroup-root", func() {
 				if !framework.TestContext.KubeletConfig.CgroupsPerQOS {
 					return
 				}
@@ -175,7 +175,7 @@ var _ = framework.KubeDescribe("Kubelet Cgroup Manager", func() {
 					guaranteedPod *v1.Pod
 					podUID        string
 				)
-				ginkgo.By("Creating a Guaranteed pod in Namespace", func() {
+				By("Creating a Guaranteed pod in Namespace", func() {
 					guaranteedPod = f.PodClient().Create(&v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pod" + string(uuid.NewUUID()),
@@ -193,26 +193,25 @@ var _ = framework.KubeDescribe("Kubelet Cgroup Manager", func() {
 					})
 					podUID = string(guaranteedPod.UID)
 				})
-				ginkgo.By("Checking if the pod cgroup was created", func() {
+				By("Checking if the pod cgroup was created", func() {
 					cgroupsToVerify := []string{"pod" + podUID}
 					pod := makePodToVerifyCgroups(cgroupsToVerify)
 					f.PodClient().Create(pod)
-					err := e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
-					framework.ExpectNoError(err)
+					err := framework.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
+					Expect(err).NotTo(HaveOccurred())
 				})
-				ginkgo.By("Checking if the pod cgroup was deleted", func() {
+				By("Checking if the pod cgroup was deleted", func() {
 					gp := int64(1)
-					err := f.PodClient().Delete(guaranteedPod.Name, &metav1.DeleteOptions{GracePeriodSeconds: &gp})
-					framework.ExpectNoError(err)
+					Expect(f.PodClient().Delete(guaranteedPod.Name, &metav1.DeleteOptions{GracePeriodSeconds: &gp})).NotTo(HaveOccurred())
 					pod := makePodToVerifyCgroupRemoved("pod" + podUID)
 					f.PodClient().Create(pod)
-					err = e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
-					framework.ExpectNoError(err)
+					err := framework.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
+					Expect(err).NotTo(HaveOccurred())
 				})
 			})
 		})
-		ginkgo.Context("On scheduling a BestEffort Pod", func() {
-			ginkgo.It("Pod containers should have been created under the BestEffort cgroup", func() {
+		Context("On scheduling a BestEffort Pod", func() {
+			It("Pod containers should have been created under the BestEffort cgroup", func() {
 				if !framework.TestContext.KubeletConfig.CgroupsPerQOS {
 					return
 				}
@@ -220,7 +219,7 @@ var _ = framework.KubeDescribe("Kubelet Cgroup Manager", func() {
 					podUID        string
 					bestEffortPod *v1.Pod
 				)
-				ginkgo.By("Creating a BestEffort pod in Namespace", func() {
+				By("Creating a BestEffort pod in Namespace", func() {
 					bestEffortPod = f.PodClient().Create(&v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pod" + string(uuid.NewUUID()),
@@ -238,26 +237,25 @@ var _ = framework.KubeDescribe("Kubelet Cgroup Manager", func() {
 					})
 					podUID = string(bestEffortPod.UID)
 				})
-				ginkgo.By("Checking if the pod cgroup was created", func() {
+				By("Checking if the pod cgroup was created", func() {
 					cgroupsToVerify := []string{"besteffort/pod" + podUID}
 					pod := makePodToVerifyCgroups(cgroupsToVerify)
 					f.PodClient().Create(pod)
-					err := e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
-					framework.ExpectNoError(err)
+					err := framework.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
+					Expect(err).NotTo(HaveOccurred())
 				})
-				ginkgo.By("Checking if the pod cgroup was deleted", func() {
+				By("Checking if the pod cgroup was deleted", func() {
 					gp := int64(1)
-					err := f.PodClient().Delete(bestEffortPod.Name, &metav1.DeleteOptions{GracePeriodSeconds: &gp})
-					framework.ExpectNoError(err)
+					Expect(f.PodClient().Delete(bestEffortPod.Name, &metav1.DeleteOptions{GracePeriodSeconds: &gp})).NotTo(HaveOccurred())
 					pod := makePodToVerifyCgroupRemoved("besteffort/pod" + podUID)
 					f.PodClient().Create(pod)
-					err = e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
-					framework.ExpectNoError(err)
+					err := framework.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
+					Expect(err).NotTo(HaveOccurred())
 				})
 			})
 		})
-		ginkgo.Context("On scheduling a Burstable Pod", func() {
-			ginkgo.It("Pod containers should have been created under the Burstable cgroup", func() {
+		Context("On scheduling a Burstable Pod", func() {
+			It("Pod containers should have been created under the Burstable cgroup", func() {
 				if !framework.TestContext.KubeletConfig.CgroupsPerQOS {
 					return
 				}
@@ -265,7 +263,7 @@ var _ = framework.KubeDescribe("Kubelet Cgroup Manager", func() {
 					podUID       string
 					burstablePod *v1.Pod
 				)
-				ginkgo.By("Creating a Burstable pod in Namespace", func() {
+				By("Creating a Burstable pod in Namespace", func() {
 					burstablePod = f.PodClient().Create(&v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pod" + string(uuid.NewUUID()),
@@ -283,21 +281,20 @@ var _ = framework.KubeDescribe("Kubelet Cgroup Manager", func() {
 					})
 					podUID = string(burstablePod.UID)
 				})
-				ginkgo.By("Checking if the pod cgroup was created", func() {
+				By("Checking if the pod cgroup was created", func() {
 					cgroupsToVerify := []string{"burstable/pod" + podUID}
 					pod := makePodToVerifyCgroups(cgroupsToVerify)
 					f.PodClient().Create(pod)
-					err := e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
-					framework.ExpectNoError(err)
+					err := framework.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
+					Expect(err).NotTo(HaveOccurred())
 				})
-				ginkgo.By("Checking if the pod cgroup was deleted", func() {
+				By("Checking if the pod cgroup was deleted", func() {
 					gp := int64(1)
-					err := f.PodClient().Delete(burstablePod.Name, &metav1.DeleteOptions{GracePeriodSeconds: &gp})
-					framework.ExpectNoError(err)
+					Expect(f.PodClient().Delete(burstablePod.Name, &metav1.DeleteOptions{GracePeriodSeconds: &gp})).NotTo(HaveOccurred())
 					pod := makePodToVerifyCgroupRemoved("burstable/pod" + podUID)
 					f.PodClient().Create(pod)
-					err = e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
-					framework.ExpectNoError(err)
+					err := framework.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
+					Expect(err).NotTo(HaveOccurred())
 				})
 			})
 		})

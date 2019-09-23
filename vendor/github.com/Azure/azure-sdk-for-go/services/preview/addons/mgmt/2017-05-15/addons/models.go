@@ -18,15 +18,11 @@ package addons
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/addons/mgmt/2017-05-15/addons"
 
 // PlanTypeName enumerates the values for plan type name.
 type PlanTypeName string
@@ -96,11 +92,11 @@ type CanonicalSupportPlanProperties struct {
 // CanonicalSupportPlanResponseEnvelope the status of the Canonical support plan.
 type CanonicalSupportPlanResponseEnvelope struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; The id of the ARM resource, e.g. "/subscriptions/{id}/providers/Microsoft.Addons/supportProvider/{supportProviderName}/supportPlanTypes/{planTypeName}".
+	// ID - The id of the ARM resource, e.g. "/subscriptions/{id}/providers/Microsoft.Addons/supportProvider/{supportProviderName}/supportPlanTypes/{planTypeName}".
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the Canonical support plan, i.e. "essential", "standard" or "advanced".
+	// Name - The name of the Canonical support plan, i.e. "essential", "standard" or "advanced".
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Microsoft.Addons/supportProvider
+	// Type - Microsoft.Addons/supportProvider
 	Type *string `json:"type,omitempty"`
 	// CanonicalSupportPlanProperties - Describes Canonical support plan type and status.
 	*CanonicalSupportPlanProperties `json:"properties,omitempty"`
@@ -109,6 +105,15 @@ type CanonicalSupportPlanResponseEnvelope struct {
 // MarshalJSON is the custom marshaler for CanonicalSupportPlanResponseEnvelope.
 func (cspre CanonicalSupportPlanResponseEnvelope) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if cspre.ID != nil {
+		objectMap["id"] = cspre.ID
+	}
+	if cspre.Name != nil {
+		objectMap["name"] = cspre.Name
+	}
+	if cspre.Type != nil {
+		objectMap["type"] = cspre.Type
+	}
 	if cspre.CanonicalSupportPlanProperties != nil {
 		objectMap["properties"] = cspre.CanonicalSupportPlanProperties
 	}
@@ -218,8 +223,8 @@ type OperationsDisplayDefinition struct {
 	Description *string `json:"description,omitempty"`
 }
 
-// SupportPlanTypesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// SupportPlanTypesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type SupportPlanTypesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -228,7 +233,7 @@ type SupportPlanTypesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SupportPlanTypesCreateOrUpdateFuture) Result(client SupportPlanTypesClient) (cspre CanonicalSupportPlanResponseEnvelope, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "addons.SupportPlanTypesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -257,7 +262,7 @@ type SupportPlanTypesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *SupportPlanTypesDeleteFuture) Result(client SupportPlanTypesClient) (cspre CanonicalSupportPlanResponseEnvelope, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "addons.SupportPlanTypesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return

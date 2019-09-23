@@ -23,7 +23,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -57,16 +56,6 @@ func NewAccountClientWithBaseURI(baseURI string) AccountClient {
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client AccountClient) ListNodeAgentSkus(ctx context.Context, filter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result AccountListNodeAgentSkusResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountClient.ListNodeAgentSkus")
-		defer func() {
-			sc := -1
-			if result.alnasr.Response.Response != nil {
-				sc = result.alnasr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -144,8 +133,8 @@ func (client AccountClient) ListNodeAgentSkusPreparer(ctx context.Context, filte
 // ListNodeAgentSkusSender sends the ListNodeAgentSkus request. The method will close the
 // http.Response Body if it receives an error.
 func (client AccountClient) ListNodeAgentSkusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListNodeAgentSkusResponder handles the response to the ListNodeAgentSkus request. The method always
@@ -162,8 +151,8 @@ func (client AccountClient) ListNodeAgentSkusResponder(resp *http.Response) (res
 }
 
 // listNodeAgentSkusNextResults retrieves the next set of results, if any.
-func (client AccountClient) listNodeAgentSkusNextResults(ctx context.Context, lastResults AccountListNodeAgentSkusResult) (result AccountListNodeAgentSkusResult, err error) {
-	req, err := lastResults.accountListNodeAgentSkusResultPreparer(ctx)
+func (client AccountClient) listNodeAgentSkusNextResults(lastResults AccountListNodeAgentSkusResult) (result AccountListNodeAgentSkusResult, err error) {
+	req, err := lastResults.accountListNodeAgentSkusResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.AccountClient", "listNodeAgentSkusNextResults", nil, "Failure preparing next results request")
 	}
@@ -184,16 +173,6 @@ func (client AccountClient) listNodeAgentSkusNextResults(ctx context.Context, la
 
 // ListNodeAgentSkusComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AccountClient) ListNodeAgentSkusComplete(ctx context.Context, filter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result AccountListNodeAgentSkusResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountClient.ListNodeAgentSkus")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListNodeAgentSkus(ctx, filter, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }
@@ -210,16 +189,6 @@ func (client AccountClient) ListNodeAgentSkusComplete(ctx context.Context, filte
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client AccountClient) ListPoolNodeCounts(ctx context.Context, filter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result PoolNodeCountsListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountClient.ListPoolNodeCounts")
-		defer func() {
-			sc := -1
-			if result.pnclr.Response.Response != nil {
-				sc = result.pnclr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -297,8 +266,8 @@ func (client AccountClient) ListPoolNodeCountsPreparer(ctx context.Context, filt
 // ListPoolNodeCountsSender sends the ListPoolNodeCounts request. The method will close the
 // http.Response Body if it receives an error.
 func (client AccountClient) ListPoolNodeCountsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListPoolNodeCountsResponder handles the response to the ListPoolNodeCounts request. The method always
@@ -315,8 +284,8 @@ func (client AccountClient) ListPoolNodeCountsResponder(resp *http.Response) (re
 }
 
 // listPoolNodeCountsNextResults retrieves the next set of results, if any.
-func (client AccountClient) listPoolNodeCountsNextResults(ctx context.Context, lastResults PoolNodeCountsListResult) (result PoolNodeCountsListResult, err error) {
-	req, err := lastResults.poolNodeCountsListResultPreparer(ctx)
+func (client AccountClient) listPoolNodeCountsNextResults(lastResults PoolNodeCountsListResult) (result PoolNodeCountsListResult, err error) {
+	req, err := lastResults.poolNodeCountsListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.AccountClient", "listPoolNodeCountsNextResults", nil, "Failure preparing next results request")
 	}
@@ -337,16 +306,6 @@ func (client AccountClient) listPoolNodeCountsNextResults(ctx context.Context, l
 
 // ListPoolNodeCountsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AccountClient) ListPoolNodeCountsComplete(ctx context.Context, filter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result PoolNodeCountsListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountClient.ListPoolNodeCounts")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListPoolNodeCounts(ctx, filter, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }

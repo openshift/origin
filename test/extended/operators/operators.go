@@ -58,6 +58,11 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 			cv := objx.Map(obj.UnstructuredContent())
 			lastErr = nil
 			lastCV = cv
+			payload := cv.Get("status.current.payload").String()
+			if len(payload) == 0 {
+				e2e.Logf("ClusterVersion has no current payload version")
+				return false, nil
+			}
 			if cond := condition(cv, "Progressing"); cond.Get("status").String() != "False" {
 				e2e.Logf("ClusterVersion is still progressing: %s", cond.Get("message").String())
 				return false, nil

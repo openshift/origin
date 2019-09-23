@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewRemediationsClientWithBaseURI(baseURI string) RemediationsClient {
 // managementGroupID - management group ID.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) CancelAtManagementGroup(ctx context.Context, managementGroupID string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.CancelAtManagementGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CancelAtManagementGroupPreparer(ctx, managementGroupID, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "CancelAtManagementGroup", nil, "Failure preparing request")
@@ -101,8 +90,8 @@ func (client RemediationsClient) CancelAtManagementGroupPreparer(ctx context.Con
 // CancelAtManagementGroupSender sends the CancelAtManagementGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) CancelAtManagementGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CancelAtManagementGroupResponder handles the response to the CancelAtManagementGroup request. The method always
@@ -123,16 +112,6 @@ func (client RemediationsClient) CancelAtManagementGroupResponder(resp *http.Res
 // resourceID - resource ID.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) CancelAtResource(ctx context.Context, resourceID string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.CancelAtResource")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CancelAtResourcePreparer(ctx, resourceID, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "CancelAtResource", nil, "Failure preparing request")
@@ -177,8 +156,8 @@ func (client RemediationsClient) CancelAtResourcePreparer(ctx context.Context, r
 // CancelAtResourceSender sends the CancelAtResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) CancelAtResourceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CancelAtResourceResponder handles the response to the CancelAtResource request. The method always
@@ -200,16 +179,6 @@ func (client RemediationsClient) CancelAtResourceResponder(resp *http.Response) 
 // resourceGroupName - resource group name.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) CancelAtResourceGroup(ctx context.Context, subscriptionID string, resourceGroupName string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.CancelAtResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CancelAtResourceGroupPreparer(ctx, subscriptionID, resourceGroupName, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "CancelAtResourceGroup", nil, "Failure preparing request")
@@ -255,8 +224,8 @@ func (client RemediationsClient) CancelAtResourceGroupPreparer(ctx context.Conte
 // CancelAtResourceGroupSender sends the CancelAtResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) CancelAtResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CancelAtResourceGroupResponder handles the response to the CancelAtResourceGroup request. The method always
@@ -277,16 +246,6 @@ func (client RemediationsClient) CancelAtResourceGroupResponder(resp *http.Respo
 // subscriptionID - microsoft Azure subscription ID.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) CancelAtSubscription(ctx context.Context, subscriptionID string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.CancelAtSubscription")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CancelAtSubscriptionPreparer(ctx, subscriptionID, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "CancelAtSubscription", nil, "Failure preparing request")
@@ -331,8 +290,8 @@ func (client RemediationsClient) CancelAtSubscriptionPreparer(ctx context.Contex
 // CancelAtSubscriptionSender sends the CancelAtSubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) CancelAtSubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CancelAtSubscriptionResponder handles the response to the CancelAtSubscription request. The method always
@@ -354,16 +313,6 @@ func (client RemediationsClient) CancelAtSubscriptionResponder(resp *http.Respon
 // remediationName - the name of the remediation.
 // parameters - the remediation parameters.
 func (client RemediationsClient) CreateOrUpdateAtManagementGroup(ctx context.Context, managementGroupID string, remediationName string, parameters Remediation) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.CreateOrUpdateAtManagementGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdateAtManagementGroupPreparer(ctx, managementGroupID, remediationName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "CreateOrUpdateAtManagementGroup", nil, "Failure preparing request")
@@ -398,9 +347,6 @@ func (client RemediationsClient) CreateOrUpdateAtManagementGroupPreparer(ctx con
 		"api-version": APIVersion,
 	}
 
-	parameters.ID = nil
-	parameters.Type = nil
-	parameters.Name = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -414,8 +360,8 @@ func (client RemediationsClient) CreateOrUpdateAtManagementGroupPreparer(ctx con
 // CreateOrUpdateAtManagementGroupSender sends the CreateOrUpdateAtManagementGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) CreateOrUpdateAtManagementGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateOrUpdateAtManagementGroupResponder handles the response to the CreateOrUpdateAtManagementGroup request. The method always
@@ -437,16 +383,6 @@ func (client RemediationsClient) CreateOrUpdateAtManagementGroupResponder(resp *
 // remediationName - the name of the remediation.
 // parameters - the remediation parameters.
 func (client RemediationsClient) CreateOrUpdateAtResource(ctx context.Context, resourceID string, remediationName string, parameters Remediation) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.CreateOrUpdateAtResource")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdateAtResourcePreparer(ctx, resourceID, remediationName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "CreateOrUpdateAtResource", nil, "Failure preparing request")
@@ -480,9 +416,6 @@ func (client RemediationsClient) CreateOrUpdateAtResourcePreparer(ctx context.Co
 		"api-version": APIVersion,
 	}
 
-	parameters.ID = nil
-	parameters.Type = nil
-	parameters.Name = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -496,8 +429,8 @@ func (client RemediationsClient) CreateOrUpdateAtResourcePreparer(ctx context.Co
 // CreateOrUpdateAtResourceSender sends the CreateOrUpdateAtResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) CreateOrUpdateAtResourceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateOrUpdateAtResourceResponder handles the response to the CreateOrUpdateAtResource request. The method always
@@ -520,16 +453,6 @@ func (client RemediationsClient) CreateOrUpdateAtResourceResponder(resp *http.Re
 // remediationName - the name of the remediation.
 // parameters - the remediation parameters.
 func (client RemediationsClient) CreateOrUpdateAtResourceGroup(ctx context.Context, subscriptionID string, resourceGroupName string, remediationName string, parameters Remediation) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.CreateOrUpdateAtResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdateAtResourceGroupPreparer(ctx, subscriptionID, resourceGroupName, remediationName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "CreateOrUpdateAtResourceGroup", nil, "Failure preparing request")
@@ -564,9 +487,6 @@ func (client RemediationsClient) CreateOrUpdateAtResourceGroupPreparer(ctx conte
 		"api-version": APIVersion,
 	}
 
-	parameters.ID = nil
-	parameters.Type = nil
-	parameters.Name = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -580,8 +500,8 @@ func (client RemediationsClient) CreateOrUpdateAtResourceGroupPreparer(ctx conte
 // CreateOrUpdateAtResourceGroupSender sends the CreateOrUpdateAtResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) CreateOrUpdateAtResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateAtResourceGroupResponder handles the response to the CreateOrUpdateAtResourceGroup request. The method always
@@ -603,16 +523,6 @@ func (client RemediationsClient) CreateOrUpdateAtResourceGroupResponder(resp *ht
 // remediationName - the name of the remediation.
 // parameters - the remediation parameters.
 func (client RemediationsClient) CreateOrUpdateAtSubscription(ctx context.Context, subscriptionID string, remediationName string, parameters Remediation) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.CreateOrUpdateAtSubscription")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdateAtSubscriptionPreparer(ctx, subscriptionID, remediationName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "CreateOrUpdateAtSubscription", nil, "Failure preparing request")
@@ -646,9 +556,6 @@ func (client RemediationsClient) CreateOrUpdateAtSubscriptionPreparer(ctx contex
 		"api-version": APIVersion,
 	}
 
-	parameters.ID = nil
-	parameters.Type = nil
-	parameters.Name = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -662,8 +569,8 @@ func (client RemediationsClient) CreateOrUpdateAtSubscriptionPreparer(ctx contex
 // CreateOrUpdateAtSubscriptionSender sends the CreateOrUpdateAtSubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) CreateOrUpdateAtSubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateAtSubscriptionResponder handles the response to the CreateOrUpdateAtSubscription request. The method always
@@ -684,16 +591,6 @@ func (client RemediationsClient) CreateOrUpdateAtSubscriptionResponder(resp *htt
 // managementGroupID - management group ID.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) DeleteAtManagementGroup(ctx context.Context, managementGroupID string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.DeleteAtManagementGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteAtManagementGroupPreparer(ctx, managementGroupID, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "DeleteAtManagementGroup", nil, "Failure preparing request")
@@ -739,8 +636,8 @@ func (client RemediationsClient) DeleteAtManagementGroupPreparer(ctx context.Con
 // DeleteAtManagementGroupSender sends the DeleteAtManagementGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) DeleteAtManagementGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteAtManagementGroupResponder handles the response to the DeleteAtManagementGroup request. The method always
@@ -761,16 +658,6 @@ func (client RemediationsClient) DeleteAtManagementGroupResponder(resp *http.Res
 // resourceID - resource ID.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) DeleteAtResource(ctx context.Context, resourceID string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.DeleteAtResource")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteAtResourcePreparer(ctx, resourceID, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "DeleteAtResource", nil, "Failure preparing request")
@@ -815,8 +702,8 @@ func (client RemediationsClient) DeleteAtResourcePreparer(ctx context.Context, r
 // DeleteAtResourceSender sends the DeleteAtResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) DeleteAtResourceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteAtResourceResponder handles the response to the DeleteAtResource request. The method always
@@ -838,16 +725,6 @@ func (client RemediationsClient) DeleteAtResourceResponder(resp *http.Response) 
 // resourceGroupName - resource group name.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) DeleteAtResourceGroup(ctx context.Context, subscriptionID string, resourceGroupName string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.DeleteAtResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteAtResourceGroupPreparer(ctx, subscriptionID, resourceGroupName, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "DeleteAtResourceGroup", nil, "Failure preparing request")
@@ -893,8 +770,8 @@ func (client RemediationsClient) DeleteAtResourceGroupPreparer(ctx context.Conte
 // DeleteAtResourceGroupSender sends the DeleteAtResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) DeleteAtResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteAtResourceGroupResponder handles the response to the DeleteAtResourceGroup request. The method always
@@ -915,16 +792,6 @@ func (client RemediationsClient) DeleteAtResourceGroupResponder(resp *http.Respo
 // subscriptionID - microsoft Azure subscription ID.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) DeleteAtSubscription(ctx context.Context, subscriptionID string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.DeleteAtSubscription")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteAtSubscriptionPreparer(ctx, subscriptionID, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "DeleteAtSubscription", nil, "Failure preparing request")
@@ -969,8 +836,8 @@ func (client RemediationsClient) DeleteAtSubscriptionPreparer(ctx context.Contex
 // DeleteAtSubscriptionSender sends the DeleteAtSubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) DeleteAtSubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteAtSubscriptionResponder handles the response to the DeleteAtSubscription request. The method always
@@ -991,16 +858,6 @@ func (client RemediationsClient) DeleteAtSubscriptionResponder(resp *http.Respon
 // managementGroupID - management group ID.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) GetAtManagementGroup(ctx context.Context, managementGroupID string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.GetAtManagementGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetAtManagementGroupPreparer(ctx, managementGroupID, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "GetAtManagementGroup", nil, "Failure preparing request")
@@ -1046,8 +903,8 @@ func (client RemediationsClient) GetAtManagementGroupPreparer(ctx context.Contex
 // GetAtManagementGroupSender sends the GetAtManagementGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) GetAtManagementGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetAtManagementGroupResponder handles the response to the GetAtManagementGroup request. The method always
@@ -1068,16 +925,6 @@ func (client RemediationsClient) GetAtManagementGroupResponder(resp *http.Respon
 // resourceID - resource ID.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) GetAtResource(ctx context.Context, resourceID string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.GetAtResource")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetAtResourcePreparer(ctx, resourceID, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "GetAtResource", nil, "Failure preparing request")
@@ -1122,8 +969,8 @@ func (client RemediationsClient) GetAtResourcePreparer(ctx context.Context, reso
 // GetAtResourceSender sends the GetAtResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) GetAtResourceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetAtResourceResponder handles the response to the GetAtResource request. The method always
@@ -1145,16 +992,6 @@ func (client RemediationsClient) GetAtResourceResponder(resp *http.Response) (re
 // resourceGroupName - resource group name.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) GetAtResourceGroup(ctx context.Context, subscriptionID string, resourceGroupName string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.GetAtResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetAtResourceGroupPreparer(ctx, subscriptionID, resourceGroupName, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "GetAtResourceGroup", nil, "Failure preparing request")
@@ -1200,8 +1037,8 @@ func (client RemediationsClient) GetAtResourceGroupPreparer(ctx context.Context,
 // GetAtResourceGroupSender sends the GetAtResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) GetAtResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetAtResourceGroupResponder handles the response to the GetAtResourceGroup request. The method always
@@ -1222,16 +1059,6 @@ func (client RemediationsClient) GetAtResourceGroupResponder(resp *http.Response
 // subscriptionID - microsoft Azure subscription ID.
 // remediationName - the name of the remediation.
 func (client RemediationsClient) GetAtSubscription(ctx context.Context, subscriptionID string, remediationName string) (result Remediation, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.GetAtSubscription")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetAtSubscriptionPreparer(ctx, subscriptionID, remediationName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "GetAtSubscription", nil, "Failure preparing request")
@@ -1276,8 +1103,8 @@ func (client RemediationsClient) GetAtSubscriptionPreparer(ctx context.Context, 
 // GetAtSubscriptionSender sends the GetAtSubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) GetAtSubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetAtSubscriptionResponder handles the response to the GetAtSubscription request. The method always
@@ -1299,16 +1126,6 @@ func (client RemediationsClient) GetAtSubscriptionResponder(resp *http.Response)
 // remediationName - the name of the remediation.
 // top - maximum number of records to return.
 func (client RemediationsClient) ListDeploymentsAtManagementGroup(ctx context.Context, managementGroupID string, remediationName string, top *int32) (result RemediationDeploymentsListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListDeploymentsAtManagementGroup")
-		defer func() {
-			sc := -1
-			if result.rdlr.Response.Response != nil {
-				sc = result.rdlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -1365,8 +1182,8 @@ func (client RemediationsClient) ListDeploymentsAtManagementGroupPreparer(ctx co
 // ListDeploymentsAtManagementGroupSender sends the ListDeploymentsAtManagementGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) ListDeploymentsAtManagementGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListDeploymentsAtManagementGroupResponder handles the response to the ListDeploymentsAtManagementGroup request. The method always
@@ -1383,8 +1200,8 @@ func (client RemediationsClient) ListDeploymentsAtManagementGroupResponder(resp 
 }
 
 // listDeploymentsAtManagementGroupNextResults retrieves the next set of results, if any.
-func (client RemediationsClient) listDeploymentsAtManagementGroupNextResults(ctx context.Context, lastResults RemediationDeploymentsListResult) (result RemediationDeploymentsListResult, err error) {
-	req, err := lastResults.remediationDeploymentsListResultPreparer(ctx)
+func (client RemediationsClient) listDeploymentsAtManagementGroupNextResults(lastResults RemediationDeploymentsListResult) (result RemediationDeploymentsListResult, err error) {
+	req, err := lastResults.remediationDeploymentsListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "listDeploymentsAtManagementGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -1405,16 +1222,6 @@ func (client RemediationsClient) listDeploymentsAtManagementGroupNextResults(ctx
 
 // ListDeploymentsAtManagementGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RemediationsClient) ListDeploymentsAtManagementGroupComplete(ctx context.Context, managementGroupID string, remediationName string, top *int32) (result RemediationDeploymentsListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListDeploymentsAtManagementGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListDeploymentsAtManagementGroup(ctx, managementGroupID, remediationName, top)
 	return
 }
@@ -1425,16 +1232,6 @@ func (client RemediationsClient) ListDeploymentsAtManagementGroupComplete(ctx co
 // remediationName - the name of the remediation.
 // top - maximum number of records to return.
 func (client RemediationsClient) ListDeploymentsAtResource(ctx context.Context, resourceID string, remediationName string, top *int32) (result RemediationDeploymentsListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListDeploymentsAtResource")
-		defer func() {
-			sc := -1
-			if result.rdlr.Response.Response != nil {
-				sc = result.rdlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -1490,8 +1287,8 @@ func (client RemediationsClient) ListDeploymentsAtResourcePreparer(ctx context.C
 // ListDeploymentsAtResourceSender sends the ListDeploymentsAtResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) ListDeploymentsAtResourceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListDeploymentsAtResourceResponder handles the response to the ListDeploymentsAtResource request. The method always
@@ -1508,8 +1305,8 @@ func (client RemediationsClient) ListDeploymentsAtResourceResponder(resp *http.R
 }
 
 // listDeploymentsAtResourceNextResults retrieves the next set of results, if any.
-func (client RemediationsClient) listDeploymentsAtResourceNextResults(ctx context.Context, lastResults RemediationDeploymentsListResult) (result RemediationDeploymentsListResult, err error) {
-	req, err := lastResults.remediationDeploymentsListResultPreparer(ctx)
+func (client RemediationsClient) listDeploymentsAtResourceNextResults(lastResults RemediationDeploymentsListResult) (result RemediationDeploymentsListResult, err error) {
+	req, err := lastResults.remediationDeploymentsListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "listDeploymentsAtResourceNextResults", nil, "Failure preparing next results request")
 	}
@@ -1530,16 +1327,6 @@ func (client RemediationsClient) listDeploymentsAtResourceNextResults(ctx contex
 
 // ListDeploymentsAtResourceComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RemediationsClient) ListDeploymentsAtResourceComplete(ctx context.Context, resourceID string, remediationName string, top *int32) (result RemediationDeploymentsListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListDeploymentsAtResource")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListDeploymentsAtResource(ctx, resourceID, remediationName, top)
 	return
 }
@@ -1551,16 +1338,6 @@ func (client RemediationsClient) ListDeploymentsAtResourceComplete(ctx context.C
 // remediationName - the name of the remediation.
 // top - maximum number of records to return.
 func (client RemediationsClient) ListDeploymentsAtResourceGroup(ctx context.Context, subscriptionID string, resourceGroupName string, remediationName string, top *int32) (result RemediationDeploymentsListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListDeploymentsAtResourceGroup")
-		defer func() {
-			sc := -1
-			if result.rdlr.Response.Response != nil {
-				sc = result.rdlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -1617,8 +1394,8 @@ func (client RemediationsClient) ListDeploymentsAtResourceGroupPreparer(ctx cont
 // ListDeploymentsAtResourceGroupSender sends the ListDeploymentsAtResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) ListDeploymentsAtResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListDeploymentsAtResourceGroupResponder handles the response to the ListDeploymentsAtResourceGroup request. The method always
@@ -1635,8 +1412,8 @@ func (client RemediationsClient) ListDeploymentsAtResourceGroupResponder(resp *h
 }
 
 // listDeploymentsAtResourceGroupNextResults retrieves the next set of results, if any.
-func (client RemediationsClient) listDeploymentsAtResourceGroupNextResults(ctx context.Context, lastResults RemediationDeploymentsListResult) (result RemediationDeploymentsListResult, err error) {
-	req, err := lastResults.remediationDeploymentsListResultPreparer(ctx)
+func (client RemediationsClient) listDeploymentsAtResourceGroupNextResults(lastResults RemediationDeploymentsListResult) (result RemediationDeploymentsListResult, err error) {
+	req, err := lastResults.remediationDeploymentsListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "listDeploymentsAtResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -1657,16 +1434,6 @@ func (client RemediationsClient) listDeploymentsAtResourceGroupNextResults(ctx c
 
 // ListDeploymentsAtResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RemediationsClient) ListDeploymentsAtResourceGroupComplete(ctx context.Context, subscriptionID string, resourceGroupName string, remediationName string, top *int32) (result RemediationDeploymentsListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListDeploymentsAtResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListDeploymentsAtResourceGroup(ctx, subscriptionID, resourceGroupName, remediationName, top)
 	return
 }
@@ -1677,16 +1444,6 @@ func (client RemediationsClient) ListDeploymentsAtResourceGroupComplete(ctx cont
 // remediationName - the name of the remediation.
 // top - maximum number of records to return.
 func (client RemediationsClient) ListDeploymentsAtSubscription(ctx context.Context, subscriptionID string, remediationName string, top *int32) (result RemediationDeploymentsListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListDeploymentsAtSubscription")
-		defer func() {
-			sc := -1
-			if result.rdlr.Response.Response != nil {
-				sc = result.rdlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -1742,8 +1499,8 @@ func (client RemediationsClient) ListDeploymentsAtSubscriptionPreparer(ctx conte
 // ListDeploymentsAtSubscriptionSender sends the ListDeploymentsAtSubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) ListDeploymentsAtSubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListDeploymentsAtSubscriptionResponder handles the response to the ListDeploymentsAtSubscription request. The method always
@@ -1760,8 +1517,8 @@ func (client RemediationsClient) ListDeploymentsAtSubscriptionResponder(resp *ht
 }
 
 // listDeploymentsAtSubscriptionNextResults retrieves the next set of results, if any.
-func (client RemediationsClient) listDeploymentsAtSubscriptionNextResults(ctx context.Context, lastResults RemediationDeploymentsListResult) (result RemediationDeploymentsListResult, err error) {
-	req, err := lastResults.remediationDeploymentsListResultPreparer(ctx)
+func (client RemediationsClient) listDeploymentsAtSubscriptionNextResults(lastResults RemediationDeploymentsListResult) (result RemediationDeploymentsListResult, err error) {
+	req, err := lastResults.remediationDeploymentsListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "listDeploymentsAtSubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -1782,16 +1539,6 @@ func (client RemediationsClient) listDeploymentsAtSubscriptionNextResults(ctx co
 
 // ListDeploymentsAtSubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RemediationsClient) ListDeploymentsAtSubscriptionComplete(ctx context.Context, subscriptionID string, remediationName string, top *int32) (result RemediationDeploymentsListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListDeploymentsAtSubscription")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListDeploymentsAtSubscription(ctx, subscriptionID, remediationName, top)
 	return
 }
@@ -1802,16 +1549,6 @@ func (client RemediationsClient) ListDeploymentsAtSubscriptionComplete(ctx conte
 // top - maximum number of records to return.
 // filter - oData filter expression.
 func (client RemediationsClient) ListForManagementGroup(ctx context.Context, managementGroupID string, top *int32, filter string) (result RemediationListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListForManagementGroup")
-		defer func() {
-			sc := -1
-			if result.rlr.Response.Response != nil {
-				sc = result.rlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -1870,8 +1607,8 @@ func (client RemediationsClient) ListForManagementGroupPreparer(ctx context.Cont
 // ListForManagementGroupSender sends the ListForManagementGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) ListForManagementGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListForManagementGroupResponder handles the response to the ListForManagementGroup request. The method always
@@ -1888,8 +1625,8 @@ func (client RemediationsClient) ListForManagementGroupResponder(resp *http.Resp
 }
 
 // listForManagementGroupNextResults retrieves the next set of results, if any.
-func (client RemediationsClient) listForManagementGroupNextResults(ctx context.Context, lastResults RemediationListResult) (result RemediationListResult, err error) {
-	req, err := lastResults.remediationListResultPreparer(ctx)
+func (client RemediationsClient) listForManagementGroupNextResults(lastResults RemediationListResult) (result RemediationListResult, err error) {
+	req, err := lastResults.remediationListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "listForManagementGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -1910,16 +1647,6 @@ func (client RemediationsClient) listForManagementGroupNextResults(ctx context.C
 
 // ListForManagementGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RemediationsClient) ListForManagementGroupComplete(ctx context.Context, managementGroupID string, top *int32, filter string) (result RemediationListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListForManagementGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListForManagementGroup(ctx, managementGroupID, top, filter)
 	return
 }
@@ -1930,16 +1657,6 @@ func (client RemediationsClient) ListForManagementGroupComplete(ctx context.Cont
 // top - maximum number of records to return.
 // filter - oData filter expression.
 func (client RemediationsClient) ListForResource(ctx context.Context, resourceID string, top *int32, filter string) (result RemediationListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListForResource")
-		defer func() {
-			sc := -1
-			if result.rlr.Response.Response != nil {
-				sc = result.rlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -1997,8 +1714,8 @@ func (client RemediationsClient) ListForResourcePreparer(ctx context.Context, re
 // ListForResourceSender sends the ListForResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) ListForResourceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListForResourceResponder handles the response to the ListForResource request. The method always
@@ -2015,8 +1732,8 @@ func (client RemediationsClient) ListForResourceResponder(resp *http.Response) (
 }
 
 // listForResourceNextResults retrieves the next set of results, if any.
-func (client RemediationsClient) listForResourceNextResults(ctx context.Context, lastResults RemediationListResult) (result RemediationListResult, err error) {
-	req, err := lastResults.remediationListResultPreparer(ctx)
+func (client RemediationsClient) listForResourceNextResults(lastResults RemediationListResult) (result RemediationListResult, err error) {
+	req, err := lastResults.remediationListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "listForResourceNextResults", nil, "Failure preparing next results request")
 	}
@@ -2037,16 +1754,6 @@ func (client RemediationsClient) listForResourceNextResults(ctx context.Context,
 
 // ListForResourceComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RemediationsClient) ListForResourceComplete(ctx context.Context, resourceID string, top *int32, filter string) (result RemediationListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListForResource")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListForResource(ctx, resourceID, top, filter)
 	return
 }
@@ -2058,16 +1765,6 @@ func (client RemediationsClient) ListForResourceComplete(ctx context.Context, re
 // top - maximum number of records to return.
 // filter - oData filter expression.
 func (client RemediationsClient) ListForResourceGroup(ctx context.Context, subscriptionID string, resourceGroupName string, top *int32, filter string) (result RemediationListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListForResourceGroup")
-		defer func() {
-			sc := -1
-			if result.rlr.Response.Response != nil {
-				sc = result.rlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -2126,8 +1823,8 @@ func (client RemediationsClient) ListForResourceGroupPreparer(ctx context.Contex
 // ListForResourceGroupSender sends the ListForResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) ListForResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListForResourceGroupResponder handles the response to the ListForResourceGroup request. The method always
@@ -2144,8 +1841,8 @@ func (client RemediationsClient) ListForResourceGroupResponder(resp *http.Respon
 }
 
 // listForResourceGroupNextResults retrieves the next set of results, if any.
-func (client RemediationsClient) listForResourceGroupNextResults(ctx context.Context, lastResults RemediationListResult) (result RemediationListResult, err error) {
-	req, err := lastResults.remediationListResultPreparer(ctx)
+func (client RemediationsClient) listForResourceGroupNextResults(lastResults RemediationListResult) (result RemediationListResult, err error) {
+	req, err := lastResults.remediationListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "listForResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -2166,16 +1863,6 @@ func (client RemediationsClient) listForResourceGroupNextResults(ctx context.Con
 
 // ListForResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RemediationsClient) ListForResourceGroupComplete(ctx context.Context, subscriptionID string, resourceGroupName string, top *int32, filter string) (result RemediationListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListForResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListForResourceGroup(ctx, subscriptionID, resourceGroupName, top, filter)
 	return
 }
@@ -2186,16 +1873,6 @@ func (client RemediationsClient) ListForResourceGroupComplete(ctx context.Contex
 // top - maximum number of records to return.
 // filter - oData filter expression.
 func (client RemediationsClient) ListForSubscription(ctx context.Context, subscriptionID string, top *int32, filter string) (result RemediationListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListForSubscription")
-		defer func() {
-			sc := -1
-			if result.rlr.Response.Response != nil {
-				sc = result.rlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
@@ -2253,8 +1930,8 @@ func (client RemediationsClient) ListForSubscriptionPreparer(ctx context.Context
 // ListForSubscriptionSender sends the ListForSubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client RemediationsClient) ListForSubscriptionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListForSubscriptionResponder handles the response to the ListForSubscription request. The method always
@@ -2271,8 +1948,8 @@ func (client RemediationsClient) ListForSubscriptionResponder(resp *http.Respons
 }
 
 // listForSubscriptionNextResults retrieves the next set of results, if any.
-func (client RemediationsClient) listForSubscriptionNextResults(ctx context.Context, lastResults RemediationListResult) (result RemediationListResult, err error) {
-	req, err := lastResults.remediationListResultPreparer(ctx)
+func (client RemediationsClient) listForSubscriptionNextResults(lastResults RemediationListResult) (result RemediationListResult, err error) {
+	req, err := lastResults.remediationListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "policyinsights.RemediationsClient", "listForSubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -2293,16 +1970,6 @@ func (client RemediationsClient) listForSubscriptionNextResults(ctx context.Cont
 
 // ListForSubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RemediationsClient) ListForSubscriptionComplete(ctx context.Context, subscriptionID string, top *int32, filter string) (result RemediationListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationsClient.ListForSubscription")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListForSubscription(ctx, subscriptionID, top, filter)
 	return
 }

@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -41,22 +40,12 @@ func NewPoliciesClientWithBaseURI(baseURI string, subscriptionID string) Policie
 	return PoliciesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate creates or update policy with specified rule set name within a resource group.
+// CreateOrUpdate creates or update policy with specified ruleset name within a resource group.
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // policyName - the name of the resource group.
 // parameters - policy to be created.
 func (client PoliciesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, policyName string, parameters WebApplicationFirewallPolicy1) (result WebApplicationFirewallPolicy1, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: policyName,
 			Constraints: []validation.Constraint{{Target: "policyName", Name: validation.MaxLength, Rule: 128, Chain: nil}}}}); err != nil {
@@ -110,8 +99,8 @@ func (client PoliciesClient) CreateOrUpdatePreparer(ctx context.Context, resourc
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoliciesClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -132,16 +121,6 @@ func (client PoliciesClient) CreateOrUpdateResponder(resp *http.Response) (resul
 // resourceGroupName - the name of the resource group.
 // policyName - the name of the resource group.
 func (client PoliciesClient) Delete(ctx context.Context, resourceGroupName string, policyName string) (result PoliciesDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: policyName,
 			Constraints: []validation.Constraint{{Target: "policyName", Name: validation.MaxLength, Rule: 128, Chain: nil}}}}); err != nil {
@@ -187,9 +166,13 @@ func (client PoliciesClient) DeletePreparer(ctx context.Context, resourceGroupNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoliciesClient) DeleteSender(req *http.Request) (future PoliciesDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -214,16 +197,6 @@ func (client PoliciesClient) DeleteResponder(resp *http.Response) (result autore
 // resourceGroupName - the name of the resource group.
 // policyName - the name of the resource group.
 func (client PoliciesClient) Get(ctx context.Context, resourceGroupName string, policyName string) (result WebApplicationFirewallPolicy1, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: policyName,
 			Constraints: []validation.Constraint{{Target: "policyName", Name: validation.MaxLength, Rule: 128, Chain: nil}}}}); err != nil {
@@ -275,8 +248,8 @@ func (client PoliciesClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoliciesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -296,16 +269,6 @@ func (client PoliciesClient) GetResponder(resp *http.Response) (result WebApplic
 // Parameters:
 // resourceGroupName - the name of the resource group.
 func (client PoliciesClient) List(ctx context.Context, resourceGroupName string) (result WebApplicationFirewallPolicyListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.List")
-		defer func() {
-			sc := -1
-			if result.wafplr.Response.Response != nil {
-				sc = result.wafplr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -351,8 +314,8 @@ func (client PoliciesClient) ListPreparer(ctx context.Context, resourceGroupName
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoliciesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -369,8 +332,8 @@ func (client PoliciesClient) ListResponder(resp *http.Response) (result WebAppli
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client PoliciesClient) listNextResults(ctx context.Context, lastResults WebApplicationFirewallPolicyListResult) (result WebApplicationFirewallPolicyListResult, err error) {
-	req, err := lastResults.webApplicationFirewallPolicyListResultPreparer(ctx)
+func (client PoliciesClient) listNextResults(lastResults WebApplicationFirewallPolicyListResult) (result WebApplicationFirewallPolicyListResult, err error) {
+	req, err := lastResults.webApplicationFirewallPolicyListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "frontdoor.PoliciesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -391,16 +354,6 @@ func (client PoliciesClient) listNextResults(ctx context.Context, lastResults We
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PoliciesClient) ListComplete(ctx context.Context, resourceGroupName string) (result WebApplicationFirewallPolicyListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PoliciesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName)
 	return
 }

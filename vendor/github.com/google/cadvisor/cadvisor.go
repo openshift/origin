@@ -15,7 +15,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"net/http"
@@ -30,17 +29,12 @@ import (
 	"github.com/google/cadvisor/container"
 	cadvisorhttp "github.com/google/cadvisor/http"
 	"github.com/google/cadvisor/manager"
-	"github.com/google/cadvisor/metrics"
 	"github.com/google/cadvisor/utils/sysfs"
 	"github.com/google/cadvisor/version"
 
-	// Register container providers
-	_ "github.com/google/cadvisor/container/install"
+	"crypto/tls"
 
-	// Register CloudProviders
-	_ "github.com/google/cadvisor/utils/cloudinfo/aws"
-	_ "github.com/google/cadvisor/utils/cloudinfo/azure"
-	_ "github.com/google/cadvisor/utils/cloudinfo/gce"
+	"github.com/google/cadvisor/metrics"
 
 	"k8s.io/klog"
 )
@@ -67,11 +61,6 @@ var collectorCert = flag.String("collector_cert", "", "Collector's certificate, 
 var collectorKey = flag.String("collector_key", "", "Key for the collector's certificate")
 
 var storeContainerLabels = flag.Bool("store_container_labels", true, "convert container labels and environment variables into labels on prometheus metrics for each container. If flag set to false, then only metrics exported are container name, first alias, and image name")
-var whitelistedContainerLabels = flag.String("whitelisted_container_labels", "", "comma separated list of container labels to be converted to labels on prometheus metrics for each container. store_container_labels must be set to false for this to take effect.")
-
-var urlBasePrefix = flag.String("url_base_prefix", "", "prefix path that will be prepended to all paths to support some reverse proxies")
-
-var rawCgroupPrefixWhiteList = flag.String("raw_cgroup_prefix_whitelist", "", "A comma-separated list of cgroup path prefix that needs to be collected even when -docker_only is specified")
 
 var (
 	// Metrics to be ignored.
@@ -86,7 +75,6 @@ var (
 	// List of metrics that can be ignored.
 	ignoreWhitelist = container.MetricSet{
 		container.DiskUsageMetrics:        struct{}{},
-		container.DiskIOMetrics:           struct{}{},
 		container.NetworkUsageMetrics:     struct{}{},
 		container.NetworkTcpUsageMetrics:  struct{}{},
 		container.NetworkUdpUsageMetrics:  struct{}{},
@@ -124,7 +112,7 @@ func (ml *metricSetValue) Set(value string) error {
 }
 
 func init() {
-	flag.Var(&ignoreMetrics, "disable_metrics", "comma-separated list of `metrics` to be disabled. Options are 'disk', 'diskIO', 'network', 'tcp', 'udp', 'percpu', 'sched', 'process'.")
+	flag.Var(&ignoreMetrics, "disable_metrics", "comma-separated list of `metrics` to be disabled. Options are 'disk', 'network', 'tcp', 'udp', 'percpu', 'sched', 'process'. Note: tcp and udp are disabled by default due to high CPU usage.")
 
 	// Default logging verbosity to V(2)
 	flag.Set("v", "2")
@@ -153,7 +141,7 @@ func main() {
 
 	collectorHttpClient := createCollectorHttpClient(*collectorCert, *collectorKey)
 
-	containerManager, err := manager.New(memoryStorage, sysFs, *maxHousekeepingInterval, *allowDynamicHousekeeping, includedMetrics, &collectorHttpClient, strings.Split(*rawCgroupPrefixWhiteList, ","))
+	containerManager, err := manager.New(memoryStorage, sysFs, *maxHousekeepingInterval, *allowDynamicHousekeeping, includedMetrics, &collectorHttpClient, []string{"/"})
 	if err != nil {
 		klog.Fatalf("Failed to create a Container Manager: %s", err)
 	}
@@ -168,17 +156,15 @@ func main() {
 	}
 
 	// Register all HTTP handlers.
-	err = cadvisorhttp.RegisterHandlers(mux, containerManager, *httpAuthFile, *httpAuthRealm, *httpDigestFile, *httpDigestRealm, *urlBasePrefix)
+	err = cadvisorhttp.RegisterHandlers(mux, containerManager, *httpAuthFile, *httpAuthRealm, *httpDigestFile, *httpDigestRealm)
 	if err != nil {
 		klog.Fatalf("Failed to register HTTP handlers: %v", err)
 	}
 
 	containerLabelFunc := metrics.DefaultContainerLabels
 	if !*storeContainerLabels {
-		whitelistedLabels := strings.Split(*whitelistedContainerLabels, ",")
-		containerLabelFunc = metrics.BaseContainerLabels(whitelistedLabels)
+		containerLabelFunc = metrics.BaseContainerLabels
 	}
-
 	cadvisorhttp.RegisterPrometheusHandler(mux, containerManager, *prometheusEndpoint, containerLabelFunc, includedMetrics)
 
 	// Start the manager.
@@ -191,11 +177,8 @@ func main() {
 
 	klog.V(1).Infof("Starting cAdvisor version: %s-%s on port %d", version.Info["version"], version.Info["revision"], *argPort)
 
-	rootMux := http.NewServeMux()
-	rootMux.Handle(*urlBasePrefix+"/", http.StripPrefix(*urlBasePrefix, mux))
-
 	addr := fmt.Sprintf("%s:%d", *argIp, *argPort)
-	klog.Fatal(http.ListenAndServe(addr, rootMux))
+	klog.Fatal(http.ListenAndServe(addr, mux))
 }
 
 func setMaxProcs() {

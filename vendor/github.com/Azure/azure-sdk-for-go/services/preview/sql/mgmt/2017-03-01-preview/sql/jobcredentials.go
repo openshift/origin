@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -52,16 +51,6 @@ func NewJobCredentialsClientWithBaseURI(baseURI string, subscriptionID string) J
 // credentialName - the name of the credential.
 // parameters - the requested job credential state.
 func (client JobCredentialsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, jobAgentName string, credentialName string, parameters JobCredential) (result JobCredential, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobCredentialsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.JobCredentialProperties", Name: validation.Null, Rule: false,
@@ -120,8 +109,8 @@ func (client JobCredentialsClient) CreateOrUpdatePreparer(ctx context.Context, r
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobCredentialsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -145,16 +134,6 @@ func (client JobCredentialsClient) CreateOrUpdateResponder(resp *http.Response) 
 // jobAgentName - the name of the job agent.
 // credentialName - the name of the credential.
 func (client JobCredentialsClient) Delete(ctx context.Context, resourceGroupName string, serverName string, jobAgentName string, credentialName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobCredentialsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, serverName, jobAgentName, credentialName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.JobCredentialsClient", "Delete", nil, "Failure preparing request")
@@ -202,8 +181,8 @@ func (client JobCredentialsClient) DeletePreparer(ctx context.Context, resourceG
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobCredentialsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -226,16 +205,6 @@ func (client JobCredentialsClient) DeleteResponder(resp *http.Response) (result 
 // jobAgentName - the name of the job agent.
 // credentialName - the name of the credential.
 func (client JobCredentialsClient) Get(ctx context.Context, resourceGroupName string, serverName string, jobAgentName string, credentialName string) (result JobCredential, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobCredentialsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, serverName, jobAgentName, credentialName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.JobCredentialsClient", "Get", nil, "Failure preparing request")
@@ -283,8 +252,8 @@ func (client JobCredentialsClient) GetPreparer(ctx context.Context, resourceGrou
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobCredentialsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -307,16 +276,6 @@ func (client JobCredentialsClient) GetResponder(resp *http.Response) (result Job
 // serverName - the name of the server.
 // jobAgentName - the name of the job agent.
 func (client JobCredentialsClient) ListByAgent(ctx context.Context, resourceGroupName string, serverName string, jobAgentName string) (result JobCredentialListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobCredentialsClient.ListByAgent")
-		defer func() {
-			sc := -1
-			if result.jclr.Response.Response != nil {
-				sc = result.jclr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByAgentNextResults
 	req, err := client.ListByAgentPreparer(ctx, resourceGroupName, serverName, jobAgentName)
 	if err != nil {
@@ -364,8 +323,8 @@ func (client JobCredentialsClient) ListByAgentPreparer(ctx context.Context, reso
 // ListByAgentSender sends the ListByAgent request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobCredentialsClient) ListByAgentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByAgentResponder handles the response to the ListByAgent request. The method always
@@ -382,8 +341,8 @@ func (client JobCredentialsClient) ListByAgentResponder(resp *http.Response) (re
 }
 
 // listByAgentNextResults retrieves the next set of results, if any.
-func (client JobCredentialsClient) listByAgentNextResults(ctx context.Context, lastResults JobCredentialListResult) (result JobCredentialListResult, err error) {
-	req, err := lastResults.jobCredentialListResultPreparer(ctx)
+func (client JobCredentialsClient) listByAgentNextResults(lastResults JobCredentialListResult) (result JobCredentialListResult, err error) {
+	req, err := lastResults.jobCredentialListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "sql.JobCredentialsClient", "listByAgentNextResults", nil, "Failure preparing next results request")
 	}
@@ -404,16 +363,6 @@ func (client JobCredentialsClient) listByAgentNextResults(ctx context.Context, l
 
 // ListByAgentComplete enumerates all values, automatically crossing page boundaries as required.
 func (client JobCredentialsClient) ListByAgentComplete(ctx context.Context, resourceGroupName string, serverName string, jobAgentName string) (result JobCredentialListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobCredentialsClient.ListByAgent")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByAgent(ctx, resourceGroupName, serverName, jobAgentName)
 	return
 }

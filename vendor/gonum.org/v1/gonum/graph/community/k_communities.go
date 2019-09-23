@@ -26,7 +26,7 @@ func KCliqueCommunities(k int, g graph.Undirected) [][]graph.Node {
 	}
 	switch k {
 	case 1:
-		return [][]graph.Node{graph.NodesOf(g.Nodes())}
+		return [][]graph.Node{g.Nodes()}
 	case 2:
 		return topo.ConnectedComponents(g)
 	default:
@@ -39,10 +39,10 @@ func KCliqueCommunities(k int, g graph.Undirected) [][]graph.Node {
 		// cliques smaller than k into separate
 		// single nodes.
 		var kcc [][]graph.Node
-		single := set.NewNodes()
-		inCommunity := set.NewNodes()
+		single := make(set.Nodes)
+		inCommunity := make(set.Nodes)
 		for _, c := range cc {
-			nodes := set.NewNodesSize(len(c))
+			nodes := make(set.Nodes, len(c))
 			for _, cn := range c {
 				for _, n := range cn.(topo.Clique).Nodes() {
 					nodes.Add(n)
@@ -88,7 +88,7 @@ func kConnectedComponents(k int, cg graph.Undirected) [][]graph.Node {
 		c = c[:0]
 	}
 	w := traverse.DepthFirst{
-		Traverse: func(e graph.Edge) bool {
+		EdgeFilter: func(e graph.Edge) bool {
 			return len(e.(topo.CliqueGraphEdge).Nodes()) >= k-1
 		},
 	}

@@ -1,7 +1,6 @@
 package sccadmission
 
 import (
-	"context"
 	"reflect"
 	"sort"
 	"strings"
@@ -60,8 +59,8 @@ func newTestAdmission(lister securityv1listers.SecurityContextConstraintsLister,
 func TestFailClosedOnInvalidPod(t *testing.T) {
 	plugin := newTestAdmission(nil, nil, nil)
 	pod := &corev1.Pod{}
-	attrs := admission.NewAttributesRecord(pod, nil, coreapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, coreapi.Resource("pods").WithVersion("version"), "", admission.Create, nil, false, &user.DefaultInfo{})
-	err := plugin.(admission.MutationInterface).Admit(context.TODO(), attrs, nil)
+	attrs := admission.NewAttributesRecord(pod, nil, coreapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, coreapi.Resource("pods").WithVersion("version"), "", admission.Create, false, &user.DefaultInfo{})
+	err := plugin.(admission.MutationInterface).Admit(attrs, nil)
 
 	if err == nil {
 		t.Fatalf("expected versioned pod object to fail admission")
@@ -190,8 +189,8 @@ func testSCCAdmit(testCaseName string, sccs []*securityv1.SecurityContextConstra
 	testAuthorizer := &sccTestAuthorizer{t: t}
 	plugin := newTestAdmission(lister, tc, testAuthorizer)
 
-	attrs := admission.NewAttributesRecord(pod, nil, coreapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, coreapi.Resource("pods").WithVersion("version"), "", admission.Create, nil, false, &user.DefaultInfo{})
-	err := plugin.(admission.MutationInterface).Admit(context.TODO(), attrs, nil)
+	attrs := admission.NewAttributesRecord(pod, nil, coreapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, coreapi.Resource("pods").WithVersion("version"), "", admission.Create, false, &user.DefaultInfo{})
+	err := plugin.(admission.MutationInterface).Admit(attrs, nil)
 	if shouldPass && err != nil {
 		t.Errorf("%s expected no mutating admission errors but received %v", testCaseName, err)
 	}
@@ -199,7 +198,7 @@ func testSCCAdmit(testCaseName string, sccs []*securityv1.SecurityContextConstra
 		t.Errorf("%s expected mutating admission errors but received none", testCaseName)
 	}
 
-	err = plugin.(admission.ValidationInterface).Validate(context.TODO(), attrs, nil)
+	err = plugin.(admission.ValidationInterface).Validate(attrs, nil)
 	if shouldPass && err != nil {
 		t.Errorf("%s expected no validating admission errors but received %v", testCaseName, err)
 	}
@@ -427,8 +426,8 @@ func TestAdmitFailure(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		for k, v := range testCases {
 			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
-			attrs := admission.NewAttributesRecord(v.pod, nil, coreapi.Kind("Pod").WithVersion("version"), v.pod.Namespace, v.pod.Name, coreapi.Resource("pods").WithVersion("version"), "", admission.Create, nil, false, &user.DefaultInfo{})
-			err := p.(admission.MutationInterface).Admit(context.TODO(), attrs, nil)
+			attrs := admission.NewAttributesRecord(v.pod, nil, coreapi.Kind("Pod").WithVersion("version"), v.pod.Namespace, v.pod.Name, coreapi.Resource("pods").WithVersion("version"), "", admission.Create, false, &user.DefaultInfo{})
+			err := p.(admission.MutationInterface).Admit(attrs, nil)
 
 			if err == nil {
 				t.Errorf("%s expected errors but received none", k)
@@ -676,7 +675,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		scc := v.scc()
 
 		// create the providers, this method only needs the namespace
-		attributes := admission.NewAttributesRecord(nil, nil, coreapi.Kind("Pod").WithVersion("version"), v.namespace.Name, "", coreapi.Resource("pods").WithVersion("version"), "", admission.Create, nil, false, nil)
+		attributes := admission.NewAttributesRecord(nil, nil, coreapi.Kind("Pod").WithVersion("version"), v.namespace.Name, "", coreapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
 		_, errs := sccmatching.CreateProvidersFromConstraints(attributes.GetNamespace(), []*securityv1.SecurityContextConstraints{scc}, tc)
 
 		if !reflect.DeepEqual(scc, v.scc()) {
@@ -1066,8 +1065,8 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 		testAuthorizer := &sccTestAuthorizer{t: t}
 		plugin := newTestAdmission(lister, tc, testAuthorizer)
 
-		attrs := admission.NewAttributesRecord(testCase.newPod, testCase.oldPod, coreapi.Kind("Pod").WithVersion("version"), testCase.newPod.Namespace, testCase.newPod.Name, coreapi.Resource("pods").WithVersion("version"), "", testCase.operation, nil, false, &user.DefaultInfo{})
-		err := plugin.(admission.MutationInterface).Admit(context.TODO(), attrs, nil)
+		attrs := admission.NewAttributesRecord(testCase.newPod, testCase.oldPod, coreapi.Kind("Pod").WithVersion("version"), testCase.newPod.Namespace, testCase.newPod.Name, coreapi.Resource("pods").WithVersion("version"), "", testCase.operation, false, &user.DefaultInfo{})
+		err := plugin.(admission.MutationInterface).Admit(attrs, nil)
 
 		if testCase.shouldPass {
 			if err != nil {
@@ -1094,8 +1093,8 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 // SCC. Returns true when errors have been encountered.
 func testSCCAdmission(pod *coreapi.Pod, plugin admission.Interface, expectedSCC, testName string, t *testing.T) bool {
 	t.Helper()
-	attrs := admission.NewAttributesRecord(pod, nil, coreapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, coreapi.Resource("pods").WithVersion("version"), "", admission.Create, nil, false, &user.DefaultInfo{})
-	err := plugin.(admission.MutationInterface).Admit(context.TODO(), attrs, nil)
+	attrs := admission.NewAttributesRecord(pod, nil, coreapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, coreapi.Resource("pods").WithVersion("version"), "", admission.Create, false, &user.DefaultInfo{})
+	err := plugin.(admission.MutationInterface).Admit(attrs, nil)
 	if err != nil {
 		t.Errorf("%s error admitting pod: %v", testName, err)
 		return true

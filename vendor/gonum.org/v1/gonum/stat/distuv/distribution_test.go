@@ -6,6 +6,7 @@ package distuv
 
 import (
 	"math"
+	"sort"
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
@@ -225,6 +226,51 @@ func checkProbDiscrete(t *testing.T, i int, xs []float64, p probLogprober, tol f
 		if math.Abs(math.Log(p.Prob(x))-p.LogProb(x)) > 1e-14 {
 			t.Errorf("Prob and LogProb mismatch case %v at %v: want %v, got %v", i, x, math.Log(x), p.LogProb(x))
 		}
+	}
+}
+
+// dist is a type that implements the standard set of routines.
+type fullDist interface {
+	CDF(x float64) float64
+	Entropy() float64
+	ExKurtosis() float64
+	LogProb(x float64) float64
+	Mean() float64
+	Median() float64
+	NumParameters() int
+	Prob(x float64) float64
+	Quantile(p float64) float64
+	Rand() float64
+	Skewness() float64
+	StdDev() float64
+	Survival(x float64) float64
+	Variance() float64
+}
+
+// testFullDist tests all of the functions of a fullDist.
+func testFullDist(t *testing.T, f fullDist, i int, continuous bool) {
+	tol := 1e-2
+	const n = 1e6
+	x := make([]float64, n)
+	generateSamples(x, f)
+	sort.Float64s(x)
+
+	checkMean(t, i, x, f, tol)
+	checkVarAndStd(t, i, x, f, tol)
+	checkEntropy(t, i, x, f, tol)
+	checkExKurtosis(t, i, x, f, tol)
+	checkSkewness(t, i, x, f, tol)
+	if continuous {
+		// In a discrete distribution, the median may not have positive probability.
+		checkMedian(t, i, x, f, tol)
+		// In a discrete distribution, the CDF and Quantile may not be perfect mappings.
+		checkQuantileCDFSurvival(t, i, x, f, tol)
+		// Integrate over the PDF
+		checkProbContinuous(t, i, x, f, 1e-10)
+		checkProbQuantContinuous(t, i, x, f, tol)
+	} else {
+		// Check against empirical PDF.
+		checkProbDiscrete(t, i, x, f, tol)
 	}
 }
 

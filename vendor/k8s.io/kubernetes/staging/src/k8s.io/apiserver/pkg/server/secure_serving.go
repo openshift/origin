@@ -61,11 +61,6 @@ func (s *SecureServingInfo) Serve(handler http.Handler, shutdownTimeout time.Dur
 		NextProtos: []string{"h2", "http/1.1"},
 	}
 
-	if s.DisableHTTP2 {
-		klog.Info("Forcing use of http/1.1 only")
-		secureServer.TLSConfig.NextProtos = []string{"http/1.1"}
-	}
-
 	if s.MinTLSVersion > 0 {
 		baseTLSConfig.MinVersion = s.MinTLSVersion
 	}
@@ -122,19 +117,17 @@ func (s *SecureServingInfo) Serve(handler http.Handler, shutdownTimeout time.Dur
 	// increase the connection buffer size from the 1MB default to handle the specified number of concurrent streams
 	http2Options.MaxUploadBufferPerConnection = http2Options.MaxUploadBufferPerStream * int32(http2Options.MaxConcurrentStreams)
 
-	if !s.DisableHTTP2 {
-		// apply settings to the server
-		if err := http2.ConfigureServer(secureServer, http2Options); err != nil {
-			return nil, fmt.Errorf("error configuring http2: %v", err)
-		}
+	// apply settings to the server
+	if err := http2.ConfigureServer(secureServer, http2Options); err != nil {
+		return nil, fmt.Errorf("error configuring http2: %v", err)
 	}
 
 	klog.Infof("Serving securely on %s", secureServer.Addr)
 	return RunServer(secureServer, s.Listener, shutdownTimeout, stopCh)
 }
 
-// RunServer spawns a go-routine continuously serving until the stopCh is
-// closed.
+// RunServer listens on the given port if listener is not given,
+// then spawns a go-routine continuously serving until the stopCh is closed.
 // It returns a stoppedCh that is closed when all non-hijacked active requests
 // have been processed.
 // This function does not block

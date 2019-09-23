@@ -80,7 +80,7 @@ func TestHypervisorsGetUptime(t *testing.T) {
 	th.AssertEquals(t, hypervisorID, hypervisor.ID)
 }
 
-func getHypervisorID(t *testing.T, client *gophercloud.ServiceClient) (string, error) {
+func getHypervisorID(t *testing.T, client *gophercloud.ServiceClient) (int, error) {
 	allPages, err := hypervisors.List(client).AllPages()
 	th.AssertNoErr(t, err)
 
@@ -91,5 +91,5 @@ func getHypervisorID(t *testing.T, client *gophercloud.ServiceClient) (string, e
 		return allHypervisors[0].ID, nil
 	}
 
-	return "", fmt.Errorf("Unable to get hypervisor ID")
+	return 0, fmt.Errorf("Unable to get hypervisor ID")
 }

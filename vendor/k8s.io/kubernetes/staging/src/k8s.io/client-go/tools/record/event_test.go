@@ -19,6 +19,7 @@ package record
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"testing"
@@ -104,7 +105,7 @@ func OnPatchFactory(testCache map[string]*v1.Event, patchEvent chan<- *v1.Event)
 func TestEventf(t *testing.T) {
 	testPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			SelfLink:  "/api/v1/namespaces/baz/pods/foo",
+			SelfLink:  "/api/version/pods/foo",
 			Name:      "foo",
 			Namespace: "baz",
 			UID:       "bar",
@@ -112,7 +113,7 @@ func TestEventf(t *testing.T) {
 	}
 	testPod2 := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			SelfLink:  "/api/v1/namespaces/baz/pods/foo",
+			SelfLink:  "/api/version/pods/foo",
 			Name:      "foo",
 			Namespace: "baz",
 			UID:       "differentUid",
@@ -416,6 +417,7 @@ func TestWriteEventError(t *testing.T) {
 
 	clock := clock.IntervalClock{Time: time.Now(), Duration: time.Second}
 	eventCorrelator := NewEventCorrelator(&clock)
+	randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	for caseName, ent := range table {
 		attempts := 0
@@ -429,7 +431,7 @@ func TestWriteEventError(t *testing.T) {
 			},
 		}
 		ev := &v1.Event{}
-		recordToSink(sink, ev, eventCorrelator, 0)
+		recordToSink(sink, ev, eventCorrelator, randGen, 0)
 		if attempts != ent.attemptsWanted {
 			t.Errorf("case %v: wanted %d, got %d attempts", caseName, ent.attemptsWanted, attempts)
 		}
@@ -439,6 +441,7 @@ func TestWriteEventError(t *testing.T) {
 func TestUpdateExpiredEvent(t *testing.T) {
 	clock := clock.IntervalClock{Time: time.Now(), Duration: time.Second}
 	eventCorrelator := NewEventCorrelator(&clock)
+	randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	var createdEvent *v1.Event
 
@@ -459,7 +462,7 @@ func TestUpdateExpiredEvent(t *testing.T) {
 	ev := &v1.Event{}
 	ev.ResourceVersion = "updated-resource-version"
 	ev.Count = 2
-	recordToSink(sink, ev, eventCorrelator, 0)
+	recordToSink(sink, ev, eventCorrelator, randGen, 0)
 
 	if createdEvent == nil {
 		t.Error("Event did not get created after patch failed")
@@ -506,7 +509,7 @@ func TestLotsOfEvents(t *testing.T) {
 			Name:       fmt.Sprintf("foo-%v", i),
 			Namespace:  "baz",
 			UID:        "bar",
-			APIVersion: "version",
+			APIVersion: "v1",
 		}
 		// we need to vary the reason to prevent aggregation
 		go recorder.Eventf(ref, v1.EventTypeNormal, "Reason-"+string(i), strconv.Itoa(i))
@@ -529,7 +532,7 @@ func TestLotsOfEvents(t *testing.T) {
 func TestEventfNoNamespace(t *testing.T) {
 	testPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			SelfLink: "/api/v1/namespaces/default/pods/foo",
+			SelfLink: "/api/version/pods/foo",
 			Name:     "foo",
 			UID:      "bar",
 		},
@@ -626,7 +629,7 @@ func TestEventfNoNamespace(t *testing.T) {
 func TestMultiSinkCache(t *testing.T) {
 	testPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			SelfLink:  "/api/v1/namespaces/baz/pods/foo",
+			SelfLink:  "/api/version/pods/foo",
 			Name:      "foo",
 			Namespace: "baz",
 			UID:       "bar",
@@ -634,7 +637,7 @@ func TestMultiSinkCache(t *testing.T) {
 	}
 	testPod2 := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			SelfLink:  "/api/v1/namespaces/baz/pods/foo",
+			SelfLink:  "/api/version/pods/foo",
 			Name:      "foo",
 			Namespace: "baz",
 			UID:       "differentUid",

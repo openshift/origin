@@ -22,13 +22,11 @@ _testmain.go
 *.exe
 *.test
 *.prof
-*.zip
 
 # Editor swap files
 *.swp
 *~
 .DS_Store
-.vscode
 
 # ignore vendor/
 vendor/

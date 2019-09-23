@@ -475,8 +475,8 @@ func DgeevTest(t *testing.T, impl Dgeever) {
 			evWant: Zero(100).Eigenvalues(),
 		},
 	} {
-		for _, jobvl := range []lapack.LeftEVJob{lapack.LeftEVCompute, lapack.LeftEVNone} {
-			for _, jobvr := range []lapack.RightEVJob{lapack.RightEVCompute, lapack.RightEVNone} {
+		for _, jobvl := range []lapack.LeftEVJob{lapack.ComputeLeftEV, lapack.None} {
+			for _, jobvr := range []lapack.RightEVJob{lapack.ComputeRightEV, lapack.None} {
 				for _, extra := range []int{0, 11} {
 					for _, wl := range []worklen{minimumWork, mediumWork, optimumWork} {
 						testDgeev(t, impl, strconv.Itoa(i), test, jobvl, jobvr, extra, wl)
@@ -487,8 +487,8 @@ func DgeevTest(t *testing.T, impl Dgeever) {
 	}
 
 	for _, n := range []int{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20, 50, 51, 100, 101} {
-		for _, jobvl := range []lapack.LeftEVJob{lapack.LeftEVCompute, lapack.LeftEVNone} {
-			for _, jobvr := range []lapack.RightEVJob{lapack.RightEVCompute, lapack.RightEVNone} {
+		for _, jobvl := range []lapack.LeftEVJob{lapack.ComputeLeftEV, lapack.None} {
+			for _, jobvr := range []lapack.RightEVJob{lapack.ComputeRightEV, lapack.None} {
 				for cas := 0; cas < 10; cas++ {
 					// Create a block diagonal matrix with
 					// random eigenvalues of random multiplicity.
@@ -557,17 +557,13 @@ func testDgeev(t *testing.T, impl Dgeever, tc string, test dgeevTest, jobvl lapa
 	n := a.Rows
 
 	var vl blas64.General
-	if jobvl == lapack.LeftEVCompute {
+	if jobvl == lapack.ComputeLeftEV {
 		vl = nanGeneral(n, n, n)
-	} else {
-		vl.Stride = 1
 	}
 
 	var vr blas64.General
-	if jobvr == lapack.RightEVCompute {
+	if jobvr == lapack.ComputeRightEV {
 		vr = nanGeneral(n, n, n)
-	} else {
-		vr.Stride = 1
 	}
 
 	wr := make([]float64, n)
@@ -576,15 +572,15 @@ func testDgeev(t *testing.T, impl Dgeever, tc string, test dgeevTest, jobvl lapa
 	var lwork int
 	switch wl {
 	case minimumWork:
-		if jobvl == lapack.LeftEVCompute || jobvr == lapack.RightEVCompute {
+		if jobvl == lapack.ComputeLeftEV || jobvr == lapack.ComputeRightEV {
 			lwork = max(1, 4*n)
 		} else {
 			lwork = max(1, 3*n)
 		}
 	case mediumWork:
 		work := make([]float64, 1)
-		impl.Dgeev(jobvl, jobvr, n, a.Data, a.Stride, wr, wi, vl.Data, vl.Stride, vr.Data, vr.Stride, work, -1)
-		if jobvl == lapack.LeftEVCompute || jobvr == lapack.RightEVCompute {
+		impl.Dgeev(jobvl, jobvr, n, nil, 1, nil, nil, nil, 1, nil, 1, work, -1)
+		if jobvl == lapack.ComputeLeftEV || jobvr == lapack.ComputeRightEV {
 			lwork = (int(work[0]) + 4*n) / 2
 		} else {
 			lwork = (int(work[0]) + 3*n) / 2
@@ -592,7 +588,7 @@ func testDgeev(t *testing.T, impl Dgeever, tc string, test dgeevTest, jobvl lapa
 		lwork = max(1, lwork)
 	case optimumWork:
 		work := make([]float64, 1)
-		impl.Dgeev(jobvl, jobvr, n, a.Data, a.Stride, wr, wi, vl.Data, vl.Stride, vr.Data, vr.Stride, work, -1)
+		impl.Dgeev(jobvl, jobvr, n, nil, 1, nil, nil, nil, 1, nil, 1, work, -1)
 		lwork = int(work[0])
 	}
 	work := make([]float64, lwork)
@@ -648,7 +644,7 @@ func testDgeev(t *testing.T, impl Dgeever, tc string, test dgeevTest, jobvl lapa
 		}
 	}
 
-	if first > 0 || (jobvl == lapack.LeftEVNone && jobvr == lapack.RightEVNone) {
+	if first > 0 || (jobvl == lapack.None && jobvr == lapack.None) {
 		// No eigenvectors have been computed.
 		return
 	}
@@ -657,7 +653,7 @@ func testDgeev(t *testing.T, impl Dgeever, tc string, test dgeevTest, jobvl lapa
 	// to the computed eigenvalues.
 	for k := 0; k < n; {
 		if wi[k] == 0 {
-			if jobvl == lapack.LeftEVCompute {
+			if jobvl == lapack.ComputeLeftEV {
 				ev := columnOf(vl, k)
 				if !isLeftEigenvectorOf(test.a, ev, nil, complex(wr[k], 0), vecTol) {
 					t.Errorf("%v: VL[:,%v] is not left real eigenvector",
@@ -670,7 +666,7 @@ func testDgeev(t *testing.T, impl Dgeever, tc string, test dgeevTest, jobvl lapa
 						prefix, k, norm)
 				}
 			}
-			if jobvr == lapack.RightEVCompute {
+			if jobvr == lapack.ComputeRightEV {
 				ev := columnOf(vr, k)
 				if !isRightEigenvectorOf(test.a, ev, nil, complex(wr[k], 0), vecTol) {
 					t.Errorf("%v: VR[:,%v] is not right real eigenvector",
@@ -685,7 +681,7 @@ func testDgeev(t *testing.T, impl Dgeever, tc string, test dgeevTest, jobvl lapa
 			}
 			k++
 		} else {
-			if jobvl == lapack.LeftEVCompute {
+			if jobvl == lapack.ComputeLeftEV {
 				evre := columnOf(vl, k)
 				evim := columnOf(vl, k+1)
 				if !isLeftEigenvectorOf(test.a, evre, evim, complex(wr[k], wi[k]), vecTol) {
@@ -704,7 +700,7 @@ func testDgeev(t *testing.T, impl Dgeever, tc string, test dgeevTest, jobvl lapa
 						prefix, k, norm)
 				}
 			}
-			if jobvr == lapack.RightEVCompute {
+			if jobvr == lapack.ComputeRightEV {
 				evre := columnOf(vr, k)
 				evim := columnOf(vr, k+1)
 				if !isRightEigenvectorOf(test.a, evre, evim, complex(wr[k], wi[k]), vecTol) {

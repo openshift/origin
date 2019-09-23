@@ -14,7 +14,6 @@ spec:
       labels:
         name: cadvisor
     spec:
-      serviceAccountName: cadvisor
       containers:
       - name: cadvisor
         image: k8s.gcr.io/cadvisor:v0.30.2
@@ -23,7 +22,6 @@ spec:
             memory: 200Mi
             cpu: 150m
           limits:
-            memory: 2000Mi
             cpu: 300m
         volumeMounts:
         - name: rootfs

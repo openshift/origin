@@ -18,17 +18,12 @@ package keyvault
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 
 // ActionType enumerates the values for action type.
 type ActionType string
@@ -236,7 +231,7 @@ type AdministratorDetails struct {
 	FirstName *string `json:"first_name,omitempty"`
 	// LastName - Last name.
 	LastName *string `json:"last_name,omitempty"`
-	// EmailAddress - Email address.
+	// EmailAddress - Email addresss.
 	EmailAddress *string `json:"email,omitempty"`
 	// Phone - Phone number.
 	Phone *string `json:"phone,omitempty"`
@@ -250,43 +245,43 @@ type Attributes struct {
 	NotBefore *date.UnixTime `json:"nbf,omitempty"`
 	// Expires - Expiry date in UTC.
 	Expires *date.UnixTime `json:"exp,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC.
+	// Created - Creation time in UTC.
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC.
+	// Updated - Last updated time in UTC.
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 
 // BackupCertificateResult the backup certificate result, containing the backup blob.
 type BackupCertificateResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The backup blob containing the backed up certificate. (a URL-encoded base64 string)
+	// Value - The backup blob containing the backed up certificate. (a URL-encoded base64 string)
 	Value *string `json:"value,omitempty"`
 }
 
 // BackupKeyResult the backup key result, containing the backup blob.
 type BackupKeyResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The backup blob containing the backed up key. (a URL-encoded base64 string)
+	// Value - The backup blob containing the backed up key. (a URL-encoded base64 string)
 	Value *string `json:"value,omitempty"`
 }
 
 // BackupSecretResult the backup secret result, containing the backup blob.
 type BackupSecretResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The backup blob containing the backed up secret. (a URL-encoded base64 string)
+	// Value - The backup blob containing the backed up secret. (a URL-encoded base64 string)
 	Value *string `json:"value,omitempty"`
 }
 
 // BackupStorageResult the backup storage result, containing the backup blob.
 type BackupStorageResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The backup blob containing the backed up storage account. (a URL-encoded base64 string)
+	// Value - The backup blob containing the backed up storage account. (a URL-encoded base64 string)
 	Value *string `json:"value,omitempty"`
 }
 
 // CertificateAttributes the certificate management attributes.
 type CertificateAttributes struct {
-	// RecoveryLevel - READ-ONLY; Reflects the deletion recovery level currently in effect for certificates in the current vault. If it contains 'Purgeable', the certificate can be permanently deleted by a privileged user; otherwise, only the system can purge the certificate, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
+	// RecoveryLevel - Reflects the deletion recovery level currently in effect for certificates in the current vault. If it contains 'Purgeable', the certificate can be permanently deleted by a privileged user; otherwise, only the system can purge the certificate, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
 	RecoveryLevel DeletionRecoveryLevel `json:"recoveryLevel,omitempty"`
 	// Enabled - Determines whether the object is enabled.
 	Enabled *bool `json:"enabled,omitempty"`
@@ -294,24 +289,24 @@ type CertificateAttributes struct {
 	NotBefore *date.UnixTime `json:"nbf,omitempty"`
 	// Expires - Expiry date in UTC.
 	Expires *date.UnixTime `json:"exp,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC.
+	// Created - Creation time in UTC.
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC.
+	// Updated - Last updated time in UTC.
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 
 // CertificateBundle a certificate bundle consists of a certificate (X509) plus its attributes.
 type CertificateBundle struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; The certificate id.
+	// ID - The certificate id.
 	ID *string `json:"id,omitempty"`
-	// Kid - READ-ONLY; The key id.
+	// Kid - The key id.
 	Kid *string `json:"kid,omitempty"`
-	// Sid - READ-ONLY; The secret id.
+	// Sid - The secret id.
 	Sid *string `json:"sid,omitempty"`
-	// X509Thumbprint - READ-ONLY; Thumbprint of the certificate. (a URL-encoded base64 string)
+	// X509Thumbprint - Thumbprint of the certificate. (a URL-encoded base64 string)
 	X509Thumbprint *string `json:"x5t,omitempty"`
-	// Policy - READ-ONLY; The management policy.
+	// Policy - The management policy.
 	Policy *CertificatePolicy `json:"policy,omitempty"`
 	// Cer - CER contents of x509 certificate.
 	Cer *[]byte `json:"cer,omitempty"`
@@ -326,6 +321,21 @@ type CertificateBundle struct {
 // MarshalJSON is the custom marshaler for CertificateBundle.
 func (cb CertificateBundle) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if cb.ID != nil {
+		objectMap["id"] = cb.ID
+	}
+	if cb.Kid != nil {
+		objectMap["kid"] = cb.Kid
+	}
+	if cb.Sid != nil {
+		objectMap["sid"] = cb.Sid
+	}
+	if cb.X509Thumbprint != nil {
+		objectMap["x5t"] = cb.X509Thumbprint
+	}
+	if cb.Policy != nil {
+		objectMap["policy"] = cb.Policy
+	}
 	if cb.Cer != nil {
 		objectMap["cer"] = cb.Cer
 	}
@@ -412,50 +422,32 @@ type CertificateIssuerItem struct {
 // CertificateIssuerListResult the certificate issuer list result.
 type CertificateIssuerListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of certificate issuers in the key vault along with a link to the next page of certificate issuers.
+	// Value - A response message containing a list of certificate issuers in the key vault along with a link to the next page of certificate issuers.
 	Value *[]CertificateIssuerItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of certificate issuers.
+	// NextLink - The URL to get the next set of certificate issuers.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// CertificateIssuerListResultIterator provides access to a complete listing of CertificateIssuerItem
-// values.
+// CertificateIssuerListResultIterator provides access to a complete listing of CertificateIssuerItem values.
 type CertificateIssuerListResultIterator struct {
 	i    int
 	page CertificateIssuerListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *CertificateIssuerListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateIssuerListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *CertificateIssuerListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *CertificateIssuerListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -477,11 +469,6 @@ func (iter CertificateIssuerListResultIterator) Value() CertificateIssuerItem {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the CertificateIssuerListResultIterator type.
-func NewCertificateIssuerListResultIterator(page CertificateIssuerListResultPage) CertificateIssuerListResultIterator {
-	return CertificateIssuerListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (cilr CertificateIssuerListResult) IsEmpty() bool {
 	return cilr.Value == nil || len(*cilr.Value) == 0
@@ -489,11 +476,11 @@ func (cilr CertificateIssuerListResult) IsEmpty() bool {
 
 // certificateIssuerListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (cilr CertificateIssuerListResult) certificateIssuerListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (cilr CertificateIssuerListResult) certificateIssuerListResultPreparer() (*http.Request, error) {
 	if cilr.NextLink == nil || len(to.String(cilr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(cilr.NextLink)))
@@ -501,36 +488,19 @@ func (cilr CertificateIssuerListResult) certificateIssuerListResultPreparer(ctx 
 
 // CertificateIssuerListResultPage contains a page of CertificateIssuerItem values.
 type CertificateIssuerListResultPage struct {
-	fn   func(context.Context, CertificateIssuerListResult) (CertificateIssuerListResult, error)
+	fn   func(CertificateIssuerListResult) (CertificateIssuerListResult, error)
 	cilr CertificateIssuerListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *CertificateIssuerListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateIssuerListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.cilr)
+func (page *CertificateIssuerListResultPage) Next() error {
+	next, err := page.fn(page.cilr)
 	if err != nil {
 		return err
 	}
 	page.cilr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *CertificateIssuerListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -549,11 +519,6 @@ func (page CertificateIssuerListResultPage) Values() []CertificateIssuerItem {
 		return nil
 	}
 	return *page.cilr.Value
-}
-
-// Creates a new instance of the CertificateIssuerListResultPage type.
-func NewCertificateIssuerListResultPage(getNextPage func(context.Context, CertificateIssuerListResult) (CertificateIssuerListResult, error)) CertificateIssuerListResultPage {
-	return CertificateIssuerListResultPage{fn: getNextPage}
 }
 
 // CertificateIssuerSetParameters the certificate issuer set parameters.
@@ -613,9 +578,9 @@ func (ci CertificateItem) MarshalJSON() ([]byte, error) {
 // CertificateListResult the certificate list result.
 type CertificateListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of certificates in the key vault along with a link to the next page of certificates.
+	// Value - A response message containing a list of certificates in the key vault along with a link to the next page of certificates.
 	Value *[]CertificateItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of certificates.
+	// NextLink - The URL to get the next set of certificates.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -625,37 +590,20 @@ type CertificateListResultIterator struct {
 	page CertificateListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *CertificateListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *CertificateListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *CertificateListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -677,11 +625,6 @@ func (iter CertificateListResultIterator) Value() CertificateItem {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the CertificateListResultIterator type.
-func NewCertificateListResultIterator(page CertificateListResultPage) CertificateListResultIterator {
-	return CertificateListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (clr CertificateListResult) IsEmpty() bool {
 	return clr.Value == nil || len(*clr.Value) == 0
@@ -689,11 +632,11 @@ func (clr CertificateListResult) IsEmpty() bool {
 
 // certificateListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (clr CertificateListResult) certificateListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (clr CertificateListResult) certificateListResultPreparer() (*http.Request, error) {
 	if clr.NextLink == nil || len(to.String(clr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(clr.NextLink)))
@@ -701,36 +644,19 @@ func (clr CertificateListResult) certificateListResultPreparer(ctx context.Conte
 
 // CertificateListResultPage contains a page of CertificateItem values.
 type CertificateListResultPage struct {
-	fn  func(context.Context, CertificateListResult) (CertificateListResult, error)
+	fn  func(CertificateListResult) (CertificateListResult, error)
 	clr CertificateListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *CertificateListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.clr)
+func (page *CertificateListResultPage) Next() error {
+	next, err := page.fn(page.clr)
 	if err != nil {
 		return err
 	}
 	page.clr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *CertificateListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -749,11 +675,6 @@ func (page CertificateListResultPage) Values() []CertificateItem {
 		return nil
 	}
 	return *page.clr.Value
-}
-
-// Creates a new instance of the CertificateListResultPage type.
-func NewCertificateListResultPage(getNextPage func(context.Context, CertificateListResult) (CertificateListResult, error)) CertificateListResultPage {
-	return CertificateListResultPage{fn: getNextPage}
 }
 
 // CertificateMergeParameters the certificate merge parameters
@@ -784,7 +705,7 @@ func (cmp CertificateMergeParameters) MarshalJSON() ([]byte, error) {
 // CertificateOperation a certificate operation is returned in case of asynchronous requests.
 type CertificateOperation struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; The certificate id.
+	// ID - The certificate id.
 	ID *string `json:"id,omitempty"`
 	// IssuerParameters - Parameters for the issuer of the X509 component of a certificate.
 	IssuerParameters *IssuerParameters `json:"issuer,omitempty"`
@@ -813,7 +734,7 @@ type CertificateOperationUpdateParameter struct {
 // CertificatePolicy management policy for a certificate.
 type CertificatePolicy struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; The certificate id.
+	// ID - The certificate id.
 	ID *string `json:"id,omitempty"`
 	// KeyProperties - Properties of the key backing a certificate.
 	KeyProperties *KeyProperties `json:"key_props,omitempty"`
@@ -862,7 +783,7 @@ func (cup CertificateUpdateParameters) MarshalJSON() ([]byte, error) {
 
 // Contact the contact information for the vault certificates.
 type Contact struct {
-	// EmailAddress - Email address.
+	// EmailAddress - Email addresss.
 	EmailAddress *string `json:"email,omitempty"`
 	// Name - Name.
 	Name *string `json:"name,omitempty"`
@@ -873,31 +794,31 @@ type Contact struct {
 // Contacts the contacts for the vault certificates.
 type Contacts struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; Identifier for the contacts collection.
+	// ID - Identifier for the contacts collection.
 	ID *string `json:"id,omitempty"`
 	// ContactList - The contact list for the vault certificates.
 	ContactList *[]Contact `json:"contacts,omitempty"`
 }
 
-// DeletedCertificateBundle a Deleted Certificate consisting of its previous id, attributes and its tags,
-// as well as information on when it will be purged.
+// DeletedCertificateBundle a Deleted Certificate consisting of its previous id, attributes and its tags, as well
+// as information on when it will be purged.
 type DeletedCertificateBundle struct {
 	autorest.Response `json:"-"`
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted certificate.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the certificate is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the certificate is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the certificate was deleted, in UTC
+	// DeletedDate - The time when the certificate was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
-	// ID - READ-ONLY; The certificate id.
+	// ID - The certificate id.
 	ID *string `json:"id,omitempty"`
-	// Kid - READ-ONLY; The key id.
+	// Kid - The key id.
 	Kid *string `json:"kid,omitempty"`
-	// Sid - READ-ONLY; The secret id.
+	// Sid - The secret id.
 	Sid *string `json:"sid,omitempty"`
-	// X509Thumbprint - READ-ONLY; Thumbprint of the certificate. (a URL-encoded base64 string)
+	// X509Thumbprint - Thumbprint of the certificate. (a URL-encoded base64 string)
 	X509Thumbprint *string `json:"x5t,omitempty"`
-	// Policy - READ-ONLY; The management policy.
+	// Policy - The management policy.
 	Policy *CertificatePolicy `json:"policy,omitempty"`
 	// Cer - CER contents of x509 certificate.
 	Cer *[]byte `json:"cer,omitempty"`
@@ -914,6 +835,27 @@ func (dcb DeletedCertificateBundle) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dcb.RecoveryID != nil {
 		objectMap["recoveryId"] = dcb.RecoveryID
+	}
+	if dcb.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dcb.ScheduledPurgeDate
+	}
+	if dcb.DeletedDate != nil {
+		objectMap["deletedDate"] = dcb.DeletedDate
+	}
+	if dcb.ID != nil {
+		objectMap["id"] = dcb.ID
+	}
+	if dcb.Kid != nil {
+		objectMap["kid"] = dcb.Kid
+	}
+	if dcb.Sid != nil {
+		objectMap["sid"] = dcb.Sid
+	}
+	if dcb.X509Thumbprint != nil {
+		objectMap["x5t"] = dcb.X509Thumbprint
+	}
+	if dcb.Policy != nil {
+		objectMap["policy"] = dcb.Policy
 	}
 	if dcb.Cer != nil {
 		objectMap["cer"] = dcb.Cer
@@ -934,9 +876,9 @@ func (dcb DeletedCertificateBundle) MarshalJSON() ([]byte, error) {
 type DeletedCertificateItem struct {
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted certificate.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the certificate is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the certificate is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the certificate was deleted, in UTC
+	// DeletedDate - The time when the certificate was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
 	// ID - Certificate identifier.
 	ID *string `json:"id,omitempty"`
@@ -953,6 +895,12 @@ func (dci DeletedCertificateItem) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dci.RecoveryID != nil {
 		objectMap["recoveryId"] = dci.RecoveryID
+	}
+	if dci.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dci.ScheduledPurgeDate
+	}
+	if dci.DeletedDate != nil {
+		objectMap["deletedDate"] = dci.DeletedDate
 	}
 	if dci.ID != nil {
 		objectMap["id"] = dci.ID
@@ -972,50 +920,32 @@ func (dci DeletedCertificateItem) MarshalJSON() ([]byte, error) {
 // DeletedCertificateListResult a list of certificates that have been deleted in this vault.
 type DeletedCertificateListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of deleted certificates in the vault along with a link to the next page of deleted certificates
+	// Value - A response message containing a list of deleted certificates in the vault along with a link to the next page of deleted certificates
 	Value *[]DeletedCertificateItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of deleted certificates.
+	// NextLink - The URL to get the next set of deleted certificates.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// DeletedCertificateListResultIterator provides access to a complete listing of DeletedCertificateItem
-// values.
+// DeletedCertificateListResultIterator provides access to a complete listing of DeletedCertificateItem values.
 type DeletedCertificateListResultIterator struct {
 	i    int
 	page DeletedCertificateListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *DeletedCertificateListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedCertificateListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *DeletedCertificateListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *DeletedCertificateListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1037,11 +967,6 @@ func (iter DeletedCertificateListResultIterator) Value() DeletedCertificateItem 
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the DeletedCertificateListResultIterator type.
-func NewDeletedCertificateListResultIterator(page DeletedCertificateListResultPage) DeletedCertificateListResultIterator {
-	return DeletedCertificateListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (dclr DeletedCertificateListResult) IsEmpty() bool {
 	return dclr.Value == nil || len(*dclr.Value) == 0
@@ -1049,11 +974,11 @@ func (dclr DeletedCertificateListResult) IsEmpty() bool {
 
 // deletedCertificateListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (dclr DeletedCertificateListResult) deletedCertificateListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (dclr DeletedCertificateListResult) deletedCertificateListResultPreparer() (*http.Request, error) {
 	if dclr.NextLink == nil || len(to.String(dclr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(dclr.NextLink)))
@@ -1061,36 +986,19 @@ func (dclr DeletedCertificateListResult) deletedCertificateListResultPreparer(ct
 
 // DeletedCertificateListResultPage contains a page of DeletedCertificateItem values.
 type DeletedCertificateListResultPage struct {
-	fn   func(context.Context, DeletedCertificateListResult) (DeletedCertificateListResult, error)
+	fn   func(DeletedCertificateListResult) (DeletedCertificateListResult, error)
 	dclr DeletedCertificateListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *DeletedCertificateListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedCertificateListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.dclr)
+func (page *DeletedCertificateListResultPage) Next() error {
+	next, err := page.fn(page.dclr)
 	if err != nil {
 		return err
 	}
 	page.dclr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *DeletedCertificateListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1111,19 +1019,14 @@ func (page DeletedCertificateListResultPage) Values() []DeletedCertificateItem {
 	return *page.dclr.Value
 }
 
-// Creates a new instance of the DeletedCertificateListResultPage type.
-func NewDeletedCertificateListResultPage(getNextPage func(context.Context, DeletedCertificateListResult) (DeletedCertificateListResult, error)) DeletedCertificateListResultPage {
-	return DeletedCertificateListResultPage{fn: getNextPage}
-}
-
 // DeletedKeyBundle a DeletedKeyBundle consisting of a WebKey plus its Attributes and deletion info
 type DeletedKeyBundle struct {
 	autorest.Response `json:"-"`
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted key.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the key is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the key is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the key was deleted, in UTC
+	// DeletedDate - The time when the key was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
 	// Key - The Json web key.
 	Key *JSONWebKey `json:"key,omitempty"`
@@ -1131,7 +1034,7 @@ type DeletedKeyBundle struct {
 	Attributes *KeyAttributes `json:"attributes,omitempty"`
 	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
-	// Managed - READ-ONLY; True if the key's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
+	// Managed - True if the key's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
 	Managed *bool `json:"managed,omitempty"`
 }
 
@@ -1140,6 +1043,12 @@ func (dkb DeletedKeyBundle) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dkb.RecoveryID != nil {
 		objectMap["recoveryId"] = dkb.RecoveryID
+	}
+	if dkb.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dkb.ScheduledPurgeDate
+	}
+	if dkb.DeletedDate != nil {
+		objectMap["deletedDate"] = dkb.DeletedDate
 	}
 	if dkb.Key != nil {
 		objectMap["key"] = dkb.Key
@@ -1150,6 +1059,9 @@ func (dkb DeletedKeyBundle) MarshalJSON() ([]byte, error) {
 	if dkb.Tags != nil {
 		objectMap["tags"] = dkb.Tags
 	}
+	if dkb.Managed != nil {
+		objectMap["managed"] = dkb.Managed
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1157,9 +1069,9 @@ func (dkb DeletedKeyBundle) MarshalJSON() ([]byte, error) {
 type DeletedKeyItem struct {
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted key.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the key is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the key is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the key was deleted, in UTC
+	// DeletedDate - The time when the key was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
 	// Kid - Key identifier.
 	Kid *string `json:"kid,omitempty"`
@@ -1167,7 +1079,7 @@ type DeletedKeyItem struct {
 	Attributes *KeyAttributes `json:"attributes,omitempty"`
 	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
-	// Managed - READ-ONLY; True if the key's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
+	// Managed - True if the key's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
 	Managed *bool `json:"managed,omitempty"`
 }
 
@@ -1176,6 +1088,12 @@ func (dki DeletedKeyItem) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dki.RecoveryID != nil {
 		objectMap["recoveryId"] = dki.RecoveryID
+	}
+	if dki.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dki.ScheduledPurgeDate
+	}
+	if dki.DeletedDate != nil {
+		objectMap["deletedDate"] = dki.DeletedDate
 	}
 	if dki.Kid != nil {
 		objectMap["kid"] = dki.Kid
@@ -1186,15 +1104,18 @@ func (dki DeletedKeyItem) MarshalJSON() ([]byte, error) {
 	if dki.Tags != nil {
 		objectMap["tags"] = dki.Tags
 	}
+	if dki.Managed != nil {
+		objectMap["managed"] = dki.Managed
+	}
 	return json.Marshal(objectMap)
 }
 
 // DeletedKeyListResult a list of keys that have been deleted in this vault.
 type DeletedKeyListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of deleted keys in the vault along with a link to the next page of deleted keys
+	// Value - A response message containing a list of deleted keys in the vault along with a link to the next page of deleted keys
 	Value *[]DeletedKeyItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of deleted keys.
+	// NextLink - The URL to get the next set of deleted keys.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1204,37 +1125,20 @@ type DeletedKeyListResultIterator struct {
 	page DeletedKeyListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *DeletedKeyListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedKeyListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *DeletedKeyListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *DeletedKeyListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1256,11 +1160,6 @@ func (iter DeletedKeyListResultIterator) Value() DeletedKeyItem {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the DeletedKeyListResultIterator type.
-func NewDeletedKeyListResultIterator(page DeletedKeyListResultPage) DeletedKeyListResultIterator {
-	return DeletedKeyListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (dklr DeletedKeyListResult) IsEmpty() bool {
 	return dklr.Value == nil || len(*dklr.Value) == 0
@@ -1268,11 +1167,11 @@ func (dklr DeletedKeyListResult) IsEmpty() bool {
 
 // deletedKeyListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (dklr DeletedKeyListResult) deletedKeyListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (dklr DeletedKeyListResult) deletedKeyListResultPreparer() (*http.Request, error) {
 	if dklr.NextLink == nil || len(to.String(dklr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(dklr.NextLink)))
@@ -1280,36 +1179,19 @@ func (dklr DeletedKeyListResult) deletedKeyListResultPreparer(ctx context.Contex
 
 // DeletedKeyListResultPage contains a page of DeletedKeyItem values.
 type DeletedKeyListResultPage struct {
-	fn   func(context.Context, DeletedKeyListResult) (DeletedKeyListResult, error)
+	fn   func(DeletedKeyListResult) (DeletedKeyListResult, error)
 	dklr DeletedKeyListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *DeletedKeyListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedKeyListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.dklr)
+func (page *DeletedKeyListResultPage) Next() error {
+	next, err := page.fn(page.dklr)
 	if err != nil {
 		return err
 	}
 	page.dklr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *DeletedKeyListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1330,34 +1212,29 @@ func (page DeletedKeyListResultPage) Values() []DeletedKeyItem {
 	return *page.dklr.Value
 }
 
-// Creates a new instance of the DeletedKeyListResultPage type.
-func NewDeletedKeyListResultPage(getNextPage func(context.Context, DeletedKeyListResult) (DeletedKeyListResult, error)) DeletedKeyListResultPage {
-	return DeletedKeyListResultPage{fn: getNextPage}
-}
-
-// DeletedSasDefinitionBundle a deleted SAS definition bundle consisting of its previous id, attributes and
-// its tags, as well as information on when it will be purged.
+// DeletedSasDefinitionBundle a deleted SAS definition bundle consisting of its previous id, attributes and its
+// tags, as well as information on when it will be purged.
 type DeletedSasDefinitionBundle struct {
 	autorest.Response `json:"-"`
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted SAS definition.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the SAS definition is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the SAS definition is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the SAS definition was deleted, in UTC
+	// DeletedDate - The time when the SAS definition was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
-	// ID - READ-ONLY; The SAS definition id.
+	// ID - The SAS definition id.
 	ID *string `json:"id,omitempty"`
-	// SecretID - READ-ONLY; Storage account SAS definition secret id.
+	// SecretID - Storage account SAS definition secret id.
 	SecretID *string `json:"sid,omitempty"`
-	// TemplateURI - READ-ONLY; The SAS definition token template signed with an arbitrary key.  Tokens created according to the SAS definition will have the same properties as the template.
+	// TemplateURI - The SAS definition token template signed with an arbitrary key.  Tokens created according to the SAS definition will have the same properties as the template.
 	TemplateURI *string `json:"templateUri,omitempty"`
-	// SasType - READ-ONLY; The type of SAS token the SAS definition will create. Possible values include: 'Account', 'Service'
+	// SasType - The type of SAS token the SAS definition will create. Possible values include: 'Account', 'Service'
 	SasType SasTokenType `json:"sasType,omitempty"`
-	// ValidityPeriod - READ-ONLY; The validity period of SAS tokens created according to the SAS definition.
+	// ValidityPeriod - The validity period of SAS tokens created according to the SAS definition.
 	ValidityPeriod *string `json:"validityPeriod,omitempty"`
-	// Attributes - READ-ONLY; The SAS definition attributes.
+	// Attributes - The SAS definition attributes.
 	Attributes *SasDefinitionAttributes `json:"attributes,omitempty"`
-	// Tags - READ-ONLY; Application specific metadata in the form of key-value pairs
+	// Tags - Application specific metadata in the form of key-value pairs
 	Tags map[string]*string `json:"tags"`
 }
 
@@ -1367,25 +1244,51 @@ func (dsdb DeletedSasDefinitionBundle) MarshalJSON() ([]byte, error) {
 	if dsdb.RecoveryID != nil {
 		objectMap["recoveryId"] = dsdb.RecoveryID
 	}
+	if dsdb.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dsdb.ScheduledPurgeDate
+	}
+	if dsdb.DeletedDate != nil {
+		objectMap["deletedDate"] = dsdb.DeletedDate
+	}
+	if dsdb.ID != nil {
+		objectMap["id"] = dsdb.ID
+	}
+	if dsdb.SecretID != nil {
+		objectMap["sid"] = dsdb.SecretID
+	}
+	if dsdb.TemplateURI != nil {
+		objectMap["templateUri"] = dsdb.TemplateURI
+	}
+	if dsdb.SasType != "" {
+		objectMap["sasType"] = dsdb.SasType
+	}
+	if dsdb.ValidityPeriod != nil {
+		objectMap["validityPeriod"] = dsdb.ValidityPeriod
+	}
+	if dsdb.Attributes != nil {
+		objectMap["attributes"] = dsdb.Attributes
+	}
+	if dsdb.Tags != nil {
+		objectMap["tags"] = dsdb.Tags
+	}
 	return json.Marshal(objectMap)
 }
 
-// DeletedSasDefinitionItem the deleted SAS definition item containing metadata about the deleted SAS
-// definition.
+// DeletedSasDefinitionItem the deleted SAS definition item containing metadata about the deleted SAS definition.
 type DeletedSasDefinitionItem struct {
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted SAS definition.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the SAS definition is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the SAS definition is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the SAS definition was deleted, in UTC
+	// DeletedDate - The time when the SAS definition was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
-	// ID - READ-ONLY; The storage SAS identifier.
+	// ID - The storage SAS identifier.
 	ID *string `json:"id,omitempty"`
-	// SecretID - READ-ONLY; The storage account SAS definition secret id.
+	// SecretID - The storage account SAS definition secret id.
 	SecretID *string `json:"sid,omitempty"`
-	// Attributes - READ-ONLY; The SAS definition management attributes.
+	// Attributes - The SAS definition management attributes.
 	Attributes *SasDefinitionAttributes `json:"attributes,omitempty"`
-	// Tags - READ-ONLY; Application specific metadata in the form of key-value pairs.
+	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
 }
 
@@ -1395,56 +1298,56 @@ func (dsdi DeletedSasDefinitionItem) MarshalJSON() ([]byte, error) {
 	if dsdi.RecoveryID != nil {
 		objectMap["recoveryId"] = dsdi.RecoveryID
 	}
+	if dsdi.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dsdi.ScheduledPurgeDate
+	}
+	if dsdi.DeletedDate != nil {
+		objectMap["deletedDate"] = dsdi.DeletedDate
+	}
+	if dsdi.ID != nil {
+		objectMap["id"] = dsdi.ID
+	}
+	if dsdi.SecretID != nil {
+		objectMap["sid"] = dsdi.SecretID
+	}
+	if dsdi.Attributes != nil {
+		objectMap["attributes"] = dsdi.Attributes
+	}
+	if dsdi.Tags != nil {
+		objectMap["tags"] = dsdi.Tags
+	}
 	return json.Marshal(objectMap)
 }
 
 // DeletedSasDefinitionListResult the deleted SAS definition list result
 type DeletedSasDefinitionListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of the deleted SAS definitions in the vault along with a link to the next page of deleted sas definitions
+	// Value - A response message containing a list of the deleted SAS definitions in the vault along with a link to the next page of deleted sas definitions
 	Value *[]DeletedSasDefinitionItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of deleted SAS definitions.
+	// NextLink - The URL to get the next set of deleted SAS definitions.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// DeletedSasDefinitionListResultIterator provides access to a complete listing of DeletedSasDefinitionItem
-// values.
+// DeletedSasDefinitionListResultIterator provides access to a complete listing of DeletedSasDefinitionItem values.
 type DeletedSasDefinitionListResultIterator struct {
 	i    int
 	page DeletedSasDefinitionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *DeletedSasDefinitionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedSasDefinitionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *DeletedSasDefinitionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *DeletedSasDefinitionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1466,11 +1369,6 @@ func (iter DeletedSasDefinitionListResultIterator) Value() DeletedSasDefinitionI
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the DeletedSasDefinitionListResultIterator type.
-func NewDeletedSasDefinitionListResultIterator(page DeletedSasDefinitionListResultPage) DeletedSasDefinitionListResultIterator {
-	return DeletedSasDefinitionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (dsdlr DeletedSasDefinitionListResult) IsEmpty() bool {
 	return dsdlr.Value == nil || len(*dsdlr.Value) == 0
@@ -1478,11 +1376,11 @@ func (dsdlr DeletedSasDefinitionListResult) IsEmpty() bool {
 
 // deletedSasDefinitionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (dsdlr DeletedSasDefinitionListResult) deletedSasDefinitionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (dsdlr DeletedSasDefinitionListResult) deletedSasDefinitionListResultPreparer() (*http.Request, error) {
 	if dsdlr.NextLink == nil || len(to.String(dsdlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(dsdlr.NextLink)))
@@ -1490,36 +1388,19 @@ func (dsdlr DeletedSasDefinitionListResult) deletedSasDefinitionListResultPrepar
 
 // DeletedSasDefinitionListResultPage contains a page of DeletedSasDefinitionItem values.
 type DeletedSasDefinitionListResultPage struct {
-	fn    func(context.Context, DeletedSasDefinitionListResult) (DeletedSasDefinitionListResult, error)
+	fn    func(DeletedSasDefinitionListResult) (DeletedSasDefinitionListResult, error)
 	dsdlr DeletedSasDefinitionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *DeletedSasDefinitionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedSasDefinitionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.dsdlr)
+func (page *DeletedSasDefinitionListResultPage) Next() error {
+	next, err := page.fn(page.dsdlr)
 	if err != nil {
 		return err
 	}
 	page.dsdlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *DeletedSasDefinitionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1540,20 +1421,15 @@ func (page DeletedSasDefinitionListResultPage) Values() []DeletedSasDefinitionIt
 	return *page.dsdlr.Value
 }
 
-// Creates a new instance of the DeletedSasDefinitionListResultPage type.
-func NewDeletedSasDefinitionListResultPage(getNextPage func(context.Context, DeletedSasDefinitionListResult) (DeletedSasDefinitionListResult, error)) DeletedSasDefinitionListResultPage {
-	return DeletedSasDefinitionListResultPage{fn: getNextPage}
-}
-
 // DeletedSecretBundle a Deleted Secret consisting of its previous id, attributes and its tags, as well as
 // information on when it will be purged.
 type DeletedSecretBundle struct {
 	autorest.Response `json:"-"`
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted secret.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the secret is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the secret is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the secret was deleted, in UTC
+	// DeletedDate - The time when the secret was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
 	// Value - The secret value.
 	Value *string `json:"value,omitempty"`
@@ -1565,9 +1441,9 @@ type DeletedSecretBundle struct {
 	Attributes *SecretAttributes `json:"attributes,omitempty"`
 	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
-	// Kid - READ-ONLY; If this is a secret backing a KV certificate, then this field specifies the corresponding key backing the KV certificate.
+	// Kid - If this is a secret backing a KV certificate, then this field specifies the corresponding key backing the KV certificate.
 	Kid *string `json:"kid,omitempty"`
-	// Managed - READ-ONLY; True if the secret's lifetime is managed by key vault. If this is a secret backing a certificate, then managed will be true.
+	// Managed - True if the secret's lifetime is managed by key vault. If this is a secret backing a certificate, then managed will be true.
 	Managed *bool `json:"managed,omitempty"`
 }
 
@@ -1576,6 +1452,12 @@ func (dsb DeletedSecretBundle) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dsb.RecoveryID != nil {
 		objectMap["recoveryId"] = dsb.RecoveryID
+	}
+	if dsb.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dsb.ScheduledPurgeDate
+	}
+	if dsb.DeletedDate != nil {
+		objectMap["deletedDate"] = dsb.DeletedDate
 	}
 	if dsb.Value != nil {
 		objectMap["value"] = dsb.Value
@@ -1592,6 +1474,12 @@ func (dsb DeletedSecretBundle) MarshalJSON() ([]byte, error) {
 	if dsb.Tags != nil {
 		objectMap["tags"] = dsb.Tags
 	}
+	if dsb.Kid != nil {
+		objectMap["kid"] = dsb.Kid
+	}
+	if dsb.Managed != nil {
+		objectMap["managed"] = dsb.Managed
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1599,9 +1487,9 @@ func (dsb DeletedSecretBundle) MarshalJSON() ([]byte, error) {
 type DeletedSecretItem struct {
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted secret.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the secret is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the secret is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the secret was deleted, in UTC
+	// DeletedDate - The time when the secret was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
 	// ID - Secret identifier.
 	ID *string `json:"id,omitempty"`
@@ -1611,7 +1499,7 @@ type DeletedSecretItem struct {
 	Tags map[string]*string `json:"tags"`
 	// ContentType - Type of the secret value such as a password.
 	ContentType *string `json:"contentType,omitempty"`
-	// Managed - READ-ONLY; True if the secret's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
+	// Managed - True if the secret's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
 	Managed *bool `json:"managed,omitempty"`
 }
 
@@ -1620,6 +1508,12 @@ func (dsi DeletedSecretItem) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if dsi.RecoveryID != nil {
 		objectMap["recoveryId"] = dsi.RecoveryID
+	}
+	if dsi.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dsi.ScheduledPurgeDate
+	}
+	if dsi.DeletedDate != nil {
+		objectMap["deletedDate"] = dsi.DeletedDate
 	}
 	if dsi.ID != nil {
 		objectMap["id"] = dsi.ID
@@ -1633,15 +1527,18 @@ func (dsi DeletedSecretItem) MarshalJSON() ([]byte, error) {
 	if dsi.ContentType != nil {
 		objectMap["contentType"] = dsi.ContentType
 	}
+	if dsi.Managed != nil {
+		objectMap["managed"] = dsi.Managed
+	}
 	return json.Marshal(objectMap)
 }
 
 // DeletedSecretListResult the deleted secret list result
 type DeletedSecretListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of the deleted secrets in the vault along with a link to the next page of deleted secrets
+	// Value - A response message containing a list of the deleted secrets in the vault along with a link to the next page of deleted secrets
 	Value *[]DeletedSecretItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of deleted secrets.
+	// NextLink - The URL to get the next set of deleted secrets.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1651,37 +1548,20 @@ type DeletedSecretListResultIterator struct {
 	page DeletedSecretListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *DeletedSecretListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedSecretListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *DeletedSecretListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *DeletedSecretListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1703,11 +1583,6 @@ func (iter DeletedSecretListResultIterator) Value() DeletedSecretItem {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the DeletedSecretListResultIterator type.
-func NewDeletedSecretListResultIterator(page DeletedSecretListResultPage) DeletedSecretListResultIterator {
-	return DeletedSecretListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (dslr DeletedSecretListResult) IsEmpty() bool {
 	return dslr.Value == nil || len(*dslr.Value) == 0
@@ -1715,11 +1590,11 @@ func (dslr DeletedSecretListResult) IsEmpty() bool {
 
 // deletedSecretListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (dslr DeletedSecretListResult) deletedSecretListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (dslr DeletedSecretListResult) deletedSecretListResultPreparer() (*http.Request, error) {
 	if dslr.NextLink == nil || len(to.String(dslr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(dslr.NextLink)))
@@ -1727,36 +1602,19 @@ func (dslr DeletedSecretListResult) deletedSecretListResultPreparer(ctx context.
 
 // DeletedSecretListResultPage contains a page of DeletedSecretItem values.
 type DeletedSecretListResultPage struct {
-	fn   func(context.Context, DeletedSecretListResult) (DeletedSecretListResult, error)
+	fn   func(DeletedSecretListResult) (DeletedSecretListResult, error)
 	dslr DeletedSecretListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *DeletedSecretListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedSecretListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.dslr)
+func (page *DeletedSecretListResultPage) Next() error {
+	next, err := page.fn(page.dslr)
 	if err != nil {
 		return err
 	}
 	page.dslr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *DeletedSecretListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1777,27 +1635,22 @@ func (page DeletedSecretListResultPage) Values() []DeletedSecretItem {
 	return *page.dslr.Value
 }
 
-// Creates a new instance of the DeletedSecretListResultPage type.
-func NewDeletedSecretListResultPage(getNextPage func(context.Context, DeletedSecretListResult) (DeletedSecretListResult, error)) DeletedSecretListResultPage {
-	return DeletedSecretListResultPage{fn: getNextPage}
-}
-
 // DeletedStorageAccountItem the deleted storage account item containing metadata about the deleted storage
 // account.
 type DeletedStorageAccountItem struct {
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted storage account.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the storage account is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the storage account is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the storage account was deleted, in UTC
+	// DeletedDate - The time when the storage account was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
-	// ID - READ-ONLY; Storage identifier.
+	// ID - Storage identifier.
 	ID *string `json:"id,omitempty"`
-	// ResourceID - READ-ONLY; Storage account resource Id.
+	// ResourceID - Storage account resource Id.
 	ResourceID *string `json:"resourceId,omitempty"`
-	// Attributes - READ-ONLY; The storage account management attributes.
+	// Attributes - The storage account management attributes.
 	Attributes *StorageAccountAttributes `json:"attributes,omitempty"`
-	// Tags - READ-ONLY; Application specific metadata in the form of key-value pairs.
+	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
 }
 
@@ -1807,32 +1660,50 @@ func (dsai DeletedStorageAccountItem) MarshalJSON() ([]byte, error) {
 	if dsai.RecoveryID != nil {
 		objectMap["recoveryId"] = dsai.RecoveryID
 	}
+	if dsai.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dsai.ScheduledPurgeDate
+	}
+	if dsai.DeletedDate != nil {
+		objectMap["deletedDate"] = dsai.DeletedDate
+	}
+	if dsai.ID != nil {
+		objectMap["id"] = dsai.ID
+	}
+	if dsai.ResourceID != nil {
+		objectMap["resourceId"] = dsai.ResourceID
+	}
+	if dsai.Attributes != nil {
+		objectMap["attributes"] = dsai.Attributes
+	}
+	if dsai.Tags != nil {
+		objectMap["tags"] = dsai.Tags
+	}
 	return json.Marshal(objectMap)
 }
 
-// DeletedStorageBundle a deleted storage account bundle consisting of its previous id, attributes and its
-// tags, as well as information on when it will be purged.
+// DeletedStorageBundle a deleted storage account bundle consisting of its previous id, attributes and its tags, as
+// well as information on when it will be purged.
 type DeletedStorageBundle struct {
 	autorest.Response `json:"-"`
 	// RecoveryID - The url of the recovery object, used to identify and recover the deleted storage account.
 	RecoveryID *string `json:"recoveryId,omitempty"`
-	// ScheduledPurgeDate - READ-ONLY; The time when the storage account is scheduled to be purged, in UTC
+	// ScheduledPurgeDate - The time when the storage account is scheduled to be purged, in UTC
 	ScheduledPurgeDate *date.UnixTime `json:"scheduledPurgeDate,omitempty"`
-	// DeletedDate - READ-ONLY; The time when the storage account was deleted, in UTC
+	// DeletedDate - The time when the storage account was deleted, in UTC
 	DeletedDate *date.UnixTime `json:"deletedDate,omitempty"`
-	// ID - READ-ONLY; The storage account id.
+	// ID - The storage account id.
 	ID *string `json:"id,omitempty"`
-	// ResourceID - READ-ONLY; The storage account resource id.
+	// ResourceID - The storage account resource id.
 	ResourceID *string `json:"resourceId,omitempty"`
-	// ActiveKeyName - READ-ONLY; The current active storage account key name.
+	// ActiveKeyName - The current active storage account key name.
 	ActiveKeyName *string `json:"activeKeyName,omitempty"`
-	// AutoRegenerateKey - READ-ONLY; whether keyvault should manage the storage account for the user.
+	// AutoRegenerateKey - whether keyvault should manage the storage account for the user.
 	AutoRegenerateKey *bool `json:"autoRegenerateKey,omitempty"`
-	// RegenerationPeriod - READ-ONLY; The key regeneration time duration specified in ISO-8601 format.
+	// RegenerationPeriod - The key regeneration time duration specified in ISO-8601 format.
 	RegenerationPeriod *string `json:"regenerationPeriod,omitempty"`
-	// Attributes - READ-ONLY; The storage account attributes.
+	// Attributes - The storage account attributes.
 	Attributes *StorageAccountAttributes `json:"attributes,omitempty"`
-	// Tags - READ-ONLY; Application specific metadata in the form of key-value pairs
+	// Tags - Application specific metadata in the form of key-value pairs
 	Tags map[string]*string `json:"tags"`
 }
 
@@ -1842,56 +1713,65 @@ func (dsb DeletedStorageBundle) MarshalJSON() ([]byte, error) {
 	if dsb.RecoveryID != nil {
 		objectMap["recoveryId"] = dsb.RecoveryID
 	}
+	if dsb.ScheduledPurgeDate != nil {
+		objectMap["scheduledPurgeDate"] = dsb.ScheduledPurgeDate
+	}
+	if dsb.DeletedDate != nil {
+		objectMap["deletedDate"] = dsb.DeletedDate
+	}
+	if dsb.ID != nil {
+		objectMap["id"] = dsb.ID
+	}
+	if dsb.ResourceID != nil {
+		objectMap["resourceId"] = dsb.ResourceID
+	}
+	if dsb.ActiveKeyName != nil {
+		objectMap["activeKeyName"] = dsb.ActiveKeyName
+	}
+	if dsb.AutoRegenerateKey != nil {
+		objectMap["autoRegenerateKey"] = dsb.AutoRegenerateKey
+	}
+	if dsb.RegenerationPeriod != nil {
+		objectMap["regenerationPeriod"] = dsb.RegenerationPeriod
+	}
+	if dsb.Attributes != nil {
+		objectMap["attributes"] = dsb.Attributes
+	}
+	if dsb.Tags != nil {
+		objectMap["tags"] = dsb.Tags
+	}
 	return json.Marshal(objectMap)
 }
 
 // DeletedStorageListResult the deleted storage account list result
 type DeletedStorageListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of the deleted storage accounts in the vault along with a link to the next page of deleted storage accounts
+	// Value - A response message containing a list of the deleted storage accounts in the vault along with a link to the next page of deleted storage accounts
 	Value *[]DeletedStorageAccountItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of deleted storage accounts.
+	// NextLink - The URL to get the next set of deleted storage accounts.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// DeletedStorageListResultIterator provides access to a complete listing of DeletedStorageAccountItem
-// values.
+// DeletedStorageListResultIterator provides access to a complete listing of DeletedStorageAccountItem values.
 type DeletedStorageListResultIterator struct {
 	i    int
 	page DeletedStorageListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *DeletedStorageListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedStorageListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *DeletedStorageListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *DeletedStorageListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1913,11 +1793,6 @@ func (iter DeletedStorageListResultIterator) Value() DeletedStorageAccountItem {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the DeletedStorageListResultIterator type.
-func NewDeletedStorageListResultIterator(page DeletedStorageListResultPage) DeletedStorageListResultIterator {
-	return DeletedStorageListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (dslr DeletedStorageListResult) IsEmpty() bool {
 	return dslr.Value == nil || len(*dslr.Value) == 0
@@ -1925,11 +1800,11 @@ func (dslr DeletedStorageListResult) IsEmpty() bool {
 
 // deletedStorageListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (dslr DeletedStorageListResult) deletedStorageListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (dslr DeletedStorageListResult) deletedStorageListResultPreparer() (*http.Request, error) {
 	if dslr.NextLink == nil || len(to.String(dslr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(dslr.NextLink)))
@@ -1937,36 +1812,19 @@ func (dslr DeletedStorageListResult) deletedStorageListResultPreparer(ctx contex
 
 // DeletedStorageListResultPage contains a page of DeletedStorageAccountItem values.
 type DeletedStorageListResultPage struct {
-	fn   func(context.Context, DeletedStorageListResult) (DeletedStorageListResult, error)
+	fn   func(DeletedStorageListResult) (DeletedStorageListResult, error)
 	dslr DeletedStorageListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *DeletedStorageListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeletedStorageListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.dslr)
+func (page *DeletedStorageListResultPage) Next() error {
+	next, err := page.fn(page.dslr)
 	if err != nil {
 		return err
 	}
 	page.dslr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *DeletedStorageListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1987,24 +1845,17 @@ func (page DeletedStorageListResultPage) Values() []DeletedStorageAccountItem {
 	return *page.dslr.Value
 }
 
-// Creates a new instance of the DeletedStorageListResultPage type.
-func NewDeletedStorageListResultPage(getNextPage func(context.Context, DeletedStorageListResult) (DeletedStorageListResult, error)) DeletedStorageListResultPage {
-	return DeletedStorageListResultPage{fn: getNextPage}
-}
-
 // Error the key vault server error.
 type Error struct {
-	// Code - READ-ONLY; The error code.
+	// Code - The error code.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; The error message.
-	Message *string `json:"message,omitempty"`
-	// InnerError - READ-ONLY
-	InnerError *Error `json:"innererror,omitempty"`
+	// Message - The error message.
+	Message    *string `json:"message,omitempty"`
+	InnerError *Error  `json:"innererror,omitempty"`
 }
 
 // ErrorType the key vault error exception.
 type ErrorType struct {
-	// Error - READ-ONLY
 	Error *Error `json:"error,omitempty"`
 }
 
@@ -2012,16 +1863,16 @@ type ErrorType struct {
 type IssuerAttributes struct {
 	// Enabled - Determines whether the issuer is enabled.
 	Enabled *bool `json:"enabled,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC.
+	// Created - Creation time in UTC.
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC.
+	// Updated - Last updated time in UTC.
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 
 // IssuerBundle the issuer for Key Vault certificate.
 type IssuerBundle struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; Identifier for the issuer object.
+	// ID - Identifier for the issuer object.
 	ID *string `json:"id,omitempty"`
 	// Provider - The issuer provider.
 	Provider *string `json:"provider,omitempty"`
@@ -2088,7 +1939,7 @@ type JSONWebKey struct {
 
 // KeyAttributes the attributes of a key managed by the key vault service.
 type KeyAttributes struct {
-	// RecoveryLevel - READ-ONLY; Reflects the deletion recovery level currently in effect for keys in the current vault. If it contains 'Purgeable' the key can be permanently deleted by a privileged user; otherwise, only the system can purge the key, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
+	// RecoveryLevel - Reflects the deletion recovery level currently in effect for keys in the current vault. If it contains 'Purgeable' the key can be permanently deleted by a privileged user; otherwise, only the system can purge the key, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
 	RecoveryLevel DeletionRecoveryLevel `json:"recoveryLevel,omitempty"`
 	// Enabled - Determines whether the object is enabled.
 	Enabled *bool `json:"enabled,omitempty"`
@@ -2096,9 +1947,9 @@ type KeyAttributes struct {
 	NotBefore *date.UnixTime `json:"nbf,omitempty"`
 	// Expires - Expiry date in UTC.
 	Expires *date.UnixTime `json:"exp,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC.
+	// Created - Creation time in UTC.
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC.
+	// Updated - Last updated time in UTC.
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 
@@ -2111,7 +1962,7 @@ type KeyBundle struct {
 	Attributes *KeyAttributes `json:"attributes,omitempty"`
 	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
-	// Managed - READ-ONLY; True if the key's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
+	// Managed - True if the key's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
 	Managed *bool `json:"managed,omitempty"`
 }
 
@@ -2126,6 +1977,9 @@ func (kb KeyBundle) MarshalJSON() ([]byte, error) {
 	}
 	if kb.Tags != nil {
 		objectMap["tags"] = kb.Tags
+	}
+	if kb.Managed != nil {
+		objectMap["managed"] = kb.Managed
 	}
 	return json.Marshal(objectMap)
 }
@@ -2206,7 +2060,7 @@ type KeyItem struct {
 	Attributes *KeyAttributes `json:"attributes,omitempty"`
 	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
-	// Managed - READ-ONLY; True if the key's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
+	// Managed - True if the key's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
 	Managed *bool `json:"managed,omitempty"`
 }
 
@@ -2222,15 +2076,18 @@ func (ki KeyItem) MarshalJSON() ([]byte, error) {
 	if ki.Tags != nil {
 		objectMap["tags"] = ki.Tags
 	}
+	if ki.Managed != nil {
+		objectMap["managed"] = ki.Managed
+	}
 	return json.Marshal(objectMap)
 }
 
 // KeyListResult the key list result.
 type KeyListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of keys in the key vault along with a link to the next page of keys.
+	// Value - A response message containing a list of keys in the key vault along with a link to the next page of keys.
 	Value *[]KeyItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of keys.
+	// NextLink - The URL to get the next set of keys.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -2240,37 +2097,20 @@ type KeyListResultIterator struct {
 	page KeyListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *KeyListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/KeyListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *KeyListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *KeyListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2292,11 +2132,6 @@ func (iter KeyListResultIterator) Value() KeyItem {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the KeyListResultIterator type.
-func NewKeyListResultIterator(page KeyListResultPage) KeyListResultIterator {
-	return KeyListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (klr KeyListResult) IsEmpty() bool {
 	return klr.Value == nil || len(*klr.Value) == 0
@@ -2304,11 +2139,11 @@ func (klr KeyListResult) IsEmpty() bool {
 
 // keyListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (klr KeyListResult) keyListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (klr KeyListResult) keyListResultPreparer() (*http.Request, error) {
 	if klr.NextLink == nil || len(to.String(klr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(klr.NextLink)))
@@ -2316,36 +2151,19 @@ func (klr KeyListResult) keyListResultPreparer(ctx context.Context) (*http.Reque
 
 // KeyListResultPage contains a page of KeyItem values.
 type KeyListResultPage struct {
-	fn  func(context.Context, KeyListResult) (KeyListResult, error)
+	fn  func(KeyListResult) (KeyListResult, error)
 	klr KeyListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *KeyListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/KeyListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.klr)
+func (page *KeyListResultPage) Next() error {
+	next, err := page.fn(page.klr)
 	if err != nil {
 		return err
 	}
 	page.klr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *KeyListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2366,17 +2184,12 @@ func (page KeyListResultPage) Values() []KeyItem {
 	return *page.klr.Value
 }
 
-// Creates a new instance of the KeyListResultPage type.
-func NewKeyListResultPage(getNextPage func(context.Context, KeyListResult) (KeyListResult, error)) KeyListResultPage {
-	return KeyListResultPage{fn: getNextPage}
-}
-
 // KeyOperationResult the key operation result.
 type KeyOperationResult struct {
 	autorest.Response `json:"-"`
-	// Kid - READ-ONLY; Key identifier
+	// Kid - Key identifier
 	Kid *string `json:"kid,omitempty"`
-	// Result - READ-ONLY; a URL-encoded base64 string
+	// Result - a URL-encoded base64 string
 	Result *string `json:"value,omitempty"`
 }
 
@@ -2453,12 +2266,11 @@ type KeyVerifyParameters struct {
 // KeyVerifyResult the key verify result.
 type KeyVerifyResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; True if the signature is verified, otherwise false.
+	// Value - True if the signature is verified, otherwise false.
 	Value *bool `json:"value,omitempty"`
 }
 
-// LifetimeAction action and its trigger that will be performed by Key Vault over the lifetime of a
-// certificate.
+// LifetimeAction action and its trigger that will be performed by Key Vault over the lifetime of a certificate.
 type LifetimeAction struct {
 	// Trigger - The condition that will execute the action.
 	Trigger *Trigger `json:"trigger,omitempty"`
@@ -2476,7 +2288,7 @@ type OrganizationDetails struct {
 
 // PendingCertificateSigningRequestResult the pending certificate signing request result.
 type PendingCertificateSigningRequestResult struct {
-	// Value - READ-ONLY; The pending certificate signing request as Base64 encoded string.
+	// Value - The pending certificate signing request as Base64 encoded string.
 	Value *string `json:"value,omitempty"`
 }
 
@@ -2484,37 +2296,57 @@ type PendingCertificateSigningRequestResult struct {
 type SasDefinitionAttributes struct {
 	// Enabled - the enabled state of the object.
 	Enabled *bool `json:"enabled,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC.
+	// Created - Creation time in UTC.
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC.
+	// Updated - Last updated time in UTC.
 	Updated *date.UnixTime `json:"updated,omitempty"`
-	// RecoveryLevel - READ-ONLY; Reflects the deletion recovery level currently in effect for SAS definitions in the current vault. If it contains 'Purgeable' the SAS definition can be permanently deleted by a privileged user; otherwise, only the system can purge the SAS definition, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
+	// RecoveryLevel - Reflects the deletion recovery level currently in effect for SAS definitions in the current vault. If it contains 'Purgeable' the SAS definition can be permanently deleted by a privileged user; otherwise, only the system can purge the SAS definition, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
 	RecoveryLevel DeletionRecoveryLevel `json:"recoveryLevel,omitempty"`
 }
 
-// SasDefinitionBundle a SAS definition bundle consists of key vault SAS definition details plus its
-// attributes.
+// SasDefinitionBundle a SAS definition bundle consists of key vault SAS definition details plus its attributes.
 type SasDefinitionBundle struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; The SAS definition id.
+	// ID - The SAS definition id.
 	ID *string `json:"id,omitempty"`
-	// SecretID - READ-ONLY; Storage account SAS definition secret id.
+	// SecretID - Storage account SAS definition secret id.
 	SecretID *string `json:"sid,omitempty"`
-	// TemplateURI - READ-ONLY; The SAS definition token template signed with an arbitrary key.  Tokens created according to the SAS definition will have the same properties as the template.
+	// TemplateURI - The SAS definition token template signed with an arbitrary key.  Tokens created according to the SAS definition will have the same properties as the template.
 	TemplateURI *string `json:"templateUri,omitempty"`
-	// SasType - READ-ONLY; The type of SAS token the SAS definition will create. Possible values include: 'Account', 'Service'
+	// SasType - The type of SAS token the SAS definition will create. Possible values include: 'Account', 'Service'
 	SasType SasTokenType `json:"sasType,omitempty"`
-	// ValidityPeriod - READ-ONLY; The validity period of SAS tokens created according to the SAS definition.
+	// ValidityPeriod - The validity period of SAS tokens created according to the SAS definition.
 	ValidityPeriod *string `json:"validityPeriod,omitempty"`
-	// Attributes - READ-ONLY; The SAS definition attributes.
+	// Attributes - The SAS definition attributes.
 	Attributes *SasDefinitionAttributes `json:"attributes,omitempty"`
-	// Tags - READ-ONLY; Application specific metadata in the form of key-value pairs
+	// Tags - Application specific metadata in the form of key-value pairs
 	Tags map[string]*string `json:"tags"`
 }
 
 // MarshalJSON is the custom marshaler for SasDefinitionBundle.
 func (sdb SasDefinitionBundle) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if sdb.ID != nil {
+		objectMap["id"] = sdb.ID
+	}
+	if sdb.SecretID != nil {
+		objectMap["sid"] = sdb.SecretID
+	}
+	if sdb.TemplateURI != nil {
+		objectMap["templateUri"] = sdb.TemplateURI
+	}
+	if sdb.SasType != "" {
+		objectMap["sasType"] = sdb.SasType
+	}
+	if sdb.ValidityPeriod != nil {
+		objectMap["validityPeriod"] = sdb.ValidityPeriod
+	}
+	if sdb.Attributes != nil {
+		objectMap["attributes"] = sdb.Attributes
+	}
+	if sdb.Tags != nil {
+		objectMap["tags"] = sdb.Tags
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2555,28 +2387,40 @@ func (sdcp SasDefinitionCreateParameters) MarshalJSON() ([]byte, error) {
 
 // SasDefinitionItem the SAS definition item containing storage SAS definition metadata.
 type SasDefinitionItem struct {
-	// ID - READ-ONLY; The storage SAS identifier.
+	// ID - The storage SAS identifier.
 	ID *string `json:"id,omitempty"`
-	// SecretID - READ-ONLY; The storage account SAS definition secret id.
+	// SecretID - The storage account SAS definition secret id.
 	SecretID *string `json:"sid,omitempty"`
-	// Attributes - READ-ONLY; The SAS definition management attributes.
+	// Attributes - The SAS definition management attributes.
 	Attributes *SasDefinitionAttributes `json:"attributes,omitempty"`
-	// Tags - READ-ONLY; Application specific metadata in the form of key-value pairs.
+	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
 }
 
 // MarshalJSON is the custom marshaler for SasDefinitionItem.
 func (sdi SasDefinitionItem) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if sdi.ID != nil {
+		objectMap["id"] = sdi.ID
+	}
+	if sdi.SecretID != nil {
+		objectMap["sid"] = sdi.SecretID
+	}
+	if sdi.Attributes != nil {
+		objectMap["attributes"] = sdi.Attributes
+	}
+	if sdi.Tags != nil {
+		objectMap["tags"] = sdi.Tags
+	}
 	return json.Marshal(objectMap)
 }
 
 // SasDefinitionListResult the storage account SAS definition list result.
 type SasDefinitionListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of SAS definitions along with a link to the next page of SAS definitions.
+	// Value - A response message containing a list of SAS definitions along with a link to the next page of SAS definitions.
 	Value *[]SasDefinitionItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of SAS definitions.
+	// NextLink - The URL to get the next set of SAS defintions.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -2586,37 +2430,20 @@ type SasDefinitionListResultIterator struct {
 	page SasDefinitionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SasDefinitionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SasDefinitionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SasDefinitionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SasDefinitionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2638,11 +2465,6 @@ func (iter SasDefinitionListResultIterator) Value() SasDefinitionItem {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SasDefinitionListResultIterator type.
-func NewSasDefinitionListResultIterator(page SasDefinitionListResultPage) SasDefinitionListResultIterator {
-	return SasDefinitionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (sdlr SasDefinitionListResult) IsEmpty() bool {
 	return sdlr.Value == nil || len(*sdlr.Value) == 0
@@ -2650,11 +2472,11 @@ func (sdlr SasDefinitionListResult) IsEmpty() bool {
 
 // sasDefinitionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (sdlr SasDefinitionListResult) sasDefinitionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (sdlr SasDefinitionListResult) sasDefinitionListResultPreparer() (*http.Request, error) {
 	if sdlr.NextLink == nil || len(to.String(sdlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(sdlr.NextLink)))
@@ -2662,36 +2484,19 @@ func (sdlr SasDefinitionListResult) sasDefinitionListResultPreparer(ctx context.
 
 // SasDefinitionListResultPage contains a page of SasDefinitionItem values.
 type SasDefinitionListResultPage struct {
-	fn   func(context.Context, SasDefinitionListResult) (SasDefinitionListResult, error)
+	fn   func(SasDefinitionListResult) (SasDefinitionListResult, error)
 	sdlr SasDefinitionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SasDefinitionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SasDefinitionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.sdlr)
+func (page *SasDefinitionListResultPage) Next() error {
+	next, err := page.fn(page.sdlr)
 	if err != nil {
 		return err
 	}
 	page.sdlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SasDefinitionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2710,11 +2515,6 @@ func (page SasDefinitionListResultPage) Values() []SasDefinitionItem {
 		return nil
 	}
 	return *page.sdlr.Value
-}
-
-// Creates a new instance of the SasDefinitionListResultPage type.
-func NewSasDefinitionListResultPage(getNextPage func(context.Context, SasDefinitionListResult) (SasDefinitionListResult, error)) SasDefinitionListResultPage {
-	return SasDefinitionListResultPage{fn: getNextPage}
 }
 
 // SasDefinitionUpdateParameters the SAS definition update parameters.
@@ -2754,7 +2554,7 @@ func (sdup SasDefinitionUpdateParameters) MarshalJSON() ([]byte, error) {
 
 // SecretAttributes the secret management attributes.
 type SecretAttributes struct {
-	// RecoveryLevel - READ-ONLY; Reflects the deletion recovery level currently in effect for secrets in the current vault. If it contains 'Purgeable', the secret can be permanently deleted by a privileged user; otherwise, only the system can purge the secret, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
+	// RecoveryLevel - Reflects the deletion recovery level currently in effect for secrets in the current vault. If it contains 'Purgeable', the secret can be permanently deleted by a privileged user; otherwise, only the system can purge the secret, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
 	RecoveryLevel DeletionRecoveryLevel `json:"recoveryLevel,omitempty"`
 	// Enabled - Determines whether the object is enabled.
 	Enabled *bool `json:"enabled,omitempty"`
@@ -2762,9 +2562,9 @@ type SecretAttributes struct {
 	NotBefore *date.UnixTime `json:"nbf,omitempty"`
 	// Expires - Expiry date in UTC.
 	Expires *date.UnixTime `json:"exp,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC.
+	// Created - Creation time in UTC.
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC.
+	// Updated - Last updated time in UTC.
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 
@@ -2781,9 +2581,9 @@ type SecretBundle struct {
 	Attributes *SecretAttributes `json:"attributes,omitempty"`
 	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
-	// Kid - READ-ONLY; If this is a secret backing a KV certificate, then this field specifies the corresponding key backing the KV certificate.
+	// Kid - If this is a secret backing a KV certificate, then this field specifies the corresponding key backing the KV certificate.
 	Kid *string `json:"kid,omitempty"`
-	// Managed - READ-ONLY; True if the secret's lifetime is managed by key vault. If this is a secret backing a certificate, then managed will be true.
+	// Managed - True if the secret's lifetime is managed by key vault. If this is a secret backing a certificate, then managed will be true.
 	Managed *bool `json:"managed,omitempty"`
 }
 
@@ -2805,6 +2605,12 @@ func (sb SecretBundle) MarshalJSON() ([]byte, error) {
 	if sb.Tags != nil {
 		objectMap["tags"] = sb.Tags
 	}
+	if sb.Kid != nil {
+		objectMap["kid"] = sb.Kid
+	}
+	if sb.Managed != nil {
+		objectMap["managed"] = sb.Managed
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2818,7 +2624,7 @@ type SecretItem struct {
 	Tags map[string]*string `json:"tags"`
 	// ContentType - Type of the secret value such as a password.
 	ContentType *string `json:"contentType,omitempty"`
-	// Managed - READ-ONLY; True if the secret's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
+	// Managed - True if the secret's lifetime is managed by key vault. If this is a key backing a certificate, then managed will be true.
 	Managed *bool `json:"managed,omitempty"`
 }
 
@@ -2837,15 +2643,18 @@ func (si SecretItem) MarshalJSON() ([]byte, error) {
 	if si.ContentType != nil {
 		objectMap["contentType"] = si.ContentType
 	}
+	if si.Managed != nil {
+		objectMap["managed"] = si.Managed
+	}
 	return json.Marshal(objectMap)
 }
 
 // SecretListResult the secret list result.
 type SecretListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of secrets in the key vault along with a link to the next page of secrets.
+	// Value - A response message containing a list of secrets in the key vault along with a link to the next page of secrets.
 	Value *[]SecretItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of secrets.
+	// NextLink - The URL to get the next set of secrets.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -2855,37 +2664,20 @@ type SecretListResultIterator struct {
 	page SecretListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *SecretListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SecretListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *SecretListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *SecretListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2907,11 +2699,6 @@ func (iter SecretListResultIterator) Value() SecretItem {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the SecretListResultIterator type.
-func NewSecretListResultIterator(page SecretListResultPage) SecretListResultIterator {
-	return SecretListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (slr SecretListResult) IsEmpty() bool {
 	return slr.Value == nil || len(*slr.Value) == 0
@@ -2919,11 +2706,11 @@ func (slr SecretListResult) IsEmpty() bool {
 
 // secretListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (slr SecretListResult) secretListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (slr SecretListResult) secretListResultPreparer() (*http.Request, error) {
 	if slr.NextLink == nil || len(to.String(slr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(slr.NextLink)))
@@ -2931,36 +2718,19 @@ func (slr SecretListResult) secretListResultPreparer(ctx context.Context) (*http
 
 // SecretListResultPage contains a page of SecretItem values.
 type SecretListResultPage struct {
-	fn  func(context.Context, SecretListResult) (SecretListResult, error)
+	fn  func(SecretListResult) (SecretListResult, error)
 	slr SecretListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *SecretListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SecretListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.slr)
+func (page *SecretListResultPage) Next() error {
+	next, err := page.fn(page.slr)
 	if err != nil {
 		return err
 	}
 	page.slr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *SecretListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2979,11 +2749,6 @@ func (page SecretListResultPage) Values() []SecretItem {
 		return nil
 	}
 	return *page.slr.Value
-}
-
-// Creates a new instance of the SecretListResultPage type.
-func NewSecretListResultPage(getNextPage func(context.Context, SecretListResult) (SecretListResult, error)) SecretListResultPage {
-	return SecretListResultPage{fn: getNextPage}
 }
 
 // SecretProperties properties of the key backing a certificate.
@@ -3057,11 +2822,11 @@ func (sup SecretUpdateParameters) MarshalJSON() ([]byte, error) {
 type StorageAccountAttributes struct {
 	// Enabled - the enabled state of the object.
 	Enabled *bool `json:"enabled,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC.
+	// Created - Creation time in UTC.
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC.
+	// Updated - Last updated time in UTC.
 	Updated *date.UnixTime `json:"updated,omitempty"`
-	// RecoveryLevel - READ-ONLY; Reflects the deletion recovery level currently in effect for storage accounts in the current vault. If it contains 'Purgeable' the storage account can be permanently deleted by a privileged user; otherwise, only the system can purge the storage account, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
+	// RecoveryLevel - Reflects the deletion recovery level currently in effect for storage accounts in the current vault. If it contains 'Purgeable' the storage account can be permanently deleted by a privileged user; otherwise, only the system can purge the storage account, at the end of the retention interval. Possible values include: 'Purgeable', 'RecoverablePurgeable', 'Recoverable', 'RecoverableProtectedSubscription'
 	RecoveryLevel DeletionRecoveryLevel `json:"recoveryLevel,omitempty"`
 }
 
@@ -3107,19 +2872,31 @@ func (sacp StorageAccountCreateParameters) MarshalJSON() ([]byte, error) {
 
 // StorageAccountItem the storage account item containing storage account metadata.
 type StorageAccountItem struct {
-	// ID - READ-ONLY; Storage identifier.
+	// ID - Storage identifier.
 	ID *string `json:"id,omitempty"`
-	// ResourceID - READ-ONLY; Storage account resource Id.
+	// ResourceID - Storage account resource Id.
 	ResourceID *string `json:"resourceId,omitempty"`
-	// Attributes - READ-ONLY; The storage account management attributes.
+	// Attributes - The storage account management attributes.
 	Attributes *StorageAccountAttributes `json:"attributes,omitempty"`
-	// Tags - READ-ONLY; Application specific metadata in the form of key-value pairs.
+	// Tags - Application specific metadata in the form of key-value pairs.
 	Tags map[string]*string `json:"tags"`
 }
 
 // MarshalJSON is the custom marshaler for StorageAccountItem.
 func (sai StorageAccountItem) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if sai.ID != nil {
+		objectMap["id"] = sai.ID
+	}
+	if sai.ResourceID != nil {
+		objectMap["resourceId"] = sai.ResourceID
+	}
+	if sai.Attributes != nil {
+		objectMap["attributes"] = sai.Attributes
+	}
+	if sai.Tags != nil {
+		objectMap["tags"] = sai.Tags
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3164,38 +2941,58 @@ func (saup StorageAccountUpdateParameters) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// StorageBundle a Storage account bundle consists of key vault storage account details plus its
-// attributes.
+// StorageBundle a Storage account bundle consists of key vault storage account details plus its attributes.
 type StorageBundle struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; The storage account id.
+	// ID - The storage account id.
 	ID *string `json:"id,omitempty"`
-	// ResourceID - READ-ONLY; The storage account resource id.
+	// ResourceID - The storage account resource id.
 	ResourceID *string `json:"resourceId,omitempty"`
-	// ActiveKeyName - READ-ONLY; The current active storage account key name.
+	// ActiveKeyName - The current active storage account key name.
 	ActiveKeyName *string `json:"activeKeyName,omitempty"`
-	// AutoRegenerateKey - READ-ONLY; whether keyvault should manage the storage account for the user.
+	// AutoRegenerateKey - whether keyvault should manage the storage account for the user.
 	AutoRegenerateKey *bool `json:"autoRegenerateKey,omitempty"`
-	// RegenerationPeriod - READ-ONLY; The key regeneration time duration specified in ISO-8601 format.
+	// RegenerationPeriod - The key regeneration time duration specified in ISO-8601 format.
 	RegenerationPeriod *string `json:"regenerationPeriod,omitempty"`
-	// Attributes - READ-ONLY; The storage account attributes.
+	// Attributes - The storage account attributes.
 	Attributes *StorageAccountAttributes `json:"attributes,omitempty"`
-	// Tags - READ-ONLY; Application specific metadata in the form of key-value pairs
+	// Tags - Application specific metadata in the form of key-value pairs
 	Tags map[string]*string `json:"tags"`
 }
 
 // MarshalJSON is the custom marshaler for StorageBundle.
 func (sb StorageBundle) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if sb.ID != nil {
+		objectMap["id"] = sb.ID
+	}
+	if sb.ResourceID != nil {
+		objectMap["resourceId"] = sb.ResourceID
+	}
+	if sb.ActiveKeyName != nil {
+		objectMap["activeKeyName"] = sb.ActiveKeyName
+	}
+	if sb.AutoRegenerateKey != nil {
+		objectMap["autoRegenerateKey"] = sb.AutoRegenerateKey
+	}
+	if sb.RegenerationPeriod != nil {
+		objectMap["regenerationPeriod"] = sb.RegenerationPeriod
+	}
+	if sb.Attributes != nil {
+		objectMap["attributes"] = sb.Attributes
+	}
+	if sb.Tags != nil {
+		objectMap["tags"] = sb.Tags
+	}
 	return json.Marshal(objectMap)
 }
 
 // StorageListResult the storage accounts list result.
 type StorageListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; A response message containing a list of storage accounts in the key vault along with a link to the next page of storage accounts.
+	// Value - A response message containing a list of storage accounts in the key vault along with a link to the next page of storage accounts.
 	Value *[]StorageAccountItem `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of storage accounts.
+	// NextLink - The URL to get the next set of storage accounts.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -3205,37 +3002,20 @@ type StorageListResultIterator struct {
 	page StorageListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *StorageListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StorageListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *StorageListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *StorageListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -3257,11 +3037,6 @@ func (iter StorageListResultIterator) Value() StorageAccountItem {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the StorageListResultIterator type.
-func NewStorageListResultIterator(page StorageListResultPage) StorageListResultIterator {
-	return StorageListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (slr StorageListResult) IsEmpty() bool {
 	return slr.Value == nil || len(*slr.Value) == 0
@@ -3269,11 +3044,11 @@ func (slr StorageListResult) IsEmpty() bool {
 
 // storageListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (slr StorageListResult) storageListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (slr StorageListResult) storageListResultPreparer() (*http.Request, error) {
 	if slr.NextLink == nil || len(to.String(slr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(slr.NextLink)))
@@ -3281,36 +3056,19 @@ func (slr StorageListResult) storageListResultPreparer(ctx context.Context) (*ht
 
 // StorageListResultPage contains a page of StorageAccountItem values.
 type StorageListResultPage struct {
-	fn  func(context.Context, StorageListResult) (StorageListResult, error)
+	fn  func(StorageListResult) (StorageListResult, error)
 	slr StorageListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *StorageListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/StorageListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.slr)
+func (page *StorageListResultPage) Next() error {
+	next, err := page.fn(page.slr)
 	if err != nil {
 		return err
 	}
 	page.slr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *StorageListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -3329,11 +3087,6 @@ func (page StorageListResultPage) Values() []StorageAccountItem {
 		return nil
 	}
 	return *page.slr.Value
-}
-
-// Creates a new instance of the StorageListResultPage type.
-func NewStorageListResultPage(getNextPage func(context.Context, StorageListResult) (StorageListResult, error)) StorageListResultPage {
-	return StorageListResultPage{fn: getNextPage}
 }
 
 // StorageRestoreParameters the secret restore parameters.
@@ -3370,6 +3123,6 @@ type X509CertificateProperties struct {
 	SubjectAlternativeNames *SubjectAlternativeNames `json:"sans,omitempty"`
 	// KeyUsage - List of key usages.
 	KeyUsage *[]KeyUsageType `json:"key_usage,omitempty"`
-	// ValidityInMonths - The duration that the certificate is valid in months.
+	// ValidityInMonths - The duration that the ceritifcate is valid in months.
 	ValidityInMonths *int32 `json:"validity_months,omitempty"`
 }

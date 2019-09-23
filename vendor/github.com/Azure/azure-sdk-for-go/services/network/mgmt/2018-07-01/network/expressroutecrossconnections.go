@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewExpressRouteCrossConnectionsClientWithBaseURI(baseURI string, subscripti
 // crossConnectionName - the name of the ExpressRouteCrossConnection.
 // parameters - parameters supplied to the update express route crossConnection operation.
 func (client ExpressRouteCrossConnectionsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, crossConnectionName string, parameters ExpressRouteCrossConnection) (result ExpressRouteCrossConnectionsCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, crossConnectionName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ExpressRouteCrossConnectionsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -85,7 +74,6 @@ func (client ExpressRouteCrossConnectionsClient) CreateOrUpdatePreparer(ctx cont
 		"api-version": APIVersion,
 	}
 
-	parameters.Etag = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -99,9 +87,9 @@ func (client ExpressRouteCrossConnectionsClient) CreateOrUpdatePreparer(ctx cont
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExpressRouteCrossConnectionsClient) CreateOrUpdateSender(req *http.Request) (future ExpressRouteCrossConnectionsCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -127,16 +115,6 @@ func (client ExpressRouteCrossConnectionsClient) CreateOrUpdateResponder(resp *h
 // resourceGroupName - the name of the resource group (peering location of the circuit).
 // crossConnectionName - the name of the ExpressRouteCrossConnection (service key of the circuit).
 func (client ExpressRouteCrossConnectionsClient) Get(ctx context.Context, resourceGroupName string, crossConnectionName string) (result ExpressRouteCrossConnection, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, crossConnectionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ExpressRouteCrossConnectionsClient", "Get", nil, "Failure preparing request")
@@ -182,8 +160,8 @@ func (client ExpressRouteCrossConnectionsClient) GetPreparer(ctx context.Context
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExpressRouteCrossConnectionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -201,16 +179,6 @@ func (client ExpressRouteCrossConnectionsClient) GetResponder(resp *http.Respons
 
 // List retrieves all the ExpressRouteCrossConnections in a subscription.
 func (client ExpressRouteCrossConnectionsClient) List(ctx context.Context) (result ExpressRouteCrossConnectionListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.List")
-		defer func() {
-			sc := -1
-			if result.ercclr.Response.Response != nil {
-				sc = result.ercclr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -255,8 +223,8 @@ func (client ExpressRouteCrossConnectionsClient) ListPreparer(ctx context.Contex
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExpressRouteCrossConnectionsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -273,8 +241,8 @@ func (client ExpressRouteCrossConnectionsClient) ListResponder(resp *http.Respon
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ExpressRouteCrossConnectionsClient) listNextResults(ctx context.Context, lastResults ExpressRouteCrossConnectionListResult) (result ExpressRouteCrossConnectionListResult, err error) {
-	req, err := lastResults.expressRouteCrossConnectionListResultPreparer(ctx)
+func (client ExpressRouteCrossConnectionsClient) listNextResults(lastResults ExpressRouteCrossConnectionListResult) (result ExpressRouteCrossConnectionListResult, err error) {
+	req, err := lastResults.expressRouteCrossConnectionListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCrossConnectionsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -295,16 +263,6 @@ func (client ExpressRouteCrossConnectionsClient) listNextResults(ctx context.Con
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ExpressRouteCrossConnectionsClient) ListComplete(ctx context.Context) (result ExpressRouteCrossConnectionListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -317,16 +275,6 @@ func (client ExpressRouteCrossConnectionsClient) ListComplete(ctx context.Contex
 // peeringName - the name of the peering.
 // devicePath - the path of the device
 func (client ExpressRouteCrossConnectionsClient) ListArpTable(ctx context.Context, resourceGroupName string, crossConnectionName string, peeringName string, devicePath string) (result ExpressRouteCrossConnectionsListArpTableFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.ListArpTable")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListArpTablePreparer(ctx, resourceGroupName, crossConnectionName, peeringName, devicePath)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ExpressRouteCrossConnectionsClient", "ListArpTable", nil, "Failure preparing request")
@@ -368,9 +316,9 @@ func (client ExpressRouteCrossConnectionsClient) ListArpTablePreparer(ctx contex
 // ListArpTableSender sends the ListArpTable request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExpressRouteCrossConnectionsClient) ListArpTableSender(req *http.Request) (future ExpressRouteCrossConnectionsListArpTableFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -395,16 +343,6 @@ func (client ExpressRouteCrossConnectionsClient) ListArpTableResponder(resp *htt
 // Parameters:
 // resourceGroupName - the name of the resource group.
 func (client ExpressRouteCrossConnectionsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ExpressRouteCrossConnectionListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.ercclr.Response.Response != nil {
-				sc = result.ercclr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -450,8 +388,8 @@ func (client ExpressRouteCrossConnectionsClient) ListByResourceGroupPreparer(ctx
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExpressRouteCrossConnectionsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -468,8 +406,8 @@ func (client ExpressRouteCrossConnectionsClient) ListByResourceGroupResponder(re
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client ExpressRouteCrossConnectionsClient) listByResourceGroupNextResults(ctx context.Context, lastResults ExpressRouteCrossConnectionListResult) (result ExpressRouteCrossConnectionListResult, err error) {
-	req, err := lastResults.expressRouteCrossConnectionListResultPreparer(ctx)
+func (client ExpressRouteCrossConnectionsClient) listByResourceGroupNextResults(lastResults ExpressRouteCrossConnectionListResult) (result ExpressRouteCrossConnectionListResult, err error) {
+	req, err := lastResults.expressRouteCrossConnectionListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCrossConnectionsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -490,16 +428,6 @@ func (client ExpressRouteCrossConnectionsClient) listByResourceGroupNextResults(
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ExpressRouteCrossConnectionsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result ExpressRouteCrossConnectionListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
@@ -512,16 +440,6 @@ func (client ExpressRouteCrossConnectionsClient) ListByResourceGroupComplete(ctx
 // peeringName - the name of the peering.
 // devicePath - the path of the device.
 func (client ExpressRouteCrossConnectionsClient) ListRoutesTable(ctx context.Context, resourceGroupName string, crossConnectionName string, peeringName string, devicePath string) (result ExpressRouteCrossConnectionsListRoutesTableFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.ListRoutesTable")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListRoutesTablePreparer(ctx, resourceGroupName, crossConnectionName, peeringName, devicePath)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ExpressRouteCrossConnectionsClient", "ListRoutesTable", nil, "Failure preparing request")
@@ -563,9 +481,9 @@ func (client ExpressRouteCrossConnectionsClient) ListRoutesTablePreparer(ctx con
 // ListRoutesTableSender sends the ListRoutesTable request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExpressRouteCrossConnectionsClient) ListRoutesTableSender(req *http.Request) (future ExpressRouteCrossConnectionsListRoutesTableFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -594,16 +512,6 @@ func (client ExpressRouteCrossConnectionsClient) ListRoutesTableResponder(resp *
 // peeringName - the name of the peering.
 // devicePath - the path of the device.
 func (client ExpressRouteCrossConnectionsClient) ListRoutesTableSummary(ctx context.Context, resourceGroupName string, crossConnectionName string, peeringName string, devicePath string) (result ExpressRouteCrossConnectionsListRoutesTableSummaryFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.ListRoutesTableSummary")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListRoutesTableSummaryPreparer(ctx, resourceGroupName, crossConnectionName, peeringName, devicePath)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ExpressRouteCrossConnectionsClient", "ListRoutesTableSummary", nil, "Failure preparing request")
@@ -645,9 +553,9 @@ func (client ExpressRouteCrossConnectionsClient) ListRoutesTableSummaryPreparer(
 // ListRoutesTableSummarySender sends the ListRoutesTableSummary request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExpressRouteCrossConnectionsClient) ListRoutesTableSummarySender(req *http.Request) (future ExpressRouteCrossConnectionsListRoutesTableSummaryFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -674,16 +582,6 @@ func (client ExpressRouteCrossConnectionsClient) ListRoutesTableSummaryResponder
 // crossConnectionName - the name of the cross connection.
 // crossConnectionParameters - parameters supplied to update express route cross connection tags.
 func (client ExpressRouteCrossConnectionsClient) UpdateTags(ctx context.Context, resourceGroupName string, crossConnectionName string, crossConnectionParameters TagsObject) (result ExpressRouteCrossConnectionsUpdateTagsFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ExpressRouteCrossConnectionsClient.UpdateTags")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateTagsPreparer(ctx, resourceGroupName, crossConnectionName, crossConnectionParameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.ExpressRouteCrossConnectionsClient", "UpdateTags", nil, "Failure preparing request")
@@ -725,9 +623,9 @@ func (client ExpressRouteCrossConnectionsClient) UpdateTagsPreparer(ctx context.
 // UpdateTagsSender sends the UpdateTags request. The method will close the
 // http.Response Body if it receives an error.
 func (client ExpressRouteCrossConnectionsClient) UpdateTagsSender(req *http.Request) (future ExpressRouteCrossConnectionsUpdateTagsFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}

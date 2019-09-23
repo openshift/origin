@@ -312,11 +312,6 @@ func HandleImageUpdateSuccessfully(t *testing.T) {
 					"fedora",
 					"beefy"
 				]
-			},
-			{
-				"op": "replace",
-				"path": "/min_disk",
-				"value": 21
 			}
 		]`)
 
@@ -342,7 +337,7 @@ func HandleImageUpdateSuccessfully(t *testing.T) {
 			"schema": "/v2/schemas/image",
 			"owner": "",
 			"min_ram": 0,
-			"min_disk": 21,
+			"min_disk": 0,
 			"disk_format": "",
 			"virtual_size": 0,
 			"container_format": "",

@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewCustomImageClientWithBaseURI(baseURI string, subscriptionID string) Cust
 // labName - the name of the lab.
 // name - the name of the custom image.
 func (client CustomImageClient) CreateOrUpdateResource(ctx context.Context, resourceGroupName string, labName string, name string, customImage CustomImage) (result CustomImageCreateOrUpdateResourceFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CustomImageClient.CreateOrUpdateResource")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdateResourcePreparer(ctx, resourceGroupName, labName, name, customImage)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.CustomImageClient", "CreateOrUpdateResource", nil, "Failure preparing request")
@@ -98,9 +87,13 @@ func (client CustomImageClient) CreateOrUpdateResourcePreparer(ctx context.Conte
 // CreateOrUpdateResourceSender sends the CreateOrUpdateResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client CustomImageClient) CreateOrUpdateResourceSender(req *http.Request) (future CustomImageCreateOrUpdateResourceFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}
@@ -127,16 +120,6 @@ func (client CustomImageClient) CreateOrUpdateResourceResponder(resp *http.Respo
 // labName - the name of the lab.
 // name - the name of the custom image.
 func (client CustomImageClient) DeleteResource(ctx context.Context, resourceGroupName string, labName string, name string) (result CustomImageDeleteResourceFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CustomImageClient.DeleteResource")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteResourcePreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.CustomImageClient", "DeleteResource", nil, "Failure preparing request")
@@ -177,9 +160,13 @@ func (client CustomImageClient) DeleteResourcePreparer(ctx context.Context, reso
 // DeleteResourceSender sends the DeleteResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client CustomImageClient) DeleteResourceSender(req *http.Request) (future CustomImageDeleteResourceFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -205,16 +192,6 @@ func (client CustomImageClient) DeleteResourceResponder(resp *http.Response) (re
 // labName - the name of the lab.
 // name - the name of the custom image.
 func (client CustomImageClient) GetResource(ctx context.Context, resourceGroupName string, labName string, name string) (result CustomImage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CustomImageClient.GetResource")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetResourcePreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.CustomImageClient", "GetResource", nil, "Failure preparing request")
@@ -261,8 +238,8 @@ func (client CustomImageClient) GetResourcePreparer(ctx context.Context, resourc
 // GetResourceSender sends the GetResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client CustomImageClient) GetResourceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResourceResponder handles the response to the GetResource request. The method always
@@ -284,16 +261,6 @@ func (client CustomImageClient) GetResourceResponder(resp *http.Response) (resul
 // labName - the name of the lab.
 // filter - the filter to apply on the operation.
 func (client CustomImageClient) List(ctx context.Context, resourceGroupName string, labName string, filter string, top *int32, orderBy string) (result ResponseWithContinuationCustomImagePage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CustomImageClient.List")
-		defer func() {
-			sc := -1
-			if result.rwcci.Response.Response != nil {
-				sc = result.rwcci.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, labName, filter, top, orderBy)
 	if err != nil {
@@ -349,8 +316,8 @@ func (client CustomImageClient) ListPreparer(ctx context.Context, resourceGroupN
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client CustomImageClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -367,8 +334,8 @@ func (client CustomImageClient) ListResponder(resp *http.Response) (result Respo
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client CustomImageClient) listNextResults(ctx context.Context, lastResults ResponseWithContinuationCustomImage) (result ResponseWithContinuationCustomImage, err error) {
-	req, err := lastResults.responseWithContinuationCustomImagePreparer(ctx)
+func (client CustomImageClient) listNextResults(lastResults ResponseWithContinuationCustomImage) (result ResponseWithContinuationCustomImage, err error) {
+	req, err := lastResults.responseWithContinuationCustomImagePreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dtl.CustomImageClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -389,16 +356,6 @@ func (client CustomImageClient) listNextResults(ctx context.Context, lastResults
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client CustomImageClient) ListComplete(ctx context.Context, resourceGroupName string, labName string, filter string, top *int32, orderBy string) (result ResponseWithContinuationCustomImageIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CustomImageClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, labName, filter, top, orderBy)
 	return
 }

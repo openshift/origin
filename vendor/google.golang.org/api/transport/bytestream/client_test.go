@@ -170,6 +170,7 @@ func TestClientWrite(t *testing.T) {
 	testCases := []struct {
 		name         string
 		resourceName string
+		maxBufSize   int
 		data         string
 		results      []int
 		wantWriteErr bool

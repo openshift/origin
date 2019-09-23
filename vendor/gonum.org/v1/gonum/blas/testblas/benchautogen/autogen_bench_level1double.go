@@ -1,4 +1,4 @@
-// Copyright ©2014 The Gonum Authors. All rights reserved.
+// Copyright 2014 The Gonum Authors. All rights reserved.
 // Use of this code is governed by a BSD-style
 // license that can be found in the LICENSE file
 
@@ -9,13 +9,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 )
 
 var gopath string
 
-var copyrightnotice = []byte(`// Copyright ©2014 The Gonum Authors. All rights reserved.
+var copyrightnotice = []byte(`// Copyright 2014 The Gonum Authors. All rights reserved.
 // Use of this code is governed by a BSD-style
 // license that can be found in the LICENSE file`)
 
@@ -179,16 +180,18 @@ func init() {
 }
 
 func main() {
-	pkgs := []string{"gonum", "netlib"}
+	blasPath := filepath.Join(gopath, "src", "gonum.org", "v1", "gonum", "blas")
+
+	pkgs := []struct{ name string }{{name: "native"}, {name: "cgo"}}
+
 	for _, pkg := range pkgs {
-		blasPath := filepath.Join(gopath, "src", "gonum.org", "v1", pkg, "blas", pkg)
-		err := level1(blasPath, pkg)
+		err := level1(filepath.Join(blasPath, pkg.name), pkg.name)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		err = exec.Command("goimports", "-w", blasPath).Run()
+		err = exec.Command("go", "fmt", path.Join("gonum.org", "v1", "gonum", "blas", pkg.name)).Run()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -213,10 +216,11 @@ func printHeader(f *os.File, name string) error {
 // Generate the benchmark scripts for level1
 func level1(benchPath string, pkgname string) error {
 	// Generate level 1 benchmarks
-	level1Filepath := filepath.Join(benchPath, "level1float64_bench_test.go")
+	level1Filepath := filepath.Join(benchPath, "level1doubleBench_auto_test.go")
 	f, err := os.Create(level1Filepath)
 	if err != nil {
-		return err
+		fmt.Println(err)
+		os.Exit(1)
 	}
 	defer f.Close()
 	printHeader(f, pkgname)

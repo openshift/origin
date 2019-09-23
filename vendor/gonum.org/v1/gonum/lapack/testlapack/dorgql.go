@@ -71,7 +71,7 @@ func DorgqlTest(t *testing.T, impl Dorgqler) {
 					h := eye(m, m)
 					jj := m - k + l
 					j := n - k + l
-					v := blas64.Vector{Data: make([]float64, m), Inc: 1}
+					v := blas64.Vector{1, make([]float64, m)}
 					for i := 0; i < jj; i++ {
 						v.Data[i] = a.Data[i*a.Stride+j]
 					}
@@ -94,12 +94,12 @@ func DorgqlTest(t *testing.T, impl Dorgqler) {
 					lwork = max(1, n)
 				case mediumWork:
 					work := make([]float64, 1)
-					impl.Dorgql(m, n, k, a.Data, a.Stride, tau, work, -1)
+					impl.Dorgql(m, n, k, nil, a.Stride, nil, work, -1)
 					lwork = (int(work[0]) + n) / 2
 					lwork = max(1, lwork)
 				case optimumWork:
 					work := make([]float64, 1)
-					impl.Dorgql(m, n, k, a.Data, a.Stride, tau, work, -1)
+					impl.Dorgql(m, n, k, nil, a.Stride, nil, work, -1)
 					lwork = int(work[0])
 				}
 				work := make([]float64, lwork)

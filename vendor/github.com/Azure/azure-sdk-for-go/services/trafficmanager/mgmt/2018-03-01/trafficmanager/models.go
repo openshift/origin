@@ -23,9 +23,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/date"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/trafficmanager/mgmt/2018-03-01/trafficmanager"
-
 // EndpointMonitorStatus enumerates the values for endpoint monitor status.
 type EndpointMonitorStatus string
 
@@ -151,8 +148,8 @@ func PossibleTrafficViewEnrollmentStatusValues() []TrafficViewEnrollmentStatus {
 	return []TrafficViewEnrollmentStatus{TrafficViewEnrollmentStatusDisabled, TrafficViewEnrollmentStatusEnabled}
 }
 
-// CheckTrafficManagerRelativeDNSNameAvailabilityParameters parameters supplied to check Traffic Manager
-// name operation.
+// CheckTrafficManagerRelativeDNSNameAvailabilityParameters parameters supplied to check Traffic Manager name
+// operation.
 type CheckTrafficManagerRelativeDNSNameAvailabilityParameters struct {
 	// Name - The name of the resource.
 	Name *string `json:"name,omitempty"`
@@ -181,7 +178,7 @@ type CloudErrorBody struct {
 // DeleteOperationResult the result of the request or operation.
 type DeleteOperationResult struct {
 	autorest.Response `json:"-"`
-	// OperationResult - READ-ONLY; The result of the operation or request.
+	// OperationResult - The result of the operation or request.
 	OperationResult *bool `json:"boolean,omitempty"`
 }
 
@@ -189,7 +186,7 @@ type DeleteOperationResult struct {
 type DNSConfig struct {
 	// RelativeName - The relative DNS name provided by this Traffic Manager profile. This value is combined with the DNS domain name used by Azure Traffic Manager to form the fully-qualified domain name (FQDN) of the profile.
 	RelativeName *string `json:"relativeName,omitempty"`
-	// Fqdn - READ-ONLY; The fully-qualified domain name (FQDN) of the Traffic Manager profile. This is formed from the concatenation of the RelativeName with the DNS domain used by Azure Traffic Manager.
+	// Fqdn - The fully-qualified domain name (FQDN) of the Traffic Manager profile. This is formed from the concatenation of the RelativeName with the DNS domain used by Azure Traffic Manager.
 	Fqdn *string `json:"fqdn,omitempty"`
 	// TTL - The DNS Time-To-Live (TTL), in seconds. This informs the local DNS resolvers and DNS clients how long to cache DNS responses provided by this Traffic Manager profile.
 	TTL *int64 `json:"ttl,omitempty"`
@@ -204,7 +201,7 @@ type Endpoint struct {
 	ID *string `json:"id,omitempty"`
 	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -309,8 +306,7 @@ type EndpointPropertiesCustomHeadersItem struct {
 	Value *string `json:"value,omitempty"`
 }
 
-// GeographicHierarchy class representing the Geographic hierarchy used with the Geographic traffic routing
-// method.
+// GeographicHierarchy class representing the Geographic hierarchy used with the Geographic traffic routing method.
 type GeographicHierarchy struct {
 	autorest.Response `json:"-"`
 	// GeographicHierarchyProperties - The properties of the Geographic Hierarchy resource.
@@ -319,7 +315,7 @@ type GeographicHierarchy struct {
 	ID *string `json:"id,omitempty"`
 	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -392,8 +388,8 @@ func (gh *GeographicHierarchy) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// GeographicHierarchyProperties class representing the properties of the Geographic hierarchy used with
-// the Geographic traffic routing method.
+// GeographicHierarchyProperties class representing the properties of the Geographic hierarchy used with the
+// Geographic traffic routing method.
 type GeographicHierarchyProperties struct {
 	// GeographicHierarchy - The region at the root of the hierarchy from all the regions in the hierarchy can be retrieved.
 	GeographicHierarchy *Region `json:"geographicHierarchy,omitempty"`
@@ -416,7 +412,7 @@ type HeatMapModel struct {
 	ID *string `json:"id,omitempty"`
 	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -567,7 +563,7 @@ type Profile struct {
 	ID *string `json:"id,omitempty"`
 	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -694,7 +690,7 @@ type ProxyResource struct {
 	ID *string `json:"id,omitempty"`
 	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -708,8 +704,7 @@ type QueryExperience struct {
 	Latency *float64 `json:"latency,omitempty"`
 }
 
-// Region class representing a region in the Geographic hierarchy used with the Geographic traffic routing
-// method.
+// Region class representing a region in the Geographic hierarchy used with the Geographic traffic routing method.
 type Region struct {
 	// Code - The code of the region
 	Code *string `json:"code,omitempty"`
@@ -725,7 +720,7 @@ type Resource struct {
 	ID *string `json:"id,omitempty"`
 	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -739,7 +734,7 @@ type TrackedResource struct {
 	ID *string `json:"id,omitempty"`
 	// Name - The name of the resource
 	Name *string `json:"name,omitempty"`
-	// Type - The type of the resource. Ex- Microsoft.Network/trafficManagerProfiles.
+	// Type - The type of the resource. Ex- Microsoft.Network/trafficmanagerProfiles.
 	Type *string `json:"type,omitempty"`
 }
 

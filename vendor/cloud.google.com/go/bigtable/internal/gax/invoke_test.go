@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Google LLC
+Copyright 2015 Google Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@ limitations under the License.
 package gax
 
 import (
-	"context"
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestRandomizedDelays(t *testing.T) {
@@ -34,16 +34,16 @@ func TestRandomizedDelays(t *testing.T) {
 	deadline := time.Now().Add(1 * time.Second)
 	ctx, _ := context.WithDeadline(context.Background(), deadline)
 	var invokeTime time.Time
-	_ = Invoke(ctx, func(childCtx context.Context) error {
+	Invoke(ctx, func(childCtx context.Context) error {
 		// Keep failing, make sure we never slept more than max (plus a fudge factor)
 		if !invokeTime.IsZero() {
-			if got, want := time.Since(invokeTime), max; got > (want + 20*time.Millisecond) {
-				t.Logf("Slept too long. Got: %v, want: %v", got, max)
+			if time.Since(invokeTime) > (max + 20*time.Millisecond) {
+				t.Fatalf("Slept too long: %v", max)
 			}
 		}
 		invokeTime = time.Now()
 		// Workaround for `go vet`: https://github.com/grpc/grpc-go/issues/90
-		errf := status.Errorf
+		errf := grpc.Errorf
 		return errf(codes.Unavailable, "")
 	}, settings...)
 }

@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2018 Google Inc. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,39 +6,13 @@
 
 // Package testing provides access to the Cloud Testing API.
 //
-// For product documentation, see: https://developers.google.com/cloud-test-lab/
-//
-// Creating a client
+// See https://developers.google.com/cloud-test-lab/
 //
 // Usage example:
 //
 //   import "google.golang.org/api/testing/v1"
 //   ...
-//   ctx := context.Background()
-//   testingService, err := testing.NewService(ctx)
-//
-// In this example, Google Application Default Credentials are used for authentication.
-//
-// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
-//
-// Other authentication options
-//
-// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
-//
-//   testingService, err := testing.NewService(ctx, option.WithScopes(testing.CloudPlatformReadOnlyScope))
-//
-// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
-//
-//   testingService, err := testing.NewService(ctx, option.WithAPIKey("AIza..."))
-//
-// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
-//
-//   config := &oauth2.Config{...}
-//   // ...
-//   token, err := config.Exchange(ctx, ...)
-//   testingService, err := testing.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
-//
-// See https://godoc.org/google.golang.org/api/option/ for details on options.
+//   testingService, err := testing.New(oauthHttpClient)
 package testing // import "google.golang.org/api/testing/v1"
 
 import (
@@ -55,8 +29,6 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
-	option "google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -87,33 +59,6 @@ const (
 	CloudPlatformReadOnlyScope = "https://www.googleapis.com/auth/cloud-platform.read-only"
 )
 
-// NewService creates a new Service.
-func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
-	scopesOption := option.WithScopes(
-		"https://www.googleapis.com/auth/cloud-platform",
-		"https://www.googleapis.com/auth/cloud-platform.read-only",
-	)
-	// NOTE: prepend, so we don't override user-specified scopes.
-	opts = append([]option.ClientOption{scopesOption}, opts...)
-	client, endpoint, err := htransport.NewClient(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	s, err := New(client)
-	if err != nil {
-		return nil, err
-	}
-	if endpoint != "" {
-		s.BasePath = endpoint
-	}
-	return s, nil
-}
-
-// New creates a new Service. It uses the provided http.Client for requests.
-//
-// Deprecated: please use NewService instead.
-// To provide a custom HTTP client, use option.WithHTTPClient.
-// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -215,21 +160,21 @@ func (s *Account) MarshalJSON() ([]byte, error) {
 type AndroidDevice struct {
 	// AndroidModelId: Required. The id of the Android device to be
 	// used.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	AndroidModelId string `json:"androidModelId,omitempty"`
 
 	// AndroidVersionId: Required. The id of the Android OS version to be
 	// used.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	AndroidVersionId string `json:"androidVersionId,omitempty"`
 
 	// Locale: Required. The locale the test device used for testing.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	Locale string `json:"locale,omitempty"`
 
 	// Orientation: Required. How the device is oriented during the
 	// test.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	Orientation string `json:"orientation,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AndroidModelId") to
@@ -438,21 +383,21 @@ func (s *AndroidInstrumentationTest) MarshalJSON() ([]byte, error) {
 type AndroidMatrix struct {
 	// AndroidModelIds: Required. The ids of the set of Android device to be
 	// used.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	AndroidModelIds []string `json:"androidModelIds,omitempty"`
 
 	// AndroidVersionIds: Required. The ids of the set of Android OS version
 	// to be used.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	AndroidVersionIds []string `json:"androidVersionIds,omitempty"`
 
 	// Locales: Required. The set of locales the test device will enable for
 	// testing.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	Locales []string `json:"locales,omitempty"`
 
 	// Orientations: Required. The set of orientations to test with.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	Orientations []string `json:"orientations,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AndroidModelIds") to
@@ -882,10 +827,6 @@ type ApkManifest struct {
 	// "com.example.foo".
 	PackageName string `json:"packageName,omitempty"`
 
-	// TargetSdkVersion: Specifies the API Level on which the application is
-	// designed to run.
-	TargetSdkVersion int64 `json:"targetSdkVersion,omitempty"`
-
 	// ForceSendFields is a list of field names (e.g. "ApplicationLabel") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -1153,10 +1094,10 @@ func (s *Date) MarshalJSON() ([]byte, error) {
 
 // DeviceFile: A single device file description.
 type DeviceFile struct {
-	// ObbFile: A reference to an opaque binary blob file.
+	// ObbFile: A reference to an opaque binary blob file
 	ObbFile *ObbFile `json:"obbFile,omitempty"`
 
-	// RegularFile: A reference to a regular file.
+	// RegularFile: A reference to a regular file
 	RegularFile *RegularFile `json:"regularFile,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ObbFile") to
@@ -1397,8 +1338,8 @@ func (s *GetApkDetailsResponse) MarshalJSON() ([]byte, error) {
 }
 
 // GoogleAuto: Enables automatic Google account login.
-// If set, the service automatically generates a Google test account and
-// adds
+// If set, the service will automatically generate a Google test account
+// and add
 // it to the device, before executing the test. Note that test accounts
 // might be
 // reused.
@@ -1484,21 +1425,21 @@ func (s *IntentFilter) MarshalJSON() ([]byte, error) {
 // IosDevice: A single iOS device.
 type IosDevice struct {
 	// IosModelId: Required. The id of the iOS device to be used.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	IosModelId string `json:"iosModelId,omitempty"`
 
 	// IosVersionId: Required. The id of the iOS major software version to
 	// be used.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	IosVersionId string `json:"iosVersionId,omitempty"`
 
 	// Locale: Required. The locale the test device used for testing.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	Locale string `json:"locale,omitempty"`
 
 	// Orientation: Required. How the device is oriented during the
 	// test.
-	// Use the TestEnvironmentDiscoveryService to get supported options.
+	// Use the EnvironmentDiscoveryService to get supported options.
 	Orientation string `json:"orientation,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "IosModelId") to
@@ -1683,8 +1624,8 @@ func (s *IosRuntimeConfiguration) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// IosTestSetup: A description of how to set up an iOS device prior to
-// running the test.
+// IosTestSetup: A description of how to set up an iOS device prior to a
+// test.
 type IosTestSetup struct {
 	// NetworkProfile: The network traffic profile used for running the
 	// test.
@@ -1778,10 +1719,6 @@ func (s *IosVersion) MarshalJSON() ([]byte, error) {
 // contains all
 // the binaries needed to run the tests.
 type IosXcTest struct {
-	// AppBundleId: Output only. The bundle id for the application under
-	// test.
-	AppBundleId string `json:"appBundleId,omitempty"`
-
 	// TestsZip: Required. The .zip containing the .xctestrun file and the
 	// contents of the
 	// DerivedData/Build/Products directory.
@@ -1791,7 +1728,7 @@ type IosXcTest struct {
 	TestsZip *FileReference `json:"testsZip,omitempty"`
 
 	// XcodeVersion: The Xcode version that should be used for the test.
-	// Use the TestEnvironmentDiscoveryService to get supported
+	// Use the EnvironmentDiscoveryService to get supported
 	// options.
 	// Defaults to the latest Xcode version Firebase Test Lab supports.
 	XcodeVersion string `json:"xcodeVersion,omitempty"`
@@ -1805,7 +1742,7 @@ type IosXcTest struct {
 	// tests. Default is taken from the tests zip.
 	Xctestrun *FileReference `json:"xctestrun,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "AppBundleId") to
+	// ForceSendFields is a list of field names (e.g. "TestsZip") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -1813,10 +1750,10 @@ type IosXcTest struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "AppBundleId") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
+	// NullFields is a list of field names (e.g. "TestsZip") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
 	// null. It is an error if a field in this list has a non-empty value.
 	// This may be used to include null fields in Patch requests.
 	NullFields []string `json:"-"`
@@ -2107,10 +2044,6 @@ type ResultStorage struct {
 	// GoogleCloudStorage: Required.
 	GoogleCloudStorage *GoogleCloudStorage `json:"googleCloudStorage,omitempty"`
 
-	// ResultsUrl: Output only. URL to the results in the Firebase Web
-	// Console.
-	ResultsUrl string `json:"resultsUrl,omitempty"`
-
 	// ToolResultsExecution: Output only. The tool results execution that
 	// results are written to.
 	ToolResultsExecution *ToolResultsExecution `json:"toolResultsExecution,omitempty"`
@@ -2163,8 +2096,6 @@ type RoboDirective struct {
 	//   "ENTER_TEXT" - Direct Robo to enter text on the specified element.
 	// No-op if specified
 	// element is not enabled or does not allow text entry.
-	//   "IGNORE" - Direct Robo to ignore interactions with a specific
-	// element.
 	ActionType string `json:"actionType,omitempty"`
 
 	// InputText: The text that Robo is directed to set. If left empty, the
@@ -2210,15 +2141,9 @@ func (s *RoboDirective) MarshalJSON() ([]byte, error) {
 // RoboStartingIntent: Message for specifying the start activities to
 // crawl.
 type RoboStartingIntent struct {
-	// LauncherActivity: An intent that starts the main launcher activity.
 	LauncherActivity *LauncherActivityIntent `json:"launcherActivity,omitempty"`
 
-	// StartActivity: An intent that starts an activity with specific
-	// details.
 	StartActivity *StartActivityIntent `json:"startActivity,omitempty"`
-
-	// Timeout: Timeout in seconds for each intent.
-	Timeout string `json:"timeout,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "LauncherActivity") to
 	// unconditionally include in API requests. By default, fields with
@@ -2363,12 +2288,13 @@ func (s *TestEnvironmentCatalog) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// TestExecution: A single test executed in a single environment.
+// TestExecution: Specifies a single test to be executed in a single
+// environment.
 type TestExecution struct {
 	// Environment: Output only. How the host machine(s) are configured.
 	Environment *Environment `json:"environment,omitempty"`
 
-	// Id: Output only. Unique id set by the service.
+	// Id: Output only. Unique id set by the backend.
 	Id string `json:"id,omitempty"`
 
 	// MatrixId: Output only. Id of the containing TestMatrix.
@@ -2469,26 +2395,15 @@ func (s *TestExecution) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// TestMatrix: TestMatrix captures all details about a test. It contains
-// the environment
-// configuration, test specification, test executions and overall state
-// and
-// outcome.
+// TestMatrix: A group of one or more TestExecutions, built by taking
+// a
+// product of values over a pre-defined set of axes.
 type TestMatrix struct {
 	// ClientInfo: Information about the client which invoked the test.
 	ClientInfo *ClientInfo `json:"clientInfo,omitempty"`
 
-	// EnvironmentMatrix: Required. The devices the tests are being executed
-	// on.
+	// EnvironmentMatrix: Required. How the host machine(s) are configured.
 	EnvironmentMatrix *EnvironmentMatrix `json:"environmentMatrix,omitempty"`
-
-	// FlakyTestAttempts: The number of times a TestExecution should be
-	// re-attempted if one or more
-	// of its test cases fail for any reason.
-	// The maximum number of reruns allowed is 10.
-	//
-	// Default is 0, which implies no reruns.
-	FlakyTestAttempts int64 `json:"flakyTestAttempts,omitempty"`
 
 	// InvalidMatrixDetails: Output only. Describes why the matrix is
 	// considered invalid.
@@ -2504,10 +2419,6 @@ type TestMatrix struct {
 	//   "NO_MANIFEST" - The AndroidManifest.xml could not be found.
 	//   "NO_PACKAGE_NAME" - The APK manifest does not declare a package
 	// name.
-	//   "INVALID_PACKAGE_NAME" - The APK application ID (aka package name)
-	// is invalid.
-	// See also
-	// https://developer.android.com/studio/build/application-id
 	//   "TEST_SAME_AS_APP" - The test package and app package are the same.
 	//   "NO_INSTRUMENTATION" - The test apk does not declare an
 	// instrumentation.
@@ -2535,14 +2446,8 @@ type TestMatrix struct {
 	// that are not allowed.
 	//   "INVALID_ROBO_DIRECTIVES" - There is a conflict in the provided
 	// robo_directives.
-	//   "INVALID_RESOURCE_NAME" - There is at least one invalid resource
-	// name in the provided
-	// robo directives
-	//   "INVALID_DIRECTIVE_ACTION" - Invalid definition of action in the
-	// robo directives
-	// (e.g. a click or ignore action includes an input text field)
-	//   "TEST_LOOP_INTENT_FILTER_NOT_FOUND" - There is no test loop intent
-	// filter, or the one that is given is
+	//   "TEST_LOOP_INTENT_FILTER_NOT_FOUND" - There there is no test loop
+	// intent filter, or the one that is given is
 	// not formatted correctly.
 	//   "SCENARIO_LABEL_NOT_DECLARED" - The request contains a scenario
 	// label that was not declared in the
@@ -2590,28 +2495,6 @@ type TestMatrix struct {
 	// unsupported
 	InvalidMatrixDetails string `json:"invalidMatrixDetails,omitempty"`
 
-	// OutcomeSummary: Output Only. The overall outcome of the test.
-	// Only set when the test matrix state is FINISHED.
-	//
-	// Possible values:
-	//   "OUTCOME_SUMMARY_UNSPECIFIED" - Do not use. For proto versioning
-	// only.
-	//   "SUCCESS" - The test matrix run was successful, for instance:
-	// - All the test cases passed.
-	// - Robo did not detect a crash of the application under test.
-	//   "FAILURE" - A run failed, for instance:
-	// - One or more test case failed.
-	// - A test timed out.
-	// - The application under test crashed.
-	//   "INCONCLUSIVE" - Something unexpected happened. The run should
-	// still be considered
-	// unsuccessful but this is likely a transient problem and re-running
-	// the
-	// test might be successful.
-	//   "SKIPPED" - All tests were skipped, for instance:
-	// - All device configurations were incompatible.
-	OutcomeSummary string `json:"outcomeSummary,omitempty"`
-
 	// ProjectId: The cloud project that owns the test matrix.
 	ProjectId string `json:"projectId,omitempty"`
 
@@ -2620,7 +2503,8 @@ type TestMatrix struct {
 	ResultStorage *ResultStorage `json:"resultStorage,omitempty"`
 
 	// State: Output only. Indicates the current progress of the test
-	// matrix.
+	// matrix
+	// (e.g., FINISHED).
 	//
 	// Possible values:
 	//   "TEST_STATE_UNSPECIFIED" - Do not use.  For proto versioning only.
@@ -2793,11 +2677,25 @@ type TestSpecification struct {
 	// AndroidTestLoop: An Android Application with a Test Loop.
 	AndroidTestLoop *AndroidTestLoop `json:"androidTestLoop,omitempty"`
 
-	// DisablePerformanceMetrics: Disables performance metrics recording.
-	// May reduce test latency.
+	// AutoGoogleLogin: Enables automatic Google account login.
+	// If set, the service will automatically generate a Google test account
+	// and
+	// add it to the device, before executing the test. Note that test
+	// accounts
+	// might be reused.
+	// Many applications show their full set of functionalities when an
+	// account is
+	// present on the device. Logging into the device with these
+	// generated
+	// accounts allows testing more functionalities.
+	// Default is false.
+	AutoGoogleLogin bool `json:"autoGoogleLogin,omitempty"`
+
+	// DisablePerformanceMetrics: Disables performance metrics recording;
+	// may reduce test latency.
 	DisablePerformanceMetrics bool `json:"disablePerformanceMetrics,omitempty"`
 
-	// DisableVideoRecording: Disables video recording. May reduce test
+	// DisableVideoRecording: Disables video recording; may reduce test
 	// latency.
 	DisableVideoRecording bool `json:"disableVideoRecording,omitempty"`
 

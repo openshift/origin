@@ -210,27 +210,6 @@ func TestConfig(t *testing.T) {
 `,
 			fail: false,
 		},
-		// expected failure: Env is invalid
-		{
-			config: `
-{
-    "architecture": "amd64",
-    "os": "linux",
-    "config": {
-        "Env": [
-            "foo"
-        ]
-    },
-    "rootfs": {
-      "diff_ids": [
-        "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
-      ],
-      "type": "layers"
-    }
-}
-`,
-			fail: true,
-		},
 	} {
 		r := strings.NewReader(tt.config)
 		err := schema.ValidatorMediaTypeImageConfig.Validate(r)

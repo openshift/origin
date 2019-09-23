@@ -927,7 +927,7 @@
       }
     }
   },
-  "revision": "20181218",
+  "revision": "20181020",
   "rootUrl": "https://appengine.googleapis.com/",
   "schemas": {
     "ApiConfigHandler": {
@@ -2381,10 +2381,6 @@
         },
         "runtimeApiVersion": {
           "description": "The version of the API in the given runtime environment. Please see the app.yaml reference for valid values at https://cloud.google.com/appengine/docs/standard/\u003clanguage\u003e/config/appref",
-          "type": "string"
-        },
-        "runtimeMainExecutablePath": {
-          "description": "The path or name of the app's main executable.",
           "type": "string"
         },
         "servingStatus": {

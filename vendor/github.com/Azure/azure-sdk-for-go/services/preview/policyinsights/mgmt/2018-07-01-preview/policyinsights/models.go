@@ -18,17 +18,12 @@ package policyinsights
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/policyinsights/mgmt/2018-07-01-preview/policyinsights"
 
 // PolicyStatesResource enumerates the values for policy states resource.
 type PolicyStatesResource string
@@ -47,15 +42,15 @@ func PossiblePolicyStatesResourceValues() []PolicyStatesResource {
 
 // ErrorDefinition error definition.
 type ErrorDefinition struct {
-	// Code - READ-ONLY; Service specific error code which serves as the substatus for the HTTP error code.
+	// Code - Service specific error code which serves as the substatus for the HTTP error code.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; Description of the error.
+	// Message - Description of the error.
 	Message *string `json:"message,omitempty"`
-	// Target - READ-ONLY; The target of the error.
+	// Target - The target of the error.
 	Target *string `json:"target,omitempty"`
-	// Details - READ-ONLY; Internal error details.
+	// Details - Internal error details.
 	Details *[]ErrorDefinition `json:"details,omitempty"`
-	// AdditionalInfo - READ-ONLY; Additional scenario specific error details.
+	// AdditionalInfo - Additional scenario specific error details.
 	AdditionalInfo *[]TypedErrorInfo `json:"additionalInfo,omitempty"`
 }
 
@@ -63,30 +58,6 @@ type ErrorDefinition struct {
 type ErrorResponse struct {
 	// Error - The error details.
 	Error *ErrorDefinition `json:"error,omitempty"`
-}
-
-// ExpressionEvaluationDetails evaluation details of policy language expressions.
-type ExpressionEvaluationDetails struct {
-	// Result - Evaluation result.
-	Result *string `json:"result,omitempty"`
-	// Expression - Expression evaluated.
-	Expression *string `json:"expression,omitempty"`
-	// Path - Property path if the expression is a field or an alias.
-	Path *string `json:"path,omitempty"`
-	// ExpressionValue - Value of the expression.
-	ExpressionValue interface{} `json:"expressionValue,omitempty"`
-	// TargetValue - Target value to be compared with the expression value.
-	TargetValue interface{} `json:"targetValue,omitempty"`
-	// Operator - Operator to compare the expression value and the target value.
-	Operator *string `json:"operator,omitempty"`
-}
-
-// IfNotExistsEvaluationDetails evaluation details of IfNotExists effect.
-type IfNotExistsEvaluationDetails struct {
-	// ResourceID - ID of the last evaluated resource for IfNotExists effect.
-	ResourceID *string `json:"resourceId,omitempty"`
-	// TotalResources - Total number of resources to which the existence condition is applicable.
-	TotalResources *int32 `json:"totalResources,omitempty"`
 }
 
 // Operation operation definition.
@@ -144,26 +115,18 @@ type PolicyDefinitionSummary struct {
 
 // PolicyDetails the policy details.
 type PolicyDetails struct {
-	// PolicyDefinitionID - READ-ONLY; The ID of the policy definition.
+	// PolicyDefinitionID - The ID of the policy definition.
 	PolicyDefinitionID *string `json:"policyDefinitionId,omitempty"`
-	// PolicyAssignmentID - READ-ONLY; The ID of the policy assignment.
+	// PolicyAssignmentID - The ID of the policy assignment.
 	PolicyAssignmentID *string `json:"policyAssignmentId,omitempty"`
-	// PolicyAssignmentDisplayName - READ-ONLY; The display name of the policy assignment.
+	// PolicyAssignmentDisplayName - The display name of the policy assignment.
 	PolicyAssignmentDisplayName *string `json:"policyAssignmentDisplayName,omitempty"`
-	// PolicyAssignmentScope - READ-ONLY; The scope of the policy assignment.
+	// PolicyAssignmentScope - The scope of the policy assignment.
 	PolicyAssignmentScope *string `json:"policyAssignmentScope,omitempty"`
-	// PolicySetDefinitionID - READ-ONLY; The ID of the policy set definition.
+	// PolicySetDefinitionID - The ID of the policy set definition.
 	PolicySetDefinitionID *string `json:"policySetDefinitionId,omitempty"`
-	// PolicyDefinitionReferenceID - READ-ONLY; The policy definition reference ID within the policy set definition.
+	// PolicyDefinitionReferenceID - The policy definition reference ID within the policy set definition.
 	PolicyDefinitionReferenceID *string `json:"policyDefinitionReferenceId,omitempty"`
-}
-
-// PolicyEvaluationDetails policy evaluation details.
-type PolicyEvaluationDetails struct {
-	// EvaluatedExpressions - Details of the evaluated expressions.
-	EvaluatedExpressions *[]ExpressionEvaluationDetails `json:"evaluatedExpressions,omitempty"`
-	// IfNotExistsDetails - Evaluation details of IfNotExists effect.
-	IfNotExistsDetails *IfNotExistsEvaluationDetails `json:"ifNotExistsDetails,omitempty"`
 }
 
 // PolicyEvent policy event record.
@@ -220,7 +183,7 @@ type PolicyEvent struct {
 	PolicySetDefinitionCategory *string `json:"policySetDefinitionCategory,omitempty"`
 	// PolicySetDefinitionParameters - Policy set definition parameters, if the policy assignment is for a policy set.
 	PolicySetDefinitionParameters *string `json:"policySetDefinitionParameters,omitempty"`
-	// ManagementGroupIds - Comma separated list of management group IDs, which represent the hierarchy of the management groups the resource is under.
+	// ManagementGroupIds - Comma seperated list of management group IDs, which represent the hierarchy of the management groups the resource is under.
 	ManagementGroupIds *string `json:"managementGroupIds,omitempty"`
 	// PolicyDefinitionReferenceID - Reference ID for the policy definition inside the policy set, if the policy assignment is for a policy set.
 	PolicyDefinitionReferenceID *string `json:"policyDefinitionReferenceId,omitempty"`
@@ -679,14 +642,10 @@ type PolicyState struct {
 	PolicySetDefinitionCategory *string `json:"policySetDefinitionCategory,omitempty"`
 	// PolicySetDefinitionParameters - Policy set definition parameters, if the policy assignment is for a policy set.
 	PolicySetDefinitionParameters *string `json:"policySetDefinitionParameters,omitempty"`
-	// ManagementGroupIds - Comma separated list of management group IDs, which represent the hierarchy of the management groups the resource is under.
+	// ManagementGroupIds - Comma seperated list of management group IDs, which represent the hierarchy of the management groups the resource is under.
 	ManagementGroupIds *string `json:"managementGroupIds,omitempty"`
 	// PolicyDefinitionReferenceID - Reference ID for the policy definition inside the policy set, if the policy assignment is for a policy set.
 	PolicyDefinitionReferenceID *string `json:"policyDefinitionReferenceId,omitempty"`
-	// ComplianceState - Compliance state of the resource.
-	ComplianceState *string `json:"complianceState,omitempty"`
-	// PolicyEvaluationDetails - Policy evaluation details.
-	PolicyEvaluationDetails *PolicyEvaluationDetails `json:"policyEvaluationDetails,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for PolicyState.
@@ -772,12 +731,6 @@ func (ps PolicyState) MarshalJSON() ([]byte, error) {
 	}
 	if ps.PolicyDefinitionReferenceID != nil {
 		objectMap["policyDefinitionReferenceId"] = ps.PolicyDefinitionReferenceID
-	}
-	if ps.ComplianceState != nil {
-		objectMap["complianceState"] = ps.ComplianceState
-	}
-	if ps.PolicyEvaluationDetails != nil {
-		objectMap["policyEvaluationDetails"] = ps.PolicyEvaluationDetails
 	}
 	for k, v := range ps.AdditionalProperties {
 		objectMap[k] = v
@@ -1049,24 +1002,6 @@ func (ps *PolicyState) UnmarshalJSON(body []byte) error {
 				}
 				ps.PolicyDefinitionReferenceID = &policyDefinitionReferenceID
 			}
-		case "complianceState":
-			if v != nil {
-				var complianceState string
-				err = json.Unmarshal(*v, &complianceState)
-				if err != nil {
-					return err
-				}
-				ps.ComplianceState = &complianceState
-			}
-		case "policyEvaluationDetails":
-			if v != nil {
-				var policyEvaluationDetails PolicyEvaluationDetails
-				err = json.Unmarshal(*v, &policyEvaluationDetails)
-				if err != nil {
-					return err
-				}
-				ps.PolicyEvaluationDetails = &policyEvaluationDetails
-			}
 		}
 	}
 
@@ -1086,65 +1021,48 @@ type PolicyStatesQueryResults struct {
 
 // PolicyTrackedResource policy tracked resource record.
 type PolicyTrackedResource struct {
-	// TrackedResourceID - READ-ONLY; The ID of the policy tracked resource.
+	// TrackedResourceID - The ID of the policy tracked resource.
 	TrackedResourceID *string `json:"trackedResourceId,omitempty"`
-	// PolicyDetails - READ-ONLY; The details of the policy that require the tracked resource.
+	// PolicyDetails - The details of the policy that require the tracked resource.
 	PolicyDetails *PolicyDetails `json:"policyDetails,omitempty"`
-	// CreatedBy - READ-ONLY; The details of the policy triggered deployment that created the tracked resource.
+	// CreatedBy - The details of the policy triggered deployment that created the tracked resource.
 	CreatedBy *TrackedResourceModificationDetails `json:"createdBy,omitempty"`
-	// LastModifiedBy - READ-ONLY; The details of the policy triggered deployment that modified the tracked resource.
+	// LastModifiedBy - The details of the policy triggered deployment that modified the tracked resource.
 	LastModifiedBy *TrackedResourceModificationDetails `json:"lastModifiedBy,omitempty"`
-	// LastUpdateUtc - READ-ONLY; Timestamp of the last update to the tracked resource.
+	// LastUpdateUtc - Timestamp of the last update to the tracked resource.
 	LastUpdateUtc *date.Time `json:"lastUpdateUtc,omitempty"`
 }
 
 // PolicyTrackedResourcesQueryResults query results.
 type PolicyTrackedResourcesQueryResults struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Query results.
+	// Value - Query results.
 	Value *[]PolicyTrackedResource `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of results.
+	// NextLink - The URL to get the next set of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// PolicyTrackedResourcesQueryResultsIterator provides access to a complete listing of
-// PolicyTrackedResource values.
+// PolicyTrackedResourcesQueryResultsIterator provides access to a complete listing of PolicyTrackedResource
+// values.
 type PolicyTrackedResourcesQueryResultsIterator struct {
 	i    int
 	page PolicyTrackedResourcesQueryResultsPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *PolicyTrackedResourcesQueryResultsIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesQueryResultsIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *PolicyTrackedResourcesQueryResultsIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *PolicyTrackedResourcesQueryResultsIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1166,11 +1084,6 @@ func (iter PolicyTrackedResourcesQueryResultsIterator) Value() PolicyTrackedReso
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the PolicyTrackedResourcesQueryResultsIterator type.
-func NewPolicyTrackedResourcesQueryResultsIterator(page PolicyTrackedResourcesQueryResultsPage) PolicyTrackedResourcesQueryResultsIterator {
-	return PolicyTrackedResourcesQueryResultsIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (ptrqr PolicyTrackedResourcesQueryResults) IsEmpty() bool {
 	return ptrqr.Value == nil || len(*ptrqr.Value) == 0
@@ -1178,11 +1091,11 @@ func (ptrqr PolicyTrackedResourcesQueryResults) IsEmpty() bool {
 
 // policyTrackedResourcesQueryResultsPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (ptrqr PolicyTrackedResourcesQueryResults) policyTrackedResourcesQueryResultsPreparer(ctx context.Context) (*http.Request, error) {
+func (ptrqr PolicyTrackedResourcesQueryResults) policyTrackedResourcesQueryResultsPreparer() (*http.Request, error) {
 	if ptrqr.NextLink == nil || len(to.String(ptrqr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(ptrqr.NextLink)))
@@ -1190,36 +1103,19 @@ func (ptrqr PolicyTrackedResourcesQueryResults) policyTrackedResourcesQueryResul
 
 // PolicyTrackedResourcesQueryResultsPage contains a page of PolicyTrackedResource values.
 type PolicyTrackedResourcesQueryResultsPage struct {
-	fn    func(context.Context, PolicyTrackedResourcesQueryResults) (PolicyTrackedResourcesQueryResults, error)
+	fn    func(PolicyTrackedResourcesQueryResults) (PolicyTrackedResourcesQueryResults, error)
 	ptrqr PolicyTrackedResourcesQueryResults
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *PolicyTrackedResourcesQueryResultsPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyTrackedResourcesQueryResultsPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.ptrqr)
+func (page *PolicyTrackedResourcesQueryResultsPage) Next() error {
+	next, err := page.fn(page.ptrqr)
 	if err != nil {
 		return err
 	}
 	page.ptrqr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *PolicyTrackedResourcesQueryResultsPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1240,11 +1136,6 @@ func (page PolicyTrackedResourcesQueryResultsPage) Values() []PolicyTrackedResou
 	return *page.ptrqr.Value
 }
 
-// Creates a new instance of the PolicyTrackedResourcesQueryResultsPage type.
-func NewPolicyTrackedResourcesQueryResultsPage(getNextPage func(context.Context, PolicyTrackedResourcesQueryResults) (PolicyTrackedResourcesQueryResults, error)) PolicyTrackedResourcesQueryResultsPage {
-	return PolicyTrackedResourcesQueryResultsPage{fn: getNextPage}
-}
-
 // QueryFailure error response.
 type QueryFailure struct {
 	// Error - Error definition.
@@ -1253,9 +1144,9 @@ type QueryFailure struct {
 
 // QueryFailureError error definition.
 type QueryFailureError struct {
-	// Code - READ-ONLY; Service specific error code which serves as the substatus for the HTTP error code.
+	// Code - Service specific error code which serves as the substatus for the HTTP error code.
 	Code *string `json:"code,omitempty"`
-	// Message - READ-ONLY; Description of the error.
+	// Message - Description of the error.
 	Message *string `json:"message,omitempty"`
 }
 
@@ -1264,11 +1155,11 @@ type Remediation struct {
 	autorest.Response `json:"-"`
 	// RemediationProperties - Properties for the remediation.
 	*RemediationProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The ID of the remediation.
+	// ID - The ID of the remediation.
 	ID *string `json:"id,omitempty"`
-	// Type - READ-ONLY; The type of the remediation.
+	// Type - The type of the remediation.
 	Type *string `json:"type,omitempty"`
-	// Name - READ-ONLY; The name of the remediation.
+	// Name - The name of the remediation.
 	Name *string `json:"name,omitempty"`
 }
 
@@ -1277,6 +1168,15 @@ func (r Remediation) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if r.RemediationProperties != nil {
 		objectMap["properties"] = r.RemediationProperties
+	}
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
 	}
 	return json.Marshal(objectMap)
 }
@@ -1334,69 +1234,51 @@ func (r *Remediation) UnmarshalJSON(body []byte) error {
 
 // RemediationDeployment details of a single deployment created by the remediation.
 type RemediationDeployment struct {
-	// RemediatedResourceID - READ-ONLY; Resource ID of the resource that is being remediated by the deployment.
+	// RemediatedResourceID - Resource ID of the resource that is being remediated by the deployment.
 	RemediatedResourceID *string `json:"remediatedResourceId,omitempty"`
-	// DeploymentID - READ-ONLY; Resource ID of the template deployment that will remediate the resource.
+	// DeploymentID - Resource ID of the template deployment that will remediate the resource.
 	DeploymentID *string `json:"deploymentId,omitempty"`
-	// Status - READ-ONLY; Status of the remediation deployment.
+	// Status - Status of the remediation deployment.
 	Status *string `json:"status,omitempty"`
-	// ResourceLocation - READ-ONLY; Location of the resource that is being remediated.
+	// ResourceLocation - Location of the resource that is being remediated.
 	ResourceLocation *string `json:"resourceLocation,omitempty"`
-	// Error - READ-ONLY; Error encountered while remediated the resource.
+	// Error - Error encountered while remediated the resource.
 	Error *ErrorDefinition `json:"error,omitempty"`
-	// CreatedOn - READ-ONLY; The time at which the remediation was created.
+	// CreatedOn - The time at which the remediation was created.
 	CreatedOn *date.Time `json:"createdOn,omitempty"`
-	// LastUpdatedOn - READ-ONLY; The time at which the remediation deployment was last updated.
+	// LastUpdatedOn - The time at which the remediation deployment was last updated.
 	LastUpdatedOn *date.Time `json:"lastUpdatedOn,omitempty"`
 }
 
 // RemediationDeploymentsListResult list of deployments for a remediation.
 type RemediationDeploymentsListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of deployments for the remediation.
+	// Value - Array of deployments for the remediation.
 	Value *[]RemediationDeployment `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of results.
+	// NextLink - The URL to get the next set of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// RemediationDeploymentsListResultIterator provides access to a complete listing of RemediationDeployment
-// values.
+// RemediationDeploymentsListResultIterator provides access to a complete listing of RemediationDeployment values.
 type RemediationDeploymentsListResultIterator struct {
 	i    int
 	page RemediationDeploymentsListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *RemediationDeploymentsListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationDeploymentsListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *RemediationDeploymentsListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *RemediationDeploymentsListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1418,11 +1300,6 @@ func (iter RemediationDeploymentsListResultIterator) Value() RemediationDeployme
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the RemediationDeploymentsListResultIterator type.
-func NewRemediationDeploymentsListResultIterator(page RemediationDeploymentsListResultPage) RemediationDeploymentsListResultIterator {
-	return RemediationDeploymentsListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (rdlr RemediationDeploymentsListResult) IsEmpty() bool {
 	return rdlr.Value == nil || len(*rdlr.Value) == 0
@@ -1430,11 +1307,11 @@ func (rdlr RemediationDeploymentsListResult) IsEmpty() bool {
 
 // remediationDeploymentsListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (rdlr RemediationDeploymentsListResult) remediationDeploymentsListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (rdlr RemediationDeploymentsListResult) remediationDeploymentsListResultPreparer() (*http.Request, error) {
 	if rdlr.NextLink == nil || len(to.String(rdlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(rdlr.NextLink)))
@@ -1442,36 +1319,19 @@ func (rdlr RemediationDeploymentsListResult) remediationDeploymentsListResultPre
 
 // RemediationDeploymentsListResultPage contains a page of RemediationDeployment values.
 type RemediationDeploymentsListResultPage struct {
-	fn   func(context.Context, RemediationDeploymentsListResult) (RemediationDeploymentsListResult, error)
+	fn   func(RemediationDeploymentsListResult) (RemediationDeploymentsListResult, error)
 	rdlr RemediationDeploymentsListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *RemediationDeploymentsListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationDeploymentsListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.rdlr)
+func (page *RemediationDeploymentsListResultPage) Next() error {
+	next, err := page.fn(page.rdlr)
 	if err != nil {
 		return err
 	}
 	page.rdlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *RemediationDeploymentsListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1492,13 +1352,7 @@ func (page RemediationDeploymentsListResultPage) Values() []RemediationDeploymen
 	return *page.rdlr.Value
 }
 
-// Creates a new instance of the RemediationDeploymentsListResultPage type.
-func NewRemediationDeploymentsListResultPage(getNextPage func(context.Context, RemediationDeploymentsListResult) (RemediationDeploymentsListResult, error)) RemediationDeploymentsListResultPage {
-	return RemediationDeploymentsListResultPage{fn: getNextPage}
-}
-
-// RemediationDeploymentSummary the deployment status summary for all deployments created by the
-// remediation.
+// RemediationDeploymentSummary the deployment status summary for all deplyoments created by the remediation.
 type RemediationDeploymentSummary struct {
 	// TotalDeployments - The number of deployments required by the remediation.
 	TotalDeployments *int32 `json:"totalDeployments,omitempty"`
@@ -1517,9 +1371,9 @@ type RemediationFilters struct {
 // RemediationListResult list of remediations.
 type RemediationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Array of remediation definitions.
+	// Value - Array of remediation definitions.
 	Value *[]Remediation `json:"value,omitempty"`
-	// NextLink - READ-ONLY; The URL to get the next set of results.
+	// NextLink - The URL to get the next set of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1529,37 +1383,20 @@ type RemediationListResultIterator struct {
 	page RemediationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *RemediationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *RemediationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *RemediationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1581,11 +1418,6 @@ func (iter RemediationListResultIterator) Value() Remediation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the RemediationListResultIterator type.
-func NewRemediationListResultIterator(page RemediationListResultPage) RemediationListResultIterator {
-	return RemediationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (rlr RemediationListResult) IsEmpty() bool {
 	return rlr.Value == nil || len(*rlr.Value) == 0
@@ -1593,11 +1425,11 @@ func (rlr RemediationListResult) IsEmpty() bool {
 
 // remediationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (rlr RemediationListResult) remediationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (rlr RemediationListResult) remediationListResultPreparer() (*http.Request, error) {
 	if rlr.NextLink == nil || len(to.String(rlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(rlr.NextLink)))
@@ -1605,36 +1437,19 @@ func (rlr RemediationListResult) remediationListResultPreparer(ctx context.Conte
 
 // RemediationListResultPage contains a page of Remediation values.
 type RemediationListResultPage struct {
-	fn  func(context.Context, RemediationListResult) (RemediationListResult, error)
+	fn  func(RemediationListResult) (RemediationListResult, error)
 	rlr RemediationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *RemediationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RemediationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.rlr)
+func (page *RemediationListResultPage) Next() error {
+	next, err := page.fn(page.rlr)
 	if err != nil {
 		return err
 	}
 	page.rlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *RemediationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1655,26 +1470,21 @@ func (page RemediationListResultPage) Values() []Remediation {
 	return *page.rlr.Value
 }
 
-// Creates a new instance of the RemediationListResultPage type.
-func NewRemediationListResultPage(getNextPage func(context.Context, RemediationListResult) (RemediationListResult, error)) RemediationListResultPage {
-	return RemediationListResultPage{fn: getNextPage}
-}
-
 // RemediationProperties the remediation properties.
 type RemediationProperties struct {
 	// PolicyAssignmentID - The resource ID of the policy assignment that should be remediated.
 	PolicyAssignmentID *string `json:"policyAssignmentId,omitempty"`
 	// PolicyDefinitionReferenceID - The policy definition reference ID of the individual definition that should be remediated. Required when the policy assignment being remediated assigns a policy set definition.
 	PolicyDefinitionReferenceID *string `json:"policyDefinitionReferenceId,omitempty"`
-	// ProvisioningState - READ-ONLY; The status of the remediation.
+	// ProvisioningState - The status of the remediation.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
-	// CreatedOn - READ-ONLY; The time at which the remediation was created.
+	// CreatedOn - The time at which the remediation was created.
 	CreatedOn *date.Time `json:"createdOn,omitempty"`
-	// LastUpdatedOn - READ-ONLY; The time at which the remediation was last updated.
+	// LastUpdatedOn - The time at which the remediation was last updated.
 	LastUpdatedOn *date.Time `json:"lastUpdatedOn,omitempty"`
 	// Filters - The filters that will be applied to determine which resources to remediate.
 	Filters *RemediationFilters `json:"filters,omitempty"`
-	// DeploymentStatus - The deployment status summary for all deployments created by the remediation.
+	// DeploymentStatus - The deployment status summary for all deplyoments created by the remediation.
 	DeploymentStatus *RemediationDeploymentSummary `json:"deploymentStatus,omitempty"`
 }
 
@@ -1717,21 +1527,21 @@ type SummaryResults struct {
 	NonCompliantPolicies *int32 `json:"nonCompliantPolicies,omitempty"`
 }
 
-// TrackedResourceModificationDetails the details of the policy triggered deployment that created or
-// modified the tracked resource.
+// TrackedResourceModificationDetails the details of the policy triggered deployment that created or modified the
+// tracked resource.
 type TrackedResourceModificationDetails struct {
-	// PolicyDetails - READ-ONLY; The details of the policy that created or modified the tracked resource.
+	// PolicyDetails - The details of the policy that created or modified the tracked resource.
 	PolicyDetails *PolicyDetails `json:"policyDetails,omitempty"`
-	// DeploymentID - READ-ONLY; The ID of the deployment that created or modified the tracked resource.
+	// DeploymentID - The ID of the deployment that created or modified the tracked resource.
 	DeploymentID *string `json:"deploymentId,omitempty"`
-	// DeploymentTime - READ-ONLY; Timestamp of the deployment that created or modified the tracked resource.
+	// DeploymentTime - Timestamp of the deployment that created or modified the tracked resource.
 	DeploymentTime *date.Time `json:"deploymentTime,omitempty"`
 }
 
 // TypedErrorInfo scenario specific error details.
 type TypedErrorInfo struct {
-	// Type - READ-ONLY; The type of included error details.
+	// Type - The type of included error details.
 	Type *string `json:"type,omitempty"`
-	// Info - READ-ONLY; The scenario specific error details.
+	// Info - The scenario specific error details.
 	Info interface{} `json:"info,omitempty"`
 }

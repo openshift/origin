@@ -22,28 +22,28 @@ package gonum
 //           information.
 //
 // Ilaenv is an internal routine. It is exported for testing purposes.
-func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n3, n4 int) int {
+func (impl Implementation) Ilaenv(ispec int, s string, opts string, n1, n2, n3, n4 int) int {
 	// TODO(btracey): Replace this with a constant lookup? A list of constants?
-	sname := name[0] == 'S' || name[0] == 'D'
-	cname := name[0] == 'C' || name[0] == 'Z'
+	sname := s[0] == 'S' || s[0] == 'D'
+	cname := s[0] == 'C' || s[0] == 'Z'
 	if !sname && !cname {
-		panic(badName)
+		panic("lapack: bad name")
 	}
-	c2 := name[1:3]
-	c3 := name[3:6]
+	c2 := s[1:3]
+	c3 := s[3:6]
 	c4 := c3[1:3]
 
 	switch ispec {
 	default:
-		panic(badIspec)
+		panic("lapack: bad ispec")
 	case 1:
 		switch c2 {
 		default:
-			panic(badName)
+			panic("lapack: bad function name")
 		case "GE":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "TRF":
 				if sname {
 					return 64
@@ -73,7 +73,7 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "PO":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "TRF":
 				if sname {
 					return 64
@@ -83,7 +83,7 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "SY":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "TRF":
 				if sname {
 					return 64
@@ -97,7 +97,7 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "HE":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "TRF":
 				return 64
 			case "TRD":
@@ -108,18 +108,18 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "OR":
 			switch c3[0] {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case 'G':
 				switch c3[1:] {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 32
 				}
 			case 'M':
 				switch c3[1:] {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 32
 				}
@@ -127,18 +127,18 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "UN":
 			switch c3[0] {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case 'G':
 				switch c3[1:] {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 32
 				}
 			case 'M':
 				switch c3[1:] {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 32
 				}
@@ -146,7 +146,7 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "GB":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "TRF":
 				if sname {
 					if n4 <= 64 {
@@ -162,7 +162,7 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "PB":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "TRF":
 				if sname {
 					if n4 <= 64 {
@@ -178,7 +178,7 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "TR":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "TRI":
 				if sname {
 					return 64
@@ -193,7 +193,7 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "LA":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "UUM":
 				if sname {
 					return 64
@@ -204,16 +204,16 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 			if sname && c3 == "EBZ" {
 				return 1
 			}
-			panic(badName)
+			panic("lapack: bad function name")
 		}
 	case 2:
 		switch c2 {
 		default:
-			panic(badName)
+			panic("lapack: bad function name")
 		case "GE":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "QRF", "RQF", "LQF", "QLF":
 				if sname {
 					return 2
@@ -238,7 +238,7 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "SY":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "TRF":
 				if sname {
 					return 8
@@ -248,31 +248,31 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 				if sname {
 					return 2
 				}
-				panic(badName)
+				panic("lapack: bad function name")
 			}
 		case "HE":
 			if c3 == "TRD" {
 				return 2
 			}
-			panic(badName)
+			panic("lapack: bad function name")
 		case "OR":
 			if !sname {
-				panic(badName)
+				panic("lapack: bad function name")
 			}
 			switch c3[0] {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case 'G':
 				switch c4 {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 2
 				}
 			case 'M':
 				switch c4 {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 2
 				}
@@ -280,18 +280,18 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "UN":
 			switch c3[0] {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case 'G':
 				switch c4 {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 2
 				}
 			case 'M':
 				switch c4 {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 2
 				}
@@ -300,11 +300,11 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 	case 3:
 		switch c2 {
 		default:
-			panic(badName)
+			panic("lapack: bad function name")
 		case "GE":
 			switch c3 {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case "QRF", "RQF", "LQF", "QLF":
 				if sname {
 					return 128
@@ -325,20 +325,20 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 			if sname && c3 == "TRD" {
 				return 32
 			}
-			panic(badName)
+			panic("lapack: bad function name")
 		case "HE":
 			if c3 == "TRD" {
 				return 32
 			}
-			panic(badName)
+			panic("lapack: bad function name")
 		case "OR":
 			switch c3[0] {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case 'G':
 				switch c4 {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 128
 				}
@@ -346,11 +346,11 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		case "UN":
 			switch c3[0] {
 			default:
-				panic(badName)
+				panic("lapack: bad function name")
 			case 'G':
 				switch c4 {
 				default:
-					panic(badName)
+					panic("lapack: bad function name")
 				case "QR", "RQ", "LQ", "QL", "HR", "TR", "BR":
 					return 128
 				}
@@ -382,6 +382,6 @@ func (impl Implementation) Ilaenv(ispec int, name string, opts string, n1, n2, n
 		return 1
 	case 12, 13, 14, 15, 16:
 		// Dhseqr and related functions for eigenvalue problems.
-		return impl.Iparmq(ispec, name, opts, n1, n2, n3, n4)
+		return impl.Iparmq(ispec, s, opts, n1, n2, n3, n4)
 	}
 }

@@ -61,11 +61,11 @@ import "github.com/spf13/afero"
 
 First define a package variable and set it to a pointer to a filesystem.
 ```go
-var AppFs = afero.NewMemMapFs()
+var AppFs afero.Fs = afero.NewMemMapFs()
 
 or
 
-var AppFs = afero.NewOsFs()
+var AppFs afero.Fs = afero.NewOsFs()
 ```
 It is important to note that if you repeat the composite literal you
 will be using a completely new and isolated filesystem. In the case of
@@ -81,10 +81,7 @@ So if my application before had:
 ```go
 os.Open('/tmp/foo')
 ```
-We would replace it with:
-```go
-AppFs.Open('/tmp/foo')
-```
+We would replace it with a call to `AppFs.Open('/tmp/foo')`.
 
 `AppFs` being the variable we defined above.
 
@@ -169,8 +166,8 @@ f, err := afero.TempFile(fs,"", "ioutil-test")
 ### Calling via Afero
 
 ```go
-fs := afero.NewMemMapFs()
-afs := &afero.Afero{Fs: fs}
+fs := afero.NewMemMapFs
+afs := &Afero{Fs: fs}
 f, err := afs.TempFile("", "ioutil-test")
 ```
 
@@ -201,17 +198,17 @@ independent, with no test relying on the state left by an earlier test.
 Then in my tests I would initialize a new MemMapFs for each test:
 ```go
 func TestExist(t *testing.T) {
-	appFS := afero.NewMemMapFs()
+	appFS = afero.NewMemMapFs()
 	// create test files and directories
-	appFS.MkdirAll("src/a", 0755)
+	appFS.MkdirAll("src/a", 0755))
 	afero.WriteFile(appFS, "src/a/b", []byte("file b"), 0644)
 	afero.WriteFile(appFS, "src/c", []byte("file c"), 0644)
-	name := "src/c"
-	_, err := appFS.Stat(name)
+	_, err := appFS.Stat("src/c")
 	if os.IsNotExist(err) {
-		t.Errorf("file \"%s\" does not exist.\n", name)
+        t.Errorf("file \"%s\" does not exist.\n", name)
 	}
 }
+
 ```
 
 # Available Backends

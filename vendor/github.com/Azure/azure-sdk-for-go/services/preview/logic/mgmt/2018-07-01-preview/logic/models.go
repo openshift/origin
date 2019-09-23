@@ -18,17 +18,12 @@ package logic
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/logic/mgmt/2018-07-01-preview/logic"
 
 // AgreementType enumerates the values for agreement type.
 type AgreementType string
@@ -835,28 +830,28 @@ type AS2EnvelopeSettings struct {
 type AS2ErrorSettings struct {
 	// SuspendDuplicateMessage - The value indicating whether to suspend duplicate message.
 	SuspendDuplicateMessage *bool `json:"suspendDuplicateMessage,omitempty"`
-	// ResendIfMDNNotReceived - The value indicating whether to resend message If MDN is not received.
-	ResendIfMDNNotReceived *bool `json:"resendIfMDNNotReceived,omitempty"`
+	// ResendIfMdnNotReceived - The value indicating whether to resend message If MDN is not received.
+	ResendIfMdnNotReceived *bool `json:"resendIfMdnNotReceived,omitempty"`
 }
 
 // AS2MdnSettings the AS2 agreement mdn settings.
 type AS2MdnSettings struct {
-	// NeedMDN - The value indicating whether to send or request a MDN.
-	NeedMDN *bool `json:"needMDN,omitempty"`
-	// SignMDN - The value indicating whether the MDN needs to be signed or not.
-	SignMDN *bool `json:"signMDN,omitempty"`
-	// SendMDNAsynchronously - The value indicating whether to send the asynchronous MDN.
-	SendMDNAsynchronously *bool `json:"sendMDNAsynchronously,omitempty"`
+	// NeedMdn - The value indicating whether to send or request a MDN.
+	NeedMdn *bool `json:"needMdn,omitempty"`
+	// SignMdn - The value indicating whether the MDN needs to be signed or not.
+	SignMdn *bool `json:"signMdn,omitempty"`
+	// SendMdnAsynchronously - The value indicating whether to send the asynchronous MDN.
+	SendMdnAsynchronously *bool `json:"sendMdnAsynchronously,omitempty"`
 	// ReceiptDeliveryURL - The receipt delivery URL.
 	ReceiptDeliveryURL *string `json:"receiptDeliveryUrl,omitempty"`
 	// DispositionNotificationTo - The disposition notification to header value.
 	DispositionNotificationTo *string `json:"dispositionNotificationTo,omitempty"`
-	// SignOutboundMDNIfOptional - The value indicating whether to sign the outbound MDN if optional.
-	SignOutboundMDNIfOptional *bool `json:"signOutboundMDNIfOptional,omitempty"`
+	// SignOutboundMdnIfOptional - The value indicating whether to sign the outbound MDN if optional.
+	SignOutboundMdnIfOptional *bool `json:"signOutboundMdnIfOptional,omitempty"`
 	// MdnText - The MDN text.
 	MdnText *string `json:"mdnText,omitempty"`
-	// SendInboundMDNToMessageBox - The value indicating whether to send inbound MDN to message box.
-	SendInboundMDNToMessageBox *bool `json:"sendInboundMDNToMessageBox,omitempty"`
+	// SendInboundMdnToMessageBox - The value indicating whether to send inbound MDN to message box.
+	SendInboundMdnToMessageBox *bool `json:"sendInboundMdnToMessageBox,omitempty"`
 	// MicHashingAlgorithm - The signing or hashing algorithm. Possible values include: 'HashingAlgorithmNotSpecified', 'HashingAlgorithmNone', 'HashingAlgorithmMD5', 'HashingAlgorithmSHA1', 'HashingAlgorithmSHA2256', 'HashingAlgorithmSHA2384', 'HashingAlgorithmSHA2512'
 	MicHashingAlgorithm HashingAlgorithm `json:"micHashingAlgorithm,omitempty"`
 }
@@ -909,18 +904,18 @@ type AS2SecuritySettings struct {
 	SigningCertificateName *string `json:"signingCertificateName,omitempty"`
 	// EncryptionCertificateName - The name of the encryption certificate.
 	EncryptionCertificateName *string `json:"encryptionCertificateName,omitempty"`
-	// EnableNRRForInboundEncodedMessages - The value indicating whether to enable NRR for inbound encoded messages.
-	EnableNRRForInboundEncodedMessages *bool `json:"enableNRRForInboundEncodedMessages,omitempty"`
-	// EnableNRRForInboundDecodedMessages - The value indicating whether to enable NRR for inbound decoded messages.
-	EnableNRRForInboundDecodedMessages *bool `json:"enableNRRForInboundDecodedMessages,omitempty"`
-	// EnableNRRForOutboundMDN - The value indicating whether to enable NRR for outbound MDN.
-	EnableNRRForOutboundMDN *bool `json:"enableNRRForOutboundMDN,omitempty"`
-	// EnableNRRForOutboundEncodedMessages - The value indicating whether to enable NRR for outbound encoded messages.
-	EnableNRRForOutboundEncodedMessages *bool `json:"enableNRRForOutboundEncodedMessages,omitempty"`
-	// EnableNRRForOutboundDecodedMessages - The value indicating whether to enable NRR for outbound decoded messages.
-	EnableNRRForOutboundDecodedMessages *bool `json:"enableNRRForOutboundDecodedMessages,omitempty"`
-	// EnableNRRForInboundMDN - The value indicating whether to enable NRR for inbound MDN.
-	EnableNRRForInboundMDN *bool `json:"enableNRRForInboundMDN,omitempty"`
+	// EnableNrrForInboundEncodedMessages - The value indicating whether to enable NRR for inbound encoded messages.
+	EnableNrrForInboundEncodedMessages *bool `json:"enableNrrForInboundEncodedMessages,omitempty"`
+	// EnableNrrForInboundDecodedMessages - The value indicating whether to enable NRR for inbound decoded messages.
+	EnableNrrForInboundDecodedMessages *bool `json:"enableNrrForInboundDecodedMessages,omitempty"`
+	// EnableNrrForOutboundMdn - The value indicating whether to enable NRR for outbound MDN.
+	EnableNrrForOutboundMdn *bool `json:"enableNrrForOutboundMdn,omitempty"`
+	// EnableNrrForOutboundEncodedMessages - The value indicating whether to enable NRR for outbound encoded messages.
+	EnableNrrForOutboundEncodedMessages *bool `json:"enableNrrForOutboundEncodedMessages,omitempty"`
+	// EnableNrrForOutboundDecodedMessages - The value indicating whether to enable NRR for outbound decoded messages.
+	EnableNrrForOutboundDecodedMessages *bool `json:"enableNrrForOutboundDecodedMessages,omitempty"`
+	// EnableNrrForInboundMdn - The value indicating whether to enable NRR for inbound MDN.
+	EnableNrrForInboundMdn *bool `json:"enableNrrForInboundMdn,omitempty"`
 	// Sha2AlgorithmFormat - The Sha2 algorithm format. Valid values are Sha2, ShaHashSize, ShaHyphenHashSize, Sha2UnderscoreHashSize.
 	Sha2AlgorithmFormat *string `json:"sha2AlgorithmFormat,omitempty"`
 }
@@ -960,11 +955,11 @@ type AssemblyDefinition struct {
 	autorest.Response `json:"-"`
 	// Properties - The assembly properties.
 	Properties *AssemblyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -977,6 +972,15 @@ func (ad AssemblyDefinition) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ad.Properties != nil {
 		objectMap["properties"] = ad.Properties
+	}
+	if ad.ID != nil {
+		objectMap["id"] = ad.ID
+	}
+	if ad.Name != nil {
+		objectMap["name"] = ad.Name
+	}
+	if ad.Type != nil {
+		objectMap["type"] = ad.Type
 	}
 	if ad.Location != nil {
 		objectMap["location"] = ad.Location
@@ -1030,11 +1034,11 @@ type BatchConfiguration struct {
 	autorest.Response `json:"-"`
 	// Properties - The batch configuration properties.
 	Properties *BatchConfigurationProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -1047,6 +1051,15 @@ func (bc BatchConfiguration) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if bc.Properties != nil {
 		objectMap["properties"] = bc.Properties
+	}
+	if bc.ID != nil {
+		objectMap["id"] = bc.ID
+	}
+	if bc.Name != nil {
+		objectMap["name"] = bc.Name
+	}
+	if bc.Type != nil {
+		objectMap["type"] = bc.Type
 	}
 	if bc.Location != nil {
 		objectMap["location"] = bc.Location
@@ -1423,10 +1436,10 @@ type EdifactValidationOverride struct {
 	MessageID *string `json:"messageId,omitempty"`
 	// EnforceCharacterSet - The value indicating whether to validate character Set.
 	EnforceCharacterSet *bool `json:"enforceCharacterSet,omitempty"`
-	// ValidateEDITypes - The value indicating whether to validate EDI types.
-	ValidateEDITypes *bool `json:"validateEDITypes,omitempty"`
-	// ValidateXSDTypes - The value indicating whether to validate XSD types.
-	ValidateXSDTypes *bool `json:"validateXSDTypes,omitempty"`
+	// ValidateEdiTypes - The value indicating whether to validate EDI types.
+	ValidateEdiTypes *bool `json:"validateEdiTypes,omitempty"`
+	// ValidateXsdTypes - The value indicating whether to validate XSD types.
+	ValidateXsdTypes *bool `json:"validateXsdTypes,omitempty"`
 	// AllowLeadingAndTrailingSpacesAndZeroes - The value indicating whether to allow leading and trailing spaces and zeroes.
 	AllowLeadingAndTrailingSpacesAndZeroes *bool `json:"allowLeadingAndTrailingSpacesAndZeroes,omitempty"`
 	// TrailingSeparatorPolicy - The trailing separator policy. Possible values include: 'TrailingSeparatorPolicyNotSpecified', 'TrailingSeparatorPolicyNotAllowed', 'TrailingSeparatorPolicyOptional', 'TrailingSeparatorPolicyMandatory'
@@ -1447,10 +1460,10 @@ type EdifactValidationSettings struct {
 	CheckDuplicateGroupControlNumber *bool `json:"checkDuplicateGroupControlNumber,omitempty"`
 	// CheckDuplicateTransactionSetControlNumber - The value indicating whether to check for duplicate transaction set control number.
 	CheckDuplicateTransactionSetControlNumber *bool `json:"checkDuplicateTransactionSetControlNumber,omitempty"`
-	// ValidateEDITypes - The value indicating whether to Whether to validate EDI types.
-	ValidateEDITypes *bool `json:"validateEDITypes,omitempty"`
-	// ValidateXSDTypes - The value indicating whether to Whether to validate XSD types.
-	ValidateXSDTypes *bool `json:"validateXSDTypes,omitempty"`
+	// ValidateEdiTypes - The value indicating whether to Whether to validate EDI types.
+	ValidateEdiTypes *bool `json:"validateEdiTypes,omitempty"`
+	// ValidateXsdTypes - The value indicating whether to Whether to validate XSD types.
+	ValidateXsdTypes *bool `json:"validateXsdTypes,omitempty"`
 	// AllowLeadingAndTrailingSpacesAndZeroes - The value indicating whether to allow leading and trailing spaces and zeroes.
 	AllowLeadingAndTrailingSpacesAndZeroes *bool `json:"allowLeadingAndTrailingSpacesAndZeroes,omitempty"`
 	// TrimLeadingAndTrailingSpacesAndZeroes - The value indicating whether to trim leading and trailing spaces and zeroes.
@@ -1465,8 +1478,8 @@ type ErrorInfo struct {
 	Code *string `json:"code,omitempty"`
 }
 
-// ErrorProperties error properties indicate why the Logic service was not able to process the incoming
-// request. The reason is provided in the error message.
+// ErrorProperties error properties indicate why the Logic service was not able to process the incoming request.
+// The reason is provided in the error message.
 type ErrorProperties struct {
 	// Code - Error code.
 	Code *string `json:"code,omitempty"`
@@ -1474,8 +1487,8 @@ type ErrorProperties struct {
 	Message *string `json:"message,omitempty"`
 }
 
-// ErrorResponse error response indicates Logic service is not able to process the incoming request. The
-// error property contains the error details.
+// ErrorResponse error response indicates Logic service is not able to process the incoming request. The error
+// property contains the error details.
 type ErrorResponse struct {
 	// Error - The error properties.
 	Error *ErrorProperties `json:"error,omitempty"`
@@ -1526,11 +1539,11 @@ type IntegrationAccount struct {
 	Properties interface{} `json:"properties,omitempty"`
 	// Sku - The sku.
 	Sku *IntegrationAccountSku `json:"sku,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -1541,11 +1554,18 @@ type IntegrationAccount struct {
 // MarshalJSON is the custom marshaler for IntegrationAccount.
 func (ia IntegrationAccount) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if ia.Properties != nil {
-		objectMap["properties"] = ia.Properties
-	}
+	objectMap["properties"] = ia.Properties
 	if ia.Sku != nil {
 		objectMap["sku"] = ia.Sku
+	}
+	if ia.ID != nil {
+		objectMap["id"] = ia.ID
+	}
+	if ia.Name != nil {
+		objectMap["name"] = ia.Name
+	}
+	if ia.Type != nil {
+		objectMap["type"] = ia.Type
 	}
 	if ia.Location != nil {
 		objectMap["location"] = ia.Location
@@ -1561,11 +1581,11 @@ type IntegrationAccountAgreement struct {
 	autorest.Response `json:"-"`
 	// IntegrationAccountAgreementProperties - The integration account agreement properties.
 	*IntegrationAccountAgreementProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -1578,6 +1598,15 @@ func (iaa IntegrationAccountAgreement) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if iaa.IntegrationAccountAgreementProperties != nil {
 		objectMap["properties"] = iaa.IntegrationAccountAgreementProperties
+	}
+	if iaa.ID != nil {
+		objectMap["id"] = iaa.ID
+	}
+	if iaa.Name != nil {
+		objectMap["name"] = iaa.Name
+	}
+	if iaa.Type != nil {
+		objectMap["type"] = iaa.Type
 	}
 	if iaa.Location != nil {
 		objectMap["location"] = iaa.Location
@@ -1679,37 +1708,20 @@ type IntegrationAccountAgreementListResultIterator struct {
 	page IntegrationAccountAgreementListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *IntegrationAccountAgreementListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountAgreementListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *IntegrationAccountAgreementListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *IntegrationAccountAgreementListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1731,11 +1743,6 @@ func (iter IntegrationAccountAgreementListResultIterator) Value() IntegrationAcc
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the IntegrationAccountAgreementListResultIterator type.
-func NewIntegrationAccountAgreementListResultIterator(page IntegrationAccountAgreementListResultPage) IntegrationAccountAgreementListResultIterator {
-	return IntegrationAccountAgreementListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (iaalr IntegrationAccountAgreementListResult) IsEmpty() bool {
 	return iaalr.Value == nil || len(*iaalr.Value) == 0
@@ -1743,11 +1750,11 @@ func (iaalr IntegrationAccountAgreementListResult) IsEmpty() bool {
 
 // integrationAccountAgreementListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (iaalr IntegrationAccountAgreementListResult) integrationAccountAgreementListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (iaalr IntegrationAccountAgreementListResult) integrationAccountAgreementListResultPreparer() (*http.Request, error) {
 	if iaalr.NextLink == nil || len(to.String(iaalr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(iaalr.NextLink)))
@@ -1755,36 +1762,19 @@ func (iaalr IntegrationAccountAgreementListResult) integrationAccountAgreementLi
 
 // IntegrationAccountAgreementListResultPage contains a page of IntegrationAccountAgreement values.
 type IntegrationAccountAgreementListResultPage struct {
-	fn    func(context.Context, IntegrationAccountAgreementListResult) (IntegrationAccountAgreementListResult, error)
+	fn    func(IntegrationAccountAgreementListResult) (IntegrationAccountAgreementListResult, error)
 	iaalr IntegrationAccountAgreementListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *IntegrationAccountAgreementListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountAgreementListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.iaalr)
+func (page *IntegrationAccountAgreementListResultPage) Next() error {
+	next, err := page.fn(page.iaalr)
 	if err != nil {
 		return err
 	}
 	page.iaalr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *IntegrationAccountAgreementListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1805,16 +1795,11 @@ func (page IntegrationAccountAgreementListResultPage) Values() []IntegrationAcco
 	return *page.iaalr.Value
 }
 
-// Creates a new instance of the IntegrationAccountAgreementListResultPage type.
-func NewIntegrationAccountAgreementListResultPage(getNextPage func(context.Context, IntegrationAccountAgreementListResult) (IntegrationAccountAgreementListResult, error)) IntegrationAccountAgreementListResultPage {
-	return IntegrationAccountAgreementListResultPage{fn: getNextPage}
-}
-
 // IntegrationAccountAgreementProperties the integration account agreement properties.
 type IntegrationAccountAgreementProperties struct {
-	// CreatedTime - READ-ONLY; The created time.
+	// CreatedTime - The created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; The changed time.
+	// ChangedTime - The changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// Metadata - The metadata.
 	Metadata interface{} `json:"metadata,omitempty"`
@@ -1837,11 +1822,11 @@ type IntegrationAccountCertificate struct {
 	autorest.Response `json:"-"`
 	// IntegrationAccountCertificateProperties - The integration account certificate properties.
 	*IntegrationAccountCertificateProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -1854,6 +1839,15 @@ func (iac IntegrationAccountCertificate) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if iac.IntegrationAccountCertificateProperties != nil {
 		objectMap["properties"] = iac.IntegrationAccountCertificateProperties
+	}
+	if iac.ID != nil {
+		objectMap["id"] = iac.ID
+	}
+	if iac.Name != nil {
+		objectMap["name"] = iac.Name
+	}
+	if iac.Type != nil {
+		objectMap["type"] = iac.Type
 	}
 	if iac.Location != nil {
 		objectMap["location"] = iac.Location
@@ -1949,37 +1943,20 @@ type IntegrationAccountCertificateListResultIterator struct {
 	page IntegrationAccountCertificateListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *IntegrationAccountCertificateListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountCertificateListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *IntegrationAccountCertificateListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *IntegrationAccountCertificateListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2001,11 +1978,6 @@ func (iter IntegrationAccountCertificateListResultIterator) Value() IntegrationA
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the IntegrationAccountCertificateListResultIterator type.
-func NewIntegrationAccountCertificateListResultIterator(page IntegrationAccountCertificateListResultPage) IntegrationAccountCertificateListResultIterator {
-	return IntegrationAccountCertificateListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (iaclr IntegrationAccountCertificateListResult) IsEmpty() bool {
 	return iaclr.Value == nil || len(*iaclr.Value) == 0
@@ -2013,11 +1985,11 @@ func (iaclr IntegrationAccountCertificateListResult) IsEmpty() bool {
 
 // integrationAccountCertificateListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (iaclr IntegrationAccountCertificateListResult) integrationAccountCertificateListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (iaclr IntegrationAccountCertificateListResult) integrationAccountCertificateListResultPreparer() (*http.Request, error) {
 	if iaclr.NextLink == nil || len(to.String(iaclr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(iaclr.NextLink)))
@@ -2025,36 +1997,19 @@ func (iaclr IntegrationAccountCertificateListResult) integrationAccountCertifica
 
 // IntegrationAccountCertificateListResultPage contains a page of IntegrationAccountCertificate values.
 type IntegrationAccountCertificateListResultPage struct {
-	fn    func(context.Context, IntegrationAccountCertificateListResult) (IntegrationAccountCertificateListResult, error)
+	fn    func(IntegrationAccountCertificateListResult) (IntegrationAccountCertificateListResult, error)
 	iaclr IntegrationAccountCertificateListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *IntegrationAccountCertificateListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountCertificateListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.iaclr)
+func (page *IntegrationAccountCertificateListResultPage) Next() error {
+	next, err := page.fn(page.iaclr)
 	if err != nil {
 		return err
 	}
 	page.iaclr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *IntegrationAccountCertificateListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2075,16 +2030,11 @@ func (page IntegrationAccountCertificateListResultPage) Values() []IntegrationAc
 	return *page.iaclr.Value
 }
 
-// Creates a new instance of the IntegrationAccountCertificateListResultPage type.
-func NewIntegrationAccountCertificateListResultPage(getNextPage func(context.Context, IntegrationAccountCertificateListResult) (IntegrationAccountCertificateListResult, error)) IntegrationAccountCertificateListResultPage {
-	return IntegrationAccountCertificateListResultPage{fn: getNextPage}
-}
-
 // IntegrationAccountCertificateProperties the integration account certificate properties.
 type IntegrationAccountCertificateProperties struct {
-	// CreatedTime - READ-ONLY; The created time.
+	// CreatedTime - The created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; The changed time.
+	// ChangedTime - The changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// Metadata - The metadata.
 	Metadata interface{} `json:"metadata,omitempty"`
@@ -2109,37 +2059,20 @@ type IntegrationAccountListResultIterator struct {
 	page IntegrationAccountListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *IntegrationAccountListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *IntegrationAccountListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *IntegrationAccountListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2161,11 +2094,6 @@ func (iter IntegrationAccountListResultIterator) Value() IntegrationAccount {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the IntegrationAccountListResultIterator type.
-func NewIntegrationAccountListResultIterator(page IntegrationAccountListResultPage) IntegrationAccountListResultIterator {
-	return IntegrationAccountListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (ialr IntegrationAccountListResult) IsEmpty() bool {
 	return ialr.Value == nil || len(*ialr.Value) == 0
@@ -2173,11 +2101,11 @@ func (ialr IntegrationAccountListResult) IsEmpty() bool {
 
 // integrationAccountListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (ialr IntegrationAccountListResult) integrationAccountListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (ialr IntegrationAccountListResult) integrationAccountListResultPreparer() (*http.Request, error) {
 	if ialr.NextLink == nil || len(to.String(ialr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(ialr.NextLink)))
@@ -2185,36 +2113,19 @@ func (ialr IntegrationAccountListResult) integrationAccountListResultPreparer(ct
 
 // IntegrationAccountListResultPage contains a page of IntegrationAccount values.
 type IntegrationAccountListResultPage struct {
-	fn   func(context.Context, IntegrationAccountListResult) (IntegrationAccountListResult, error)
+	fn   func(IntegrationAccountListResult) (IntegrationAccountListResult, error)
 	ialr IntegrationAccountListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *IntegrationAccountListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.ialr)
+func (page *IntegrationAccountListResultPage) Next() error {
+	next, err := page.fn(page.ialr)
 	if err != nil {
 		return err
 	}
 	page.ialr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *IntegrationAccountListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2235,21 +2146,16 @@ func (page IntegrationAccountListResultPage) Values() []IntegrationAccount {
 	return *page.ialr.Value
 }
 
-// Creates a new instance of the IntegrationAccountListResultPage type.
-func NewIntegrationAccountListResultPage(getNextPage func(context.Context, IntegrationAccountListResult) (IntegrationAccountListResult, error)) IntegrationAccountListResultPage {
-	return IntegrationAccountListResultPage{fn: getNextPage}
-}
-
 // IntegrationAccountMap the integration account map.
 type IntegrationAccountMap struct {
 	autorest.Response `json:"-"`
 	// IntegrationAccountMapProperties - The integration account map properties.
 	*IntegrationAccountMapProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -2262,6 +2168,15 @@ func (iam IntegrationAccountMap) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if iam.IntegrationAccountMapProperties != nil {
 		objectMap["properties"] = iam.IntegrationAccountMapProperties
+	}
+	if iam.ID != nil {
+		objectMap["id"] = iam.ID
+	}
+	if iam.Name != nil {
+		objectMap["name"] = iam.Name
+	}
+	if iam.Type != nil {
+		objectMap["type"] = iam.Type
 	}
 	if iam.Location != nil {
 		objectMap["location"] = iam.Location
@@ -2356,44 +2271,26 @@ type IntegrationAccountMapListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// IntegrationAccountMapListResultIterator provides access to a complete listing of IntegrationAccountMap
-// values.
+// IntegrationAccountMapListResultIterator provides access to a complete listing of IntegrationAccountMap values.
 type IntegrationAccountMapListResultIterator struct {
 	i    int
 	page IntegrationAccountMapListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *IntegrationAccountMapListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountMapListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *IntegrationAccountMapListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *IntegrationAccountMapListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2415,11 +2312,6 @@ func (iter IntegrationAccountMapListResultIterator) Value() IntegrationAccountMa
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the IntegrationAccountMapListResultIterator type.
-func NewIntegrationAccountMapListResultIterator(page IntegrationAccountMapListResultPage) IntegrationAccountMapListResultIterator {
-	return IntegrationAccountMapListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (iamlr IntegrationAccountMapListResult) IsEmpty() bool {
 	return iamlr.Value == nil || len(*iamlr.Value) == 0
@@ -2427,11 +2319,11 @@ func (iamlr IntegrationAccountMapListResult) IsEmpty() bool {
 
 // integrationAccountMapListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (iamlr IntegrationAccountMapListResult) integrationAccountMapListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (iamlr IntegrationAccountMapListResult) integrationAccountMapListResultPreparer() (*http.Request, error) {
 	if iamlr.NextLink == nil || len(to.String(iamlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(iamlr.NextLink)))
@@ -2439,36 +2331,19 @@ func (iamlr IntegrationAccountMapListResult) integrationAccountMapListResultPrep
 
 // IntegrationAccountMapListResultPage contains a page of IntegrationAccountMap values.
 type IntegrationAccountMapListResultPage struct {
-	fn    func(context.Context, IntegrationAccountMapListResult) (IntegrationAccountMapListResult, error)
+	fn    func(IntegrationAccountMapListResult) (IntegrationAccountMapListResult, error)
 	iamlr IntegrationAccountMapListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *IntegrationAccountMapListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountMapListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.iamlr)
+func (page *IntegrationAccountMapListResultPage) Next() error {
+	next, err := page.fn(page.iamlr)
 	if err != nil {
 		return err
 	}
 	page.iamlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *IntegrationAccountMapListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2489,26 +2364,21 @@ func (page IntegrationAccountMapListResultPage) Values() []IntegrationAccountMap
 	return *page.iamlr.Value
 }
 
-// Creates a new instance of the IntegrationAccountMapListResultPage type.
-func NewIntegrationAccountMapListResultPage(getNextPage func(context.Context, IntegrationAccountMapListResult) (IntegrationAccountMapListResult, error)) IntegrationAccountMapListResultPage {
-	return IntegrationAccountMapListResultPage{fn: getNextPage}
-}
-
 // IntegrationAccountMapProperties the integration account map.
 type IntegrationAccountMapProperties struct {
 	// MapType - The map type. Possible values include: 'MapTypeNotSpecified', 'MapTypeXslt', 'MapTypeXslt20', 'MapTypeXslt30', 'MapTypeLiquid'
 	MapType MapType `json:"mapType,omitempty"`
 	// ParametersSchema - The parameters schema of integration account map.
 	ParametersSchema *IntegrationAccountMapPropertiesParametersSchema `json:"parametersSchema,omitempty"`
-	// CreatedTime - READ-ONLY; The created time.
+	// CreatedTime - The created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; The changed time.
+	// ChangedTime - The changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// Content - The content.
 	Content *string `json:"content,omitempty"`
 	// ContentType - The content type.
 	ContentType *string `json:"contentType,omitempty"`
-	// ContentLink - READ-ONLY; The content link.
+	// ContentLink - The content link.
 	ContentLink *ContentLink `json:"contentLink,omitempty"`
 	// Metadata - The metadata.
 	Metadata interface{} `json:"metadata,omitempty"`
@@ -2525,11 +2395,11 @@ type IntegrationAccountPartner struct {
 	autorest.Response `json:"-"`
 	// IntegrationAccountPartnerProperties - The integration account partner properties.
 	*IntegrationAccountPartnerProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -2542,6 +2412,15 @@ func (iap IntegrationAccountPartner) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if iap.IntegrationAccountPartnerProperties != nil {
 		objectMap["properties"] = iap.IntegrationAccountPartnerProperties
+	}
+	if iap.ID != nil {
+		objectMap["id"] = iap.ID
+	}
+	if iap.Name != nil {
+		objectMap["name"] = iap.Name
+	}
+	if iap.Type != nil {
+		objectMap["type"] = iap.Type
 	}
 	if iap.Location != nil {
 		objectMap["location"] = iap.Location
@@ -2636,44 +2515,27 @@ type IntegrationAccountPartnerListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// IntegrationAccountPartnerListResultIterator provides access to a complete listing of
-// IntegrationAccountPartner values.
+// IntegrationAccountPartnerListResultIterator provides access to a complete listing of IntegrationAccountPartner
+// values.
 type IntegrationAccountPartnerListResultIterator struct {
 	i    int
 	page IntegrationAccountPartnerListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *IntegrationAccountPartnerListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountPartnerListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *IntegrationAccountPartnerListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *IntegrationAccountPartnerListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2695,11 +2557,6 @@ func (iter IntegrationAccountPartnerListResultIterator) Value() IntegrationAccou
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the IntegrationAccountPartnerListResultIterator type.
-func NewIntegrationAccountPartnerListResultIterator(page IntegrationAccountPartnerListResultPage) IntegrationAccountPartnerListResultIterator {
-	return IntegrationAccountPartnerListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (iaplr IntegrationAccountPartnerListResult) IsEmpty() bool {
 	return iaplr.Value == nil || len(*iaplr.Value) == 0
@@ -2707,11 +2564,11 @@ func (iaplr IntegrationAccountPartnerListResult) IsEmpty() bool {
 
 // integrationAccountPartnerListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (iaplr IntegrationAccountPartnerListResult) integrationAccountPartnerListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (iaplr IntegrationAccountPartnerListResult) integrationAccountPartnerListResultPreparer() (*http.Request, error) {
 	if iaplr.NextLink == nil || len(to.String(iaplr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(iaplr.NextLink)))
@@ -2719,36 +2576,19 @@ func (iaplr IntegrationAccountPartnerListResult) integrationAccountPartnerListRe
 
 // IntegrationAccountPartnerListResultPage contains a page of IntegrationAccountPartner values.
 type IntegrationAccountPartnerListResultPage struct {
-	fn    func(context.Context, IntegrationAccountPartnerListResult) (IntegrationAccountPartnerListResult, error)
+	fn    func(IntegrationAccountPartnerListResult) (IntegrationAccountPartnerListResult, error)
 	iaplr IntegrationAccountPartnerListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *IntegrationAccountPartnerListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountPartnerListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.iaplr)
+func (page *IntegrationAccountPartnerListResultPage) Next() error {
+	next, err := page.fn(page.iaplr)
 	if err != nil {
 		return err
 	}
 	page.iaplr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *IntegrationAccountPartnerListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -2769,18 +2609,13 @@ func (page IntegrationAccountPartnerListResultPage) Values() []IntegrationAccoun
 	return *page.iaplr.Value
 }
 
-// Creates a new instance of the IntegrationAccountPartnerListResultPage type.
-func NewIntegrationAccountPartnerListResultPage(getNextPage func(context.Context, IntegrationAccountPartnerListResult) (IntegrationAccountPartnerListResult, error)) IntegrationAccountPartnerListResultPage {
-	return IntegrationAccountPartnerListResultPage{fn: getNextPage}
-}
-
 // IntegrationAccountPartnerProperties the integration account partner properties.
 type IntegrationAccountPartnerProperties struct {
 	// PartnerType - The partner type. Possible values include: 'PartnerTypeNotSpecified', 'PartnerTypeB2B'
 	PartnerType PartnerType `json:"partnerType,omitempty"`
-	// CreatedTime - READ-ONLY; The created time.
+	// CreatedTime - The created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; The changed time.
+	// ChangedTime - The changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// Metadata - The metadata.
 	Metadata interface{} `json:"metadata,omitempty"`
@@ -2793,11 +2628,11 @@ type IntegrationAccountSchema struct {
 	autorest.Response `json:"-"`
 	// IntegrationAccountSchemaProperties - The integration account schema properties.
 	*IntegrationAccountSchemaProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -2810,6 +2645,15 @@ func (ias IntegrationAccountSchema) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ias.IntegrationAccountSchemaProperties != nil {
 		objectMap["properties"] = ias.IntegrationAccountSchemaProperties
+	}
+	if ias.ID != nil {
+		objectMap["id"] = ias.ID
+	}
+	if ias.Name != nil {
+		objectMap["name"] = ias.Name
+	}
+	if ias.Type != nil {
+		objectMap["type"] = ias.Type
 	}
 	if ias.Location != nil {
 		objectMap["location"] = ias.Location
@@ -2904,44 +2748,27 @@ type IntegrationAccountSchemaListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// IntegrationAccountSchemaListResultIterator provides access to a complete listing of
-// IntegrationAccountSchema values.
+// IntegrationAccountSchemaListResultIterator provides access to a complete listing of IntegrationAccountSchema
+// values.
 type IntegrationAccountSchemaListResultIterator struct {
 	i    int
 	page IntegrationAccountSchemaListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *IntegrationAccountSchemaListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountSchemaListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *IntegrationAccountSchemaListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *IntegrationAccountSchemaListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -2963,11 +2790,6 @@ func (iter IntegrationAccountSchemaListResultIterator) Value() IntegrationAccoun
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the IntegrationAccountSchemaListResultIterator type.
-func NewIntegrationAccountSchemaListResultIterator(page IntegrationAccountSchemaListResultPage) IntegrationAccountSchemaListResultIterator {
-	return IntegrationAccountSchemaListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (iaslr IntegrationAccountSchemaListResult) IsEmpty() bool {
 	return iaslr.Value == nil || len(*iaslr.Value) == 0
@@ -2975,11 +2797,11 @@ func (iaslr IntegrationAccountSchemaListResult) IsEmpty() bool {
 
 // integrationAccountSchemaListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (iaslr IntegrationAccountSchemaListResult) integrationAccountSchemaListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (iaslr IntegrationAccountSchemaListResult) integrationAccountSchemaListResultPreparer() (*http.Request, error) {
 	if iaslr.NextLink == nil || len(to.String(iaslr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(iaslr.NextLink)))
@@ -2987,36 +2809,19 @@ func (iaslr IntegrationAccountSchemaListResult) integrationAccountSchemaListResu
 
 // IntegrationAccountSchemaListResultPage contains a page of IntegrationAccountSchema values.
 type IntegrationAccountSchemaListResultPage struct {
-	fn    func(context.Context, IntegrationAccountSchemaListResult) (IntegrationAccountSchemaListResult, error)
+	fn    func(IntegrationAccountSchemaListResult) (IntegrationAccountSchemaListResult, error)
 	iaslr IntegrationAccountSchemaListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *IntegrationAccountSchemaListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountSchemaListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.iaslr)
+func (page *IntegrationAccountSchemaListResultPage) Next() error {
+	next, err := page.fn(page.iaslr)
 	if err != nil {
 		return err
 	}
 	page.iaslr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *IntegrationAccountSchemaListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -3037,11 +2842,6 @@ func (page IntegrationAccountSchemaListResultPage) Values() []IntegrationAccount
 	return *page.iaslr.Value
 }
 
-// Creates a new instance of the IntegrationAccountSchemaListResultPage type.
-func NewIntegrationAccountSchemaListResultPage(getNextPage func(context.Context, IntegrationAccountSchemaListResult) (IntegrationAccountSchemaListResult, error)) IntegrationAccountSchemaListResultPage {
-	return IntegrationAccountSchemaListResultPage{fn: getNextPage}
-}
-
 // IntegrationAccountSchemaProperties the integration account schema properties.
 type IntegrationAccountSchemaProperties struct {
 	// SchemaType - The schema type. Possible values include: 'SchemaTypeNotSpecified', 'SchemaTypeXML'
@@ -3052,9 +2852,9 @@ type IntegrationAccountSchemaProperties struct {
 	DocumentName *string `json:"documentName,omitempty"`
 	// FileName - The file name.
 	FileName *string `json:"fileName,omitempty"`
-	// CreatedTime - READ-ONLY; The created time.
+	// CreatedTime - The created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; The changed time.
+	// ChangedTime - The changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// Metadata - The metadata.
 	Metadata interface{} `json:"metadata,omitempty"`
@@ -3062,7 +2862,7 @@ type IntegrationAccountSchemaProperties struct {
 	Content *string `json:"content,omitempty"`
 	// ContentType - The content type.
 	ContentType *string `json:"contentType,omitempty"`
-	// ContentLink - READ-ONLY; The content link.
+	// ContentLink - The content link.
 	ContentLink *ContentLink `json:"contentLink,omitempty"`
 }
 
@@ -3071,11 +2871,11 @@ type IntegrationAccountSession struct {
 	autorest.Response `json:"-"`
 	// IntegrationAccountSessionProperties - The integration account session properties.
 	*IntegrationAccountSessionProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -3088,6 +2888,15 @@ func (ias IntegrationAccountSession) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ias.IntegrationAccountSessionProperties != nil {
 		objectMap["properties"] = ias.IntegrationAccountSessionProperties
+	}
+	if ias.ID != nil {
+		objectMap["id"] = ias.ID
+	}
+	if ias.Name != nil {
+		objectMap["name"] = ias.Name
+	}
+	if ias.Type != nil {
+		objectMap["type"] = ias.Type
 	}
 	if ias.Location != nil {
 		objectMap["location"] = ias.Location
@@ -3182,44 +2991,27 @@ type IntegrationAccountSessionListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// IntegrationAccountSessionListResultIterator provides access to a complete listing of
-// IntegrationAccountSession values.
+// IntegrationAccountSessionListResultIterator provides access to a complete listing of IntegrationAccountSession
+// values.
 type IntegrationAccountSessionListResultIterator struct {
 	i    int
 	page IntegrationAccountSessionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *IntegrationAccountSessionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountSessionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *IntegrationAccountSessionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *IntegrationAccountSessionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -3241,11 +3033,6 @@ func (iter IntegrationAccountSessionListResultIterator) Value() IntegrationAccou
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the IntegrationAccountSessionListResultIterator type.
-func NewIntegrationAccountSessionListResultIterator(page IntegrationAccountSessionListResultPage) IntegrationAccountSessionListResultIterator {
-	return IntegrationAccountSessionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (iaslr IntegrationAccountSessionListResult) IsEmpty() bool {
 	return iaslr.Value == nil || len(*iaslr.Value) == 0
@@ -3253,11 +3040,11 @@ func (iaslr IntegrationAccountSessionListResult) IsEmpty() bool {
 
 // integrationAccountSessionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (iaslr IntegrationAccountSessionListResult) integrationAccountSessionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (iaslr IntegrationAccountSessionListResult) integrationAccountSessionListResultPreparer() (*http.Request, error) {
 	if iaslr.NextLink == nil || len(to.String(iaslr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(iaslr.NextLink)))
@@ -3265,36 +3052,19 @@ func (iaslr IntegrationAccountSessionListResult) integrationAccountSessionListRe
 
 // IntegrationAccountSessionListResultPage contains a page of IntegrationAccountSession values.
 type IntegrationAccountSessionListResultPage struct {
-	fn    func(context.Context, IntegrationAccountSessionListResult) (IntegrationAccountSessionListResult, error)
+	fn    func(IntegrationAccountSessionListResult) (IntegrationAccountSessionListResult, error)
 	iaslr IntegrationAccountSessionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *IntegrationAccountSessionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IntegrationAccountSessionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.iaslr)
+func (page *IntegrationAccountSessionListResultPage) Next() error {
+	next, err := page.fn(page.iaslr)
 	if err != nil {
 		return err
 	}
 	page.iaslr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *IntegrationAccountSessionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -3315,16 +3085,11 @@ func (page IntegrationAccountSessionListResultPage) Values() []IntegrationAccoun
 	return *page.iaslr.Value
 }
 
-// Creates a new instance of the IntegrationAccountSessionListResultPage type.
-func NewIntegrationAccountSessionListResultPage(getNextPage func(context.Context, IntegrationAccountSessionListResult) (IntegrationAccountSessionListResult, error)) IntegrationAccountSessionListResultPage {
-	return IntegrationAccountSessionListResultPage{fn: getNextPage}
-}
-
 // IntegrationAccountSessionProperties the integration account session properties.
 type IntegrationAccountSessionProperties struct {
-	// CreatedTime - READ-ONLY; The created time.
+	// CreatedTime - The created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; The changed time.
+	// ChangedTime - The changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// Content - The session content.
 	Content interface{} `json:"content,omitempty"`
@@ -3386,9 +3151,9 @@ type KeyVaultKeyReference struct {
 type KeyVaultKeyReferenceKeyVault struct {
 	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3396,9 +3161,9 @@ type KeyVaultKeyReferenceKeyVault struct {
 type KeyVaultReference struct {
 	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -3428,8 +3193,8 @@ type OperationDisplay struct {
 	Operation *string `json:"operation,omitempty"`
 }
 
-// OperationListResult result of the request to list Logic operations. It contains a list of operations and
-// a URL link to get the next set of results.
+// OperationListResult result of the request to list Logic operations. It contains a list of operations and a URL
+// link to get the next set of results.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
 	// Value - List of Logic operations supported by the Logic resource provider.
@@ -3444,37 +3209,20 @@ type OperationListResultIterator struct {
 	page OperationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OperationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OperationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -3496,11 +3244,6 @@ func (iter OperationListResultIterator) Value() Operation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OperationListResultIterator type.
-func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
-	return OperationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (olr OperationListResult) IsEmpty() bool {
 	return olr.Value == nil || len(*olr.Value) == 0
@@ -3508,11 +3251,11 @@ func (olr OperationListResult) IsEmpty() bool {
 
 // operationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (olr OperationListResult) operationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (olr OperationListResult) operationListResultPreparer() (*http.Request, error) {
 	if olr.NextLink == nil || len(to.String(olr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(olr.NextLink)))
@@ -3520,36 +3263,19 @@ func (olr OperationListResult) operationListResultPreparer(ctx context.Context) 
 
 // OperationListResultPage contains a page of Operation values.
 type OperationListResultPage struct {
-	fn  func(context.Context, OperationListResult) (OperationListResult, error)
+	fn  func(OperationListResult) (OperationListResult, error)
 	olr OperationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.olr)
+func (page *OperationListResultPage) Next() error {
+	next, err := page.fn(page.olr)
 	if err != nil {
 		return err
 	}
 	page.olr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OperationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -3570,24 +3296,19 @@ func (page OperationListResultPage) Values() []Operation {
 	return *page.olr.Value
 }
 
-// Creates a new instance of the OperationListResultPage type.
-func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
-	return OperationListResultPage{fn: getNextPage}
-}
-
 // OperationResult the operation result definition.
 type OperationResult struct {
-	// TrackingID - READ-ONLY; Gets the tracking id.
+	// TrackingID - Gets the tracking id.
 	TrackingID *string `json:"trackingId,omitempty"`
-	// Inputs - READ-ONLY; Gets the inputs.
+	// Inputs - Gets the inputs.
 	Inputs interface{} `json:"inputs,omitempty"`
-	// InputsLink - READ-ONLY; Gets the link to inputs.
+	// InputsLink - Gets the link to inputs.
 	InputsLink *ContentLink `json:"inputsLink,omitempty"`
-	// Outputs - READ-ONLY; Gets the outputs.
+	// Outputs - Gets the outputs.
 	Outputs interface{} `json:"outputs,omitempty"`
-	// OutputsLink - READ-ONLY; Gets the link to outputs.
+	// OutputsLink - Gets the link to outputs.
 	OutputsLink *ContentLink `json:"outputsLink,omitempty"`
-	// TrackedProperties - READ-ONLY; Gets the tracked properties.
+	// TrackedProperties - Gets the tracked properties.
 	TrackedProperties interface{} `json:"trackedProperties,omitempty"`
 	// RetryHistory - Gets the retry histories.
 	RetryHistory   *[]RetryHistory `json:"retryHistory,omitempty"`
@@ -3662,213 +3383,13 @@ type RepetitionIndex struct {
 	ItemIndex *int32 `json:"itemIndex,omitempty"`
 }
 
-// Request a request.
-type Request struct {
-	// Headers - A list of all the headers attached to the request.
-	Headers interface{} `json:"headers,omitempty"`
-	// URI - The destination for the request.
-	URI *string `json:"uri,omitempty"`
-	// Method - The HTTP method used for the request.
-	Method *string `json:"method,omitempty"`
-}
-
-// RequestHistory the request history.
-type RequestHistory struct {
-	autorest.Response `json:"-"`
-	// Properties - The request history properties.
-	Properties *RequestHistoryProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
-	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
-	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
-	Type *string `json:"type,omitempty"`
-	// Location - The resource location.
-	Location *string `json:"location,omitempty"`
-	// Tags - The resource tags.
-	Tags map[string]*string `json:"tags"`
-}
-
-// MarshalJSON is the custom marshaler for RequestHistory.
-func (rh RequestHistory) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if rh.Properties != nil {
-		objectMap["properties"] = rh.Properties
-	}
-	if rh.Location != nil {
-		objectMap["location"] = rh.Location
-	}
-	if rh.Tags != nil {
-		objectMap["tags"] = rh.Tags
-	}
-	return json.Marshal(objectMap)
-}
-
-// RequestHistoryListResult the list of workflow request histories.
-type RequestHistoryListResult struct {
-	autorest.Response `json:"-"`
-	// Value - A list of workflow request histories.
-	Value *[]RequestHistory `json:"value,omitempty"`
-	// NextLink - The URL to get the next set of results.
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// RequestHistoryListResultIterator provides access to a complete listing of RequestHistory values.
-type RequestHistoryListResultIterator struct {
-	i    int
-	page RequestHistoryListResultPage
-}
-
-// NextWithContext advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *RequestHistoryListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RequestHistoryListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err = iter.page.NextWithContext(ctx)
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *RequestHistoryListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter RequestHistoryListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter RequestHistoryListResultIterator) Response() RequestHistoryListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter RequestHistoryListResultIterator) Value() RequestHistory {
-	if !iter.page.NotDone() {
-		return RequestHistory{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// Creates a new instance of the RequestHistoryListResultIterator type.
-func NewRequestHistoryListResultIterator(page RequestHistoryListResultPage) RequestHistoryListResultIterator {
-	return RequestHistoryListResultIterator{page: page}
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (rhlr RequestHistoryListResult) IsEmpty() bool {
-	return rhlr.Value == nil || len(*rhlr.Value) == 0
-}
-
-// requestHistoryListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (rhlr RequestHistoryListResult) requestHistoryListResultPreparer(ctx context.Context) (*http.Request, error) {
-	if rhlr.NextLink == nil || len(to.String(rhlr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(rhlr.NextLink)))
-}
-
-// RequestHistoryListResultPage contains a page of RequestHistory values.
-type RequestHistoryListResultPage struct {
-	fn   func(context.Context, RequestHistoryListResult) (RequestHistoryListResult, error)
-	rhlr RequestHistoryListResult
-}
-
-// NextWithContext advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *RequestHistoryListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RequestHistoryListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.rhlr)
-	if err != nil {
-		return err
-	}
-	page.rhlr = next
-	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *RequestHistoryListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page RequestHistoryListResultPage) NotDone() bool {
-	return !page.rhlr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page RequestHistoryListResultPage) Response() RequestHistoryListResult {
-	return page.rhlr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page RequestHistoryListResultPage) Values() []RequestHistory {
-	if page.rhlr.IsEmpty() {
-		return nil
-	}
-	return *page.rhlr.Value
-}
-
-// Creates a new instance of the RequestHistoryListResultPage type.
-func NewRequestHistoryListResultPage(getNextPage func(context.Context, RequestHistoryListResult) (RequestHistoryListResult, error)) RequestHistoryListResultPage {
-	return RequestHistoryListResultPage{fn: getNextPage}
-}
-
-// RequestHistoryProperties the request history.
-type RequestHistoryProperties struct {
-	// StartTime - The time the request started.
-	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - The time the request ended.
-	EndTime *date.Time `json:"endTime,omitempty"`
-	// Request - The request.
-	Request *Request `json:"request,omitempty"`
-	// Response - The response.
-	Response *Response `json:"response,omitempty"`
-}
-
 // Resource the base resource type.
 type Resource struct {
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -3879,6 +3400,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}
@@ -3892,20 +3422,10 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 type ResourceReference struct {
 	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
-}
-
-// Response a response.
-type Response struct {
-	// Headers - A list of all the headers attached to the response.
-	Headers interface{} `json:"headers,omitempty"`
-	// StatusCode - The status code of the response.
-	StatusCode *int32 `json:"statusCode,omitempty"`
-	// BodyLink - Details on the location of the body content.
-	BodyLink *ContentLink `json:"bodyLink,omitempty"`
 }
 
 // RetryHistory the retry history.
@@ -3963,7 +3483,7 @@ type Sku struct {
 
 // SubResource the sub resource type.
 type SubResource struct {
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
 }
 
@@ -3996,11 +3516,11 @@ type Workflow struct {
 	autorest.Response `json:"-"`
 	// WorkflowProperties - The workflow properties.
 	*WorkflowProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -4013,6 +3533,15 @@ func (w Workflow) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if w.WorkflowProperties != nil {
 		objectMap["properties"] = w.WorkflowProperties
+	}
+	if w.ID != nil {
+		objectMap["id"] = w.ID
+	}
+	if w.Name != nil {
+		objectMap["name"] = w.Name
+	}
+	if w.Type != nil {
+		objectMap["type"] = w.Type
 	}
 	if w.Location != nil {
 		objectMap["location"] = w.Location
@@ -4113,37 +3642,20 @@ type WorkflowListResultIterator struct {
 	page WorkflowListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -4165,11 +3677,6 @@ func (iter WorkflowListResultIterator) Value() Workflow {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowListResultIterator type.
-func NewWorkflowListResultIterator(page WorkflowListResultPage) WorkflowListResultIterator {
-	return WorkflowListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wlr WorkflowListResult) IsEmpty() bool {
 	return wlr.Value == nil || len(*wlr.Value) == 0
@@ -4177,11 +3684,11 @@ func (wlr WorkflowListResult) IsEmpty() bool {
 
 // workflowListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wlr WorkflowListResult) workflowListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wlr WorkflowListResult) workflowListResultPreparer() (*http.Request, error) {
 	if wlr.NextLink == nil || len(to.String(wlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wlr.NextLink)))
@@ -4189,36 +3696,19 @@ func (wlr WorkflowListResult) workflowListResultPreparer(ctx context.Context) (*
 
 // WorkflowListResultPage contains a page of Workflow values.
 type WorkflowListResultPage struct {
-	fn  func(context.Context, WorkflowListResult) (WorkflowListResult, error)
+	fn  func(WorkflowListResult) (WorkflowListResult, error)
 	wlr WorkflowListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wlr)
+func (page *WorkflowListResultPage) Next() error {
+	next, err := page.fn(page.wlr)
 	if err != nil {
 		return err
 	}
 	page.wlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -4239,14 +3729,9 @@ func (page WorkflowListResultPage) Values() []Workflow {
 	return *page.wlr.Value
 }
 
-// Creates a new instance of the WorkflowListResultPage type.
-func NewWorkflowListResultPage(getNextPage func(context.Context, WorkflowListResult) (WorkflowListResult, error)) WorkflowListResultPage {
-	return WorkflowListResultPage{fn: getNextPage}
-}
-
 // WorkflowOutputParameter the workflow output parameter.
 type WorkflowOutputParameter struct {
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
 	// Type - The type. Possible values include: 'ParameterTypeNotSpecified', 'ParameterTypeString', 'ParameterTypeSecureString', 'ParameterTypeInt', 'ParameterTypeFloat', 'ParameterTypeBool', 'ParameterTypeArray', 'ParameterTypeObject', 'ParameterTypeSecureObject'
 	Type ParameterType `json:"type,omitempty"`
@@ -4272,17 +3757,17 @@ type WorkflowParameter struct {
 
 // WorkflowProperties the workflow properties.
 type WorkflowProperties struct {
-	// ProvisioningState - READ-ONLY; Gets the provisioning state. Possible values include: 'WorkflowProvisioningStateNotSpecified', 'WorkflowProvisioningStateAccepted', 'WorkflowProvisioningStateRunning', 'WorkflowProvisioningStateReady', 'WorkflowProvisioningStateCreating', 'WorkflowProvisioningStateCreated', 'WorkflowProvisioningStateDeleting', 'WorkflowProvisioningStateDeleted', 'WorkflowProvisioningStateCanceled', 'WorkflowProvisioningStateFailed', 'WorkflowProvisioningStateSucceeded', 'WorkflowProvisioningStateMoving', 'WorkflowProvisioningStateUpdating', 'WorkflowProvisioningStateRegistering', 'WorkflowProvisioningStateRegistered', 'WorkflowProvisioningStateUnregistering', 'WorkflowProvisioningStateUnregistered', 'WorkflowProvisioningStateCompleted'
+	// ProvisioningState - Gets the provisioning state. Possible values include: 'WorkflowProvisioningStateNotSpecified', 'WorkflowProvisioningStateAccepted', 'WorkflowProvisioningStateRunning', 'WorkflowProvisioningStateReady', 'WorkflowProvisioningStateCreating', 'WorkflowProvisioningStateCreated', 'WorkflowProvisioningStateDeleting', 'WorkflowProvisioningStateDeleted', 'WorkflowProvisioningStateCanceled', 'WorkflowProvisioningStateFailed', 'WorkflowProvisioningStateSucceeded', 'WorkflowProvisioningStateMoving', 'WorkflowProvisioningStateUpdating', 'WorkflowProvisioningStateRegistering', 'WorkflowProvisioningStateRegistered', 'WorkflowProvisioningStateUnregistering', 'WorkflowProvisioningStateUnregistered', 'WorkflowProvisioningStateCompleted'
 	ProvisioningState WorkflowProvisioningState `json:"provisioningState,omitempty"`
-	// CreatedTime - READ-ONLY; Gets the created time.
+	// CreatedTime - Gets the created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; Gets the changed time.
+	// ChangedTime - Gets the changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// State - The state. Possible values include: 'WorkflowStateNotSpecified', 'WorkflowStateCompleted', 'WorkflowStateEnabled', 'WorkflowStateDisabled', 'WorkflowStateDeleted', 'WorkflowStateSuspended'
 	State WorkflowState `json:"state,omitempty"`
-	// Version - READ-ONLY; Gets the version.
+	// Version - Gets the version.
 	Version *string `json:"version,omitempty"`
-	// AccessEndpoint - READ-ONLY; Gets the access endpoint.
+	// AccessEndpoint - Gets the access endpoint.
 	AccessEndpoint *string `json:"accessEndpoint,omitempty"`
 	// Sku - The sku.
 	Sku *Sku `json:"sku,omitempty"`
@@ -4297,8 +3782,23 @@ type WorkflowProperties struct {
 // MarshalJSON is the custom marshaler for WorkflowProperties.
 func (wp WorkflowProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if wp.ProvisioningState != "" {
+		objectMap["provisioningState"] = wp.ProvisioningState
+	}
+	if wp.CreatedTime != nil {
+		objectMap["createdTime"] = wp.CreatedTime
+	}
+	if wp.ChangedTime != nil {
+		objectMap["changedTime"] = wp.ChangedTime
+	}
 	if wp.State != "" {
 		objectMap["state"] = wp.State
+	}
+	if wp.Version != nil {
+		objectMap["version"] = wp.Version
+	}
+	if wp.AccessEndpoint != nil {
+		objectMap["accessEndpoint"] = wp.AccessEndpoint
 	}
 	if wp.Sku != nil {
 		objectMap["sku"] = wp.Sku
@@ -4306,9 +3806,7 @@ func (wp WorkflowProperties) MarshalJSON() ([]byte, error) {
 	if wp.IntegrationAccount != nil {
 		objectMap["integrationAccount"] = wp.IntegrationAccount
 	}
-	if wp.Definition != nil {
-		objectMap["definition"] = wp.Definition
-	}
+	objectMap["definition"] = wp.Definition
 	if wp.Parameters != nil {
 		objectMap["parameters"] = wp.Parameters
 	}
@@ -4320,11 +3818,11 @@ type WorkflowRun struct {
 	autorest.Response `json:"-"`
 	// WorkflowRunProperties - The workflow run properties.
 	*WorkflowRunProperties `json:"properties,omitempty"`
-	// Name - READ-ONLY; Gets the workflow run name.
+	// Name - Gets the workflow run name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the workflow run type.
+	// Type - Gets the workflow run type.
 	Type *string `json:"type,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
 }
 
@@ -4333,6 +3831,15 @@ func (wr WorkflowRun) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wr.WorkflowRunProperties != nil {
 		objectMap["properties"] = wr.WorkflowRunProperties
+	}
+	if wr.Name != nil {
+		objectMap["name"] = wr.Name
+	}
+	if wr.Type != nil {
+		objectMap["type"] = wr.Type
+	}
+	if wr.ID != nil {
+		objectMap["id"] = wr.ID
 	}
 	return json.Marshal(objectMap)
 }
@@ -4393,11 +3900,11 @@ type WorkflowRunAction struct {
 	autorest.Response `json:"-"`
 	// WorkflowRunActionProperties - The workflow run action properties.
 	*WorkflowRunActionProperties `json:"properties,omitempty"`
-	// Name - READ-ONLY; Gets the workflow run action name.
+	// Name - Gets the workflow run action name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the workflow run action type.
+	// Type - Gets the workflow run action type.
 	Type *string `json:"type,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
 }
 
@@ -4406,6 +3913,15 @@ func (wra WorkflowRunAction) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wra.WorkflowRunActionProperties != nil {
 		objectMap["properties"] = wra.WorkflowRunActionProperties
+	}
+	if wra.Name != nil {
+		objectMap["name"] = wra.Name
+	}
+	if wra.Type != nil {
+		objectMap["type"] = wra.Type
+	}
+	if wra.ID != nil {
+		objectMap["id"] = wra.ID
 	}
 	return json.Marshal(objectMap)
 }
@@ -4482,37 +3998,20 @@ type WorkflowRunActionListResultIterator struct {
 	page WorkflowRunActionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowRunActionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunActionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowRunActionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowRunActionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -4534,11 +4033,6 @@ func (iter WorkflowRunActionListResultIterator) Value() WorkflowRunAction {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowRunActionListResultIterator type.
-func NewWorkflowRunActionListResultIterator(page WorkflowRunActionListResultPage) WorkflowRunActionListResultIterator {
-	return WorkflowRunActionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wralr WorkflowRunActionListResult) IsEmpty() bool {
 	return wralr.Value == nil || len(*wralr.Value) == 0
@@ -4546,11 +4040,11 @@ func (wralr WorkflowRunActionListResult) IsEmpty() bool {
 
 // workflowRunActionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wralr WorkflowRunActionListResult) workflowRunActionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wralr WorkflowRunActionListResult) workflowRunActionListResultPreparer() (*http.Request, error) {
 	if wralr.NextLink == nil || len(to.String(wralr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wralr.NextLink)))
@@ -4558,36 +4052,19 @@ func (wralr WorkflowRunActionListResult) workflowRunActionListResultPreparer(ctx
 
 // WorkflowRunActionListResultPage contains a page of WorkflowRunAction values.
 type WorkflowRunActionListResultPage struct {
-	fn    func(context.Context, WorkflowRunActionListResult) (WorkflowRunActionListResult, error)
+	fn    func(WorkflowRunActionListResult) (WorkflowRunActionListResult, error)
 	wralr WorkflowRunActionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowRunActionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunActionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wralr)
+func (page *WorkflowRunActionListResultPage) Next() error {
+	next, err := page.fn(page.wralr)
 	if err != nil {
 		return err
 	}
 	page.wralr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowRunActionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -4608,32 +4085,27 @@ func (page WorkflowRunActionListResultPage) Values() []WorkflowRunAction {
 	return *page.wralr.Value
 }
 
-// Creates a new instance of the WorkflowRunActionListResultPage type.
-func NewWorkflowRunActionListResultPage(getNextPage func(context.Context, WorkflowRunActionListResult) (WorkflowRunActionListResult, error)) WorkflowRunActionListResultPage {
-	return WorkflowRunActionListResultPage{fn: getNextPage}
-}
-
 // WorkflowRunActionProperties the workflow run action properties.
 type WorkflowRunActionProperties struct {
-	// StartTime - READ-ONLY; Gets the start time.
+	// StartTime - Gets the start time.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; Gets the end time.
+	// EndTime - Gets the end time.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// Code - READ-ONLY; Gets the code.
+	// Code - Gets the code.
 	Code *string `json:"code,omitempty"`
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
-	// TrackingID - READ-ONLY; Gets the tracking id.
+	// TrackingID - Gets the tracking id.
 	TrackingID *string `json:"trackingId,omitempty"`
 	// Correlation - The correlation properties.
 	Correlation *Correlation `json:"correlation,omitempty"`
-	// InputsLink - READ-ONLY; Gets the link to inputs.
+	// InputsLink - Gets the link to inputs.
 	InputsLink *ContentLink `json:"inputsLink,omitempty"`
-	// OutputsLink - READ-ONLY; Gets the link to outputs.
+	// OutputsLink - Gets the link to outputs.
 	OutputsLink *ContentLink `json:"outputsLink,omitempty"`
-	// TrackedProperties - READ-ONLY; Gets the tracked properties.
+	// TrackedProperties - Gets the tracked properties.
 	TrackedProperties interface{} `json:"trackedProperties,omitempty"`
 	// RetryHistory - Gets the retry histories.
 	RetryHistory *[]RetryHistory `json:"retryHistory,omitempty"`
@@ -4644,11 +4116,11 @@ type WorkflowRunActionRepetitionDefinition struct {
 	autorest.Response `json:"-"`
 	// WorkflowRunActionRepetitionProperties - The workflow run action repetition properties definition.
 	*WorkflowRunActionRepetitionProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -4661,6 +4133,15 @@ func (wrard WorkflowRunActionRepetitionDefinition) MarshalJSON() ([]byte, error)
 	objectMap := make(map[string]interface{})
 	if wrard.WorkflowRunActionRepetitionProperties != nil {
 		objectMap["properties"] = wrard.WorkflowRunActionRepetitionProperties
+	}
+	if wrard.ID != nil {
+		objectMap["id"] = wrard.ID
+	}
+	if wrard.Name != nil {
+		objectMap["name"] = wrard.Name
+	}
+	if wrard.Type != nil {
+		objectMap["type"] = wrard.Type
 	}
 	if wrard.Location != nil {
 		objectMap["location"] = wrard.Location
@@ -4750,17 +4231,17 @@ type WorkflowRunActionRepetitionDefinitionCollection struct {
 type WorkflowRunActionRepetitionProperties struct {
 	// RepetitionIndexes - The repetition indexes.
 	RepetitionIndexes *[]RepetitionIndex `json:"repetitionIndexes,omitempty"`
-	// TrackingID - READ-ONLY; Gets the tracking id.
+	// TrackingID - Gets the tracking id.
 	TrackingID *string `json:"trackingId,omitempty"`
-	// Inputs - READ-ONLY; Gets the inputs.
+	// Inputs - Gets the inputs.
 	Inputs interface{} `json:"inputs,omitempty"`
-	// InputsLink - READ-ONLY; Gets the link to inputs.
+	// InputsLink - Gets the link to inputs.
 	InputsLink *ContentLink `json:"inputsLink,omitempty"`
-	// Outputs - READ-ONLY; Gets the outputs.
+	// Outputs - Gets the outputs.
 	Outputs interface{} `json:"outputs,omitempty"`
-	// OutputsLink - READ-ONLY; Gets the link to outputs.
+	// OutputsLink - Gets the link to outputs.
 	OutputsLink *ContentLink `json:"outputsLink,omitempty"`
-	// TrackedProperties - READ-ONLY; Gets the tracked properties.
+	// TrackedProperties - Gets the tracked properties.
 	TrackedProperties interface{} `json:"trackedProperties,omitempty"`
 	// RetryHistory - Gets the retry histories.
 	RetryHistory   *[]RetryHistory `json:"retryHistory,omitempty"`
@@ -4799,37 +4280,20 @@ type WorkflowRunListResultIterator struct {
 	page WorkflowRunListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowRunListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowRunListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowRunListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -4851,11 +4315,6 @@ func (iter WorkflowRunListResultIterator) Value() WorkflowRun {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowRunListResultIterator type.
-func NewWorkflowRunListResultIterator(page WorkflowRunListResultPage) WorkflowRunListResultIterator {
-	return WorkflowRunListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wrlr WorkflowRunListResult) IsEmpty() bool {
 	return wrlr.Value == nil || len(*wrlr.Value) == 0
@@ -4863,11 +4322,11 @@ func (wrlr WorkflowRunListResult) IsEmpty() bool {
 
 // workflowRunListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wrlr WorkflowRunListResult) workflowRunListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wrlr WorkflowRunListResult) workflowRunListResultPreparer() (*http.Request, error) {
 	if wrlr.NextLink == nil || len(to.String(wrlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wrlr.NextLink)))
@@ -4875,36 +4334,19 @@ func (wrlr WorkflowRunListResult) workflowRunListResultPreparer(ctx context.Cont
 
 // WorkflowRunListResultPage contains a page of WorkflowRun values.
 type WorkflowRunListResultPage struct {
-	fn   func(context.Context, WorkflowRunListResult) (WorkflowRunListResult, error)
+	fn   func(WorkflowRunListResult) (WorkflowRunListResult, error)
 	wrlr WorkflowRunListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowRunListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wrlr)
+func (page *WorkflowRunListResultPage) Next() error {
+	next, err := page.fn(page.wrlr)
 	if err != nil {
 		return err
 	}
 	page.wrlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowRunListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -4925,77 +4367,103 @@ func (page WorkflowRunListResultPage) Values() []WorkflowRun {
 	return *page.wrlr.Value
 }
 
-// Creates a new instance of the WorkflowRunListResultPage type.
-func NewWorkflowRunListResultPage(getNextPage func(context.Context, WorkflowRunListResult) (WorkflowRunListResult, error)) WorkflowRunListResultPage {
-	return WorkflowRunListResultPage{fn: getNextPage}
-}
-
 // WorkflowRunProperties the workflow run properties.
 type WorkflowRunProperties struct {
-	// WaitEndTime - READ-ONLY; Gets the wait end time.
+	// WaitEndTime - Gets the wait end time.
 	WaitEndTime *date.Time `json:"waitEndTime,omitempty"`
-	// StartTime - READ-ONLY; Gets the start time.
+	// StartTime - Gets the start time.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; Gets the end time.
+	// EndTime - Gets the end time.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// Code - READ-ONLY; Gets the code.
+	// Code - Gets the code.
 	Code *string `json:"code,omitempty"`
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
-	// CorrelationID - READ-ONLY; Gets the correlation id.
+	// CorrelationID - Gets the correlation id.
 	CorrelationID *string `json:"correlationId,omitempty"`
 	// Correlation - The run correlation.
 	Correlation *Correlation `json:"correlation,omitempty"`
-	// Workflow - READ-ONLY; Gets the reference to workflow version.
+	// Workflow - Gets the reference to workflow version.
 	Workflow *ResourceReference `json:"workflow,omitempty"`
-	// Trigger - READ-ONLY; Gets the fired trigger.
+	// Trigger - Gets the fired trigger.
 	Trigger *WorkflowRunTrigger `json:"trigger,omitempty"`
-	// Outputs - READ-ONLY; Gets the outputs.
+	// Outputs - Gets the outputs.
 	Outputs map[string]*WorkflowOutputParameter `json:"outputs"`
-	// Response - READ-ONLY; Gets the response of the flow run.
+	// Response - Gets the response of the flow run.
 	Response *WorkflowRunTrigger `json:"response,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for WorkflowRunProperties.
 func (wrp WorkflowRunProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if wrp.WaitEndTime != nil {
+		objectMap["waitEndTime"] = wrp.WaitEndTime
+	}
+	if wrp.StartTime != nil {
+		objectMap["startTime"] = wrp.StartTime
+	}
+	if wrp.EndTime != nil {
+		objectMap["endTime"] = wrp.EndTime
+	}
+	if wrp.Status != "" {
+		objectMap["status"] = wrp.Status
+	}
+	if wrp.Code != nil {
+		objectMap["code"] = wrp.Code
+	}
+	objectMap["error"] = wrp.Error
+	if wrp.CorrelationID != nil {
+		objectMap["correlationId"] = wrp.CorrelationID
+	}
 	if wrp.Correlation != nil {
 		objectMap["correlation"] = wrp.Correlation
+	}
+	if wrp.Workflow != nil {
+		objectMap["workflow"] = wrp.Workflow
+	}
+	if wrp.Trigger != nil {
+		objectMap["trigger"] = wrp.Trigger
+	}
+	if wrp.Outputs != nil {
+		objectMap["outputs"] = wrp.Outputs
+	}
+	if wrp.Response != nil {
+		objectMap["response"] = wrp.Response
 	}
 	return json.Marshal(objectMap)
 }
 
 // WorkflowRunTrigger the workflow run trigger.
 type WorkflowRunTrigger struct {
-	// Name - READ-ONLY; Gets the name.
+	// Name - Gets the name.
 	Name *string `json:"name,omitempty"`
-	// Inputs - READ-ONLY; Gets the inputs.
+	// Inputs - Gets the inputs.
 	Inputs interface{} `json:"inputs,omitempty"`
-	// InputsLink - READ-ONLY; Gets the link to inputs.
+	// InputsLink - Gets the link to inputs.
 	InputsLink *ContentLink `json:"inputsLink,omitempty"`
-	// Outputs - READ-ONLY; Gets the outputs.
+	// Outputs - Gets the outputs.
 	Outputs interface{} `json:"outputs,omitempty"`
-	// OutputsLink - READ-ONLY; Gets the link to outputs.
+	// OutputsLink - Gets the link to outputs.
 	OutputsLink *ContentLink `json:"outputsLink,omitempty"`
-	// ScheduledTime - READ-ONLY; Gets the scheduled time.
+	// ScheduledTime - Gets the scheduled time.
 	ScheduledTime *date.Time `json:"scheduledTime,omitempty"`
-	// StartTime - READ-ONLY; Gets the start time.
+	// StartTime - Gets the start time.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; Gets the end time.
+	// EndTime - Gets the end time.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// TrackingID - READ-ONLY; Gets the tracking id.
+	// TrackingID - Gets the tracking id.
 	TrackingID *string `json:"trackingId,omitempty"`
 	// Correlation - The run correlation.
 	Correlation *Correlation `json:"correlation,omitempty"`
-	// Code - READ-ONLY; Gets the code.
+	// Code - Gets the code.
 	Code *string `json:"code,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
-	// TrackedProperties - READ-ONLY; Gets the tracked properties.
+	// TrackedProperties - Gets the tracked properties.
 	TrackedProperties interface{} `json:"trackedProperties,omitempty"`
 }
 
@@ -5004,11 +4472,11 @@ type WorkflowTrigger struct {
 	autorest.Response `json:"-"`
 	// WorkflowTriggerProperties - The workflow trigger properties.
 	*WorkflowTriggerProperties `json:"properties,omitempty"`
-	// Name - READ-ONLY; Gets the workflow trigger name.
+	// Name - Gets the workflow trigger name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the workflow trigger type.
+	// Type - Gets the workflow trigger type.
 	Type *string `json:"type,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
 }
 
@@ -5017,6 +4485,15 @@ func (wt WorkflowTrigger) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wt.WorkflowTriggerProperties != nil {
 		objectMap["properties"] = wt.WorkflowTriggerProperties
+	}
+	if wt.Name != nil {
+		objectMap["name"] = wt.Name
+	}
+	if wt.Type != nil {
+		objectMap["type"] = wt.Type
+	}
+	if wt.ID != nil {
+		objectMap["id"] = wt.ID
 	}
 	return json.Marshal(objectMap)
 }
@@ -5075,13 +4552,13 @@ func (wt *WorkflowTrigger) UnmarshalJSON(body []byte) error {
 // WorkflowTriggerCallbackURL the workflow trigger callback URL.
 type WorkflowTriggerCallbackURL struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Gets the workflow trigger callback URL.
+	// Value - Gets the workflow trigger callback URL.
 	Value *string `json:"value,omitempty"`
-	// Method - READ-ONLY; Gets the workflow trigger callback URL HTTP method.
+	// Method - Gets the workflow trigger callback URL HTTP method.
 	Method *string `json:"method,omitempty"`
-	// BasePath - READ-ONLY; Gets the workflow trigger callback URL base path.
+	// BasePath - Gets the workflow trigger callback URL base path.
 	BasePath *string `json:"basePath,omitempty"`
-	// RelativePath - READ-ONLY; Gets the workflow trigger callback URL relative path.
+	// RelativePath - Gets the workflow trigger callback URL relative path.
 	RelativePath *string `json:"relativePath,omitempty"`
 	// RelativePathParameters - Gets the workflow trigger callback URL relative path parameters.
 	RelativePathParameters *[]string `json:"relativePathParameters,omitempty"`
@@ -5100,11 +4577,11 @@ type WorkflowTriggerHistory struct {
 	autorest.Response `json:"-"`
 	// WorkflowTriggerHistoryProperties - Gets the workflow trigger history properties.
 	*WorkflowTriggerHistoryProperties `json:"properties,omitempty"`
-	// Name - READ-ONLY; Gets the workflow trigger history name.
+	// Name - Gets the workflow trigger history name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the workflow trigger history type.
+	// Type - Gets the workflow trigger history type.
 	Type *string `json:"type,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
 }
 
@@ -5113,6 +4590,15 @@ func (wth WorkflowTriggerHistory) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wth.WorkflowTriggerHistoryProperties != nil {
 		objectMap["properties"] = wth.WorkflowTriggerHistoryProperties
+	}
+	if wth.Name != nil {
+		objectMap["name"] = wth.Name
+	}
+	if wth.Type != nil {
+		objectMap["type"] = wth.Type
+	}
+	if wth.ID != nil {
+		objectMap["id"] = wth.ID
 	}
 	return json.Marshal(objectMap)
 }
@@ -5183,44 +4669,26 @@ type WorkflowTriggerHistoryListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// WorkflowTriggerHistoryListResultIterator provides access to a complete listing of WorkflowTriggerHistory
-// values.
+// WorkflowTriggerHistoryListResultIterator provides access to a complete listing of WorkflowTriggerHistory values.
 type WorkflowTriggerHistoryListResultIterator struct {
 	i    int
 	page WorkflowTriggerHistoryListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowTriggerHistoryListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerHistoryListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowTriggerHistoryListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowTriggerHistoryListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -5242,11 +4710,6 @@ func (iter WorkflowTriggerHistoryListResultIterator) Value() WorkflowTriggerHist
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowTriggerHistoryListResultIterator type.
-func NewWorkflowTriggerHistoryListResultIterator(page WorkflowTriggerHistoryListResultPage) WorkflowTriggerHistoryListResultIterator {
-	return WorkflowTriggerHistoryListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wthlr WorkflowTriggerHistoryListResult) IsEmpty() bool {
 	return wthlr.Value == nil || len(*wthlr.Value) == 0
@@ -5254,11 +4717,11 @@ func (wthlr WorkflowTriggerHistoryListResult) IsEmpty() bool {
 
 // workflowTriggerHistoryListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wthlr WorkflowTriggerHistoryListResult) workflowTriggerHistoryListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wthlr WorkflowTriggerHistoryListResult) workflowTriggerHistoryListResultPreparer() (*http.Request, error) {
 	if wthlr.NextLink == nil || len(to.String(wthlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wthlr.NextLink)))
@@ -5266,36 +4729,19 @@ func (wthlr WorkflowTriggerHistoryListResult) workflowTriggerHistoryListResultPr
 
 // WorkflowTriggerHistoryListResultPage contains a page of WorkflowTriggerHistory values.
 type WorkflowTriggerHistoryListResultPage struct {
-	fn    func(context.Context, WorkflowTriggerHistoryListResult) (WorkflowTriggerHistoryListResult, error)
+	fn    func(WorkflowTriggerHistoryListResult) (WorkflowTriggerHistoryListResult, error)
 	wthlr WorkflowTriggerHistoryListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowTriggerHistoryListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerHistoryListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wthlr)
+func (page *WorkflowTriggerHistoryListResultPage) Next() error {
+	next, err := page.fn(page.wthlr)
 	if err != nil {
 		return err
 	}
 	page.wthlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowTriggerHistoryListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -5316,34 +4762,29 @@ func (page WorkflowTriggerHistoryListResultPage) Values() []WorkflowTriggerHisto
 	return *page.wthlr.Value
 }
 
-// Creates a new instance of the WorkflowTriggerHistoryListResultPage type.
-func NewWorkflowTriggerHistoryListResultPage(getNextPage func(context.Context, WorkflowTriggerHistoryListResult) (WorkflowTriggerHistoryListResult, error)) WorkflowTriggerHistoryListResultPage {
-	return WorkflowTriggerHistoryListResultPage{fn: getNextPage}
-}
-
 // WorkflowTriggerHistoryProperties the workflow trigger history properties.
 type WorkflowTriggerHistoryProperties struct {
-	// StartTime - READ-ONLY; Gets the start time.
+	// StartTime - Gets the start time.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; Gets the end time.
+	// EndTime - Gets the end time.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// Code - READ-ONLY; Gets the code.
+	// Code - Gets the code.
 	Code *string `json:"code,omitempty"`
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
-	// TrackingID - READ-ONLY; Gets the tracking id.
+	// TrackingID - Gets the tracking id.
 	TrackingID *string `json:"trackingId,omitempty"`
 	// Correlation - The run correlation.
 	Correlation *Correlation `json:"correlation,omitempty"`
-	// InputsLink - READ-ONLY; Gets the link to input parameters.
+	// InputsLink - Gets the link to input parameters.
 	InputsLink *ContentLink `json:"inputsLink,omitempty"`
-	// OutputsLink - READ-ONLY; Gets the link to output parameters.
+	// OutputsLink - Gets the link to output parameters.
 	OutputsLink *ContentLink `json:"outputsLink,omitempty"`
-	// Fired - READ-ONLY; Gets a value indicating whether trigger was fired.
+	// Fired - Gets a value indicating whether trigger was fired.
 	Fired *bool `json:"fired,omitempty"`
-	// Run - READ-ONLY; Gets the reference to workflow run.
+	// Run - Gets the reference to workflow run.
 	Run *ResourceReference `json:"run,omitempty"`
 }
 
@@ -5376,37 +4817,20 @@ type WorkflowTriggerListResultIterator struct {
 	page WorkflowTriggerListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowTriggerListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowTriggerListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowTriggerListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -5428,11 +4852,6 @@ func (iter WorkflowTriggerListResultIterator) Value() WorkflowTrigger {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowTriggerListResultIterator type.
-func NewWorkflowTriggerListResultIterator(page WorkflowTriggerListResultPage) WorkflowTriggerListResultIterator {
-	return WorkflowTriggerListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wtlr WorkflowTriggerListResult) IsEmpty() bool {
 	return wtlr.Value == nil || len(*wtlr.Value) == 0
@@ -5440,11 +4859,11 @@ func (wtlr WorkflowTriggerListResult) IsEmpty() bool {
 
 // workflowTriggerListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wtlr WorkflowTriggerListResult) workflowTriggerListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wtlr WorkflowTriggerListResult) workflowTriggerListResultPreparer() (*http.Request, error) {
 	if wtlr.NextLink == nil || len(to.String(wtlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wtlr.NextLink)))
@@ -5452,36 +4871,19 @@ func (wtlr WorkflowTriggerListResult) workflowTriggerListResultPreparer(ctx cont
 
 // WorkflowTriggerListResultPage contains a page of WorkflowTrigger values.
 type WorkflowTriggerListResultPage struct {
-	fn   func(context.Context, WorkflowTriggerListResult) (WorkflowTriggerListResult, error)
+	fn   func(WorkflowTriggerListResult) (WorkflowTriggerListResult, error)
 	wtlr WorkflowTriggerListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowTriggerListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wtlr)
+func (page *WorkflowTriggerListResultPage) Next() error {
+	next, err := page.fn(page.wtlr)
 	if err != nil {
 		return err
 	}
 	page.wtlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowTriggerListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -5502,30 +4904,25 @@ func (page WorkflowTriggerListResultPage) Values() []WorkflowTrigger {
 	return *page.wtlr.Value
 }
 
-// Creates a new instance of the WorkflowTriggerListResultPage type.
-func NewWorkflowTriggerListResultPage(getNextPage func(context.Context, WorkflowTriggerListResult) (WorkflowTriggerListResult, error)) WorkflowTriggerListResultPage {
-	return WorkflowTriggerListResultPage{fn: getNextPage}
-}
-
 // WorkflowTriggerProperties the workflow trigger properties.
 type WorkflowTriggerProperties struct {
-	// ProvisioningState - READ-ONLY; Gets the provisioning state. Possible values include: 'WorkflowTriggerProvisioningStateNotSpecified', 'WorkflowTriggerProvisioningStateAccepted', 'WorkflowTriggerProvisioningStateRunning', 'WorkflowTriggerProvisioningStateReady', 'WorkflowTriggerProvisioningStateCreating', 'WorkflowTriggerProvisioningStateCreated', 'WorkflowTriggerProvisioningStateDeleting', 'WorkflowTriggerProvisioningStateDeleted', 'WorkflowTriggerProvisioningStateCanceled', 'WorkflowTriggerProvisioningStateFailed', 'WorkflowTriggerProvisioningStateSucceeded', 'WorkflowTriggerProvisioningStateMoving', 'WorkflowTriggerProvisioningStateUpdating', 'WorkflowTriggerProvisioningStateRegistering', 'WorkflowTriggerProvisioningStateRegistered', 'WorkflowTriggerProvisioningStateUnregistering', 'WorkflowTriggerProvisioningStateUnregistered', 'WorkflowTriggerProvisioningStateCompleted'
+	// ProvisioningState - Gets the provisioning state. Possible values include: 'WorkflowTriggerProvisioningStateNotSpecified', 'WorkflowTriggerProvisioningStateAccepted', 'WorkflowTriggerProvisioningStateRunning', 'WorkflowTriggerProvisioningStateReady', 'WorkflowTriggerProvisioningStateCreating', 'WorkflowTriggerProvisioningStateCreated', 'WorkflowTriggerProvisioningStateDeleting', 'WorkflowTriggerProvisioningStateDeleted', 'WorkflowTriggerProvisioningStateCanceled', 'WorkflowTriggerProvisioningStateFailed', 'WorkflowTriggerProvisioningStateSucceeded', 'WorkflowTriggerProvisioningStateMoving', 'WorkflowTriggerProvisioningStateUpdating', 'WorkflowTriggerProvisioningStateRegistering', 'WorkflowTriggerProvisioningStateRegistered', 'WorkflowTriggerProvisioningStateUnregistering', 'WorkflowTriggerProvisioningStateUnregistered', 'WorkflowTriggerProvisioningStateCompleted'
 	ProvisioningState WorkflowTriggerProvisioningState `json:"provisioningState,omitempty"`
-	// CreatedTime - READ-ONLY; Gets the created time.
+	// CreatedTime - Gets the created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; Gets the changed time.
+	// ChangedTime - Gets the changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
-	// State - READ-ONLY; Gets the state. Possible values include: 'WorkflowStateNotSpecified', 'WorkflowStateCompleted', 'WorkflowStateEnabled', 'WorkflowStateDisabled', 'WorkflowStateDeleted', 'WorkflowStateSuspended'
+	// State - Gets the state. Possible values include: 'WorkflowStateNotSpecified', 'WorkflowStateCompleted', 'WorkflowStateEnabled', 'WorkflowStateDisabled', 'WorkflowStateDeleted', 'WorkflowStateSuspended'
 	State WorkflowState `json:"state,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted', 'WorkflowStatusIgnored'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// LastExecutionTime - READ-ONLY; Gets the last execution time.
+	// LastExecutionTime - Gets the last execution time.
 	LastExecutionTime *date.Time `json:"lastExecutionTime,omitempty"`
-	// NextExecutionTime - READ-ONLY; Gets the next execution time.
+	// NextExecutionTime - Gets the next execution time.
 	NextExecutionTime *date.Time `json:"nextExecutionTime,omitempty"`
-	// Recurrence - READ-ONLY; Gets the workflow trigger recurrence.
+	// Recurrence - Gets the workflow trigger recurrence.
 	Recurrence *WorkflowTriggerRecurrence `json:"recurrence,omitempty"`
-	// Workflow - READ-ONLY; Gets the reference to workflow.
+	// Workflow - Gets the reference to workflow.
 	Workflow *ResourceReference `json:"workflow,omitempty"`
 }
 
@@ -5550,11 +4947,11 @@ type WorkflowVersion struct {
 	autorest.Response `json:"-"`
 	// WorkflowVersionProperties - The workflow version properties.
 	*WorkflowVersionProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The resource id.
+	// ID - The resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
@@ -5567,6 +4964,15 @@ func (wv WorkflowVersion) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wv.WorkflowVersionProperties != nil {
 		objectMap["properties"] = wv.WorkflowVersionProperties
+	}
+	if wv.ID != nil {
+		objectMap["id"] = wv.ID
+	}
+	if wv.Name != nil {
+		objectMap["name"] = wv.Name
+	}
+	if wv.Type != nil {
+		objectMap["type"] = wv.Type
 	}
 	if wv.Location != nil {
 		objectMap["location"] = wv.Location
@@ -5661,37 +5067,20 @@ type WorkflowVersionListResultIterator struct {
 	page WorkflowVersionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowVersionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowVersionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowVersionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowVersionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -5713,11 +5102,6 @@ func (iter WorkflowVersionListResultIterator) Value() WorkflowVersion {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowVersionListResultIterator type.
-func NewWorkflowVersionListResultIterator(page WorkflowVersionListResultPage) WorkflowVersionListResultIterator {
-	return WorkflowVersionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wvlr WorkflowVersionListResult) IsEmpty() bool {
 	return wvlr.Value == nil || len(*wvlr.Value) == 0
@@ -5725,11 +5109,11 @@ func (wvlr WorkflowVersionListResult) IsEmpty() bool {
 
 // workflowVersionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wvlr WorkflowVersionListResult) workflowVersionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wvlr WorkflowVersionListResult) workflowVersionListResultPreparer() (*http.Request, error) {
 	if wvlr.NextLink == nil || len(to.String(wvlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wvlr.NextLink)))
@@ -5737,36 +5121,19 @@ func (wvlr WorkflowVersionListResult) workflowVersionListResultPreparer(ctx cont
 
 // WorkflowVersionListResultPage contains a page of WorkflowVersion values.
 type WorkflowVersionListResultPage struct {
-	fn   func(context.Context, WorkflowVersionListResult) (WorkflowVersionListResult, error)
+	fn   func(WorkflowVersionListResult) (WorkflowVersionListResult, error)
 	wvlr WorkflowVersionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowVersionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowVersionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wvlr)
+func (page *WorkflowVersionListResultPage) Next() error {
+	next, err := page.fn(page.wvlr)
 	if err != nil {
 		return err
 	}
 	page.wvlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowVersionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -5787,22 +5154,17 @@ func (page WorkflowVersionListResultPage) Values() []WorkflowVersion {
 	return *page.wvlr.Value
 }
 
-// Creates a new instance of the WorkflowVersionListResultPage type.
-func NewWorkflowVersionListResultPage(getNextPage func(context.Context, WorkflowVersionListResult) (WorkflowVersionListResult, error)) WorkflowVersionListResultPage {
-	return WorkflowVersionListResultPage{fn: getNextPage}
-}
-
 // WorkflowVersionProperties the workflow version properties.
 type WorkflowVersionProperties struct {
-	// CreatedTime - READ-ONLY; Gets the created time.
+	// CreatedTime - Gets the created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; Gets the changed time.
+	// ChangedTime - Gets the changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// State - The state. Possible values include: 'WorkflowStateNotSpecified', 'WorkflowStateCompleted', 'WorkflowStateEnabled', 'WorkflowStateDisabled', 'WorkflowStateDeleted', 'WorkflowStateSuspended'
 	State WorkflowState `json:"state,omitempty"`
-	// Version - READ-ONLY; Gets the version.
+	// Version - Gets the version.
 	Version *string `json:"version,omitempty"`
-	// AccessEndpoint - READ-ONLY; Gets the access endpoint.
+	// AccessEndpoint - Gets the access endpoint.
 	AccessEndpoint *string `json:"accessEndpoint,omitempty"`
 	// Sku - The sku.
 	Sku *Sku `json:"sku,omitempty"`
@@ -5817,8 +5179,20 @@ type WorkflowVersionProperties struct {
 // MarshalJSON is the custom marshaler for WorkflowVersionProperties.
 func (wvp WorkflowVersionProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if wvp.CreatedTime != nil {
+		objectMap["createdTime"] = wvp.CreatedTime
+	}
+	if wvp.ChangedTime != nil {
+		objectMap["changedTime"] = wvp.ChangedTime
+	}
 	if wvp.State != "" {
 		objectMap["state"] = wvp.State
+	}
+	if wvp.Version != nil {
+		objectMap["version"] = wvp.Version
+	}
+	if wvp.AccessEndpoint != nil {
+		objectMap["accessEndpoint"] = wvp.AccessEndpoint
 	}
 	if wvp.Sku != nil {
 		objectMap["sku"] = wvp.Sku
@@ -5826,9 +5200,7 @@ func (wvp WorkflowVersionProperties) MarshalJSON() ([]byte, error) {
 	if wvp.IntegrationAccount != nil {
 		objectMap["integrationAccount"] = wvp.IntegrationAccount
 	}
-	if wvp.Definition != nil {
-		objectMap["definition"] = wvp.Definition
-	}
+	objectMap["definition"] = wvp.Definition
 	if wvp.Parameters != nil {
 		objectMap["parameters"] = wvp.Parameters
 	}
@@ -6087,10 +5459,10 @@ type X12SecuritySettings struct {
 type X12ValidationOverride struct {
 	// MessageID - The message id on which the validation settings has to be applied.
 	MessageID *string `json:"messageId,omitempty"`
-	// ValidateEDITypes - The value indicating whether to validate EDI types.
-	ValidateEDITypes *bool `json:"validateEDITypes,omitempty"`
-	// ValidateXSDTypes - The value indicating whether to validate XSD types.
-	ValidateXSDTypes *bool `json:"validateXSDTypes,omitempty"`
+	// ValidateEdiTypes - The value indicating whether to validate EDI types.
+	ValidateEdiTypes *bool `json:"validateEdiTypes,omitempty"`
+	// ValidateXsdTypes - The value indicating whether to validate XSD types.
+	ValidateXsdTypes *bool `json:"validateXsdTypes,omitempty"`
 	// AllowLeadingAndTrailingSpacesAndZeroes - The value indicating whether to allow leading and trailing spaces and zeroes.
 	AllowLeadingAndTrailingSpacesAndZeroes *bool `json:"allowLeadingAndTrailingSpacesAndZeroes,omitempty"`
 	// ValidateCharacterSet - The value indicating whether to validate character Set.
@@ -6113,10 +5485,10 @@ type X12ValidationSettings struct {
 	CheckDuplicateGroupControlNumber *bool `json:"checkDuplicateGroupControlNumber,omitempty"`
 	// CheckDuplicateTransactionSetControlNumber - The value indicating whether to check for duplicate transaction set control number.
 	CheckDuplicateTransactionSetControlNumber *bool `json:"checkDuplicateTransactionSetControlNumber,omitempty"`
-	// ValidateEDITypes - The value indicating whether to Whether to validate EDI types.
-	ValidateEDITypes *bool `json:"validateEDITypes,omitempty"`
-	// ValidateXSDTypes - The value indicating whether to Whether to validate XSD types.
-	ValidateXSDTypes *bool `json:"validateXSDTypes,omitempty"`
+	// ValidateEdiTypes - The value indicating whether to Whether to validate EDI types.
+	ValidateEdiTypes *bool `json:"validateEdiTypes,omitempty"`
+	// ValidateXsdTypes - The value indicating whether to Whether to validate XSD types.
+	ValidateXsdTypes *bool `json:"validateXsdTypes,omitempty"`
 	// AllowLeadingAndTrailingSpacesAndZeroes - The value indicating whether to allow leading and trailing spaces and zeroes.
 	AllowLeadingAndTrailingSpacesAndZeroes *bool `json:"allowLeadingAndTrailingSpacesAndZeroes,omitempty"`
 	// TrimLeadingAndTrailingSpacesAndZeroes - The value indicating whether to trim leading and trailing spaces and zeroes.

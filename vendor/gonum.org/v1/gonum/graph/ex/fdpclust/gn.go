@@ -6,7 +6,6 @@ package main
 
 import (
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/iterator"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
@@ -16,35 +15,35 @@ type GraphNode struct {
 	roots     []*GraphNode
 }
 
-func (g *GraphNode) Node(id int64) graph.Node {
+func (g *GraphNode) Has(id int64) bool {
 	if id == g.id {
-		return g
+		return true
 	}
 
 	visited := map[int64]struct{}{g.id: {}}
 	for _, root := range g.roots {
 		if root.ID() == id {
-			return root
+			return true
 		}
 
 		if root.has(id, visited) {
-			return root
+			return true
 		}
 	}
 
 	for _, neigh := range g.neighbors {
 		if neigh.ID() == id {
-			return neigh
+			return true
 		}
 
 		if gn, ok := neigh.(*GraphNode); ok {
 			if gn.has(id, visited) {
-				return gn
+				return true
 			}
 		}
 	}
 
-	return nil
+	return false
 }
 
 func (g *GraphNode) has(id int64, visited map[int64]struct{}) bool {
@@ -84,7 +83,7 @@ func (g *GraphNode) has(id int64, visited map[int64]struct{}) bool {
 	return false
 }
 
-func (g *GraphNode) Nodes() graph.Nodes {
+func (g *GraphNode) Nodes() []graph.Node {
 	toReturn := []graph.Node{g}
 	visited := map[int64]struct{}{g.id: {}}
 
@@ -104,7 +103,7 @@ func (g *GraphNode) Nodes() graph.Nodes {
 		}
 	}
 
-	return iterator.NewOrderedNodes(toReturn)
+	return toReturn
 }
 
 func (g *GraphNode) nodes(list []graph.Node, visited map[int64]struct{}) []graph.Node {
@@ -132,9 +131,9 @@ func (g *GraphNode) nodes(list []graph.Node, visited map[int64]struct{}) []graph
 	return list
 }
 
-func (g *GraphNode) From(id int64) graph.Nodes {
+func (g *GraphNode) From(id int64) []graph.Node {
 	if id == g.ID() {
-		return iterator.NewOrderedNodes(g.neighbors)
+		return g.neighbors
 	}
 
 	visited := map[int64]struct{}{g.id: {}}
@@ -142,7 +141,7 @@ func (g *GraphNode) From(id int64) graph.Nodes {
 		visited[root.ID()] = struct{}{}
 
 		if result := root.findNeighbors(id, visited); result != nil {
-			return iterator.NewOrderedNodes(result)
+			return result
 		}
 	}
 
@@ -151,7 +150,7 @@ func (g *GraphNode) From(id int64) graph.Nodes {
 
 		if gn, ok := neigh.(*GraphNode); ok {
 			if result := gn.findNeighbors(id, visited); result != nil {
-				return iterator.NewOrderedNodes(result)
+				return result
 			}
 		}
 	}

@@ -26,29 +26,7 @@ func (a *App) DbDump(w http.ResponseWriter, r *http.Request) {
 	// Write msg
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "    ")
-	if err := encoder.Encode(dump); err != nil {
-		panic(err)
-	}
-}
-
-// DbCheck ... Checks the DB for inconsistencies.
-// It returns a JSON summary of the check.
-// This is the variant to be called via the API and running in the App
-func (a *App) DbCheck(w http.ResponseWriter, r *http.Request) {
-	checkResponse, err := dbCheckConsistency(a.db)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Write msg
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "    ")
-	if err := encoder.Encode(checkResponse); err != nil {
+	if err := json.NewEncoder(w).Encode(dump); err != nil {
 		panic(err)
 	}
 }

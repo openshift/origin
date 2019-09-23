@@ -20,6 +20,8 @@ spec:
       labels:
         k8s-app: node-exporter
         version: v0.15.2
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
       priorityClassName: system-node-critical
       containers:
@@ -42,9 +44,10 @@ spec:
               readOnly: true
           resources:
             limits:
+              cpu: 10m
               memory: 50Mi
             requests:
-              cpu: 100m
+              cpu: 10m
               memory: 50Mi
       hostNetwork: true
       hostPID: true

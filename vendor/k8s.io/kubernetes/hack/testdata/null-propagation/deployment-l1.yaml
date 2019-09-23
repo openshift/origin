@@ -1,13 +1,8 @@
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: my-depl
-  labels:
-    l1: l1
 spec:
-  selector:
-    matchLabels:
-      l1: l1
   template:
     metadata:
       labels:

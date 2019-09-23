@@ -4,15 +4,14 @@ export GOPATH
 
 all: test
 
-.root/src/$(PKG):
+.root/src/$(PKG): 	
 	mkdir -p $@
-	for i in $$PWD/* ; do ln -s $$i $@/`basename $$i` ; done
+	for i in $$PWD/* ; do ln -s $$i $@/`basename $$i` ; done 
 
 root: .root/src/$(PKG)
 
 clean:
 	rm -rf .root
-	rm -rf tests/*_easyjson.go
 
 build:
 	go build -i -o .root/bin/easyjson $(PKG)/easyjson
@@ -23,12 +22,9 @@ generate: root build
 		.root/src/$(PKG)/tests/data.go \
 		.root/src/$(PKG)/tests/omitempty.go \
 		.root/src/$(PKG)/tests/nothing.go \
-		.root/src/$(PKG)/tests/named_type.go \
-		.root/src/$(PKG)/tests/custom_map_key_type.go \
-		.root/src/$(PKG)/tests/embedded_type.go \
-		.root/src/$(PKG)/tests/reference_to_pointer.go \
+		.root/src/$(PKG)/tests/named_type.go
 
-	.root/bin/easyjson -all .root/src/$(PKG)/tests/data.go
+	.root/bin/easyjson -all .root/src/$(PKG)/tests/data.go 
 	.root/bin/easyjson -all .root/src/$(PKG)/tests/nothing.go
 	.root/bin/easyjson -all .root/src/$(PKG)/tests/errors.go
 	.root/bin/easyjson -snake_case .root/src/$(PKG)/tests/snake.go
@@ -36,11 +32,6 @@ generate: root build
 	.root/bin/easyjson -build_tags=use_easyjson .root/src/$(PKG)/benchmark/data.go
 	.root/bin/easyjson .root/src/$(PKG)/tests/nested_easy.go
 	.root/bin/easyjson .root/src/$(PKG)/tests/named_type.go
-	.root/bin/easyjson .root/src/$(PKG)/tests/custom_map_key_type.go
-	.root/bin/easyjson .root/src/$(PKG)/tests/embedded_type.go
-	.root/bin/easyjson .root/src/$(PKG)/tests/reference_to_pointer.go
-	.root/bin/easyjson .root/src/$(PKG)/tests/key_marshaler_map.go
-	.root/bin/easyjson -disallow_unknown_fields .root/src/$(PKG)/tests/disallow_unknown.go
 
 test: generate root
 	go test \
@@ -54,7 +45,6 @@ test: generate root
 bench-other: generate root
 	@go test -benchmem -bench . $(PKG)/benchmark
 	@go test -benchmem -tags use_ffjson -bench . $(PKG)/benchmark
-	@go test -benchmem -tags use_jsoniter -bench . $(PKG)/benchmark
 	@go test -benchmem -tags use_codec -bench . $(PKG)/benchmark
 
 bench-python:

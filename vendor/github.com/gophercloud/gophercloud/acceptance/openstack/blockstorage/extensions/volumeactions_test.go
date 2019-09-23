@@ -14,8 +14,6 @@ import (
 )
 
 func TestVolumeActionsUploadImageDestroy(t *testing.T) {
-	t.Skip("This test is diabled because it sometimes fails in OpenLab")
-
 	blockClient, err := clients.NewBlockStorageV2Client()
 	th.AssertNoErr(t, err)
 

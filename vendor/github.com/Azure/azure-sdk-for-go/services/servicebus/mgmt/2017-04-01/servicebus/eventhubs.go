@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewEventHubsClientWithBaseURI(baseURI string, subscriptionID string) EventH
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // namespaceName - the namespace name
 func (client EventHubsClient) ListByNamespace(ctx context.Context, resourceGroupName string, namespaceName string) (result EventHubListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.ListByNamespace")
-		defer func() {
-			sc := -1
-			if result.ehlr.Response.Response != nil {
-				sc = result.ehlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -112,8 +101,8 @@ func (client EventHubsClient) ListByNamespacePreparer(ctx context.Context, resou
 // ListByNamespaceSender sends the ListByNamespace request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventHubsClient) ListByNamespaceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByNamespaceResponder handles the response to the ListByNamespace request. The method always
@@ -130,8 +119,8 @@ func (client EventHubsClient) ListByNamespaceResponder(resp *http.Response) (res
 }
 
 // listByNamespaceNextResults retrieves the next set of results, if any.
-func (client EventHubsClient) listByNamespaceNextResults(ctx context.Context, lastResults EventHubListResult) (result EventHubListResult, err error) {
-	req, err := lastResults.eventHubListResultPreparer(ctx)
+func (client EventHubsClient) listByNamespaceNextResults(lastResults EventHubListResult) (result EventHubListResult, err error) {
+	req, err := lastResults.eventHubListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.EventHubsClient", "listByNamespaceNextResults", nil, "Failure preparing next results request")
 	}
@@ -152,16 +141,6 @@ func (client EventHubsClient) listByNamespaceNextResults(ctx context.Context, la
 
 // ListByNamespaceComplete enumerates all values, automatically crossing page boundaries as required.
 func (client EventHubsClient) ListByNamespaceComplete(ctx context.Context, resourceGroupName string, namespaceName string) (result EventHubListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/EventHubsClient.ListByNamespace")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByNamespace(ctx, resourceGroupName, namespaceName)
 	return
 }

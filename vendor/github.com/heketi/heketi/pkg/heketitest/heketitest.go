@@ -83,7 +83,7 @@ func NewHeketiMockTestServer(
 		Loglevel: loglevel,
 		DBfile:   h.DbFile,
 	}
-	h.App, _ = glusterfs.NewApp(appConfig)
+	h.App = glusterfs.NewApp(appConfig)
 	if h.App == nil {
 		return nil
 	}

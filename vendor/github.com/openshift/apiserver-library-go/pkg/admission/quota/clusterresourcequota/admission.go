@@ -1,7 +1,6 @@
 package clusterresourcequota
 
 import (
-	"context"
 	"errors"
 	"io"
 	"sort"
@@ -79,7 +78,7 @@ func NewClusterResourceQuota() (admission.Interface, error) {
 }
 
 // Admit makes admission decisions while enforcing clusterQuota
-func (q *clusterQuotaAdmission) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
+func (q *clusterQuotaAdmission) Validate(a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
 	// ignore all operations that correspond to sub-resource actions
 	if len(a.GetSubresource()) != 0 {
 		return nil

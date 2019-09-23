@@ -27,18 +27,18 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/images"
 	"k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	"k8s.io/kubernetes/test/e2e_node/services"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = framework.KubeDescribe("Container Runtime Conformance Test", func() {
 	f := framework.NewDefaultFramework("runtime-conformance")
 
-	ginkgo.Describe("container runtime conformance blackbox test", func() {
+	Describe("container runtime conformance blackbox test", func() {
 
-		ginkgo.Context("when running a container with a new image", func() {
+		Context("when running a container with a new image", func() {
 			// The service account only has pull permission
 			auth := `
 {
@@ -66,7 +66,7 @@ var _ = framework.KubeDescribe("Container Runtime Conformance Test", func() {
 				},
 			} {
 				testCase := testCase
-				ginkgo.It(testCase.description+" [NodeConformance]", func() {
+				It(testCase.description+" [NodeConformance]", func() {
 					name := "image-pull-test"
 					command := []string{"/bin/sh", "-c", "while true; do sleep 1; done"}
 					container := common.ConformanceContainer{
@@ -83,7 +83,7 @@ var _ = framework.KubeDescribe("Container Runtime Conformance Test", func() {
 
 					configFile := filepath.Join(services.KubeletRootDirectory, "config.json")
 					err := ioutil.WriteFile(configFile, []byte(auth), 0644)
-					framework.ExpectNoError(err)
+					Expect(err).NotTo(HaveOccurred())
 					defer os.Remove(configFile)
 
 					// checkContainerStatus checks whether the container status matches expectation.
@@ -128,23 +128,23 @@ var _ = framework.KubeDescribe("Container Runtime Conformance Test", func() {
 					const flakeRetry = 3
 					for i := 1; i <= flakeRetry; i++ {
 						var err error
-						ginkgo.By("create the container")
+						By("create the container")
 						container.Create()
-						ginkgo.By("check the container status")
+						By("check the container status")
 						for start := time.Now(); time.Since(start) < common.ContainerStatusRetryTimeout; time.Sleep(common.ContainerStatusPollInterval) {
 							if err = checkContainerStatus(); err == nil {
 								break
 							}
 						}
-						ginkgo.By("delete the container")
+						By("delete the container")
 						container.Delete()
 						if err == nil {
 							break
 						}
 						if i < flakeRetry {
-							e2elog.Logf("No.%d attempt failed: %v, retrying...", i, err)
+							framework.Logf("No.%d attempt failed: %v, retrying...", i, err)
 						} else {
-							e2elog.Failf("All %d attempts failed: %v", flakeRetry, err)
+							framework.Failf("All %d attempts failed: %v", flakeRetry, err)
 						}
 					}
 				})

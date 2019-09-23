@@ -690,7 +690,7 @@ func dgemvbad(t *testing.T, test DgemvCase, cas DgemvSubcase, i int, blasser Dge
 	ldaRow := test.n
 
 	f := func() {
-		blasser.Dgemv('X', test.m, test.n, cas.alpha, aFlatRow, ldaRow, x, test.incX, cas.beta, y, test.incY)
+		blasser.Dgemv(312, test.m, test.n, cas.alpha, aFlatRow, ldaRow, x, test.incX, cas.beta, y, test.incY)
 	}
 	if !panics(f) {
 		t.Errorf("Test %v case %v: no panic for bad transpose", test.Name, i)

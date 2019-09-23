@@ -27,7 +27,6 @@ import (
 
 	"k8s.io/api/core/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/features"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utilpath "k8s.io/utils/path"
@@ -77,16 +76,18 @@ func (v *validator) Validate(pod *v1.Pod) error {
 		return fmt.Errorf("could not read loaded profiles: %v", err)
 	}
 
-	var retErr error
-	podutil.VisitContainers(&pod.Spec, func(container *v1.Container) bool {
-		retErr = validateProfile(GetProfileName(pod, container.Name), loadedProfiles)
-		if retErr != nil {
-			return false
+	for _, container := range pod.Spec.InitContainers {
+		if err := validateProfile(GetProfileName(pod, container.Name), loadedProfiles); err != nil {
+			return err
 		}
-		return true
-	})
+	}
+	for _, container := range pod.Spec.Containers {
+		if err := validateProfile(GetProfileName(pod, container.Name), loadedProfiles); err != nil {
+			return err
+		}
+	}
 
-	return retErr
+	return nil
 }
 
 func (v *validator) ValidateHost() error {

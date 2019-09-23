@@ -12,7 +12,6 @@ import (
 
 	"gonum.org/v1/gonum/blas"
 	"gonum.org/v1/gonum/blas/blas64"
-	"gonum.org/v1/gonum/floats"
 )
 
 type Dlarfger interface {
@@ -20,7 +19,6 @@ type Dlarfger interface {
 }
 
 func DlarfgTest(t *testing.T, impl Dlarfger) {
-	const tol = 1e-14
 	rnd := rand.New(rand.NewSource(1))
 	for i, test := range []struct {
 		alpha float64
@@ -106,9 +104,22 @@ func DlarfgTest(t *testing.T, impl Dlarfger) {
 			Data:   make([]float64, n*n),
 		}
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, hmat, hmat, 0, eye)
-		dist := distFromIdentity(n, eye.Data, n)
-		if dist > tol {
-			t.Errorf("H^T * H is not close to I, dist=%v", dist)
+		iseye := true
+		for i := 0; i < n; i++ {
+			for j := 0; j < n; j++ {
+				if i == j {
+					if math.Abs(eye.Data[i*n+j]-1) > 1e-14 {
+						iseye = false
+					}
+				} else {
+					if math.Abs(eye.Data[i*n+j]) > 1e-14 {
+						iseye = false
+					}
+				}
+			}
+		}
+		if !iseye {
+			t.Errorf("H^T * H is not I %v", eye)
 		}
 
 		xVec := blas64.Vector{
@@ -124,11 +135,14 @@ func DlarfgTest(t *testing.T, impl Dlarfger) {
 			Data: ans,
 		}
 		blas64.Gemv(blas.NoTrans, 1, hmat, xVec, 0, ansVec)
-		if math.Abs(ans[0]-beta) > tol {
+		if math.Abs(ans[0]-beta) > 1e-14 {
 			t.Errorf("Case %v, beta mismatch. Want %v, got %v", i, ans[0], beta)
 		}
-		if floats.Norm(ans[1:n], math.Inf(1)) > tol {
-			t.Errorf("Case %v, nonzero answer %v", i, ans[1:n])
+		for i := 1; i < n; i++ {
+			if math.Abs(ans[i]) > 1e-14 {
+				t.Errorf("Case %v, nonzero answer %v", i, ans)
+				break
+			}
 		}
 	}
 }

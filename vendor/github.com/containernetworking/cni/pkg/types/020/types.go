@@ -17,7 +17,6 @@ package types020
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"os"
 
@@ -74,15 +73,11 @@ func (r *Result) GetAsVersion(version string) (types.Result, error) {
 }
 
 func (r *Result) Print() error {
-	return r.PrintTo(os.Stdout)
-}
-
-func (r *Result) PrintTo(writer io.Writer) error {
 	data, err := json.MarshalIndent(r, "", "    ")
 	if err != nil {
 		return err
 	}
-	_, err = writer.Write(data)
+	_, err = os.Stdout.Write(data)
 	return err
 }
 

@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewContentKeyPoliciesClientWithBaseURI(baseURI string, subscriptionID strin
 // contentKeyPolicyName - the Content Key Policy name.
 // parameters - the request parameters
 func (client ContentKeyPoliciesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, accountName string, contentKeyPolicyName string, parameters ContentKeyPolicy) (result ContentKeyPolicy, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ContentKeyPoliciesClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.ContentKeyPolicyProperties", Name: validation.Null, Rule: false,
@@ -113,8 +102,8 @@ func (client ContentKeyPoliciesClient) CreateOrUpdatePreparer(ctx context.Contex
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ContentKeyPoliciesClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -136,16 +125,6 @@ func (client ContentKeyPoliciesClient) CreateOrUpdateResponder(resp *http.Respon
 // accountName - the Media Services account name.
 // contentKeyPolicyName - the Content Key Policy name.
 func (client ContentKeyPoliciesClient) Delete(ctx context.Context, resourceGroupName string, accountName string, contentKeyPolicyName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ContentKeyPoliciesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, accountName, contentKeyPolicyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.ContentKeyPoliciesClient", "Delete", nil, "Failure preparing request")
@@ -192,8 +171,8 @@ func (client ContentKeyPoliciesClient) DeletePreparer(ctx context.Context, resou
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ContentKeyPoliciesClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -214,16 +193,6 @@ func (client ContentKeyPoliciesClient) DeleteResponder(resp *http.Response) (res
 // accountName - the Media Services account name.
 // contentKeyPolicyName - the Content Key Policy name.
 func (client ContentKeyPoliciesClient) Get(ctx context.Context, resourceGroupName string, accountName string, contentKeyPolicyName string) (result ContentKeyPolicy, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ContentKeyPoliciesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, accountName, contentKeyPolicyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.ContentKeyPoliciesClient", "Get", nil, "Failure preparing request")
@@ -270,8 +239,8 @@ func (client ContentKeyPoliciesClient) GetPreparer(ctx context.Context, resource
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ContentKeyPoliciesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -293,16 +262,6 @@ func (client ContentKeyPoliciesClient) GetResponder(resp *http.Response) (result
 // accountName - the Media Services account name.
 // contentKeyPolicyName - the Content Key Policy name.
 func (client ContentKeyPoliciesClient) GetPolicyPropertiesWithSecrets(ctx context.Context, resourceGroupName string, accountName string, contentKeyPolicyName string) (result ContentKeyPolicyProperties, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ContentKeyPoliciesClient.GetPolicyPropertiesWithSecrets")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPolicyPropertiesWithSecretsPreparer(ctx, resourceGroupName, accountName, contentKeyPolicyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.ContentKeyPoliciesClient", "GetPolicyPropertiesWithSecrets", nil, "Failure preparing request")
@@ -349,8 +308,8 @@ func (client ContentKeyPoliciesClient) GetPolicyPropertiesWithSecretsPreparer(ct
 // GetPolicyPropertiesWithSecretsSender sends the GetPolicyPropertiesWithSecrets request. The method will close the
 // http.Response Body if it receives an error.
 func (client ContentKeyPoliciesClient) GetPolicyPropertiesWithSecretsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetPolicyPropertiesWithSecretsResponder handles the response to the GetPolicyPropertiesWithSecrets request. The method always
@@ -373,18 +332,8 @@ func (client ContentKeyPoliciesClient) GetPolicyPropertiesWithSecretsResponder(r
 // filter - restricts the set of items returned.
 // top - specifies a non-negative integer n that limits the number of items returned from a collection. The
 // service returns the number of available items up to but not greater than the specified value n.
-// orderby - specifies the key by which the result collection should be ordered.
+// orderby - specifies the the key by which the result collection should be ordered.
 func (client ContentKeyPoliciesClient) List(ctx context.Context, resourceGroupName string, accountName string, filter string, top *int32, orderby string) (result ContentKeyPolicyCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ContentKeyPoliciesClient.List")
-		defer func() {
-			sc := -1
-			if result.ckpc.Response.Response != nil {
-				sc = result.ckpc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, accountName, filter, top, orderby)
 	if err != nil {
@@ -440,8 +389,8 @@ func (client ContentKeyPoliciesClient) ListPreparer(ctx context.Context, resourc
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ContentKeyPoliciesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -458,8 +407,8 @@ func (client ContentKeyPoliciesClient) ListResponder(resp *http.Response) (resul
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ContentKeyPoliciesClient) listNextResults(ctx context.Context, lastResults ContentKeyPolicyCollection) (result ContentKeyPolicyCollection, err error) {
-	req, err := lastResults.contentKeyPolicyCollectionPreparer(ctx)
+func (client ContentKeyPoliciesClient) listNextResults(lastResults ContentKeyPolicyCollection) (result ContentKeyPolicyCollection, err error) {
+	req, err := lastResults.contentKeyPolicyCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "media.ContentKeyPoliciesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -480,16 +429,6 @@ func (client ContentKeyPoliciesClient) listNextResults(ctx context.Context, last
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ContentKeyPoliciesClient) ListComplete(ctx context.Context, resourceGroupName string, accountName string, filter string, top *int32, orderby string) (result ContentKeyPolicyCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ContentKeyPoliciesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, accountName, filter, top, orderby)
 	return
 }
@@ -501,16 +440,6 @@ func (client ContentKeyPoliciesClient) ListComplete(ctx context.Context, resourc
 // contentKeyPolicyName - the Content Key Policy name.
 // parameters - the request parameters
 func (client ContentKeyPoliciesClient) Update(ctx context.Context, resourceGroupName string, accountName string, contentKeyPolicyName string, parameters ContentKeyPolicy) (result ContentKeyPolicy, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ContentKeyPoliciesClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, accountName, contentKeyPolicyName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.ContentKeyPoliciesClient", "Update", nil, "Failure preparing request")
@@ -559,8 +488,8 @@ func (client ContentKeyPoliciesClient) UpdatePreparer(ctx context.Context, resou
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ContentKeyPoliciesClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

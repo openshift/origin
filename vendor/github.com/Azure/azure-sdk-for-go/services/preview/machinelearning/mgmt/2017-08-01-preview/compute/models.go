@@ -18,18 +18,13 @@ package compute
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/machinelearning/mgmt/2017-08-01-preview/compute"
 
 // AgentVMSizeTypes enumerates the values for agent vm size types.
 type AgentVMSizeTypes string
@@ -240,7 +235,7 @@ func PossibleUpdatesAvailableValues() []UpdatesAvailable {
 
 // AcsClusterProperties information about the container service backing the cluster
 type AcsClusterProperties struct {
-	// ClusterFqdn - READ-ONLY; The FQDN of the cluster.
+	// ClusterFqdn - The FQDN of the cluster.
 	ClusterFqdn *string `json:"clusterFqdn,omitempty"`
 	// OrchestratorType - Type of orchestrator. It cannot be changed once the cluster is created. Possible values include: 'Kubernetes', 'None'
 	OrchestratorType OrchestratorType `json:"orchestratorType,omitempty"`
@@ -295,20 +290,20 @@ type AvailableOperations struct {
 // cluster.
 type CheckSystemServicesUpdatesAvailableResponse struct {
 	autorest.Response `json:"-"`
-	// UpdatesAvailable - READ-ONLY; Yes if updates are available for the system services, No if not. Possible values include: 'Yes', 'No'
+	// UpdatesAvailable - Yes if updates are available for the system services, No if not. Possible values include: 'Yes', 'No'
 	UpdatesAvailable UpdatesAvailable `json:"updatesAvailable,omitempty"`
 }
 
-// ContainerRegistryCredentials information about the Azure Container Registry which contains the images
-// deployed to the cluster.
+// ContainerRegistryCredentials information about the Azure Container Registry which contains the images deployed
+// to the cluster.
 type ContainerRegistryCredentials struct {
-	// LoginServer - READ-ONLY; The ACR login server name. User name is the first part of the FQDN.
+	// LoginServer - The ACR login server name. User name is the first part of the FQDN.
 	LoginServer *string `json:"loginServer,omitempty"`
-	// Password - READ-ONLY; The ACR primary password.
+	// Password - The ACR primary password.
 	Password *string `json:"password,omitempty"`
-	// Password2 - READ-ONLY; The ACR secondary password.
+	// Password2 - The ACR secondary password.
 	Password2 *string `json:"password2,omitempty"`
-	// Username - READ-ONLY; The ACR login username.
+	// Username - The ACR login username.
 	Username *string `json:"username,omitempty"`
 }
 
@@ -318,14 +313,14 @@ type ContainerRegistryProperties struct {
 	ResourceID *string `json:"resourceId,omitempty"`
 }
 
-// ContainerServiceCredentials information about the Azure Container Registry which contains the images
-// deployed to the cluster.
+// ContainerServiceCredentials information about the Azure Container Registry which contains the images deployed to
+// the cluster.
 type ContainerServiceCredentials struct {
-	// AcsKubeConfig - READ-ONLY; The ACS kube config file.
+	// AcsKubeConfig - The ACS kube config file.
 	AcsKubeConfig *string `json:"acsKubeConfig,omitempty"`
-	// ServicePrincipalConfiguration - READ-ONLY; Service principal configuration used by Kubernetes.
+	// ServicePrincipalConfiguration - Service principal configuration used by Kubernetes.
 	ServicePrincipalConfiguration *ServicePrincipalProperties `json:"servicePrincipalConfiguration,omitempty"`
-	// ImagePullSecretName - READ-ONLY; The ACR image pull secret name which was created in Kubernetes.
+	// ImagePullSecretName - The ACR image pull secret name which was created in Kubernetes.
 	ImagePullSecretName *string `json:"imagePullSecretName,omitempty"`
 }
 
@@ -357,7 +352,7 @@ type ErrorResponseWrapper struct {
 type GlobalServiceConfiguration struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
-	// Etag - The configuration ETag for updates.
+	// Etag - The configuartion ETag for updates.
 	Etag *string `json:"etag,omitempty"`
 	// Ssl - The SSL configuration properties
 	Ssl *SslConfiguration `json:"ssl,omitempty"`
@@ -462,13 +457,13 @@ type OperationalizationCluster struct {
 	autorest.Response `json:"-"`
 	// OperationalizationClusterProperties - Properties of an operationalization cluster.
 	*OperationalizationClusterProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Specifies the resource ID.
+	// ID - Specifies the resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Specifies the name of the resource.
+	// Name - Specifies the name of the resource.
 	Name *string `json:"name,omitempty"`
 	// Location - Specifies the location of the resource.
 	Location *string `json:"location,omitempty"`
-	// Type - READ-ONLY; Specifies the type of the resource.
+	// Type - Specifies the type of the resource.
 	Type *string `json:"type,omitempty"`
 	// Tags - Contains resource tags defined as key/value pairs.
 	Tags map[string]*string `json:"tags"`
@@ -480,8 +475,17 @@ func (oc OperationalizationCluster) MarshalJSON() ([]byte, error) {
 	if oc.OperationalizationClusterProperties != nil {
 		objectMap["properties"] = oc.OperationalizationClusterProperties
 	}
+	if oc.ID != nil {
+		objectMap["id"] = oc.ID
+	}
+	if oc.Name != nil {
+		objectMap["name"] = oc.Name
+	}
 	if oc.Location != nil {
 		objectMap["location"] = oc.Location
+	}
+	if oc.Type != nil {
+		objectMap["type"] = oc.Type
 	}
 	if oc.Tags != nil {
 		objectMap["tags"] = oc.Tags
@@ -579,13 +583,13 @@ type OperationalizationClusterCredentials struct {
 type OperationalizationClusterProperties struct {
 	// Description - The description of the cluster.
 	Description *string `json:"description,omitempty"`
-	// CreatedOn - READ-ONLY; The date and time when the cluster was created.
+	// CreatedOn - The date and time when the cluster was created.
 	CreatedOn *date.Time `json:"createdOn,omitempty"`
-	// ModifiedOn - READ-ONLY; The date and time when the cluster was last modified.
+	// ModifiedOn - The date and time when the cluster was last modified.
 	ModifiedOn *date.Time `json:"modifiedOn,omitempty"`
-	// ProvisioningState - READ-ONLY; The provision state of the cluster. Valid values are Unknown, Updating, Provisioning, Succeeded, and Failed. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
+	// ProvisioningState - The provision state of the cluster. Valid values are Unknown, Updating, Provisioning, Succeeded, and Failed. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
 	ProvisioningState OperationStatus `json:"provisioningState,omitempty"`
-	// ProvisioningErrors - READ-ONLY; List of provisioning errors reported by the resource provider.
+	// ProvisioningErrors - List of provisioning errors reported by the resource provider.
 	ProvisioningErrors *[]ErrorResponseWrapper `json:"provisioningErrors,omitempty"`
 	// ClusterType - The cluster type. Possible values include: 'ACS', 'Local'
 	ClusterType ClusterType `json:"clusterType,omitempty"`
@@ -601,8 +605,8 @@ type OperationalizationClusterProperties struct {
 	GlobalServiceConfiguration *GlobalServiceConfiguration `json:"globalServiceConfiguration,omitempty"`
 }
 
-// OperationalizationClustersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results
-// of a long-running operation.
+// OperationalizationClustersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type OperationalizationClustersCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -611,7 +615,7 @@ type OperationalizationClustersCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *OperationalizationClustersCreateOrUpdateFuture) Result(client OperationalizationClustersClient) (oc OperationalizationCluster, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "compute.OperationalizationClustersCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -640,7 +644,7 @@ type OperationalizationClustersDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *OperationalizationClustersDeleteFuture) Result(client OperationalizationClustersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "compute.OperationalizationClustersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -653,8 +657,8 @@ func (future *OperationalizationClustersDeleteFuture) Result(client Operationali
 	return
 }
 
-// OperationalizationClustersUpdateSystemServicesFuture an abstraction for monitoring and retrieving the
-// results of a long-running operation.
+// OperationalizationClustersUpdateSystemServicesFuture an abstraction for monitoring and retrieving the results of
+// a long-running operation.
 type OperationalizationClustersUpdateSystemServicesFuture struct {
 	azure.Future
 }
@@ -663,7 +667,7 @@ type OperationalizationClustersUpdateSystemServicesFuture struct {
 // If the operation has not completed it will return an error.
 func (future *OperationalizationClustersUpdateSystemServicesFuture) Result(client OperationalizationClustersClient) (ussr UpdateSystemServicesResponse, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "compute.OperationalizationClustersUpdateSystemServicesFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -682,8 +686,7 @@ func (future *OperationalizationClustersUpdateSystemServicesFuture) Result(clien
 	return
 }
 
-// OperationalizationClusterUpdateParameters parameters for PATCH operation on an operationalization
-// cluster
+// OperationalizationClusterUpdateParameters parameters for PATCH operation on an operationalization cluster
 type OperationalizationClusterUpdateParameters struct {
 	// Tags - Gets or sets a list of key value pairs that describe the resource. These tags can be used in viewing and grouping this resource (across resource groups). A maximum of 15 tags can be provided for a resource. Each tag must have a key no greater in length than 128 characters and a value no greater in length than 256 characters.
 	Tags map[string]*string `json:"tags"`
@@ -714,37 +717,20 @@ type PaginatedOperationalizationClustersListIterator struct {
 	page PaginatedOperationalizationClustersListPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *PaginatedOperationalizationClustersListIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PaginatedOperationalizationClustersListIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *PaginatedOperationalizationClustersListIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *PaginatedOperationalizationClustersListIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -766,11 +752,6 @@ func (iter PaginatedOperationalizationClustersListIterator) Value() Operationali
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the PaginatedOperationalizationClustersListIterator type.
-func NewPaginatedOperationalizationClustersListIterator(page PaginatedOperationalizationClustersListPage) PaginatedOperationalizationClustersListIterator {
-	return PaginatedOperationalizationClustersListIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (pocl PaginatedOperationalizationClustersList) IsEmpty() bool {
 	return pocl.Value == nil || len(*pocl.Value) == 0
@@ -778,11 +759,11 @@ func (pocl PaginatedOperationalizationClustersList) IsEmpty() bool {
 
 // paginatedOperationalizationClustersListPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (pocl PaginatedOperationalizationClustersList) paginatedOperationalizationClustersListPreparer(ctx context.Context) (*http.Request, error) {
+func (pocl PaginatedOperationalizationClustersList) paginatedOperationalizationClustersListPreparer() (*http.Request, error) {
 	if pocl.NextLink == nil || len(to.String(pocl.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(pocl.NextLink)))
@@ -790,36 +771,19 @@ func (pocl PaginatedOperationalizationClustersList) paginatedOperationalizationC
 
 // PaginatedOperationalizationClustersListPage contains a page of OperationalizationCluster values.
 type PaginatedOperationalizationClustersListPage struct {
-	fn   func(context.Context, PaginatedOperationalizationClustersList) (PaginatedOperationalizationClustersList, error)
+	fn   func(PaginatedOperationalizationClustersList) (PaginatedOperationalizationClustersList, error)
 	pocl PaginatedOperationalizationClustersList
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *PaginatedOperationalizationClustersListPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PaginatedOperationalizationClustersListPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.pocl)
+func (page *PaginatedOperationalizationClustersListPage) Next() error {
+	next, err := page.fn(page.pocl)
 	if err != nil {
 		return err
 	}
 	page.pocl = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *PaginatedOperationalizationClustersListPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -840,20 +804,15 @@ func (page PaginatedOperationalizationClustersListPage) Values() []Operationaliz
 	return *page.pocl.Value
 }
 
-// Creates a new instance of the PaginatedOperationalizationClustersListPage type.
-func NewPaginatedOperationalizationClustersListPage(getNextPage func(context.Context, PaginatedOperationalizationClustersList) (PaginatedOperationalizationClustersList, error)) PaginatedOperationalizationClustersListPage {
-	return PaginatedOperationalizationClustersListPage{fn: getNextPage}
-}
-
 // Resource azure resource
 type Resource struct {
-	// ID - READ-ONLY; Specifies the resource ID.
+	// ID - Specifies the resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Specifies the name of the resource.
+	// Name - Specifies the name of the resource.
 	Name *string `json:"name,omitempty"`
 	// Location - Specifies the location of the resource.
 	Location *string `json:"location,omitempty"`
-	// Type - READ-ONLY; Specifies the type of the resource.
+	// Type - Specifies the type of the resource.
 	Type *string `json:"type,omitempty"`
 	// Tags - Contains resource tags defined as key/value pairs.
 	Tags map[string]*string `json:"tags"`
@@ -862,8 +821,17 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
 	}
 	if r.Tags != nil {
 		objectMap["tags"] = r.Tags
@@ -893,8 +861,8 @@ type ResourceOperationDisplay struct {
 	Description *string `json:"description,omitempty"`
 }
 
-// ServiceAuthConfiguration global service auth configuration properties. These are the data-plane
-// authorization keys and are used if a service doesn't define it's own.
+// ServiceAuthConfiguration global service auth configuration properties. These are the data-plane authorization
+// keys and are used if a service doesn't define it's own.
 type ServiceAuthConfiguration struct {
 	// PrimaryAuthKeyHash - The primary auth key hash. This is not returned in response of GET/PUT on the resource.. To see this please call listKeys API.
 	PrimaryAuthKeyHash *string `json:"primaryAuthKeyHash,omitempty"`
@@ -910,8 +878,8 @@ type ServicePrincipalProperties struct {
 	Secret *string `json:"secret,omitempty"`
 }
 
-// SslConfiguration SSL configuration. If configured data-plane calls to user services will be exposed over
-// SSL only.
+// SslConfiguration SSL configuration. If configured data-plane calls to user services will be exposed over SSL
+// only.
 type SslConfiguration struct {
 	// Status - SSL status. Allowed values are Enabled and Disabled. Possible values include: 'Enabled', 'Disabled'
 	Status Status `json:"status,omitempty"`
@@ -925,11 +893,11 @@ type SslConfiguration struct {
 
 // StorageAccountCredentials access information for the storage account.
 type StorageAccountCredentials struct {
-	// ResourceID - READ-ONLY; The ARM resource ID of the storage account.
+	// ResourceID - The ARM resource ID of the storage account.
 	ResourceID *string `json:"resourceId,omitempty"`
-	// PrimaryKey - READ-ONLY; The primary key of the storage account.
+	// PrimaryKey - The primary key of the storage account.
 	PrimaryKey *string `json:"primaryKey,omitempty"`
-	// SecondaryKey - READ-ONLY; The secondary key of the storage account.
+	// SecondaryKey - The secondary key of the storage account.
 	SecondaryKey *string `json:"secondaryKey,omitempty"`
 }
 
@@ -943,19 +911,19 @@ type StorageAccountProperties struct {
 type SystemService struct {
 	// SystemServiceType - The system service type. Possible values include: 'SystemServiceTypeNone', 'SystemServiceTypeScoringFrontEnd', 'SystemServiceTypeBatchFrontEnd'
 	SystemServiceType SystemServiceType `json:"systemServiceType,omitempty"`
-	// PublicIPAddress - READ-ONLY; The public IP address of the system service
+	// PublicIPAddress - The public IP address of the system service
 	PublicIPAddress *string `json:"publicIpAddress,omitempty"`
-	// Version - READ-ONLY; The state of the system service
+	// Version - The state of the system service
 	Version *string `json:"version,omitempty"`
 }
 
 // UpdateSystemServicesResponse response of the update system services API
 type UpdateSystemServicesResponse struct {
 	autorest.Response `json:"-"`
-	// UpdateStatus - READ-ONLY; Update status. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
+	// UpdateStatus - Update status. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
 	UpdateStatus OperationStatus `json:"updateStatus,omitempty"`
-	// UpdateStartedOn - READ-ONLY; The date and time when the last system services update was started.
+	// UpdateStartedOn - The date and time when the last system services update was started.
 	UpdateStartedOn *date.Time `json:"updateStartedOn,omitempty"`
-	// UpdateCompletedOn - READ-ONLY; The date and time when the last system services update completed.
+	// UpdateCompletedOn - The date and time when the last system services update completed.
 	UpdateCompletedOn *date.Time `json:"updateCompletedOn,omitempty"`
 }

@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewPublicIPPrefixesClientWithBaseURI(baseURI string, subscriptionID string)
 // publicIPPrefixName - the name of the public IP prefix.
 // parameters - parameters supplied to the create or update public IP prefix operation.
 func (client PublicIPPrefixesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, publicIPPrefixName string, parameters PublicIPPrefix) (result PublicIPPrefixesCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PublicIPPrefixesClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, publicIPPrefixName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.PublicIPPrefixesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -97,9 +86,9 @@ func (client PublicIPPrefixesClient) CreateOrUpdatePreparer(ctx context.Context,
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client PublicIPPrefixesClient) CreateOrUpdateSender(req *http.Request) (future PublicIPPrefixesCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -125,16 +114,6 @@ func (client PublicIPPrefixesClient) CreateOrUpdateResponder(resp *http.Response
 // resourceGroupName - the name of the resource group.
 // publicIPPrefixName - the name of the PublicIpPrefix.
 func (client PublicIPPrefixesClient) Delete(ctx context.Context, resourceGroupName string, publicIPPrefixName string) (result PublicIPPrefixesDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PublicIPPrefixesClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, publicIPPrefixName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.PublicIPPrefixesClient", "Delete", nil, "Failure preparing request")
@@ -174,9 +153,9 @@ func (client PublicIPPrefixesClient) DeletePreparer(ctx context.Context, resourc
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client PublicIPPrefixesClient) DeleteSender(req *http.Request) (future PublicIPPrefixesDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -199,19 +178,9 @@ func (client PublicIPPrefixesClient) DeleteResponder(resp *http.Response) (resul
 // Get gets the specified public IP prefix in a specified resource group.
 // Parameters:
 // resourceGroupName - the name of the resource group.
-// publicIPPrefixName - the name of the Public IP Prefix.
+// publicIPPrefixName - the name of the PublicIPPrefx.
 // expand - expands referenced resources.
 func (client PublicIPPrefixesClient) Get(ctx context.Context, resourceGroupName string, publicIPPrefixName string, expand string) (result PublicIPPrefix, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PublicIPPrefixesClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, publicIPPrefixName, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.PublicIPPrefixesClient", "Get", nil, "Failure preparing request")
@@ -260,8 +229,8 @@ func (client PublicIPPrefixesClient) GetPreparer(ctx context.Context, resourceGr
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client PublicIPPrefixesClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -281,16 +250,6 @@ func (client PublicIPPrefixesClient) GetResponder(resp *http.Response) (result P
 // Parameters:
 // resourceGroupName - the name of the resource group.
 func (client PublicIPPrefixesClient) List(ctx context.Context, resourceGroupName string) (result PublicIPPrefixListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PublicIPPrefixesClient.List")
-		defer func() {
-			sc := -1
-			if result.piplr.Response.Response != nil {
-				sc = result.piplr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -336,8 +295,8 @@ func (client PublicIPPrefixesClient) ListPreparer(ctx context.Context, resourceG
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client PublicIPPrefixesClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -354,8 +313,8 @@ func (client PublicIPPrefixesClient) ListResponder(resp *http.Response) (result 
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client PublicIPPrefixesClient) listNextResults(ctx context.Context, lastResults PublicIPPrefixListResult) (result PublicIPPrefixListResult, err error) {
-	req, err := lastResults.publicIPPrefixListResultPreparer(ctx)
+func (client PublicIPPrefixesClient) listNextResults(lastResults PublicIPPrefixListResult) (result PublicIPPrefixListResult, err error) {
+	req, err := lastResults.publicIPPrefixListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.PublicIPPrefixesClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -376,32 +335,12 @@ func (client PublicIPPrefixesClient) listNextResults(ctx context.Context, lastRe
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PublicIPPrefixesClient) ListComplete(ctx context.Context, resourceGroupName string) (result PublicIPPrefixListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PublicIPPrefixesClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName)
 	return
 }
 
 // ListAll gets all the public IP prefixes in a subscription.
 func (client PublicIPPrefixesClient) ListAll(ctx context.Context) (result PublicIPPrefixListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PublicIPPrefixesClient.ListAll")
-		defer func() {
-			sc := -1
-			if result.piplr.Response.Response != nil {
-				sc = result.piplr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listAllNextResults
 	req, err := client.ListAllPreparer(ctx)
 	if err != nil {
@@ -446,8 +385,8 @@ func (client PublicIPPrefixesClient) ListAllPreparer(ctx context.Context) (*http
 // ListAllSender sends the ListAll request. The method will close the
 // http.Response Body if it receives an error.
 func (client PublicIPPrefixesClient) ListAllSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListAllResponder handles the response to the ListAll request. The method always
@@ -464,8 +403,8 @@ func (client PublicIPPrefixesClient) ListAllResponder(resp *http.Response) (resu
 }
 
 // listAllNextResults retrieves the next set of results, if any.
-func (client PublicIPPrefixesClient) listAllNextResults(ctx context.Context, lastResults PublicIPPrefixListResult) (result PublicIPPrefixListResult, err error) {
-	req, err := lastResults.publicIPPrefixListResultPreparer(ctx)
+func (client PublicIPPrefixesClient) listAllNextResults(lastResults PublicIPPrefixListResult) (result PublicIPPrefixListResult, err error) {
+	req, err := lastResults.publicIPPrefixListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.PublicIPPrefixesClient", "listAllNextResults", nil, "Failure preparing next results request")
 	}
@@ -486,16 +425,6 @@ func (client PublicIPPrefixesClient) listAllNextResults(ctx context.Context, las
 
 // ListAllComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PublicIPPrefixesClient) ListAllComplete(ctx context.Context) (result PublicIPPrefixListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PublicIPPrefixesClient.ListAll")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListAll(ctx)
 	return
 }
@@ -506,16 +435,6 @@ func (client PublicIPPrefixesClient) ListAllComplete(ctx context.Context) (resul
 // publicIPPrefixName - the name of the public IP prefix.
 // parameters - parameters supplied to update public IP prefix tags.
 func (client PublicIPPrefixesClient) UpdateTags(ctx context.Context, resourceGroupName string, publicIPPrefixName string, parameters TagsObject) (result PublicIPPrefixesUpdateTagsFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PublicIPPrefixesClient.UpdateTags")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateTagsPreparer(ctx, resourceGroupName, publicIPPrefixName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.PublicIPPrefixesClient", "UpdateTags", nil, "Failure preparing request")
@@ -557,9 +476,9 @@ func (client PublicIPPrefixesClient) UpdateTagsPreparer(ctx context.Context, res
 // UpdateTagsSender sends the UpdateTags request. The method will close the
 // http.Response Body if it receives an error.
 func (client PublicIPPrefixesClient) UpdateTagsSender(req *http.Request) (future PublicIPPrefixesUpdateTagsFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}

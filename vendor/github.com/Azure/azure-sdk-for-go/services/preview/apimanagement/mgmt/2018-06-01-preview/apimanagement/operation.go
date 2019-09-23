@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,29 +46,17 @@ func NewOperationClientWithBaseURI(baseURI string, subscriptionID string) Operat
 // serviceName - the name of the API Management service.
 // apiid - API revision identifier. Must be unique in the current API Management service instance. Non-current
 // revision has ;rev=n as a suffix where n is the revision number.
-// filter - | Field       | Supported operators    | Supported functions               |
-// |-------------|------------------------|-----------------------------------|
-//
-// |name | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |displayName | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |apiName | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |description | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |method | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
-// |urlTemplate | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
+// filter - | Field       | Supported operators    | Supported functions                         |
+// |-------------|------------------------|---------------------------------------------|
+// | id          | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | name        | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | apiName     | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | description | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | method      | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// | urlTemplate | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
 // top - number of records to return.
 // skip - number of records to skip.
-// includeNotTaggedOperations - include not tagged Operations.
-func (client OperationClient) ListByTags(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32, includeNotTaggedOperations *bool) (result TagResourceCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationClient.ListByTags")
-		defer func() {
-			sc := -1
-			if result.trc.Response.Response != nil {
-				sc = result.trc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client OperationClient) ListByTags(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32) (result TagResourceCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -89,7 +76,7 @@ func (client OperationClient) ListByTags(ctx context.Context, resourceGroupName 
 	}
 
 	result.fn = client.listByTagsNextResults
-	req, err := client.ListByTagsPreparer(ctx, resourceGroupName, serviceName, apiid, filter, top, skip, includeNotTaggedOperations)
+	req, err := client.ListByTagsPreparer(ctx, resourceGroupName, serviceName, apiid, filter, top, skip)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.OperationClient", "ListByTags", nil, "Failure preparing request")
 		return
@@ -111,7 +98,7 @@ func (client OperationClient) ListByTags(ctx context.Context, resourceGroupName 
 }
 
 // ListByTagsPreparer prepares the ListByTags request.
-func (client OperationClient) ListByTagsPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32, includeNotTaggedOperations *bool) (*http.Request, error) {
+func (client OperationClient) ListByTagsPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"apiId":             autorest.Encode("path", apiid),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -132,9 +119,6 @@ func (client OperationClient) ListByTagsPreparer(ctx context.Context, resourceGr
 	if skip != nil {
 		queryParameters["$skip"] = autorest.Encode("query", *skip)
 	}
-	if includeNotTaggedOperations != nil {
-		queryParameters["includeNotTaggedOperations"] = autorest.Encode("query", *includeNotTaggedOperations)
-	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
@@ -147,8 +131,8 @@ func (client OperationClient) ListByTagsPreparer(ctx context.Context, resourceGr
 // ListByTagsSender sends the ListByTags request. The method will close the
 // http.Response Body if it receives an error.
 func (client OperationClient) ListByTagsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByTagsResponder handles the response to the ListByTags request. The method always
@@ -165,8 +149,8 @@ func (client OperationClient) ListByTagsResponder(resp *http.Response) (result T
 }
 
 // listByTagsNextResults retrieves the next set of results, if any.
-func (client OperationClient) listByTagsNextResults(ctx context.Context, lastResults TagResourceCollection) (result TagResourceCollection, err error) {
-	req, err := lastResults.tagResourceCollectionPreparer(ctx)
+func (client OperationClient) listByTagsNextResults(lastResults TagResourceCollection) (result TagResourceCollection, err error) {
+	req, err := lastResults.tagResourceCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.OperationClient", "listByTagsNextResults", nil, "Failure preparing next results request")
 	}
@@ -186,17 +170,7 @@ func (client OperationClient) listByTagsNextResults(ctx context.Context, lastRes
 }
 
 // ListByTagsComplete enumerates all values, automatically crossing page boundaries as required.
-func (client OperationClient) ListByTagsComplete(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32, includeNotTaggedOperations *bool) (result TagResourceCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationClient.ListByTags")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	result.page, err = client.ListByTags(ctx, resourceGroupName, serviceName, apiid, filter, top, skip, includeNotTaggedOperations)
+func (client OperationClient) ListByTagsComplete(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32) (result TagResourceCollectionIterator, err error) {
+	result.page, err = client.ListByTags(ctx, resourceGroupName, serviceName, apiid, filter, top, skip)
 	return
 }

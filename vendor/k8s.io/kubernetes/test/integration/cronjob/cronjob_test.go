@@ -28,15 +28,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
 	clientbatchv1beta1 "k8s.io/client-go/kubernetes/typed/batch/v1beta1"
+	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/controller/cronjob"
 	"k8s.io/kubernetes/pkg/controller/job"
 	"k8s.io/kubernetes/test/integration/framework"
 )
 
-func setup(t *testing.T) (*httptest.Server, framework.CloseFunc, *cronjob.Controller, *job.JobController, informers.SharedInformerFactory, clientset.Interface, restclient.Config) {
+func setup(t *testing.T) (*httptest.Server, framework.CloseFunc, *cronjob.CronJobController, *job.JobController, informers.SharedInformerFactory, clientset.Interface, rest.Config) {
 	masterConfig := framework.NewIntegrationTestMasterConfig()
 	_, server, closeFn := framework.RunAMaster(masterConfig)
 
@@ -47,7 +49,7 @@ func setup(t *testing.T) (*httptest.Server, framework.CloseFunc, *cronjob.Contro
 	}
 	resyncPeriod := 12 * time.Hour
 	informerSet := informers.NewSharedInformerFactory(clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "cronjob-informers")), resyncPeriod)
-	cjc, err := cronjob.NewController(clientSet)
+	cjc, err := cronjob.NewCronJobController(clientSet)
 	if err != nil {
 		t.Fatalf("Error creating CronJob controller: %v", err)
 	}
@@ -94,7 +96,7 @@ func cleanupCronJobs(t *testing.T, cjClient clientbatchv1beta1.CronJobInterface,
 	}
 }
 
-func validateJobAndPod(t *testing.T, clientSet clientset.Interface, namespace string) {
+func validateJobAndPod(t *testing.T, clientSet kubernetes.Interface, namespace string) {
 	if err := wait.PollImmediate(1*time.Second, 120*time.Second, func() (bool, error) {
 		jobs, err := clientSet.BatchV1().Jobs(namespace).List(metav1.ListOptions{})
 		if err != nil {

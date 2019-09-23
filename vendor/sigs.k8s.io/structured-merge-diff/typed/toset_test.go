@@ -53,24 +53,14 @@ var fieldsetCases = []fieldsetTestCase{{
 	rootTypeName: "stringPair",
 	schema: `types:
 - name: stringPair
-  map:
+  struct:
     fields:
     - name: key
       type:
         scalar: string
     - name: value
       type:
-        namedType: __untyped_atomic_
-- name: __untyped_atomic_
-  scalar: untyped
-  list:
-    elementType:
-      namedType: __untyped_atomic_
-    elementRelationship: atomic
-  map:
-    elementType:
-      namedType: __untyped_atomic_
-    elementRelationship: atomic
+        untyped: {}
 `,
 	pairs: []objSetPair{
 		{`{"key":"foo","value":1}`, _NS(_P("key"), _P("value"))},
@@ -84,7 +74,7 @@ var fieldsetCases = []fieldsetTestCase{{
 	rootTypeName: "myStruct",
 	schema: `types:
 - name: myStruct
-  map:
+  struct:
     fields:
     - name: numeric
       type:
@@ -115,7 +105,7 @@ var fieldsetCases = []fieldsetTestCase{{
           elementRelationship: associative
     - name: color
       type:
-        map:
+        struct:
           fields:
           - name: R
             type:
@@ -137,7 +127,7 @@ var fieldsetCases = []fieldsetTestCase{{
       type:
         list:
           elementType:
-            map:
+            struct:
               fields:
               - name: key
                 type:
@@ -176,15 +166,15 @@ var fieldsetCases = []fieldsetTestCase{{
 		{`{"arbitraryWavelengthColor":{"IR":255}}`, _NS(_P("arbitraryWavelengthColor"))},
 		{`{"args":[]}`, _NS(_P("args"))},
 		{`{"args":null}`, _NS(_P("args"))},
-		{`{"args":[null]}`, _NS(_P("args"))},
-		{`{"args":[{"key":"a","value":"b"},{"key":"c","value":"d"}]}`, _NS(_P("args"))},
+		{`{"args":[null]}`,_NS(_P("args"))},
+		{`{"args":[{"key":"a","value":"b"},{"key":"c","value":"d"}]}`,_NS(_P("args"))},
 	},
 }, {
 	name:         "associative list",
 	rootTypeName: "myRoot",
 	schema: `types:
 - name: myRoot
-  map:
+  struct:
     fields:
     - name: list
       type:
@@ -206,7 +196,7 @@ var fieldsetCases = []fieldsetTestCase{{
       scalar: string
     elementRelationship: atomic
 - name: myElement
-  map:
+  struct:
     fields:
     - name: key
       type:

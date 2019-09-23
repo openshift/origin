@@ -26,13 +26,12 @@ import (
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
-	"k8s.io/apiserver/pkg/registry/rest"
-	etcd3testing "k8s.io/apiserver/pkg/storage/etcd3/testing"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 )
 
-func newStorage(t *testing.T) (*REST, *etcd3testing.EtcdTestServer) {
+func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, scheduling.GroupName)
 	restOptions := generic.RESTOptions{
 		StorageConfig:           etcdStorage,
@@ -40,11 +39,7 @@ func newStorage(t *testing.T) (*REST, *etcd3testing.EtcdTestServer) {
 		DeleteCollectionWorkers: 1,
 		ResourcePrefix:          "priorityclasses",
 	}
-	rest, err := NewREST(restOptions)
-	if err != nil {
-		t.Fatalf("unable to create REST %v", err)
-	}
-	return rest, server
+	return NewREST(restOptions), server
 }
 
 func validNewPriorityClass() *scheduling.PriorityClass {
@@ -122,7 +117,7 @@ func TestDeleteSystemPriorityClass(t *testing.T) {
 	if err := storage.Store.Storage.Create(ctx, key, pc, nil, 0, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, _, err := storage.Delete(ctx, pc.Name, rest.ValidateAllObjectFunc, nil); err == nil {
+	if _, _, err := storage.Delete(ctx, pc.Name, nil); err == nil {
 		t.Error("expected to receive an error")
 	}
 }

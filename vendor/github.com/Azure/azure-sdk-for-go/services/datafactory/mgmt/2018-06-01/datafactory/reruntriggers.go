@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,16 +48,6 @@ func NewRerunTriggersClientWithBaseURI(baseURI string, subscriptionID string) Re
 // triggerName - the trigger name.
 // rerunTriggerName - the rerun trigger name.
 func (client RerunTriggersClient) Cancel(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, rerunTriggerName string) (result RerunTriggersCancelFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RerunTriggersClient.Cancel")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -120,9 +109,13 @@ func (client RerunTriggersClient) CancelPreparer(ctx context.Context, resourceGr
 // CancelSender sends the Cancel request. The method will close the
 // http.Response Body if it receives an error.
 func (client RerunTriggersClient) CancelSender(req *http.Request) (future RerunTriggersCancelFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
 	if err != nil {
 		return
 	}
@@ -150,16 +143,6 @@ func (client RerunTriggersClient) CancelResponder(resp *http.Response) (result a
 // rerunTriggerName - the rerun trigger name.
 // rerunTumblingWindowTriggerActionParameters - rerun tumbling window trigger action parameters.
 func (client RerunTriggersClient) Create(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, rerunTriggerName string, rerunTumblingWindowTriggerActionParameters RerunTumblingWindowTriggerActionParameters) (result TriggerResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RerunTriggersClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -236,8 +219,8 @@ func (client RerunTriggersClient) CreatePreparer(ctx context.Context, resourceGr
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client RerunTriggersClient) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -259,16 +242,6 @@ func (client RerunTriggersClient) CreateResponder(resp *http.Response) (result T
 // factoryName - the factory name.
 // triggerName - the trigger name.
 func (client RerunTriggersClient) ListByTrigger(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result RerunTriggerListResponsePage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RerunTriggersClient.ListByTrigger")
-		defer func() {
-			sc := -1
-			if result.rtlr.Response.Response != nil {
-				sc = result.rtlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -332,8 +305,8 @@ func (client RerunTriggersClient) ListByTriggerPreparer(ctx context.Context, res
 // ListByTriggerSender sends the ListByTrigger request. The method will close the
 // http.Response Body if it receives an error.
 func (client RerunTriggersClient) ListByTriggerSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByTriggerResponder handles the response to the ListByTrigger request. The method always
@@ -350,8 +323,8 @@ func (client RerunTriggersClient) ListByTriggerResponder(resp *http.Response) (r
 }
 
 // listByTriggerNextResults retrieves the next set of results, if any.
-func (client RerunTriggersClient) listByTriggerNextResults(ctx context.Context, lastResults RerunTriggerListResponse) (result RerunTriggerListResponse, err error) {
-	req, err := lastResults.rerunTriggerListResponsePreparer(ctx)
+func (client RerunTriggersClient) listByTriggerNextResults(lastResults RerunTriggerListResponse) (result RerunTriggerListResponse, err error) {
+	req, err := lastResults.rerunTriggerListResponsePreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "datafactory.RerunTriggersClient", "listByTriggerNextResults", nil, "Failure preparing next results request")
 	}
@@ -372,16 +345,6 @@ func (client RerunTriggersClient) listByTriggerNextResults(ctx context.Context, 
 
 // ListByTriggerComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RerunTriggersClient) ListByTriggerComplete(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result RerunTriggerListResponseIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RerunTriggersClient.ListByTrigger")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByTrigger(ctx, resourceGroupName, factoryName, triggerName)
 	return
 }
@@ -393,16 +356,6 @@ func (client RerunTriggersClient) ListByTriggerComplete(ctx context.Context, res
 // triggerName - the trigger name.
 // rerunTriggerName - the rerun trigger name.
 func (client RerunTriggersClient) Start(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, rerunTriggerName string) (result RerunTriggersStartFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RerunTriggersClient.Start")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -464,9 +417,13 @@ func (client RerunTriggersClient) StartPreparer(ctx context.Context, resourceGro
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client RerunTriggersClient) StartSender(req *http.Request) (future RerunTriggersStartFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
 	if err != nil {
 		return
 	}
@@ -493,16 +450,6 @@ func (client RerunTriggersClient) StartResponder(resp *http.Response) (result au
 // triggerName - the trigger name.
 // rerunTriggerName - the rerun trigger name.
 func (client RerunTriggersClient) Stop(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, rerunTriggerName string) (result RerunTriggersStopFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/RerunTriggersClient.Stop")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -564,9 +511,13 @@ func (client RerunTriggersClient) StopPreparer(ctx context.Context, resourceGrou
 // StopSender sends the Stop request. The method will close the
 // http.Response Body if it receives an error.
 func (client RerunTriggersClient) StopSender(req *http.Request) (future RerunTriggersStopFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
 	if err != nil {
 		return
 	}

@@ -90,7 +90,7 @@ func EdgeBetweenness(g graph.Graph) map[[2]int64]float64 {
 // the accumulation loop provided by the accumulate closure.
 func brandes(g graph.Graph, accumulate func(s graph.Node, stack linear.NodeStack, p map[int64][]graph.Node, delta, sigma map[int64]float64)) {
 	var (
-		nodes = graph.NodesOf(g.Nodes())
+		nodes = g.Nodes()
 		stack linear.NodeStack
 		p     = make(map[int64][]graph.Node, len(nodes))
 		sigma = make(map[int64]float64, len(nodes))
@@ -117,7 +117,7 @@ func brandes(g graph.Graph, accumulate func(s graph.Node, stack linear.NodeStack
 			v := queue.Dequeue()
 			vid := v.ID()
 			stack.Push(v)
-			for _, w := range graph.NodesOf(g.From(vid)) {
+			for _, w := range g.From(vid) {
 				wid := w.ID()
 				// w found for the first time?
 				if d[wid] < 0 {
@@ -151,7 +151,7 @@ func brandes(g graph.Graph, accumulate func(s graph.Node, stack linear.NodeStack
 func BetweennessWeighted(g graph.Weighted, p path.AllShortest) map[int64]float64 {
 	cb := make(map[int64]float64)
 
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	for i, s := range nodes {
 		sid := s.ID()
 		for j, t := range nodes {
@@ -205,7 +205,7 @@ func EdgeBetweennessWeighted(g graph.Weighted, p path.AllShortest) map[[2]int64]
 	cb := make(map[[2]int64]float64)
 
 	_, isUndirected := g.(graph.Undirected)
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	for i, s := range nodes {
 		sid := s.ID()
 		for j, t := range nodes {

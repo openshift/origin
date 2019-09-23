@@ -2,9 +2,6 @@
 // Use of this code is governed by a BSD-style
 // license that can be found in the LICENSE file
 
-// This repository is no longer maintained.
-// Development has moved to https://github.com/gonum/gonum.
-//
 // Package floats provides a set of helper routines for dealing with slices
 // of float64. The functions avoid allocations to allow for use within tight
 // loops without garbage collection overhead.

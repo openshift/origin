@@ -130,7 +130,6 @@ type UpdateOptsBuilder interface {
 // deleting a container's metadata.
 type UpdateOpts struct {
 	Metadata               map[string]string
-	RemoveMetadata         []string
 	ContainerRead          string `h:"X-Container-Read"`
 	ContainerSyncTo        string `h:"X-Container-Sync-To"`
 	ContainerSyncKey       string `h:"X-Container-Sync-Key"`
@@ -149,15 +148,9 @@ func (opts UpdateOpts) ToContainerUpdateMap() (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	for k, v := range opts.Metadata {
 		h["X-Container-Meta-"+k] = v
 	}
-
-	for _, k := range opts.RemoveMetadata {
-		h["X-Remove-Container-Meta-"+k] = "remove"
-	}
-
 	return h, nil
 }
 

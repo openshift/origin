@@ -1,16 +1,15 @@
 - name: clean disks
-  command: wipefs -a {{ item }}
+  command: dd if=/dev/zero of={{ item }} count=100 bs=1024k
   with_items:
     - /dev/vdb
     - /dev/vdc
     - /dev/vdd
 
-- name: install repo source packages
-  yum:
-    name:
-      - epel-release
-      - centos-release-gluster41
-    state: present
+- name: install packages
+  yum: name={{ item }} state=present
+  with_items:
+    - epel-release
+    - centos-release-gluster
 
 - name: copy private key
   copy: src=insecure_private_key owner=vagrant group=vagrant dest=/home/vagrant/.ssh/id_rsa force=no mode=0600

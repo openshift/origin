@@ -27,8 +27,8 @@ import (
 	dockerfilters "github.com/docker/docker/api/types/filters"
 	"k8s.io/klog"
 
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
 func DefaultMemorySwap() int64 {
@@ -97,7 +97,7 @@ func applyWindowsContainerSecurityContext(wsc *runtimeapi.WindowsContainerSecuri
 	}
 }
 
-func (ds *dockerService) determinePodIPBySandboxID(sandboxID string) []string {
+func (ds *dockerService) determinePodIPBySandboxID(sandboxID string) string {
 	opts := dockertypes.ContainerListOptions{
 		All:     true,
 		Filters: dockerfilters.NewArgs(),
@@ -108,7 +108,7 @@ func (ds *dockerService) determinePodIPBySandboxID(sandboxID string) []string {
 	f.AddLabel(sandboxIDLabelKey, sandboxID)
 	containers, err := ds.client.ListContainers(opts)
 	if err != nil {
-		return nil
+		return ""
 	}
 
 	for _, c := range containers {
@@ -144,8 +144,8 @@ func (ds *dockerService) determinePodIPBySandboxID(sandboxID string) []string {
 				// Hyper-V only supports one container per Pod yet and the container will have a different
 				// IP address from sandbox. Return the first non-sandbox container IP as POD IP.
 				// TODO(feiskyer): remove this workaround after Hyper-V supports multiple containers per Pod.
-				if containerIPs := ds.getIPs(c.ID, r); len(containerIPs) != 0 {
-					return containerIPs
+				if containerIP := ds.getIP(c.ID, r); containerIP != "" {
+					return containerIP
 				}
 			} else {
 				// Do not return any IP, so that we would continue and get the IP of the Sandbox.
@@ -153,17 +153,17 @@ func (ds *dockerService) determinePodIPBySandboxID(sandboxID string) []string {
 				// to replicate the DNS registry key to the Workload container (IP/Gateway/MAC is
 				// set separately than DNS).
 				// TODO(feiskyer): remove this workaround after Namespace is supported in Windows RS5.
-				ds.getIPs(sandboxID, r)
+				ds.getIP(sandboxID, r)
 			}
 		} else {
 			// ds.getIP will call the CNI plugin to fetch the IP
-			if containerIPs := ds.getIPs(c.ID, r); len(containerIPs) != 0 {
-				return containerIPs
+			if containerIP := ds.getIP(c.ID, r); containerIP != "" {
+				return containerIP
 			}
 		}
 	}
 
-	return nil
+	return ""
 }
 
 func getNetworkNamespace(c *dockertypes.ContainerJSON) (string, error) {

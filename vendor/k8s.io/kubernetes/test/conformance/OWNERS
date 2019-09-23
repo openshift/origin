@@ -4,11 +4,10 @@
 reviewers:
   - mml
   - cheftako
-  - oomichi
+  - spiffxp
 approvers:
   - mml
   - cheftako
-  - spiffxp
 labels:
   - area/conformance
   - sig/architecture

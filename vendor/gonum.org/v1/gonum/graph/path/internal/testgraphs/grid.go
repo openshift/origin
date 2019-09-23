@@ -10,7 +10,6 @@ import (
 	"math"
 
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/iterator"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
@@ -92,28 +91,20 @@ func NewGridFrom(rows ...string) *Grid {
 
 // Nodes returns all the open nodes in the grid if AllVisible is
 // false, otherwise all nodes are returned.
-func (g *Grid) Nodes() graph.Nodes {
+func (g *Grid) Nodes() []graph.Node {
 	var nodes []graph.Node
 	for id, ok := range g.open {
 		if ok || g.AllVisible {
 			nodes = append(nodes, simple.Node(id))
 		}
 	}
-	return iterator.NewOrderedNodes(nodes)
+	return nodes
 }
 
-// Node returns the node with the given ID if it exists in the graph,
-// and nil otherwise.
-func (g *Grid) Node(id int64) graph.Node {
-	if g.has(id) {
-		return simple.Node(id)
-	}
-	return nil
-}
-
-// has returns whether id represents a node in the grid. The state of
-// the AllVisible field determines whether a non-open node is present.
-func (g *Grid) has(id int64) bool {
+// Has returns whether n is a node in the grid. The state of
+// the AllVisible field determines whether a non-open node is
+// present.
+func (g *Grid) Has(id int64) bool {
 	return 0 <= id && id < int64(len(g.open)) && (g.AllVisible || g.open[id])
 }
 
@@ -150,7 +141,7 @@ func (g *Grid) RowCol(id int64) (r, c int) {
 // XY returns the cartesian coordinates of n. If n is not a node
 // in the grid, (NaN, NaN) is returned.
 func (g *Grid) XY(id int64) (x, y float64) {
-	if !g.has(id) {
+	if !g.Has(id) {
 		return math.NaN(), math.NaN()
 	}
 	r, c := g.RowCol(id)
@@ -167,9 +158,9 @@ func (g *Grid) NodeAt(r, c int) graph.Node {
 
 // From returns all the nodes reachable from u. Reachabilty requires that both
 // ends of an edge must be open.
-func (g *Grid) From(uid int64) graph.Nodes {
+func (g *Grid) From(uid int64) []graph.Node {
 	if !g.HasOpen(uid) {
-		return graph.Empty
+		return nil
 	}
 	nr, nc := g.RowCol(uid)
 	var to []graph.Node
@@ -180,10 +171,7 @@ func (g *Grid) From(uid int64) graph.Nodes {
 			}
 		}
 	}
-	if len(to) == 0 {
-		return graph.Empty
-	}
-	return iterator.NewOrderedNodes(to)
+	return to
 }
 
 // HasEdgeBetween returns whether there is an edge between u and v.
@@ -282,7 +270,7 @@ func (g *Grid) Render(path []graph.Node) ([]byte, error) {
 	// want to draw as much as possible before failing.
 	for i, n := range path {
 		id := n.ID()
-		if !g.has(id) || (i != 0 && !g.HasEdgeBetween(path[i-1].ID(), id)) {
+		if !g.Has(id) || (i != 0 && !g.HasEdgeBetween(path[i-1].ID(), id)) {
 			if 0 <= id && id < int64(len(g.open)) {
 				r, c := g.RowCol(id)
 				b[r*(g.c+1)+c] = '!'

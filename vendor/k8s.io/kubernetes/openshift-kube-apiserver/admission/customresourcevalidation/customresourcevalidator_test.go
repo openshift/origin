@@ -1,18 +1,17 @@
 package customresourcevalidation
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	configv1 "github.com/openshift/api/config/v1"
 )
@@ -226,12 +225,11 @@ func TestCustomResourceValidator(t *testing.T) {
 				tc.resource,
 				tc.subresource,
 				tc.operation,
-				nil,
 				false,
 				tc.userInfo,
 			)
 
-			err = validator.Validate(context.TODO(), attributes, nil)
+			err = validator.Validate(attributes, nil)
 			switch {
 			case tc.expectError && err == nil:
 				t.Error("Error expected")

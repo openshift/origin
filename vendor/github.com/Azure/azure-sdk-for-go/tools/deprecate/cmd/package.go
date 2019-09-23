@@ -104,7 +104,7 @@ func addDeprecationComment(cg *ast.CommentGroup, message string) {
 	}
 	// create a new comment and add it to the beginning of the comment group
 	nd := []*ast.Comment{
-		{
+		&ast.Comment{
 			Text:  fmt.Sprintf("// Deprecated: %s", message),
 			Slash: cg.Pos() - 1,
 		},

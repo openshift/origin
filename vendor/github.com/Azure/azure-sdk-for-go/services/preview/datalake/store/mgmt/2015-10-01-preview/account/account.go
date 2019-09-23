@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,16 +45,6 @@ func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
 // name - the name of the Data Lake Store account to create.
 // parameters - parameters supplied to create the Data Lake Store account.
 func (client Client) Create(ctx context.Context, resourceGroupName string, name string, parameters DataLakeStoreAccount) (result CreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePreparer(ctx, resourceGroupName, name, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.Client", "Create", nil, "Failure preparing request")
@@ -84,8 +73,6 @@ func (client Client) CreatePreparer(ctx context.Context, resourceGroupName strin
 		"api-version": APIVersion,
 	}
 
-	parameters.Type = nil
-	parameters.ID = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -99,9 +86,13 @@ func (client Client) CreatePreparer(ctx context.Context, resourceGroupName strin
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) CreateSender(req *http.Request) (future CreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}
@@ -129,16 +120,6 @@ func (client Client) CreateResponder(resp *http.Response) (result DataLakeStoreA
 // name - the name of the firewall rule to create or update.
 // parameters - parameters supplied to create the create firewall rule.
 func (client Client) CreateOrUpdateFirewallRule(ctx context.Context, resourceGroupName string, accountName string, name string, parameters FirewallRule) (result FirewallRule, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.CreateOrUpdateFirewallRule")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateOrUpdateFirewallRulePreparer(ctx, resourceGroupName, accountName, name, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.Client", "CreateOrUpdateFirewallRule", nil, "Failure preparing request")
@@ -174,7 +155,6 @@ func (client Client) CreateOrUpdateFirewallRulePreparer(ctx context.Context, res
 		"api-version": APIVersion,
 	}
 
-	parameters.Type = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -188,8 +168,8 @@ func (client Client) CreateOrUpdateFirewallRulePreparer(ctx context.Context, res
 // CreateOrUpdateFirewallRuleSender sends the CreateOrUpdateFirewallRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) CreateOrUpdateFirewallRuleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateFirewallRuleResponder handles the response to the CreateOrUpdateFirewallRule request. The method always
@@ -210,16 +190,6 @@ func (client Client) CreateOrUpdateFirewallRuleResponder(resp *http.Response) (r
 // resourceGroupName - the name of the Azure resource group that contains the Data Lake Store account.
 // accountName - the name of the Data Lake Store account to delete.
 func (client Client) Delete(ctx context.Context, resourceGroupName string, accountName string) (result DeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, accountName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.Client", "Delete", nil, "Failure preparing request")
@@ -259,9 +229,13 @@ func (client Client) DeletePreparer(ctx context.Context, resourceGroupName strin
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) DeleteSender(req *http.Request) (future DeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent, http.StatusNotFound))
 	if err != nil {
 		return
 	}
@@ -287,16 +261,6 @@ func (client Client) DeleteResponder(resp *http.Response) (result autorest.Respo
 // accountName - the name of the Data Lake Store account from which to delete the firewall rule.
 // firewallRuleName - the name of the firewall rule to delete.
 func (client Client) DeleteFirewallRule(ctx context.Context, resourceGroupName string, accountName string, firewallRuleName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.DeleteFirewallRule")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteFirewallRulePreparer(ctx, resourceGroupName, accountName, firewallRuleName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.Client", "DeleteFirewallRule", nil, "Failure preparing request")
@@ -343,8 +307,8 @@ func (client Client) DeleteFirewallRulePreparer(ctx context.Context, resourceGro
 // DeleteFirewallRuleSender sends the DeleteFirewallRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) DeleteFirewallRuleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteFirewallRuleResponder handles the response to the DeleteFirewallRule request. The method always
@@ -364,16 +328,6 @@ func (client Client) DeleteFirewallRuleResponder(resp *http.Response) (result au
 // resourceGroupName - the name of the Azure resource group that contains the Data Lake Store account.
 // accountName - the name of the Data Lake Store account to attempt to enable the Key Vault for.
 func (client Client) EnableKeyVault(ctx context.Context, resourceGroupName string, accountName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.EnableKeyVault")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.EnableKeyVaultPreparer(ctx, resourceGroupName, accountName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.Client", "EnableKeyVault", nil, "Failure preparing request")
@@ -419,8 +373,8 @@ func (client Client) EnableKeyVaultPreparer(ctx context.Context, resourceGroupNa
 // EnableKeyVaultSender sends the EnableKeyVault request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) EnableKeyVaultSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // EnableKeyVaultResponder handles the response to the EnableKeyVault request. The method always
@@ -440,16 +394,6 @@ func (client Client) EnableKeyVaultResponder(resp *http.Response) (result autore
 // resourceGroupName - the name of the Azure resource group that contains the Data Lake Store account.
 // accountName - the name of the Data Lake Store account to retrieve.
 func (client Client) Get(ctx context.Context, resourceGroupName string, accountName string) (result DataLakeStoreAccount, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, accountName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.Client", "Get", nil, "Failure preparing request")
@@ -495,8 +439,8 @@ func (client Client) GetPreparer(ctx context.Context, resourceGroupName string, 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -518,16 +462,6 @@ func (client Client) GetResponder(resp *http.Response) (result DataLakeStoreAcco
 // accountName - the name of the Data Lake Store account from which to get the firewall rule.
 // firewallRuleName - the name of the firewall rule to retrieve.
 func (client Client) GetFirewallRule(ctx context.Context, resourceGroupName string, accountName string, firewallRuleName string) (result FirewallRule, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.GetFirewallRule")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetFirewallRulePreparer(ctx, resourceGroupName, accountName, firewallRuleName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.Client", "GetFirewallRule", nil, "Failure preparing request")
@@ -574,8 +508,8 @@ func (client Client) GetFirewallRulePreparer(ctx context.Context, resourceGroupN
 // GetFirewallRuleSender sends the GetFirewallRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) GetFirewallRuleSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetFirewallRuleResponder handles the response to the GetFirewallRule request. The method always
@@ -608,19 +542,9 @@ func (client Client) GetFirewallRuleResponder(resp *http.Response) (result Firew
 // resources in the response, e.g. Categories?$count=true. Optional.
 // search - a free form search. A free-text search expression to match for whether a particular entry should be
 // included in the feed, e.g. Categories?$search=blue OR green. Optional.
-// formatParameter - the desired return format. Return the response in particular format without access to
+// formatParameter - the desired return format. Return the response in particular formatxii without access to
 // request headers for standard content-type negotiation (e.g Orders?$format=json). Optional.
 func (client Client) List(ctx context.Context, filter string, top *int32, skip *int32, expand string, selectParameter string, orderby string, count *bool, search string, formatParameter string) (result DataLakeStoreAccountListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.List")
-		defer func() {
-			sc := -1
-			if result.dlsalr.Response.Response != nil {
-				sc = result.dlsalr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, filter, top, skip, expand, selectParameter, orderby, count, search, formatParameter)
 	if err != nil {
@@ -692,8 +616,8 @@ func (client Client) ListPreparer(ctx context.Context, filter string, top *int32
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -710,8 +634,8 @@ func (client Client) ListResponder(resp *http.Response) (result DataLakeStoreAcc
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client Client) listNextResults(ctx context.Context, lastResults DataLakeStoreAccountListResult) (result DataLakeStoreAccountListResult, err error) {
-	req, err := lastResults.dataLakeStoreAccountListResultPreparer(ctx)
+func (client Client) listNextResults(lastResults DataLakeStoreAccountListResult) (result DataLakeStoreAccountListResult, err error) {
+	req, err := lastResults.dataLakeStoreAccountListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "account.Client", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -732,16 +656,6 @@ func (client Client) listNextResults(ctx context.Context, lastResults DataLakeSt
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client Client) ListComplete(ctx context.Context, filter string, top *int32, skip *int32, expand string, selectParameter string, orderby string, count *bool, search string, formatParameter string) (result DataLakeStoreAccountListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, filter, top, skip, expand, selectParameter, orderby, count, search, formatParameter)
 	return
 }
@@ -764,19 +678,9 @@ func (client Client) ListComplete(ctx context.Context, filter string, top *int32
 // resources in the response, e.g. Categories?$count=true. Optional.
 // search - a free form search. A free-text search expression to match for whether a particular entry should be
 // included in the feed, e.g. Categories?$search=blue OR green. Optional.
-// formatParameter - the desired return format. Return the response in particular format without access to
+// formatParameter - the desired return format. Return the response in particular formatxii without access to
 // request headers for standard content-type negotiation (e.g Orders?$format=json). Optional.
 func (client Client) ListByResourceGroup(ctx context.Context, resourceGroupName string, filter string, top *int32, skip *int32, expand string, selectParameter string, orderby string, count *bool, search string, formatParameter string) (result DataLakeStoreAccountListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.dlsalr.Response.Response != nil {
-				sc = result.dlsalr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, filter, top, skip, expand, selectParameter, orderby, count, search, formatParameter)
 	if err != nil {
@@ -849,8 +753,8 @@ func (client Client) ListByResourceGroupPreparer(ctx context.Context, resourceGr
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -867,8 +771,8 @@ func (client Client) ListByResourceGroupResponder(resp *http.Response) (result D
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client Client) listByResourceGroupNextResults(ctx context.Context, lastResults DataLakeStoreAccountListResult) (result DataLakeStoreAccountListResult, err error) {
-	req, err := lastResults.dataLakeStoreAccountListResultPreparer(ctx)
+func (client Client) listByResourceGroupNextResults(lastResults DataLakeStoreAccountListResult) (result DataLakeStoreAccountListResult, err error) {
+	req, err := lastResults.dataLakeStoreAccountListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "account.Client", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -889,16 +793,6 @@ func (client Client) listByResourceGroupNextResults(ctx context.Context, lastRes
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client Client) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, filter string, top *int32, skip *int32, expand string, selectParameter string, orderby string, count *bool, search string, formatParameter string) (result DataLakeStoreAccountListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, filter, top, skip, expand, selectParameter, orderby, count, search, formatParameter)
 	return
 }
@@ -908,16 +802,6 @@ func (client Client) ListByResourceGroupComplete(ctx context.Context, resourceGr
 // resourceGroupName - the name of the Azure resource group that contains the Data Lake Store account.
 // accountName - the name of the Data Lake Store account from which to get the firewall rules.
 func (client Client) ListFirewallRules(ctx context.Context, resourceGroupName string, accountName string) (result DataLakeStoreFirewallRuleListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.ListFirewallRules")
-		defer func() {
-			sc := -1
-			if result.dlsfrlr.Response.Response != nil {
-				sc = result.dlsfrlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listFirewallRulesNextResults
 	req, err := client.ListFirewallRulesPreparer(ctx, resourceGroupName, accountName)
 	if err != nil {
@@ -964,8 +848,8 @@ func (client Client) ListFirewallRulesPreparer(ctx context.Context, resourceGrou
 // ListFirewallRulesSender sends the ListFirewallRules request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) ListFirewallRulesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListFirewallRulesResponder handles the response to the ListFirewallRules request. The method always
@@ -982,8 +866,8 @@ func (client Client) ListFirewallRulesResponder(resp *http.Response) (result Dat
 }
 
 // listFirewallRulesNextResults retrieves the next set of results, if any.
-func (client Client) listFirewallRulesNextResults(ctx context.Context, lastResults DataLakeStoreFirewallRuleListResult) (result DataLakeStoreFirewallRuleListResult, err error) {
-	req, err := lastResults.dataLakeStoreFirewallRuleListResultPreparer(ctx)
+func (client Client) listFirewallRulesNextResults(lastResults DataLakeStoreFirewallRuleListResult) (result DataLakeStoreFirewallRuleListResult, err error) {
+	req, err := lastResults.dataLakeStoreFirewallRuleListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "account.Client", "listFirewallRulesNextResults", nil, "Failure preparing next results request")
 	}
@@ -1004,16 +888,6 @@ func (client Client) listFirewallRulesNextResults(ctx context.Context, lastResul
 
 // ListFirewallRulesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client Client) ListFirewallRulesComplete(ctx context.Context, resourceGroupName string, accountName string) (result DataLakeStoreFirewallRuleListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.ListFirewallRules")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListFirewallRules(ctx, resourceGroupName, accountName)
 	return
 }
@@ -1024,16 +898,6 @@ func (client Client) ListFirewallRulesComplete(ctx context.Context, resourceGrou
 // name - the name of the Data Lake Store account to update.
 // parameters - parameters supplied to update the Data Lake Store account.
 func (client Client) Update(ctx context.Context, resourceGroupName string, name string, parameters DataLakeStoreAccount) (result UpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, name, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.Client", "Update", nil, "Failure preparing request")
@@ -1062,8 +926,6 @@ func (client Client) UpdatePreparer(ctx context.Context, resourceGroupName strin
 		"api-version": APIVersion,
 	}
 
-	parameters.Type = nil
-	parameters.ID = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
@@ -1077,9 +939,13 @@ func (client Client) UpdatePreparer(ctx context.Context, resourceGroupName strin
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) UpdateSender(req *http.Request) (future UpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}

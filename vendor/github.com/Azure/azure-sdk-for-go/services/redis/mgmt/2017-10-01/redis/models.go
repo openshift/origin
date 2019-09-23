@@ -18,18 +18,13 @@ package redis
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/redis/mgmt/2017-10-01/redis"
 
 // DayOfWeek enumerates the values for day of week.
 type DayOfWeek string
@@ -142,9 +137,9 @@ func PossibleSkuNameValues() []SkuName {
 // AccessKeys redis cache access keys.
 type AccessKeys struct {
 	autorest.Response `json:"-"`
-	// PrimaryKey - READ-ONLY; The current primary key that clients can use to authenticate with Redis cache.
+	// PrimaryKey - The current primary key that clients can use to authenticate with Redis cache.
 	PrimaryKey *string `json:"primaryKey,omitempty"`
-	// SecondaryKey - READ-ONLY; The current secondary key that clients can use to authenticate with Redis cache.
+	// SecondaryKey - The current secondary key that clients can use to authenticate with Redis cache.
 	SecondaryKey *string `json:"secondaryKey,omitempty"`
 }
 
@@ -195,7 +190,7 @@ type CreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *CreateFuture) Result(client Client) (rt ResourceType, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -299,7 +294,7 @@ func (cp *CreateParameters) UnmarshalJSON(body []byte) error {
 type CreateProperties struct {
 	// Sku - The SKU of the Redis cache to deploy.
 	Sku *Sku `json:"sku,omitempty"`
-	// SubnetID - The full resource ID of a subnet in a virtual network to deploy the Redis cache in. Example format: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/Microsoft.{Network|ClassicNetwork}/VirtualNetworks/vnet1/subnets/subnet1
+	// SubnetID - The full resource ID of a subnet in a virtual network to deploy the Redis cache in. Example format: /subscriptions/{subid}/resourceGroups/{resourceGroupName}/Microsoft.{Network|ClassicNetwork}/VirtualNetworks/vnet1/subnets/subnet1
 	SubnetID *string `json:"subnetId,omitempty"`
 	// StaticIP - Static IP address. Required when deploying a Redis cache inside an existing Azure Virtual Network.
 	StaticIP *string `json:"staticIP,omitempty"`
@@ -349,7 +344,7 @@ type DeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DeleteFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -371,7 +366,7 @@ type ExportDataFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ExportDataFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -394,17 +389,17 @@ type ExportRDBParameters struct {
 	Container *string `json:"container,omitempty"`
 }
 
-// FirewallRule a firewall rule on a redis cache has a name, and describes a contiguous range of IP
-// addresses permitted to connect
+// FirewallRule a firewall rule on a redis cache has a name, and describes a contiguous range of IP addresses
+// permitted to connect
 type FirewallRule struct {
 	autorest.Response `json:"-"`
 	// FirewallRuleProperties - redis cache firewall rule properties
 	*FirewallRuleProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -413,6 +408,15 @@ func (fr FirewallRule) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if fr.FirewallRuleProperties != nil {
 		objectMap["properties"] = fr.FirewallRuleProperties
+	}
+	if fr.ID != nil {
+		objectMap["id"] = fr.ID
+	}
+	if fr.Name != nil {
+		objectMap["name"] = fr.Name
+	}
+	if fr.Type != nil {
+		objectMap["type"] = fr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -512,7 +516,7 @@ type FirewallRuleListResult struct {
 	autorest.Response `json:"-"`
 	// Value - Results of the list firewall rules operation.
 	Value *[]FirewallRule `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link for next set of locations.
+	// NextLink - Link for next set of locations.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -522,37 +526,20 @@ type FirewallRuleListResultIterator struct {
 	page FirewallRuleListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *FirewallRuleListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/FirewallRuleListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *FirewallRuleListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *FirewallRuleListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -574,11 +561,6 @@ func (iter FirewallRuleListResultIterator) Value() FirewallRule {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the FirewallRuleListResultIterator type.
-func NewFirewallRuleListResultIterator(page FirewallRuleListResultPage) FirewallRuleListResultIterator {
-	return FirewallRuleListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (frlr FirewallRuleListResult) IsEmpty() bool {
 	return frlr.Value == nil || len(*frlr.Value) == 0
@@ -586,11 +568,11 @@ func (frlr FirewallRuleListResult) IsEmpty() bool {
 
 // firewallRuleListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (frlr FirewallRuleListResult) firewallRuleListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (frlr FirewallRuleListResult) firewallRuleListResultPreparer() (*http.Request, error) {
 	if frlr.NextLink == nil || len(to.String(frlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(frlr.NextLink)))
@@ -598,36 +580,19 @@ func (frlr FirewallRuleListResult) firewallRuleListResultPreparer(ctx context.Co
 
 // FirewallRuleListResultPage contains a page of FirewallRule values.
 type FirewallRuleListResultPage struct {
-	fn   func(context.Context, FirewallRuleListResult) (FirewallRuleListResult, error)
+	fn   func(FirewallRuleListResult) (FirewallRuleListResult, error)
 	frlr FirewallRuleListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *FirewallRuleListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/FirewallRuleListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.frlr)
+func (page *FirewallRuleListResultPage) Next() error {
+	next, err := page.fn(page.frlr)
 	if err != nil {
 		return err
 	}
 	page.frlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *FirewallRuleListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -648,11 +613,6 @@ func (page FirewallRuleListResultPage) Values() []FirewallRule {
 	return *page.frlr.Value
 }
 
-// Creates a new instance of the FirewallRuleListResultPage type.
-func NewFirewallRuleListResultPage(getNextPage func(context.Context, FirewallRuleListResult) (FirewallRuleListResult, error)) FirewallRuleListResultPage {
-	return FirewallRuleListResultPage{fn: getNextPage}
-}
-
 // FirewallRuleProperties specifies a range of IP addresses permitted to connect to the cache
 type FirewallRuleProperties struct {
 	// StartIP - lowest IP address included in the range
@@ -664,7 +624,7 @@ type FirewallRuleProperties struct {
 // ForceRebootResponse response to force reboot for Redis cache.
 type ForceRebootResponse struct {
 	autorest.Response `json:"-"`
-	// Message - READ-ONLY; Status message
+	// Message - Status message
 	Message *string `json:"message,omitempty"`
 }
 
@@ -677,7 +637,7 @@ type ImportDataFuture struct {
 // If the operation has not completed it will return an error.
 func (future *ImportDataFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -700,12 +660,11 @@ type ImportRDBParameters struct {
 
 // LinkedServer linked server Id
 type LinkedServer struct {
-	// ID - READ-ONLY; Linked server Id.
+	// ID - Linked server Id.
 	ID *string `json:"id,omitempty"`
 }
 
-// LinkedServerCreateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// LinkedServerCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LinkedServerCreateFuture struct {
 	azure.Future
 }
@@ -714,7 +673,7 @@ type LinkedServerCreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *LinkedServerCreateFuture) Result(client LinkedServerClient) (lswp LinkedServerWithProperties, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "redis.LinkedServerCreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -784,7 +743,7 @@ type LinkedServerCreateProperties struct {
 
 // LinkedServerProperties properties of a linked server to be returned in get/put response
 type LinkedServerProperties struct {
-	// ProvisioningState - READ-ONLY; Terminal state of the link between primary and secondary redis cache.
+	// ProvisioningState - Terminal state of the link between primary and secondary redis cache.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
 	// LinkedRedisCacheID - Fully qualified resourceId of the linked redis cache.
 	LinkedRedisCacheID *string `json:"linkedRedisCacheId,omitempty"`
@@ -799,11 +758,11 @@ type LinkedServerWithProperties struct {
 	autorest.Response `json:"-"`
 	// LinkedServerProperties - Properties of the linked server.
 	*LinkedServerProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -812,6 +771,15 @@ func (lswp LinkedServerWithProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if lswp.LinkedServerProperties != nil {
 		objectMap["properties"] = lswp.LinkedServerProperties
+	}
+	if lswp.ID != nil {
+		objectMap["id"] = lswp.ID
+	}
+	if lswp.Name != nil {
+		objectMap["name"] = lswp.Name
+	}
+	if lswp.Type != nil {
+		objectMap["type"] = lswp.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -867,53 +835,36 @@ func (lswp *LinkedServerWithProperties) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// LinkedServerWithPropertiesList list of linked servers (with properties) of a Redis cache.
+// LinkedServerWithPropertiesList list of linked servers (with properites) of a Redis cache.
 type LinkedServerWithPropertiesList struct {
 	autorest.Response `json:"-"`
-	// Value - List of linked servers (with properties) of a Redis cache.
+	// Value - List of linked servers (with properites) of a Redis cache.
 	Value *[]LinkedServerWithProperties `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link for next set.
+	// NextLink - Link for next set.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// LinkedServerWithPropertiesListIterator provides access to a complete listing of
-// LinkedServerWithProperties values.
+// LinkedServerWithPropertiesListIterator provides access to a complete listing of LinkedServerWithProperties
+// values.
 type LinkedServerWithPropertiesListIterator struct {
 	i    int
 	page LinkedServerWithPropertiesListPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *LinkedServerWithPropertiesListIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LinkedServerWithPropertiesListIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *LinkedServerWithPropertiesListIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *LinkedServerWithPropertiesListIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -935,11 +886,6 @@ func (iter LinkedServerWithPropertiesListIterator) Value() LinkedServerWithPrope
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the LinkedServerWithPropertiesListIterator type.
-func NewLinkedServerWithPropertiesListIterator(page LinkedServerWithPropertiesListPage) LinkedServerWithPropertiesListIterator {
-	return LinkedServerWithPropertiesListIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (lswpl LinkedServerWithPropertiesList) IsEmpty() bool {
 	return lswpl.Value == nil || len(*lswpl.Value) == 0
@@ -947,11 +893,11 @@ func (lswpl LinkedServerWithPropertiesList) IsEmpty() bool {
 
 // linkedServerWithPropertiesListPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (lswpl LinkedServerWithPropertiesList) linkedServerWithPropertiesListPreparer(ctx context.Context) (*http.Request, error) {
+func (lswpl LinkedServerWithPropertiesList) linkedServerWithPropertiesListPreparer() (*http.Request, error) {
 	if lswpl.NextLink == nil || len(to.String(lswpl.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(lswpl.NextLink)))
@@ -959,36 +905,19 @@ func (lswpl LinkedServerWithPropertiesList) linkedServerWithPropertiesListPrepar
 
 // LinkedServerWithPropertiesListPage contains a page of LinkedServerWithProperties values.
 type LinkedServerWithPropertiesListPage struct {
-	fn    func(context.Context, LinkedServerWithPropertiesList) (LinkedServerWithPropertiesList, error)
+	fn    func(LinkedServerWithPropertiesList) (LinkedServerWithPropertiesList, error)
 	lswpl LinkedServerWithPropertiesList
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *LinkedServerWithPropertiesListPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LinkedServerWithPropertiesListPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.lswpl)
+func (page *LinkedServerWithPropertiesListPage) Next() error {
+	next, err := page.fn(page.lswpl)
 	if err != nil {
 		return err
 	}
 	page.lswpl = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *LinkedServerWithPropertiesListPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1009,17 +938,12 @@ func (page LinkedServerWithPropertiesListPage) Values() []LinkedServerWithProper
 	return *page.lswpl.Value
 }
 
-// Creates a new instance of the LinkedServerWithPropertiesListPage type.
-func NewLinkedServerWithPropertiesListPage(getNextPage func(context.Context, LinkedServerWithPropertiesList) (LinkedServerWithPropertiesList, error)) LinkedServerWithPropertiesListPage {
-	return LinkedServerWithPropertiesListPage{fn: getNextPage}
-}
-
 // ListResult the response of list Redis operation.
 type ListResult struct {
 	autorest.Response `json:"-"`
 	// Value - List of Redis cache instances.
 	Value *[]ResourceType `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link for next set of locations.
+	// NextLink - Link for next set of locations.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1029,37 +953,20 @@ type ListResultIterator struct {
 	page ListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1081,11 +988,6 @@ func (iter ListResultIterator) Value() ResourceType {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ListResultIterator type.
-func NewListResultIterator(page ListResultPage) ListResultIterator {
-	return ListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (lr ListResult) IsEmpty() bool {
 	return lr.Value == nil || len(*lr.Value) == 0
@@ -1093,11 +995,11 @@ func (lr ListResult) IsEmpty() bool {
 
 // listResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (lr ListResult) listResultPreparer(ctx context.Context) (*http.Request, error) {
+func (lr ListResult) listResultPreparer() (*http.Request, error) {
 	if lr.NextLink == nil || len(to.String(lr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(lr.NextLink)))
@@ -1105,36 +1007,19 @@ func (lr ListResult) listResultPreparer(ctx context.Context) (*http.Request, err
 
 // ListResultPage contains a page of ResourceType values.
 type ListResultPage struct {
-	fn func(context.Context, ListResult) (ListResult, error)
+	fn func(ListResult) (ListResult, error)
 	lr ListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.lr)
+func (page *ListResultPage) Next() error {
+	next, err := page.fn(page.lr)
 	if err != nil {
 		return err
 	}
 	page.lr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1155,17 +1040,12 @@ func (page ListResultPage) Values() []ResourceType {
 	return *page.lr.Value
 }
 
-// Creates a new instance of the ListResultPage type.
-func NewListResultPage(getNextPage func(context.Context, ListResult) (ListResult, error)) ListResultPage {
-	return ListResultPage{fn: getNextPage}
-}
-
 // NotificationListResponse the response of listUpgradeNotifications.
 type NotificationListResponse struct {
 	autorest.Response `json:"-"`
 	// Value - List of all notifications.
 	Value *[]UpgradeNotification `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link for next set of notifications.
+	// NextLink - Link for next set of notifications.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1189,13 +1069,13 @@ type OperationDisplay struct {
 	Description *string `json:"description,omitempty"`
 }
 
-// OperationListResult result of the request to list REST API operations. It contains a list of operations
-// and a URL nextLink to get the next set of results.
+// OperationListResult result of the request to list REST API operations. It contains a list of operations and a
+// URL nextLink to get the next set of results.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
 	// Value - List of operations supported by the resource provider.
 	Value *[]Operation `json:"value,omitempty"`
-	// NextLink - READ-ONLY; URL to get the next set of operation list results if there are any.
+	// NextLink - URL to get the next set of operation list results if there are any.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1205,37 +1085,20 @@ type OperationListResultIterator struct {
 	page OperationListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OperationListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OperationListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1257,11 +1120,6 @@ func (iter OperationListResultIterator) Value() Operation {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OperationListResultIterator type.
-func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
-	return OperationListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (olr OperationListResult) IsEmpty() bool {
 	return olr.Value == nil || len(*olr.Value) == 0
@@ -1269,11 +1127,11 @@ func (olr OperationListResult) IsEmpty() bool {
 
 // operationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (olr OperationListResult) operationListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (olr OperationListResult) operationListResultPreparer() (*http.Request, error) {
 	if olr.NextLink == nil || len(to.String(olr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(olr.NextLink)))
@@ -1281,36 +1139,19 @@ func (olr OperationListResult) operationListResultPreparer(ctx context.Context) 
 
 // OperationListResultPage contains a page of Operation values.
 type OperationListResultPage struct {
-	fn  func(context.Context, OperationListResult) (OperationListResult, error)
+	fn  func(OperationListResult) (OperationListResult, error)
 	olr OperationListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.olr)
+func (page *OperationListResultPage) Next() error {
+	next, err := page.fn(page.olr)
 	if err != nil {
 		return err
 	}
 	page.olr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OperationListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1331,21 +1172,16 @@ func (page OperationListResultPage) Values() []Operation {
 	return *page.olr.Value
 }
 
-// Creates a new instance of the OperationListResultPage type.
-func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
-	return OperationListResultPage{fn: getNextPage}
-}
-
 // PatchSchedule response to put/get patch schedules for Redis cache.
 type PatchSchedule struct {
 	autorest.Response `json:"-"`
 	// ScheduleEntries - List of patch schedules for a Redis cache.
 	*ScheduleEntries `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1354,6 +1190,15 @@ func (ps PatchSchedule) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ps.ScheduleEntries != nil {
 		objectMap["properties"] = ps.ScheduleEntries
+	}
+	if ps.ID != nil {
+		objectMap["id"] = ps.ID
+	}
+	if ps.Name != nil {
+		objectMap["name"] = ps.Name
+	}
+	if ps.Type != nil {
+		objectMap["type"] = ps.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1414,7 +1259,7 @@ type PatchScheduleListResult struct {
 	autorest.Response `json:"-"`
 	// Value - Results of the list patch schedules operation.
 	Value *[]PatchSchedule `json:"value,omitempty"`
-	// NextLink - READ-ONLY; Link for next page of results.
+	// NextLink - Link for next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1424,37 +1269,20 @@ type PatchScheduleListResultIterator struct {
 	page PatchScheduleListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *PatchScheduleListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PatchScheduleListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *PatchScheduleListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *PatchScheduleListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1476,11 +1304,6 @@ func (iter PatchScheduleListResultIterator) Value() PatchSchedule {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the PatchScheduleListResultIterator type.
-func NewPatchScheduleListResultIterator(page PatchScheduleListResultPage) PatchScheduleListResultIterator {
-	return PatchScheduleListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (pslr PatchScheduleListResult) IsEmpty() bool {
 	return pslr.Value == nil || len(*pslr.Value) == 0
@@ -1488,11 +1311,11 @@ func (pslr PatchScheduleListResult) IsEmpty() bool {
 
 // patchScheduleListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (pslr PatchScheduleListResult) patchScheduleListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (pslr PatchScheduleListResult) patchScheduleListResultPreparer() (*http.Request, error) {
 	if pslr.NextLink == nil || len(to.String(pslr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(pslr.NextLink)))
@@ -1500,36 +1323,19 @@ func (pslr PatchScheduleListResult) patchScheduleListResultPreparer(ctx context.
 
 // PatchScheduleListResultPage contains a page of PatchSchedule values.
 type PatchScheduleListResultPage struct {
-	fn   func(context.Context, PatchScheduleListResult) (PatchScheduleListResult, error)
+	fn   func(PatchScheduleListResult) (PatchScheduleListResult, error)
 	pslr PatchScheduleListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *PatchScheduleListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/PatchScheduleListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.pslr)
+func (page *PatchScheduleListResultPage) Next() error {
+	next, err := page.fn(page.pslr)
 	if err != nil {
 		return err
 	}
 	page.pslr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *PatchScheduleListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1550,30 +1356,25 @@ func (page PatchScheduleListResultPage) Values() []PatchSchedule {
 	return *page.pslr.Value
 }
 
-// Creates a new instance of the PatchScheduleListResultPage type.
-func NewPatchScheduleListResultPage(getNextPage func(context.Context, PatchScheduleListResult) (PatchScheduleListResult, error)) PatchScheduleListResultPage {
-	return PatchScheduleListResultPage{fn: getNextPage}
-}
-
 // Properties properties of the redis cache.
 type Properties struct {
-	// RedisVersion - READ-ONLY; Redis version.
+	// RedisVersion - Redis version.
 	RedisVersion *string `json:"redisVersion,omitempty"`
-	// ProvisioningState - READ-ONLY; Redis instance provisioning status.
+	// ProvisioningState - Redis instance provisioning status.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
-	// HostName - READ-ONLY; Redis host name.
+	// HostName - Redis host name.
 	HostName *string `json:"hostName,omitempty"`
-	// Port - READ-ONLY; Redis non-SSL port.
+	// Port - Redis non-SSL port.
 	Port *int32 `json:"port,omitempty"`
-	// SslPort - READ-ONLY; Redis SSL port.
+	// SslPort - Redis SSL port.
 	SslPort *int32 `json:"sslPort,omitempty"`
-	// AccessKeys - READ-ONLY; The keys of the Redis cache - not set if this object is not the response to Create or Update redis cache
+	// AccessKeys - The keys of the Redis cache - not set if this object is not the response to Create or Update redis cache
 	AccessKeys *AccessKeys `json:"accessKeys,omitempty"`
-	// LinkedServers - READ-ONLY; List of the linked servers associated with the cache
+	// LinkedServers - List of the linked servers associated with the cache
 	LinkedServers *[]LinkedServer `json:"linkedServers,omitempty"`
 	// Sku - The SKU of the Redis cache to deploy.
 	Sku *Sku `json:"sku,omitempty"`
-	// SubnetID - The full resource ID of a subnet in a virtual network to deploy the Redis cache in. Example format: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/Microsoft.{Network|ClassicNetwork}/VirtualNetworks/vnet1/subnets/subnet1
+	// SubnetID - The full resource ID of a subnet in a virtual network to deploy the Redis cache in. Example format: /subscriptions/{subid}/resourceGroups/{resourceGroupName}/Microsoft.{Network|ClassicNetwork}/VirtualNetworks/vnet1/subnets/subnet1
 	SubnetID *string `json:"subnetId,omitempty"`
 	// StaticIP - Static IP address. Required when deploying a Redis cache inside an existing Azure Virtual Network.
 	StaticIP *string `json:"staticIP,omitempty"`
@@ -1590,6 +1391,27 @@ type Properties struct {
 // MarshalJSON is the custom marshaler for Properties.
 func (p Properties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if p.RedisVersion != nil {
+		objectMap["redisVersion"] = p.RedisVersion
+	}
+	if p.ProvisioningState != nil {
+		objectMap["provisioningState"] = p.ProvisioningState
+	}
+	if p.HostName != nil {
+		objectMap["hostName"] = p.HostName
+	}
+	if p.Port != nil {
+		objectMap["port"] = p.Port
+	}
+	if p.SslPort != nil {
+		objectMap["sslPort"] = p.SslPort
+	}
+	if p.AccessKeys != nil {
+		objectMap["accessKeys"] = p.AccessKeys
+	}
+	if p.LinkedServers != nil {
+		objectMap["linkedServers"] = p.LinkedServers
+	}
 	if p.Sku != nil {
 		objectMap["sku"] = p.Sku
 	}
@@ -1617,11 +1439,11 @@ func (p Properties) MarshalJSON() ([]byte, error) {
 // ProxyResource the resource model definition for a ARM proxy resource. It will have everything other than
 // required location and tags
 type ProxyResource struct {
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1641,11 +1463,11 @@ type RegenerateKeyParameters struct {
 
 // Resource the Resource definition.
 type Resource struct {
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1660,11 +1482,11 @@ type ResourceType struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1682,6 +1504,15 @@ func (rt ResourceType) MarshalJSON() ([]byte, error) {
 	}
 	if rt.Location != nil {
 		objectMap["location"] = rt.Location
+	}
+	if rt.ID != nil {
+		objectMap["id"] = rt.ID
+	}
+	if rt.Name != nil {
+		objectMap["name"] = rt.Name
+	}
+	if rt.Type != nil {
+		objectMap["type"] = rt.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1796,11 +1627,11 @@ type TrackedResource struct {
 	Tags map[string]*string `json:"tags"`
 	// Location - The geo-location where the resource lives
 	Location *string `json:"location,omitempty"`
-	// ID - READ-ONLY; Resource ID.
+	// ID - Resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name.
+	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type.
+	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -1812,6 +1643,15 @@ func (tr TrackedResource) MarshalJSON() ([]byte, error) {
 	}
 	if tr.Location != nil {
 		objectMap["location"] = tr.Location
+	}
+	if tr.ID != nil {
+		objectMap["id"] = tr.ID
+	}
+	if tr.Name != nil {
+		objectMap["name"] = tr.Name
+	}
+	if tr.Type != nil {
+		objectMap["type"] = tr.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -1906,16 +1746,25 @@ func (up UpdateProperties) MarshalJSON() ([]byte, error) {
 
 // UpgradeNotification properties of upgrade notification.
 type UpgradeNotification struct {
-	// Name - READ-ONLY; Name of upgrade notification.
+	// Name - Name of upgrade notification.
 	Name *string `json:"name,omitempty"`
-	// Timestamp - READ-ONLY; Timestamp when upgrade notification occurred.
+	// Timestamp - Timestamp when upgrade notification occured.
 	Timestamp *date.Time `json:"timestamp,omitempty"`
-	// UpsellNotification - READ-ONLY; Details about this upgrade notification
+	// UpsellNotification - Details about this upgrade notification
 	UpsellNotification map[string]*string `json:"upsellNotification"`
 }
 
 // MarshalJSON is the custom marshaler for UpgradeNotification.
 func (un UpgradeNotification) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if un.Name != nil {
+		objectMap["name"] = un.Name
+	}
+	if un.Timestamp != nil {
+		objectMap["timestamp"] = un.Timestamp
+	}
+	if un.UpsellNotification != nil {
+		objectMap["upsellNotification"] = un.UpsellNotification
+	}
 	return json.Marshal(objectMap)
 }

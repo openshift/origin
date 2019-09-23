@@ -87,33 +87,6 @@ func TestListClusters(t *testing.T) {
 	}
 }
 
-func TestListDetailClusters(t *testing.T) {
-	th.SetupHTTP()
-	defer th.TeardownHTTP()
-
-	HandleListDetailClusterSuccessfully(t)
-
-	count := 0
-	sc := fake.ServiceClient()
-	sc.Endpoint = sc.Endpoint + "v1/"
-	clusters.ListDetail(sc, clusters.ListOpts{Limit: 2}).EachPage(func(page pagination.Page) (bool, error) {
-		count++
-		actual, err := clusters.ExtractClusters(page)
-		th.AssertNoErr(t, err)
-		for idx := range actual {
-			actual[idx].CreatedAt = actual[idx].CreatedAt.UTC()
-			actual[idx].UpdatedAt = actual[idx].UpdatedAt.UTC()
-		}
-		th.AssertDeepEquals(t, ExpectedClusters, actual)
-
-		return true, nil
-	})
-
-	if count != 1 {
-		t.Errorf("Expected 1 page, got %d", count)
-	}
-}
-
 func TestUpdateCluster(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -171,31 +144,4 @@ func TestDeleteCluster(t *testing.T) {
 	}
 
 	th.AssertEquals(t, requestUUID, uuid)
-}
-
-func TestResizeCluster(t *testing.T) {
-	th.SetupHTTP()
-	defer th.TeardownHTTP()
-
-	HandleResizeClusterSuccessfully(t)
-
-	nodeCount := 2
-
-	var opts clusters.ResizeOptsBuilder
-	opts = clusters.ResizeOpts{
-		NodeCount: &nodeCount,
-	}
-
-	sc := fake.ServiceClient()
-	sc.Endpoint = sc.Endpoint + "v1/"
-	res := clusters.Resize(sc, clusterUUID, opts)
-	th.AssertNoErr(t, res.Err)
-
-	requestID := res.Header.Get("X-OpenStack-Request-Id")
-	th.AssertEquals(t, requestUUID, requestID)
-
-	actual, err := res.Extract()
-	th.AssertNoErr(t, err)
-
-	th.AssertEquals(t, nodeCount, actual.NodeCount)
 }

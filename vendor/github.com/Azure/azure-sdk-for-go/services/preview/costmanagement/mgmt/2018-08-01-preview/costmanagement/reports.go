@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewReportsClientWithBaseURI(baseURI string, subscriptionID string) ReportsC
 // reportName - report Name.
 // parameters - parameters supplied to the CreateOrUpdate Report operation.
 func (client ReportsClient) CreateOrUpdate(ctx context.Context, reportName string, parameters Report) (result Report, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.ReportProperties", Name: validation.Null, Rule: false,
@@ -115,8 +104,8 @@ func (client ReportsClient) CreateOrUpdatePreparer(ctx context.Context, reportNa
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -140,16 +129,6 @@ func (client ReportsClient) CreateOrUpdateResponder(resp *http.Response) (result
 // reportName - report Name.
 // parameters - parameters supplied to the CreateOrUpdate Report operation.
 func (client ReportsClient) CreateOrUpdateByBillingAccount(ctx context.Context, billingAccountID string, reportName string, parameters Report) (result Report, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.CreateOrUpdateByBillingAccount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.ReportProperties", Name: validation.Null, Rule: false,
@@ -207,8 +186,8 @@ func (client ReportsClient) CreateOrUpdateByBillingAccountPreparer(ctx context.C
 // CreateOrUpdateByBillingAccountSender sends the CreateOrUpdateByBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) CreateOrUpdateByBillingAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateOrUpdateByBillingAccountResponder handles the response to the CreateOrUpdateByBillingAccount request. The method always
@@ -232,16 +211,6 @@ func (client ReportsClient) CreateOrUpdateByBillingAccountResponder(resp *http.R
 // reportName - report Name.
 // parameters - parameters supplied to the CreateOrUpdate Report operation.
 func (client ReportsClient) CreateOrUpdateByDepartment(ctx context.Context, departmentID string, reportName string, parameters Report) (result Report, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.CreateOrUpdateByDepartment")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.ReportProperties", Name: validation.Null, Rule: false,
@@ -299,8 +268,8 @@ func (client ReportsClient) CreateOrUpdateByDepartmentPreparer(ctx context.Conte
 // CreateOrUpdateByDepartmentSender sends the CreateOrUpdateByDepartment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) CreateOrUpdateByDepartmentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateOrUpdateByDepartmentResponder handles the response to the CreateOrUpdateByDepartment request. The method always
@@ -324,16 +293,6 @@ func (client ReportsClient) CreateOrUpdateByDepartmentResponder(resp *http.Respo
 // reportName - report Name.
 // parameters - parameters supplied to the CreateOrUpdate Report operation.
 func (client ReportsClient) CreateOrUpdateByResourceGroupName(ctx context.Context, resourceGroupName string, reportName string, parameters Report) (result Report, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.CreateOrUpdateByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.ReportProperties", Name: validation.Null, Rule: false,
@@ -392,8 +351,8 @@ func (client ReportsClient) CreateOrUpdateByResourceGroupNamePreparer(ctx contex
 // CreateOrUpdateByResourceGroupNameSender sends the CreateOrUpdateByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) CreateOrUpdateByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateByResourceGroupNameResponder handles the response to the CreateOrUpdateByResourceGroupName request. The method always
@@ -413,16 +372,6 @@ func (client ReportsClient) CreateOrUpdateByResourceGroupNameResponder(resp *htt
 // Parameters:
 // reportName - report Name.
 func (client ReportsClient) Delete(ctx context.Context, reportName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "Delete", nil, "Failure preparing request")
@@ -467,8 +416,8 @@ func (client ReportsClient) DeletePreparer(ctx context.Context, reportName strin
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -488,16 +437,6 @@ func (client ReportsClient) DeleteResponder(resp *http.Response) (result autores
 // billingAccountID - billingAccount ID
 // reportName - report Name.
 func (client ReportsClient) DeleteByBillingAccount(ctx context.Context, billingAccountID string, reportName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.DeleteByBillingAccount")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteByBillingAccountPreparer(ctx, billingAccountID, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "DeleteByBillingAccount", nil, "Failure preparing request")
@@ -542,8 +481,8 @@ func (client ReportsClient) DeleteByBillingAccountPreparer(ctx context.Context, 
 // DeleteByBillingAccountSender sends the DeleteByBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) DeleteByBillingAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteByBillingAccountResponder handles the response to the DeleteByBillingAccount request. The method always
@@ -563,16 +502,6 @@ func (client ReportsClient) DeleteByBillingAccountResponder(resp *http.Response)
 // departmentID - department ID
 // reportName - report Name.
 func (client ReportsClient) DeleteByDepartment(ctx context.Context, departmentID string, reportName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.DeleteByDepartment")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteByDepartmentPreparer(ctx, departmentID, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "DeleteByDepartment", nil, "Failure preparing request")
@@ -617,8 +546,8 @@ func (client ReportsClient) DeleteByDepartmentPreparer(ctx context.Context, depa
 // DeleteByDepartmentSender sends the DeleteByDepartment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) DeleteByDepartmentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteByDepartmentResponder handles the response to the DeleteByDepartment request. The method always
@@ -638,16 +567,6 @@ func (client ReportsClient) DeleteByDepartmentResponder(resp *http.Response) (re
 // resourceGroupName - azure Resource Group Name.
 // reportName - report Name.
 func (client ReportsClient) DeleteByResourceGroupName(ctx context.Context, resourceGroupName string, reportName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.DeleteByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteByResourceGroupNamePreparer(ctx, resourceGroupName, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "DeleteByResourceGroupName", nil, "Failure preparing request")
@@ -693,8 +612,8 @@ func (client ReportsClient) DeleteByResourceGroupNamePreparer(ctx context.Contex
 // DeleteByResourceGroupNameSender sends the DeleteByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) DeleteByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteByResourceGroupNameResponder handles the response to the DeleteByResourceGroupName request. The method always
@@ -713,16 +632,6 @@ func (client ReportsClient) DeleteByResourceGroupNameResponder(resp *http.Respon
 // Parameters:
 // reportName - report Name.
 func (client ReportsClient) Execute(ctx context.Context, reportName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.Execute")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ExecutePreparer(ctx, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "Execute", nil, "Failure preparing request")
@@ -767,8 +676,8 @@ func (client ReportsClient) ExecutePreparer(ctx context.Context, reportName stri
 // ExecuteSender sends the Execute request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) ExecuteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ExecuteResponder handles the response to the Execute request. The method always
@@ -788,16 +697,6 @@ func (client ReportsClient) ExecuteResponder(resp *http.Response) (result autore
 // billingAccountID - billingAccount ID
 // reportName - report Name.
 func (client ReportsClient) ExecuteByBillingAccount(ctx context.Context, billingAccountID string, reportName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.ExecuteByBillingAccount")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ExecuteByBillingAccountPreparer(ctx, billingAccountID, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "ExecuteByBillingAccount", nil, "Failure preparing request")
@@ -842,8 +741,8 @@ func (client ReportsClient) ExecuteByBillingAccountPreparer(ctx context.Context,
 // ExecuteByBillingAccountSender sends the ExecuteByBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) ExecuteByBillingAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ExecuteByBillingAccountResponder handles the response to the ExecuteByBillingAccount request. The method always
@@ -863,16 +762,6 @@ func (client ReportsClient) ExecuteByBillingAccountResponder(resp *http.Response
 // departmentID - department ID
 // reportName - report Name.
 func (client ReportsClient) ExecuteByDepartment(ctx context.Context, departmentID string, reportName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.ExecuteByDepartment")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ExecuteByDepartmentPreparer(ctx, departmentID, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "ExecuteByDepartment", nil, "Failure preparing request")
@@ -917,8 +806,8 @@ func (client ReportsClient) ExecuteByDepartmentPreparer(ctx context.Context, dep
 // ExecuteByDepartmentSender sends the ExecuteByDepartment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) ExecuteByDepartmentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ExecuteByDepartmentResponder handles the response to the ExecuteByDepartment request. The method always
@@ -938,16 +827,6 @@ func (client ReportsClient) ExecuteByDepartmentResponder(resp *http.Response) (r
 // resourceGroupName - azure Resource Group Name.
 // reportName - report Name.
 func (client ReportsClient) ExecuteByResourceGroupName(ctx context.Context, resourceGroupName string, reportName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.ExecuteByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ExecuteByResourceGroupNamePreparer(ctx, resourceGroupName, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "ExecuteByResourceGroupName", nil, "Failure preparing request")
@@ -993,8 +872,8 @@ func (client ReportsClient) ExecuteByResourceGroupNamePreparer(ctx context.Conte
 // ExecuteByResourceGroupNameSender sends the ExecuteByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) ExecuteByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ExecuteByResourceGroupNameResponder handles the response to the ExecuteByResourceGroupName request. The method always
@@ -1013,16 +892,6 @@ func (client ReportsClient) ExecuteByResourceGroupNameResponder(resp *http.Respo
 // Parameters:
 // reportName - report Name.
 func (client ReportsClient) Get(ctx context.Context, reportName string) (result Report, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "Get", nil, "Failure preparing request")
@@ -1067,8 +936,8 @@ func (client ReportsClient) GetPreparer(ctx context.Context, reportName string) 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -1084,21 +953,11 @@ func (client ReportsClient) GetResponder(resp *http.Response) (result Report, er
 	return
 }
 
-// GetByBillingAccount gets the report for a billing account by report name.
+// GetByBillingAccount gets the report for a billing acount by report name.
 // Parameters:
 // billingAccountID - billingAccount ID
 // reportName - report Name.
 func (client ReportsClient) GetByBillingAccount(ctx context.Context, billingAccountID string, reportName string) (result Report, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.GetByBillingAccount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetByBillingAccountPreparer(ctx, billingAccountID, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "GetByBillingAccount", nil, "Failure preparing request")
@@ -1143,8 +1002,8 @@ func (client ReportsClient) GetByBillingAccountPreparer(ctx context.Context, bil
 // GetByBillingAccountSender sends the GetByBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) GetByBillingAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetByBillingAccountResponder handles the response to the GetByBillingAccount request. The method always
@@ -1165,16 +1024,6 @@ func (client ReportsClient) GetByBillingAccountResponder(resp *http.Response) (r
 // departmentID - department ID
 // reportName - report Name.
 func (client ReportsClient) GetByDepartment(ctx context.Context, departmentID string, reportName string) (result Report, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.GetByDepartment")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetByDepartmentPreparer(ctx, departmentID, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "GetByDepartment", nil, "Failure preparing request")
@@ -1219,8 +1068,8 @@ func (client ReportsClient) GetByDepartmentPreparer(ctx context.Context, departm
 // GetByDepartmentSender sends the GetByDepartment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) GetByDepartmentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetByDepartmentResponder handles the response to the GetByDepartment request. The method always
@@ -1241,16 +1090,6 @@ func (client ReportsClient) GetByDepartmentResponder(resp *http.Response) (resul
 // resourceGroupName - azure Resource Group Name.
 // reportName - report Name.
 func (client ReportsClient) GetByResourceGroupName(ctx context.Context, resourceGroupName string, reportName string) (result Report, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.GetByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetByResourceGroupNamePreparer(ctx, resourceGroupName, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "GetByResourceGroupName", nil, "Failure preparing request")
@@ -1296,8 +1135,8 @@ func (client ReportsClient) GetByResourceGroupNamePreparer(ctx context.Context, 
 // GetByResourceGroupNameSender sends the GetByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) GetByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetByResourceGroupNameResponder handles the response to the GetByResourceGroupName request. The method always
@@ -1317,16 +1156,6 @@ func (client ReportsClient) GetByResourceGroupNameResponder(resp *http.Response)
 // Parameters:
 // reportName - report Name.
 func (client ReportsClient) GetExecutionHistory(ctx context.Context, reportName string) (result ReportExecutionListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.GetExecutionHistory")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetExecutionHistoryPreparer(ctx, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "GetExecutionHistory", nil, "Failure preparing request")
@@ -1371,8 +1200,8 @@ func (client ReportsClient) GetExecutionHistoryPreparer(ctx context.Context, rep
 // GetExecutionHistorySender sends the GetExecutionHistory request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) GetExecutionHistorySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetExecutionHistoryResponder handles the response to the GetExecutionHistory request. The method always
@@ -1393,16 +1222,6 @@ func (client ReportsClient) GetExecutionHistoryResponder(resp *http.Response) (r
 // billingAccountID - billingAccount ID
 // reportName - report Name.
 func (client ReportsClient) GetExecutionHistoryByBillingAccount(ctx context.Context, billingAccountID string, reportName string) (result ReportExecutionListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.GetExecutionHistoryByBillingAccount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetExecutionHistoryByBillingAccountPreparer(ctx, billingAccountID, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "GetExecutionHistoryByBillingAccount", nil, "Failure preparing request")
@@ -1447,8 +1266,8 @@ func (client ReportsClient) GetExecutionHistoryByBillingAccountPreparer(ctx cont
 // GetExecutionHistoryByBillingAccountSender sends the GetExecutionHistoryByBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) GetExecutionHistoryByBillingAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetExecutionHistoryByBillingAccountResponder handles the response to the GetExecutionHistoryByBillingAccount request. The method always
@@ -1469,16 +1288,6 @@ func (client ReportsClient) GetExecutionHistoryByBillingAccountResponder(resp *h
 // departmentID - department ID
 // reportName - report Name.
 func (client ReportsClient) GetExecutionHistoryByDepartment(ctx context.Context, departmentID string, reportName string) (result ReportExecutionListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.GetExecutionHistoryByDepartment")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetExecutionHistoryByDepartmentPreparer(ctx, departmentID, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "GetExecutionHistoryByDepartment", nil, "Failure preparing request")
@@ -1523,8 +1332,8 @@ func (client ReportsClient) GetExecutionHistoryByDepartmentPreparer(ctx context.
 // GetExecutionHistoryByDepartmentSender sends the GetExecutionHistoryByDepartment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) GetExecutionHistoryByDepartmentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetExecutionHistoryByDepartmentResponder handles the response to the GetExecutionHistoryByDepartment request. The method always
@@ -1545,16 +1354,6 @@ func (client ReportsClient) GetExecutionHistoryByDepartmentResponder(resp *http.
 // resourceGroupName - azure Resource Group Name.
 // reportName - report Name.
 func (client ReportsClient) GetExecutionHistoryByResourceGroupName(ctx context.Context, resourceGroupName string, reportName string) (result ReportExecutionListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.GetExecutionHistoryByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetExecutionHistoryByResourceGroupNamePreparer(ctx, resourceGroupName, reportName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "GetExecutionHistoryByResourceGroupName", nil, "Failure preparing request")
@@ -1600,8 +1399,8 @@ func (client ReportsClient) GetExecutionHistoryByResourceGroupNamePreparer(ctx c
 // GetExecutionHistoryByResourceGroupNameSender sends the GetExecutionHistoryByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) GetExecutionHistoryByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetExecutionHistoryByResourceGroupNameResponder handles the response to the GetExecutionHistoryByResourceGroupName request. The method always
@@ -1619,16 +1418,6 @@ func (client ReportsClient) GetExecutionHistoryByResourceGroupNameResponder(resp
 
 // List lists all reports for a subscription.
 func (client ReportsClient) List(ctx context.Context) (result ReportListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "List", nil, "Failure preparing request")
@@ -1672,8 +1461,8 @@ func (client ReportsClient) ListPreparer(ctx context.Context) (*http.Request, er
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -1693,16 +1482,6 @@ func (client ReportsClient) ListResponder(resp *http.Response) (result ReportLis
 // Parameters:
 // billingAccountID - billingAccount ID
 func (client ReportsClient) ListByBillingAccount(ctx context.Context, billingAccountID string) (result ReportListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.ListByBillingAccount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByBillingAccountPreparer(ctx, billingAccountID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "ListByBillingAccount", nil, "Failure preparing request")
@@ -1746,8 +1525,8 @@ func (client ReportsClient) ListByBillingAccountPreparer(ctx context.Context, bi
 // ListByBillingAccountSender sends the ListByBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) ListByBillingAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListByBillingAccountResponder handles the response to the ListByBillingAccount request. The method always
@@ -1767,16 +1546,6 @@ func (client ReportsClient) ListByBillingAccountResponder(resp *http.Response) (
 // Parameters:
 // departmentID - department ID
 func (client ReportsClient) ListByDepartment(ctx context.Context, departmentID string) (result ReportListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.ListByDepartment")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByDepartmentPreparer(ctx, departmentID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "ListByDepartment", nil, "Failure preparing request")
@@ -1820,8 +1589,8 @@ func (client ReportsClient) ListByDepartmentPreparer(ctx context.Context, depart
 // ListByDepartmentSender sends the ListByDepartment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) ListByDepartmentSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListByDepartmentResponder handles the response to the ListByDepartment request. The method always
@@ -1841,16 +1610,6 @@ func (client ReportsClient) ListByDepartmentResponder(resp *http.Response) (resu
 // Parameters:
 // resourceGroupName - azure Resource Group Name.
 func (client ReportsClient) ListByResourceGroupName(ctx context.Context, resourceGroupName string) (result ReportListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReportsClient.ListByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ListByResourceGroupNamePreparer(ctx, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "costmanagement.ReportsClient", "ListByResourceGroupName", nil, "Failure preparing request")
@@ -1895,8 +1654,8 @@ func (client ReportsClient) ListByResourceGroupNamePreparer(ctx context.Context,
 // ListByResourceGroupNameSender sends the ListByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReportsClient) ListByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupNameResponder handles the response to the ListByResourceGroupName request. The method always

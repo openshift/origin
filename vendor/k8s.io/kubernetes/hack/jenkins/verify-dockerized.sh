@@ -21,11 +21,7 @@ set -o xtrace
 
 retry() {
   for i in {1..5}; do
-    if "$@"; then
-      return 0
-    else
-      sleep "${i}"
-    fi
+    "$@" && return 0 || sleep "${i}"
   done
   "$@"
 }

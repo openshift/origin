@@ -42,15 +42,11 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 				ldw = nb
 			}
 
-			// Allocate n×n matrix A and fill it with random numbers.
 			a := make([]float64, n*lda)
 			for i := range a {
 				a[i] = rnd.NormFloat64()
 			}
 
-			// Allocate output slices and matrix W and fill them
-			// with NaN. All their elements should be overwritten by
-			// Dlatrd.
 			e := make([]float64, n-1)
 			for i := range e {
 				e[i] = math.NaN()
@@ -67,30 +63,30 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 			aCopy := make([]float64, len(a))
 			copy(aCopy, a)
 
-			// Reduce nb rows and columns of the symmetric matrix A
-			// defined by uplo triangle to symmetric tridiagonal
-			// form.
 			impl.Dlatrd(uplo, n, nb, a, lda, e, tau, w, ldw)
 
-			// Construct Q from elementary reflectors stored in
-			// columns of A.
+			// Construct Q.
+			ldq := n
 			q := blas64.General{
 				Rows:   n,
 				Cols:   n,
-				Stride: n,
-				Data:   make([]float64, n*n),
+				Stride: ldq,
+				Data:   make([]float64, n*ldq),
 			}
-			// Initialize Q to the identity matrix.
 			for i := 0; i < n; i++ {
-				q.Data[i*q.Stride+i] = 1
+				q.Data[i*ldq+i] = 1
 			}
 			if uplo == blas.Upper {
 				for i := n - 1; i >= n-nb; i-- {
 					if i == 0 {
 						continue
 					}
-
-					// Extract the elementary reflector v from A.
+					h := blas64.General{
+						Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n),
+					}
+					for j := 0; j < n; j++ {
+						h.Data[j*n+j] = 1
+					}
 					v := blas64.Vector{
 						Inc:  1,
 						Data: make([]float64, n),
@@ -100,16 +96,8 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 					}
 					v.Data[i-1] = 1
 
-					// Compute H = I - tau[i-1] * v * v^T.
-					h := blas64.General{
-						Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n),
-					}
-					for j := 0; j < n; j++ {
-						h.Data[j*n+j] = 1
-					}
 					blas64.Ger(-tau[i-1], v, v, h)
 
-					// Update Q <- Q * H.
 					qTmp := blas64.General{
 						Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n),
 					}
@@ -121,8 +109,12 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 					if i == n-1 {
 						continue
 					}
-
-					// Extract the elementary reflector v from A.
+					h := blas64.General{
+						Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n),
+					}
+					for j := 0; j < n; j++ {
+						h.Data[j*n+j] = 1
+					}
 					v := blas64.Vector{
 						Inc:  1,
 						Data: make([]float64, n),
@@ -131,17 +123,8 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 					for j := i + 2; j < n; j++ {
 						v.Data[j] = a[j*lda+i]
 					}
-
-					// Compute H = I - tau[i] * v * v^T.
-					h := blas64.General{
-						Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n),
-					}
-					for j := 0; j < n; j++ {
-						h.Data[j*n+j] = 1
-					}
 					blas64.Ger(-tau[i], v, v, h)
 
-					// Update Q <- Q * H.
 					qTmp := blas64.General{
 						Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n),
 					}
@@ -150,12 +133,12 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 				}
 			}
 			errStr := fmt.Sprintf("isUpper = %v, n = %v, nb = %v", uplo == blas.Upper, n, nb)
-			if !isOrthogonal(q) {
-				t.Errorf("Case %v: Q not orthogonal", errStr)
+			if !isOrthonormal(q) {
+				t.Errorf("Q not orthonormal. %s", errStr)
 			}
 			aGen := genFromSym(blas64.Symmetric{N: n, Stride: lda, Uplo: uplo, Data: aCopy})
-			if !dlatrdCheckDecomposition(t, uplo, n, nb, e, a, lda, aGen, q) {
-				t.Errorf("Case %v: Decomposition mismatch", errStr)
+			if !dlatrdCheckDecomposition(t, uplo, n, nb, e, tau, a, lda, aGen, q) {
+				t.Errorf("Decomposition mismatch. %s", errStr)
 			}
 		}
 	}
@@ -163,49 +146,44 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 
 // dlatrdCheckDecomposition checks that the first nb rows have been successfully
 // reduced.
-func dlatrdCheckDecomposition(t *testing.T, uplo blas.Uplo, n, nb int, e, a []float64, lda int, aGen, q blas64.General) bool {
-	// Compute ans = Q^T * A * Q.
-	// ans should be a tridiagonal matrix in the first or last nb rows and
-	// columns, depending on uplo.
+func dlatrdCheckDecomposition(t *testing.T, uplo blas.Uplo, n, nb int, e, tau, a []float64, lda int, aGen, q blas64.General) bool {
+	// Compute Q^T * A * Q.
 	tmp := blas64.General{
 		Rows:   n,
 		Cols:   n,
 		Stride: n,
 		Data:   make([]float64, n*n),
 	}
+
 	ans := blas64.General{
 		Rows:   n,
 		Cols:   n,
 		Stride: n,
 		Data:   make([]float64, n*n),
 	}
+
 	blas64.Gemm(blas.Trans, blas.NoTrans, 1, q, aGen, 0, tmp)
 	blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, tmp, q, 0, ans)
 
-	// Compare the output of Dlatrd (stored in a and e) with the explicit
-	// reduction to tridiagonal matrix Q^T * A * Q (stored in ans).
+	// Compare with T.
 	if uplo == blas.Upper {
-		for i := n - nb; i < n; i++ {
+		for i := n - 1; i >= n-nb; i-- {
 			for j := 0; j < n; j++ {
 				v := ans.Data[i*ans.Stride+j]
 				switch {
 				case i == j:
-					// Diagonal elements of a and ans should match.
 					if math.Abs(v-a[i*lda+j]) > 1e-10 {
 						return false
 					}
 				case i == j-1:
-					// Superdiagonal elements in a should be 1.
 					if math.Abs(a[i*lda+j]-1) > 1e-10 {
 						return false
 					}
-					// Superdiagonal elements of ans should match e.
 					if math.Abs(v-e[i]) > 1e-10 {
 						return false
 					}
 				case i == j+1:
 				default:
-					// All other elements should be 0.
 					if math.Abs(v) > 1e-10 {
 						return false
 					}
@@ -218,22 +196,18 @@ func dlatrdCheckDecomposition(t *testing.T, uplo blas.Uplo, n, nb int, e, a []fl
 				v := ans.Data[i*ans.Stride+j]
 				switch {
 				case i == j:
-					// Diagonal elements of a and ans should match.
 					if math.Abs(v-a[i*lda+j]) > 1e-10 {
 						return false
 					}
 				case i == j-1:
 				case i == j+1:
-					// Subdiagonal elements in a should be 1.
 					if math.Abs(a[i*lda+j]-1) > 1e-10 {
 						return false
 					}
-					// Subdiagonal elements of ans should match e.
 					if math.Abs(v-e[i-1]) > 1e-10 {
 						return false
 					}
 				default:
-					// All other elements should be 0.
 					if math.Abs(v) > 1e-10 {
 						return false
 					}

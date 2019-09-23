@@ -5,6 +5,7 @@
 package testlapack
 
 import (
+	"math"
 	"testing"
 
 	"golang.org/x/exp/rand"
@@ -19,7 +20,6 @@ type Dgetrier interface {
 }
 
 func DgetriTest(t *testing.T, impl Dgetrier) {
-	const tol = 1e-13
 	rnd := rand.New(rand.NewSource(1))
 	bi := blas64.Implementation()
 	for _, test := range []struct {
@@ -29,11 +29,8 @@ func DgetriTest(t *testing.T, impl Dgetrier) {
 		{5, 8},
 		{45, 0},
 		{45, 50},
-		{63, 70},
-		{64, 70},
 		{65, 0},
 		{65, 70},
-		{66, 70},
 		{150, 0},
 		{150, 250},
 	} {
@@ -56,40 +53,38 @@ func DgetriTest(t *testing.T, impl Dgetrier) {
 		ipiv := make([]int, n)
 		// Compute LU decomposition.
 		impl.Dgetrf(n, n, a, lda, ipiv)
-		// Test with various workspace sizes.
-		for _, wl := range []worklen{minimumWork, mediumWork, optimumWork} {
-			ainv := make([]float64, len(a))
-			copy(ainv, a)
+		// Compute inverse.
+		work := make([]float64, 1)
+		impl.Dgetri(n, a, lda, ipiv, work, -1)
+		work = make([]float64, int(work[0]))
+		lwork := len(work)
 
-			var lwork int
-			switch wl {
-			case minimumWork:
-				lwork = max(1, n)
-			case mediumWork:
-				work := make([]float64, 1)
-				impl.Dgetri(n, ainv, lda, ipiv, work, -1)
-				lwork = max(int(work[0])-2*n, n)
-			case optimumWork:
-				work := make([]float64, 1)
-				impl.Dgetri(n, ainv, lda, ipiv, work, -1)
-				lwork = int(work[0])
-			}
-			work := make([]float64, lwork)
+		ok := impl.Dgetri(n, a, lda, ipiv, work, lwork)
+		if !ok {
+			t.Errorf("Unexpected singular matrix.")
+		}
 
-			// Compute inverse.
-			ok := impl.Dgetri(n, ainv, lda, ipiv, work, lwork)
-			if !ok {
-				t.Errorf("Unexpected singular matrix.")
+		// Check that A(inv) * A = I.
+		ans := make([]float64, len(a))
+		bi.Dgemm(blas.NoTrans, blas.NoTrans, n, n, n, 1, aCopy, lda, a, lda, 0, ans, lda)
+		isEye := true
+		for i := 0; i < n; i++ {
+			for j := 0; j < n; j++ {
+				if i == j {
+					// This tolerance is so high because computing matrix inverses
+					// is very unstable.
+					if math.Abs(ans[i*lda+j]-1) > 5e-2 {
+						isEye = false
+					}
+				} else {
+					if math.Abs(ans[i*lda+j]) > 5e-2 {
+						isEye = false
+					}
+				}
 			}
-
-			// Check that A(inv) * A = I.
-			ans := make([]float64, len(ainv))
-			bi.Dgemm(blas.NoTrans, blas.NoTrans, n, n, n, 1, aCopy, lda, ainv, lda, 0, ans, lda)
-			// The tolerance is so high because computing matrix inverses is very unstable.
-			dist := distFromIdentity(n, ans, lda)
-			if dist > tol {
-				t.Errorf("|Inv(A) * A - I|_inf = %v is too large. n = %v, lda = %v", dist, n, lda)
-			}
+		}
+		if !isEye {
+			t.Errorf("Inv(A) * A != I. n = %v, lda = %v", n, lda)
 		}
 	}
 }

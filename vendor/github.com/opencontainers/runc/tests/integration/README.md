@@ -27,7 +27,7 @@ $ sudo bats tests/integration
 ```
 To run a single test bucket:
 ```
-$ make integration TESTPATH="/checkpoint.bats"
+$ make integration TESTFLAGS="/checkpoint.bats"
 ```
 
 

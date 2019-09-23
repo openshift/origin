@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,16 +44,6 @@ func NewFeatureSupportClientWithBaseURI(baseURI string, subscriptionID string) F
 // azureRegion - azure region to hit Api
 // parameters - feature support request object
 func (client FeatureSupportClient) Validate(ctx context.Context, azureRegion string, parameters BasicFeatureSupportRequest) (result AzureVMResourceFeatureSupportResponse, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/FeatureSupportClient.Validate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ValidatePreparer(ctx, azureRegion, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "backup.FeatureSupportClient", "Validate", nil, "Failure preparing request")
@@ -101,8 +90,8 @@ func (client FeatureSupportClient) ValidatePreparer(ctx context.Context, azureRe
 // ValidateSender sends the Validate request. The method will close the
 // http.Response Body if it receives an error.
 func (client FeatureSupportClient) ValidateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ValidateResponder handles the response to the Validate request. The method always

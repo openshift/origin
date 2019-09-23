@@ -18,18 +18,13 @@ package logic
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/logic/mgmt/2015-02-01-preview/logic"
 
 // KeyType enumerates the values for key type.
 type KeyType string
@@ -284,9 +279,9 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 type ResourceReference struct {
 	// ID - Gets or sets the resource id.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Gets the resource name.
+	// Name - Gets the resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the resource type.
+	// Type - Gets the resource type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -427,9 +422,9 @@ type WorkflowAccessKey struct {
 	autorest.Response `json:"-"`
 	// WorkflowAccessKeyProperties - Gets or sets the workflow access key properties.
 	*WorkflowAccessKeyProperties `json:"properties,omitempty"`
-	// Name - READ-ONLY; Gets the workflow access key name.
+	// Name - Gets the workflow access key name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the workflow access key type.
+	// Type - Gets the workflow access key type.
 	Type *string `json:"type,omitempty"`
 	// ID - Gets or sets the resource id.
 	ID *string `json:"id,omitempty"`
@@ -440,6 +435,12 @@ func (wak WorkflowAccessKey) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wak.WorkflowAccessKeyProperties != nil {
 		objectMap["properties"] = wak.WorkflowAccessKeyProperties
+	}
+	if wak.Name != nil {
+		objectMap["name"] = wak.Name
+	}
+	if wak.Type != nil {
+		objectMap["type"] = wak.Type
 	}
 	if wak.ID != nil {
 		objectMap["id"] = wak.ID
@@ -513,37 +514,20 @@ type WorkflowAccessKeyListResultIterator struct {
 	page WorkflowAccessKeyListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowAccessKeyListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowAccessKeyListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowAccessKeyListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowAccessKeyListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -565,11 +549,6 @@ func (iter WorkflowAccessKeyListResultIterator) Value() WorkflowAccessKey {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowAccessKeyListResultIterator type.
-func NewWorkflowAccessKeyListResultIterator(page WorkflowAccessKeyListResultPage) WorkflowAccessKeyListResultIterator {
-	return WorkflowAccessKeyListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (waklr WorkflowAccessKeyListResult) IsEmpty() bool {
 	return waklr.Value == nil || len(*waklr.Value) == 0
@@ -577,11 +556,11 @@ func (waklr WorkflowAccessKeyListResult) IsEmpty() bool {
 
 // workflowAccessKeyListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (waklr WorkflowAccessKeyListResult) workflowAccessKeyListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (waklr WorkflowAccessKeyListResult) workflowAccessKeyListResultPreparer() (*http.Request, error) {
 	if waklr.NextLink == nil || len(to.String(waklr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(waklr.NextLink)))
@@ -589,36 +568,19 @@ func (waklr WorkflowAccessKeyListResult) workflowAccessKeyListResultPreparer(ctx
 
 // WorkflowAccessKeyListResultPage contains a page of WorkflowAccessKey values.
 type WorkflowAccessKeyListResultPage struct {
-	fn    func(context.Context, WorkflowAccessKeyListResult) (WorkflowAccessKeyListResult, error)
+	fn    func(WorkflowAccessKeyListResult) (WorkflowAccessKeyListResult, error)
 	waklr WorkflowAccessKeyListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowAccessKeyListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowAccessKeyListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.waklr)
+func (page *WorkflowAccessKeyListResultPage) Next() error {
+	next, err := page.fn(page.waklr)
 	if err != nil {
 		return err
 	}
 	page.waklr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowAccessKeyListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -637,11 +599,6 @@ func (page WorkflowAccessKeyListResultPage) Values() []WorkflowAccessKey {
 		return nil
 	}
 	return *page.waklr.Value
-}
-
-// Creates a new instance of the WorkflowAccessKeyListResultPage type.
-func NewWorkflowAccessKeyListResultPage(getNextPage func(context.Context, WorkflowAccessKeyListResult) (WorkflowAccessKeyListResult, error)) WorkflowAccessKeyListResultPage {
-	return WorkflowAccessKeyListResultPage{fn: getNextPage}
 }
 
 // WorkflowAccessKeyProperties ...
@@ -673,37 +630,20 @@ type WorkflowListResultIterator struct {
 	page WorkflowListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -725,11 +665,6 @@ func (iter WorkflowListResultIterator) Value() Workflow {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowListResultIterator type.
-func NewWorkflowListResultIterator(page WorkflowListResultPage) WorkflowListResultIterator {
-	return WorkflowListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wlr WorkflowListResult) IsEmpty() bool {
 	return wlr.Value == nil || len(*wlr.Value) == 0
@@ -737,11 +672,11 @@ func (wlr WorkflowListResult) IsEmpty() bool {
 
 // workflowListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wlr WorkflowListResult) workflowListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wlr WorkflowListResult) workflowListResultPreparer() (*http.Request, error) {
 	if wlr.NextLink == nil || len(to.String(wlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wlr.NextLink)))
@@ -749,36 +684,19 @@ func (wlr WorkflowListResult) workflowListResultPreparer(ctx context.Context) (*
 
 // WorkflowListResultPage contains a page of Workflow values.
 type WorkflowListResultPage struct {
-	fn  func(context.Context, WorkflowListResult) (WorkflowListResult, error)
+	fn  func(WorkflowListResult) (WorkflowListResult, error)
 	wlr WorkflowListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wlr)
+func (page *WorkflowListResultPage) Next() error {
+	next, err := page.fn(page.wlr)
 	if err != nil {
 		return err
 	}
 	page.wlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -799,14 +717,9 @@ func (page WorkflowListResultPage) Values() []Workflow {
 	return *page.wlr.Value
 }
 
-// Creates a new instance of the WorkflowListResultPage type.
-func NewWorkflowListResultPage(getNextPage func(context.Context, WorkflowListResult) (WorkflowListResult, error)) WorkflowListResultPage {
-	return WorkflowListResultPage{fn: getNextPage}
-}
-
 // WorkflowOutputParameter ...
 type WorkflowOutputParameter struct {
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
 	// Type - Gets or sets the type. Possible values include: 'ParameterTypeNotSpecified', 'ParameterTypeString', 'ParameterTypeSecureString', 'ParameterTypeInt', 'ParameterTypeFloat', 'ParameterTypeBool', 'ParameterTypeArray', 'ParameterTypeObject', 'ParameterTypeSecureObject'
 	Type ParameterType `json:"type,omitempty"`
@@ -828,17 +741,17 @@ type WorkflowParameter struct {
 
 // WorkflowProperties ...
 type WorkflowProperties struct {
-	// ProvisioningState - READ-ONLY; Gets the provisioning state. Possible values include: 'WorkflowProvisioningStateNotSpecified', 'WorkflowProvisioningStateMoving', 'WorkflowProvisioningStateSucceeded'
+	// ProvisioningState - Gets the provisioning state. Possible values include: 'WorkflowProvisioningStateNotSpecified', 'WorkflowProvisioningStateMoving', 'WorkflowProvisioningStateSucceeded'
 	ProvisioningState WorkflowProvisioningState `json:"provisioningState,omitempty"`
-	// CreatedTime - READ-ONLY; Gets the created time.
+	// CreatedTime - Gets the created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; Gets the changed time.
+	// ChangedTime - Gets the changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// State - Gets or sets the state. Possible values include: 'WorkflowStateNotSpecified', 'WorkflowStateEnabled', 'WorkflowStateDisabled', 'WorkflowStateDeleted', 'WorkflowStateSuspended'
 	State WorkflowState `json:"state,omitempty"`
-	// Version - READ-ONLY; Gets the version.
+	// Version - Gets the version.
 	Version *string `json:"version,omitempty"`
-	// AccessEndpoint - READ-ONLY; Gets the access endpoint.
+	// AccessEndpoint - Gets the access endpoint.
 	AccessEndpoint *string `json:"accessEndpoint,omitempty"`
 	// Sku - Gets or sets the sku.
 	Sku *Sku `json:"sku,omitempty"`
@@ -855,8 +768,23 @@ type WorkflowProperties struct {
 // MarshalJSON is the custom marshaler for WorkflowProperties.
 func (wp WorkflowProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if wp.ProvisioningState != "" {
+		objectMap["provisioningState"] = wp.ProvisioningState
+	}
+	if wp.CreatedTime != nil {
+		objectMap["createdTime"] = wp.CreatedTime
+	}
+	if wp.ChangedTime != nil {
+		objectMap["changedTime"] = wp.ChangedTime
+	}
 	if wp.State != "" {
 		objectMap["state"] = wp.State
+	}
+	if wp.Version != nil {
+		objectMap["version"] = wp.Version
+	}
+	if wp.AccessEndpoint != nil {
+		objectMap["accessEndpoint"] = wp.AccessEndpoint
 	}
 	if wp.Sku != nil {
 		objectMap["sku"] = wp.Sku
@@ -864,9 +792,7 @@ func (wp WorkflowProperties) MarshalJSON() ([]byte, error) {
 	if wp.DefinitionLink != nil {
 		objectMap["definitionLink"] = wp.DefinitionLink
 	}
-	if wp.Definition != nil {
-		objectMap["definition"] = wp.Definition
-	}
+	objectMap["definition"] = wp.Definition
 	if wp.ParametersLink != nil {
 		objectMap["parametersLink"] = wp.ParametersLink
 	}
@@ -881,9 +807,9 @@ type WorkflowRun struct {
 	autorest.Response `json:"-"`
 	// WorkflowRunProperties - Gets or sets the workflow run properties.
 	*WorkflowRunProperties `json:"properties,omitempty"`
-	// Name - READ-ONLY; Gets the workflow run name.
+	// Name - Gets the workflow run name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the workflow run type.
+	// Type - Gets the workflow run type.
 	Type *string `json:"type,omitempty"`
 	// ID - Gets or sets the resource id.
 	ID *string `json:"id,omitempty"`
@@ -894,6 +820,12 @@ func (wr WorkflowRun) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wr.WorkflowRunProperties != nil {
 		objectMap["properties"] = wr.WorkflowRunProperties
+	}
+	if wr.Name != nil {
+		objectMap["name"] = wr.Name
+	}
+	if wr.Type != nil {
+		objectMap["type"] = wr.Type
 	}
 	if wr.ID != nil {
 		objectMap["id"] = wr.ID
@@ -957,9 +889,9 @@ type WorkflowRunAction struct {
 	autorest.Response `json:"-"`
 	// WorkflowRunActionProperties - Gets or sets the workflow run action properties.
 	*WorkflowRunActionProperties `json:"properties,omitempty"`
-	// Name - READ-ONLY; Gets the workflow run action name.
+	// Name - Gets the workflow run action name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the workflow run action type.
+	// Type - Gets the workflow run action type.
 	Type *string `json:"type,omitempty"`
 	// ID - Gets or sets the resource id.
 	ID *string `json:"id,omitempty"`
@@ -970,6 +902,12 @@ func (wra WorkflowRunAction) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wra.WorkflowRunActionProperties != nil {
 		objectMap["properties"] = wra.WorkflowRunActionProperties
+	}
+	if wra.Name != nil {
+		objectMap["name"] = wra.Name
+	}
+	if wra.Type != nil {
+		objectMap["type"] = wra.Type
 	}
 	if wra.ID != nil {
 		objectMap["id"] = wra.ID
@@ -1049,37 +987,20 @@ type WorkflowRunActionListResultIterator struct {
 	page WorkflowRunActionListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowRunActionListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunActionListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowRunActionListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowRunActionListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1101,11 +1022,6 @@ func (iter WorkflowRunActionListResultIterator) Value() WorkflowRunAction {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowRunActionListResultIterator type.
-func NewWorkflowRunActionListResultIterator(page WorkflowRunActionListResultPage) WorkflowRunActionListResultIterator {
-	return WorkflowRunActionListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wralr WorkflowRunActionListResult) IsEmpty() bool {
 	return wralr.Value == nil || len(*wralr.Value) == 0
@@ -1113,11 +1029,11 @@ func (wralr WorkflowRunActionListResult) IsEmpty() bool {
 
 // workflowRunActionListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wralr WorkflowRunActionListResult) workflowRunActionListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wralr WorkflowRunActionListResult) workflowRunActionListResultPreparer() (*http.Request, error) {
 	if wralr.NextLink == nil || len(to.String(wralr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wralr.NextLink)))
@@ -1125,36 +1041,19 @@ func (wralr WorkflowRunActionListResult) workflowRunActionListResultPreparer(ctx
 
 // WorkflowRunActionListResultPage contains a page of WorkflowRunAction values.
 type WorkflowRunActionListResultPage struct {
-	fn    func(context.Context, WorkflowRunActionListResult) (WorkflowRunActionListResult, error)
+	fn    func(WorkflowRunActionListResult) (WorkflowRunActionListResult, error)
 	wralr WorkflowRunActionListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowRunActionListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunActionListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wralr)
+func (page *WorkflowRunActionListResultPage) Next() error {
+	next, err := page.fn(page.wralr)
 	if err != nil {
 		return err
 	}
 	page.wralr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowRunActionListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1175,28 +1074,23 @@ func (page WorkflowRunActionListResultPage) Values() []WorkflowRunAction {
 	return *page.wralr.Value
 }
 
-// Creates a new instance of the WorkflowRunActionListResultPage type.
-func NewWorkflowRunActionListResultPage(getNextPage func(context.Context, WorkflowRunActionListResult) (WorkflowRunActionListResult, error)) WorkflowRunActionListResultPage {
-	return WorkflowRunActionListResultPage{fn: getNextPage}
-}
-
 // WorkflowRunActionProperties ...
 type WorkflowRunActionProperties struct {
-	// StartTime - READ-ONLY; Gets the start time.
+	// StartTime - Gets the start time.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; Gets the end time.
+	// EndTime - Gets the end time.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// Code - READ-ONLY; Gets the code.
+	// Code - Gets the code.
 	Code *string `json:"code,omitempty"`
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
-	// TrackingID - READ-ONLY; Gets the trackingId.
+	// TrackingID - Gets the trackingId.
 	TrackingID *string `json:"trackingId,omitempty"`
-	// InputsLink - READ-ONLY; Gets the link to inputs.
+	// InputsLink - Gets the link to inputs.
 	InputsLink *ContentLink `json:"inputsLink,omitempty"`
-	// OutputsLink - READ-ONLY; Gets the link to outputs.
+	// OutputsLink - Gets the link to outputs.
 	OutputsLink *ContentLink `json:"outputsLink,omitempty"`
 }
 
@@ -1221,37 +1115,20 @@ type WorkflowRunListResultIterator struct {
 	page WorkflowRunListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowRunListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowRunListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowRunListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1273,11 +1150,6 @@ func (iter WorkflowRunListResultIterator) Value() WorkflowRun {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowRunListResultIterator type.
-func NewWorkflowRunListResultIterator(page WorkflowRunListResultPage) WorkflowRunListResultIterator {
-	return WorkflowRunListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wrlr WorkflowRunListResult) IsEmpty() bool {
 	return wrlr.Value == nil || len(*wrlr.Value) == 0
@@ -1285,11 +1157,11 @@ func (wrlr WorkflowRunListResult) IsEmpty() bool {
 
 // workflowRunListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wrlr WorkflowRunListResult) workflowRunListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wrlr WorkflowRunListResult) workflowRunListResultPreparer() (*http.Request, error) {
 	if wrlr.NextLink == nil || len(to.String(wrlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wrlr.NextLink)))
@@ -1297,36 +1169,19 @@ func (wrlr WorkflowRunListResult) workflowRunListResultPreparer(ctx context.Cont
 
 // WorkflowRunListResultPage contains a page of WorkflowRun values.
 type WorkflowRunListResultPage struct {
-	fn   func(context.Context, WorkflowRunListResult) (WorkflowRunListResult, error)
+	fn   func(WorkflowRunListResult) (WorkflowRunListResult, error)
 	wrlr WorkflowRunListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowRunListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wrlr)
+func (page *WorkflowRunListResultPage) Next() error {
+	next, err := page.fn(page.wrlr)
 	if err != nil {
 		return err
 	}
 	page.wrlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowRunListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1347,71 +1202,91 @@ func (page WorkflowRunListResultPage) Values() []WorkflowRun {
 	return *page.wrlr.Value
 }
 
-// Creates a new instance of the WorkflowRunListResultPage type.
-func NewWorkflowRunListResultPage(getNextPage func(context.Context, WorkflowRunListResult) (WorkflowRunListResult, error)) WorkflowRunListResultPage {
-	return WorkflowRunListResultPage{fn: getNextPage}
-}
-
 // WorkflowRunProperties ...
 type WorkflowRunProperties struct {
-	// StartTime - READ-ONLY; Gets the start time.
+	// StartTime - Gets the start time.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; Gets the end time.
+	// EndTime - Gets the end time.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// Code - READ-ONLY; Gets the code.
+	// Code - Gets the code.
 	Code *string `json:"code,omitempty"`
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
-	// CorrelationID - READ-ONLY; Gets the correlation id.
+	// CorrelationID - Gets the correlation id.
 	CorrelationID *string `json:"correlationId,omitempty"`
-	// Workflow - READ-ONLY; Gets the reference to workflow version.
+	// Workflow - Gets the reference to workflow version.
 	Workflow *ResourceReference `json:"workflow,omitempty"`
-	// Trigger - READ-ONLY; Gets the fired trigger.
+	// Trigger - Gets the fired trigger.
 	Trigger *WorkflowRunTrigger `json:"trigger,omitempty"`
-	// Outputs - READ-ONLY; Gets the outputs.
+	// Outputs - Gets the outputs.
 	Outputs map[string]*WorkflowOutputParameter `json:"outputs"`
 }
 
 // MarshalJSON is the custom marshaler for WorkflowRunProperties.
 func (wrp WorkflowRunProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if wrp.StartTime != nil {
+		objectMap["startTime"] = wrp.StartTime
+	}
+	if wrp.EndTime != nil {
+		objectMap["endTime"] = wrp.EndTime
+	}
+	if wrp.Status != "" {
+		objectMap["status"] = wrp.Status
+	}
+	if wrp.Code != nil {
+		objectMap["code"] = wrp.Code
+	}
+	objectMap["error"] = wrp.Error
+	if wrp.CorrelationID != nil {
+		objectMap["correlationId"] = wrp.CorrelationID
+	}
+	if wrp.Workflow != nil {
+		objectMap["workflow"] = wrp.Workflow
+	}
+	if wrp.Trigger != nil {
+		objectMap["trigger"] = wrp.Trigger
+	}
+	if wrp.Outputs != nil {
+		objectMap["outputs"] = wrp.Outputs
+	}
 	return json.Marshal(objectMap)
 }
 
 // WorkflowRunTrigger ...
 type WorkflowRunTrigger struct {
-	// Name - READ-ONLY; Gets the name.
+	// Name - Gets the name.
 	Name *string `json:"name,omitempty"`
-	// Inputs - READ-ONLY; Gets the inputs.
+	// Inputs - Gets the inputs.
 	Inputs interface{} `json:"inputs,omitempty"`
-	// InputsLink - READ-ONLY; Gets the link to inputs.
+	// InputsLink - Gets the link to inputs.
 	InputsLink *ContentLink `json:"inputsLink,omitempty"`
-	// Outputs - READ-ONLY; Gets the outputs.
+	// Outputs - Gets the outputs.
 	Outputs interface{} `json:"outputs,omitempty"`
-	// OutputsLink - READ-ONLY; Gets the link to outputs.
+	// OutputsLink - Gets the link to outputs.
 	OutputsLink *ContentLink `json:"outputsLink,omitempty"`
-	// StartTime - READ-ONLY; Gets the start time.
+	// StartTime - Gets the start time.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; Gets the end time.
+	// EndTime - Gets the end time.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// TrackingID - READ-ONLY; Gets the trackingId.
+	// TrackingID - Gets the trackingId.
 	TrackingID *string `json:"trackingId,omitempty"`
-	// Code - READ-ONLY; Gets the code.
+	// Code - Gets the code.
 	Code *string `json:"code,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
 }
 
 // WorkflowSecretKeys ...
 type WorkflowSecretKeys struct {
 	autorest.Response `json:"-"`
-	// PrimarySecretKey - READ-ONLY; Gets the primary secret key.
+	// PrimarySecretKey - Gets the primary secret key.
 	PrimarySecretKey *string `json:"primarySecretKey,omitempty"`
-	// SecondarySecretKey - READ-ONLY; Gets the secondary secret key.
+	// SecondarySecretKey - Gets the secondary secret key.
 	SecondarySecretKey *string `json:"secondarySecretKey,omitempty"`
 }
 
@@ -1424,7 +1299,7 @@ type WorkflowsRunFuture struct {
 // If the operation has not completed it will return an error.
 func (future *WorkflowsRunFuture) Result(client WorkflowsClient) (wr WorkflowRun, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowsRunFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1448,9 +1323,9 @@ type WorkflowTrigger struct {
 	autorest.Response `json:"-"`
 	// WorkflowTriggerProperties - Gets or sets the workflow trigger properties.
 	*WorkflowTriggerProperties `json:"properties,omitempty"`
-	// Name - READ-ONLY; Gets the workflow trigger name.
+	// Name - Gets the workflow trigger name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the workflow trigger type.
+	// Type - Gets the workflow trigger type.
 	Type *string `json:"type,omitempty"`
 	// ID - Gets or sets the resource id.
 	ID *string `json:"id,omitempty"`
@@ -1461,6 +1336,12 @@ func (wt WorkflowTrigger) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wt.WorkflowTriggerProperties != nil {
 		objectMap["properties"] = wt.WorkflowTriggerProperties
+	}
+	if wt.Name != nil {
+		objectMap["name"] = wt.Name
+	}
+	if wt.Type != nil {
+		objectMap["type"] = wt.Type
 	}
 	if wt.ID != nil {
 		objectMap["id"] = wt.ID
@@ -1530,9 +1411,9 @@ type WorkflowTriggerHistory struct {
 	autorest.Response `json:"-"`
 	// WorkflowTriggerHistoryProperties - Gets the workflow trigger history properties.
 	*WorkflowTriggerHistoryProperties `json:"properties,omitempty"`
-	// Name - READ-ONLY; Gets the workflow trigger history name.
+	// Name - Gets the workflow trigger history name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Gets the workflow trigger history type.
+	// Type - Gets the workflow trigger history type.
 	Type *string `json:"type,omitempty"`
 	// ID - Gets or sets the resource id.
 	ID *string `json:"id,omitempty"`
@@ -1543,6 +1424,12 @@ func (wth WorkflowTriggerHistory) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if wth.WorkflowTriggerHistoryProperties != nil {
 		objectMap["properties"] = wth.WorkflowTriggerHistoryProperties
+	}
+	if wth.Name != nil {
+		objectMap["name"] = wth.Name
+	}
+	if wth.Type != nil {
+		objectMap["type"] = wth.Type
 	}
 	if wth.ID != nil {
 		objectMap["id"] = wth.ID
@@ -1616,44 +1503,26 @@ type WorkflowTriggerHistoryListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// WorkflowTriggerHistoryListResultIterator provides access to a complete listing of WorkflowTriggerHistory
-// values.
+// WorkflowTriggerHistoryListResultIterator provides access to a complete listing of WorkflowTriggerHistory values.
 type WorkflowTriggerHistoryListResultIterator struct {
 	i    int
 	page WorkflowTriggerHistoryListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowTriggerHistoryListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerHistoryListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowTriggerHistoryListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowTriggerHistoryListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1675,11 +1544,6 @@ func (iter WorkflowTriggerHistoryListResultIterator) Value() WorkflowTriggerHist
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowTriggerHistoryListResultIterator type.
-func NewWorkflowTriggerHistoryListResultIterator(page WorkflowTriggerHistoryListResultPage) WorkflowTriggerHistoryListResultIterator {
-	return WorkflowTriggerHistoryListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wthlr WorkflowTriggerHistoryListResult) IsEmpty() bool {
 	return wthlr.Value == nil || len(*wthlr.Value) == 0
@@ -1687,11 +1551,11 @@ func (wthlr WorkflowTriggerHistoryListResult) IsEmpty() bool {
 
 // workflowTriggerHistoryListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wthlr WorkflowTriggerHistoryListResult) workflowTriggerHistoryListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wthlr WorkflowTriggerHistoryListResult) workflowTriggerHistoryListResultPreparer() (*http.Request, error) {
 	if wthlr.NextLink == nil || len(to.String(wthlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wthlr.NextLink)))
@@ -1699,36 +1563,19 @@ func (wthlr WorkflowTriggerHistoryListResult) workflowTriggerHistoryListResultPr
 
 // WorkflowTriggerHistoryListResultPage contains a page of WorkflowTriggerHistory values.
 type WorkflowTriggerHistoryListResultPage struct {
-	fn    func(context.Context, WorkflowTriggerHistoryListResult) (WorkflowTriggerHistoryListResult, error)
+	fn    func(WorkflowTriggerHistoryListResult) (WorkflowTriggerHistoryListResult, error)
 	wthlr WorkflowTriggerHistoryListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowTriggerHistoryListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerHistoryListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wthlr)
+func (page *WorkflowTriggerHistoryListResultPage) Next() error {
+	next, err := page.fn(page.wthlr)
 	if err != nil {
 		return err
 	}
 	page.wthlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowTriggerHistoryListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1749,32 +1596,27 @@ func (page WorkflowTriggerHistoryListResultPage) Values() []WorkflowTriggerHisto
 	return *page.wthlr.Value
 }
 
-// Creates a new instance of the WorkflowTriggerHistoryListResultPage type.
-func NewWorkflowTriggerHistoryListResultPage(getNextPage func(context.Context, WorkflowTriggerHistoryListResult) (WorkflowTriggerHistoryListResult, error)) WorkflowTriggerHistoryListResultPage {
-	return WorkflowTriggerHistoryListResultPage{fn: getNextPage}
-}
-
 // WorkflowTriggerHistoryProperties ...
 type WorkflowTriggerHistoryProperties struct {
-	// StartTime - READ-ONLY; Gets the start time.
+	// StartTime - Gets the start time.
 	StartTime *date.Time `json:"startTime,omitempty"`
-	// EndTime - READ-ONLY; Gets the end time.
+	// EndTime - Gets the end time.
 	EndTime *date.Time `json:"endTime,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// Code - READ-ONLY; Gets the code.
+	// Code - Gets the code.
 	Code *string `json:"code,omitempty"`
-	// Error - READ-ONLY; Gets the error.
+	// Error - Gets the error.
 	Error interface{} `json:"error,omitempty"`
-	// TrackingID - READ-ONLY; Gets the tracking id.
+	// TrackingID - Gets the tracking id.
 	TrackingID *string `json:"trackingId,omitempty"`
-	// InputsLink - READ-ONLY; Gets the link to input parameters.
+	// InputsLink - Gets the link to input parameters.
 	InputsLink *ContentLink `json:"inputsLink,omitempty"`
-	// OutputsLink - READ-ONLY; Gets the link to output parameters.
+	// OutputsLink - Gets the link to output parameters.
 	OutputsLink *ContentLink `json:"outputsLink,omitempty"`
-	// Fired - READ-ONLY; Gets a value indicating whether trigger was fired.
+	// Fired - Gets a value indicating whether trigger was fired.
 	Fired *bool `json:"fired,omitempty"`
-	// Run - READ-ONLY; Gets the reference to workflow run.
+	// Run - Gets the reference to workflow run.
 	Run *ResourceReference `json:"run,omitempty"`
 }
 
@@ -1793,37 +1635,20 @@ type WorkflowTriggerListResultIterator struct {
 	page WorkflowTriggerListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *WorkflowTriggerListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *WorkflowTriggerListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *WorkflowTriggerListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1845,11 +1670,6 @@ func (iter WorkflowTriggerListResultIterator) Value() WorkflowTrigger {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the WorkflowTriggerListResultIterator type.
-func NewWorkflowTriggerListResultIterator(page WorkflowTriggerListResultPage) WorkflowTriggerListResultIterator {
-	return WorkflowTriggerListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (wtlr WorkflowTriggerListResult) IsEmpty() bool {
 	return wtlr.Value == nil || len(*wtlr.Value) == 0
@@ -1857,11 +1677,11 @@ func (wtlr WorkflowTriggerListResult) IsEmpty() bool {
 
 // workflowTriggerListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (wtlr WorkflowTriggerListResult) workflowTriggerListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (wtlr WorkflowTriggerListResult) workflowTriggerListResultPreparer() (*http.Request, error) {
 	if wtlr.NextLink == nil || len(to.String(wtlr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(wtlr.NextLink)))
@@ -1869,36 +1689,19 @@ func (wtlr WorkflowTriggerListResult) workflowTriggerListResultPreparer(ctx cont
 
 // WorkflowTriggerListResultPage contains a page of WorkflowTrigger values.
 type WorkflowTriggerListResultPage struct {
-	fn   func(context.Context, WorkflowTriggerListResult) (WorkflowTriggerListResult, error)
+	fn   func(WorkflowTriggerListResult) (WorkflowTriggerListResult, error)
 	wtlr WorkflowTriggerListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *WorkflowTriggerListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowTriggerListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.wtlr)
+func (page *WorkflowTriggerListResultPage) Next() error {
+	next, err := page.fn(page.wtlr)
 	if err != nil {
 		return err
 	}
 	page.wtlr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *WorkflowTriggerListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1919,30 +1722,25 @@ func (page WorkflowTriggerListResultPage) Values() []WorkflowTrigger {
 	return *page.wtlr.Value
 }
 
-// Creates a new instance of the WorkflowTriggerListResultPage type.
-func NewWorkflowTriggerListResultPage(getNextPage func(context.Context, WorkflowTriggerListResult) (WorkflowTriggerListResult, error)) WorkflowTriggerListResultPage {
-	return WorkflowTriggerListResultPage{fn: getNextPage}
-}
-
 // WorkflowTriggerProperties ...
 type WorkflowTriggerProperties struct {
-	// ProvisioningState - READ-ONLY; Gets the provisioning state. Possible values include: 'WorkflowTriggerProvisioningStateNotSpecified', 'WorkflowTriggerProvisioningStateCreating', 'WorkflowTriggerProvisioningStateSucceeded', 'WorkflowTriggerProvisioningStateUpdating'
+	// ProvisioningState - Gets the provisioning state. Possible values include: 'WorkflowTriggerProvisioningStateNotSpecified', 'WorkflowTriggerProvisioningStateCreating', 'WorkflowTriggerProvisioningStateSucceeded', 'WorkflowTriggerProvisioningStateUpdating'
 	ProvisioningState WorkflowTriggerProvisioningState `json:"provisioningState,omitempty"`
-	// CreatedTime - READ-ONLY; Gets the created time.
+	// CreatedTime - Gets the created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; Gets the changed time.
+	// ChangedTime - Gets the changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
-	// State - READ-ONLY; Gets the state. Possible values include: 'WorkflowStateNotSpecified', 'WorkflowStateEnabled', 'WorkflowStateDisabled', 'WorkflowStateDeleted', 'WorkflowStateSuspended'
+	// State - Gets the state. Possible values include: 'WorkflowStateNotSpecified', 'WorkflowStateEnabled', 'WorkflowStateDisabled', 'WorkflowStateDeleted', 'WorkflowStateSuspended'
 	State WorkflowState `json:"state,omitempty"`
-	// Status - READ-ONLY; Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
+	// Status - Gets the status. Possible values include: 'WorkflowStatusNotSpecified', 'WorkflowStatusPaused', 'WorkflowStatusRunning', 'WorkflowStatusWaiting', 'WorkflowStatusSucceeded', 'WorkflowStatusSkipped', 'WorkflowStatusSuspended', 'WorkflowStatusCancelled', 'WorkflowStatusFailed', 'WorkflowStatusFaulted', 'WorkflowStatusTimedOut', 'WorkflowStatusAborted'
 	Status WorkflowStatus `json:"status,omitempty"`
-	// LastExecutionTime - READ-ONLY; Gets the last execution time.
+	// LastExecutionTime - Gets the last execution time.
 	LastExecutionTime *date.Time `json:"lastExecutionTime,omitempty"`
-	// NextExecutionTime - READ-ONLY; Gets the next execution time.
+	// NextExecutionTime - Gets the next execution time.
 	NextExecutionTime *date.Time `json:"nextExecutionTime,omitempty"`
-	// Recurrence - READ-ONLY; Gets the workflow trigger recurrence.
+	// Recurrence - Gets the workflow trigger recurrence.
 	Recurrence *WorkflowTriggerRecurrence `json:"recurrence,omitempty"`
-	// Workflow - READ-ONLY; Gets the reference to workflow.
+	// Workflow - Gets the reference to workflow.
 	Workflow *ResourceReference `json:"workflow,omitempty"`
 }
 
@@ -2070,15 +1868,15 @@ func (wv *WorkflowVersion) UnmarshalJSON(body []byte) error {
 
 // WorkflowVersionProperties ...
 type WorkflowVersionProperties struct {
-	// CreatedTime - READ-ONLY; Gets the created time.
+	// CreatedTime - Gets the created time.
 	CreatedTime *date.Time `json:"createdTime,omitempty"`
-	// ChangedTime - READ-ONLY; Gets the changed time.
+	// ChangedTime - Gets the changed time.
 	ChangedTime *date.Time `json:"changedTime,omitempty"`
 	// State - Gets or sets the state. Possible values include: 'WorkflowStateNotSpecified', 'WorkflowStateEnabled', 'WorkflowStateDisabled', 'WorkflowStateDeleted', 'WorkflowStateSuspended'
 	State WorkflowState `json:"state,omitempty"`
-	// Version - READ-ONLY; Gets the version.
+	// Version - Gets the version.
 	Version *string `json:"version,omitempty"`
-	// AccessEndpoint - READ-ONLY; Gets the access endpoint.
+	// AccessEndpoint - Gets the access endpoint.
 	AccessEndpoint *string `json:"accessEndpoint,omitempty"`
 	// Sku - Gets or sets the sku.
 	Sku *Sku `json:"sku,omitempty"`
@@ -2095,8 +1893,20 @@ type WorkflowVersionProperties struct {
 // MarshalJSON is the custom marshaler for WorkflowVersionProperties.
 func (wvp WorkflowVersionProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if wvp.CreatedTime != nil {
+		objectMap["createdTime"] = wvp.CreatedTime
+	}
+	if wvp.ChangedTime != nil {
+		objectMap["changedTime"] = wvp.ChangedTime
+	}
 	if wvp.State != "" {
 		objectMap["state"] = wvp.State
+	}
+	if wvp.Version != nil {
+		objectMap["version"] = wvp.Version
+	}
+	if wvp.AccessEndpoint != nil {
+		objectMap["accessEndpoint"] = wvp.AccessEndpoint
 	}
 	if wvp.Sku != nil {
 		objectMap["sku"] = wvp.Sku
@@ -2104,9 +1914,7 @@ func (wvp WorkflowVersionProperties) MarshalJSON() ([]byte, error) {
 	if wvp.DefinitionLink != nil {
 		objectMap["definitionLink"] = wvp.DefinitionLink
 	}
-	if wvp.Definition != nil {
-		objectMap["definition"] = wvp.Definition
-	}
+	objectMap["definition"] = wvp.Definition
 	if wvp.ParametersLink != nil {
 		objectMap["parametersLink"] = wvp.ParametersLink
 	}

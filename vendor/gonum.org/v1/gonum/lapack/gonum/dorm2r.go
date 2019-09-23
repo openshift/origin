@@ -23,50 +23,37 @@ import "gonum.org/v1/gonum/blas"
 //
 // Dorm2r is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dorm2r(side blas.Side, trans blas.Transpose, m, n, k int, a []float64, lda int, tau, c []float64, ldc int, work []float64) {
-	left := side == blas.Left
-	switch {
-	case !left && side != blas.Right:
+	if side != blas.Left && side != blas.Right {
 		panic(badSide)
-	case trans != blas.Trans && trans != blas.NoTrans:
+	}
+	if trans != blas.Trans && trans != blas.NoTrans {
 		panic(badTrans)
-	case m < 0:
-		panic(mLT0)
-	case n < 0:
-		panic(nLT0)
-	case k < 0:
-		panic(kLT0)
-	case left && k > m:
-		panic(kGTM)
-	case !left && k > n:
-		panic(kGTN)
-	case lda < max(1, k):
-		panic(badLdA)
-	case ldc < max(1, n):
-		panic(badLdC)
 	}
 
-	// Quick return if possible.
+	left := side == blas.Left
+	notran := trans == blas.NoTrans
+	if left {
+		// Q is m x m
+		checkMatrix(m, k, a, lda)
+		if len(work) < n {
+			panic(badWork)
+		}
+	} else {
+		// Q is n x n
+		checkMatrix(n, k, a, lda)
+		if len(work) < m {
+			panic(badWork)
+		}
+	}
+	checkMatrix(m, n, c, ldc)
 	if m == 0 || n == 0 || k == 0 {
 		return
 	}
-
-	switch {
-	case left && len(a) < (m-1)*lda+k:
-		panic(shortA)
-	case !left && len(a) < (n-1)*lda+k:
-		panic(shortA)
-	case len(c) < (m-1)*ldc+n:
-		panic(shortC)
-	case len(tau) < k:
-		panic(shortTau)
-	case left && len(work) < n:
-		panic(shortWork)
-	case !left && len(work) < m:
-		panic(shortWork)
+	if len(tau) < k {
+		panic(badTau)
 	}
-
 	if left {
-		if trans == blas.NoTrans {
+		if notran {
 			for i := k - 1; i >= 0; i-- {
 				aii := a[i*lda+i]
 				a[i*lda+i] = 1
@@ -83,7 +70,7 @@ func (impl Implementation) Dorm2r(side blas.Side, trans blas.Transpose, m, n, k 
 		}
 		return
 	}
-	if trans == blas.NoTrans {
+	if notran {
 		for i := 0; i < k; i++ {
 			aii := a[i*lda+i]
 			a[i*lda+i] = 1

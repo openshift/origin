@@ -152,7 +152,7 @@ func (dc *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
 	klog.Infof("Starting deployment controller")
 	defer klog.Infof("Shutting down deployment controller")
 
-	if !cache.WaitForNamedCacheSync("deployment", stopCh, dc.dListerSynced, dc.rsListerSynced, dc.podListerSynced) {
+	if !controller.WaitForCacheSync("deployment", stopCh, dc.dListerSynced, dc.rsListerSynced, dc.podListerSynced) {
 		return
 	}
 
@@ -366,7 +366,7 @@ func (dc *DeploymentController) deletePod(obj interface{}) {
 		}
 		numPods := 0
 		for _, podList := range podMap {
-			numPods += len(podList)
+			numPods += len(podList.Items)
 		}
 		if numPods == 0 {
 			dc.enqueueDeployment(d)
@@ -525,9 +525,7 @@ func (dc *DeploymentController) getReplicaSetsForDeployment(d *apps.Deployment) 
 //
 // It returns a map from ReplicaSet UID to a list of Pods controlled by that RS,
 // according to the Pod's ControllerRef.
-// NOTE: The pod pointers returned by this method point the the pod objects in the cache and thus
-// shouldn't be modified in any way.
-func (dc *DeploymentController) getPodMapForDeployment(d *apps.Deployment, rsList []*apps.ReplicaSet) (map[types.UID][]*v1.Pod, error) {
+func (dc *DeploymentController) getPodMapForDeployment(d *apps.Deployment, rsList []*apps.ReplicaSet) (map[types.UID]*v1.PodList, error) {
 	// Get all Pods that potentially belong to this Deployment.
 	selector, err := metav1.LabelSelectorAsSelector(d.Spec.Selector)
 	if err != nil {
@@ -538,9 +536,9 @@ func (dc *DeploymentController) getPodMapForDeployment(d *apps.Deployment, rsLis
 		return nil, err
 	}
 	// Group Pods by their controller (if it's in rsList).
-	podMap := make(map[types.UID][]*v1.Pod, len(rsList))
+	podMap := make(map[types.UID]*v1.PodList, len(rsList))
 	for _, rs := range rsList {
-		podMap[rs.UID] = []*v1.Pod{}
+		podMap[rs.UID] = &v1.PodList{}
 	}
 	for _, pod := range pods {
 		// Do not ignore inactive Pods because Recreate Deployments need to verify that no
@@ -550,8 +548,8 @@ func (dc *DeploymentController) getPodMapForDeployment(d *apps.Deployment, rsLis
 			continue
 		}
 		// Only append if we care about this UID.
-		if _, ok := podMap[controllerRef.UID]; ok {
-			podMap[controllerRef.UID] = append(podMap[controllerRef.UID], pod)
+		if podList, ok := podMap[controllerRef.UID]; ok {
+			podList.Items = append(podList.Items, *pod)
 		}
 	}
 	return podMap, nil

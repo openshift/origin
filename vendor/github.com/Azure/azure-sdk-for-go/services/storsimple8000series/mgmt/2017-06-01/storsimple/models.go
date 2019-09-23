@@ -18,18 +18,13 @@ package storsimple
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/storsimple8000series/mgmt/2017-06-01/storsimple"
 
 // AlertEmailNotificationStatus enumerates the values for alert email notification status.
 type AlertEmailNotificationStatus string
@@ -900,11 +895,11 @@ type AccessControlRecord struct {
 	autorest.Response `json:"-"`
 	// AccessControlRecordProperties - The properties of access control record.
 	*AccessControlRecordProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -915,6 +910,15 @@ func (acr AccessControlRecord) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if acr.AccessControlRecordProperties != nil {
 		objectMap["properties"] = acr.AccessControlRecordProperties
+	}
+	if acr.ID != nil {
+		objectMap["id"] = acr.ID
+	}
+	if acr.Name != nil {
+		objectMap["name"] = acr.Name
+	}
+	if acr.Type != nil {
+		objectMap["type"] = acr.Type
 	}
 	if acr.Kind != "" {
 		objectMap["kind"] = acr.Kind
@@ -993,7 +997,7 @@ type AccessControlRecordList struct {
 type AccessControlRecordProperties struct {
 	// InitiatorName - The iSCSI initiator name (IQN).
 	InitiatorName *string `json:"initiatorName,omitempty"`
-	// VolumeCount - READ-ONLY; The number of volumes using the access control record.
+	// VolumeCount - The number of volumes using the access control record.
 	VolumeCount *int32 `json:"volumeCount,omitempty"`
 }
 
@@ -1007,7 +1011,7 @@ type AccessControlRecordsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AccessControlRecordsCreateOrUpdateFuture) Result(client AccessControlRecordsClient) (acr AccessControlRecord, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1026,8 +1030,8 @@ func (future *AccessControlRecordsCreateOrUpdateFuture) Result(client AccessCont
 	return
 }
 
-// AccessControlRecordsDeleteFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// AccessControlRecordsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type AccessControlRecordsDeleteFuture struct {
 	azure.Future
 }
@@ -1036,7 +1040,7 @@ type AccessControlRecordsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AccessControlRecordsDeleteFuture) Result(client AccessControlRecordsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1063,11 +1067,11 @@ type AcsConfiguration struct {
 type Alert struct {
 	// AlertProperties - The properties of the alert.
 	*AlertProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -1078,6 +1082,15 @@ func (a Alert) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if a.AlertProperties != nil {
 		objectMap["properties"] = a.AlertProperties
+	}
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
 	}
 	if a.Kind != "" {
 		objectMap["kind"] = a.Kind
@@ -1151,7 +1164,7 @@ type AlertErrorDetails struct {
 	ErrorCode *string `json:"errorCode,omitempty"`
 	// ErrorMessage - The error message
 	ErrorMessage *string `json:"errorMessage,omitempty"`
-	// Occurences - The number of occurrences
+	// Occurences - The number of occurences
 	Occurences *int32 `json:"occurences,omitempty"`
 }
 
@@ -1184,37 +1197,20 @@ type AlertListIterator struct {
 	page AlertListPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AlertListIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AlertListIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AlertListIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AlertListIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1236,11 +1232,6 @@ func (iter AlertListIterator) Value() Alert {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AlertListIterator type.
-func NewAlertListIterator(page AlertListPage) AlertListIterator {
-	return AlertListIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (al AlertList) IsEmpty() bool {
 	return al.Value == nil || len(*al.Value) == 0
@@ -1248,11 +1239,11 @@ func (al AlertList) IsEmpty() bool {
 
 // alertListPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (al AlertList) alertListPreparer(ctx context.Context) (*http.Request, error) {
+func (al AlertList) alertListPreparer() (*http.Request, error) {
 	if al.NextLink == nil || len(to.String(al.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(al.NextLink)))
@@ -1260,36 +1251,19 @@ func (al AlertList) alertListPreparer(ctx context.Context) (*http.Request, error
 
 // AlertListPage contains a page of Alert values.
 type AlertListPage struct {
-	fn func(context.Context, AlertList) (AlertList, error)
+	fn func(AlertList) (AlertList, error)
 	al AlertList
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AlertListPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AlertListPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.al)
+func (page *AlertListPage) Next() error {
+	next, err := page.fn(page.al)
 	if err != nil {
 		return err
 	}
 	page.al = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AlertListPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1308,11 +1282,6 @@ func (page AlertListPage) Values() []Alert {
 		return nil
 	}
 	return *page.al.Value
-}
-
-// Creates a new instance of the AlertListPage type.
-func NewAlertListPage(getNextPage func(context.Context, AlertList) (AlertList, error)) AlertListPage {
-	return AlertListPage{fn: getNextPage}
 }
 
 // AlertNotificationProperties the properties of the alert notification settings.
@@ -1412,11 +1381,11 @@ type AlertSettings struct {
 	autorest.Response `json:"-"`
 	// AlertNotificationProperties - The properties of the alert notification settings.
 	*AlertNotificationProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -1427,6 +1396,15 @@ func (as AlertSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if as.AlertNotificationProperties != nil {
 		objectMap["properties"] = as.AlertNotificationProperties
+	}
+	if as.ID != nil {
+		objectMap["id"] = as.ID
+	}
+	if as.Name != nil {
+		objectMap["name"] = as.Name
+	}
+	if as.Type != nil {
+		objectMap["type"] = as.Type
 	}
 	if as.Kind != "" {
 		objectMap["kind"] = as.Kind
@@ -1527,8 +1505,8 @@ type AvailableProviderOperation struct {
 }
 
 // AvailableProviderOperationDisplay contains the localized display information for this particular
-// operation/action. These value will be used by several clients for (a) custom role definitions for RBAC,
-// (b) complex query filters for the event service and (c) audit history/records for management operations.
+// operation/action. These value will be used by several clients for (a) custom role definitions for RBAC, (b)
+// complex query filters for the event service and (c) audit history/records for management operations.
 type AvailableProviderOperationDisplay struct {
 	// Provider - The localized friendly form of the resource provider name - it is expected to also include the publisher/company responsible. It should use Title Casing and begin with 'Microsoft' for 1st party services.
 	Provider *string `json:"provider,omitempty"`
@@ -1549,44 +1527,27 @@ type AvailableProviderOperationList struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// AvailableProviderOperationListIterator provides access to a complete listing of
-// AvailableProviderOperation values.
+// AvailableProviderOperationListIterator provides access to a complete listing of AvailableProviderOperation
+// values.
 type AvailableProviderOperationListIterator struct {
 	i    int
 	page AvailableProviderOperationListPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AvailableProviderOperationListIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AvailableProviderOperationListIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AvailableProviderOperationListIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AvailableProviderOperationListIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1608,11 +1569,6 @@ func (iter AvailableProviderOperationListIterator) Value() AvailableProviderOper
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AvailableProviderOperationListIterator type.
-func NewAvailableProviderOperationListIterator(page AvailableProviderOperationListPage) AvailableProviderOperationListIterator {
-	return AvailableProviderOperationListIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (apol AvailableProviderOperationList) IsEmpty() bool {
 	return apol.Value == nil || len(*apol.Value) == 0
@@ -1620,11 +1576,11 @@ func (apol AvailableProviderOperationList) IsEmpty() bool {
 
 // availableProviderOperationListPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (apol AvailableProviderOperationList) availableProviderOperationListPreparer(ctx context.Context) (*http.Request, error) {
+func (apol AvailableProviderOperationList) availableProviderOperationListPreparer() (*http.Request, error) {
 	if apol.NextLink == nil || len(to.String(apol.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(apol.NextLink)))
@@ -1632,36 +1588,19 @@ func (apol AvailableProviderOperationList) availableProviderOperationListPrepare
 
 // AvailableProviderOperationListPage contains a page of AvailableProviderOperation values.
 type AvailableProviderOperationListPage struct {
-	fn   func(context.Context, AvailableProviderOperationList) (AvailableProviderOperationList, error)
+	fn   func(AvailableProviderOperationList) (AvailableProviderOperationList, error)
 	apol AvailableProviderOperationList
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AvailableProviderOperationListPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AvailableProviderOperationListPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.apol)
+func (page *AvailableProviderOperationListPage) Next() error {
+	next, err := page.fn(page.apol)
 	if err != nil {
 		return err
 	}
 	page.apol = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AvailableProviderOperationListPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1682,20 +1621,15 @@ func (page AvailableProviderOperationListPage) Values() []AvailableProviderOpera
 	return *page.apol.Value
 }
 
-// Creates a new instance of the AvailableProviderOperationListPage type.
-func NewAvailableProviderOperationListPage(getNextPage func(context.Context, AvailableProviderOperationList) (AvailableProviderOperationList, error)) AvailableProviderOperationListPage {
-	return AvailableProviderOperationListPage{fn: getNextPage}
-}
-
 // Backup the backup.
 type Backup struct {
 	// BackupProperties - The properties of the backup.
 	*BackupProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -1706,6 +1640,15 @@ func (b Backup) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if b.BackupProperties != nil {
 		objectMap["properties"] = b.BackupProperties
+	}
+	if b.ID != nil {
+		objectMap["id"] = b.ID
+	}
+	if b.Name != nil {
+		objectMap["name"] = b.Name
+	}
+	if b.Type != nil {
+		objectMap["type"] = b.Type
 	}
 	if b.Kind != "" {
 		objectMap["kind"] = b.Kind
@@ -1816,37 +1759,20 @@ type BackupListIterator struct {
 	page BackupListPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *BackupListIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BackupListIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *BackupListIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *BackupListIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -1868,11 +1794,6 @@ func (iter BackupListIterator) Value() Backup {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the BackupListIterator type.
-func NewBackupListIterator(page BackupListPage) BackupListIterator {
-	return BackupListIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (bl BackupList) IsEmpty() bool {
 	return bl.Value == nil || len(*bl.Value) == 0
@@ -1880,11 +1801,11 @@ func (bl BackupList) IsEmpty() bool {
 
 // backupListPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (bl BackupList) backupListPreparer(ctx context.Context) (*http.Request, error) {
+func (bl BackupList) backupListPreparer() (*http.Request, error) {
 	if bl.NextLink == nil || len(to.String(bl.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(bl.NextLink)))
@@ -1892,36 +1813,19 @@ func (bl BackupList) backupListPreparer(ctx context.Context) (*http.Request, err
 
 // BackupListPage contains a page of Backup values.
 type BackupListPage struct {
-	fn func(context.Context, BackupList) (BackupList, error)
+	fn func(BackupList) (BackupList, error)
 	bl BackupList
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *BackupListPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BackupListPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.bl)
+func (page *BackupListPage) Next() error {
+	next, err := page.fn(page.bl)
 	if err != nil {
 		return err
 	}
 	page.bl = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *BackupListPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1942,11 +1846,6 @@ func (page BackupListPage) Values() []Backup {
 	return *page.bl.Value
 }
 
-// Creates a new instance of the BackupListPage type.
-func NewBackupListPage(getNextPage func(context.Context, BackupList) (BackupList, error)) BackupListPage {
-	return BackupListPage{fn: getNextPage}
-}
-
 // BackupPoliciesBackupNowFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
 type BackupPoliciesBackupNowFuture struct {
@@ -1957,7 +1856,7 @@ type BackupPoliciesBackupNowFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupPoliciesBackupNowFuture) Result(client BackupPoliciesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesBackupNowFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1970,8 +1869,8 @@ func (future *BackupPoliciesBackupNowFuture) Result(client BackupPoliciesClient)
 	return
 }
 
-// BackupPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// BackupPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type BackupPoliciesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -1980,7 +1879,7 @@ type BackupPoliciesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupPoliciesCreateOrUpdateFuture) Result(client BackupPoliciesClient) (bp BackupPolicy, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -1999,8 +1898,7 @@ func (future *BackupPoliciesCreateOrUpdateFuture) Result(client BackupPoliciesCl
 	return
 }
 
-// BackupPoliciesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// BackupPoliciesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type BackupPoliciesDeleteFuture struct {
 	azure.Future
 }
@@ -2009,7 +1907,7 @@ type BackupPoliciesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupPoliciesDeleteFuture) Result(client BackupPoliciesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2027,11 +1925,11 @@ type BackupPolicy struct {
 	autorest.Response `json:"-"`
 	// BackupPolicyProperties - The properties of the backup policy.
 	*BackupPolicyProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -2042,6 +1940,15 @@ func (bp BackupPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if bp.BackupPolicyProperties != nil {
 		objectMap["properties"] = bp.BackupPolicyProperties
+	}
+	if bp.ID != nil {
+		objectMap["id"] = bp.ID
+	}
+	if bp.Name != nil {
+		objectMap["name"] = bp.Name
+	}
+	if bp.Type != nil {
+		objectMap["type"] = bp.Type
 	}
 	if bp.Kind != "" {
 		objectMap["kind"] = bp.Kind
@@ -2120,17 +2027,17 @@ type BackupPolicyList struct {
 type BackupPolicyProperties struct {
 	// VolumeIds - The path IDs of the volumes which are part of the backup policy.
 	VolumeIds *[]string `json:"volumeIds,omitempty"`
-	// NextBackupTime - READ-ONLY; The time of the next backup for the backup policy.
+	// NextBackupTime - The time of the next backup for the backup policy.
 	NextBackupTime *date.Time `json:"nextBackupTime,omitempty"`
-	// LastBackupTime - READ-ONLY; The time of the last backup for the backup policy.
+	// LastBackupTime - The time of the last backup for the backup policy.
 	LastBackupTime *date.Time `json:"lastBackupTime,omitempty"`
-	// SchedulesCount - READ-ONLY; The count of schedules the backup policy contains.
+	// SchedulesCount - The count of schedules the backup policy contains.
 	SchedulesCount *int64 `json:"schedulesCount,omitempty"`
-	// ScheduledBackupStatus - READ-ONLY; Indicates whether at least one of the schedules in the backup policy is active or not. Possible values include: 'ScheduledBackupStatusDisabled', 'ScheduledBackupStatusEnabled'
+	// ScheduledBackupStatus - Indicates whether atleast one of the schedules in the backup policy is active or not. Possible values include: 'ScheduledBackupStatusDisabled', 'ScheduledBackupStatusEnabled'
 	ScheduledBackupStatus ScheduledBackupStatus `json:"scheduledBackupStatus,omitempty"`
-	// BackupPolicyCreationType - READ-ONLY; The backup policy creation type. Indicates whether this was created through SaaS or through StorSimple Snapshot Manager. Possible values include: 'BackupPolicyCreationTypeBySaaS', 'BackupPolicyCreationTypeBySSM'
+	// BackupPolicyCreationType - The backup policy creation type. Indicates whether this was created through SaaS or through StorSimple Snapshot Manager. Possible values include: 'BackupPolicyCreationTypeBySaaS', 'BackupPolicyCreationTypeBySSM'
 	BackupPolicyCreationType BackupPolicyCreationType `json:"backupPolicyCreationType,omitempty"`
-	// SsmHostName - READ-ONLY; If the backup policy was created by StorSimple Snapshot Manager, then this field indicates the hostname of the StorSimple Snapshot Manager.
+	// SsmHostName - If the backup policy was created by StorSimple Snapshot Manager, then this field indicates the hostname of the StorSimple Snapshot Manager.
 	SsmHostName *string `json:"ssmHostName,omitempty"`
 }
 
@@ -2157,11 +2064,11 @@ type BackupSchedule struct {
 	autorest.Response `json:"-"`
 	// BackupScheduleProperties - The properties of the backup schedule.
 	*BackupScheduleProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -2172,6 +2079,15 @@ func (bs BackupSchedule) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if bs.BackupScheduleProperties != nil {
 		objectMap["properties"] = bs.BackupScheduleProperties
+	}
+	if bs.ID != nil {
+		objectMap["id"] = bs.ID
+	}
+	if bs.Name != nil {
+		objectMap["name"] = bs.Name
+	}
+	if bs.Type != nil {
+		objectMap["type"] = bs.Type
 	}
 	if bs.Kind != "" {
 		objectMap["kind"] = bs.Kind
@@ -2258,12 +2174,12 @@ type BackupScheduleProperties struct {
 	StartTime *date.Time `json:"startTime,omitempty"`
 	// ScheduleStatus - The schedule status. Possible values include: 'ScheduleStatusEnabled', 'ScheduleStatusDisabled'
 	ScheduleStatus ScheduleStatus `json:"scheduleStatus,omitempty"`
-	// LastSuccessfulRun - READ-ONLY; The last successful backup run which was triggered for the schedule.
+	// LastSuccessfulRun - The last successful backup run which was triggered for the schedule.
 	LastSuccessfulRun *date.Time `json:"lastSuccessfulRun,omitempty"`
 }
 
-// BackupSchedulesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// BackupSchedulesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type BackupSchedulesCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -2272,7 +2188,7 @@ type BackupSchedulesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupSchedulesCreateOrUpdateFuture) Result(client BackupSchedulesClient) (bs BackupSchedule, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupSchedulesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2301,7 +2217,7 @@ type BackupSchedulesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupSchedulesDeleteFuture) Result(client BackupSchedulesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupSchedulesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2323,7 +2239,7 @@ type BackupsCloneFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupsCloneFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupsCloneFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2336,8 +2252,7 @@ func (future *BackupsCloneFuture) Result(client BackupsClient) (ar autorest.Resp
 	return
 }
 
-// BackupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// BackupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type BackupsDeleteFuture struct {
 	azure.Future
 }
@@ -2346,7 +2261,7 @@ type BackupsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupsDeleteFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2359,8 +2274,7 @@ func (future *BackupsDeleteFuture) Result(client BackupsClient) (ar autorest.Res
 	return
 }
 
-// BackupsRestoreFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// BackupsRestoreFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type BackupsRestoreFuture struct {
 	azure.Future
 }
@@ -2369,7 +2283,7 @@ type BackupsRestoreFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BackupsRestoreFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BackupsRestoreFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2386,13 +2300,13 @@ func (future *BackupsRestoreFuture) Result(client BackupsClient) (ar autorest.Re
 type BandwidthRateSettingProperties struct {
 	// Schedules - The schedules.
 	Schedules *[]BandwidthSchedule `json:"schedules,omitempty"`
-	// VolumeCount - READ-ONLY; The number of volumes that uses the bandwidth setting.
+	// VolumeCount - The number of volumes that uses the bandwidth setting.
 	VolumeCount *int32 `json:"volumeCount,omitempty"`
 }
 
 // BandwidthSchedule the schedule for bandwidth setting.
 type BandwidthSchedule struct {
-	// Start - The start time of the schedule.
+	// Start - The start time of the schdule.
 	Start *Time `json:"start,omitempty"`
 	// Stop - The stop time of the schedule.
 	Stop *Time `json:"stop,omitempty"`
@@ -2407,11 +2321,11 @@ type BandwidthSetting struct {
 	autorest.Response `json:"-"`
 	// BandwidthRateSettingProperties - The properties of the bandwidth setting.
 	*BandwidthRateSettingProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -2422,6 +2336,15 @@ func (bs BandwidthSetting) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if bs.BandwidthRateSettingProperties != nil {
 		objectMap["properties"] = bs.BandwidthRateSettingProperties
+	}
+	if bs.ID != nil {
+		objectMap["id"] = bs.ID
+	}
+	if bs.Name != nil {
+		objectMap["name"] = bs.Name
+	}
+	if bs.Type != nil {
+		objectMap["type"] = bs.Type
 	}
 	if bs.Kind != "" {
 		objectMap["kind"] = bs.Kind
@@ -2496,8 +2419,8 @@ type BandwidthSettingList struct {
 	Value *[]BandwidthSetting `json:"value,omitempty"`
 }
 
-// BandwidthSettingsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// BandwidthSettingsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type BandwidthSettingsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -2506,7 +2429,7 @@ type BandwidthSettingsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BandwidthSettingsCreateOrUpdateFuture) Result(client BandwidthSettingsClient) (bs BandwidthSetting, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BandwidthSettingsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2535,7 +2458,7 @@ type BandwidthSettingsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *BandwidthSettingsDeleteFuture) Result(client BandwidthSettingsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.BandwidthSettingsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2550,11 +2473,11 @@ func (future *BandwidthSettingsDeleteFuture) Result(client BandwidthSettingsClie
 
 // BaseModel represents the base class for all other ARM object models
 type BaseModel struct {
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -2622,11 +2545,11 @@ type CloudAppliance struct {
 type CloudApplianceConfiguration struct {
 	// CloudApplianceConfigurationProperties - The properties.
 	*CloudApplianceConfigurationProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -2637,6 +2560,15 @@ func (cac CloudApplianceConfiguration) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if cac.CloudApplianceConfigurationProperties != nil {
 		objectMap["properties"] = cac.CloudApplianceConfigurationProperties
+	}
+	if cac.ID != nil {
+		objectMap["id"] = cac.ID
+	}
+	if cac.Name != nil {
+		objectMap["name"] = cac.Name
+	}
+	if cac.Type != nil {
+		objectMap["type"] = cac.Type
 	}
 	if cac.Kind != "" {
 		objectMap["kind"] = cac.Kind
@@ -2737,8 +2669,8 @@ type CloudApplianceSettings struct {
 	ChannelIntegrityKey *AsymmetricEncryptedSecret `json:"channelIntegrityKey,omitempty"`
 }
 
-// CloudAppliancesProvisionFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// CloudAppliancesProvisionFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type CloudAppliancesProvisionFuture struct {
 	azure.Future
 }
@@ -2747,7 +2679,7 @@ type CloudAppliancesProvisionFuture struct {
 // If the operation has not completed it will return an error.
 func (future *CloudAppliancesProvisionFuture) Result(client CloudAppliancesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.CloudAppliancesProvisionFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -2764,11 +2696,11 @@ func (future *CloudAppliancesProvisionFuture) Result(client CloudAppliancesClien
 type ConfigureDeviceRequest struct {
 	// ConfigureDeviceRequestProperties - The properties of the configure device request.
 	*ConfigureDeviceRequestProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -2779,6 +2711,15 @@ func (cdr ConfigureDeviceRequest) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if cdr.ConfigureDeviceRequestProperties != nil {
 		objectMap["properties"] = cdr.ConfigureDeviceRequestProperties
+	}
+	if cdr.ID != nil {
+		objectMap["id"] = cdr.ID
+	}
+	if cdr.Name != nil {
+		objectMap["name"] = cdr.Name
+	}
+	if cdr.Type != nil {
+		objectMap["type"] = cdr.Type
 	}
 	if cdr.Kind != "" {
 		objectMap["kind"] = cdr.Kind
@@ -2864,11 +2805,11 @@ type ConfigureDeviceRequestProperties struct {
 type ControllerPowerStateChangeRequest struct {
 	// ControllerPowerStateChangeRequestProperties - The properties of the controller power state change request.
 	*ControllerPowerStateChangeRequestProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -2879,6 +2820,15 @@ func (cpscr ControllerPowerStateChangeRequest) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if cpscr.ControllerPowerStateChangeRequestProperties != nil {
 		objectMap["properties"] = cpscr.ControllerPowerStateChangeRequestProperties
+	}
+	if cpscr.ID != nil {
+		objectMap["id"] = cpscr.ID
+	}
+	if cpscr.Name != nil {
+		objectMap["name"] = cpscr.Name
+	}
+	if cpscr.Type != nil {
+		objectMap["type"] = cpscr.Type
 	}
 	if cpscr.Kind != "" {
 		objectMap["kind"] = cpscr.Kind
@@ -2958,8 +2908,8 @@ type ControllerPowerStateChangeRequestProperties struct {
 	Controller1State ControllerStatus `json:"controller1State,omitempty"`
 }
 
-// DataStatistics the additional details related to the data related statistics of a job. Currently
-// applicable only for Backup, Clone and Restore jobs.
+// DataStatistics the additional details related to the data related statistics of a job. Currently applicable only
+// for Backup, Clone and Restore jobs.
 type DataStatistics struct {
 	// TotalData - The total bytes of data to be processed, as part of the job.
 	TotalData *int64 `json:"totalData,omitempty"`
@@ -2976,11 +2926,11 @@ type Device struct {
 	autorest.Response `json:"-"`
 	// DeviceProperties - The properties of the StorSimple device.
 	*DeviceProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -2991,6 +2941,15 @@ func (d Device) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if d.DeviceProperties != nil {
 		objectMap["properties"] = d.DeviceProperties
+	}
+	if d.ID != nil {
+		objectMap["id"] = d.ID
+	}
+	if d.Name != nil {
+		objectMap["name"] = d.Name
+	}
+	if d.Type != nil {
+		objectMap["type"] = d.Type
 	}
 	if d.Kind != "" {
 		objectMap["kind"] = d.Kind
@@ -3168,7 +3127,7 @@ type DeviceProperties struct {
 	NetworkInterfaceCardCount *int32 `json:"networkInterfaceCardCount,omitempty"`
 	// DeviceLocation - The location of the virtual appliance.
 	DeviceLocation *string `json:"deviceLocation,omitempty"`
-	// VirtualMachineAPIType - READ-ONLY; The virtual machine API type. Possible values include: 'Classic', 'Arm'
+	// VirtualMachineAPIType - The virtual machine API type. Possible values include: 'Classic', 'Arm'
 	VirtualMachineAPIType VirtualMachineAPIType `json:"virtualMachineApiType,omitempty"`
 	// Details - The additional device details regarding the end point count and volume container count.
 	Details *DeviceDetails `json:"details,omitempty"`
@@ -3186,8 +3145,7 @@ type DeviceRolloverDetails struct {
 	InEligibilityReason InEligibilityCategory `json:"inEligibilityReason,omitempty"`
 }
 
-// DevicesConfigureFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DevicesConfigureFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesConfigureFuture struct {
 	azure.Future
 }
@@ -3196,7 +3154,7 @@ type DevicesConfigureFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesConfigureFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesConfigureFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3209,8 +3167,7 @@ func (future *DevicesConfigureFuture) Result(client DevicesClient) (ar autorest.
 	return
 }
 
-// DevicesDeactivateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DevicesDeactivateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesDeactivateFuture struct {
 	azure.Future
 }
@@ -3219,7 +3176,7 @@ type DevicesDeactivateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesDeactivateFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesDeactivateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3232,8 +3189,7 @@ func (future *DevicesDeactivateFuture) Result(client DevicesClient) (ar autorest
 	return
 }
 
-// DevicesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DevicesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesDeleteFuture struct {
 	azure.Future
 }
@@ -3242,7 +3198,7 @@ type DevicesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesDeleteFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3255,8 +3211,8 @@ func (future *DevicesDeleteFuture) Result(client DevicesClient) (ar autorest.Res
 	return
 }
 
-// DeviceSettingsCreateOrUpdateAlertSettingsFuture an abstraction for monitoring and retrieving the results
-// of a long-running operation.
+// DeviceSettingsCreateOrUpdateAlertSettingsFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type DeviceSettingsCreateOrUpdateAlertSettingsFuture struct {
 	azure.Future
 }
@@ -3265,7 +3221,7 @@ type DeviceSettingsCreateOrUpdateAlertSettingsFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DeviceSettingsCreateOrUpdateAlertSettingsFuture) Result(client DeviceSettingsClient) (as AlertSettings, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateAlertSettingsFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3284,8 +3240,8 @@ func (future *DeviceSettingsCreateOrUpdateAlertSettingsFuture) Result(client Dev
 	return
 }
 
-// DeviceSettingsCreateOrUpdateTimeSettingsFuture an abstraction for monitoring and retrieving the results
-// of a long-running operation.
+// DeviceSettingsCreateOrUpdateTimeSettingsFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type DeviceSettingsCreateOrUpdateTimeSettingsFuture struct {
 	azure.Future
 }
@@ -3294,7 +3250,7 @@ type DeviceSettingsCreateOrUpdateTimeSettingsFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DeviceSettingsCreateOrUpdateTimeSettingsFuture) Result(client DeviceSettingsClient) (ts TimeSettings, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateTimeSettingsFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3313,8 +3269,8 @@ func (future *DeviceSettingsCreateOrUpdateTimeSettingsFuture) Result(client Devi
 	return
 }
 
-// DeviceSettingsSyncRemotemanagementCertificateFuture an abstraction for monitoring and retrieving the
-// results of a long-running operation.
+// DeviceSettingsSyncRemotemanagementCertificateFuture an abstraction for monitoring and retrieving the results of
+// a long-running operation.
 type DeviceSettingsSyncRemotemanagementCertificateFuture struct {
 	azure.Future
 }
@@ -3323,7 +3279,7 @@ type DeviceSettingsSyncRemotemanagementCertificateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DeviceSettingsSyncRemotemanagementCertificateFuture) Result(client DeviceSettingsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsSyncRemotemanagementCertificateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3346,7 +3302,7 @@ type DeviceSettingsUpdateNetworkSettingsFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DeviceSettingsUpdateNetworkSettingsFuture) Result(client DeviceSettingsClient) (ns NetworkSettings, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateNetworkSettingsFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3375,7 +3331,7 @@ type DeviceSettingsUpdateSecuritySettingsFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DeviceSettingsUpdateSecuritySettingsFuture) Result(client DeviceSettingsClient) (ss SecuritySettings, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateSecuritySettingsFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3394,8 +3350,7 @@ func (future *DeviceSettingsUpdateSecuritySettingsFuture) Result(client DeviceSe
 	return
 }
 
-// DevicesFailoverFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// DevicesFailoverFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesFailoverFuture struct {
 	azure.Future
 }
@@ -3404,7 +3359,7 @@ type DevicesFailoverFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesFailoverFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesFailoverFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3427,7 +3382,7 @@ type DevicesInstallUpdatesFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesInstallUpdatesFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesInstallUpdatesFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3450,7 +3405,7 @@ type DevicesScanForUpdatesFuture struct {
 // If the operation has not completed it will return an error.
 func (future *DevicesScanForUpdatesFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.DevicesScanForUpdatesFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3488,11 +3443,11 @@ type EncryptionSettings struct {
 	autorest.Response `json:"-"`
 	// EncryptionSettingsProperties - The properties of the encryption settings.
 	*EncryptionSettingsProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -3503,6 +3458,15 @@ func (es EncryptionSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if es.EncryptionSettingsProperties != nil {
 		objectMap["properties"] = es.EncryptionSettingsProperties
+	}
+	if es.ID != nil {
+		objectMap["id"] = es.ID
+	}
+	if es.Name != nil {
+		objectMap["name"] = es.Name
+	}
+	if es.Type != nil {
+		objectMap["type"] = es.Type
 	}
 	if es.Kind != "" {
 		objectMap["kind"] = es.Kind
@@ -3578,8 +3542,8 @@ type EncryptionSettingsProperties struct {
 	KeyRolloverStatus KeyRolloverStatus `json:"keyRolloverStatus,omitempty"`
 }
 
-// FailoverRequest the request object for triggering a failover of volume containers, from a source device
-// to a target device.
+// FailoverRequest the request object for triggering a failover of volume containers, from a source device to a
+// target device.
 type FailoverRequest struct {
 	// TargetDeviceID - The ARM path ID of the device which will act as the failover target.
 	TargetDeviceID *string `json:"targetDeviceId,omitempty"`
@@ -3620,7 +3584,7 @@ type FailoverTarget struct {
 	ModelDescription *string `json:"modelDescription,omitempty"`
 	// DeviceSoftwareVersion - The software version of the device.
 	DeviceSoftwareVersion *string `json:"deviceSoftwareVersion,omitempty"`
-	// DataContainersCount - The count of data containers on the device.
+	// DataContainersCount - The count of datacontainers on the device.
 	DataContainersCount *int32 `json:"dataContainersCount,omitempty"`
 	// VolumesCount - The count of volumes on the device.
 	VolumesCount *int32 `json:"volumesCount,omitempty"`
@@ -3636,8 +3600,8 @@ type FailoverTarget struct {
 	EligibilityResult *TargetEligibilityResult `json:"eligibilityResult,omitempty"`
 }
 
-// FailoverTargetsList the list of all devices in a resource and their eligibility status as a failover
-// target device.
+// FailoverTargetsList the list of all devices in a resource and their eligibility status as a failover target
+// device.
 type FailoverTargetsList struct {
 	autorest.Response `json:"-"`
 	// Value - The list of all the failover targets.
@@ -3681,11 +3645,11 @@ type HardwareComponent struct {
 type HardwareComponentGroup struct {
 	// HardwareComponentGroupProperties - The properties of the hardware component group.
 	*HardwareComponentGroupProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -3696,6 +3660,15 @@ func (hcg HardwareComponentGroup) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if hcg.HardwareComponentGroupProperties != nil {
 		objectMap["properties"] = hcg.HardwareComponentGroupProperties
+	}
+	if hcg.ID != nil {
+		objectMap["id"] = hcg.ID
+	}
+	if hcg.Name != nil {
+		objectMap["name"] = hcg.Name
+	}
+	if hcg.Type != nil {
+		objectMap["type"] = hcg.Type
 	}
 	if hcg.Kind != "" {
 		objectMap["kind"] = hcg.Kind
@@ -3780,8 +3753,8 @@ type HardwareComponentGroupProperties struct {
 	Components *[]HardwareComponent `json:"components,omitempty"`
 }
 
-// HardwareComponentGroupsChangeControllerPowerStateFuture an abstraction for monitoring and retrieving the
-// results of a long-running operation.
+// HardwareComponentGroupsChangeControllerPowerStateFuture an abstraction for monitoring and retrieving the results
+// of a long-running operation.
 type HardwareComponentGroupsChangeControllerPowerStateFuture struct {
 	azure.Future
 }
@@ -3790,7 +3763,7 @@ type HardwareComponentGroupsChangeControllerPowerStateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *HardwareComponentGroupsChangeControllerPowerStateFuture) Result(client HardwareComponentGroupsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.HardwareComponentGroupsChangeControllerPowerStateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -3818,11 +3791,11 @@ type Job struct {
 	Error *JobErrorDetails `json:"error,omitempty"`
 	// JobProperties - The properties of the job.
 	*JobProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -3848,6 +3821,15 @@ func (j Job) MarshalJSON() ([]byte, error) {
 	}
 	if j.JobProperties != nil {
 		objectMap["properties"] = j.JobProperties
+	}
+	if j.ID != nil {
+		objectMap["id"] = j.ID
+	}
+	if j.Name != nil {
+		objectMap["name"] = j.Name
+	}
+	if j.Type != nil {
+		objectMap["type"] = j.Type
 	}
 	if j.Kind != "" {
 		objectMap["kind"] = j.Kind
@@ -4005,37 +3987,20 @@ type JobListIterator struct {
 	page JobListPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *JobListIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobListIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *JobListIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *JobListIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -4057,11 +4022,6 @@ func (iter JobListIterator) Value() Job {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the JobListIterator type.
-func NewJobListIterator(page JobListPage) JobListIterator {
-	return JobListIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (jl JobList) IsEmpty() bool {
 	return jl.Value == nil || len(*jl.Value) == 0
@@ -4069,11 +4029,11 @@ func (jl JobList) IsEmpty() bool {
 
 // jobListPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (jl JobList) jobListPreparer(ctx context.Context) (*http.Request, error) {
+func (jl JobList) jobListPreparer() (*http.Request, error) {
 	if jl.NextLink == nil || len(to.String(jl.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(jl.NextLink)))
@@ -4081,36 +4041,19 @@ func (jl JobList) jobListPreparer(ctx context.Context) (*http.Request, error) {
 
 // JobListPage contains a page of Job values.
 type JobListPage struct {
-	fn func(context.Context, JobList) (JobList, error)
+	fn func(JobList) (JobList, error)
 	jl JobList
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *JobListPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobListPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.jl)
+func (page *JobListPage) Next() error {
+	next, err := page.fn(page.jl)
 	if err != nil {
 		return err
 	}
 	page.jl = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *JobListPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -4129,11 +4072,6 @@ func (page JobListPage) Values() []Job {
 		return nil
 	}
 	return *page.jl.Value
-}
-
-// Creates a new instance of the JobListPage type.
-func NewJobListPage(getNextPage func(context.Context, JobList) (JobList, error)) JobListPage {
-	return JobListPage{fn: getNextPage}
 }
 
 // JobProperties the properties of the job.
@@ -4169,7 +4107,7 @@ type JobsCancelFuture struct {
 // If the operation has not completed it will return an error.
 func (future *JobsCancelFuture) Result(client JobsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.JobsCancelFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -4201,8 +4139,8 @@ type Key struct {
 	ActivationKey *string `json:"activationKey,omitempty"`
 }
 
-// ListFailoverTargetsRequest the request object for fetching the list of failover targets (eligible
-// devices for failover).
+// ListFailoverTargetsRequest the request object for fetching the list of failover targets (eligible devices for
+// failover).
 type ListFailoverTargetsRequest struct {
 	// VolumeContainers - The list of path IDs of the volume containers that needs to be failed-over, for which we want to fetch the eligible targets.
 	VolumeContainers *[]string `json:"volumeContainers,omitempty"`
@@ -4215,11 +4153,11 @@ type Manager struct {
 	*ManagerProperties `json:"properties,omitempty"`
 	// Etag - The etag of the manager.
 	Etag *string `json:"etag,omitempty"`
-	// ID - READ-ONLY; The resource ID.
+	// ID - The resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The geo location of the resource.
 	Location *string `json:"location,omitempty"`
@@ -4235,6 +4173,15 @@ func (mVar Manager) MarshalJSON() ([]byte, error) {
 	}
 	if mVar.Etag != nil {
 		objectMap["etag"] = mVar.Etag
+	}
+	if mVar.ID != nil {
+		objectMap["id"] = mVar.ID
+	}
+	if mVar.Name != nil {
+		objectMap["name"] = mVar.Name
+	}
+	if mVar.Type != nil {
+		objectMap["type"] = mVar.Type
 	}
 	if mVar.Location != nil {
 		objectMap["location"] = mVar.Location
@@ -4330,11 +4277,11 @@ type ManagerExtendedInfo struct {
 	*ManagerExtendedInfoProperties `json:"properties,omitempty"`
 	// Etag - The etag of the resource.
 	Etag *string `json:"etag,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -4348,6 +4295,15 @@ func (mei ManagerExtendedInfo) MarshalJSON() ([]byte, error) {
 	}
 	if mei.Etag != nil {
 		objectMap["etag"] = mei.Etag
+	}
+	if mei.ID != nil {
+		objectMap["id"] = mei.ID
+	}
+	if mei.Name != nil {
+		objectMap["name"] = mei.Name
+	}
+	if mei.Type != nil {
+		objectMap["type"] = mei.Type
 	}
 	if mei.Kind != "" {
 		objectMap["kind"] = mei.Kind
@@ -4440,7 +4396,7 @@ type ManagerExtendedInfoProperties struct {
 	Algorithm *string `json:"algorithm,omitempty"`
 }
 
-// ManagerIntrinsicSettings intrinsic settings which refers to the type of the StorSimple Manager.
+// ManagerIntrinsicSettings intrinsic settings which refers to the type of the Storsimple Manager.
 type ManagerIntrinsicSettings struct {
 	// Type - The type of StorSimple Manager. Possible values include: 'GardaV1', 'HelsinkiV1'
 	Type ManagerType `json:"type,omitempty"`
@@ -4449,7 +4405,7 @@ type ManagerIntrinsicSettings struct {
 // ManagerList the list of StorSimple Managers.
 type ManagerList struct {
 	autorest.Response `json:"-"`
-	// Value - The list of StorSimple managers.
+	// Value - The list of storsimple managers.
 	Value *[]Manager `json:"value,omitempty"`
 }
 
@@ -4643,11 +4599,11 @@ type NetworkSettings struct {
 	autorest.Response `json:"-"`
 	// NetworkSettingsProperties - The properties of network settings of a device.
 	*NetworkSettingsProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -4658,6 +4614,15 @@ func (ns NetworkSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ns.NetworkSettingsProperties != nil {
 		objectMap["properties"] = ns.NetworkSettingsProperties
+	}
+	if ns.ID != nil {
+		objectMap["id"] = ns.ID
+	}
+	if ns.Name != nil {
+		objectMap["name"] = ns.Name
+	}
+	if ns.Type != nil {
+		objectMap["type"] = ns.Type
 	}
 	if ns.Kind != "" {
 		objectMap["kind"] = ns.Kind
@@ -4833,11 +4798,11 @@ type RemoteManagementSettingsPatch struct {
 
 // Resource the Azure Resource.
 type Resource struct {
-	// ID - READ-ONLY; The resource ID.
+	// ID - The resource ID.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The resource name.
+	// Name - The resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The resource type.
+	// Type - The resource type.
 	Type *string `json:"type,omitempty"`
 	// Location - The geo location of the resource.
 	Location *string `json:"location,omitempty"`
@@ -4848,6 +4813,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}
@@ -4878,11 +4852,11 @@ type SecuritySettings struct {
 	autorest.Response `json:"-"`
 	// SecuritySettingsProperties - The properties of the security settings of a device.
 	*SecuritySettingsProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -4893,6 +4867,15 @@ func (ss SecuritySettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ss.SecuritySettingsProperties != nil {
 		objectMap["properties"] = ss.SecuritySettingsProperties
+	}
+	if ss.ID != nil {
+		objectMap["id"] = ss.ID
+	}
+	if ss.Name != nil {
+		objectMap["name"] = ss.Name
+	}
+	if ss.Type != nil {
+		objectMap["type"] = ss.Type
 	}
 	if ss.Kind != "" {
 		objectMap["kind"] = ss.Kind
@@ -5032,11 +5015,11 @@ type StorageAccountCredential struct {
 	autorest.Response `json:"-"`
 	// StorageAccountCredentialProperties - The storage account credential properties.
 	*StorageAccountCredentialProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -5047,6 +5030,15 @@ func (sac StorageAccountCredential) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if sac.StorageAccountCredentialProperties != nil {
 		objectMap["properties"] = sac.StorageAccountCredentialProperties
+	}
+	if sac.ID != nil {
+		objectMap["id"] = sac.ID
+	}
+	if sac.Name != nil {
+		objectMap["name"] = sac.Name
+	}
+	if sac.Type != nil {
+		objectMap["type"] = sac.Type
 	}
 	if sac.Kind != "" {
 		objectMap["kind"] = sac.Kind
@@ -5129,12 +5121,12 @@ type StorageAccountCredentialProperties struct {
 	SslStatus SslStatus `json:"sslStatus,omitempty"`
 	// AccessKey - The details of the storage account password.
 	AccessKey *AsymmetricEncryptedSecret `json:"accessKey,omitempty"`
-	// VolumesCount - READ-ONLY; The count of volumes using this storage account credential.
+	// VolumesCount - The count of volumes using this storage account credential.
 	VolumesCount *int32 `json:"volumesCount,omitempty"`
 }
 
-// StorageAccountCredentialsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results
-// of a long-running operation.
+// StorageAccountCredentialsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
 type StorageAccountCredentialsCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -5143,7 +5135,7 @@ type StorageAccountCredentialsCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StorageAccountCredentialsCreateOrUpdateFuture) Result(client StorageAccountCredentialsClient) (sac StorageAccountCredential, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5162,8 +5154,8 @@ func (future *StorageAccountCredentialsCreateOrUpdateFuture) Result(client Stora
 	return
 }
 
-// StorageAccountCredentialsDeleteFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// StorageAccountCredentialsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type StorageAccountCredentialsDeleteFuture struct {
 	azure.Future
 }
@@ -5172,7 +5164,7 @@ type StorageAccountCredentialsDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *StorageAccountCredentialsDeleteFuture) Result(client StorageAccountCredentialsClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5196,8 +5188,8 @@ type SymmetricEncryptedSecret struct {
 	EncryptionAlgorithm EncryptionAlgorithm `json:"encryptionAlgorithm,omitempty"`
 }
 
-// TargetEligibilityErrorMessage the error/warning message due to which the device is ineligible as a
-// failover target device.
+// TargetEligibilityErrorMessage the error/warning message due to which the device is ineligible as a failover
+// target device.
 type TargetEligibilityErrorMessage struct {
 	// Message - The localized error message stating the reason why the device is not eligible as a target device.
 	Message *string `json:"message,omitempty"`
@@ -5230,11 +5222,11 @@ type TimeSettings struct {
 	autorest.Response `json:"-"`
 	// TimeSettingsProperties - The properties of the time settings of a device.
 	*TimeSettingsProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -5245,6 +5237,15 @@ func (ts TimeSettings) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ts.TimeSettingsProperties != nil {
 		objectMap["properties"] = ts.TimeSettingsProperties
+	}
+	if ts.ID != nil {
+		objectMap["id"] = ts.ID
+	}
+	if ts.Name != nil {
+		objectMap["name"] = ts.Name
+	}
+	if ts.Type != nil {
+		objectMap["type"] = ts.Type
 	}
 	if ts.Kind != "" {
 		objectMap["kind"] = ts.Kind
@@ -5327,11 +5328,11 @@ type Updates struct {
 	autorest.Response `json:"-"`
 	// UpdatesProperties - The properties of the updates profile.
 	*UpdatesProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -5342,6 +5343,15 @@ func (u Updates) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if u.UpdatesProperties != nil {
 		objectMap["properties"] = u.UpdatesProperties
+	}
+	if u.ID != nil {
+		objectMap["id"] = u.ID
+	}
+	if u.Name != nil {
+		objectMap["name"] = u.Name
+	}
+	if u.Type != nil {
+		objectMap["type"] = u.Type
 	}
 	if u.Kind != "" {
 		objectMap["kind"] = u.Kind
@@ -5440,11 +5450,11 @@ type Volume struct {
 	autorest.Response `json:"-"`
 	// VolumeProperties - The properties of the volume.
 	*VolumeProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -5455,6 +5465,15 @@ func (vVar Volume) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if vVar.VolumeProperties != nil {
 		objectMap["properties"] = vVar.VolumeProperties
+	}
+	if vVar.ID != nil {
+		objectMap["id"] = vVar.ID
+	}
+	if vVar.Name != nil {
+		objectMap["name"] = vVar.Name
+	}
+	if vVar.Type != nil {
+		objectMap["type"] = vVar.Type
 	}
 	if vVar.Kind != "" {
 		objectMap["kind"] = vVar.Kind
@@ -5527,11 +5546,11 @@ type VolumeContainer struct {
 	autorest.Response `json:"-"`
 	// VolumeContainerProperties - The volume container properties.
 	*VolumeContainerProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; The path ID that uniquely identifies the object.
+	// ID - The path ID that uniquely identifies the object.
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; The name of the object.
+	// Name - The name of the object.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; The hierarchical type of the object.
+	// Type - The hierarchical type of the object.
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
@@ -5542,6 +5561,15 @@ func (vc VolumeContainer) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if vc.VolumeContainerProperties != nil {
 		objectMap["properties"] = vc.VolumeContainerProperties
+	}
+	if vc.ID != nil {
+		objectMap["id"] = vc.ID
+	}
+	if vc.Name != nil {
+		objectMap["name"] = vc.Name
+	}
+	if vc.Type != nil {
+		objectMap["type"] = vc.Type
 	}
 	if vc.Kind != "" {
 		objectMap["kind"] = vc.Kind
@@ -5609,8 +5637,8 @@ func (vc *VolumeContainer) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// VolumeContainerFailoverMetadata the metadata of the volume container, that is being considered as part
-// of a failover set.
+// VolumeContainerFailoverMetadata the metadata of the volume container, that is being considered as part of a
+// failover set.
 type VolumeContainerFailoverMetadata struct {
 	// VolumeContainerID - The path ID of the volume container.
 	VolumeContainerID *string `json:"volumeContainerId,omitempty"`
@@ -5629,24 +5657,24 @@ type VolumeContainerList struct {
 type VolumeContainerProperties struct {
 	// EncryptionKey - The key used to encrypt data in the volume container. It is required when property 'EncryptionStatus' is "Enabled".
 	EncryptionKey *AsymmetricEncryptedSecret `json:"encryptionKey,omitempty"`
-	// EncryptionStatus - READ-ONLY; The flag to denote whether encryption is enabled or not. Possible values include: 'EncryptionStatusEnabled', 'EncryptionStatusDisabled'
+	// EncryptionStatus - The flag to denote whether encryption is enabled or not. Possible values include: 'EncryptionStatusEnabled', 'EncryptionStatusDisabled'
 	EncryptionStatus EncryptionStatus `json:"encryptionStatus,omitempty"`
-	// VolumeCount - READ-ONLY; The number of volumes in the volume Container.
+	// VolumeCount - The number of volumes in the volume Container.
 	VolumeCount *int32 `json:"volumeCount,omitempty"`
 	// StorageAccountCredentialID - The path ID of storage account associated with the volume container.
 	StorageAccountCredentialID *string `json:"storageAccountCredentialId,omitempty"`
-	// OwnerShipStatus - READ-ONLY; The owner ship status of the volume container. Only when the status is "NotOwned", the delete operation on the volume container is permitted. Possible values include: 'Owned', 'NotOwned'
+	// OwnerShipStatus - The owner ship status of the volume container. Only when the status is "NotOwned", the delete operation on the volume container is permitted. Possible values include: 'Owned', 'NotOwned'
 	OwnerShipStatus OwnerShipStatus `json:"ownerShipStatus,omitempty"`
 	// BandWidthRateInMbps - The bandwidth-rate set on the volume container.
 	BandWidthRateInMbps *int32 `json:"bandWidthRateInMbps,omitempty"`
 	// BandwidthSettingID - The ID of the bandwidth setting associated with the volume container.
 	BandwidthSettingID *string `json:"bandwidthSettingId,omitempty"`
-	// TotalCloudStorageUsageInBytes - READ-ONLY; The total cloud storage for the volume container.
+	// TotalCloudStorageUsageInBytes - The total cloud storage for the volume container.
 	TotalCloudStorageUsageInBytes *int64 `json:"totalCloudStorageUsageInBytes,omitempty"`
 }
 
-// VolumeContainersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
+// VolumeContainersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
 type VolumeContainersCreateOrUpdateFuture struct {
 	azure.Future
 }
@@ -5655,7 +5683,7 @@ type VolumeContainersCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *VolumeContainersCreateOrUpdateFuture) Result(client VolumeContainersClient) (vc VolumeContainer, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.VolumeContainersCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5684,7 +5712,7 @@ type VolumeContainersDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *VolumeContainersDeleteFuture) Result(client VolumeContainersClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.VolumeContainersDeleteFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5728,19 +5756,19 @@ type VolumeProperties struct {
 	SizeInBytes *int64 `json:"sizeInBytes,omitempty"`
 	// VolumeType - The type of the volume. Possible values include: 'Tiered', 'Archival', 'LocallyPinned'
 	VolumeType VolumeType `json:"volumeType,omitempty"`
-	// VolumeContainerID - READ-ONLY; The ID of the volume container, in which this volume is created.
+	// VolumeContainerID - The ID of the volume container, in which this volume is created.
 	VolumeContainerID *string `json:"volumeContainerId,omitempty"`
 	// AccessControlRecordIds - The IDs of the access control records, associated with the volume.
 	AccessControlRecordIds *[]string `json:"accessControlRecordIds,omitempty"`
 	// VolumeStatus - The volume status. Possible values include: 'VolumeStatusOnline', 'VolumeStatusOffline'
 	VolumeStatus VolumeStatus `json:"volumeStatus,omitempty"`
-	// OperationStatus - READ-ONLY; The operation status on the volume. Possible values include: 'OperationStatusNone', 'OperationStatusUpdating', 'OperationStatusDeleting', 'OperationStatusRestoring'
+	// OperationStatus - The operation status on the volume. Possible values include: 'OperationStatusNone', 'OperationStatusUpdating', 'OperationStatusDeleting', 'OperationStatusRestoring'
 	OperationStatus OperationStatus `json:"operationStatus,omitempty"`
-	// BackupStatus - READ-ONLY; The backup status of the volume. Possible values include: 'BackupStatusEnabled', 'BackupStatusDisabled'
+	// BackupStatus - The backup status of the volume. Possible values include: 'BackupStatusEnabled', 'BackupStatusDisabled'
 	BackupStatus BackupStatus `json:"backupStatus,omitempty"`
 	// MonitoringStatus - The monitoring status of the volume. Possible values include: 'MonitoringStatusEnabled', 'MonitoringStatusDisabled'
 	MonitoringStatus MonitoringStatus `json:"monitoringStatus,omitempty"`
-	// BackupPolicyIds - READ-ONLY; The IDs of the backup policies, in which this volume is part of.
+	// BackupPolicyIds - The IDs of the backup policies, in which this volume is part of.
 	BackupPolicyIds *[]string `json:"backupPolicyIds,omitempty"`
 }
 
@@ -5754,7 +5782,7 @@ type VolumesCreateOrUpdateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *VolumesCreateOrUpdateFuture) Result(client VolumesClient) (vVar Volume, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.VolumesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -5773,8 +5801,7 @@ func (future *VolumesCreateOrUpdateFuture) Result(client VolumesClient) (vVar Vo
 	return
 }
 
-// VolumesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// VolumesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type VolumesDeleteFuture struct {
 	azure.Future
 }
@@ -5783,7 +5810,7 @@ type VolumesDeleteFuture struct {
 // If the operation has not completed it will return an error.
 func (future *VolumesDeleteFuture) Result(client VolumesClient) (ar autorest.Response, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storsimple.VolumesDeleteFuture", "Result", future.Response(), "Polling failure")
 		return

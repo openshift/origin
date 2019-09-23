@@ -1,8 +1,14 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-- sig-apps-approvers
+- janetkuo
+- nikhiljindal
+- kargakis
+- mfojtik
 reviewers:
-- sig-apps-reviewers
+- janetkuo
+- kargakis
+- mfojtik
+- tnozicka
 labels:
 - sig/apps

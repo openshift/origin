@@ -51,7 +51,7 @@ func edgeWeightedPageRank(g graph.WeightedDirected, damp, tol float64) map[int64
 	//
 	// http://www.ams.org/samplings/feature-column/fcarc-pagerank
 
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	indexOf := make(map[int64]int, len(nodes))
 	for i, n := range nodes {
 		indexOf[n.ID()] = i
@@ -60,7 +60,7 @@ func edgeWeightedPageRank(g graph.WeightedDirected, damp, tol float64) map[int64
 	m := mat.NewDense(len(nodes), len(nodes), nil)
 	dangling := damp / float64(len(nodes))
 	for j, u := range nodes {
-		to := graph.NodesOf(g.From(u.ID()))
+		to := g.From(u.ID())
 		var z float64
 		for _, v := range to {
 			if w, ok := g.Weight(u.ID(), v.ID()); ok {
@@ -134,7 +134,7 @@ func edgeWeightedPageRankSparse(g graph.WeightedDirected, damp, tol float64) map
 	//
 	// http://www.ams.org/samplings/feature-column/fcarc-pagerank
 
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	indexOf := make(map[int64]int, len(nodes))
 	for i, n := range nodes {
 		indexOf[n.ID()] = i
@@ -144,7 +144,7 @@ func edgeWeightedPageRankSparse(g graph.WeightedDirected, damp, tol float64) map
 	var dangling compressedRow
 	df := damp / float64(len(nodes))
 	for j, u := range nodes {
-		to := graph.NodesOf(g.From(u.ID()))
+		to := g.From(u.ID())
 		var z float64
 		for _, v := range to {
 			if w, ok := g.Weight(u.ID(), v.ID()); ok {
@@ -215,7 +215,7 @@ func pageRank(g graph.Directed, damp, tol float64) map[int64]float64 {
 	//
 	// http://www.ams.org/samplings/feature-column/fcarc-pagerank
 
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	indexOf := make(map[int64]int, len(nodes))
 	for i, n := range nodes {
 		indexOf[n.ID()] = i
@@ -224,7 +224,7 @@ func pageRank(g graph.Directed, damp, tol float64) map[int64]float64 {
 	m := mat.NewDense(len(nodes), len(nodes), nil)
 	dangling := damp / float64(len(nodes))
 	for j, u := range nodes {
-		to := graph.NodesOf(g.From(u.ID()))
+		to := g.From(u.ID())
 		f := damp / float64(len(to))
 		for _, v := range to {
 			m.Set(indexOf[v.ID()], j, f)
@@ -288,7 +288,7 @@ func pageRankSparse(g graph.Directed, damp, tol float64) map[int64]float64 {
 	//
 	// http://www.ams.org/samplings/feature-column/fcarc-pagerank
 
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	indexOf := make(map[int64]int, len(nodes))
 	for i, n := range nodes {
 		indexOf[n.ID()] = i
@@ -298,7 +298,7 @@ func pageRankSparse(g graph.Directed, damp, tol float64) map[int64]float64 {
 	var dangling compressedRow
 	df := damp / float64(len(nodes))
 	for j, u := range nodes {
-		to := graph.NodesOf(g.From(u.ID()))
+		to := g.From(u.ID())
 		f := damp / float64(len(to))
 		for _, v := range to {
 			m.addTo(indexOf[v.ID()], j, f)
@@ -379,7 +379,7 @@ func (r *compressedRow) addTo(j int, v float64) {
 }
 
 // dotUnitary performs a simplified scatter-based Ddot operations on
-// v and the receiver. v must have a unitary vector increment.
+// v and the receiver. v must have have a unitary vector increment.
 func (r compressedRow) dotUnitary(v *mat.VecDense) float64 {
 	var sum float64
 	vec := v.RawVector().Data
@@ -396,8 +396,8 @@ type sparseElement struct {
 }
 
 // onesDotUnitary performs the equivalent of a Ddot of v with
-// a ones vector of equal length. v must have a unitary vector
-// increment.
+// a ones vector of equal length. v must have have a unitary
+// vector increment.
 func onesDotUnitary(alpha float64, v *mat.VecDense) float64 {
 	var sum float64
 	for _, f := range v.RawVector().Data {

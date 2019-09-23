@@ -71,7 +71,7 @@ var shimCommand = cli.Command{
 		// Asynchronously wait for the container to exit.
 		containerExitCh := make(chan error)
 		go func() {
-			containerExitCh <- c.hc.WaitExpectedError(hcs.ErrAlreadyClosed)
+			containerExitCh <- c.hc.Wait()
 		}()
 
 		// Get File objects for the open stdio files passed in as arguments.

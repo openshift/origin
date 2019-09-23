@@ -39,6 +39,7 @@ import (
 
 // task This describes a task. Tasks require a content property to be set.
 type task struct {
+
 	// Completed
 	Completed bool `json:"completed" xml:"completed"`
 
@@ -362,50 +363,6 @@ func TestRuntime_TextCanary(t *testing.T) {
 		assert.IsType(t, "", res)
 		actual := res.(string)
 		assert.EqualValues(t, result, actual)
-	}
-}
-
-func TestRuntime_CSVCanary(t *testing.T) {
-	// test that it can make a simple csv request
-	// and get the response for it.
-	result := `task,content,result
-1,task1,ok
-2,task2,fail
-`
-	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Header().Add(runtime.HeaderContentType, runtime.CSVMime)
-		rw.WriteHeader(http.StatusOK)
-		_, _ = rw.Write([]byte(result))
-	}))
-	defer server.Close()
-
-	rwrtr := runtime.ClientRequestWriterFunc(func(req runtime.ClientRequest, _ strfmt.Registry) error {
-		return nil
-	})
-
-	hu, _ := url.Parse(server.URL)
-	rt := New(hu.Host, "/", []string{"http"})
-	res, err := rt.Submit(&runtime.ClientOperation{
-		ID:          "getTasks",
-		Method:      "GET",
-		PathPattern: "/",
-		Params:      rwrtr,
-		Reader: runtime.ClientResponseReaderFunc(func(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
-			if response.Code() == 200 {
-				var result bytes.Buffer
-				if err := consumer.Consume(response.Body(), &result); err != nil {
-					return nil, err
-				}
-				return result, nil
-			}
-			return nil, errors.New("Generic error")
-		}),
-	})
-
-	if assert.NoError(t, err) {
-		assert.IsType(t, bytes.Buffer{}, res)
-		actual := res.(bytes.Buffer)
-		assert.EqualValues(t, result, actual.String())
 	}
 }
 

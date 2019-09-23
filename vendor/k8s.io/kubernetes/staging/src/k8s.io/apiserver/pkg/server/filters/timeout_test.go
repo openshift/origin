@@ -52,14 +52,14 @@ func (r *recorder) Count() int {
 	return r.count
 }
 
-func newHandler(responseCh <-chan string, panicCh <-chan interface{}, writeErrCh chan<- error) http.HandlerFunc {
+func newHandler(responseCh <-chan string, panicCh <-chan struct{}, writeErrCh chan<- error) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		select {
 		case resp := <-responseCh:
 			_, err := w.Write([]byte(resp))
 			writeErrCh <- err
-		case panicReason := <-panicCh:
-			panic(panicReason)
+		case <-panicCh:
+			panic("inner handler panics")
 		}
 	})
 }
@@ -72,7 +72,7 @@ func TestTimeout(t *testing.T) {
 	}()
 
 	sendResponse := make(chan string, 1)
-	doPanic := make(chan interface{}, 1)
+	doPanic := make(chan struct{}, 1)
 	writeErrors := make(chan error, 1)
 	gotPanic := make(chan interface{}, 1)
 	timeout := make(chan time.Time, 1)
@@ -139,7 +139,7 @@ func TestTimeout(t *testing.T) {
 	}
 
 	// Panics
-	doPanic <- "inner handler panics"
+	doPanic <- struct{}{}
 	res, err = http.Get(ts.URL)
 	if err != nil {
 		t.Fatal(err)
@@ -152,24 +152,6 @@ func TestTimeout(t *testing.T) {
 		msg := fmt.Sprintf("%v", err)
 		if !strings.Contains(msg, "newHandler") {
 			t.Errorf("expected line with root cause panic in the stack trace, but didn't: %v", err)
-		}
-	case <-time.After(30 * time.Second):
-		t.Fatalf("expected to see a handler panic, but didn't")
-	}
-
-	// Panics with http.ErrAbortHandler
-	doPanic <- http.ErrAbortHandler
-	res, err = http.Get(ts.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res.StatusCode != http.StatusInternalServerError {
-		t.Errorf("got res.StatusCode %d; expected %d due to panic", res.StatusCode, http.StatusInternalServerError)
-	}
-	select {
-	case err := <-gotPanic:
-		if err != http.ErrAbortHandler {
-			t.Errorf("expected unwrapped http.ErrAbortHandler, got %#v", err)
 		}
 	case <-time.After(30 * time.Second):
 		t.Fatalf("expected to see a handler panic, but didn't")

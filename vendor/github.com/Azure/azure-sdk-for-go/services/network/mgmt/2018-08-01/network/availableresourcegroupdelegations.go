@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,16 +46,6 @@ func NewAvailableResourceGroupDelegationsClientWithBaseURI(baseURI string, subsc
 // location - the location of the domain name.
 // resourceGroupName - the name of the resource group.
 func (client AvailableResourceGroupDelegationsClient) List(ctx context.Context, location string, resourceGroupName string) (result AvailableDelegationsResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AvailableResourceGroupDelegationsClient.List")
-		defer func() {
-			sc := -1
-			if result.adr.Response.Response != nil {
-				sc = result.adr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, location, resourceGroupName)
 	if err != nil {
@@ -103,8 +92,8 @@ func (client AvailableResourceGroupDelegationsClient) ListPreparer(ctx context.C
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client AvailableResourceGroupDelegationsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -121,8 +110,8 @@ func (client AvailableResourceGroupDelegationsClient) ListResponder(resp *http.R
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client AvailableResourceGroupDelegationsClient) listNextResults(ctx context.Context, lastResults AvailableDelegationsResult) (result AvailableDelegationsResult, err error) {
-	req, err := lastResults.availableDelegationsResultPreparer(ctx)
+func (client AvailableResourceGroupDelegationsClient) listNextResults(lastResults AvailableDelegationsResult) (result AvailableDelegationsResult, err error) {
+	req, err := lastResults.availableDelegationsResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.AvailableResourceGroupDelegationsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -143,16 +132,6 @@ func (client AvailableResourceGroupDelegationsClient) listNextResults(ctx contex
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AvailableResourceGroupDelegationsClient) ListComplete(ctx context.Context, location string, resourceGroupName string) (result AvailableDelegationsResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AvailableResourceGroupDelegationsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, location, resourceGroupName)
 	return
 }

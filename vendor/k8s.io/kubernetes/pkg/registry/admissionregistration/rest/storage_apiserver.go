@@ -17,7 +17,6 @@ limitations under the License.
 package rest
 
 import (
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -31,64 +30,28 @@ import (
 
 type RESTStorageProvider struct{}
 
-func (p RESTStorageProvider) NewRESTStorage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool, error) {
+func (p RESTStorageProvider) NewRESTStorage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(admissionregistration.GroupName, legacyscheme.Scheme, legacyscheme.ParameterCodec, legacyscheme.Codecs)
 	// If you add a version here, be sure to add an entry in `k8s.io/kubernetes/cmd/kube-apiserver/app/aggregator.go with specific priorities.
 	// TODO refactor the plumbing to provide the information in the APIGroupInfo
 
 	if apiResourceConfigSource.VersionEnabled(admissionregistrationv1beta1.SchemeGroupVersion) {
-		if storageMap, err := p.v1beta1Storage(apiResourceConfigSource, restOptionsGetter); err != nil {
-			return genericapiserver.APIGroupInfo{}, false, err
-		} else {
-			apiGroupInfo.VersionedResourcesStorageMap[admissionregistrationv1beta1.SchemeGroupVersion.Version] = storageMap
-		}
+		apiGroupInfo.VersionedResourcesStorageMap[admissionregistrationv1beta1.SchemeGroupVersion.Version] = p.v1beta1Storage(apiResourceConfigSource, restOptionsGetter)
 	}
-	if apiResourceConfigSource.VersionEnabled(admissionregistrationv1.SchemeGroupVersion) {
-		if storageMap, err := p.v1Storage(apiResourceConfigSource, restOptionsGetter); err != nil {
-			return genericapiserver.APIGroupInfo{}, false, err
-		} else {
-			apiGroupInfo.VersionedResourcesStorageMap[admissionregistrationv1.SchemeGroupVersion.Version] = storageMap
-		}
-	}
-	return apiGroupInfo, true, nil
+	return apiGroupInfo, true
 }
 
-func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (map[string]rest.Storage, error) {
+func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) map[string]rest.Storage {
 	storage := map[string]rest.Storage{}
 	// validatingwebhookconfigurations
-	validatingStorage, err := validatingwebhookconfigurationstorage.NewREST(restOptionsGetter)
-	if err != nil {
-		return storage, err
-	}
+	validatingStorage := validatingwebhookconfigurationstorage.NewREST(restOptionsGetter)
 	storage["validatingwebhookconfigurations"] = validatingStorage
 
 	// mutatingwebhookconfigurations
-	mutatingStorage, err := mutatingwebhookconfigurationstorage.NewREST(restOptionsGetter)
-	if err != nil {
-		return storage, err
-	}
+	mutatingStorage := mutatingwebhookconfigurationstorage.NewREST(restOptionsGetter)
 	storage["mutatingwebhookconfigurations"] = mutatingStorage
 
-	return storage, err
-}
-
-func (p RESTStorageProvider) v1Storage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (map[string]rest.Storage, error) {
-	storage := map[string]rest.Storage{}
-	// validatingwebhookconfigurations
-	validatingStorage, err := validatingwebhookconfigurationstorage.NewREST(restOptionsGetter)
-	if err != nil {
-		return storage, err
-	}
-	storage["validatingwebhookconfigurations"] = validatingStorage
-
-	// mutatingwebhookconfigurations
-	mutatingStorage, err := mutatingwebhookconfigurationstorage.NewREST(restOptionsGetter)
-	if err != nil {
-		return storage, err
-	}
-	storage["mutatingwebhookconfigurations"] = mutatingStorage
-
-	return storage, err
+	return storage
 }
 
 func (p RESTStorageProvider) GroupName() string {

@@ -2,7 +2,8 @@
 // this source code is governed by a BSD-style license that can be found in the
 // LICENSE file.
 
-// !appengine
+// Require 1.7 for sub-bencmarks
+// +build go1.7,!appengine
 
 package websocket
 

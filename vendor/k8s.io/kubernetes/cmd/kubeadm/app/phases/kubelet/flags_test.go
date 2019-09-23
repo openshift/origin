@@ -25,7 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/utils/exec"
 )
@@ -66,35 +66,35 @@ func (f fakeExecer) LookPath(file string) (string, error) { return "", errors.Ne
 var (
 	systemdCgroupExecer = fakeExecer{
 		ioMap: map[string]fakeCmd{
-			"docker info -f {{.CgroupDriver}}": {
-				b: []byte(`systemd`),
+			"docker info": {
+				b: []byte(`Cgroup Driver: systemd`),
 			},
 		},
 	}
 
 	cgroupfsCgroupExecer = fakeExecer{
 		ioMap: map[string]fakeCmd{
-			"docker info -f {{.CgroupDriver}}": {
-				b: []byte(`cgroupfs`),
+			"docker info": {
+				b: []byte(`Cgroup Driver: cgroupfs`),
 			},
 		},
 	}
 
 	errCgroupExecer = fakeExecer{
 		ioMap: map[string]fakeCmd{
-			"docker info -f {{.CgroupDriver}}": {
+			"docker info": {
 				err: errors.New("no such binary: docker"),
 			},
 		},
 	}
 )
 
-func serviceIsActiveFunc(_ string) (bool, error) {
-	return true, nil
+func binaryRunningPidOfFunc(_ string) ([]int, error) {
+	return []int{1, 2, 3}, nil
 }
 
-func serviceIsNotActiveFunc(_ string) (bool, error) {
-	return false, nil
+func binaryNotRunningPidOfFunc(_ string) ([]int, error) {
+	return []int{}, nil
 }
 
 func TestBuildKubeletArgMap(t *testing.T) {
@@ -118,9 +118,9 @@ func TestBuildKubeletArgMap(t *testing.T) {
 						},
 					},
 				},
-				execer:              errCgroupExecer,
-				isServiceActiveFunc: serviceIsNotActiveFunc,
-				defaultHostname:     "foo",
+				execer:          errCgroupExecer,
+				pidOfFunc:       binaryNotRunningPidOfFunc,
+				defaultHostname: "foo",
 			},
 			expected: map[string]string{
 				"network-plugin": "cni",
@@ -133,9 +133,9 @@ func TestBuildKubeletArgMap(t *testing.T) {
 					CRISocket: "/var/run/dockershim.sock",
 					Name:      "override-name",
 				},
-				execer:              errCgroupExecer,
-				isServiceActiveFunc: serviceIsNotActiveFunc,
-				defaultHostname:     "default",
+				execer:          errCgroupExecer,
+				pidOfFunc:       binaryNotRunningPidOfFunc,
+				defaultHostname: "default",
 			},
 			expected: map[string]string{
 				"network-plugin":    "cni",
@@ -149,9 +149,9 @@ func TestBuildKubeletArgMap(t *testing.T) {
 					CRISocket: "/var/run/dockershim.sock",
 					Name:      "foo",
 				},
-				execer:              systemdCgroupExecer,
-				isServiceActiveFunc: serviceIsNotActiveFunc,
-				defaultHostname:     "foo",
+				execer:          systemdCgroupExecer,
+				pidOfFunc:       binaryNotRunningPidOfFunc,
+				defaultHostname: "foo",
 			},
 			expected: map[string]string{
 				"network-plugin": "cni",
@@ -165,9 +165,9 @@ func TestBuildKubeletArgMap(t *testing.T) {
 					CRISocket: "/var/run/dockershim.sock",
 					Name:      "foo",
 				},
-				execer:              cgroupfsCgroupExecer,
-				isServiceActiveFunc: serviceIsNotActiveFunc,
-				defaultHostname:     "foo",
+				execer:          cgroupfsCgroupExecer,
+				pidOfFunc:       binaryNotRunningPidOfFunc,
+				defaultHostname: "foo",
 			},
 			expected: map[string]string{
 				"network-plugin": "cni",
@@ -181,9 +181,9 @@ func TestBuildKubeletArgMap(t *testing.T) {
 					CRISocket: "/var/run/containerd.sock",
 					Name:      "foo",
 				},
-				execer:              cgroupfsCgroupExecer,
-				isServiceActiveFunc: serviceIsNotActiveFunc,
-				defaultHostname:     "foo",
+				execer:          cgroupfsCgroupExecer,
+				pidOfFunc:       binaryNotRunningPidOfFunc,
+				defaultHostname: "foo",
 			},
 			expected: map[string]string{
 				"container-runtime":          "remote",
@@ -211,7 +211,7 @@ func TestBuildKubeletArgMap(t *testing.T) {
 				},
 				registerTaintsUsingFlags: true,
 				execer:                   cgroupfsCgroupExecer,
-				isServiceActiveFunc:      serviceIsNotActiveFunc,
+				pidOfFunc:                binaryNotRunningPidOfFunc,
 				defaultHostname:          "foo",
 			},
 			expected: map[string]string{
@@ -227,9 +227,9 @@ func TestBuildKubeletArgMap(t *testing.T) {
 					CRISocket: "/var/run/containerd.sock",
 					Name:      "foo",
 				},
-				execer:              cgroupfsCgroupExecer,
-				isServiceActiveFunc: serviceIsActiveFunc,
-				defaultHostname:     "foo",
+				execer:          cgroupfsCgroupExecer,
+				pidOfFunc:       binaryRunningPidOfFunc,
+				defaultHostname: "foo",
 			},
 			expected: map[string]string{
 				"container-runtime":          "remote",
@@ -244,10 +244,10 @@ func TestBuildKubeletArgMap(t *testing.T) {
 					CRISocket: "/var/run/dockershim.sock",
 					Name:      "foo",
 				},
-				pauseImage:          "gcr.io/pause:3.1",
-				execer:              cgroupfsCgroupExecer,
-				isServiceActiveFunc: serviceIsNotActiveFunc,
-				defaultHostname:     "foo",
+				pauseImage:      "gcr.io/pause:3.1",
+				execer:          cgroupfsCgroupExecer,
+				pidOfFunc:       binaryNotRunningPidOfFunc,
+				defaultHostname: "foo",
 			},
 			expected: map[string]string{
 				"network-plugin":            "cni",

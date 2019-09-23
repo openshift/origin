@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	apps "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	priorityutil "k8s.io/kubernetes/pkg/scheduler/algorithm/priorities/util"
@@ -37,12 +37,6 @@ func TestPriorityMetadata(t *testing.T) {
 	specifiedReqs := &schedulernodeinfo.Resource{}
 	specifiedReqs.MilliCPU = 200
 	specifiedReqs.Memory = 2000
-
-	nonPodLimits := &schedulernodeinfo.Resource{}
-
-	specifiedPodLimits := &schedulernodeinfo.Resource{}
-	specifiedPodLimits.MilliCPU = 200
-	specifiedPodLimits.Memory = 2000
 
 	tolerations := []v1.Toleration{{
 		Key:      "foo",
@@ -110,10 +104,6 @@ func TestPriorityMetadata(t *testing.T) {
 					Image:           "image",
 					ImagePullPolicy: "Always",
 					Resources: v1.ResourceRequirements{
-						Limits: v1.ResourceList{
-							v1.ResourceCPU:    resource.MustParse("200m"),
-							v1.ResourceMemory: resource.MustParse("2000"),
-						},
 						Requests: v1.ResourceList{
 							v1.ResourceCPU:    resource.MustParse("200m"),
 							v1.ResourceMemory: resource.MustParse("2000"),
@@ -137,7 +127,7 @@ func TestPriorityMetadata(t *testing.T) {
 		{
 			pod: podWithTolerationsAndAffinity,
 			expected: &priorityMetadata{
-				podLimits:      nonPodLimits,
+				nonZeroRequest: nonZeroReqs,
 				podTolerations: tolerations,
 				affinity:       podAffinity,
 			},
@@ -146,7 +136,7 @@ func TestPriorityMetadata(t *testing.T) {
 		{
 			pod: podWithTolerationsAndRequests,
 			expected: &priorityMetadata{
-				podLimits:      nonPodLimits,
+				nonZeroRequest: specifiedReqs,
 				podTolerations: tolerations,
 				affinity:       nil,
 			},
@@ -155,7 +145,7 @@ func TestPriorityMetadata(t *testing.T) {
 		{
 			pod: podWithAffinityAndRequests,
 			expected: &priorityMetadata{
-				podLimits:      specifiedPodLimits,
+				nonZeroRequest: specifiedReqs,
 				podTolerations: nil,
 				affinity:       podAffinity,
 			},

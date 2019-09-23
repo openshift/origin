@@ -141,10 +141,6 @@ func MockGetResponse(t *testing.T) {
     "os-vol-mig-status-attr:migstat": null,
     "metadata": {},
     "status": "available",
-    "volume_image_metadata": {
-      "container_format": "bare",
-      "image_name": "centos"
-    },
     "description": null
   }
 }

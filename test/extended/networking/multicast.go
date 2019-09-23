@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -176,7 +175,7 @@ func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) (
 	})
 
 	if err != nil {
-		logs, logErr := frameworkpod.GetPodLogs(f.ClientSet, f.Namespace.Name, podName, fmt.Sprintf("%s-pod", podName))
+		logs, logErr := e2e.GetPodLogs(f.ClientSet, f.Namespace.Name, podName, fmt.Sprintf("%s-pod", podName))
 		if logErr != nil {
 			e2e.Failf("Error getting container logs: %s", logErr)
 		}

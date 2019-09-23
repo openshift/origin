@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,16 +47,6 @@ func NewJobsClientWithBaseURI(baseURI string, subscriptionID string) JobsClient 
 // transformName - the Transform name.
 // jobName - the Job name.
 func (client JobsClient) CancelJob(ctx context.Context, resourceGroupName string, accountName string, transformName string, jobName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.CancelJob")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CancelJobPreparer(ctx, resourceGroupName, accountName, transformName, jobName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.JobsClient", "CancelJob", nil, "Failure preparing request")
@@ -105,8 +94,8 @@ func (client JobsClient) CancelJobPreparer(ctx context.Context, resourceGroupNam
 // CancelJobSender sends the CancelJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) CancelJobSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CancelJobResponder handles the response to the CancelJob request. The method always
@@ -129,16 +118,6 @@ func (client JobsClient) CancelJobResponder(resp *http.Response) (result autores
 // jobName - the Job name.
 // parameters - the request parameters
 func (client JobsClient) Create(ctx context.Context, resourceGroupName string, accountName string, transformName string, jobName string, parameters Job) (result Job, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.JobProperties", Name: validation.Null, Rule: false,
@@ -197,8 +176,8 @@ func (client JobsClient) CreatePreparer(ctx context.Context, resourceGroupName s
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -221,16 +200,6 @@ func (client JobsClient) CreateResponder(resp *http.Response) (result Job, err e
 // transformName - the Transform name.
 // jobName - the Job name.
 func (client JobsClient) Delete(ctx context.Context, resourceGroupName string, accountName string, transformName string, jobName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, accountName, transformName, jobName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.JobsClient", "Delete", nil, "Failure preparing request")
@@ -278,8 +247,8 @@ func (client JobsClient) DeletePreparer(ctx context.Context, resourceGroupName s
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -301,16 +270,6 @@ func (client JobsClient) DeleteResponder(resp *http.Response) (result autorest.R
 // transformName - the Transform name.
 // jobName - the Job name.
 func (client JobsClient) Get(ctx context.Context, resourceGroupName string, accountName string, transformName string, jobName string) (result Job, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, accountName, transformName, jobName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.JobsClient", "Get", nil, "Failure preparing request")
@@ -358,8 +317,8 @@ func (client JobsClient) GetPreparer(ctx context.Context, resourceGroupName stri
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -386,16 +345,6 @@ func (client JobsClient) GetResponder(resp *http.Response) (result Job, err erro
 // skip - specifies a non-negative integer n that excludes the first n items of the queried collection from the
 // result. The service returns items starting at position n+1.
 func (client JobsClient) List(ctx context.Context, resourceGroupName string, accountName string, transformName string, filter string, top *int32, skip *int32) (result JobCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.List")
-		defer func() {
-			sc := -1
-			if result.jc.Response.Response != nil {
-				sc = result.jc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, accountName, transformName, filter, top, skip)
 	if err != nil {
@@ -452,8 +401,8 @@ func (client JobsClient) ListPreparer(ctx context.Context, resourceGroupName str
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -470,8 +419,8 @@ func (client JobsClient) ListResponder(resp *http.Response) (result JobCollectio
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client JobsClient) listNextResults(ctx context.Context, lastResults JobCollection) (result JobCollection, err error) {
-	req, err := lastResults.jobCollectionPreparer(ctx)
+func (client JobsClient) listNextResults(lastResults JobCollection) (result JobCollection, err error) {
+	req, err := lastResults.jobCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "media.JobsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -492,16 +441,6 @@ func (client JobsClient) listNextResults(ctx context.Context, lastResults JobCol
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client JobsClient) ListComplete(ctx context.Context, resourceGroupName string, accountName string, transformName string, filter string, top *int32, skip *int32) (result JobCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/JobsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, accountName, transformName, filter, top, skip)
 	return
 }

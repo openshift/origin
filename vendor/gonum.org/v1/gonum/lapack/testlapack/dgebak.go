@@ -16,14 +16,14 @@ import (
 )
 
 type Dgebaker interface {
-	Dgebak(job lapack.BalanceJob, side lapack.EVSide, n, ilo, ihi int, scale []float64, m int, v []float64, ldv int)
+	Dgebak(job lapack.Job, side lapack.EVSide, n, ilo, ihi int, scale []float64, m int, v []float64, ldv int)
 }
 
 func DgebakTest(t *testing.T, impl Dgebaker) {
 	rnd := rand.New(rand.NewSource(1))
 
-	for _, job := range []lapack.BalanceJob{lapack.BalanceNone, lapack.Permute, lapack.Scale, lapack.PermuteScale} {
-		for _, side := range []lapack.EVSide{lapack.EVLeft, lapack.EVRight} {
+	for _, job := range []lapack.Job{lapack.None, lapack.Permute, lapack.Scale, lapack.PermuteScale} {
+		for _, side := range []lapack.EVSide{lapack.LeftEV, lapack.RightEV} {
 			for _, n := range []int{0, 1, 2, 3, 4, 5, 6, 10, 18, 31, 53} {
 				for _, extra := range []int{0, 11} {
 					for cas := 0; cas < 100; cas++ {
@@ -44,7 +44,7 @@ func DgebakTest(t *testing.T, impl Dgebaker) {
 	}
 }
 
-func testDgebak(t *testing.T, impl Dgebaker, job lapack.BalanceJob, side lapack.EVSide, ilo, ihi int, v blas64.General, rnd *rand.Rand) {
+func testDgebak(t *testing.T, impl Dgebaker, job lapack.Job, side lapack.EVSide, ilo, ihi int, v blas64.General, rnd *rand.Rand) {
 	const tol = 1e-15
 	n := v.Rows
 	m := v.Cols
@@ -72,13 +72,15 @@ func testDgebak(t *testing.T, impl Dgebaker, job lapack.BalanceJob, side lapack.
 		// Make up some random permutations.
 		for i := n - 1; i > ihi; i-- {
 			scale[i] = float64(rnd.Intn(i + 1))
-			blas64.Swap(blas64.Vector{N: n, Data: p.Data[i:], Inc: p.Stride},
-				blas64.Vector{N: n, Data: p.Data[int(scale[i]):], Inc: p.Stride})
+			blas64.Swap(n,
+				blas64.Vector{p.Stride, p.Data[i:]},
+				blas64.Vector{p.Stride, p.Data[int(scale[i]):]})
 		}
 		for i := 0; i < ilo; i++ {
 			scale[i] = float64(i + rnd.Intn(ihi-i+1))
-			blas64.Swap(blas64.Vector{N: n, Data: p.Data[i:], Inc: p.Stride},
-				blas64.Vector{N: n, Data: p.Data[int(scale[i]):], Inc: p.Stride})
+			blas64.Swap(n,
+				blas64.Vector{p.Stride, p.Data[i:]},
+				blas64.Vector{p.Stride, p.Data[int(scale[i]):]})
 		}
 	}
 
@@ -94,7 +96,7 @@ func testDgebak(t *testing.T, impl Dgebaker, job lapack.BalanceJob, side lapack.
 
 	// Compute D*V or D^{-1}*V and store into dv.
 	dv := zeros(n, m, m)
-	if side == lapack.EVRight {
+	if side == lapack.RightEV {
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, d, v, 0, dv)
 	} else {
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, dinv, v, 0, dv)

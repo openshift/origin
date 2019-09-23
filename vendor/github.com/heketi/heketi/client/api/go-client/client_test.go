@@ -187,7 +187,7 @@ func TestTopology(t *testing.T) {
 		volumeReq := &api.VolumeCreateRequest{}
 		volumeReq.Size = 10
 		volume, err := c.VolumeCreate(volumeReq)
-		tests.Assert(t, err == nil, err)
+		tests.Assert(t, err == nil)
 		tests.Assert(t, volume.Id != "")
 		tests.Assert(t, volume.Size == volumeReq.Size)
 		volumeinfos = append(volumeinfos, *volume)
@@ -636,7 +636,7 @@ func TestClientVolume(t *testing.T) {
 	volumeReq := &api.VolumeCreateRequest{}
 	volumeReq.Size = 10
 	volume, err := c.VolumeCreate(volumeReq)
-	tests.Assert(t, err == nil, err)
+	tests.Assert(t, err == nil)
 	tests.Assert(t, volume.Id != "")
 	tests.Assert(t, volume.Size == volumeReq.Size)
 
@@ -1241,7 +1241,7 @@ func TestVolumeSetBlockRestriction(t *testing.T) {
 	volumeReq.Size = 10
 	volumeReq.Block = true
 	volume, err := c.VolumeCreate(volumeReq)
-	tests.Assert(t, err == nil, err)
+	tests.Assert(t, err == nil)
 	tests.Assert(t, volume.Id != "")
 	tests.Assert(t, volume.Size == volumeReq.Size)
 

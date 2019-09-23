@@ -29,60 +29,49 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-package proto_test
+package proto
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
-
-	"github.com/golang/protobuf/proto"
-	. "github.com/golang/protobuf/proto/test_proto"
 )
 
 func TestUnmarshalMessageSetWithDuplicate(t *testing.T) {
-	/*
-		Message{
-			Tag{1, StartGroup},
-			Message{
-				Tag{2, Varint}, Uvarint(12345),
-				Tag{3, Bytes}, Bytes("hoo"),
-			},
-			Tag{1, EndGroup},
-			Tag{1, StartGroup},
-			Message{
-				Tag{2, Varint}, Uvarint(12345),
-				Tag{3, Bytes}, Bytes("hah"),
-			},
-			Tag{1, EndGroup},
-		}
-	*/
-	var in []byte
-	fmt.Sscanf("0b10b9601a03686f6f0c0b10b9601a036861680c", "%x", &in)
-
-	/*
-		Message{
-			Tag{1, StartGroup},
-			Message{
-				Tag{2, Varint}, Uvarint(12345),
-				Tag{3, Bytes}, Bytes("hoohah"),
-			},
-			Tag{1, EndGroup},
-		}
-	*/
-	var want []byte
-	fmt.Sscanf("0b10b9601a06686f6f6861680c", "%x", &want)
-
-	var m MyMessageSet
-	if err := proto.Unmarshal(in, &m); err != nil {
-		t.Fatalf("unexpected Unmarshal error: %v", err)
+	// Check that a repeated message set entry will be concatenated.
+	in := &messageSet{
+		Item: []*_MessageSet_Item{
+			{TypeId: Int32(12345), Message: []byte("hoo")},
+			{TypeId: Int32(12345), Message: []byte("hah")},
+		},
 	}
-	got, err := proto.Marshal(&m)
+	b, err := Marshal(in)
 	if err != nil {
-		t.Fatalf("unexpected Marshal error: %v", err)
+		t.Fatalf("Marshal: %v", err)
 	}
+	t.Logf("Marshaled bytes: %q", b)
 
-	if !bytes.Equal(got, want) {
-		t.Errorf("output mismatch:\ngot  %x\nwant %x", got, want)
+	var extensions XXX_InternalExtensions
+	if err := UnmarshalMessageSet(b, &extensions); err != nil {
+		t.Fatalf("UnmarshalMessageSet: %v", err)
+	}
+	ext, ok := extensions.p.extensionMap[12345]
+	if !ok {
+		t.Fatalf("Didn't retrieve extension 12345; map is %v", extensions.p.extensionMap)
+	}
+	// Skip wire type/field number and length varints.
+	got := skipVarint(skipVarint(ext.enc))
+	if want := []byte("hoohah"); !bytes.Equal(got, want) {
+		t.Errorf("Combined extension is %q, want %q", got, want)
+	}
+}
+
+func TestMarshalMessageSetJSON_UnknownType(t *testing.T) {
+	extMap := map[int32]Extension{12345: Extension{}}
+	got, err := MarshalMessageSetJSON(extMap)
+	if err != nil {
+		t.Fatalf("MarshalMessageSetJSON: %v", err)
+	}
+	if want := []byte("{}"); !bytes.Equal(got, want) {
+		t.Errorf("MarshalMessageSetJSON(%v) = %q, want %q", extMap, got, want)
 	}
 }

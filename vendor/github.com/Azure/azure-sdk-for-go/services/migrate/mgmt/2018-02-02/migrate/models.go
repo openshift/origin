@@ -23,9 +23,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/date"
 )
 
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/migrate/mgmt/2018-02-02/migrate"
-
 // AssessmentSizingCriterion enumerates the values for assessment sizing criterion.
 type AssessmentSizingCriterion string
 
@@ -869,60 +866,60 @@ func PossibleTimeRangeValues() []TimeRange {
 
 // AssessedDisk a disk assessed for an assessment.
 type AssessedDisk struct {
-	// Name - READ-ONLY; Name of the assessed disk.
+	// Name - Name of the assessed disk.
 	Name *string `json:"name,omitempty"`
-	// GigabytesProvisioned - READ-ONLY; Gigabytes of storage provisioned for this disk.
+	// GigabytesProvisioned - Gigabytes of storage provisioned for this disk.
 	GigabytesProvisioned *float64 `json:"gigabytesProvisioned,omitempty"`
-	// GigabytesConsumed - READ-ONLY; Gigabytes of storage consumed by this disk.
+	// GigabytesConsumed - Gigabytes of storage consumed by this disk.
 	GigabytesConsumed *float64 `json:"gigabytesConsumed,omitempty"`
-	// MegabytesPerSecondOfRead - READ-ONLY; Disk throughput in MegaBytes per second.
+	// MegabytesPerSecondOfRead - Disk throughput in MegaBytes per second.
 	MegabytesPerSecondOfRead *float64 `json:"megabytesPerSecondOfRead,omitempty"`
-	// MegabytesPerSecondOfReadDataPointsExpected - READ-ONLY; Expected data points for MegaBytes per second of read.
+	// MegabytesPerSecondOfReadDataPointsExpected - Expected data points for MegaBytes per second of read.
 	MegabytesPerSecondOfReadDataPointsExpected *int32 `json:"megabytesPerSecondOfReadDataPointsExpected,omitempty"`
-	// MegabytesPerSecondOfReadDataPointsReceived - READ-ONLY; Received data points for MegaBytes per second of read.
+	// MegabytesPerSecondOfReadDataPointsReceived - Received data points for MegaBytes per second of read.
 	MegabytesPerSecondOfReadDataPointsReceived *int32 `json:"megabytesPerSecondOfReadDataPointsReceived,omitempty"`
-	// MegabytesPerSecondOfWrite - READ-ONLY; Disk throughput in MegaBytes per second.
+	// MegabytesPerSecondOfWrite - Disk throughput in MegaBytes per second.
 	MegabytesPerSecondOfWrite *float64 `json:"megabytesPerSecondOfWrite,omitempty"`
-	// MegabytesPerSecondOfWriteDataPointsExpected - READ-ONLY; Expected data points for MegaBytes per second of write.
+	// MegabytesPerSecondOfWriteDataPointsExpected - Expected data points for MegaBytes per second of write.
 	MegabytesPerSecondOfWriteDataPointsExpected *int32 `json:"megabytesPerSecondOfWriteDataPointsExpected,omitempty"`
-	// MegabytesPerSecondOfWriteDataPointsReceived - READ-ONLY; Received data points for MegaBytes per second of write.
+	// MegabytesPerSecondOfWriteDataPointsReceived - Received data points for MegaBytes per second of write.
 	MegabytesPerSecondOfWriteDataPointsReceived *int32 `json:"megabytesPerSecondOfWriteDataPointsReceived,omitempty"`
-	// NumberOfReadOperationsPerSecond - READ-ONLY; Number of read operations per second for the disk.
+	// NumberOfReadOperationsPerSecond - Number of read operations per second for the disk.
 	NumberOfReadOperationsPerSecond *float64 `json:"numberOfReadOperationsPerSecond,omitempty"`
-	// NumberOfReadOperationsPerSecondDataPointsExpected - READ-ONLY; Expected number of data points for read operations per second.
+	// NumberOfReadOperationsPerSecondDataPointsExpected - Expected number of data points for read operations per second.
 	NumberOfReadOperationsPerSecondDataPointsExpected *int32 `json:"numberOfReadOperationsPerSecondDataPointsExpected,omitempty"`
-	// NumberOfReadOperationsPerSecondDataPointsReceived - READ-ONLY; Received number of data points for read operations per second.
+	// NumberOfReadOperationsPerSecondDataPointsReceived - Received number of data points for read operations per second.
 	NumberOfReadOperationsPerSecondDataPointsReceived *int32 `json:"numberOfReadOperationsPerSecondDataPointsReceived,omitempty"`
-	// NumberOfWriteOperationsPerSecond - READ-ONLY; Number of read and write operations per second for the disk.
+	// NumberOfWriteOperationsPerSecond - Number of read and write operations per second for the disk.
 	NumberOfWriteOperationsPerSecond *float64 `json:"numberOfWriteOperationsPerSecond,omitempty"`
-	// NumberOfWriteOperationsPerSecondDataPointsExpected - READ-ONLY; Expected number of data points for write operations per second.
+	// NumberOfWriteOperationsPerSecondDataPointsExpected - Expected number of data points for write operations per second.
 	NumberOfWriteOperationsPerSecondDataPointsExpected *int32 `json:"numberOfWriteOperationsPerSecondDataPointsExpected,omitempty"`
-	// NumberOfWriteOperationsPerSecondDataPointsReceived - READ-ONLY; Received number of data points for write operations per second.
+	// NumberOfWriteOperationsPerSecondDataPointsReceived - Received number of data points for write operations per second.
 	NumberOfWriteOperationsPerSecondDataPointsReceived *int32 `json:"numberOfWriteOperationsPerSecondDataPointsReceived,omitempty"`
-	// MonthlyStorageCost - READ-ONLY; Estimated aggregate storage cost for a 31-day month for this disk.
+	// MonthlyStorageCost - Estimated aggregate storage cost for a 31-day month for this disk.
 	MonthlyStorageCost *float64 `json:"monthlyStorageCost,omitempty"`
-	// RecommendedDiskType - READ-ONLY; Storage type selected for this disk. Possible values include: 'AzureDiskTypeUnknown', 'AzureDiskTypeStandard', 'AzureDiskTypePremium'
+	// RecommendedDiskType - Storage type selected for this disk. Possible values include: 'AzureDiskTypeUnknown', 'AzureDiskTypeStandard', 'AzureDiskTypePremium'
 	RecommendedDiskType AzureDiskType `json:"recommendedDiskType,omitempty"`
-	// RecommendedDiskSize - READ-ONLY; Recommended Azure size for the disk, given utilization data and preferences set on Assessment. Possible values include: 'Unknown', 'StandardS4', 'StandardS6', 'StandardS10', 'StandardS20', 'StandardS30', 'StandardS40', 'StandardS50', 'PremiumP4', 'PremiumP6', 'PremiumP10', 'PremiumP20', 'PremiumP30', 'PremiumP40', 'PremiumP50'
+	// RecommendedDiskSize - Recommended Azure size for the disk, given utilization data and preferences set on Assessment. Possible values include: 'Unknown', 'StandardS4', 'StandardS6', 'StandardS10', 'StandardS20', 'StandardS30', 'StandardS40', 'StandardS50', 'PremiumP4', 'PremiumP6', 'PremiumP10', 'PremiumP20', 'PremiumP30', 'PremiumP40', 'PremiumP50'
 	RecommendedDiskSize AzureDiskSize `json:"recommendedDiskSize,omitempty"`
-	// GigabytesForRecommendedDiskSize - READ-ONLY; Gigabytes of storage provided by the recommended Azure disk size.
+	// GigabytesForRecommendedDiskSize - Gigabytes of storage provided by the recommended Azure disk size.
 	GigabytesForRecommendedDiskSize *int32 `json:"gigabytesForRecommendedDiskSize,omitempty"`
-	// Suitability - READ-ONLY; Whether this disk is suitable for Azure. Possible values include: 'CloudSuitabilityUnknown', 'CloudSuitabilityNotSuitable', 'CloudSuitabilitySuitable', 'CloudSuitabilityConditionallySuitable', 'CloudSuitabilityReadinessUnknown'
+	// Suitability - Whether this disk is suitable for Azure. Possible values include: 'CloudSuitabilityUnknown', 'CloudSuitabilityNotSuitable', 'CloudSuitabilitySuitable', 'CloudSuitabilityConditionallySuitable', 'CloudSuitabilityReadinessUnknown'
 	Suitability CloudSuitability `json:"suitability,omitempty"`
-	// SuitabilityExplanation - READ-ONLY; If disk is suitable, this explains the reasons and mitigation steps. Possible values include: 'AzureDiskSuitabilityExplanationUnknown', 'AzureDiskSuitabilityExplanationNotApplicable', 'AzureDiskSuitabilityExplanationDiskSizeGreaterThanSupported', 'AzureDiskSuitabilityExplanationNoSuitableDiskSizeForIops', 'AzureDiskSuitabilityExplanationNoSuitableDiskSizeForThroughput', 'AzureDiskSuitabilityExplanationNoDiskSizeFoundInSelectedLocation', 'AzureDiskSuitabilityExplanationNoDiskSizeFoundForSelectedRedundancy', 'AzureDiskSuitabilityExplanationInternalErrorOccurredForDiskEvaluation'
+	// SuitabilityExplanation - If disk is suitable, this explains the reasons and mitigation steps. Possible values include: 'AzureDiskSuitabilityExplanationUnknown', 'AzureDiskSuitabilityExplanationNotApplicable', 'AzureDiskSuitabilityExplanationDiskSizeGreaterThanSupported', 'AzureDiskSuitabilityExplanationNoSuitableDiskSizeForIops', 'AzureDiskSuitabilityExplanationNoSuitableDiskSizeForThroughput', 'AzureDiskSuitabilityExplanationNoDiskSizeFoundInSelectedLocation', 'AzureDiskSuitabilityExplanationNoDiskSizeFoundForSelectedRedundancy', 'AzureDiskSuitabilityExplanationInternalErrorOccurredForDiskEvaluation'
 	SuitabilityExplanation AzureDiskSuitabilityExplanation `json:"suitabilityExplanation,omitempty"`
 }
 
 // AssessedMachine a machine evaluated as part of an assessment.
 type AssessedMachine struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; Path reference to this assessed machine. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}/groups/{groupName}/assessments/{assessmentName}/assessedMachines/{assessedMachineName}
+	// ID - Path reference to this assessed machine. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}/groups/{groupName}/assessments/{assessmentName}/assessedMachines/{assessedMachineName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Name of the machine.
+	// Name - Name of the machine.
 	Name *string `json:"name,omitempty"`
 	// ETag - For optimistic concurrency control.
 	ETag *string `json:"eTag,omitempty"`
-	// Type - READ-ONLY; Type of the object = [Microsoft.Migrate/projects/groups/assessments/assessedMachines].
+	// Type - Type of the object = [Microsoft.Migrate/projects/groups/assessments/assessedMachines].
 	Type *string `json:"type,omitempty"`
 	// AssessedMachineProperties - Properties of an assessed machine.
 	*AssessedMachineProperties `json:"properties,omitempty"`
@@ -931,8 +928,17 @@ type AssessedMachine struct {
 // MarshalJSON is the custom marshaler for AssessedMachine.
 func (am AssessedMachine) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if am.ID != nil {
+		objectMap["id"] = am.ID
+	}
+	if am.Name != nil {
+		objectMap["name"] = am.Name
+	}
 	if am.ETag != nil {
 		objectMap["eTag"] = am.ETag
+	}
+	if am.Type != nil {
+		objectMap["type"] = am.Type
 	}
 	if am.AssessedMachineProperties != nil {
 		objectMap["properties"] = am.AssessedMachineProperties
@@ -1002,71 +1008,161 @@ func (am *AssessedMachine) UnmarshalJSON(body []byte) error {
 
 // AssessedMachineProperties properties of an assessed machine.
 type AssessedMachineProperties struct {
-	// Groups - READ-ONLY; List of references to the groups that the machine is member of.
+	// Groups - List of references to the groups that the machine is member of.
 	Groups *[]string `json:"groups,omitempty"`
-	// DiscoveredTimestamp - READ-ONLY; Time when this machine was discovered by Azure Migrate agent. Date-Time represented in ISO-8601 format.
+	// DiscoveredTimestamp - Time when this machine was discovered by Azure Migrate agent. Date-Time represented in ISO-8601 format.
 	DiscoveredTimestamp *date.Time `json:"discoveredTimestamp,omitempty"`
-	// BootType - READ-ONLY; Boot type of the machine. Possible values include: 'MachineBootTypeUnknown', 'MachineBootTypeEFI', 'MachineBootTypeBIOS'
+	// BootType - Boot type of the machine. Possible values include: 'MachineBootTypeUnknown', 'MachineBootTypeEFI', 'MachineBootTypeBIOS'
 	BootType MachineBootType `json:"bootType,omitempty"`
-	// DatacenterContainer - READ-ONLY; Container defined in the management solution that this machine is part of in the datacenter.
+	// DatacenterContainer - Container defined in the management solution that this machine is part of in the datacenter.
 	DatacenterContainer *string `json:"datacenterContainer,omitempty"`
-	// DatacenterManagementServer - READ-ONLY; Name of the server hosting the datacenter management solution.
+	// DatacenterManagementServer - Name of the server hosting the datacenter management solution.
 	DatacenterManagementServer *string `json:"datacenterManagementServer,omitempty"`
-	// DatacenterMachineID - READ-ONLY; ID of the machine as tracked by the datacenter management solution.
+	// DatacenterMachineID - ID of the machine as tracked by the datacenter management solution.
 	DatacenterMachineID *string `json:"datacenterMachineId,omitempty"`
-	// DatacenterManagementServerID - READ-ONLY; ID of the server hosting the datacenter management solution.
+	// DatacenterManagementServerID - ID of the server hosting the datacenter management solution.
 	DatacenterManagementServerID *string `json:"datacenterManagementServerId,omitempty"`
-	// Description - READ-ONLY; Description of the machine
+	// Description - Description of the machine
 	Description *string `json:"description,omitempty"`
-	// DisplayName - READ-ONLY; User readable name of the machine as defined by the user in their private datacenter.
+	// DisplayName - User readable name of the machine as defined by the user in their private datacenter.
 	DisplayName *string `json:"displayName,omitempty"`
-	// MegabytesOfMemory - READ-ONLY; Memory in Megabytes.
+	// MegabytesOfMemory - Memory in Megabytes.
 	MegabytesOfMemory *float64 `json:"megabytesOfMemory,omitempty"`
-	// NumberOfCores - READ-ONLY; Processor count.
+	// NumberOfCores - Processor count.
 	NumberOfCores *int32 `json:"numberOfCores,omitempty"`
-	// OperatingSystem - READ-ONLY; Operating System of the machine.
+	// OperatingSystem - Operating System of the machine.
 	OperatingSystem *string `json:"operatingSystem,omitempty"`
-	// MonthlyBandwidthCost - READ-ONLY; Monthly network cost estimate for the network adapters that are attached to this machine as a group, for a 31-day month.
+	// MonthlyBandwidthCost - Monthly network cost estimate for the network adapters that are attached to this machine as a group, for a 31-day month.
 	MonthlyBandwidthCost *float64 `json:"monthlyBandwidthCost,omitempty"`
-	// MonthlyStorageCost - READ-ONLY; Monthly storage cost estimate for the disks that are attached to this machine as a group, for a 31-day month.
+	// MonthlyStorageCost - Monthly storage cost estimate for the disks that are attached to this machine as a group, for a 31-day month.
 	MonthlyStorageCost *float64 `json:"monthlyStorageCost,omitempty"`
-	// Disks - READ-ONLY; Dictionary of disks attached to the machine. Key is ID of disk. Value is a disk object.
+	// Disks - Dictionary of disks attached to the machine. Key is ID of disk. Value is a disk object.
 	Disks map[string]*AssessedDisk `json:"disks"`
-	// NetworkAdapters - READ-ONLY; Dictionary of network adapters attached to the machine. Key is name of the adapter. Value is a network adapter object.
+	// NetworkAdapters - Dictionary of network adapters attached to the machine. Key is name of the adapter. Value is a network adapter object.
 	NetworkAdapters map[string]*AssessedNetworkAdapter `json:"networkAdapters"`
-	// RecommendedSize - READ-ONLY; Recommended Azure size for this machine. Possible values include: 'AzureVMSizeUnknown', 'AzureVMSizeBasicA0', 'AzureVMSizeBasicA1', 'AzureVMSizeBasicA2', 'AzureVMSizeBasicA3', 'AzureVMSizeBasicA4', 'AzureVMSizeStandardA0', 'AzureVMSizeStandardA1', 'AzureVMSizeStandardA2', 'AzureVMSizeStandardA3', 'AzureVMSizeStandardA4', 'AzureVMSizeStandardA5', 'AzureVMSizeStandardA6', 'AzureVMSizeStandardA7', 'AzureVMSizeStandardA8', 'AzureVMSizeStandardA9', 'AzureVMSizeStandardA10', 'AzureVMSizeStandardA11', 'AzureVMSizeStandardA1V2', 'AzureVMSizeStandardA2V2', 'AzureVMSizeStandardA4V2', 'AzureVMSizeStandardA8V2', 'AzureVMSizeStandardA2mV2', 'AzureVMSizeStandardA4mV2', 'AzureVMSizeStandardA8mV2', 'AzureVMSizeStandardD1', 'AzureVMSizeStandardD2', 'AzureVMSizeStandardD3', 'AzureVMSizeStandardD4', 'AzureVMSizeStandardD11', 'AzureVMSizeStandardD12', 'AzureVMSizeStandardD13', 'AzureVMSizeStandardD14', 'AzureVMSizeStandardD1V2', 'AzureVMSizeStandardD2V2', 'AzureVMSizeStandardD3V2', 'AzureVMSizeStandardD4V2', 'AzureVMSizeStandardD5V2', 'AzureVMSizeStandardD11V2', 'AzureVMSizeStandardD12V2', 'AzureVMSizeStandardD13V2', 'AzureVMSizeStandardD14V2', 'AzureVMSizeStandardD15V2', 'AzureVMSizeStandardDS1', 'AzureVMSizeStandardDS2', 'AzureVMSizeStandardDS3', 'AzureVMSizeStandardDS4', 'AzureVMSizeStandardDS11', 'AzureVMSizeStandardDS12', 'AzureVMSizeStandardDS13', 'AzureVMSizeStandardDS14', 'AzureVMSizeStandardDS1V2', 'AzureVMSizeStandardDS2V2', 'AzureVMSizeStandardDS3V2', 'AzureVMSizeStandardDS4V2', 'AzureVMSizeStandardDS5V2', 'AzureVMSizeStandardDS11V2', 'AzureVMSizeStandardDS12V2', 'AzureVMSizeStandardDS13V2', 'AzureVMSizeStandardDS14V2', 'AzureVMSizeStandardDS15V2', 'AzureVMSizeStandardF1', 'AzureVMSizeStandardF2', 'AzureVMSizeStandardF4', 'AzureVMSizeStandardF8', 'AzureVMSizeStandardF16', 'AzureVMSizeStandardF1s', 'AzureVMSizeStandardF2s', 'AzureVMSizeStandardF4s', 'AzureVMSizeStandardF8s', 'AzureVMSizeStandardF16s', 'AzureVMSizeStandardG1', 'AzureVMSizeStandardG2', 'AzureVMSizeStandardG3', 'AzureVMSizeStandardG4', 'AzureVMSizeStandardG5', 'AzureVMSizeStandardGS1', 'AzureVMSizeStandardGS2', 'AzureVMSizeStandardGS3', 'AzureVMSizeStandardGS4', 'AzureVMSizeStandardGS5', 'AzureVMSizeStandardH8', 'AzureVMSizeStandardH16', 'AzureVMSizeStandardH8m', 'AzureVMSizeStandardH16m', 'AzureVMSizeStandardH16r', 'AzureVMSizeStandardH16mr', 'AzureVMSizeStandardL4s', 'AzureVMSizeStandardL8s', 'AzureVMSizeStandardL16s', 'AzureVMSizeStandardL32s'
+	// RecommendedSize - Recommended Azure size for this machine. Possible values include: 'AzureVMSizeUnknown', 'AzureVMSizeBasicA0', 'AzureVMSizeBasicA1', 'AzureVMSizeBasicA2', 'AzureVMSizeBasicA3', 'AzureVMSizeBasicA4', 'AzureVMSizeStandardA0', 'AzureVMSizeStandardA1', 'AzureVMSizeStandardA2', 'AzureVMSizeStandardA3', 'AzureVMSizeStandardA4', 'AzureVMSizeStandardA5', 'AzureVMSizeStandardA6', 'AzureVMSizeStandardA7', 'AzureVMSizeStandardA8', 'AzureVMSizeStandardA9', 'AzureVMSizeStandardA10', 'AzureVMSizeStandardA11', 'AzureVMSizeStandardA1V2', 'AzureVMSizeStandardA2V2', 'AzureVMSizeStandardA4V2', 'AzureVMSizeStandardA8V2', 'AzureVMSizeStandardA2mV2', 'AzureVMSizeStandardA4mV2', 'AzureVMSizeStandardA8mV2', 'AzureVMSizeStandardD1', 'AzureVMSizeStandardD2', 'AzureVMSizeStandardD3', 'AzureVMSizeStandardD4', 'AzureVMSizeStandardD11', 'AzureVMSizeStandardD12', 'AzureVMSizeStandardD13', 'AzureVMSizeStandardD14', 'AzureVMSizeStandardD1V2', 'AzureVMSizeStandardD2V2', 'AzureVMSizeStandardD3V2', 'AzureVMSizeStandardD4V2', 'AzureVMSizeStandardD5V2', 'AzureVMSizeStandardD11V2', 'AzureVMSizeStandardD12V2', 'AzureVMSizeStandardD13V2', 'AzureVMSizeStandardD14V2', 'AzureVMSizeStandardD15V2', 'AzureVMSizeStandardDS1', 'AzureVMSizeStandardDS2', 'AzureVMSizeStandardDS3', 'AzureVMSizeStandardDS4', 'AzureVMSizeStandardDS11', 'AzureVMSizeStandardDS12', 'AzureVMSizeStandardDS13', 'AzureVMSizeStandardDS14', 'AzureVMSizeStandardDS1V2', 'AzureVMSizeStandardDS2V2', 'AzureVMSizeStandardDS3V2', 'AzureVMSizeStandardDS4V2', 'AzureVMSizeStandardDS5V2', 'AzureVMSizeStandardDS11V2', 'AzureVMSizeStandardDS12V2', 'AzureVMSizeStandardDS13V2', 'AzureVMSizeStandardDS14V2', 'AzureVMSizeStandardDS15V2', 'AzureVMSizeStandardF1', 'AzureVMSizeStandardF2', 'AzureVMSizeStandardF4', 'AzureVMSizeStandardF8', 'AzureVMSizeStandardF16', 'AzureVMSizeStandardF1s', 'AzureVMSizeStandardF2s', 'AzureVMSizeStandardF4s', 'AzureVMSizeStandardF8s', 'AzureVMSizeStandardF16s', 'AzureVMSizeStandardG1', 'AzureVMSizeStandardG2', 'AzureVMSizeStandardG3', 'AzureVMSizeStandardG4', 'AzureVMSizeStandardG5', 'AzureVMSizeStandardGS1', 'AzureVMSizeStandardGS2', 'AzureVMSizeStandardGS3', 'AzureVMSizeStandardGS4', 'AzureVMSizeStandardGS5', 'AzureVMSizeStandardH8', 'AzureVMSizeStandardH16', 'AzureVMSizeStandardH8m', 'AzureVMSizeStandardH16m', 'AzureVMSizeStandardH16r', 'AzureVMSizeStandardH16mr', 'AzureVMSizeStandardL4s', 'AzureVMSizeStandardL8s', 'AzureVMSizeStandardL16s', 'AzureVMSizeStandardL32s'
 	RecommendedSize AzureVMSize `json:"recommendedSize,omitempty"`
-	// NumberOfCoresForRecommendedSize - READ-ONLY; Number of CPU cores in the Recommended Azure VM Size.
+	// NumberOfCoresForRecommendedSize - Number of CPU cores in the Recommended Azure VM Size.
 	NumberOfCoresForRecommendedSize *int32 `json:"numberOfCoresForRecommendedSize,omitempty"`
-	// MegabytesOfMemoryForRecommendedSize - READ-ONLY; Megabytes of memory in the Recommended Azure VM Size.
+	// MegabytesOfMemoryForRecommendedSize - Megabytes of memory in the Recommended Azure VM Size.
 	MegabytesOfMemoryForRecommendedSize *float64 `json:"megabytesOfMemoryForRecommendedSize,omitempty"`
-	// MonthlyComputeCostForRecommendedSize - READ-ONLY; Compute Cost for a 31-day month, if the machine is migrated to Azure with the Recommended Size.
+	// MonthlyComputeCostForRecommendedSize - Compute Cost for a 31-day month, if the machine is migrated to Azure with the Recommended Size.
 	MonthlyComputeCostForRecommendedSize *float64 `json:"monthlyComputeCostForRecommendedSize,omitempty"`
-	// PercentageCoresUtilization - READ-ONLY; Utilization percentage of the processor core as observed in the private data center, in the Time Range selected on Assessment, reported as the Percentile value based on the percentile number selected in assessment.
+	// PercentageCoresUtilization - Utilization percentage of the processor core as observed in the private data center, in the Time Range selected on Assessment, reported as the Percentile value based on the percentile number selected in assessment.
 	PercentageCoresUtilization *float64 `json:"percentageCoresUtilization,omitempty"`
-	// PercentageMemoryUtilization - READ-ONLY; Utilization percentage of the memory as observed in the private data center, in the Time Range selected on Assessment, reported as the Percentile value based on the percentile number selected in assessment.
+	// PercentageMemoryUtilization - Utilization percentage of the memory as observed in the private data center, in the Time Range selected on Assessment, reported as the Percentile value based on the percentile number selected in assessment.
 	PercentageMemoryUtilization *float64 `json:"percentageMemoryUtilization,omitempty"`
-	// PercentageCoresUtilizationDataPointsExpected - READ-ONLY; Expected data points for percentage of cores utilization.
+	// PercentageCoresUtilizationDataPointsExpected - Expected data points for percentage of cores utilization.
 	PercentageCoresUtilizationDataPointsExpected *int32 `json:"percentageCoresUtilizationDataPointsExpected,omitempty"`
-	// PercentageCoresUtilizationDataPointsReceived - READ-ONLY; Received data points for percentage of cores utilization.
+	// PercentageCoresUtilizationDataPointsReceived - Received data points for percentage of cores utilization.
 	PercentageCoresUtilizationDataPointsReceived *int32 `json:"percentageCoresUtilizationDataPointsReceived,omitempty"`
-	// PercentageMemoryUtilizationDataPointsExpected - READ-ONLY; Expected data points for percentage of memory utilization.
+	// PercentageMemoryUtilizationDataPointsExpected - Expected data points for percentage of memory utilization.
 	PercentageMemoryUtilizationDataPointsExpected *int32 `json:"percentageMemoryUtilizationDataPointsExpected,omitempty"`
-	// PercentageMemoryUtilizationDataPointsReceived - READ-ONLY; Received data points for percentage of memory utilization.
+	// PercentageMemoryUtilizationDataPointsReceived - Received data points for percentage of memory utilization.
 	PercentageMemoryUtilizationDataPointsReceived *int32 `json:"percentageMemoryUtilizationDataPointsReceived,omitempty"`
-	// Suitability - READ-ONLY; Whether machine is suitable for migration to Azure. Possible values include: 'CloudSuitabilityUnknown', 'CloudSuitabilityNotSuitable', 'CloudSuitabilitySuitable', 'CloudSuitabilityConditionallySuitable', 'CloudSuitabilityReadinessUnknown'
+	// Suitability - Whether machine is suitable for migration to Azure. Possible values include: 'CloudSuitabilityUnknown', 'CloudSuitabilityNotSuitable', 'CloudSuitabilitySuitable', 'CloudSuitabilityConditionallySuitable', 'CloudSuitabilityReadinessUnknown'
 	Suitability CloudSuitability `json:"suitability,omitempty"`
-	// SuitabilityExplanation - READ-ONLY; If machine is not ready to be migrated, this explains the reasons and mitigation steps. Possible values include: 'AzureVMSuitabilityExplanationUnknown', 'AzureVMSuitabilityExplanationNotApplicable', 'AzureVMSuitabilityExplanationGuestOperatingSystemArchitectureNotSupported', 'AzureVMSuitabilityExplanationGuestOperatingSystemNotSupported', 'AzureVMSuitabilityExplanationBootTypeNotSupported', 'AzureVMSuitabilityExplanationMoreDisksThanSupported', 'AzureVMSuitabilityExplanationNoSuitableVMSizeFound', 'AzureVMSuitabilityExplanationOneOrMoreDisksNotSuitable', 'AzureVMSuitabilityExplanationOneOrMoreAdaptersNotSuitable', 'AzureVMSuitabilityExplanationInternalErrorOccuredDuringComputeEvaluation', 'AzureVMSuitabilityExplanationInternalErrorOccuredDuringStorageEvaluation', 'AzureVMSuitabilityExplanationInternalErrorOccuredDuringNetworkEvaluation', 'AzureVMSuitabilityExplanationNoVMSizeSupportsStoragePerformance', 'AzureVMSuitabilityExplanationNoVMSizeSupportsNetworkPerformance', 'AzureVMSuitabilityExplanationNoVMSizeForSelectedPricingTier', 'AzureVMSuitabilityExplanationNoVMSizeForSelectedAzureLocation', 'AzureVMSuitabilityExplanationCheckRedHatLinuxVersion', 'AzureVMSuitabilityExplanationCheckOpenSuseLinuxVersion', 'AzureVMSuitabilityExplanationCheckWindowsServer2008R2Version', 'AzureVMSuitabilityExplanationCheckCentOsVersion', 'AzureVMSuitabilityExplanationCheckDebianLinuxVersion', 'AzureVMSuitabilityExplanationCheckSuseLinuxVersion', 'AzureVMSuitabilityExplanationCheckOracleLinuxVersion', 'AzureVMSuitabilityExplanationCheckUbuntuLinuxVersion', 'AzureVMSuitabilityExplanationCheckCoreOsLinuxVersion', 'AzureVMSuitabilityExplanationWindowsServerVersionConditionallySupported', 'AzureVMSuitabilityExplanationNoGuestOperatingSystemConditionallySupported', 'AzureVMSuitabilityExplanationWindowsClientVersionsConditionallySupported', 'AzureVMSuitabilityExplanationBootTypeUnknown', 'AzureVMSuitabilityExplanationGuestOperatingSystemUnknown', 'AzureVMSuitabilityExplanationWindowsServerVersionsSupportedWithCaveat', 'AzureVMSuitabilityExplanationWindowsOSNoLongerUnderMSSupport', 'AzureVMSuitabilityExplanationEndorsedWithConditionsLinuxDistributions', 'AzureVMSuitabilityExplanationUnendorsedLinuxDistributions', 'AzureVMSuitabilityExplanationNoVMSizeForStandardPricingTier', 'AzureVMSuitabilityExplanationNoVMSizeForBasicPricingTier'
+	// SuitabilityExplanation - If machine is not ready to be migrated, this explains the reasons and mitigation steps. Possible values include: 'AzureVMSuitabilityExplanationUnknown', 'AzureVMSuitabilityExplanationNotApplicable', 'AzureVMSuitabilityExplanationGuestOperatingSystemArchitectureNotSupported', 'AzureVMSuitabilityExplanationGuestOperatingSystemNotSupported', 'AzureVMSuitabilityExplanationBootTypeNotSupported', 'AzureVMSuitabilityExplanationMoreDisksThanSupported', 'AzureVMSuitabilityExplanationNoSuitableVMSizeFound', 'AzureVMSuitabilityExplanationOneOrMoreDisksNotSuitable', 'AzureVMSuitabilityExplanationOneOrMoreAdaptersNotSuitable', 'AzureVMSuitabilityExplanationInternalErrorOccuredDuringComputeEvaluation', 'AzureVMSuitabilityExplanationInternalErrorOccuredDuringStorageEvaluation', 'AzureVMSuitabilityExplanationInternalErrorOccuredDuringNetworkEvaluation', 'AzureVMSuitabilityExplanationNoVMSizeSupportsStoragePerformance', 'AzureVMSuitabilityExplanationNoVMSizeSupportsNetworkPerformance', 'AzureVMSuitabilityExplanationNoVMSizeForSelectedPricingTier', 'AzureVMSuitabilityExplanationNoVMSizeForSelectedAzureLocation', 'AzureVMSuitabilityExplanationCheckRedHatLinuxVersion', 'AzureVMSuitabilityExplanationCheckOpenSuseLinuxVersion', 'AzureVMSuitabilityExplanationCheckWindowsServer2008R2Version', 'AzureVMSuitabilityExplanationCheckCentOsVersion', 'AzureVMSuitabilityExplanationCheckDebianLinuxVersion', 'AzureVMSuitabilityExplanationCheckSuseLinuxVersion', 'AzureVMSuitabilityExplanationCheckOracleLinuxVersion', 'AzureVMSuitabilityExplanationCheckUbuntuLinuxVersion', 'AzureVMSuitabilityExplanationCheckCoreOsLinuxVersion', 'AzureVMSuitabilityExplanationWindowsServerVersionConditionallySupported', 'AzureVMSuitabilityExplanationNoGuestOperatingSystemConditionallySupported', 'AzureVMSuitabilityExplanationWindowsClientVersionsConditionallySupported', 'AzureVMSuitabilityExplanationBootTypeUnknown', 'AzureVMSuitabilityExplanationGuestOperatingSystemUnknown', 'AzureVMSuitabilityExplanationWindowsServerVersionsSupportedWithCaveat', 'AzureVMSuitabilityExplanationWindowsOSNoLongerUnderMSSupport', 'AzureVMSuitabilityExplanationEndorsedWithConditionsLinuxDistributions', 'AzureVMSuitabilityExplanationUnendorsedLinuxDistributions', 'AzureVMSuitabilityExplanationNoVMSizeForStandardPricingTier', 'AzureVMSuitabilityExplanationNoVMSizeForBasicPricingTier'
 	SuitabilityExplanation AzureVMSuitabilityExplanation `json:"suitabilityExplanation,omitempty"`
-	// CreatedTimestamp - READ-ONLY; Time when this machine was created. Date-Time represented in ISO-8601 format.
+	// CreatedTimestamp - Time when this machine was created. Date-Time represented in ISO-8601 format.
 	CreatedTimestamp *date.Time `json:"createdTimestamp,omitempty"`
-	// UpdatedTimestamp - READ-ONLY; Time when this machine was last updated. Date-Time represented in ISO-8601 format.
+	// UpdatedTimestamp - Time when this machine was last updated. Date-Time represented in ISO-8601 format.
 	UpdatedTimestamp *date.Time `json:"updatedTimestamp,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for AssessedMachineProperties.
 func (amp AssessedMachineProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if amp.Groups != nil {
+		objectMap["groups"] = amp.Groups
+	}
+	if amp.DiscoveredTimestamp != nil {
+		objectMap["discoveredTimestamp"] = amp.DiscoveredTimestamp
+	}
+	if amp.BootType != "" {
+		objectMap["bootType"] = amp.BootType
+	}
+	if amp.DatacenterContainer != nil {
+		objectMap["datacenterContainer"] = amp.DatacenterContainer
+	}
+	if amp.DatacenterManagementServer != nil {
+		objectMap["datacenterManagementServer"] = amp.DatacenterManagementServer
+	}
+	if amp.DatacenterMachineID != nil {
+		objectMap["datacenterMachineId"] = amp.DatacenterMachineID
+	}
+	if amp.DatacenterManagementServerID != nil {
+		objectMap["datacenterManagementServerId"] = amp.DatacenterManagementServerID
+	}
+	if amp.Description != nil {
+		objectMap["description"] = amp.Description
+	}
+	if amp.DisplayName != nil {
+		objectMap["displayName"] = amp.DisplayName
+	}
+	if amp.MegabytesOfMemory != nil {
+		objectMap["megabytesOfMemory"] = amp.MegabytesOfMemory
+	}
+	if amp.NumberOfCores != nil {
+		objectMap["numberOfCores"] = amp.NumberOfCores
+	}
+	if amp.OperatingSystem != nil {
+		objectMap["operatingSystem"] = amp.OperatingSystem
+	}
+	if amp.MonthlyBandwidthCost != nil {
+		objectMap["monthlyBandwidthCost"] = amp.MonthlyBandwidthCost
+	}
+	if amp.MonthlyStorageCost != nil {
+		objectMap["monthlyStorageCost"] = amp.MonthlyStorageCost
+	}
+	if amp.Disks != nil {
+		objectMap["disks"] = amp.Disks
+	}
+	if amp.NetworkAdapters != nil {
+		objectMap["networkAdapters"] = amp.NetworkAdapters
+	}
+	if amp.RecommendedSize != "" {
+		objectMap["recommendedSize"] = amp.RecommendedSize
+	}
+	if amp.NumberOfCoresForRecommendedSize != nil {
+		objectMap["numberOfCoresForRecommendedSize"] = amp.NumberOfCoresForRecommendedSize
+	}
+	if amp.MegabytesOfMemoryForRecommendedSize != nil {
+		objectMap["megabytesOfMemoryForRecommendedSize"] = amp.MegabytesOfMemoryForRecommendedSize
+	}
+	if amp.MonthlyComputeCostForRecommendedSize != nil {
+		objectMap["monthlyComputeCostForRecommendedSize"] = amp.MonthlyComputeCostForRecommendedSize
+	}
+	if amp.PercentageCoresUtilization != nil {
+		objectMap["percentageCoresUtilization"] = amp.PercentageCoresUtilization
+	}
+	if amp.PercentageMemoryUtilization != nil {
+		objectMap["percentageMemoryUtilization"] = amp.PercentageMemoryUtilization
+	}
+	if amp.PercentageCoresUtilizationDataPointsExpected != nil {
+		objectMap["percentageCoresUtilizationDataPointsExpected"] = amp.PercentageCoresUtilizationDataPointsExpected
+	}
+	if amp.PercentageCoresUtilizationDataPointsReceived != nil {
+		objectMap["percentageCoresUtilizationDataPointsReceived"] = amp.PercentageCoresUtilizationDataPointsReceived
+	}
+	if amp.PercentageMemoryUtilizationDataPointsExpected != nil {
+		objectMap["percentageMemoryUtilizationDataPointsExpected"] = amp.PercentageMemoryUtilizationDataPointsExpected
+	}
+	if amp.PercentageMemoryUtilizationDataPointsReceived != nil {
+		objectMap["percentageMemoryUtilizationDataPointsReceived"] = amp.PercentageMemoryUtilizationDataPointsReceived
+	}
+	if amp.Suitability != "" {
+		objectMap["suitability"] = amp.Suitability
+	}
+	if amp.SuitabilityExplanation != "" {
+		objectMap["suitabilityExplanation"] = amp.SuitabilityExplanation
+	}
+	if amp.CreatedTimestamp != nil {
+		objectMap["createdTimestamp"] = amp.CreatedTimestamp
+	}
+	if amp.UpdatedTimestamp != nil {
+		objectMap["updatedTimestamp"] = amp.UpdatedTimestamp
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1079,42 +1175,42 @@ type AssessedMachineResultList struct {
 
 // AssessedNetworkAdapter a network adapter assessed for an assessment.
 type AssessedNetworkAdapter struct {
-	// MacAddress - READ-ONLY; MAC Address of the network adapter.
+	// MacAddress - MAC Address of the network adapter.
 	MacAddress *string `json:"macAddress,omitempty"`
-	// IPAddresses - READ-ONLY; List of IP Addresses on the network adapter.
+	// IPAddresses - List of IP Addresses on the network adapter.
 	IPAddresses *[]string `json:"ipAddresses,omitempty"`
-	// MonthlyBandwidthCosts - READ-ONLY; Monthly cost estimate for network bandwidth used by this network adapter.
+	// MonthlyBandwidthCosts - Monthly cost estimate for network bandwidth used by this network adapter.
 	MonthlyBandwidthCosts *float64 `json:"monthlyBandwidthCosts,omitempty"`
-	// MegabytesPerSecondReceived - READ-ONLY; Adapter throughput for incoming traffic in MegaBytes per second.
+	// MegabytesPerSecondReceived - Adapter throughput for incoming traffic in MegaBytes per second.
 	MegabytesPerSecondReceived *float64 `json:"megabytesPerSecondReceived,omitempty"`
-	// MegabytesPerSecondReceivedDataPointsExpected - READ-ONLY; Expected data points for incoming traffic in MegaBytes per second.
+	// MegabytesPerSecondReceivedDataPointsExpected - Expected data points for incoming traffic in MegaBytes per second.
 	MegabytesPerSecondReceivedDataPointsExpected *int32 `json:"megabytesPerSecondReceivedDataPointsExpected,omitempty"`
-	// MegabytesPerSecondOfReadDataPointsReceived - READ-ONLY; Received data points for incoming traffic in MegaBytes per second.
+	// MegabytesPerSecondOfReadDataPointsReceived - Received data points for incoming traffic in MegaBytes per second.
 	MegabytesPerSecondOfReadDataPointsReceived *int32 `json:"megabytesPerSecondOfReadDataPointsReceived,omitempty"`
-	// MegabytesPerSecondTransmitted - READ-ONLY; Adapter throughput for outgoing traffic in MegaBytes per second.
+	// MegabytesPerSecondTransmitted - Adapter throughput for outgoing traffic in MegaBytes per second.
 	MegabytesPerSecondTransmitted *float64 `json:"megabytesPerSecondTransmitted,omitempty"`
-	// MegabytesPerSecondTransmittedDataPointsExpected - READ-ONLY; Expected data points for outgoing traffic in MegaBytes per second.
+	// MegabytesPerSecondTransmittedDataPointsExpected - Expected data points for outgoing traffic in MegaBytes per second.
 	MegabytesPerSecondTransmittedDataPointsExpected *int32 `json:"megabytesPerSecondTransmittedDataPointsExpected,omitempty"`
-	// MegabytesPerSecondTransmittedDataPointsReceived - READ-ONLY; Received data points for outgoing traffic in MegaBytes per second.
+	// MegabytesPerSecondTransmittedDataPointsReceived - Received data points for outgoing traffic in MegaBytes per second.
 	MegabytesPerSecondTransmittedDataPointsReceived *int32 `json:"megabytesPerSecondTransmittedDataPointsReceived,omitempty"`
 	// NetGigabytesTransmittedPerMonth - Gigabytes transmitted through this adapter each month.
 	NetGigabytesTransmittedPerMonth *float64 `json:"netGigabytesTransmittedPerMonth,omitempty"`
-	// Suitability - READ-ONLY; Whether this adapter is suitable for Azure. Possible values include: 'CloudSuitabilityUnknown', 'CloudSuitabilityNotSuitable', 'CloudSuitabilitySuitable', 'CloudSuitabilityConditionallySuitable', 'CloudSuitabilityReadinessUnknown'
+	// Suitability - Whether this adapter is suitable for Azure. Possible values include: 'CloudSuitabilityUnknown', 'CloudSuitabilityNotSuitable', 'CloudSuitabilitySuitable', 'CloudSuitabilityConditionallySuitable', 'CloudSuitabilityReadinessUnknown'
 	Suitability CloudSuitability `json:"suitability,omitempty"`
-	// SuitabilityExplanation - READ-ONLY; If network adapter is suitable, this explains the reasons and mitigation steps. Possible values include: 'AzureNetworkAdapterSuitabilityExplanationUnknown', 'AzureNetworkAdapterSuitabilityExplanationNotApplicable', 'AzureNetworkAdapterSuitabilityExplanationInternalErrorOccured'
+	// SuitabilityExplanation - If network adapter is suitable, this explains the reasons and mitigation steps. Possible values include: 'AzureNetworkAdapterSuitabilityExplanationUnknown', 'AzureNetworkAdapterSuitabilityExplanationNotApplicable', 'AzureNetworkAdapterSuitabilityExplanationInternalErrorOccured'
 	SuitabilityExplanation AzureNetworkAdapterSuitabilityExplanation `json:"suitabilityExplanation,omitempty"`
 }
 
 // Assessment an assessment created for a group in the Migration project.
 type Assessment struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; Path reference to this assessment. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}/groups/{groupName}/assessment/{assessmentName}
+	// ID - Path reference to this assessment. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}/groups/{groupName}/assessment/{assessmentName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Unique name of an assessment.
+	// Name - Unique name of an assessment.
 	Name *string `json:"name,omitempty"`
 	// ETag - For optimistic concurrency control.
 	ETag *string `json:"eTag,omitempty"`
-	// Type - READ-ONLY; Type of the object = [Microsoft.Migrate/projects/groups/assessments].
+	// Type - Type of the object = [Microsoft.Migrate/projects/groups/assessments].
 	Type *string `json:"type,omitempty"`
 	// AssessmentProperties - Properties of the assessment.
 	*AssessmentProperties `json:"properties,omitempty"`
@@ -1123,8 +1219,17 @@ type Assessment struct {
 // MarshalJSON is the custom marshaler for Assessment.
 func (a Assessment) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
+	}
 	if a.ETag != nil {
 		objectMap["eTag"] = a.ETag
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
 	}
 	if a.AssessmentProperties != nil {
 		objectMap["properties"] = a.AssessmentProperties
@@ -1195,9 +1300,9 @@ func (a *Assessment) UnmarshalJSON(body []byte) error {
 // AssessmentOptionsResultList list of assessment options.
 type AssessmentOptionsResultList struct {
 	autorest.Response `json:"-"`
-	// VMFamilies - READ-ONLY; Dictionary of VM families grouped by vm family name describing the targeted azure locations of VM family and the category of the family.
+	// VMFamilies - Dictionary of VM families grouped by vm family name describing the targeted azure locations of VM family and the category of the family.
 	VMFamilies *[]VMFamily `json:"vmFamilies,omitempty"`
-	// ReservedInstanceVMFamilies - READ-ONLY; List of supported VM Families.
+	// ReservedInstanceVMFamilies - List of supported VM Families.
 	ReservedInstanceVMFamilies *[]string `json:"reservedInstanceVmFamilies,omitempty"`
 }
 
@@ -1225,25 +1330,25 @@ type AssessmentProperties struct {
 	AzureHybridUseBenefit AzureHybridUseBenefit `json:"azureHybridUseBenefit,omitempty"`
 	// DiscountPercentage - Custom discount percentage to be applied on final costs. Can be in the range [0, 100].
 	DiscountPercentage *float64 `json:"discountPercentage,omitempty"`
-	// ConfidenceRatingInPercentage - READ-ONLY; Confidence rating percentage for assessment. Can be in the range [0, 100].
+	// ConfidenceRatingInPercentage - Confidence rating percentage for assessment. Can be in the range [0, 100].
 	ConfidenceRatingInPercentage *float64 `json:"confidenceRatingInPercentage,omitempty"`
 	// SizingCriterion - Assessment sizing criterion. Possible values include: 'PerformanceBased', 'AsOnPremises'
 	SizingCriterion AssessmentSizingCriterion `json:"sizingCriterion,omitempty"`
-	// PricesTimestamp - READ-ONLY; Time when the Azure Prices were queried. Date-Time represented in ISO-8601 format.
+	// PricesTimestamp - Time when the Azure Prices were queried. Date-Time represented in ISO-8601 format.
 	PricesTimestamp *date.Time `json:"pricesTimestamp,omitempty"`
-	// CreatedTimestamp - READ-ONLY; Time when this project was created. Date-Time represented in ISO-8601 format.
+	// CreatedTimestamp - Time when this project was created. Date-Time represented in ISO-8601 format.
 	CreatedTimestamp *date.Time `json:"createdTimestamp,omitempty"`
-	// UpdatedTimestamp - READ-ONLY; Time when this project was last updated. Date-Time represented in ISO-8601 format.
+	// UpdatedTimestamp - Time when this project was last updated. Date-Time represented in ISO-8601 format.
 	UpdatedTimestamp *date.Time `json:"updatedTimestamp,omitempty"`
-	// MonthlyComputeCost - READ-ONLY; Monthly compute cost estimate for the machines that are part of this assessment as a group, for a 31-day month.
+	// MonthlyComputeCost - Monthly compute cost estimate for the machines that are part of this assessment as a group, for a 31-day month.
 	MonthlyComputeCost *float64 `json:"monthlyComputeCost,omitempty"`
-	// MonthlyBandwidthCost - READ-ONLY; Monthly network cost estimate for the machines that are part of this assessment as a group, for a 31-day month.
+	// MonthlyBandwidthCost - Monthly network cost estimate for the machines that are part of this assessment as a group, for a 31-day month.
 	MonthlyBandwidthCost *float64 `json:"monthlyBandwidthCost,omitempty"`
-	// MonthlyStorageCost - READ-ONLY; Monthly storage cost estimate for the machines that are part of this assessment as a group, for a 31-day month.
+	// MonthlyStorageCost - Monthly storage cost estimate for the machines that are part of this assessment as a group, for a 31-day month.
 	MonthlyStorageCost *float64 `json:"monthlyStorageCost,omitempty"`
-	// Status - READ-ONLY; Whether the assessment has been created and is valid. Possible values include: 'Created', 'Updated', 'Running', 'Completed', 'Invalid'
+	// Status - Wheter the assessment has been created and is valid. Possible values include: 'Created', 'Updated', 'Running', 'Completed', 'Invalid'
 	Status AssessmentStatus `json:"status,omitempty"`
-	// NumberOfMachines - READ-ONLY; Number of assessed machines part of this assessment.
+	// NumberOfMachines - Number of assessed machines part of this assessment.
 	NumberOfMachines *int32 `json:"numberOfMachines,omitempty"`
 }
 
@@ -1265,11 +1370,11 @@ type CheckNameAvailabilityParameters struct {
 // CheckNameAvailabilityResult the CheckNameAvailability operation response.
 type CheckNameAvailabilityResult struct {
 	autorest.Response `json:"-"`
-	// NameAvailable - READ-ONLY; Gets a boolean value that indicates whether the name is available for you to use. If true, the name is available. If false, the name has already been taken or invalid and cannot be used.
+	// NameAvailable - Gets a boolean value that indicates whether the name is available for you to use. If true, the name is available. If false, the name has already been taken or invalid and cannot be used.
 	NameAvailable *bool `json:"nameAvailable,omitempty"`
-	// Reason - READ-ONLY; Gets the reason that a project name could not be used. The Reason element is only returned if NameAvailable is false. Possible values include: 'NameAvailabilityReasonAvailable', 'NameAvailabilityReasonInvalid', 'NameAvailabilityReasonAlreadyExists'
+	// Reason - Gets the reason that a project name could not be used. The Reason element is only returned if NameAvailable is false. Possible values include: 'NameAvailabilityReasonAvailable', 'NameAvailabilityReasonInvalid', 'NameAvailabilityReasonAlreadyExists'
 	Reason NameAvailabilityReason `json:"reason,omitempty"`
-	// Message - READ-ONLY; Gets an error message explaining the Reason value in more detail.
+	// Message - Gets an error message explaining the Reason value in more detail.
 	Message *string `json:"message,omitempty"`
 }
 
@@ -1292,31 +1397,31 @@ type CloudErrorBody struct {
 
 // Disk a disk discovered on a machine.
 type Disk struct {
-	// GigabytesAllocated - READ-ONLY; Gigabytes of storage provisioned for this disk.
+	// GigabytesAllocated - Gigabytes of storage provisioned for this disk.
 	GigabytesAllocated *float64 `json:"gigabytesAllocated,omitempty"`
-	// GigabytesConsumed - READ-ONLY; Gigabytes of storage consumed by this disk.
+	// GigabytesConsumed - Gigabytes of storage consumed by this disk.
 	GigabytesConsumed *float64 `json:"gigabytesConsumed,omitempty"`
 }
 
 // DownloadURL download URL for assessment report.
 type DownloadURL struct {
 	autorest.Response `json:"-"`
-	// AssessmentReportURL - READ-ONLY; Hyperlink to download report.
+	// AssessmentReportURL - Hyperlink to download report.
 	AssessmentReportURL *string `json:"assessmentReportUrl,omitempty"`
-	// ExpirationTime - READ-ONLY; Expiry date of download url.
+	// ExpirationTime - Expiry date of download url.
 	ExpirationTime *date.Time `json:"expirationTime,omitempty"`
 }
 
 // Group a group created in a Migration project.
 type Group struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; Path reference to this group. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}/groups/{groupName}
+	// ID - Path reference to this group. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}/groups/{groupName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Name of the group.
+	// Name - Name of the group.
 	Name *string `json:"name,omitempty"`
 	// ETag - For optimistic concurrency control.
 	ETag *string `json:"eTag,omitempty"`
-	// Type - READ-ONLY; Type of the object = [Microsoft.Migrate/projects/groups].
+	// Type - Type of the object = [Microsoft.Migrate/projects/groups].
 	Type *string `json:"type,omitempty"`
 	// GroupProperties - Properties of the group.
 	*GroupProperties `json:"properties,omitempty"`
@@ -1325,8 +1430,17 @@ type Group struct {
 // MarshalJSON is the custom marshaler for Group.
 func (g Group) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if g.ID != nil {
+		objectMap["id"] = g.ID
+	}
+	if g.Name != nil {
+		objectMap["name"] = g.Name
+	}
 	if g.ETag != nil {
 		objectMap["eTag"] = g.ETag
+	}
+	if g.Type != nil {
+		objectMap["type"] = g.Type
 	}
 	if g.GroupProperties != nil {
 		objectMap["properties"] = g.GroupProperties
@@ -1398,11 +1512,11 @@ func (g *Group) UnmarshalJSON(body []byte) error {
 type GroupProperties struct {
 	// Machines - List of machine names that are part of this group.
 	Machines *[]string `json:"machines,omitempty"`
-	// Assessments - READ-ONLY; List of References to Assessments created on this group.
+	// Assessments - List of References to Assessments created on this group.
 	Assessments *[]string `json:"assessments,omitempty"`
-	// CreatedTimestamp - READ-ONLY; Time when this project was created. Date-Time represented in ISO-8601 format.
+	// CreatedTimestamp - Time when this project was created. Date-Time represented in ISO-8601 format.
 	CreatedTimestamp *date.Time `json:"createdTimestamp,omitempty"`
-	// UpdatedTimestamp - READ-ONLY; Time when this project was last updated. Date-Time represented in ISO-8601 format.
+	// UpdatedTimestamp - Time when this project was last updated. Date-Time represented in ISO-8601 format.
 	UpdatedTimestamp *date.Time `json:"updatedTimestamp,omitempty"`
 }
 
@@ -1416,13 +1530,13 @@ type GroupResultList struct {
 // Machine a machine in a migration project.
 type Machine struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; Path reference to this machine. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}/machines/{machineName}
+	// ID - Path reference to this machine. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}/machines/{machineName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Name of the machine. It is a GUID which is unique identifier of machine in private data center. For user-readable name, we have a displayName property on this machine.
+	// Name - Name of the machine. It is a GUID which is unique identifier of machine in private data center. For user-readable name, we have a displayName property on this machine.
 	Name *string `json:"name,omitempty"`
 	// ETag - For optimistic concurrency control.
 	ETag *string `json:"eTag,omitempty"`
-	// Type - READ-ONLY; Type of the object = [Microsoft.Migrate/projects/machines].
+	// Type - Type of the object = [Microsoft.Migrate/projects/machines].
 	Type *string `json:"type,omitempty"`
 	// MachineProperties - Properties of the machine.
 	*MachineProperties `json:"properties,omitempty"`
@@ -1431,8 +1545,17 @@ type Machine struct {
 // MarshalJSON is the custom marshaler for Machine.
 func (mVar Machine) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if mVar.ID != nil {
+		objectMap["id"] = mVar.ID
+	}
+	if mVar.Name != nil {
+		objectMap["name"] = mVar.Name
+	}
 	if mVar.ETag != nil {
 		objectMap["eTag"] = mVar.ETag
+	}
+	if mVar.Type != nil {
+		objectMap["type"] = mVar.Type
 	}
 	if mVar.MachineProperties != nil {
 		objectMap["properties"] = mVar.MachineProperties
@@ -1502,43 +1625,91 @@ func (mVar *Machine) UnmarshalJSON(body []byte) error {
 
 // MachineProperties properties of a machine.
 type MachineProperties struct {
-	// BootType - READ-ONLY; Boot type of the machine. Possible values include: 'MachineBootTypeUnknown', 'MachineBootTypeEFI', 'MachineBootTypeBIOS'
+	// BootType - Boot type of the machine. Possible values include: 'MachineBootTypeUnknown', 'MachineBootTypeEFI', 'MachineBootTypeBIOS'
 	BootType MachineBootType `json:"bootType,omitempty"`
-	// DatacenterContainer - READ-ONLY; Container defined in the management solution that this machine is part of in the datacenter.
+	// DatacenterContainer - Container defined in the management solution that this machine is part of in the datacenter.
 	DatacenterContainer *string `json:"datacenterContainer,omitempty"`
-	// DatacenterManagementServer - READ-ONLY; Name of the server hosting the datacenter management solution.
+	// DatacenterManagementServer - Name of the server hosting the datacenter management solution.
 	DatacenterManagementServer *string `json:"datacenterManagementServer,omitempty"`
-	// DatacenterMachineID - READ-ONLY; ID of the machine as tracked by the datacenter management solution.
+	// DatacenterMachineID - ID of the machine as tracked by the datacenter management solution.
 	DatacenterMachineID *string `json:"datacenterMachineId,omitempty"`
-	// DatacenterManagementServerID - READ-ONLY; ID of the server hosting the datacenter management solution.
+	// DatacenterManagementServerID - ID of the server hosting the datacenter management solution.
 	DatacenterManagementServerID *string `json:"datacenterManagementServerId,omitempty"`
-	// Description - READ-ONLY; Description of the machine
+	// Description - Description of the machine
 	Description *string `json:"description,omitempty"`
-	// DisplayName - READ-ONLY; User readable name of the machine as defined by the user in their private datacenter.
+	// DisplayName - User readable name of the machine as defined by the user in their private datacenter.
 	DisplayName *string `json:"displayName,omitempty"`
-	// MegabytesOfMemory - READ-ONLY; Memory in Megabytes.
+	// MegabytesOfMemory - Memory in Megabytes.
 	MegabytesOfMemory *float64 `json:"megabytesOfMemory,omitempty"`
-	// NumberOfCores - READ-ONLY; Processor count.
+	// NumberOfCores - Processor count.
 	NumberOfCores *int32 `json:"numberOfCores,omitempty"`
-	// OperatingSystem - READ-ONLY; Operating System of the machine.
+	// OperatingSystem - Operating System of the machine.
 	OperatingSystem *string `json:"operatingSystem,omitempty"`
-	// Groups - READ-ONLY; List of references to the groups that the machine is member of.
+	// Groups - List of references to the groups that the machine is member of.
 	Groups *[]string `json:"groups,omitempty"`
-	// CreatedTimestamp - READ-ONLY; Time when this machine was created. Date-Time represented in ISO-8601 format.
+	// CreatedTimestamp - Time when this machine was created. Date-Time represented in ISO-8601 format.
 	CreatedTimestamp *date.Time `json:"createdTimestamp,omitempty"`
-	// UpdatedTimestamp - READ-ONLY; Time when this machine was last updated. Date-Time represented in ISO-8601 format.
+	// UpdatedTimestamp - Time when this machine was last updated. Date-Time represented in ISO-8601 format.
 	UpdatedTimestamp *date.Time `json:"updatedTimestamp,omitempty"`
-	// DiscoveredTimestamp - READ-ONLY; Time when this machine was discovered by Azure Migrate agent. Date-Time represented in ISO-8601 format.
+	// DiscoveredTimestamp - Time when this machine was discovered by Azure Migrate agent. Date-Time represented in ISO-8601 format.
 	DiscoveredTimestamp *date.Time `json:"discoveredTimestamp,omitempty"`
-	// Disks - READ-ONLY; Dictionary of disks attached to the machine. Key is ID of disk. Value is a disk object
+	// Disks - Dictionary of disks attached to the machine. Key is ID of disk. Value is a disk object
 	Disks map[string]*Disk `json:"disks"`
-	// NetworkAdapters - READ-ONLY; Dictionary of network adapters attached to the machine. Key is ID of network adapter. Value is a network adapter object
+	// NetworkAdapters - Dictionary of network adapters attached to the machine. Key is ID of network adapter. Value is a network adapter object
 	NetworkAdapters map[string]*NetworkAdapter `json:"networkAdapters"`
 }
 
 // MarshalJSON is the custom marshaler for MachineProperties.
 func (mp MachineProperties) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if mp.BootType != "" {
+		objectMap["bootType"] = mp.BootType
+	}
+	if mp.DatacenterContainer != nil {
+		objectMap["datacenterContainer"] = mp.DatacenterContainer
+	}
+	if mp.DatacenterManagementServer != nil {
+		objectMap["datacenterManagementServer"] = mp.DatacenterManagementServer
+	}
+	if mp.DatacenterMachineID != nil {
+		objectMap["datacenterMachineId"] = mp.DatacenterMachineID
+	}
+	if mp.DatacenterManagementServerID != nil {
+		objectMap["datacenterManagementServerId"] = mp.DatacenterManagementServerID
+	}
+	if mp.Description != nil {
+		objectMap["description"] = mp.Description
+	}
+	if mp.DisplayName != nil {
+		objectMap["displayName"] = mp.DisplayName
+	}
+	if mp.MegabytesOfMemory != nil {
+		objectMap["megabytesOfMemory"] = mp.MegabytesOfMemory
+	}
+	if mp.NumberOfCores != nil {
+		objectMap["numberOfCores"] = mp.NumberOfCores
+	}
+	if mp.OperatingSystem != nil {
+		objectMap["operatingSystem"] = mp.OperatingSystem
+	}
+	if mp.Groups != nil {
+		objectMap["groups"] = mp.Groups
+	}
+	if mp.CreatedTimestamp != nil {
+		objectMap["createdTimestamp"] = mp.CreatedTimestamp
+	}
+	if mp.UpdatedTimestamp != nil {
+		objectMap["updatedTimestamp"] = mp.UpdatedTimestamp
+	}
+	if mp.DiscoveredTimestamp != nil {
+		objectMap["discoveredTimestamp"] = mp.DiscoveredTimestamp
+	}
+	if mp.Disks != nil {
+		objectMap["disks"] = mp.Disks
+	}
+	if mp.NetworkAdapters != nil {
+		objectMap["networkAdapters"] = mp.NetworkAdapters
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1551,31 +1722,31 @@ type MachineResultList struct {
 
 // NetworkAdapter a network adapter discovered on a machine.
 type NetworkAdapter struct {
-	// MacAddress - READ-ONLY; MAC Address of the network adapter.
+	// MacAddress - MAC Address of the network adapter.
 	MacAddress *string `json:"macAddress,omitempty"`
-	// IPAddresses - READ-ONLY; List of IP Addresses on the network adapter.
+	// IPAddresses - List of IP Addresses on the network adapter.
 	IPAddresses *[]string `json:"ipAddresses,omitempty"`
 }
 
 // Operation a REST API operation supported by the provider.
 type Operation struct {
-	// Name - READ-ONLY; Name of the operation.
+	// Name - Name of the operation.
 	Name *string `json:"name,omitempty"`
 	// Display - Displayable properties of the operation.
 	Display *OperationDisplay `json:"display,omitempty"`
-	// Origin - READ-ONLY; Origin of the operation.
+	// Origin - Origin of the operation.
 	Origin *string `json:"origin,omitempty"`
 }
 
 // OperationDisplay displayable properties of the operation.
 type OperationDisplay struct {
-	// Provider - READ-ONLY; Provider of the operation.
+	// Provider - Provider of the operation.
 	Provider *string `json:"provider,omitempty"`
-	// Resource - READ-ONLY; Resource operated on by the operation.
+	// Resource - Resource operated on by the operation.
 	Resource *string `json:"resource,omitempty"`
-	// Operation - READ-ONLY; Operation Type.
+	// Operation - Operation Type.
 	Operation *string `json:"operation,omitempty"`
-	// Description - READ-ONLY; Description of the operation.
+	// Description - Description of the operation.
 	Description *string `json:"description,omitempty"`
 }
 
@@ -1589,11 +1760,11 @@ type OperationResultList struct {
 // Project azure Migrate Project.
 type Project struct {
 	autorest.Response `json:"-"`
-	// ID - READ-ONLY; Path reference to this project /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}
+	// ID - Path reference to this project /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Migrate/projects/{projectName}
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Name of the project.
+	// Name - Name of the project.
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Type of the object = [Microsoft.Migrate/projects].
+	// Type - Type of the object = [Microsoft.Migrate/projects].
 	Type *string `json:"type,omitempty"`
 	// ETag - For optimistic concurrency control.
 	ETag *string `json:"eTag,omitempty"`
@@ -1608,15 +1779,22 @@ type Project struct {
 // MarshalJSON is the custom marshaler for Project.
 func (p Project) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if p.ID != nil {
+		objectMap["id"] = p.ID
+	}
+	if p.Name != nil {
+		objectMap["name"] = p.Name
+	}
+	if p.Type != nil {
+		objectMap["type"] = p.Type
+	}
 	if p.ETag != nil {
 		objectMap["eTag"] = p.ETag
 	}
 	if p.Location != nil {
 		objectMap["location"] = p.Location
 	}
-	if p.Tags != nil {
-		objectMap["tags"] = p.Tags
-	}
+	objectMap["tags"] = p.Tags
 	if p.ProjectProperties != nil {
 		objectMap["properties"] = p.ProjectProperties
 	}
@@ -1704,35 +1882,35 @@ func (p *Project) UnmarshalJSON(body []byte) error {
 // ProjectKey ID and Key for Migration Project.
 type ProjectKey struct {
 	autorest.Response `json:"-"`
-	// WorkspaceID - READ-ONLY; ID of Migration Project.
+	// WorkspaceID - ID of Migration Project.
 	WorkspaceID *string `json:"workspaceId,omitempty"`
-	// WorkspaceKey - READ-ONLY; Key of Migration Project.
+	// WorkspaceKey - Key of Migration Project.
 	WorkspaceKey *string `json:"workspaceKey,omitempty"`
 }
 
 // ProjectProperties properties of a project.
 type ProjectProperties struct {
-	// CreatedTimestamp - READ-ONLY; Time when this project was created. Date-Time represented in ISO-8601 format.
+	// CreatedTimestamp - Time when this project was created. Date-Time represented in ISO-8601 format.
 	CreatedTimestamp *date.Time `json:"createdTimestamp,omitempty"`
-	// UpdatedTimestamp - READ-ONLY; Time when this project was last updated. Date-Time represented in ISO-8601 format.
+	// UpdatedTimestamp - Time when this project was last updated. Date-Time represented in ISO-8601 format.
 	UpdatedTimestamp *date.Time `json:"updatedTimestamp,omitempty"`
-	// DiscoveryStatus - READ-ONLY; Reports whether project is under discovery. Possible values include: 'DiscoveryStatusUnknown', 'DiscoveryStatusNotStarted', 'DiscoveryStatusInProgress', 'DiscoveryStatusCompleted'
+	// DiscoveryStatus - Reports whether project is under discovery. Possible values include: 'DiscoveryStatusUnknown', 'DiscoveryStatusNotStarted', 'DiscoveryStatusInProgress', 'DiscoveryStatusCompleted'
 	DiscoveryStatus DiscoveryStatus `json:"discoveryStatus,omitempty"`
 	// CustomerWorkspaceID - ARM ID of the Service Map workspace created by user.
 	CustomerWorkspaceID *string `json:"customerWorkspaceId,omitempty"`
 	// CustomerWorkspaceLocation - Location of the Service Map workspace created by user.
 	CustomerWorkspaceLocation *string `json:"customerWorkspaceLocation,omitempty"`
-	// LastDiscoveryTimestamp - READ-ONLY; Time when this project was created. Date-Time represented in ISO-8601 format. This value will be null until discovery is complete.
+	// LastDiscoveryTimestamp - Time when this project was created. Date-Time represented in ISO-8601 format. This value will be null until discovery is complete.
 	LastDiscoveryTimestamp *date.Time `json:"lastDiscoveryTimestamp,omitempty"`
-	// LastDiscoverySessionID - READ-ONLY; Session id of the last discovery.
+	// LastDiscoverySessionID - Session id of the last discovery.
 	LastDiscoverySessionID *string `json:"lastDiscoverySessionId,omitempty"`
-	// NumberOfGroups - READ-ONLY; Number of groups created in the project.
+	// NumberOfGroups - Number of groups created in the project.
 	NumberOfGroups *int32 `json:"numberOfGroups,omitempty"`
-	// NumberOfMachines - READ-ONLY; Number of machines in the project.
+	// NumberOfMachines - Number of machines in the project.
 	NumberOfMachines *int32 `json:"numberOfMachines,omitempty"`
-	// NumberOfAssessments - READ-ONLY; Number of assessments created in the project.
+	// NumberOfAssessments - Number of assessments created in the project.
 	NumberOfAssessments *int32 `json:"numberOfAssessments,omitempty"`
-	// LastAssessmentTimestamp - READ-ONLY; Time when last assessment was created. Date-Time represented in ISO-8601 format. This value will be null until assessment is created.
+	// LastAssessmentTimestamp - Time when last assessment was created. Date-Time represented in ISO-8601 format. This value will be null until assessment is created.
 	LastAssessmentTimestamp *date.Time `json:"lastAssessmentTimestamp,omitempty"`
 	// ProvisioningState - Provisioning state of the project. Possible values include: 'Accepted', 'Creating', 'Deleting', 'Failed', 'Moving', 'Succeeded'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
@@ -1747,10 +1925,10 @@ type ProjectResultList struct {
 
 // VMFamily VM family name, the list of targeted azure locations and the category of the family.
 type VMFamily struct {
-	// FamilyName - READ-ONLY; Name of the VM family.
+	// FamilyName - Name of the VM family.
 	FamilyName *string `json:"familyName,omitempty"`
-	// TargetLocations - READ-ONLY; List of Azure regions.
+	// TargetLocations - List of Azure regions.
 	TargetLocations *[]string `json:"targetLocations,omitempty"`
-	// Category - READ-ONLY; Category of the VM family.
+	// Category - Category of the VM family.
 	Category *[]string `json:"category,omitempty"`
 }

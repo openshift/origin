@@ -19,6 +19,7 @@ package fixture
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 
 	"sigs.k8s.io/structured-merge-diff/fieldpath"
 	"sigs.k8s.io/structured-merge-diff/merge"
@@ -28,7 +29,7 @@ import (
 // State of the current test in terms of live object. One can check at
 // any time that Live and Managers match the expectations.
 type State struct {
-	Live     *typed.TypedValue
+	Live     typed.TypedValue
 	Parser   typed.ParseableType
 	Managers fieldpath.ManagedFields
 	Updater  *merge.Updater
@@ -87,15 +88,15 @@ func (s *State) Update(obj typed.YAMLObject, version fieldpath.APIVersion, manag
 		return err
 	}
 	tv, err := s.Parser.FromYAML(obj)
-	s.Live, err = s.Updater.Converter.Convert(s.Live, version)
+	s.Live , err = s.Updater.Converter.Convert(s.Live, version)
 	if err != nil {
 		return err
 	}
-	newObj, managers, err := s.Updater.Update(s.Live, tv, version, s.Managers, manager)
+	managers, err := s.Updater.Update(s.Live, tv, version, s.Managers, manager)
 	if err != nil {
 		return err
 	}
-	s.Live = newObj
+	s.Live = tv
 	s.Managers = managers
 
 	return nil
@@ -111,7 +112,7 @@ func (s *State) Apply(obj typed.YAMLObject, version fieldpath.APIVersion, manage
 	if err != nil {
 		return err
 	}
-	s.Live, err = s.Updater.Converter.Convert(s.Live, version)
+	s.Live , err = s.Updater.Converter.Convert(s.Live, version)
 	if err != nil {
 		return err
 	}
@@ -145,7 +146,7 @@ type dummyConverter struct{}
 var _ merge.Converter = dummyConverter{}
 
 // Convert returns the object given in input, not doing any conversion.
-func (dummyConverter) Convert(v *typed.TypedValue, version fieldpath.APIVersion) (*typed.TypedValue, error) {
+func (dummyConverter) Convert(v typed.TypedValue, version fieldpath.APIVersion) (typed.TypedValue, error) {
 	if len(version) == 0 {
 		return nil, fmt.Errorf("cannot convert to invalid version: %q", version)
 	}
@@ -163,7 +164,7 @@ type Operation interface {
 
 func hasConflict(conflicts merge.Conflicts, conflict merge.Conflict) bool {
 	for i := range conflicts {
-		if conflict.Equals(conflicts[i]) {
+		if reflect.DeepEqual(conflict, conflicts[i]) {
 			return true
 		}
 	}
@@ -261,8 +262,6 @@ type TestCase struct {
 	// Managed, if not nil, is the ManagedFields as expected
 	// after all operations are run.
 	Managed fieldpath.ManagedFields
-	// Set to true if the test case needs the union behavior enabled.
-	RequiresUnions bool
 }
 
 // Test runs the test-case using the given parser and a dummy converter.
@@ -270,51 +269,11 @@ func (tc TestCase) Test(parser typed.ParseableType) error {
 	return tc.TestWithConverter(parser, &dummyConverter{})
 }
 
-// Bench runs the test-case using the given parser and a dummy converter, but
-// doesn't check exit conditions--see the comment for BenchWithConverter.
-func (tc TestCase) Bench(parser typed.ParseableType) error {
-	return tc.BenchWithConverter(parser, &dummyConverter{})
-}
-
-// BenchWithConverter runs the test-case using the given parser and converter,
-// but doesn't do any comparison operations aftewards; you should probably run
-// TestWithConverter once and reset the benchmark, to make sure the test case
-// actually passes..
-func (tc TestCase) BenchWithConverter(parser typed.ParseableType, converter merge.Converter) error {
-	state := State{
-		Updater: &merge.Updater{Converter: converter},
-		Parser:  parser,
-	}
-	if tc.RequiresUnions {
-		state.Updater.EnableUnionFeature()
-	}
-	// We currently don't have any test that converts, we can take
-	// care of that later.
-	for i, ops := range tc.Ops {
-		err := ops.run(&state)
-		if err != nil {
-			return fmt.Errorf("failed operation %d: %v", i, err)
-		}
-	}
-	return nil
-}
-
 // TestWithConverter runs the test-case using the given parser and converter.
 func (tc TestCase) TestWithConverter(parser typed.ParseableType, converter merge.Converter) error {
 	state := State{
 		Updater: &merge.Updater{Converter: converter},
 		Parser:  parser,
-	}
-	if tc.RequiresUnions {
-		state.Updater.EnableUnionFeature()
-	} else {
-		// Also test it with unions on.
-		tc2 := tc
-		tc2.RequiresUnions = true
-		err := tc2.TestWithConverter(parser, converter)
-		if err != nil {
-			return fmt.Errorf("fails if unions are on: %v", err)
-		}
 	}
 	// We currently don't have any test that converts, we can take
 	// care of that later.
@@ -344,7 +303,7 @@ func (tc TestCase) TestWithConverter(parser typed.ParseableType, converter merge
 
 	// Fail if any empty sets are present in the managers
 	for manager, set := range state.Managers {
-		if set.Set().Empty() {
+		if set.Empty() {
 			return fmt.Errorf("expected Managers to have no empty sets, but found one managed by %v", manager)
 		}
 	}

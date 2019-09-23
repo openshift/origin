@@ -26,11 +26,10 @@ import (
 	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	internalapi "k8s.io/cri-api/pkg/apis"
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	commontest "k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/gpu"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
@@ -44,16 +43,16 @@ const (
 // NodeImageWhiteList is a list of images used in node e2e test. These images will be prepulled
 // before test running so that the image pulling won't fail in actual test.
 var NodeImageWhiteList = sets.NewString(
-	imageutils.GetE2EImage(imageutils.Agnhost),
 	"google/cadvisor:latest",
 	"k8s.gcr.io/stress:v1",
 	busyboxImage,
 	"k8s.gcr.io/busybox@sha256:4bdd623e848417d96127e16037743f0cd8b528c026e9175e22a84f639eca58ff",
 	imageutils.GetE2EImage(imageutils.Nginx),
-	imageutils.GetE2EImage(imageutils.Perl),
+	imageutils.GetE2EImage(imageutils.ServeHostname),
+	imageutils.GetE2EImage(imageutils.Netexec),
 	imageutils.GetE2EImage(imageutils.Nonewprivs),
 	imageutils.GetPauseImageName(),
-	getGPUDevicePluginImage(),
+	framework.GetGPUDevicePluginImage(),
 	"gcr.io/kubernetes-e2e-test-images/node-perf/npb-is:1.0",
 	"gcr.io/kubernetes-e2e-test-images/node-perf/npb-ep:1.0",
 	"gcr.io/kubernetes-e2e-test-images/node-perf/tf-wide-deep-amd64:1.0",
@@ -166,22 +165,4 @@ func PrePullAllImages() error {
 		}
 	}
 	return nil
-}
-
-// getGPUDevicePluginImage returns the image of GPU device plugin.
-func getGPUDevicePluginImage() string {
-	ds, err := framework.DsFromManifest(gpu.GPUDevicePluginDSYAML)
-	if err != nil {
-		klog.Errorf("Failed to parse the device plugin image: %v", err)
-		return ""
-	}
-	if ds == nil {
-		klog.Errorf("Failed to parse the device plugin image: the extracted DaemonSet is nil")
-		return ""
-	}
-	if len(ds.Spec.Template.Spec.Containers) < 1 {
-		klog.Errorf("Failed to parse the device plugin image: cannot extract the container from YAML")
-		return ""
-	}
-	return ds.Spec.Template.Spec.Containers[0].Image
 }

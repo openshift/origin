@@ -18,25 +18,19 @@ package e2e_kubeadm
 
 import (
 	"flag"
-	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/gomega"
 	"github.com/spf13/pflag"
 
-	morereporters "github.com/onsi/ginkgo/reporters"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2econfig "k8s.io/kubernetes/test/e2e/framework/config"
 )
 
 func init() {
-	e2econfig.CopyFlags(e2econfig.Flags, flag.CommandLine)
-	framework.RegisterCommonFlags(flag.CommandLine)
-	framework.RegisterClusterFlags(flag.CommandLine)
+	framework.RegisterCommonFlags()
+	framework.RegisterClusterFlags()
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 }
@@ -48,19 +42,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestE2E(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
 	reporters := []ginkgo.Reporter{}
-	reportDir := framework.TestContext.ReportDir
-	if reportDir != "" {
-		// Create the directory if it doesn't already exists
-		if err := os.MkdirAll(reportDir, 0755); err != nil {
-			t.Fatalf("Failed creating report directory: %v", err)
-		} else {
-			// Configure a junit reporter to write to the directory
-			junitFile := fmt.Sprintf("junit_%s_%02d.xml", framework.TestContext.ReportPrefix, config.GinkgoConfig.ParallelNode)
-			junitPath := filepath.Join(reportDir, junitFile)
-			reporters = append(reporters, morereporters.NewJUnitReporter(junitPath))
-		}
-	}
+	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "E2EKubeadm suite", reporters)
 }

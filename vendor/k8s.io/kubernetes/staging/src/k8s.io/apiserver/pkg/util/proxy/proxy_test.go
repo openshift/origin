@@ -234,10 +234,10 @@ func TestResolve(t *testing.T) {
 			}
 		}
 
-		clusterURL, err := ResolveCluster(serviceLister, "one", "alfa", 443)
+		clusterURL, err := ResolveCluster(serviceLister, "one", "alfa")
 		check("cluster", test.clusterMode, clusterURL, err)
 
-		endpointURL, err := ResolveEndpoint(serviceLister, endpointLister, "one", "alfa", 443)
+		endpointURL, err := ResolveEndpoint(serviceLister, endpointLister, "one", "alfa")
 		check("endpoint", test.endpointMode, endpointURL, err)
 	}
 }

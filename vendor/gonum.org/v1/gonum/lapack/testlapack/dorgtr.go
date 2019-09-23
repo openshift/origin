@@ -45,7 +45,6 @@ func DorgtrTest(t *testing.T, impl Dorgtrer) {
 				if lda == 0 {
 					lda = n
 				}
-				// Allocate n×n matrix A and fill it with random numbers.
 				a := make([]float64, n*lda)
 				for i := range a {
 					a[i] = rnd.NormFloat64()
@@ -53,24 +52,14 @@ func DorgtrTest(t *testing.T, impl Dorgtrer) {
 				aCopy := make([]float64, len(a))
 				copy(aCopy, a)
 
-				// Allocate slices for the main diagonal and the
-				// first off-diagonal of the tri-diagonal matrix.
 				d := make([]float64, n)
 				e := make([]float64, n-1)
-				// Allocate slice for elementary reflector scales.
 				tau := make([]float64, n-1)
-
-				// Compute optimum workspace size for Dorgtr call.
 				work := make([]float64, 1)
 				impl.Dsytrd(uplo, n, a, lda, d, e, tau, work, -1)
 				work = make([]float64, int(work[0]))
-
-				// Compute elementary reflectors that reduce the
-				// symmetric matrix defined by the uplo triangle
-				// of A to a tridiagonal matrix.
 				impl.Dsytrd(uplo, n, a, lda, d, e, tau, work, len(work))
 
-				// Compute workspace size for Dorgtr call.
 				var lwork int
 				switch wl {
 				case minimumWork:
@@ -87,23 +76,14 @@ func DorgtrTest(t *testing.T, impl Dorgtrer) {
 				}
 				work = nanSlice(lwork)
 
-				// Generate an orthogonal matrix Q that reduces
-				// the uplo triangle of A to a tridiagonal matrix.
 				impl.Dorgtr(uplo, n, a, lda, tau, work, len(work))
+
 				q := blas64.General{
 					Rows:   n,
 					Cols:   n,
 					Stride: lda,
 					Data:   a,
 				}
-
-				if !isOrthogonal(q) {
-					t.Errorf("Case uplo=%v,n=%v: Q is not orthogonal", uplo, n)
-					continue
-				}
-
-				// Create the tridiagonal matrix explicitly in
-				// dense representation from the diagonals d and e.
 				tri := blas64.General{
 					Rows:   n,
 					Cols:   n,
@@ -118,8 +98,6 @@ func DorgtrTest(t *testing.T, impl Dorgtrer) {
 					}
 				}
 
-				// Create the symmetric matrix A from the uplo
-				// triangle of aCopy, storing it explicitly in dense form.
 				aMat := blas64.General{
 					Rows:   n,
 					Cols:   n,
@@ -144,14 +122,12 @@ func DorgtrTest(t *testing.T, impl Dorgtrer) {
 					}
 				}
 
-				// Compute Q^T * A * Q and store the result in ans.
 				tmp := blas64.General{Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n)}
 				blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, aMat, q, 0, tmp)
+
 				ans := blas64.General{Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n)}
 				blas64.Gemm(blas.Trans, blas.NoTrans, 1, q, tmp, 0, ans)
 
-				// Compare the tridiagonal matrix tri from
-				// Dorgtr with the explicit computation ans.
 				if !floats.EqualApprox(ans.Data, tri.Data, 1e-13) {
 					t.Errorf("Recombination mismatch. n = %v, isUpper = %v", n, uplo == blas.Upper)
 				}

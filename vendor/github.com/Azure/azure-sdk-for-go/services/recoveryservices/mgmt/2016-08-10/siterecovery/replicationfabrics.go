@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -44,16 +43,6 @@ func NewReplicationFabricsClientWithBaseURI(baseURI string, subscriptionID strin
 // Parameters:
 // fabricName - fabric name.
 func (client ReplicationFabricsClient) CheckConsistency(ctx context.Context, fabricName string) (result ReplicationFabricsCheckConsistencyFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.CheckConsistency")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CheckConsistencyPreparer(ctx, fabricName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsClient", "CheckConsistency", nil, "Failure preparing request")
@@ -94,9 +83,13 @@ func (client ReplicationFabricsClient) CheckConsistencyPreparer(ctx context.Cont
 // CheckConsistencySender sends the CheckConsistency request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationFabricsClient) CheckConsistencySender(req *http.Request) (future ReplicationFabricsCheckConsistencyFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -122,16 +115,6 @@ func (client ReplicationFabricsClient) CheckConsistencyResponder(resp *http.Resp
 // fabricName - name of the ASR fabric.
 // input - fabric creation input.
 func (client ReplicationFabricsClient) Create(ctx context.Context, fabricName string, input FabricCreationInput) (result ReplicationFabricsCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreatePreparer(ctx, fabricName, input)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsClient", "Create", nil, "Failure preparing request")
@@ -174,9 +157,13 @@ func (client ReplicationFabricsClient) CreatePreparer(ctx context.Context, fabri
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationFabricsClient) CreateSender(req *http.Request) (future ReplicationFabricsCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -201,16 +188,6 @@ func (client ReplicationFabricsClient) CreateResponder(resp *http.Response) (res
 // Parameters:
 // fabricName - ASR fabric to delete
 func (client ReplicationFabricsClient) Delete(ctx context.Context, fabricName string) (result ReplicationFabricsDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, fabricName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsClient", "Delete", nil, "Failure preparing request")
@@ -251,9 +228,13 @@ func (client ReplicationFabricsClient) DeletePreparer(ctx context.Context, fabri
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationFabricsClient) DeleteSender(req *http.Request) (future ReplicationFabricsDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -277,16 +258,6 @@ func (client ReplicationFabricsClient) DeleteResponder(resp *http.Response) (res
 // Parameters:
 // fabricName - fabric name.
 func (client ReplicationFabricsClient) Get(ctx context.Context, fabricName string) (result Fabric, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, fabricName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsClient", "Get", nil, "Failure preparing request")
@@ -333,8 +304,8 @@ func (client ReplicationFabricsClient) GetPreparer(ctx context.Context, fabricNa
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationFabricsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -352,16 +323,6 @@ func (client ReplicationFabricsClient) GetResponder(resp *http.Response) (result
 
 // List gets a list of the Azure Site Recovery fabrics in the vault.
 func (client ReplicationFabricsClient) List(ctx context.Context) (result FabricCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.List")
-		defer func() {
-			sc := -1
-			if result.fc.Response.Response != nil {
-				sc = result.fc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -408,8 +369,8 @@ func (client ReplicationFabricsClient) ListPreparer(ctx context.Context) (*http.
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationFabricsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -426,8 +387,8 @@ func (client ReplicationFabricsClient) ListResponder(resp *http.Response) (resul
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ReplicationFabricsClient) listNextResults(ctx context.Context, lastResults FabricCollection) (result FabricCollection, err error) {
-	req, err := lastResults.fabricCollectionPreparer(ctx)
+func (client ReplicationFabricsClient) listNextResults(lastResults FabricCollection) (result FabricCollection, err error) {
+	req, err := lastResults.fabricCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -448,16 +409,6 @@ func (client ReplicationFabricsClient) listNextResults(ctx context.Context, last
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ReplicationFabricsClient) ListComplete(ctx context.Context) (result FabricCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -466,16 +417,6 @@ func (client ReplicationFabricsClient) ListComplete(ctx context.Context) (result
 // Parameters:
 // fabricName - ASR fabric to migrate.
 func (client ReplicationFabricsClient) MigrateToAad(ctx context.Context, fabricName string) (result ReplicationFabricsMigrateToAadFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.MigrateToAad")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.MigrateToAadPreparer(ctx, fabricName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsClient", "MigrateToAad", nil, "Failure preparing request")
@@ -516,9 +457,13 @@ func (client ReplicationFabricsClient) MigrateToAadPreparer(ctx context.Context,
 // MigrateToAadSender sends the MigrateToAad request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationFabricsClient) MigrateToAadSender(req *http.Request) (future ReplicationFabricsMigrateToAadFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -542,16 +487,6 @@ func (client ReplicationFabricsClient) MigrateToAadResponder(resp *http.Response
 // Parameters:
 // fabricName - ASR fabric to purge.
 func (client ReplicationFabricsClient) Purge(ctx context.Context, fabricName string) (result ReplicationFabricsPurgeFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.Purge")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.PurgePreparer(ctx, fabricName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsClient", "Purge", nil, "Failure preparing request")
@@ -592,9 +527,13 @@ func (client ReplicationFabricsClient) PurgePreparer(ctx context.Context, fabric
 // PurgeSender sends the Purge request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationFabricsClient) PurgeSender(req *http.Request) (future ReplicationFabricsPurgeFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -619,16 +558,6 @@ func (client ReplicationFabricsClient) PurgeResponder(resp *http.Response) (resu
 // fabricName - the name of the fabric containing the process server.
 // failoverProcessServerRequest - the input to the failover process server operation.
 func (client ReplicationFabricsClient) ReassociateGateway(ctx context.Context, fabricName string, failoverProcessServerRequest FailoverProcessServerRequest) (result ReplicationFabricsReassociateGatewayFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.ReassociateGateway")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ReassociateGatewayPreparer(ctx, fabricName, failoverProcessServerRequest)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsClient", "ReassociateGateway", nil, "Failure preparing request")
@@ -671,9 +600,13 @@ func (client ReplicationFabricsClient) ReassociateGatewayPreparer(ctx context.Co
 // ReassociateGatewaySender sends the ReassociateGateway request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationFabricsClient) ReassociateGatewaySender(req *http.Request) (future ReplicationFabricsReassociateGatewayFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -699,16 +632,6 @@ func (client ReplicationFabricsClient) ReassociateGatewayResponder(resp *http.Re
 // fabricName - fabric name to renew certs for.
 // renewCertificate - renew certificate input.
 func (client ReplicationFabricsClient) RenewCertificate(ctx context.Context, fabricName string, renewCertificate RenewCertificateInput) (result ReplicationFabricsRenewCertificateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicationFabricsClient.RenewCertificate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.RenewCertificatePreparer(ctx, fabricName, renewCertificate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsClient", "RenewCertificate", nil, "Failure preparing request")
@@ -751,9 +674,13 @@ func (client ReplicationFabricsClient) RenewCertificatePreparer(ctx context.Cont
 // RenewCertificateSender sends the RenewCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationFabricsClient) RenewCertificateSender(req *http.Request) (future ReplicationFabricsRenewCertificateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}

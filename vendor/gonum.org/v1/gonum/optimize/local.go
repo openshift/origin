@@ -6,8 +6,6 @@ package optimize
 
 import (
 	"math"
-
-	"gonum.org/v1/gonum/floats"
 )
 
 // localOptimizer is a helper type for running an optimization using a LocalMethod.
@@ -17,7 +15,7 @@ type localOptimizer struct{}
 // must close the operation channel at the conclusion of the optimization. This
 // provides a happens before relationship between the return of status and the
 // closure of operation, and thus a call to method.Status (if necessary).
-func (l localOptimizer) run(method localMethod, gradThresh float64, operation chan<- Task, result <-chan Task, tasks []Task) (Status, error) {
+func (l localOptimizer) run(method localMethod, operation chan<- Task, result <-chan Task, tasks []Task) (Status, error) {
 	// Local methods start with a fully-specified initial location.
 	task := tasks[0]
 	task = l.initialLocation(operation, result, task, method)
@@ -25,7 +23,7 @@ func (l localOptimizer) run(method localMethod, gradThresh float64, operation ch
 		l.finish(operation, result)
 		return NotTerminated, nil
 	}
-	status, err := l.checkStartingLocation(task, gradThresh)
+	status, err := l.checkStartingLocation(task)
 	if err != nil {
 		l.finishMethodDone(operation, result, task)
 		return status, err
@@ -39,6 +37,7 @@ func (l localOptimizer) run(method localMethod, gradThresh float64, operation ch
 		l.finish(operation, result)
 		return NotTerminated, nil
 	}
+
 	op, err := method.initLocal(task.Location)
 	if err != nil {
 		l.finishMethodDone(operation, result, task)
@@ -52,14 +51,6 @@ Loop:
 		switch r.Op {
 		case PostIteration:
 			break Loop
-		case MajorIteration:
-			// The last operation was a MajorIteration. Check if the gradient
-			// is below the threshold.
-			if status := l.checkGradientConvergence(r.Gradient, gradThresh); status != NotTerminated {
-				l.finishMethodDone(operation, result, task)
-				return GradientThreshold, nil
-			}
-			fallthrough
 		default:
 			op, err := method.iterateLocal(r.Location)
 			if err != nil {
@@ -76,13 +67,13 @@ Loop:
 
 // initialOperation returns the Operation needed to fill the initial location
 // based on the needs of the method and the values already supplied.
-func (localOptimizer) initialOperation(task Task, n needser) Operation {
+func (localOptimizer) initialOperation(task Task, needser Needser) Operation {
 	var newOp Operation
 	op := task.Op
 	if op&FuncEvaluation == 0 {
 		newOp |= FuncEvaluation
 	}
-	needs := n.needs()
+	needs := needser.Needs()
 	if needs.Gradient && op&GradEvaluation == 0 {
 		newOp |= GradEvaluation
 	}
@@ -94,13 +85,13 @@ func (localOptimizer) initialOperation(task Task, n needser) Operation {
 
 // initialLocation fills the initial location based on the needs of the method.
 // The task passed to initialLocation should be the first task sent in RunGlobal.
-func (l localOptimizer) initialLocation(operation chan<- Task, result <-chan Task, task Task, needs needser) Task {
-	task.Op = l.initialOperation(task, needs)
+func (l localOptimizer) initialLocation(operation chan<- Task, result <-chan Task, task Task, needser Needser) Task {
+	task.Op = l.initialOperation(task, needser)
 	operation <- task
 	return <-result
 }
 
-func (l localOptimizer) checkStartingLocation(task Task, gradThresh float64) (Status, error) {
+func (localOptimizer) checkStartingLocation(task Task) (Status, error) {
 	if math.IsInf(task.F, 1) || math.IsNaN(task.F) {
 		return Failure, ErrFunc(task.F)
 	}
@@ -109,21 +100,7 @@ func (l localOptimizer) checkStartingLocation(task Task, gradThresh float64) (St
 			return Failure, ErrGrad{Grad: v, Index: i}
 		}
 	}
-	status := l.checkGradientConvergence(task.Gradient, gradThresh)
-	return status, nil
-}
-
-func (localOptimizer) checkGradientConvergence(gradient []float64, gradThresh float64) Status {
-	if gradient == nil || math.IsNaN(gradThresh) {
-		return NotTerminated
-	}
-	if gradThresh == 0 {
-		gradThresh = defaultGradientAbsTol
-	}
-	if norm := floats.Norm(gradient, math.Inf(1)); norm < gradThresh {
-		return GradientThreshold
-	}
-	return NotTerminated
+	return NotTerminated, nil
 }
 
 // finish completes the channel operations to finish an optimization.

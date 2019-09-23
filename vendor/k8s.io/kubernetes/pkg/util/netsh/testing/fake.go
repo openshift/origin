@@ -22,18 +22,15 @@ import (
 	"k8s.io/kubernetes/pkg/util/netsh"
 )
 
-// FakeNetsh is a no-op implementation of the netsh Interface
+// no-op implementation of netsh Interface
 type FakeNetsh struct {
 }
 
-// NewFake returns a fakenetsh no-op implementation of the netsh Interface
 func NewFake() *FakeNetsh {
 	return &FakeNetsh{}
 }
 
-// EnsurePortProxyRule function implementing the netsh interface and always returns true and nil without any error
 func (*FakeNetsh) EnsurePortProxyRule(args []string) (bool, error) {
-	// Do Nothing
 	return true, nil
 }
 

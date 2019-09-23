@@ -27,7 +27,7 @@ import (
 	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 )
 
-func TestResourceLimitsPriority(t *testing.T) {
+func TestResourceLimistPriority(t *testing.T) {
 	noResources := v1.PodSpec{
 		Containers: []v1.Container{},
 	}
@@ -140,26 +140,12 @@ func TestResourceLimitsPriority(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			nodeNameToInfo := schedulernodeinfo.CreateNodeNameToInfoMap(nil, test.nodes)
-			metadata := &priorityMetadata{
-				podLimits: getResourceLimits(test.pod),
+			list, err := priorityFunction(ResourceLimitsPriorityMap, nil, nil)(test.pod, nodeNameToInfo, test.nodes)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
 			}
-
-			for _, hasMeta := range []bool{true, false} {
-				var function PriorityFunction
-				if hasMeta {
-					function = priorityFunction(ResourceLimitsPriorityMap, nil, metadata)
-				} else {
-					function = priorityFunction(ResourceLimitsPriorityMap, nil, nil)
-				}
-
-				list, err := function(test.pod, nodeNameToInfo, test.nodes)
-
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-				if !reflect.DeepEqual(test.expectedList, list) {
-					t.Errorf("hasMeta %#v expected %#v, got %#v", hasMeta, test.expectedList, list)
-				}
+			if !reflect.DeepEqual(test.expectedList, list) {
+				t.Errorf("expected %#v, got %#v", test.expectedList, list)
 			}
 		})
 	}

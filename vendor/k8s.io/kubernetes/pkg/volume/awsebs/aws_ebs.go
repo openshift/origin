@@ -1,5 +1,3 @@
-// +build !providerless
-
 /*
 Copyright 2014 The Kubernetes Authors.
 
@@ -24,22 +22,21 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 
 	"k8s.io/klog"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
-	"k8s.io/legacy-cloud-providers/aws"
 	utilstrings "k8s.io/utils/strings"
 )
 
@@ -253,13 +250,8 @@ func getVolumeSource(
 
 func (plugin *awsElasticBlockStorePlugin) ConstructVolumeSpec(volName, mountPath string) (*volume.Spec, error) {
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
-	kvh, ok := plugin.host.(volume.KubeletVolumeHost)
-	if !ok {
-		return nil, fmt.Errorf("plugin volume host does not implement KubeletVolumeHost interface")
-	}
-	hu := kvh.GetHostUtil()
-	pluginMntDir := util.GetPluginMountDir(plugin.host, plugin.GetPluginName())
-	volumeID, err := hu.GetDeviceNameFromMount(mounter, mountPath, pluginMntDir)
+	pluginDir := plugin.host.GetPluginDir(plugin.GetPluginName())
+	volumeID, err := mounter.GetDeviceNameFromMount(mountPath, pluginDir)
 	if err != nil {
 		return nil, err
 	}
@@ -326,15 +318,7 @@ func (plugin *awsElasticBlockStorePlugin) ExpandVolumeDevice(
 }
 
 func (plugin *awsElasticBlockStorePlugin) NodeExpand(resizeOptions volume.NodeResizeOptions) (bool, error) {
-	fsVolume, err := util.CheckVolumeModeFilesystem(resizeOptions.VolumeSpec)
-	if err != nil {
-		return false, fmt.Errorf("error checking VolumeMode: %v", err)
-	}
-	// if volume is not a fs file system, there is nothing for us to do here.
-	if !fsVolume {
-		return true, nil
-	}
-	_, err = util.GenericResizeFS(plugin.host, plugin.GetPluginName(), resizeOptions.DevicePath, resizeOptions.DeviceMountPath)
+	_, err := util.GenericResizeFS(plugin.host, plugin.GetPluginName(), resizeOptions.DevicePath, resizeOptions.DeviceMountPath)
 	if err != nil {
 		return false, err
 	}
@@ -398,12 +382,12 @@ func (b *awsElasticBlockStoreMounter) CanMount() error {
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.
-func (b *awsElasticBlockStoreMounter) SetUp(mounterArgs volume.MounterArgs) error {
-	return b.SetUpAt(b.GetPath(), mounterArgs)
+func (b *awsElasticBlockStoreMounter) SetUp(fsGroup *int64) error {
+	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
 // SetUpAt attaches the disk and bind mounts to the volume path.
-func (b *awsElasticBlockStoreMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) error {
+func (b *awsElasticBlockStoreMounter) SetUpAt(dir string, fsGroup *int64) error {
 	// TODO: handle failed mounts here.
 	notMnt, err := b.mounter.IsLikelyNotMountPoint(dir)
 	klog.V(4).Infof("PersistentDisk set up: %s %v %v", dir, !notMnt, err)
@@ -417,15 +401,8 @@ func (b *awsElasticBlockStoreMounter) SetUpAt(dir string, mounterArgs volume.Mou
 
 	globalPDPath := makeGlobalPDPath(b.plugin.host, b.volumeID)
 
-	if runtime.GOOS != "windows" {
-		// On Windows, Mount will create the parent of dir and mklink (create a symbolic link) at dir later, so don't create a
-		// directory at dir now. Otherwise mklink will error: "Cannot create a file when that file already exists".
-		// Instead, do nothing. For example when dir is:
-		// C:\var\lib\kubelet\pods\xxx\volumes\kubernetes.io~aws-ebs\pvc-xxx
-		// do nothing. Mount will make pvc-xxx a symlink to the global mount path (e.g. C:\var\lib\kubelet\plugins\kubernetes.io\aws-ebs\mounts\aws\us-west-2b\vol-xxx)
-		if err := os.MkdirAll(dir, 0750); err != nil {
-			return err
-		}
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return err
 	}
 
 	// Perform a bind mount to the full path to allow duplicate mounts of the same PD.
@@ -463,7 +440,7 @@ func (b *awsElasticBlockStoreMounter) SetUpAt(dir string, mounterArgs volume.Mou
 	}
 
 	if !b.readOnly {
-		volume.SetVolumeOwnership(b, mounterArgs.FsGroup)
+		volume.SetVolumeOwnership(b, fsGroup)
 	}
 
 	klog.V(4).Infof("Successfully mounted %s", dir)
@@ -474,7 +451,28 @@ func makeGlobalPDPath(host volume.VolumeHost, volumeID aws.KubernetesVolumeID) s
 	// Clean up the URI to be more fs-friendly
 	name := string(volumeID)
 	name = strings.Replace(name, "://", "/", -1)
-	return filepath.Join(host.GetPluginDir(awsElasticBlockStorePluginName), util.MountsInGlobalPDPath, name)
+	return filepath.Join(host.GetPluginDir(awsElasticBlockStorePluginName), mount.MountsInGlobalPDPath, name)
+}
+
+// Reverses the mapping done in makeGlobalPDPath
+func getVolumeIDFromGlobalMount(host volume.VolumeHost, globalPath string) (string, error) {
+	basePath := filepath.Join(host.GetPluginDir(awsElasticBlockStorePluginName), mount.MountsInGlobalPDPath)
+	rel, err := filepath.Rel(basePath, globalPath)
+	if err != nil {
+		klog.Errorf("Failed to get volume id from global mount %s - %v", globalPath, err)
+		return "", err
+	}
+	if strings.Contains(rel, "../") {
+		klog.Errorf("Unexpected mount path: %s", globalPath)
+		return "", fmt.Errorf("unexpected mount path: " + globalPath)
+	}
+	// Reverse the :// replacement done in makeGlobalPDPath
+	volumeID := rel
+	if strings.HasPrefix(volumeID, "aws/") {
+		volumeID = strings.Replace(volumeID, "aws/", "aws://", 1)
+	}
+	klog.V(2).Info("Mapping mount dir ", globalPath, " to volumeID ", volumeID)
+	return volumeID, nil
 }
 
 func (ebs *awsElasticBlockStore) GetPath() string {

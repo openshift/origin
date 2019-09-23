@@ -184,7 +184,7 @@ func (r *rta) visitDynCall(site ssa.CallInstruction) {
 	r.dynCallSites.Set(S, append(sites, site))
 
 	// For each function of signature S that we know is address-taken,
-	// add an edge and mark it reachable.
+	// mark it reachable.  We'll add the callgraph edges later.
 	funcs, _ := r.addrTakenFuncsBySig.At(S).(map[*ssa.Function]bool)
 	for g := range funcs {
 		r.addEdge(site, g, true)

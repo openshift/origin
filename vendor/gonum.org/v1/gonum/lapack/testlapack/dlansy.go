@@ -21,7 +21,7 @@ type Dlansyer interface {
 
 func DlansyTest(t *testing.T, impl Dlansyer) {
 	rnd := rand.New(rand.NewSource(1))
-	for _, norm := range []lapack.MatrixNorm{lapack.MaxAbs, lapack.MaxColumnSum, lapack.MaxRowSum, lapack.Frobenius} {
+	for _, norm := range []lapack.MatrixNorm{lapack.MaxAbs, lapack.MaxColumnSum, lapack.MaxRowSum, lapack.NormFrob} {
 		for _, uplo := range []blas.Uplo{blas.Lower, blas.Upper} {
 			for _, test := range []struct {
 				n, lda int
@@ -38,25 +38,17 @@ func DlansyTest(t *testing.T, impl Dlansyer) {
 					if lda == 0 {
 						lda = n
 					}
-					// Allocate n×n matrix A and fill it.
-					// Only the uplo triangle of A will be used below
-					// to represent a symmetric matrix.
 					a := make([]float64, lda*n)
 					if trial == 0 {
-						// In the first trial fill the matrix
-						// with predictable integers.
 						for i := range a {
 							a[i] = float64(i)
 						}
 					} else {
-						// Otherwise fill it with random numbers.
 						for i := range a {
 							a[i] = rnd.NormFloat64()
 						}
 					}
 
-					// Create a dense representation of the symmetric matrix
-					// stored in the uplo triangle of A.
 					aDense := make([]float64, n*n)
 					if uplo == blas.Upper {
 						for i := 0; i < n; i++ {
@@ -75,12 +67,8 @@ func DlansyTest(t *testing.T, impl Dlansyer) {
 							}
 						}
 					}
-
 					work := make([]float64, n)
-					// Compute the norm of the symmetric matrix A.
 					got := impl.Dlansy(norm, uplo, n, a, lda, work)
-					// Compute the reference norm value using Dlange
-					// and the dense representation of A.
 					want := impl.Dlange(norm, n, n, aDense, n, work)
 					if math.Abs(want-got) > 1e-14 {
 						t.Errorf("Norm mismatch. norm = %c, upper = %v, n = %v, lda = %v, want %v, got %v.",

@@ -12,7 +12,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/mount"
 	"github.com/opencontainers/runc/libcontainer/utils"
-	"github.com/opencontainers/runtime-spec/specs-go"
 
 	"golang.org/x/sys/unix"
 )
@@ -230,6 +229,6 @@ func marshal(path string, v interface{}) error {
 
 type unserializableHook struct{}
 
-func (unserializableHook) Run(*specs.State) error {
+func (unserializableHook) Run(configs.HookState) error {
 	return nil
 }

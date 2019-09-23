@@ -17,7 +17,6 @@ limitations under the License.
 package metrics
 
 import (
-	"k8s.io/component-base/metrics/legacyregistry"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -60,7 +59,7 @@ func (v volumeCount) add(state, plugin string) {
 // Register registers Volume Manager metrics.
 func Register(asw cache.ActualStateOfWorld, dsw cache.DesiredStateOfWorld, pluginMgr *volume.VolumePluginMgr) {
 	registerMetrics.Do(func() {
-		legacyregistry.RawMustRegister(&totalVolumesCollector{asw, dsw, pluginMgr})
+		prometheus.MustRegister(&totalVolumesCollector{asw, dsw, pluginMgr})
 	})
 }
 

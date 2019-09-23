@@ -1,6 +1,7 @@
 sh_library(
     name = "legacy-script",
     srcs = glob(["*.sh"]),
+    data = ["//pkg/kubectl/validation:testdata/v1/validPod.yaml"],
     visibility = ["//visibility:public"],
 )
 

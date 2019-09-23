@@ -18,16 +18,11 @@ package cognitiveservices
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/mgmt/2017-04-18/cognitiveservices"
 
 // KeyName enumerates the values for key name.
 type KeyName string
@@ -44,34 +39,53 @@ func PossibleKeyNameValues() []KeyName {
 	return []KeyName{Key1, Key2}
 }
 
-// NetworkRuleAction enumerates the values for network rule action.
-type NetworkRuleAction string
+// Kind enumerates the values for kind.
+type Kind string
 
 const (
-	// Allow ...
-	Allow NetworkRuleAction = "Allow"
-	// Deny ...
-	Deny NetworkRuleAction = "Deny"
+	// BingAutosuggestv7 ...
+	BingAutosuggestv7 Kind = "Bing.Autosuggest.v7"
+	// BingCustomSearch ...
+	BingCustomSearch Kind = "Bing.CustomSearch"
+	// BingSearchv7 ...
+	BingSearchv7 Kind = "Bing.Search.v7"
+	// BingSpeech ...
+	BingSpeech Kind = "Bing.Speech"
+	// BingSpellCheckv7 ...
+	BingSpellCheckv7 Kind = "Bing.SpellCheck.v7"
+	// ComputerVision ...
+	ComputerVision Kind = "ComputerVision"
+	// ContentModerator ...
+	ContentModerator Kind = "ContentModerator"
+	// CustomSpeech ...
+	CustomSpeech Kind = "CustomSpeech"
+	// CustomVisionPrediction ...
+	CustomVisionPrediction Kind = "CustomVision.Prediction"
+	// CustomVisionTraining ...
+	CustomVisionTraining Kind = "CustomVision.Training"
+	// Emotion ...
+	Emotion Kind = "Emotion"
+	// Face ...
+	Face Kind = "Face"
+	// LUIS ...
+	LUIS Kind = "LUIS"
+	// QnAMaker ...
+	QnAMaker Kind = "QnAMaker"
+	// SpeakerRecognition ...
+	SpeakerRecognition Kind = "SpeakerRecognition"
+	// SpeechTranslation ...
+	SpeechTranslation Kind = "SpeechTranslation"
+	// TextAnalytics ...
+	TextAnalytics Kind = "TextAnalytics"
+	// TextTranslation ...
+	TextTranslation Kind = "TextTranslation"
+	// WebLM ...
+	WebLM Kind = "WebLM"
 )
 
-// PossibleNetworkRuleActionValues returns an array of possible values for the NetworkRuleAction const type.
-func PossibleNetworkRuleActionValues() []NetworkRuleAction {
-	return []NetworkRuleAction{Allow, Deny}
-}
-
-// NetworkRuleBypassOptions enumerates the values for network rule bypass options.
-type NetworkRuleBypassOptions string
-
-const (
-	// AzureServices ...
-	AzureServices NetworkRuleBypassOptions = "AzureServices"
-	// None ...
-	None NetworkRuleBypassOptions = "None"
-)
-
-// PossibleNetworkRuleBypassOptionsValues returns an array of possible values for the NetworkRuleBypassOptions const type.
-func PossibleNetworkRuleBypassOptionsValues() []NetworkRuleBypassOptions {
-	return []NetworkRuleBypassOptions{AzureServices, None}
+// PossibleKindValues returns an array of possible values for the Kind const type.
+func PossibleKindValues() []Kind {
+	return []Kind{BingAutosuggestv7, BingCustomSearch, BingSearchv7, BingSpeech, BingSpellCheckv7, ComputerVision, ContentModerator, CustomSpeech, CustomVisionPrediction, CustomVisionTraining, Emotion, Face, LUIS, QnAMaker, SpeakerRecognition, SpeechTranslation, TextAnalytics, TextTranslation, WebLM}
 }
 
 // ProvisioningState enumerates the values for provisioning state.
@@ -146,6 +160,39 @@ func PossibleResourceSkuRestrictionsTypeValues() []ResourceSkuRestrictionsType {
 	return []ResourceSkuRestrictionsType{Location, Zone}
 }
 
+// SkuName enumerates the values for sku name.
+type SkuName string
+
+const (
+	// F0 ...
+	F0 SkuName = "F0"
+	// P0 ...
+	P0 SkuName = "P0"
+	// P1 ...
+	P1 SkuName = "P1"
+	// P2 ...
+	P2 SkuName = "P2"
+	// S0 ...
+	S0 SkuName = "S0"
+	// S1 ...
+	S1 SkuName = "S1"
+	// S2 ...
+	S2 SkuName = "S2"
+	// S3 ...
+	S3 SkuName = "S3"
+	// S4 ...
+	S4 SkuName = "S4"
+	// S5 ...
+	S5 SkuName = "S5"
+	// S6 ...
+	S6 SkuName = "S6"
+)
+
+// PossibleSkuNameValues returns an array of possible values for the SkuName const type.
+func PossibleSkuNameValues() []SkuName {
+	return []SkuName{F0, P0, P1, P2, S0, S1, S2, S3, S4, S5, S6}
+}
+
 // SkuTier enumerates the values for sku tier.
 type SkuTier string
 
@@ -188,19 +235,19 @@ func PossibleUnitTypeValues() []UnitType {
 	return []UnitType{Bytes, BytesPerSecond, Count, CountPerSecond, Milliseconds, Percent, Seconds}
 }
 
-// Account cognitive Services Account is an Azure resource representing the provisioned account, its type,
-// location and SKU.
+// Account cognitive Services Account is an Azure resource representing the provisioned account, its type, location
+// and SKU.
 type Account struct {
 	autorest.Response `json:"-"`
 	// Etag - Entity Tag
 	Etag *string `json:"etag,omitempty"`
-	// ID - READ-ONLY; The id of the created account
+	// ID - The id of the created account
 	ID *string `json:"id,omitempty"`
 	// Kind - Type of cognitive service account.
 	Kind *string `json:"kind,omitempty"`
 	// Location - The location of the resource
 	Location *string `json:"location,omitempty"`
-	// Name - READ-ONLY; The name of the created account
+	// Name - The name of the created account
 	Name *string `json:"name,omitempty"`
 	// AccountProperties - Properties of Cognitive Services account.
 	*AccountProperties `json:"properties,omitempty"`
@@ -208,7 +255,7 @@ type Account struct {
 	Sku *Sku `json:"sku,omitempty"`
 	// Tags - Gets or sets a list of key value pairs that describe the resource. These tags can be used in viewing and grouping this resource (across resource groups). A maximum of 15 tags can be provided for a resource. Each tag must have a key no greater than 128 characters and value no greater than 256 characters.
 	Tags map[string]*string `json:"tags"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 }
 
@@ -218,11 +265,17 @@ func (a Account) MarshalJSON() ([]byte, error) {
 	if a.Etag != nil {
 		objectMap["etag"] = a.Etag
 	}
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
 	if a.Kind != nil {
 		objectMap["kind"] = a.Kind
 	}
 	if a.Location != nil {
 		objectMap["location"] = a.Location
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
 	}
 	if a.AccountProperties != nil {
 		objectMap["properties"] = a.AccountProperties
@@ -232,6 +285,9 @@ func (a Account) MarshalJSON() ([]byte, error) {
 	}
 	if a.Tags != nil {
 		objectMap["tags"] = a.Tags
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
 	}
 	return json.Marshal(objectMap)
 }
@@ -336,8 +392,8 @@ func (a *Account) UnmarshalJSON(body []byte) error {
 type AccountCreateParameters struct {
 	// Sku - Required. Gets or sets the SKU of the resource.
 	Sku *Sku `json:"sku,omitempty"`
-	// Kind - Required. Gets or sets the Kind of the resource.
-	Kind *string `json:"kind,omitempty"`
+	// Kind - Required. Gets or sets the Kind of the resource. Possible values include: 'BingAutosuggestv7', 'BingCustomSearch', 'BingSearchv7', 'BingSpeech', 'BingSpellCheckv7', 'ComputerVision', 'ContentModerator', 'CustomSpeech', 'CustomVisionPrediction', 'CustomVisionTraining', 'Emotion', 'Face', 'LUIS', 'QnAMaker', 'SpeakerRecognition', 'SpeechTranslation', 'TextAnalytics', 'TextTranslation', 'WebLM'
+	Kind Kind `json:"kind,omitempty"`
 	// Location - Required. Gets or sets the location of the resource. This will be one of the supported and registered Azure Geo Regions (e.g. West US, East US, Southeast Asia, etc.). The geo region of a resource cannot be changed once it is created, but if an identical geo region is specified on update the request will succeed.
 	Location *string `json:"location,omitempty"`
 	// Tags - Gets or sets a list of key value pairs that describe the resource. These tags can be used in viewing and grouping this resource (across resource groups). A maximum of 15 tags can be provided for a resource. Each tag must have a key no greater than 128 characters and value no greater than 256 characters.
@@ -352,7 +408,7 @@ func (acp AccountCreateParameters) MarshalJSON() ([]byte, error) {
 	if acp.Sku != nil {
 		objectMap["sku"] = acp.Sku
 	}
-	if acp.Kind != nil {
+	if acp.Kind != "" {
 		objectMap["kind"] = acp.Kind
 	}
 	if acp.Location != nil {
@@ -361,16 +417,14 @@ func (acp AccountCreateParameters) MarshalJSON() ([]byte, error) {
 	if acp.Tags != nil {
 		objectMap["tags"] = acp.Tags
 	}
-	if acp.Properties != nil {
-		objectMap["properties"] = acp.Properties
-	}
+	objectMap["properties"] = acp.Properties
 	return json.Marshal(objectMap)
 }
 
 // AccountEnumerateSkusResult the list of cognitive services accounts operation response.
 type AccountEnumerateSkusResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Gets the list of Cognitive Services accounts and their properties.
+	// Value - Gets the list of Cognitive Services accounts and their properties.
 	Value *[]ResourceAndSku `json:"value,omitempty"`
 }
 
@@ -388,7 +442,7 @@ type AccountListResult struct {
 	autorest.Response `json:"-"`
 	// NextLink - The link used to get the next page of accounts.
 	NextLink *string `json:"nextLink,omitempty"`
-	// Value - READ-ONLY; Gets the list of Cognitive Services accounts and their properties.
+	// Value - Gets the list of Cognitive Services accounts and their properties.
 	Value *[]Account `json:"value,omitempty"`
 }
 
@@ -398,37 +452,20 @@ type AccountListResultIterator struct {
 	page AccountListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *AccountListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *AccountListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *AccountListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -450,11 +487,6 @@ func (iter AccountListResultIterator) Value() Account {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the AccountListResultIterator type.
-func NewAccountListResultIterator(page AccountListResultPage) AccountListResultIterator {
-	return AccountListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (alr AccountListResult) IsEmpty() bool {
 	return alr.Value == nil || len(*alr.Value) == 0
@@ -462,11 +494,11 @@ func (alr AccountListResult) IsEmpty() bool {
 
 // accountListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (alr AccountListResult) accountListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (alr AccountListResult) accountListResultPreparer() (*http.Request, error) {
 	if alr.NextLink == nil || len(to.String(alr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(alr.NextLink)))
@@ -474,36 +506,19 @@ func (alr AccountListResult) accountListResultPreparer(ctx context.Context) (*ht
 
 // AccountListResultPage contains a page of Account values.
 type AccountListResultPage struct {
-	fn  func(context.Context, AccountListResult) (AccountListResult, error)
+	fn  func(AccountListResult) (AccountListResult, error)
 	alr AccountListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *AccountListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AccountListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.alr)
+func (page *AccountListResultPage) Next() error {
+	next, err := page.fn(page.alr)
 	if err != nil {
 		return err
 	}
 	page.alr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *AccountListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -524,23 +539,14 @@ func (page AccountListResultPage) Values() []Account {
 	return *page.alr.Value
 }
 
-// Creates a new instance of the AccountListResultPage type.
-func NewAccountListResultPage(getNextPage func(context.Context, AccountListResult) (AccountListResult, error)) AccountListResultPage {
-	return AccountListResultPage{fn: getNextPage}
-}
-
 // AccountProperties properties of Cognitive Services account.
 type AccountProperties struct {
-	// ProvisioningState - READ-ONLY; Gets the status of the cognitive services account at the time the operation was called. Possible values include: 'Creating', 'ResolvingDNS', 'Moving', 'Deleting', 'Succeeded', 'Failed'
+	// ProvisioningState - Gets the status of the cognitive services account at the time the operation was called. Possible values include: 'Creating', 'ResolvingDNS', 'Moving', 'Deleting', 'Succeeded', 'Failed'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// Endpoint - Endpoint of the created account.
 	Endpoint *string `json:"endpoint,omitempty"`
 	// InternalID - The internal identifier.
 	InternalID *string `json:"internalId,omitempty"`
-	// CustomSubDomainName - Optional subdomain name used for token-based authentication.
-	CustomSubDomainName *string `json:"customSubDomainName,omitempty"`
-	// NetworkAcls - A collection of rules governing the accessibility from specific network locations.
-	NetworkAcls *NetworkRuleSet `json:"networkAcls,omitempty"`
 }
 
 // AccountUpdateParameters the parameters to provide for the account.
@@ -549,8 +555,6 @@ type AccountUpdateParameters struct {
 	Sku *Sku `json:"sku,omitempty"`
 	// Tags - Gets or sets a list of key value pairs that describe the resource. These tags can be used in viewing and grouping this resource (across resource groups). A maximum of 15 tags can be provided for a resource. Each tag must have a key no greater than 128 characters and value no greater than 256 characters.
 	Tags map[string]*string `json:"tags"`
-	// Properties - Additional properties for Account. Only provided fields will be updated.
-	Properties interface{} `json:"properties,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for AccountUpdateParameters.
@@ -562,51 +566,27 @@ func (aup AccountUpdateParameters) MarshalJSON() ([]byte, error) {
 	if aup.Tags != nil {
 		objectMap["tags"] = aup.Tags
 	}
-	if aup.Properties != nil {
-		objectMap["properties"] = aup.Properties
-	}
 	return json.Marshal(objectMap)
-}
-
-// CheckDomainAvailabilityParameter check Domain availability parameter.
-type CheckDomainAvailabilityParameter struct {
-	// SubdomainName - The subdomain name to use.
-	SubdomainName *string `json:"subdomainName,omitempty"`
-	// Type - The Type of the resource.
-	Type *string `json:"type,omitempty"`
-}
-
-// CheckDomainAvailabilityResult check Domain availability result.
-type CheckDomainAvailabilityResult struct {
-	autorest.Response `json:"-"`
-	// IsSubdomainAvailable - Indicates the given SKU is available or not.
-	IsSubdomainAvailable *bool `json:"isSubdomainAvailable,omitempty"`
-	// Reason - Reason why the SKU is not available.
-	Reason *string `json:"reason,omitempty"`
-	// SubdomainName - The subdomain name to use.
-	SubdomainName *string `json:"subdomainName,omitempty"`
-	// Type - The Type of the resource.
-	Type *string `json:"type,omitempty"`
 }
 
 // CheckSkuAvailabilityParameter check SKU availability parameter.
 type CheckSkuAvailabilityParameter struct {
 	// Skus - The SKU of the resource.
-	Skus *[]string `json:"skus,omitempty"`
-	// Kind - The Kind of the resource.
-	Kind *string `json:"kind,omitempty"`
+	Skus *[]SkuName `json:"skus,omitempty"`
+	// Kind - The Kind of the resource. Possible values include: 'BingAutosuggestv7', 'BingCustomSearch', 'BingSearchv7', 'BingSpeech', 'BingSpellCheckv7', 'ComputerVision', 'ContentModerator', 'CustomSpeech', 'CustomVisionPrediction', 'CustomVisionTraining', 'Emotion', 'Face', 'LUIS', 'QnAMaker', 'SpeakerRecognition', 'SpeechTranslation', 'TextAnalytics', 'TextTranslation', 'WebLM'
+	Kind Kind `json:"kind,omitempty"`
 	// Type - The Type of the resource.
 	Type *string `json:"type,omitempty"`
 }
 
 // CheckSkuAvailabilityResult check SKU availability result.
 type CheckSkuAvailabilityResult struct {
-	// Kind - The Kind of the resource.
-	Kind *string `json:"kind,omitempty"`
+	// Kind - The Kind of the resource. Possible values include: 'BingAutosuggestv7', 'BingCustomSearch', 'BingSearchv7', 'BingSpeech', 'BingSpellCheckv7', 'ComputerVision', 'ContentModerator', 'CustomSpeech', 'CustomVisionPrediction', 'CustomVisionTraining', 'Emotion', 'Face', 'LUIS', 'QnAMaker', 'SpeakerRecognition', 'SpeechTranslation', 'TextAnalytics', 'TextTranslation', 'WebLM'
+	Kind Kind `json:"kind,omitempty"`
 	// Type - The Type of the resource.
 	Type *string `json:"type,omitempty"`
-	// SkuName - The SKU of Cognitive Services account.
-	SkuName *string `json:"skuName,omitempty"`
+	// SkuName - The SKU of Cognitive Services account. Possible values include: 'F0', 'P0', 'P1', 'P2', 'S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6'
+	SkuName SkuName `json:"skuName,omitempty"`
 	// SkuAvailable - Indicates the given SKU is available or not.
 	SkuAvailable *bool `json:"skuAvailable,omitempty"`
 	// Reason - Reason why the SKU is not available.
@@ -636,30 +616,12 @@ type ErrorBody struct {
 	Message *string `json:"message,omitempty"`
 }
 
-// IPRule a rule governing the accessibility from a specific ip address or ip range.
-type IPRule struct {
-	// Value - An IPv4 address range in CIDR notation, such as '124.56.78.91' (simple IP address) or '124.56.78.0/24' (all addresses that start with 124.56.78).
-	Value *string `json:"value,omitempty"`
-}
-
 // MetricName a metric name.
 type MetricName struct {
-	// Value - READ-ONLY; The name of the metric.
+	// Value - The name of the metric.
 	Value *string `json:"value,omitempty"`
-	// LocalizedValue - READ-ONLY; The friendly name of the metric.
+	// LocalizedValue - The friendly name of the metric.
 	LocalizedValue *string `json:"localizedValue,omitempty"`
-}
-
-// NetworkRuleSet a set of rules governing the network accessibility.
-type NetworkRuleSet struct {
-	// Bypass - Tells what traffic can bypass network rules. This can be 'AzureServices' or 'None'.  If not specified the default is 'AzureServices'. Possible values include: 'AzureServices', 'None'
-	Bypass NetworkRuleBypassOptions `json:"bypass,omitempty"`
-	// DefaultAction - The default action when no rule from ipRules and from virtualNetworkRules match. This is only used after the bypass property has been evaluated. Possible values include: 'Allow', 'Deny'
-	DefaultAction NetworkRuleAction `json:"defaultAction,omitempty"`
-	// IPRules - The list of IP address rules.
-	IPRules *[]IPRule `json:"ipRules,omitempty"`
-	// VirtualNetworkRules - The list of virtual network rules.
-	VirtualNetworkRules *[]VirtualNetworkRule `json:"virtualNetworkRules,omitempty"`
 }
 
 // OperationDisplayInfo the operation supported by Cognitive Services.
@@ -701,37 +663,20 @@ type OperationEntityListResultIterator struct {
 	page OperationEntityListResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationEntityListResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationEntityListResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *OperationEntityListResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *OperationEntityListResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -753,11 +698,6 @@ func (iter OperationEntityListResultIterator) Value() OperationEntity {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the OperationEntityListResultIterator type.
-func NewOperationEntityListResultIterator(page OperationEntityListResultPage) OperationEntityListResultIterator {
-	return OperationEntityListResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (oelr OperationEntityListResult) IsEmpty() bool {
 	return oelr.Value == nil || len(*oelr.Value) == 0
@@ -765,11 +705,11 @@ func (oelr OperationEntityListResult) IsEmpty() bool {
 
 // operationEntityListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (oelr OperationEntityListResult) operationEntityListResultPreparer(ctx context.Context) (*http.Request, error) {
+func (oelr OperationEntityListResult) operationEntityListResultPreparer() (*http.Request, error) {
 	if oelr.NextLink == nil || len(to.String(oelr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(oelr.NextLink)))
@@ -777,36 +717,19 @@ func (oelr OperationEntityListResult) operationEntityListResultPreparer(ctx cont
 
 // OperationEntityListResultPage contains a page of OperationEntity values.
 type OperationEntityListResultPage struct {
-	fn   func(context.Context, OperationEntityListResult) (OperationEntityListResult, error)
+	fn   func(OperationEntityListResult) (OperationEntityListResult, error)
 	oelr OperationEntityListResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationEntityListResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/OperationEntityListResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.oelr)
+func (page *OperationEntityListResultPage) Next() error {
+	next, err := page.fn(page.oelr)
 	if err != nil {
 		return err
 	}
 	page.oelr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *OperationEntityListResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -827,11 +750,6 @@ func (page OperationEntityListResultPage) Values() []OperationEntity {
 	return *page.oelr.Value
 }
 
-// Creates a new instance of the OperationEntityListResultPage type.
-func NewOperationEntityListResultPage(getNextPage func(context.Context, OperationEntityListResult) (OperationEntityListResult, error)) OperationEntityListResultPage {
-	return OperationEntityListResultPage{fn: getNextPage}
-}
-
 // RegenerateKeyParameters regenerate key parameters.
 type RegenerateKeyParameters struct {
 	// KeyName - key name to generate (Key1|Key2). Possible values include: 'Key1', 'Key2'
@@ -848,37 +766,37 @@ type ResourceAndSku struct {
 
 // ResourceSku describes an available Cognitive Services SKU.
 type ResourceSku struct {
-	// ResourceType - READ-ONLY; The type of resource the SKU applies to.
+	// ResourceType - The type of resource the SKU applies to.
 	ResourceType *string `json:"resourceType,omitempty"`
-	// Name - READ-ONLY; The name of SKU.
+	// Name - The name of SKU.
 	Name *string `json:"name,omitempty"`
-	// Tier - READ-ONLY; Specifies the tier of Cognitive Services account.
+	// Tier - Specifies the tier of Cognitive Services account.
 	Tier *string `json:"tier,omitempty"`
-	// Kind - READ-ONLY; The Kind of resources that are supported in this SKU.
+	// Kind - The Kind of resources that are supported in this SKU.
 	Kind *string `json:"kind,omitempty"`
-	// Locations - READ-ONLY; The set of locations that the SKU is available.
+	// Locations - The set of locations that the SKU is available.
 	Locations *[]string `json:"locations,omitempty"`
-	// Restrictions - READ-ONLY; The restrictions because of which SKU cannot be used. This is empty if there are no restrictions.
+	// Restrictions - The restrictions because of which SKU cannot be used. This is empty if there are no restrictions.
 	Restrictions *[]ResourceSkuRestrictions `json:"restrictions,omitempty"`
 }
 
 // ResourceSkuRestrictionInfo ...
 type ResourceSkuRestrictionInfo struct {
-	// Locations - READ-ONLY; Locations where the SKU is restricted
+	// Locations - Locations where the SKU is restricted
 	Locations *[]string `json:"locations,omitempty"`
-	// Zones - READ-ONLY; List of availability zones where the SKU is restricted.
+	// Zones - List of availability zones where the SKU is restricted.
 	Zones *[]string `json:"zones,omitempty"`
 }
 
 // ResourceSkuRestrictions describes restrictions of a SKU.
 type ResourceSkuRestrictions struct {
-	// Type - READ-ONLY; The type of restrictions. Possible values include: 'Location', 'Zone'
+	// Type - The type of restrictions. Possible values include: 'Location', 'Zone'
 	Type ResourceSkuRestrictionsType `json:"type,omitempty"`
-	// Values - READ-ONLY; The value of restrictions. If the restriction type is set to location. This would be different locations where the SKU is restricted.
+	// Values - The value of restrictions. If the restriction type is set to location. This would be different locations where the SKU is restricted.
 	Values *[]string `json:"values,omitempty"`
-	// RestrictionInfo - READ-ONLY; The information about the restriction where the SKU cannot be used.
+	// RestrictionInfo - The information about the restriction where the SKU cannot be used.
 	RestrictionInfo *ResourceSkuRestrictionInfo `json:"restrictionInfo,omitempty"`
-	// ReasonCode - READ-ONLY; The reason for restriction. Possible values include: 'QuotaID', 'NotAvailableForSubscription'
+	// ReasonCode - The reason for restriction. Possible values include: 'QuotaID', 'NotAvailableForSubscription'
 	ReasonCode ResourceSkuRestrictionsReasonCode `json:"reasonCode,omitempty"`
 }
 
@@ -897,37 +815,20 @@ type ResourceSkusResultIterator struct {
 	page ResourceSkusResultPage
 }
 
-// NextWithContext advances to the next value.  If there was an error making
+// Next advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *ResourceSkusResultIterator) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceSkusResultIterator.NextWithContext")
-		defer func() {
-			sc := -1
-			if iter.Response().Response.Response != nil {
-				sc = iter.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (iter *ResourceSkusResultIterator) Next() error {
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err = iter.page.NextWithContext(ctx)
+	err := iter.page.Next()
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (iter *ResourceSkusResultIterator) Next() error {
-	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -949,11 +850,6 @@ func (iter ResourceSkusResultIterator) Value() ResourceSku {
 	return iter.page.Values()[iter.i]
 }
 
-// Creates a new instance of the ResourceSkusResultIterator type.
-func NewResourceSkusResultIterator(page ResourceSkusResultPage) ResourceSkusResultIterator {
-	return ResourceSkusResultIterator{page: page}
-}
-
 // IsEmpty returns true if the ListResult contains no values.
 func (rsr ResourceSkusResult) IsEmpty() bool {
 	return rsr.Value == nil || len(*rsr.Value) == 0
@@ -961,11 +857,11 @@ func (rsr ResourceSkusResult) IsEmpty() bool {
 
 // resourceSkusResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (rsr ResourceSkusResult) resourceSkusResultPreparer(ctx context.Context) (*http.Request, error) {
+func (rsr ResourceSkusResult) resourceSkusResultPreparer() (*http.Request, error) {
 	if rsr.NextLink == nil || len(to.String(rsr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+	return autorest.Prepare(&http.Request{},
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(rsr.NextLink)))
@@ -973,36 +869,19 @@ func (rsr ResourceSkusResult) resourceSkusResultPreparer(ctx context.Context) (*
 
 // ResourceSkusResultPage contains a page of ResourceSku values.
 type ResourceSkusResultPage struct {
-	fn  func(context.Context, ResourceSkusResult) (ResourceSkusResult, error)
+	fn  func(ResourceSkusResult) (ResourceSkusResult, error)
 	rsr ResourceSkusResult
 }
 
-// NextWithContext advances to the next page of values.  If there was an error making
+// Next advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *ResourceSkusResultPage) NextWithContext(ctx context.Context) (err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceSkusResultPage.NextWithContext")
-		defer func() {
-			sc := -1
-			if page.Response().Response.Response != nil {
-				sc = page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	next, err := page.fn(ctx, page.rsr)
+func (page *ResourceSkusResultPage) Next() error {
+	next, err := page.fn(page.rsr)
 	if err != nil {
 		return err
 	}
 	page.rsr = next
 	return nil
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-// Deprecated: Use NextWithContext() instead.
-func (page *ResourceSkusResultPage) Next() error {
-	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -1023,16 +902,11 @@ func (page ResourceSkusResultPage) Values() []ResourceSku {
 	return *page.rsr.Value
 }
 
-// Creates a new instance of the ResourceSkusResultPage type.
-func NewResourceSkusResultPage(getNextPage func(context.Context, ResourceSkusResult) (ResourceSkusResult, error)) ResourceSkusResultPage {
-	return ResourceSkusResultPage{fn: getNextPage}
-}
-
 // Sku the SKU of the cognitive services account.
 type Sku struct {
-	// Name - Gets or sets the sku name. Required for account creation, optional for update.
-	Name *string `json:"name,omitempty"`
-	// Tier - READ-ONLY; Gets the sku tier. This is based on the SKU name. Possible values include: 'Free', 'Standard', 'Premium'
+	// Name - Gets or sets the sku name. Required for account creation, optional for update. Possible values include: 'F0', 'P0', 'P1', 'P2', 'S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6'
+	Name SkuName `json:"name,omitempty"`
+	// Tier - Gets the sku tier. This is based on the SKU name. Possible values include: 'Free', 'Standard', 'Premium'
 	Tier SkuTier `json:"tier,omitempty"`
 }
 
@@ -1040,15 +914,15 @@ type Sku struct {
 type Usage struct {
 	// Unit - The unit of the metric. Possible values include: 'Count', 'Bytes', 'Seconds', 'Percent', 'CountPerSecond', 'BytesPerSecond', 'Milliseconds'
 	Unit UnitType `json:"unit,omitempty"`
-	// Name - READ-ONLY; The name information for the metric.
+	// Name - The name information for the metric.
 	Name *MetricName `json:"name,omitempty"`
-	// QuotaPeriod - READ-ONLY; The quota period used to summarize the usage values.
+	// QuotaPeriod - The quota period used to summarize the usage values.
 	QuotaPeriod *string `json:"quotaPeriod,omitempty"`
-	// Limit - READ-ONLY; Maximum value for this metric.
+	// Limit - Maximum value for this metric.
 	Limit *float64 `json:"limit,omitempty"`
-	// CurrentValue - READ-ONLY; Current value for this metric.
+	// CurrentValue - Current value for this metric.
 	CurrentValue *float64 `json:"currentValue,omitempty"`
-	// NextResetTime - READ-ONLY; Next reset time for current quota.
+	// NextResetTime - Next reset time for current quota.
 	NextResetTime *string `json:"nextResetTime,omitempty"`
 	// Status - Cognitive Services account quota usage status. Possible values include: 'Included', 'Blocked', 'InOverage', 'Unknown'
 	Status QuotaUsageStatus `json:"status,omitempty"`
@@ -1057,16 +931,6 @@ type Usage struct {
 // UsagesResult the response to a list usage request.
 type UsagesResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; The list of usages for Cognitive Service account.
+	// Value - The list of usages for Cognitive Service account.
 	Value *[]Usage `json:"value,omitempty"`
-}
-
-// VirtualNetworkRule a rule governing the accessibility from a specific virtual network.
-type VirtualNetworkRule struct {
-	// ID - Full resource id of a vnet subnet, such as '/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1'.
-	ID *string `json:"id,omitempty"`
-	// State - Gets the state of virtual network rule.
-	State *string `json:"state,omitempty"`
-	// IgnoreMissingVnetServiceEndpoint - Ignore missing vnet service endpoint or not.
-	IgnoreMissingVnetServiceEndpoint *bool `json:"ignoreMissingVnetServiceEndpoint,omitempty"`
 }

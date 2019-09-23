@@ -1,7 +1,7 @@
 # go-autorest
 
 [![GoDoc](https://godoc.org/github.com/Azure/go-autorest/autorest?status.png)](https://godoc.org/github.com/Azure/go-autorest/autorest)
-[![Build Status](https://dev.azure.com/azure-sdk/public/_apis/build/status/go/Azure.go-autorest?branchName=master)](https://dev.azure.com/azure-sdk/public/_build/latest?definitionId=625&branchName=master)
+[![Build Status](https://travis-ci.org/Azure/go-autorest.svg?branch=master)](https://travis-ci.org/Azure/go-autorest)
 [![Go Report Card](https://goreportcard.com/badge/Azure/go-autorest)](https://goreportcard.com/report/Azure/go-autorest)
 
 Package go-autorest provides an HTTP request client for use with [Autorest](https://github.com/Azure/autorest.go)-generated API client packages.
@@ -134,43 +134,6 @@ go get github.com/Azure/go-autorest/autorest/azure
 go get github.com/Azure/go-autorest/autorest/date
 go get github.com/Azure/go-autorest/autorest/to
 ```
-
-### Using with Go Modules
-In [v12.0.1](https://github.com/Azure/go-autorest/pull/386), this repository introduced the following modules.
-
-- autorest/adal
-- autorest/azure/auth
-- autorest/azure/cli
-- autorest/date
-- autorest/mocks
-- autorest/to
-- autorest/validation
-- autorest
-- logger
-- tracing
-
-Tagging cumulative SDK releases as a whole (e.g. `v12.3.0`) is still enabled to support consumers of this repo that have not yet migrated to modules.
-
-If you're using modules and your code directly and/or indirectly depends on previous versions of `go-autorest` (e.g. as a dependency from azure-sdk-for-go), and if you get an ambiguous import for any packages from `go-autorest` you might need to use a replacement to tell Go to use the latest version of the SDK from this repo.
-
-```
-module <your_module_here>
-
-go 1.12
-
-require (
-	github.com/Azure/azure-sdk-for-go v31.1.0+incompatible
-	github.com/Azure/go-autorest/autorest v0.5.0
-	...
-)
-
-replace (
-	github.com/Azure/go-autorest => github.com/Azure/go-autorest v12.3.0+incompatible
-	...
-)
-```
-
-Once azure-sdk-for-go has been converted to modules this replacement should no longer be necessary.
 
 ## License
 

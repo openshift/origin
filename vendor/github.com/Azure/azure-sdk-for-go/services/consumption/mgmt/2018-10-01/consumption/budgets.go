@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,16 +48,6 @@ func NewBudgetsClientWithBaseURI(baseURI string, subscriptionID string) BudgetsC
 // budgetName - budget Name.
 // parameters - parameters supplied to the Create Budget operation.
 func (client BudgetsClient) CreateOrUpdate(ctx context.Context, budgetName string, parameters Budget) (result Budget, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.BudgetProperties", Name: validation.Null, Rule: false,
@@ -129,8 +118,8 @@ func (client BudgetsClient) CreateOrUpdatePreparer(ctx context.Context, budgetNa
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client BudgetsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -154,16 +143,6 @@ func (client BudgetsClient) CreateOrUpdateResponder(resp *http.Response) (result
 // budgetName - budget Name.
 // parameters - parameters supplied to the Create Budget operation.
 func (client BudgetsClient) CreateOrUpdateByResourceGroupName(ctx context.Context, resourceGroupName string, budgetName string, parameters Budget) (result Budget, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.CreateOrUpdateByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.BudgetProperties", Name: validation.Null, Rule: false,
@@ -235,8 +214,8 @@ func (client BudgetsClient) CreateOrUpdateByResourceGroupNamePreparer(ctx contex
 // CreateOrUpdateByResourceGroupNameSender sends the CreateOrUpdateByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BudgetsClient) CreateOrUpdateByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateByResourceGroupNameResponder handles the response to the CreateOrUpdateByResourceGroupName request. The method always
@@ -256,16 +235,6 @@ func (client BudgetsClient) CreateOrUpdateByResourceGroupNameResponder(resp *htt
 // Parameters:
 // budgetName - budget Name.
 func (client BudgetsClient) Delete(ctx context.Context, budgetName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeletePreparer(ctx, budgetName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.BudgetsClient", "Delete", nil, "Failure preparing request")
@@ -310,8 +279,8 @@ func (client BudgetsClient) DeletePreparer(ctx context.Context, budgetName strin
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client BudgetsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -331,16 +300,6 @@ func (client BudgetsClient) DeleteResponder(resp *http.Response) (result autores
 // resourceGroupName - azure Resource Group Name.
 // budgetName - budget Name.
 func (client BudgetsClient) DeleteByResourceGroupName(ctx context.Context, resourceGroupName string, budgetName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.DeleteByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteByResourceGroupNamePreparer(ctx, resourceGroupName, budgetName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.BudgetsClient", "DeleteByResourceGroupName", nil, "Failure preparing request")
@@ -386,8 +345,8 @@ func (client BudgetsClient) DeleteByResourceGroupNamePreparer(ctx context.Contex
 // DeleteByResourceGroupNameSender sends the DeleteByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BudgetsClient) DeleteByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteByResourceGroupNameResponder handles the response to the DeleteByResourceGroupName request. The method always
@@ -406,16 +365,6 @@ func (client BudgetsClient) DeleteByResourceGroupNameResponder(resp *http.Respon
 // Parameters:
 // budgetName - budget Name.
 func (client BudgetsClient) Get(ctx context.Context, budgetName string) (result Budget, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetPreparer(ctx, budgetName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.BudgetsClient", "Get", nil, "Failure preparing request")
@@ -460,8 +409,8 @@ func (client BudgetsClient) GetPreparer(ctx context.Context, budgetName string) 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client BudgetsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -482,16 +431,6 @@ func (client BudgetsClient) GetResponder(resp *http.Response) (result Budget, er
 // resourceGroupName - azure Resource Group Name.
 // budgetName - budget Name.
 func (client BudgetsClient) GetByResourceGroupName(ctx context.Context, resourceGroupName string, budgetName string) (result Budget, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.GetByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetByResourceGroupNamePreparer(ctx, resourceGroupName, budgetName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.BudgetsClient", "GetByResourceGroupName", nil, "Failure preparing request")
@@ -537,8 +476,8 @@ func (client BudgetsClient) GetByResourceGroupNamePreparer(ctx context.Context, 
 // GetByResourceGroupNameSender sends the GetByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BudgetsClient) GetByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetByResourceGroupNameResponder handles the response to the GetByResourceGroupName request. The method always
@@ -556,16 +495,6 @@ func (client BudgetsClient) GetByResourceGroupNameResponder(resp *http.Response)
 
 // List lists all budgets for a subscription.
 func (client BudgetsClient) List(ctx context.Context) (result BudgetsListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.List")
-		defer func() {
-			sc := -1
-			if result.blr.Response.Response != nil {
-				sc = result.blr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -610,8 +539,8 @@ func (client BudgetsClient) ListPreparer(ctx context.Context) (*http.Request, er
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client BudgetsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -628,8 +557,8 @@ func (client BudgetsClient) ListResponder(resp *http.Response) (result BudgetsLi
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client BudgetsClient) listNextResults(ctx context.Context, lastResults BudgetsListResult) (result BudgetsListResult, err error) {
-	req, err := lastResults.budgetsListResultPreparer(ctx)
+func (client BudgetsClient) listNextResults(lastResults BudgetsListResult) (result BudgetsListResult, err error) {
+	req, err := lastResults.budgetsListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "consumption.BudgetsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -650,16 +579,6 @@ func (client BudgetsClient) listNextResults(ctx context.Context, lastResults Bud
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BudgetsClient) ListComplete(ctx context.Context) (result BudgetsListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -668,16 +587,6 @@ func (client BudgetsClient) ListComplete(ctx context.Context) (result BudgetsLis
 // Parameters:
 // resourceGroupName - azure Resource Group Name.
 func (client BudgetsClient) ListByResourceGroupName(ctx context.Context, resourceGroupName string) (result BudgetsListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.ListByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.blr.Response.Response != nil {
-				sc = result.blr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listByResourceGroupNameNextResults
 	req, err := client.ListByResourceGroupNamePreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -723,8 +632,8 @@ func (client BudgetsClient) ListByResourceGroupNamePreparer(ctx context.Context,
 // ListByResourceGroupNameSender sends the ListByResourceGroupName request. The method will close the
 // http.Response Body if it receives an error.
 func (client BudgetsClient) ListByResourceGroupNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupNameResponder handles the response to the ListByResourceGroupName request. The method always
@@ -741,8 +650,8 @@ func (client BudgetsClient) ListByResourceGroupNameResponder(resp *http.Response
 }
 
 // listByResourceGroupNameNextResults retrieves the next set of results, if any.
-func (client BudgetsClient) listByResourceGroupNameNextResults(ctx context.Context, lastResults BudgetsListResult) (result BudgetsListResult, err error) {
-	req, err := lastResults.budgetsListResultPreparer(ctx)
+func (client BudgetsClient) listByResourceGroupNameNextResults(lastResults BudgetsListResult) (result BudgetsListResult, err error) {
+	req, err := lastResults.budgetsListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "consumption.BudgetsClient", "listByResourceGroupNameNextResults", nil, "Failure preparing next results request")
 	}
@@ -763,16 +672,6 @@ func (client BudgetsClient) listByResourceGroupNameNextResults(ctx context.Conte
 
 // ListByResourceGroupNameComplete enumerates all values, automatically crossing page boundaries as required.
 func (client BudgetsClient) ListByResourceGroupNameComplete(ctx context.Context, resourceGroupName string) (result BudgetsListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BudgetsClient.ListByResourceGroupName")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByResourceGroupName(ctx, resourceGroupName)
 	return
 }

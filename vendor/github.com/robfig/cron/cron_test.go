@@ -10,7 +10,7 @@ import (
 // Many tests schedule a job for every second, and then wait at most a second
 // for it to run.  This amount is just slightly larger than 1 second to
 // compensate for a few milliseconds of runtime.
-const OneSecond = 1*time.Second + 10*time.Millisecond
+const ONE_SECOND = 1*time.Second + 10*time.Millisecond
 
 func TestFuncPanicRecovery(t *testing.T) {
 	cron := New()
@@ -19,7 +19,7 @@ func TestFuncPanicRecovery(t *testing.T) {
 	cron.AddFunc("* * * * * ?", func() { panic("YOLO") })
 
 	select {
-	case <-time.After(OneSecond):
+	case <-time.After(ONE_SECOND):
 		return
 	}
 }
@@ -39,7 +39,7 @@ func TestJobPanicRecovery(t *testing.T) {
 	cron.AddJob("* * * * * ?", job)
 
 	select {
-	case <-time.After(OneSecond):
+	case <-time.After(ONE_SECOND):
 		return
 	}
 }
@@ -50,8 +50,8 @@ func TestNoEntries(t *testing.T) {
 	cron.Start()
 
 	select {
-	case <-time.After(OneSecond):
-		t.Fatal("expected cron will be stopped immediately")
+	case <-time.After(ONE_SECOND):
+		t.FailNow()
 	case <-stop(cron):
 	}
 }
@@ -67,10 +67,10 @@ func TestStopCausesJobsToNotRun(t *testing.T) {
 	cron.AddFunc("* * * * * ?", func() { wg.Done() })
 
 	select {
-	case <-time.After(OneSecond):
+	case <-time.After(ONE_SECOND):
 		// No job ran!
 	case <-wait(wg):
-		t.Fatal("expected stopped cron does not run any job")
+		t.FailNow()
 	}
 }
 
@@ -86,8 +86,8 @@ func TestAddBeforeRunning(t *testing.T) {
 
 	// Give cron 2 seconds to run our job (which is always activated).
 	select {
-	case <-time.After(OneSecond):
-		t.Fatal("expected job runs")
+	case <-time.After(ONE_SECOND):
+		t.FailNow()
 	case <-wait(wg):
 	}
 }
@@ -103,8 +103,8 @@ func TestAddWhileRunning(t *testing.T) {
 	cron.AddFunc("* * * * * ?", func() { wg.Done() })
 
 	select {
-	case <-time.After(OneSecond):
-		t.Fatal("expected job runs")
+	case <-time.After(ONE_SECOND):
+		t.FailNow()
 	case <-wait(wg):
 	}
 }
@@ -118,9 +118,10 @@ func TestAddWhileRunningWithDelay(t *testing.T) {
 	var calls = 0
 	cron.AddFunc("* * * * * *", func() { calls += 1 })
 
-	<-time.After(OneSecond)
+	<-time.After(ONE_SECOND)
 	if calls != 1 {
-		t.Errorf("called %d times, expected 1\n", calls)
+		fmt.Printf("called %d times, expected 1\n", calls)
+		t.Fail()
 	}
 }
 
@@ -136,14 +137,14 @@ func TestSnapshotEntries(t *testing.T) {
 
 	// Cron should fire in 2 seconds. After 1 second, call Entries.
 	select {
-	case <-time.After(OneSecond):
+	case <-time.After(ONE_SECOND):
 		cron.Entries()
 	}
 
 	// Even though Entries was called, the cron should fire at the 2 second mark.
 	select {
-	case <-time.After(OneSecond):
-		t.Error("expected job runs at 2 second mark")
+	case <-time.After(ONE_SECOND):
+		t.FailNow()
 	case <-wait(wg):
 	}
 
@@ -167,8 +168,8 @@ func TestMultipleEntries(t *testing.T) {
 	defer cron.Stop()
 
 	select {
-	case <-time.After(OneSecond):
-		t.Error("expected job run in proper order")
+	case <-time.After(ONE_SECOND):
+		t.FailNow()
 	case <-wait(wg):
 	}
 }
@@ -187,8 +188,8 @@ func TestRunningJobTwice(t *testing.T) {
 	defer cron.Stop()
 
 	select {
-	case <-time.After(2 * OneSecond):
-		t.Error("expected job fires 2 times")
+	case <-time.After(2 * ONE_SECOND):
+		t.FailNow()
 	case <-wait(wg):
 	}
 }
@@ -209,8 +210,8 @@ func TestRunningMultipleSchedules(t *testing.T) {
 	defer cron.Stop()
 
 	select {
-	case <-time.After(2 * OneSecond):
-		t.Error("expected job fires 2 times")
+	case <-time.After(2 * ONE_SECOND):
+		t.FailNow()
 	case <-wait(wg):
 	}
 }
@@ -220,7 +221,7 @@ func TestLocalTimezone(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 
-	now := time.Now()
+	now := time.Now().Local()
 	spec := fmt.Sprintf("%d,%d %d %d %d %d ?",
 		now.Second()+1, now.Second()+2, now.Minute(), now.Hour(), now.Day(), now.Month())
 
@@ -230,8 +231,8 @@ func TestLocalTimezone(t *testing.T) {
 	defer cron.Stop()
 
 	select {
-	case <-time.After(OneSecond * 2):
-		t.Error("expected job fires 2 times")
+	case <-time.After(ONE_SECOND * 2):
+		t.FailNow()
 	case <-wait(wg):
 	}
 }
@@ -257,8 +258,8 @@ func TestNonLocalTimezone(t *testing.T) {
 	defer cron.Stop()
 
 	select {
-	case <-time.After(OneSecond * 2):
-		t.Error("expected job fires 2 times")
+	case <-time.After(ONE_SECOND * 2):
+		t.FailNow()
 	case <-wait(wg):
 	}
 }
@@ -279,67 +280,6 @@ func (t testJob) Run() {
 	t.wg.Done()
 }
 
-// Test that adding an invalid job spec returns an error
-func TestInvalidJobSpec(t *testing.T) {
-	cron := New()
-	err := cron.AddJob("this will not parse", nil)
-	if err == nil {
-		t.Errorf("expected an error with invalid spec, got nil")
-	}
-}
-
-// Test blocking run method behaves as Start()
-func TestBlockingRun(t *testing.T) {
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-
-	cron := New()
-	cron.AddFunc("* * * * * ?", func() { wg.Done() })
-
-	var unblockChan = make(chan struct{})
-
-	go func() {
-		cron.Run()
-		close(unblockChan)
-	}()
-	defer cron.Stop()
-
-	select {
-	case <-time.After(OneSecond):
-		t.Error("expected job fires")
-	case <-unblockChan:
-		t.Error("expected that Run() blocks")
-	case <-wait(wg):
-	}
-}
-
-// Test that double-running is a no-op
-func TestStartNoop(t *testing.T) {
-	var tickChan = make(chan struct{}, 2)
-
-	cron := New()
-	cron.AddFunc("* * * * * ?", func() {
-		tickChan <- struct{}{}
-	})
-
-	cron.Start()
-	defer cron.Stop()
-
-	// Wait for the first firing to ensure the runner is going
-	<-tickChan
-
-	cron.Start()
-
-	<-tickChan
-
-	// Fail if this job fires again in a short period, indicating a double-run
-	select {
-	case <-time.After(time.Millisecond):
-	case <-tickChan:
-		t.Error("expected job fires exactly twice")
-	}
-}
-
 // Simple test using Runnables.
 func TestJob(t *testing.T) {
 	wg := &sync.WaitGroup{}
@@ -357,7 +297,7 @@ func TestJob(t *testing.T) {
 	defer cron.Stop()
 
 	select {
-	case <-time.After(OneSecond):
+	case <-time.After(ONE_SECOND):
 		t.FailNow()
 	case <-wait(wg):
 	}
@@ -372,28 +312,9 @@ func TestJob(t *testing.T) {
 
 	for i, expected := range expecteds {
 		if actuals[i] != expected {
-			t.Fatalf("Jobs not in the right order.  (expected) %s != %s (actual)", expecteds, actuals)
+			t.Errorf("Jobs not in the right order.  (expected) %s != %s (actual)", expecteds, actuals)
+			t.FailNow()
 		}
-	}
-}
-
-type ZeroSchedule struct{}
-
-func (*ZeroSchedule) Next(time.Time) time.Time {
-	return time.Time{}
-}
-
-// Tests that job without time does not run
-func TestJobWithZeroTimeDoesNotRun(t *testing.T) {
-	cron := New()
-	calls := 0
-	cron.AddFunc("* * * * * *", func() { calls += 1 })
-	cron.Schedule(new(ZeroSchedule), FuncJob(func() { t.Error("expected zero task will not run") }))
-	cron.Start()
-	defer cron.Stop()
-	<-time.After(OneSecond)
-	if calls != 1 {
-		t.Errorf("called %d times, expected 1\n", calls)
 	}
 }
 

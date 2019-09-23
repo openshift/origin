@@ -216,7 +216,6 @@ func (item *primitiveItem) VisitPrimitive(schema *proto.Primitive) {
 	case proto.String:
 		return
 	}
-	// TODO(wrong): this misses "null"
 
 	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: schema.Type, Actual: item.Kind})
 }

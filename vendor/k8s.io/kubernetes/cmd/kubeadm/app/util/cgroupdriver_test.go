@@ -23,36 +23,45 @@ import (
 func TestGetCgroupDriverDocker(t *testing.T) {
 	testCases := []struct {
 		name          string
-		driver        string
+		info          string
 		expectedError bool
 	}{
 		{
 			name:          "valid: value is 'cgroupfs'",
-			driver:        `cgroupfs`,
+			info:          `Cgroup Driver: cgroupfs`,
 			expectedError: false,
 		},
 		{
 			name:          "valid: value is 'systemd'",
-			driver:        `systemd`,
+			info:          `Cgroup Driver: systemd`,
 			expectedError: false,
 		},
 		{
+			name:          "invalid: missing 'Cgroup Driver' key and value",
+			info:          "",
+			expectedError: true,
+		},
+		{
+			name:          "invalid: only a 'Cgroup Driver' key is present",
+			info:          `Cgroup Driver`,
+			expectedError: true,
+		},
+		{
 			name:          "invalid: empty 'Cgroup Driver' value",
-			driver:        ``,
+			info:          `Cgroup Driver: `,
 			expectedError: true,
 		},
 		{
 			name:          "invalid: unknown 'Cgroup Driver' value",
-			driver:        `invalid-value`,
+			info:          `Cgroup Driver: invalid-value`,
 			expectedError: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.driver != CgroupDriverCgroupfs && tc.driver != CgroupDriverSystemd
-			if result != tc.expectedError {
-				t.Fatalf("expected error: %v, saw: %v", tc.expectedError, result)
+			if _, err := getCgroupDriverFromDockerInfo(tc.info); (err != nil) != tc.expectedError {
+				t.Fatalf("expected error: %v, saw: %v, error: %v", tc.expectedError, (err != nil), err)
 			}
 		})
 	}

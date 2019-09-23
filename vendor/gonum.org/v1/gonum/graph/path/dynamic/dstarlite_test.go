@@ -387,9 +387,9 @@ var dynamicDStarLiteTests = []struct {
 		modify: func(l *testgraphs.LimitedVisionGrid) {
 			all := l.Grid.AllVisible
 			l.Grid.AllVisible = false
-			for _, n := range graph.NodesOf(l.Nodes()) {
+			for _, n := range l.Nodes() {
 				id := n.ID()
-				l.Known[id] = l.Grid.Node(id) == nil
+				l.Known[id] = !l.Grid.Has(id)
 			}
 			l.Grid.AllVisible = all
 
@@ -400,9 +400,9 @@ var dynamicDStarLiteTests = []struct {
 			l.Known[l.NodeAt(wallRow, wallCol).ID()] = false
 
 			// Check we have a correctly modified representation.
-			for _, u := range graph.NodesOf(l.Nodes()) {
+			for _, u := range l.Nodes() {
 				uid := u.ID()
-				for _, v := range graph.NodesOf(l.Nodes()) {
+				for _, v := range l.Nodes() {
 					vid := v.ID()
 					if l.HasEdgeBetween(uid, vid) != l.Grid.HasEdgeBetween(uid, vid) {
 						ur, uc := l.RowCol(uid)
@@ -598,7 +598,7 @@ func TestDStarLiteDynamic(t *testing.T) {
 			}
 
 			dp.dump(true)
-			dp.printEdges("Initial world knowledge: %s\n\n", simpleWeightedEdgesOf(l, graph.EdgesOf(world.Edges())))
+			dp.printEdges("Initial world knowledge: %s\n\n", simpleWeightedEdgesOf(l, world.Edges()))
 			for d.Step() {
 				changes, _ := l.MoveTo(d.Here())
 				got = append(got, l.Location)

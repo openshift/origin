@@ -3,7 +3,7 @@ Package sdk provides Go packages for managing and using Azure services.
 
 GitHub repo: https://github.com/Azure/azure-sdk-for-go
 
-Official documentation: https://docs.microsoft.com/azure/go
+Official documentation: https://docs.microsoft.com/go/azure
 
 API reference: https://godoc.org/github.com/Azure/azure-sdk-for-go
 

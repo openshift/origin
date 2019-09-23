@@ -27892,7 +27892,7 @@ function os::cmd::internal::run_until_exit_code() {
 	os::test::junit::declare_test_start
 
 	local description=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}")
-	local duration_seconds=`+"`"+`echo $(( $(( duration )) / 1000 )) | xargs printf '%5.3f'`+"`"+`
+	local duration_seconds=`+"`"+`echo $(( $(( duration )) / 1000 )) | xargs printf '%5.3f')`+"`"+`
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
 	local preamble="Running ${description}..."
 	echo "${preamble}"

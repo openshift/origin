@@ -34,17 +34,13 @@ type EigenSym struct {
 // Factorize returns whether the decomposition succeeded. If the decomposition
 // failed, methods that require a successful factorization will panic.
 func (e *EigenSym) Factorize(a Symmetric, vectors bool) (ok bool) {
-	// kill previous decomposition
-	e.vectorsComputed = false
-	e.values = e.values[:]
-
 	n := a.Symmetric()
 	sd := NewSymDense(n, nil)
 	sd.CopySym(a)
 
-	jobz := lapack.EVNone
+	jobz := lapack.EVJob(lapack.None)
 	if vectors {
-		jobz = lapack.EVCompute
+		jobz = lapack.ComputeEV
 	}
 	w := make([]float64, n)
 	work := []float64{0}
@@ -91,58 +87,38 @@ func (e *EigenSym) Values(dst []float64) []float64 {
 	return dst
 }
 
-// VectorsTo returns the eigenvectors of the decomposition. VectorsTo
-// will panic if the eigenvectors were not computed during the factorization,
-// or if the factorization was not successful.
+// EigenvectorsSym extracts the eigenvectors of the factorized matrix and stores
+// them in the receiver. Each eigenvector is a column corresponding to the
+// respective eigenvalue returned by e.Values.
 //
-// If dst is not nil, the eigenvectors are stored in-place into dst, and dst
-// must have size n×n and panics otherwise. If dst is nil, a new matrix
-// is allocated and returned.
-func (e *EigenSym) VectorsTo(dst *Dense) *Dense {
+// EigenvectorsSym panics if the factorization was not successful or if the
+// decomposition did not compute the eigenvectors.
+func (m *Dense) EigenvectorsSym(e *EigenSym) {
 	if !e.succFact() {
 		panic(badFact)
 	}
 	if !e.vectorsComputed {
 		panic(badNoVect)
 	}
-	r, c := e.vectors.Dims()
-	if dst == nil {
-		dst = NewDense(r, c, nil)
-	} else {
-		dst.reuseAs(r, c)
-	}
-	dst.Copy(e.vectors)
-	return dst
+	m.reuseAs(len(e.values), len(e.values))
+	m.Copy(e.vectors)
 }
-
-// EigenKind specifies the computation of eigenvectors during factorization.
-type EigenKind int
-
-const (
-	// EigenNone specifies to not compute any eigenvectors.
-	EigenNone EigenKind = 0
-	// EigenLeft specifies to compute the left eigenvectors.
-	EigenLeft EigenKind = 1 << iota
-	// EigenRight specifies to compute the right eigenvectors.
-	EigenRight
-	// EigenBoth is a convenience value for computing both eigenvectors.
-	EigenBoth EigenKind = EigenLeft | EigenRight
-)
 
 // Eigen is a type for creating and using the eigenvalue decomposition of a dense matrix.
 type Eigen struct {
 	n int // The size of the factorized matrix.
 
-	kind EigenKind
+	right bool // have the right eigenvectors been computed
+	left  bool // have the left eigenvectors been computed
 
 	values   []complex128
-	rVectors *CDense
-	lVectors *CDense
+	rVectors *Dense
+	lVectors *Dense
 }
 
 // succFact returns whether the receiver contains a successful factorization.
 func (e *Eigen) succFact() bool {
-	return e.n != 0
+	return len(e.values) != 0
 }
 
 // Factorize computes the eigenvalues of the square matrix a, and optionally
@@ -151,7 +127,7 @@ func (e *Eigen) succFact() bool {
 // A right eigenvalue/eigenvector combination is defined by
 //  A * x_r = λ * x_r
 // where x_r is the column vector called an eigenvector, and λ is the corresponding
-// eigenvalue.
+// eigenvector.
 //
 // Similarly, a left eigenvalue/eigenvector combination is defined by
 //  x_l * A = λ * x_l
@@ -159,17 +135,16 @@ func (e *Eigen) succFact() bool {
 //
 // Typically eigenvectors refer to right eigenvectors.
 //
-// In all cases, Factorize computes the eigenvalues of the matrix. kind
-// specifies which of the eigenvectors, if any, to compute. See the EigenKind
-// documentation for more information.
+// In all cases, Eigen computes the eigenvalues of the matrix. If right and left
+// are true, then the right and left eigenvectors will be computed, respectively.
 // Eigen panics if the input matrix is not square.
 //
 // Factorize returns whether the decomposition succeeded. If the decomposition
 // failed, methods that require a successful factorization will panic.
-func (e *Eigen) Factorize(a Matrix, kind EigenKind) (ok bool) {
-	// kill previous factorization.
-	e.n = 0
-	e.kind = 0
+func (e *Eigen) Factorize(a Matrix, left, right bool) (ok bool) {
+	// TODO(btracey): Change implementation to store VecDenses as a *CMat when
+	// #308 is resolved.
+
 	// Copy a because it is modified during the Lapack call.
 	r, c := a.Dims()
 	if r != c {
@@ -178,19 +153,16 @@ func (e *Eigen) Factorize(a Matrix, kind EigenKind) (ok bool) {
 	var sd Dense
 	sd.Clone(a)
 
-	left := kind&EigenLeft != 0
-	right := kind&EigenRight != 0
-
 	var vl, vr Dense
-	jobvl := lapack.LeftEVNone
-	jobvr := lapack.RightEVNone
+	var jobvl lapack.LeftEVJob = lapack.None
+	var jobvr lapack.RightEVJob = lapack.None
 	if left {
 		vl = *NewDense(r, r, nil)
-		jobvl = lapack.LeftEVCompute
+		jobvl = lapack.ComputeLeftEV
 	}
 	if right {
 		vr = *NewDense(c, c, nil)
-		jobvr = lapack.RightEVCompute
+		jobvr = lapack.ComputeRightEV
 	}
 
 	wr := getFloats(c, false)
@@ -209,41 +181,16 @@ func (e *Eigen) Factorize(a Matrix, kind EigenKind) (ok bool) {
 		return false
 	}
 	e.n = r
-	e.kind = kind
-
-	// Construct complex eigenvalues from float64 data.
+	e.right = right
+	e.left = left
+	e.lVectors = &vl
+	e.rVectors = &vr
 	values := make([]complex128, r)
 	for i, v := range wr {
 		values[i] = complex(v, wi[i])
 	}
 	e.values = values
-
-	// Construct complex eigenvectors from float64 data.
-	var cvl, cvr CDense
-	if left {
-		cvl = *NewCDense(r, r, nil)
-		e.complexEigenTo(&cvl, &vl)
-		e.lVectors = &cvl
-	} else {
-		e.lVectors = nil
-	}
-	if right {
-		cvr = *NewCDense(c, c, nil)
-		e.complexEigenTo(&cvr, &vr)
-		e.rVectors = &cvr
-	} else {
-		e.rVectors = nil
-	}
 	return true
-}
-
-// Kind returns the EigenKind of the decomposition. If no decomposition has been
-// computed, Kind returns -1.
-func (e *Eigen) Kind() EigenKind {
-	if !e.succFact() {
-		return -1
-	}
-	return e.kind
 }
 
 // Values extracts the eigenvalues of the factorized matrix. If dst is
@@ -267,84 +214,48 @@ func (e *Eigen) Values(dst []complex128) []complex128 {
 	return dst
 }
 
-// complexEigenTo extracts the complex eigenvectors from the real matrix d
-// and stores them into the complex matrix dst.
-//
-// The columns of the returned n×n dense matrix contain the eigenvectors of the
-// decomposition in the same order as the eigenvalues.
-// If the j-th eigenvalue is real, then
-//  dst[:,j] = d[:,j],
-// and if it is not real, then the elements of the j-th and (j+1)-th columns of d
-// form complex conjugate pairs and the eigenvectors are recovered as
-//  dst[:,j]   = d[:,j] + i*d[:,j+1],
-//  dst[:,j+1] = d[:,j] - i*d[:,j+1],
-// where i is the imaginary unit.
-func (e *Eigen) complexEigenTo(dst *CDense, d *Dense) {
-	r, c := d.Dims()
-	cr, cc := dst.Dims()
-	if r != cr {
-		panic("size mismatch")
-	}
-	if c != cc {
-		panic("size mismatch")
-	}
-	for j := 0; j < c; j++ {
-		if imag(e.values[j]) == 0 {
-			for i := 0; i < r; i++ {
-				dst.set(i, j, complex(d.at(i, j), 0))
-			}
-			continue
-		}
-		for i := 0; i < r; i++ {
-			real := d.at(i, j)
-			imag := d.at(i, j+1)
-			dst.set(i, j, complex(real, imag))
-			dst.set(i, j+1, complex(real, -imag))
-		}
-		j++
-	}
-}
-
-// VectorsTo returns the right eigenvectors of the decomposition. VectorsTo
+// Vectors returns the right eigenvectors of the decomposition. Vectors
 // will panic if the right eigenvectors were not computed during the factorization,
 // or if the factorization was not successful.
 //
-// The computed eigenvectors are normalized to have Euclidean norm equal to 1
-// and largest component real.
-func (e *Eigen) VectorsTo(dst *CDense) *CDense {
+// The returned matrix will contain the right eigenvectors of the decomposition
+// in the columns of the n×n matrix in the same order as their eigenvalues.
+// If the j-th eigenvalue is real, then
+//  u_j = VL[:,j],
+//  v_j = VR[:,j],
+// and if it is not real, then j and j+1 form a complex conjugate pair and the
+// eigenvectors can be recovered as
+//  u_j     = VL[:,j] + i*VL[:,j+1],
+//  u_{j+1} = VL[:,j] - i*VL[:,j+1],
+//  v_j     = VR[:,j] + i*VR[:,j+1],
+//  v_{j+1} = VR[:,j] - i*VR[:,j+1],
+// where i is the imaginary unit. The computed eigenvectors are normalized to
+// have Euclidean norm equal to 1 and largest component real.
+//
+// BUG: This signature and behavior will change when issue #308 is resolved.
+func (e *Eigen) Vectors() *Dense {
 	if !e.succFact() {
 		panic(badFact)
 	}
-	if e.kind&EigenRight == 0 {
+	if !e.right {
 		panic(badNoVect)
 	}
-	if dst == nil {
-		dst = NewCDense(e.n, e.n, nil)
-	} else {
-		dst.reuseAs(e.n, e.n)
-	}
-	dst.Copy(e.rVectors)
-	return dst
+	return DenseCopyOf(e.rVectors)
 }
 
-// LeftVectorsTo returns the left eigenvectors of the decomposition. LeftVectorsTo
-// will panic if the left eigenvectors were not computed during the factorization,
+// LeftVectors returns the left eigenvectors of the decomposition. LeftVectors
+// will panic if the left eigenvectors were not computed during the factorization.
 // or if the factorization was not successful.
 //
-// The computed eigenvectors are normalized to have Euclidean norm equal to 1
-// and largest component real.
-func (e *Eigen) LeftVectorsTo(dst *CDense) *CDense {
+// See the documentation in lapack64.Geev for the format of the vectors.
+//
+// BUG: This signature and behavior will change when issue #308 is resolved.
+func (e *Eigen) LeftVectors() *Dense {
 	if !e.succFact() {
 		panic(badFact)
 	}
-	if e.kind&EigenLeft == 0 {
+	if !e.left {
 		panic(badNoVect)
 	}
-	if dst == nil {
-		dst = NewCDense(e.n, e.n, nil)
-	} else {
-		dst.reuseAs(e.n, e.n)
-	}
-	dst.Copy(e.lVectors)
-	return dst
+	return DenseCopyOf(e.lVectors)
 }

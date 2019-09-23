@@ -25,7 +25,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"io"
 	"net/http"
@@ -64,16 +63,6 @@ func NewWithBaseURI(baseURI string, aPIKey string) BaseClient {
 // projectID - the project id
 // batch - batch of image regions which include a tag and bounding box. Limited to 64
 func (client BaseClient) CreateImageRegions(ctx context.Context, projectID uuid.UUID, batch ImageRegionCreateBatch) (result ImageRegionCreateSummary, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateImageRegions")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateImageRegionsPreparer(ctx, projectID, batch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "CreateImageRegions", nil, "Failure preparing request")
@@ -114,8 +103,8 @@ func (client BaseClient) CreateImageRegionsPreparer(ctx context.Context, project
 // CreateImageRegionsSender sends the CreateImageRegions request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateImageRegionsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateImageRegionsResponder handles the response to the CreateImageRegions request. The method always
@@ -138,16 +127,6 @@ func (client BaseClient) CreateImageRegionsResponder(resp *http.Response) (resul
 // projectID - the project id
 // tagIds - the tags ids with which to tag each image. Limited to 20
 func (client BaseClient) CreateImagesFromData(ctx context.Context, projectID uuid.UUID, imageData io.ReadCloser, tagIds []string) (result ImageCreateSummary, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateImagesFromData")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateImagesFromDataPreparer(ctx, projectID, imageData, tagIds)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "CreateImagesFromData", nil, "Failure preparing request")
@@ -197,8 +176,8 @@ func (client BaseClient) CreateImagesFromDataPreparer(ctx context.Context, proje
 // CreateImagesFromDataSender sends the CreateImagesFromData request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateImagesFromDataSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateImagesFromDataResponder handles the response to the CreateImagesFromData request. The method always
@@ -220,16 +199,6 @@ func (client BaseClient) CreateImagesFromDataResponder(resp *http.Response) (res
 // projectID - the project id
 // batch - the batch of image files to add. Limited to 64 images and 20 tags per batch
 func (client BaseClient) CreateImagesFromFiles(ctx context.Context, projectID uuid.UUID, batch ImageFileCreateBatch) (result ImageCreateSummary, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateImagesFromFiles")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateImagesFromFilesPreparer(ctx, projectID, batch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "CreateImagesFromFiles", nil, "Failure preparing request")
@@ -270,8 +239,8 @@ func (client BaseClient) CreateImagesFromFilesPreparer(ctx context.Context, proj
 // CreateImagesFromFilesSender sends the CreateImagesFromFiles request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateImagesFromFilesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateImagesFromFilesResponder handles the response to the CreateImagesFromFiles request. The method always
@@ -291,18 +260,8 @@ func (client BaseClient) CreateImagesFromFilesResponder(resp *http.Response) (re
 // 64 images and 20 tags.
 // Parameters:
 // projectID - the project id
-// batch - image and tag ids. Limited to 64 images and 20 tags per batch
+// batch - image and tag ids. Limted to 64 images and 20 tags per batch
 func (client BaseClient) CreateImagesFromPredictions(ctx context.Context, projectID uuid.UUID, batch ImageIDCreateBatch) (result ImageCreateSummary, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateImagesFromPredictions")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateImagesFromPredictionsPreparer(ctx, projectID, batch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "CreateImagesFromPredictions", nil, "Failure preparing request")
@@ -343,8 +302,8 @@ func (client BaseClient) CreateImagesFromPredictionsPreparer(ctx context.Context
 // CreateImagesFromPredictionsSender sends the CreateImagesFromPredictions request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateImagesFromPredictionsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateImagesFromPredictionsResponder handles the response to the CreateImagesFromPredictions request. The method always
@@ -366,16 +325,6 @@ func (client BaseClient) CreateImagesFromPredictionsResponder(resp *http.Respons
 // projectID - the project id
 // batch - image urls and tag ids. Limited to 64 images and 20 tags per batch
 func (client BaseClient) CreateImagesFromUrls(ctx context.Context, projectID uuid.UUID, batch ImageURLCreateBatch) (result ImageCreateSummary, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateImagesFromUrls")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateImagesFromUrlsPreparer(ctx, projectID, batch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "CreateImagesFromUrls", nil, "Failure preparing request")
@@ -416,8 +365,8 @@ func (client BaseClient) CreateImagesFromUrlsPreparer(ctx context.Context, proje
 // CreateImagesFromUrlsSender sends the CreateImagesFromUrls request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateImagesFromUrlsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateImagesFromUrlsResponder handles the response to the CreateImagesFromUrls request. The method always
@@ -438,16 +387,6 @@ func (client BaseClient) CreateImagesFromUrlsResponder(resp *http.Response) (res
 // projectID - the project id
 // batch - batch of image tags. Limited to 128 tags per batch
 func (client BaseClient) CreateImageTags(ctx context.Context, projectID uuid.UUID, batch ImageTagCreateBatch) (result ImageTagCreateSummary, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateImageTags")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateImageTagsPreparer(ctx, projectID, batch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "CreateImageTags", nil, "Failure preparing request")
@@ -488,8 +427,8 @@ func (client BaseClient) CreateImageTagsPreparer(ctx context.Context, projectID 
 // CreateImageTagsSender sends the CreateImageTags request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateImageTagsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateImageTagsResponder handles the response to the CreateImageTags request. The method always
@@ -511,16 +450,6 @@ func (client BaseClient) CreateImageTagsResponder(resp *http.Response) (result I
 // description - the description of the project
 // domainID - the id of the domain to use for this project. Defaults to General
 func (client BaseClient) CreateProject(ctx context.Context, name string, description string, domainID *uuid.UUID) (result Project, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateProject")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateProjectPreparer(ctx, name, description, domainID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "CreateProject", nil, "Failure preparing request")
@@ -566,8 +495,8 @@ func (client BaseClient) CreateProjectPreparer(ctx context.Context, name string,
 // CreateProjectSender sends the CreateProject request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateProjectSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateProjectResponder handles the response to the CreateProject request. The method always
@@ -589,16 +518,6 @@ func (client BaseClient) CreateProjectResponder(resp *http.Response) (result Pro
 // name - the tag name
 // description - optional description for the tag
 func (client BaseClient) CreateTag(ctx context.Context, projectID uuid.UUID, name string, description string) (result Tag, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.CreateTag")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.CreateTagPreparer(ctx, projectID, name, description)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "CreateTag", nil, "Failure preparing request")
@@ -645,8 +564,8 @@ func (client BaseClient) CreateTagPreparer(ctx context.Context, projectID uuid.U
 // CreateTagSender sends the CreateTag request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) CreateTagSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateTagResponder handles the response to the CreateTag request. The method always
@@ -667,16 +586,6 @@ func (client BaseClient) CreateTagResponder(resp *http.Response) (result Tag, er
 // projectID - the project id
 // regionIds - regions to delete. Limited to 64
 func (client BaseClient) DeleteImageRegions(ctx context.Context, projectID uuid.UUID, regionIds []string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteImageRegions")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: regionIds,
 			Constraints: []validation.Constraint{{Target: "regionIds", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -726,8 +635,8 @@ func (client BaseClient) DeleteImageRegionsPreparer(ctx context.Context, project
 // DeleteImageRegionsSender sends the DeleteImageRegions request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteImageRegionsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteImageRegionsResponder handles the response to the DeleteImageRegions request. The method always
@@ -745,18 +654,8 @@ func (client BaseClient) DeleteImageRegionsResponder(resp *http.Response) (resul
 // DeleteImages sends the delete images request.
 // Parameters:
 // projectID - the project id
-// imageIds - ids of the images to be deleted. Limited to 256 images per batch
+// imageIds - ids of the images to be deleted. Limted to 256 images per batch
 func (client BaseClient) DeleteImages(ctx context.Context, projectID uuid.UUID, imageIds []string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteImages")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageIds,
 			Constraints: []validation.Constraint{{Target: "imageIds", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -806,8 +705,8 @@ func (client BaseClient) DeleteImagesPreparer(ctx context.Context, projectID uui
 // DeleteImagesSender sends the DeleteImages request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteImagesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteImagesResponder handles the response to the DeleteImages request. The method always
@@ -826,18 +725,8 @@ func (client BaseClient) DeleteImagesResponder(resp *http.Response) (result auto
 // Parameters:
 // projectID - the project id
 // imageIds - image ids. Limited to 64 images
-// tagIds - tags to be deleted from the specified images. Limited to 20 tags
+// tagIds - tags to be deleted from the specified images. Limted to 20 tags
 func (client BaseClient) DeleteImageTags(ctx context.Context, projectID uuid.UUID, imageIds []string, tagIds []string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteImageTags")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageIds,
 			Constraints: []validation.Constraint{{Target: "imageIds", Name: validation.Null, Rule: true, Chain: nil}}},
@@ -890,8 +779,8 @@ func (client BaseClient) DeleteImageTagsPreparer(ctx context.Context, projectID 
 // DeleteImageTagsSender sends the DeleteImageTags request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteImageTagsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteImageTagsResponder handles the response to the DeleteImageTags request. The method always
@@ -911,16 +800,6 @@ func (client BaseClient) DeleteImageTagsResponder(resp *http.Response) (result a
 // projectID - the project id
 // iterationID - the iteration id
 func (client BaseClient) DeleteIteration(ctx context.Context, projectID uuid.UUID, iterationID uuid.UUID) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteIteration")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteIterationPreparer(ctx, projectID, iterationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "DeleteIteration", nil, "Failure preparing request")
@@ -960,8 +839,8 @@ func (client BaseClient) DeleteIterationPreparer(ctx context.Context, projectID 
 // DeleteIterationSender sends the DeleteIteration request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteIterationSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteIterationResponder handles the response to the DeleteIteration request. The method always
@@ -981,16 +860,6 @@ func (client BaseClient) DeleteIterationResponder(resp *http.Response) (result a
 // projectID - the project id
 // ids - the prediction ids. Limited to 64
 func (client BaseClient) DeletePrediction(ctx context.Context, projectID uuid.UUID, ids []string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeletePrediction")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: ids,
 			Constraints: []validation.Constraint{{Target: "ids", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -1040,8 +909,8 @@ func (client BaseClient) DeletePredictionPreparer(ctx context.Context, projectID
 // DeletePredictionSender sends the DeletePrediction request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeletePredictionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeletePredictionResponder handles the response to the DeletePrediction request. The method always
@@ -1060,16 +929,6 @@ func (client BaseClient) DeletePredictionResponder(resp *http.Response) (result 
 // Parameters:
 // projectID - the project id
 func (client BaseClient) DeleteProject(ctx context.Context, projectID uuid.UUID) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteProject")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteProjectPreparer(ctx, projectID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "DeleteProject", nil, "Failure preparing request")
@@ -1108,8 +967,8 @@ func (client BaseClient) DeleteProjectPreparer(ctx context.Context, projectID uu
 // DeleteProjectSender sends the DeleteProject request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteProjectSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteProjectResponder handles the response to the DeleteProject request. The method always
@@ -1129,16 +988,6 @@ func (client BaseClient) DeleteProjectResponder(resp *http.Response) (result aut
 // projectID - the project id
 // tagID - id of the tag to be deleted
 func (client BaseClient) DeleteTag(ctx context.Context, projectID uuid.UUID, tagID uuid.UUID) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.DeleteTag")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.DeleteTagPreparer(ctx, projectID, tagID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "DeleteTag", nil, "Failure preparing request")
@@ -1178,8 +1027,8 @@ func (client BaseClient) DeleteTagPreparer(ctx context.Context, projectID uuid.U
 // DeleteTagSender sends the DeleteTag request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) DeleteTagSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteTagResponder handles the response to the DeleteTag request. The method always
@@ -1201,16 +1050,6 @@ func (client BaseClient) DeleteTagResponder(resp *http.Response) (result autores
 // platform - the target platform (coreml or tensorflow)
 // flavor - the flavor of the target platform (Windows, Linux, ARM, or GPU)
 func (client BaseClient) ExportIteration(ctx context.Context, projectID uuid.UUID, iterationID uuid.UUID, platform string, flavor string) (result Export, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.ExportIteration")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.ExportIterationPreparer(ctx, projectID, iterationID, platform, flavor)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "ExportIteration", nil, "Failure preparing request")
@@ -1258,8 +1097,8 @@ func (client BaseClient) ExportIterationPreparer(ctx context.Context, projectID 
 // ExportIterationSender sends the ExportIteration request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) ExportIterationSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ExportIterationResponder handles the response to the ExportIteration request. The method always
@@ -1279,16 +1118,6 @@ func (client BaseClient) ExportIterationResponder(resp *http.Response) (result E
 // Parameters:
 // domainID - the id of the domain to get information about
 func (client BaseClient) GetDomain(ctx context.Context, domainID uuid.UUID) (result Domain, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDomain")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetDomainPreparer(ctx, domainID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetDomain", nil, "Failure preparing request")
@@ -1327,8 +1156,8 @@ func (client BaseClient) GetDomainPreparer(ctx context.Context, domainID uuid.UU
 // GetDomainSender sends the GetDomain request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDomainSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetDomainResponder handles the response to the GetDomain request. The method always
@@ -1346,16 +1175,6 @@ func (client BaseClient) GetDomainResponder(resp *http.Response) (result Domain,
 
 // GetDomains sends the get domains request.
 func (client BaseClient) GetDomains(ctx context.Context) (result ListDomain, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetDomains")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetDomainsPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetDomains", nil, "Failure preparing request")
@@ -1390,8 +1209,8 @@ func (client BaseClient) GetDomainsPreparer(ctx context.Context) (*http.Request,
 // GetDomainsSender sends the GetDomains request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetDomainsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetDomainsResponder handles the response to the GetDomains request. The method always
@@ -1412,16 +1231,6 @@ func (client BaseClient) GetDomainsResponder(resp *http.Response) (result ListDo
 // projectID - the project id
 // iterationID - the iteration id
 func (client BaseClient) GetExports(ctx context.Context, projectID uuid.UUID, iterationID uuid.UUID) (result ListExport, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetExports")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetExportsPreparer(ctx, projectID, iterationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetExports", nil, "Failure preparing request")
@@ -1461,8 +1270,8 @@ func (client BaseClient) GetExportsPreparer(ctx context.Context, projectID uuid.
 // GetExportsSender sends the GetExports request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetExportsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetExportsResponder handles the response to the GetExports request. The method always
@@ -1486,16 +1295,6 @@ func (client BaseClient) GetExportsResponder(resp *http.Response) (result ListEx
 // iterationID - the iteration id. Defaults to workspace
 // tagIds - a list of tags ids to filter the images to count. Defaults to all tags when null.
 func (client BaseClient) GetImagePerformanceCount(ctx context.Context, projectID uuid.UUID, iterationID uuid.UUID, tagIds []string) (result Int32, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetImagePerformanceCount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetImagePerformanceCountPreparer(ctx, projectID, iterationID, tagIds)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetImagePerformanceCount", nil, "Failure preparing request")
@@ -1541,8 +1340,8 @@ func (client BaseClient) GetImagePerformanceCountPreparer(ctx context.Context, p
 // GetImagePerformanceCountSender sends the GetImagePerformanceCount request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetImagePerformanceCountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetImagePerformanceCountResponder handles the response to the GetImagePerformanceCount request. The method always
@@ -1571,16 +1370,6 @@ func (client BaseClient) GetImagePerformanceCountResponder(resp *http.Response) 
 // take - maximum number of images to return. Defaults to 50, limited to 256
 // skip - number of images to skip before beginning the image batch. Defaults to 0
 func (client BaseClient) GetImagePerformances(ctx context.Context, projectID uuid.UUID, iterationID uuid.UUID, tagIds []string, orderBy string, take *int32, skip *int32) (result ListImagePerformance, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetImagePerformances")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetImagePerformancesPreparer(ctx, projectID, iterationID, tagIds, orderBy, take, skip)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetImagePerformances", nil, "Failure preparing request")
@@ -1639,8 +1428,8 @@ func (client BaseClient) GetImagePerformancesPreparer(ctx context.Context, proje
 // GetImagePerformancesSender sends the GetImagePerformances request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetImagePerformancesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetImagePerformancesResponder handles the response to the GetImagePerformances request. The method always
@@ -1662,16 +1451,6 @@ func (client BaseClient) GetImagePerformancesResponder(resp *http.Response) (res
 // projectID - the project id
 // imageID - the image id
 func (client BaseClient) GetImageRegionProposals(ctx context.Context, projectID uuid.UUID, imageID uuid.UUID) (result ImageRegionProposal, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetImageRegionProposals")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetImageRegionProposalsPreparer(ctx, projectID, imageID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetImageRegionProposals", nil, "Failure preparing request")
@@ -1711,8 +1490,8 @@ func (client BaseClient) GetImageRegionProposalsPreparer(ctx context.Context, pr
 // GetImageRegionProposalsSender sends the GetImageRegionProposals request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetImageRegionProposalsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetImageRegionProposalsResponder handles the response to the GetImageRegionProposals request. The method always
@@ -1736,16 +1515,6 @@ func (client BaseClient) GetImageRegionProposalsResponder(resp *http.Response) (
 // imageIds - the list of image ids to retrieve. Limited to 256
 // iterationID - the iteration id. Defaults to workspace
 func (client BaseClient) GetImagesByIds(ctx context.Context, projectID uuid.UUID, imageIds []string, iterationID *uuid.UUID) (result ListImage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetImagesByIds")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetImagesByIdsPreparer(ctx, projectID, imageIds, iterationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetImagesByIds", nil, "Failure preparing request")
@@ -1793,8 +1562,8 @@ func (client BaseClient) GetImagesByIdsPreparer(ctx context.Context, projectID u
 // GetImagesByIdsSender sends the GetImagesByIds request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetImagesByIdsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetImagesByIdsResponder handles the response to the GetImagesByIds request. The method always
@@ -1815,16 +1584,6 @@ func (client BaseClient) GetImagesByIdsResponder(resp *http.Response) (result Li
 // projectID - the id of the project the iteration belongs to
 // iterationID - the id of the iteration to get
 func (client BaseClient) GetIteration(ctx context.Context, projectID uuid.UUID, iterationID uuid.UUID) (result Iteration, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetIteration")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetIterationPreparer(ctx, projectID, iterationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetIteration", nil, "Failure preparing request")
@@ -1864,8 +1623,8 @@ func (client BaseClient) GetIterationPreparer(ctx context.Context, projectID uui
 // GetIterationSender sends the GetIteration request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetIterationSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetIterationResponder handles the response to the GetIteration request. The method always
@@ -1888,16 +1647,6 @@ func (client BaseClient) GetIterationResponder(resp *http.Response) (result Iter
 // threshold - the threshold used to determine true predictions
 // overlapThreshold - if applicable, the bounding box overlap threshold used to determine true predictions
 func (client BaseClient) GetIterationPerformance(ctx context.Context, projectID uuid.UUID, iterationID uuid.UUID, threshold *float64, overlapThreshold *float64) (result IterationPerformance, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetIterationPerformance")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetIterationPerformancePreparer(ctx, projectID, iterationID, threshold, overlapThreshold)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetIterationPerformance", nil, "Failure preparing request")
@@ -1946,8 +1695,8 @@ func (client BaseClient) GetIterationPerformancePreparer(ctx context.Context, pr
 // GetIterationPerformanceSender sends the GetIterationPerformance request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetIterationPerformanceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetIterationPerformanceResponder handles the response to the GetIterationPerformance request. The method always
@@ -1967,16 +1716,6 @@ func (client BaseClient) GetIterationPerformanceResponder(resp *http.Response) (
 // Parameters:
 // projectID - the project id
 func (client BaseClient) GetIterations(ctx context.Context, projectID uuid.UUID) (result ListIteration, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetIterations")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetIterationsPreparer(ctx, projectID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetIterations", nil, "Failure preparing request")
@@ -2015,8 +1754,8 @@ func (client BaseClient) GetIterationsPreparer(ctx context.Context, projectID uu
 // GetIterationsSender sends the GetIterations request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetIterationsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetIterationsResponder handles the response to the GetIterations request. The method always
@@ -2036,16 +1775,6 @@ func (client BaseClient) GetIterationsResponder(resp *http.Response) (result Lis
 // Parameters:
 // projectID - the id of the project to get
 func (client BaseClient) GetProject(ctx context.Context, projectID uuid.UUID) (result Project, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetProject")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetProjectPreparer(ctx, projectID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetProject", nil, "Failure preparing request")
@@ -2084,8 +1813,8 @@ func (client BaseClient) GetProjectPreparer(ctx context.Context, projectID uuid.
 // GetProjectSender sends the GetProject request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetProjectSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetProjectResponder handles the response to the GetProject request. The method always
@@ -2103,16 +1832,6 @@ func (client BaseClient) GetProjectResponder(resp *http.Response) (result Projec
 
 // GetProjects sends the get projects request.
 func (client BaseClient) GetProjects(ctx context.Context) (result ListProject, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetProjects")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetProjectsPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetProjects", nil, "Failure preparing request")
@@ -2147,8 +1866,8 @@ func (client BaseClient) GetProjectsPreparer(ctx context.Context) (*http.Request
 // GetProjectsSender sends the GetProjects request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetProjectsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetProjectsResponder handles the response to the GetProjects request. The method always
@@ -2170,16 +1889,6 @@ func (client BaseClient) GetProjectsResponder(resp *http.Response) (result ListP
 // tagID - the tag id
 // iterationID - the iteration to retrieve this tag from. Optional, defaults to current training set
 func (client BaseClient) GetTag(ctx context.Context, projectID uuid.UUID, tagID uuid.UUID, iterationID *uuid.UUID) (result Tag, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetTag")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetTagPreparer(ctx, projectID, tagID, iterationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetTag", nil, "Failure preparing request")
@@ -2225,8 +1934,8 @@ func (client BaseClient) GetTagPreparer(ctx context.Context, projectID uuid.UUID
 // GetTagSender sends the GetTag request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetTagSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetTagResponder handles the response to the GetTag request. The method always
@@ -2250,16 +1959,6 @@ func (client BaseClient) GetTagResponder(resp *http.Response) (result Tag, err e
 // iterationID - the iteration id. Defaults to workspace
 // tagIds - a list of tags ids to filter the images to count. Defaults to all tags when null.
 func (client BaseClient) GetTaggedImageCount(ctx context.Context, projectID uuid.UUID, iterationID *uuid.UUID, tagIds []string) (result Int32, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetTaggedImageCount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetTaggedImageCountPreparer(ctx, projectID, iterationID, tagIds)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetTaggedImageCount", nil, "Failure preparing request")
@@ -2307,8 +2006,8 @@ func (client BaseClient) GetTaggedImageCountPreparer(ctx context.Context, projec
 // GetTaggedImageCountSender sends the GetTaggedImageCount request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetTaggedImageCountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetTaggedImageCountResponder handles the response to the GetTaggedImageCount request. The method always
@@ -2337,16 +2036,6 @@ func (client BaseClient) GetTaggedImageCountResponder(resp *http.Response) (resu
 // take - maximum number of images to return. Defaults to 50, limited to 256
 // skip - number of images to skip before beginning the image batch. Defaults to 0
 func (client BaseClient) GetTaggedImages(ctx context.Context, projectID uuid.UUID, iterationID *uuid.UUID, tagIds []string, orderBy string, take *int32, skip *int32) (result ListImage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetTaggedImages")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetTaggedImagesPreparer(ctx, projectID, iterationID, tagIds, orderBy, take, skip)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetTaggedImages", nil, "Failure preparing request")
@@ -2407,8 +2096,8 @@ func (client BaseClient) GetTaggedImagesPreparer(ctx context.Context, projectID 
 // GetTaggedImagesSender sends the GetTaggedImages request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetTaggedImagesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetTaggedImagesResponder handles the response to the GetTaggedImages request. The method always
@@ -2429,16 +2118,6 @@ func (client BaseClient) GetTaggedImagesResponder(resp *http.Response) (result L
 // projectID - the project id
 // iterationID - the iteration id. Defaults to workspace
 func (client BaseClient) GetTags(ctx context.Context, projectID uuid.UUID, iterationID *uuid.UUID) (result ListTag, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetTags")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetTagsPreparer(ctx, projectID, iterationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetTags", nil, "Failure preparing request")
@@ -2483,8 +2162,8 @@ func (client BaseClient) GetTagsPreparer(ctx context.Context, projectID uuid.UUI
 // GetTagsSender sends the GetTags request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetTagsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetTagsResponder handles the response to the GetTags request. The method always
@@ -2507,16 +2186,6 @@ func (client BaseClient) GetTagsResponder(resp *http.Response) (result ListTag, 
 // projectID - the project id
 // iterationID - the iteration id. Defaults to workspace
 func (client BaseClient) GetUntaggedImageCount(ctx context.Context, projectID uuid.UUID, iterationID *uuid.UUID) (result Int32, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetUntaggedImageCount")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetUntaggedImageCountPreparer(ctx, projectID, iterationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetUntaggedImageCount", nil, "Failure preparing request")
@@ -2561,8 +2230,8 @@ func (client BaseClient) GetUntaggedImageCountPreparer(ctx context.Context, proj
 // GetUntaggedImageCountSender sends the GetUntaggedImageCount request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetUntaggedImageCountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetUntaggedImageCountResponder handles the response to the GetUntaggedImageCount request. The method always
@@ -2588,16 +2257,6 @@ func (client BaseClient) GetUntaggedImageCountResponder(resp *http.Response) (re
 // take - maximum number of images to return. Defaults to 50, limited to 256
 // skip - number of images to skip before beginning the image batch. Defaults to 0
 func (client BaseClient) GetUntaggedImages(ctx context.Context, projectID uuid.UUID, iterationID *uuid.UUID, orderBy string, take *int32, skip *int32) (result ListImage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetUntaggedImages")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.GetUntaggedImagesPreparer(ctx, projectID, iterationID, orderBy, take, skip)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "GetUntaggedImages", nil, "Failure preparing request")
@@ -2655,8 +2314,8 @@ func (client BaseClient) GetUntaggedImagesPreparer(ctx context.Context, projectI
 // GetUntaggedImagesSender sends the GetUntaggedImages request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetUntaggedImagesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetUntaggedImagesResponder handles the response to the GetUntaggedImages request. The method always
@@ -2677,16 +2336,6 @@ func (client BaseClient) GetUntaggedImagesResponder(resp *http.Response) (result
 // projectID - the project id
 // query - parameters used to query the predictions. Limited to combining 2 tags
 func (client BaseClient) QueryPredictions(ctx context.Context, projectID uuid.UUID, query PredictionQueryToken) (result PredictionQueryResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.QueryPredictions")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.QueryPredictionsPreparer(ctx, projectID, query)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "QueryPredictions", nil, "Failure preparing request")
@@ -2727,8 +2376,8 @@ func (client BaseClient) QueryPredictionsPreparer(ctx context.Context, projectID
 // QueryPredictionsSender sends the QueryPredictions request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) QueryPredictionsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // QueryPredictionsResponder handles the response to the QueryPredictions request. The method always
@@ -2750,16 +2399,6 @@ func (client BaseClient) QueryPredictionsResponder(resp *http.Response) (result 
 // iterationID - optional. Specifies the id of a particular iteration to evaluate against.
 // The default iteration for the project will be used when not specified.
 func (client BaseClient) QuickTestImage(ctx context.Context, projectID uuid.UUID, imageData io.ReadCloser, iterationID *uuid.UUID) (result ImagePrediction, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.QuickTestImage")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.QuickTestImagePreparer(ctx, projectID, imageData, iterationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "QuickTestImage", nil, "Failure preparing request")
@@ -2809,8 +2448,8 @@ func (client BaseClient) QuickTestImagePreparer(ctx context.Context, projectID u
 // QuickTestImageSender sends the QuickTestImage request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) QuickTestImageSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // QuickTestImageResponder handles the response to the QuickTestImage request. The method always
@@ -2833,16 +2472,6 @@ func (client BaseClient) QuickTestImageResponder(resp *http.Response) (result Im
 // iterationID - optional. Specifies the id of a particular iteration to evaluate against.
 // The default iteration for the project will be used when not specified.
 func (client BaseClient) QuickTestImageURL(ctx context.Context, projectID uuid.UUID, imageURL ImageURL, iterationID *uuid.UUID) (result ImagePrediction, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.QuickTestImageURL")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.QuickTestImageURLPreparer(ctx, projectID, imageURL, iterationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "QuickTestImageURL", nil, "Failure preparing request")
@@ -2889,8 +2518,8 @@ func (client BaseClient) QuickTestImageURLPreparer(ctx context.Context, projectI
 // QuickTestImageURLSender sends the QuickTestImageURL request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) QuickTestImageURLSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // QuickTestImageURLResponder handles the response to the QuickTestImageURL request. The method always
@@ -2910,16 +2539,6 @@ func (client BaseClient) QuickTestImageURLResponder(resp *http.Response) (result
 // Parameters:
 // projectID - the project id
 func (client BaseClient) TrainProject(ctx context.Context, projectID uuid.UUID) (result Iteration, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.TrainProject")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.TrainProjectPreparer(ctx, projectID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "TrainProject", nil, "Failure preparing request")
@@ -2958,8 +2577,8 @@ func (client BaseClient) TrainProjectPreparer(ctx context.Context, projectID uui
 // TrainProjectSender sends the TrainProject request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) TrainProjectSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // TrainProjectResponder handles the response to the TrainProject request. The method always
@@ -2981,16 +2600,6 @@ func (client BaseClient) TrainProjectResponder(resp *http.Response) (result Iter
 // iterationID - iteration id
 // updatedIteration - the updated iteration model
 func (client BaseClient) UpdateIteration(ctx context.Context, projectID uuid.UUID, iterationID uuid.UUID, updatedIteration Iteration) (result Iteration, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateIteration")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateIterationPreparer(ctx, projectID, iterationID, updatedIteration)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "UpdateIteration", nil, "Failure preparing request")
@@ -3019,14 +2628,6 @@ func (client BaseClient) UpdateIterationPreparer(ctx context.Context, projectID 
 		"projectId":   autorest.Encode("path", projectID),
 	}
 
-	updatedIteration.ID = nil
-	updatedIteration.Status = nil
-	updatedIteration.Created = nil
-	updatedIteration.LastModified = nil
-	updatedIteration.TrainedAt = nil
-	updatedIteration.ProjectID = nil
-	updatedIteration.Exportable = nil
-	updatedIteration.DomainID = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
@@ -3040,8 +2641,8 @@ func (client BaseClient) UpdateIterationPreparer(ctx context.Context, projectID 
 // UpdateIterationSender sends the UpdateIteration request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateIterationSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateIterationResponder handles the response to the UpdateIteration request. The method always
@@ -3062,16 +2663,6 @@ func (client BaseClient) UpdateIterationResponder(resp *http.Response) (result I
 // projectID - the id of the project to update
 // updatedProject - the updated project model
 func (client BaseClient) UpdateProject(ctx context.Context, projectID uuid.UUID, updatedProject Project) (result Project, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateProject")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateProjectPreparer(ctx, projectID, updatedProject)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "UpdateProject", nil, "Failure preparing request")
@@ -3099,10 +2690,6 @@ func (client BaseClient) UpdateProjectPreparer(ctx context.Context, projectID uu
 		"projectId": autorest.Encode("path", projectID),
 	}
 
-	updatedProject.ID = nil
-	updatedProject.Created = nil
-	updatedProject.LastModified = nil
-	updatedProject.ThumbnailURI = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
@@ -3116,8 +2703,8 @@ func (client BaseClient) UpdateProjectPreparer(ctx context.Context, projectID uu
 // UpdateProjectSender sends the UpdateProject request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateProjectSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateProjectResponder handles the response to the UpdateProject request. The method always
@@ -3139,16 +2726,6 @@ func (client BaseClient) UpdateProjectResponder(resp *http.Response) (result Pro
 // tagID - the id of the target tag
 // updatedTag - the updated tag model
 func (client BaseClient) UpdateTag(ctx context.Context, projectID uuid.UUID, tagID uuid.UUID, updatedTag Tag) (result Tag, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.UpdateTag")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	req, err := client.UpdateTagPreparer(ctx, projectID, tagID, updatedTag)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "training.BaseClient", "UpdateTag", nil, "Failure preparing request")
@@ -3177,8 +2754,6 @@ func (client BaseClient) UpdateTagPreparer(ctx context.Context, projectID uuid.U
 		"tagId":     autorest.Encode("path", tagID),
 	}
 
-	updatedTag.ID = nil
-	updatedTag.ImageCount = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
@@ -3192,8 +2767,8 @@ func (client BaseClient) UpdateTagPreparer(ctx context.Context, projectID uuid.U
 // UpdateTagSender sends the UpdateTag request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) UpdateTagSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateTagResponder handles the response to the UpdateTag request. The method always

@@ -73,9 +73,6 @@ Example to Update a Container
 		Metadata: map[string]string{
 			"bar": "baz",
 		},
-		RemoveMetadata: []string{
-			"foo",
-		},
 	}
 
 	container, err := containers.Update(objectStorageClient, containerName, updateOpts).Extract()

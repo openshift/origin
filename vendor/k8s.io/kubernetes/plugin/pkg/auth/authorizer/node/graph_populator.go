@@ -64,11 +64,13 @@ func AddGraphEventHandlers(
 		DeleteFunc: g.deletePV,
 	})
 
-	attachments.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    g.addVolumeAttachment,
-		UpdateFunc: g.updateVolumeAttachment,
-		DeleteFunc: g.deleteVolumeAttachment,
-	})
+	if utilfeature.DefaultFeatureGate.Enabled(features.CSIPersistentVolume) {
+		attachments.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc:    g.addVolumeAttachment,
+			UpdateFunc: g.updateVolumeAttachment,
+			DeleteFunc: g.deleteVolumeAttachment,
+		})
+	}
 }
 
 func (g *graphPopulator) addNode(obj interface{}) {

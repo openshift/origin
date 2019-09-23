@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	fuzz "github.com/google/gofuzz"
+	"github.com/google/gofuzz"
 
 	apitesting "k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
@@ -215,6 +215,9 @@ func v1FuzzerFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
 				j.Finalizers = nil
 			}
 		},
+		func(j *metav1.Initializers, c fuzz.Continue) {
+			j = nil
+		},
 		func(j *metav1.ListMeta, c fuzz.Continue) {
 			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 			j.SelfLink = c.RandString()
@@ -272,19 +275,15 @@ func v1FuzzerFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
 		},
 		func(j *metav1.ManagedFieldsEntry, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.FieldsV1 = nil
+			if j.Fields != nil && len(j.Fields.Map) == 0 {
+				j.Fields = nil
+			}
 		},
 	}
 }
 
-func v1beta1FuzzerFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+func v1alpha1FuzzerFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		func(r *metav1beta1.TableOptions, c fuzz.Continue) {
-			c.FuzzNoCustom(r)
-			// NoHeaders is not serialized to the wire but is allowed within the versioned
-			// type because we don't use meta internal types in the client and API server.
-			r.NoHeaders = false
-		},
 		func(r *metav1beta1.TableRow, c fuzz.Continue) {
 			c.Fuzz(&r.Object)
 			c.Fuzz(&r.Conditions)
@@ -327,5 +326,5 @@ func v1beta1FuzzerFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
 var Funcs = fuzzer.MergeFuzzerFuncs(
 	genericFuzzerFuncs,
 	v1FuzzerFuncs,
-	v1beta1FuzzerFuncs,
+	v1alpha1FuzzerFuncs,
 )

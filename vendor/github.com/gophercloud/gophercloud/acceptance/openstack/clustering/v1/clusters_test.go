@@ -9,7 +9,6 @@ import (
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
-	"github.com/gophercloud/gophercloud/openstack/clustering/v1/actions"
 	"github.com/gophercloud/gophercloud/openstack/clustering/v1/clusters"
 	th "github.com/gophercloud/gophercloud/testhelper"
 )
@@ -448,63 +447,4 @@ func TestClustersCollectAttributes(t *testing.T) {
 		th.AssertEquals(t, attr.Value, "nova")
 	}
 
-}
-
-// Performs an operation on a cluster
-func TestClustersOps(t *testing.T) {
-	choices, err := clients.AcceptanceTestChoicesFromEnv()
-	th.AssertNoErr(t, err)
-
-	client, err := clients.NewClusteringV1Client()
-	th.AssertNoErr(t, err)
-	client.Microversion = "1.4"
-
-	profile, err := CreateProfile(t, client)
-	th.AssertNoErr(t, err)
-	defer DeleteProfile(t, client, profile.ID)
-
-	cluster, err := CreateCluster(t, client, profile.ID)
-	th.AssertNoErr(t, err)
-	defer DeleteCluster(t, client, cluster.ID)
-
-	node, err := CreateNode(t, client, cluster.ID, profile.ID)
-	th.AssertNoErr(t, err)
-	defer DeleteNode(t, client, node.ID)
-
-	ops := []clusters.OperationOpts{
-		// TODO: Commented out due to backend returns error, as of 2019-01-09
-		//{Operation: clusters.RebuildOperation},					// Error in set_admin_password in nova log
-		//{Operation: clusters.EvacuateOperation, Params: clusters.OperationParams{"host": cluster.ID, "force": "True"}},
-		{Operation: clusters.RebootOperation, Params: clusters.OperationParams{"type": "SOFT"}},
-		{Operation: clusters.ChangePasswordOperation, Params: clusters.OperationParams{"admin_pass": "test"}},
-		{Operation: clusters.LockOperation},
-		{Operation: clusters.UnlockOperation},
-		{Operation: clusters.SuspendOperation},
-		{Operation: clusters.ResumeOperation},
-		{Operation: clusters.RescueOperation, Params: clusters.OperationParams{"image_ref": choices.ImageID}},
-		{Operation: clusters.PauseOperation},
-		{Operation: clusters.UnpauseOperation},
-		{Operation: clusters.StopOperation},
-		{Operation: clusters.StartOperation},
-	}
-
-	for _, op := range ops {
-		opName := string(op.Operation)
-		t.Logf("Attempting to perform '%s' on cluster: %s", opName, cluster.ID)
-		actionID, res := clusters.Ops(client, cluster.ID, op).Extract()
-		th.AssertNoErr(t, res)
-
-		err = WaitForAction(client, actionID)
-		th.AssertNoErr(t, err)
-
-		action, err := actions.Get(client, actionID).Extract()
-		th.AssertNoErr(t, err)
-		th.AssertEquals(t, "SUCCEEDED", action.Status)
-
-		t.Logf("Successfully performed '%s' on cluster: %s", opName, cluster.ID)
-	}
-
-	cluster, err = clusters.Get(client, cluster.ID).Extract()
-	th.AssertNoErr(t, err)
-	tools.PrintResource(t, cluster)
 }

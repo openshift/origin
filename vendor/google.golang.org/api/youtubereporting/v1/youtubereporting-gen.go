@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2018 Google Inc. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,39 +6,13 @@
 
 // Package youtubereporting provides access to the YouTube Reporting API.
 //
-// For product documentation, see: https://developers.google.com/youtube/reporting/v1/reports/
-//
-// Creating a client
+// See https://developers.google.com/youtube/reporting/v1/reports/
 //
 // Usage example:
 //
 //   import "google.golang.org/api/youtubereporting/v1"
 //   ...
-//   ctx := context.Background()
-//   youtubereportingService, err := youtubereporting.NewService(ctx)
-//
-// In this example, Google Application Default Credentials are used for authentication.
-//
-// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
-//
-// Other authentication options
-//
-// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
-//
-//   youtubereportingService, err := youtubereporting.NewService(ctx, option.WithScopes(youtubereporting.YtAnalyticsReadonlyScope))
-//
-// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
-//
-//   youtubereportingService, err := youtubereporting.NewService(ctx, option.WithAPIKey("AIza..."))
-//
-// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
-//
-//   config := &oauth2.Config{...}
-//   // ...
-//   token, err := config.Exchange(ctx, ...)
-//   youtubereportingService, err := youtubereporting.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
-//
-// See https://godoc.org/google.golang.org/api/option/ for details on options.
+//   youtubereportingService, err := youtubereporting.New(oauthHttpClient)
 package youtubereporting // import "google.golang.org/api/youtubereporting/v1"
 
 import (
@@ -55,8 +29,6 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
-	option "google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -88,33 +60,6 @@ const (
 	YtAnalyticsReadonlyScope = "https://www.googleapis.com/auth/yt-analytics.readonly"
 )
 
-// NewService creates a new Service.
-func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
-	scopesOption := option.WithScopes(
-		"https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
-		"https://www.googleapis.com/auth/yt-analytics.readonly",
-	)
-	// NOTE: prepend, so we don't override user-specified scopes.
-	opts = append([]option.ClientOption{scopesOption}, opts...)
-	client, endpoint, err := htransport.NewClient(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	s, err := New(client)
-	if err != nil {
-		return nil, err
-	}
-	if endpoint != "" {
-		s.BasePath = endpoint
-	}
-	return s, nil
-}
-
-// New creates a new Service. It uses the provided http.Client for requests.
-//
-// Deprecated: please use NewService instead.
-// To provide a custom HTTP client, use option.WithHTTPClient.
-// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -816,8 +761,8 @@ type ListReportTypesResponse struct {
 	// Pass this value in the
 	// ListReportTypesRequest.page_token
 	// field in the subsequent call to `ListReportTypes` method to retrieve
-	// the
-	// next page of results.
+	// the next
+	// page of results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
 	// ReportTypes: The list of report types.
@@ -2219,8 +2164,7 @@ func (c *MediaDownloadCall) Do(opts ...googleapi.CallOption) (*GdataMedia, error
 	//     "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
 	//     "https://www.googleapis.com/auth/yt-analytics.readonly"
 	//   ],
-	//   "supportsMediaDownload": true,
-	//   "useMediaDownloadService": true
+	//   "supportsMediaDownload": true
 	// }
 
 }

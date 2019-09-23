@@ -32,7 +32,7 @@ limitations under the License.
 //
 // All generation is governed by comment tags in the source.  Any package may
 // request DeepCopy generation by including a comment in the file-comments of
-// a doc.go file, of the form:
+// one file, of the form:
 //   // +k8s:deepcopy-gen=package
 //
 // DeepCopy functions can be generated for individual types, rather than the
@@ -65,7 +65,6 @@ import (
 )
 
 func main() {
-	klog.InitFlags(nil)
 	arguments := args.Default()
 
 	// Override defaults.

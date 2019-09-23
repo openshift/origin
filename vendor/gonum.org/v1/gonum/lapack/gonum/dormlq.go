@@ -28,37 +28,33 @@ import (
 // tau contains the Householder scales and must have length at least k, and
 // this function will panic otherwise.
 func (impl Implementation) Dormlq(side blas.Side, trans blas.Transpose, m, n, k int, a []float64, lda int, tau, c []float64, ldc int, work []float64, lwork int) {
+	if side != blas.Left && side != blas.Right {
+		panic(badSide)
+	}
+	if trans != blas.Trans && trans != blas.NoTrans {
+		panic(badTrans)
+	}
 	left := side == blas.Left
+	if left {
+		checkMatrix(k, m, a, lda)
+	} else {
+		checkMatrix(k, n, a, lda)
+	}
+	checkMatrix(m, n, c, ldc)
+	if len(tau) < k {
+		panic(badTau)
+	}
+	if len(work) < lwork {
+		panic(shortWork)
+	}
 	nw := m
 	if left {
 		nw = n
 	}
-	switch {
-	case !left && side != blas.Right:
-		panic(badSide)
-	case trans != blas.Trans && trans != blas.NoTrans:
-		panic(badTrans)
-	case m < 0:
-		panic(mLT0)
-	case n < 0:
-		panic(nLT0)
-	case k < 0:
-		panic(kLT0)
-	case left && k > m:
-		panic(kGTM)
-	case !left && k > n:
-		panic(kGTN)
-	case left && lda < max(1, m):
-		panic(badLdA)
-	case !left && lda < max(1, n):
-		panic(badLdA)
-	case lwork < max(1, nw) && lwork != -1:
-		panic(badLWork)
-	case len(work) < max(1, lwork):
-		panic(shortWork)
+	if lwork < max(1, nw) && lwork != -1 {
+		panic(badWork)
 	}
 
-	// Quick return if possible.
 	if m == 0 || n == 0 || k == 0 {
 		work[0] = 1
 		return
@@ -75,17 +71,6 @@ func (impl Implementation) Dormlq(side blas.Side, trans blas.Transpose, m, n, k 
 	if lwork == -1 {
 		work[0] = float64(lworkopt)
 		return
-	}
-
-	switch {
-	case left && len(a) < (k-1)*lda+m:
-		panic(shortA)
-	case !left && len(a) < (k-1)*lda+n:
-		panic(shortA)
-	case len(tau) < k:
-		panic(shortTau)
-	case len(c) < (m-1)*ldc+n:
-		panic(shortC)
 	}
 
 	nbmin := 2
@@ -107,14 +92,14 @@ func (impl Implementation) Dormlq(side blas.Side, trans blas.Transpose, m, n, k 
 	wrk := work[tsize:]
 	ldwrk := nb
 
-	notrans := trans == blas.NoTrans
+	notran := trans == blas.NoTrans
 	transt := blas.NoTrans
-	if notrans {
+	if notran {
 		transt = blas.Trans
 	}
 
 	switch {
-	case left && notrans:
+	case left && notran:
 		for i := 0; i < k; i += nb {
 			ib := min(nb, k-i)
 			impl.Dlarft(lapack.Forward, lapack.RowWise, m-i, ib,
@@ -128,7 +113,7 @@ func (impl Implementation) Dormlq(side blas.Side, trans blas.Transpose, m, n, k 
 				wrk, ldwrk)
 		}
 
-	case left && !notrans:
+	case left && !notran:
 		for i := ((k - 1) / nb) * nb; i >= 0; i -= nb {
 			ib := min(nb, k-i)
 			impl.Dlarft(lapack.Forward, lapack.RowWise, m-i, ib,
@@ -142,7 +127,7 @@ func (impl Implementation) Dormlq(side blas.Side, trans blas.Transpose, m, n, k 
 				wrk, ldwrk)
 		}
 
-	case !left && notrans:
+	case !left && notran:
 		for i := ((k - 1) / nb) * nb; i >= 0; i -= nb {
 			ib := min(nb, k-i)
 			impl.Dlarft(lapack.Forward, lapack.RowWise, n-i, ib,
@@ -156,7 +141,7 @@ func (impl Implementation) Dormlq(side blas.Side, trans blas.Transpose, m, n, k 
 				wrk, ldwrk)
 		}
 
-	case !left && !notrans:
+	case !left && !notran:
 		for i := 0; i < k; i += nb {
 			ib := min(nb, k-i)
 			impl.Dlarft(lapack.Forward, lapack.RowWise, n-i, ib,

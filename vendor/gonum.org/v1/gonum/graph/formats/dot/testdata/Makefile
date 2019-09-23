@@ -98,7 +98,7 @@ fetch: graphviz
 	rm -rf graphviz
 
 graphviz:
-	git clone --depth=1 https://github.com/ellson/graphviz.git
+	git clone https://github.com/ellson/graphviz.git
 
 clean:
 	rm -rf *.dot input output

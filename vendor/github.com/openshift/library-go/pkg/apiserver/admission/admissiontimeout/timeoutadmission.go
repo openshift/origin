@@ -1,7 +1,6 @@
 package admissiontimeout
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -23,7 +22,7 @@ func (p pluginHandlerWithTimeout) Handles(operation admission.Operation) bool {
 	return p.admissionPlugin.Handles(operation)
 }
 
-func (p pluginHandlerWithTimeout) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+func (p pluginHandlerWithTimeout) Admit(a admission.Attributes, o admission.ObjectInterfaces) error {
 	mutatingHandler, ok := p.admissionPlugin.(admission.MutationInterface)
 	if !ok {
 		return nil
@@ -34,7 +33,7 @@ func (p pluginHandlerWithTimeout) Admit(ctx context.Context, a admission.Attribu
 	go func() {
 		defer utilruntime.HandleCrash()
 		defer close(admissionDone)
-		admissionErr = mutatingHandler.Admit(ctx, a, o)
+		admissionErr = mutatingHandler.Admit(a, o)
 	}()
 
 	select {
@@ -45,7 +44,7 @@ func (p pluginHandlerWithTimeout) Admit(ctx context.Context, a admission.Attribu
 	}
 }
 
-func (p pluginHandlerWithTimeout) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
+func (p pluginHandlerWithTimeout) Validate(a admission.Attributes, o admission.ObjectInterfaces) error {
 	validatingHandler, ok := p.admissionPlugin.(admission.ValidationInterface)
 	if !ok {
 		return nil
@@ -56,7 +55,7 @@ func (p pluginHandlerWithTimeout) Validate(ctx context.Context, a admission.Attr
 	go func() {
 		defer utilruntime.HandleCrash()
 		defer close(admissionDone)
-		admissionErr = validatingHandler.Validate(ctx, a, o)
+		admissionErr = validatingHandler.Validate(a, o)
 	}()
 
 	select {

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 
 	"k8s.io/klog"
@@ -101,7 +102,7 @@ func (v VolumePathHandler) MapDevice(devicePath string, mapPath string, linkName
 	// Remove old symbolic link(or file) then create new one.
 	// This should be done because current symbolic link is
 	// stale across node reboot.
-	linkPath := filepath.Join(mapPath, string(linkName))
+	linkPath := path.Join(mapPath, string(linkName))
 	if err = os.Remove(linkPath); err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -118,7 +119,7 @@ func (v VolumePathHandler) UnmapDevice(mapPath string, linkName string) error {
 	klog.V(5).Infof("UnmapDevice: linkName %s", linkName)
 
 	// Check symbolic link exists
-	linkPath := filepath.Join(mapPath, string(linkName))
+	linkPath := path.Join(mapPath, string(linkName))
 	if islinkExist, checkErr := v.IsSymlinkExist(linkPath); checkErr != nil {
 		return checkErr
 	} else if !islinkExist {
@@ -175,13 +176,13 @@ func (v VolumePathHandler) GetDeviceSymlinkRefs(devPath string, mapPath string) 
 			continue
 		}
 		filename := file.Name()
-		fp, err := os.Readlink(filepath.Join(mapPath, filename))
+		filepath, err := os.Readlink(path.Join(mapPath, filename))
 		if err != nil {
 			return nil, fmt.Errorf("Symbolic link cannot be retrieved %v", err)
 		}
-		klog.V(5).Infof("GetDeviceSymlinkRefs: filepath: %v, devPath: %v", fp, devPath)
-		if fp == devPath {
-			refs = append(refs, filepath.Join(mapPath, filename))
+		klog.V(5).Infof("GetDeviceSymlinkRefs: filepath: %v, devPath: %v", filepath, devPath)
+		if filepath == devPath {
+			refs = append(refs, path.Join(mapPath, filename))
 		}
 	}
 	klog.V(5).Infof("GetDeviceSymlinkRefs: refs %v", refs)

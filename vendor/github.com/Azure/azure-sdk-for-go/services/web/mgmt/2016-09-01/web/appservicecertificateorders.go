@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,18 +44,8 @@ func NewAppServiceCertificateOrdersClientWithBaseURI(baseURI string, subscriptio
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 // certificateOrderName - name of the certificate order.
-// certificateDistinguishedName - distinguished name to use for the certificate order.
+// certificateDistinguishedName - distinguished name to to use for the certificate order.
 func (client AppServiceCertificateOrdersClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, certificateOrderName string, certificateDistinguishedName AppServiceCertificateOrder) (result AppServiceCertificateOrdersCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -113,9 +102,13 @@ func (client AppServiceCertificateOrdersClient) CreateOrUpdatePreparer(ctx conte
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) CreateOrUpdateSender(req *http.Request) (future AppServiceCertificateOrdersCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}
@@ -143,16 +136,6 @@ func (client AppServiceCertificateOrdersClient) CreateOrUpdateResponder(resp *ht
 // name - name of the certificate.
 // keyVaultCertificate - key vault certificate resource Id.
 func (client AppServiceCertificateOrdersClient) CreateOrUpdateCertificate(ctx context.Context, resourceGroupName string, certificateOrderName string, name string, keyVaultCertificate AppServiceCertificateResource) (result AppServiceCertificateOrdersCreateOrUpdateCertificateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.CreateOrUpdateCertificate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -203,9 +186,13 @@ func (client AppServiceCertificateOrdersClient) CreateOrUpdateCertificatePrepare
 // CreateOrUpdateCertificateSender sends the CreateOrUpdateCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) CreateOrUpdateCertificateSender(req *http.Request) (future AppServiceCertificateOrdersCreateOrUpdateCertificateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
 	if err != nil {
 		return
 	}
@@ -231,16 +218,6 @@ func (client AppServiceCertificateOrdersClient) CreateOrUpdateCertificateRespond
 // resourceGroupName - name of the resource group to which the resource belongs.
 // certificateOrderName - name of the certificate order.
 func (client AppServiceCertificateOrdersClient) Delete(ctx context.Context, resourceGroupName string, certificateOrderName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -294,8 +271,8 @@ func (client AppServiceCertificateOrdersClient) DeletePreparer(ctx context.Conte
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -316,16 +293,6 @@ func (client AppServiceCertificateOrdersClient) DeleteResponder(resp *http.Respo
 // certificateOrderName - name of the certificate order.
 // name - name of the certificate.
 func (client AppServiceCertificateOrdersClient) DeleteCertificate(ctx context.Context, resourceGroupName string, certificateOrderName string, name string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.DeleteCertificate")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -380,8 +347,8 @@ func (client AppServiceCertificateOrdersClient) DeleteCertificatePreparer(ctx co
 // DeleteCertificateSender sends the DeleteCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) DeleteCertificateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteCertificateResponder handles the response to the DeleteCertificate request. The method always
@@ -401,16 +368,6 @@ func (client AppServiceCertificateOrdersClient) DeleteCertificateResponder(resp 
 // resourceGroupName - name of the resource group to which the resource belongs.
 // certificateOrderName - name of the certificate order..
 func (client AppServiceCertificateOrdersClient) Get(ctx context.Context, resourceGroupName string, certificateOrderName string) (result AppServiceCertificateOrder, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -464,8 +421,8 @@ func (client AppServiceCertificateOrdersClient) GetPreparer(ctx context.Context,
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -487,16 +444,6 @@ func (client AppServiceCertificateOrdersClient) GetResponder(resp *http.Response
 // certificateOrderName - name of the certificate order.
 // name - name of the certificate.
 func (client AppServiceCertificateOrdersClient) GetCertificate(ctx context.Context, resourceGroupName string, certificateOrderName string, name string) (result AppServiceCertificateResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.GetCertificate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -551,8 +498,8 @@ func (client AppServiceCertificateOrdersClient) GetCertificatePreparer(ctx conte
 // GetCertificateSender sends the GetCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) GetCertificateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetCertificateResponder handles the response to the GetCertificate request. The method always
@@ -570,16 +517,6 @@ func (client AppServiceCertificateOrdersClient) GetCertificateResponder(resp *ht
 
 // List list all certificate orders in a subscription.
 func (client AppServiceCertificateOrdersClient) List(ctx context.Context) (result AppServiceCertificateOrderCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.List")
-		defer func() {
-			sc := -1
-			if result.ascoc.Response.Response != nil {
-				sc = result.ascoc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -624,8 +561,8 @@ func (client AppServiceCertificateOrdersClient) ListPreparer(ctx context.Context
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -642,8 +579,8 @@ func (client AppServiceCertificateOrdersClient) ListResponder(resp *http.Respons
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client AppServiceCertificateOrdersClient) listNextResults(ctx context.Context, lastResults AppServiceCertificateOrderCollection) (result AppServiceCertificateOrderCollection, err error) {
-	req, err := lastResults.appServiceCertificateOrderCollectionPreparer(ctx)
+func (client AppServiceCertificateOrdersClient) listNextResults(lastResults AppServiceCertificateOrderCollection) (result AppServiceCertificateOrderCollection, err error) {
+	req, err := lastResults.appServiceCertificateOrderCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceCertificateOrdersClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -664,16 +601,6 @@ func (client AppServiceCertificateOrdersClient) listNextResults(ctx context.Cont
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceCertificateOrdersClient) ListComplete(ctx context.Context) (result AppServiceCertificateOrderCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -682,16 +609,6 @@ func (client AppServiceCertificateOrdersClient) ListComplete(ctx context.Context
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 func (client AppServiceCertificateOrdersClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result AppServiceCertificateOrderCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.ascoc.Response.Response != nil {
-				sc = result.ascoc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -745,8 +662,8 @@ func (client AppServiceCertificateOrdersClient) ListByResourceGroupPreparer(ctx 
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -763,8 +680,8 @@ func (client AppServiceCertificateOrdersClient) ListByResourceGroupResponder(res
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client AppServiceCertificateOrdersClient) listByResourceGroupNextResults(ctx context.Context, lastResults AppServiceCertificateOrderCollection) (result AppServiceCertificateOrderCollection, err error) {
-	req, err := lastResults.appServiceCertificateOrderCollectionPreparer(ctx)
+func (client AppServiceCertificateOrdersClient) listByResourceGroupNextResults(lastResults AppServiceCertificateOrderCollection) (result AppServiceCertificateOrderCollection, err error) {
+	req, err := lastResults.appServiceCertificateOrderCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceCertificateOrdersClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -785,16 +702,6 @@ func (client AppServiceCertificateOrdersClient) listByResourceGroupNextResults(c
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceCertificateOrdersClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result AppServiceCertificateOrderCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.ListByResourceGroup")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
@@ -804,16 +711,6 @@ func (client AppServiceCertificateOrdersClient) ListByResourceGroupComplete(ctx 
 // resourceGroupName - name of the resource group to which the resource belongs.
 // certificateOrderName - name of the certificate order.
 func (client AppServiceCertificateOrdersClient) ListCertificates(ctx context.Context, resourceGroupName string, certificateOrderName string) (result AppServiceCertificateCollectionPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.ListCertificates")
-		defer func() {
-			sc := -1
-			if result.ascc.Response.Response != nil {
-				sc = result.ascc.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -868,8 +765,8 @@ func (client AppServiceCertificateOrdersClient) ListCertificatesPreparer(ctx con
 // ListCertificatesSender sends the ListCertificates request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) ListCertificatesSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListCertificatesResponder handles the response to the ListCertificates request. The method always
@@ -886,8 +783,8 @@ func (client AppServiceCertificateOrdersClient) ListCertificatesResponder(resp *
 }
 
 // listCertificatesNextResults retrieves the next set of results, if any.
-func (client AppServiceCertificateOrdersClient) listCertificatesNextResults(ctx context.Context, lastResults AppServiceCertificateCollection) (result AppServiceCertificateCollection, err error) {
-	req, err := lastResults.appServiceCertificateCollectionPreparer(ctx)
+func (client AppServiceCertificateOrdersClient) listCertificatesNextResults(lastResults AppServiceCertificateCollection) (result AppServiceCertificateCollection, err error) {
+	req, err := lastResults.appServiceCertificateCollectionPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceCertificateOrdersClient", "listCertificatesNextResults", nil, "Failure preparing next results request")
 	}
@@ -908,16 +805,6 @@ func (client AppServiceCertificateOrdersClient) listCertificatesNextResults(ctx 
 
 // ListCertificatesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceCertificateOrdersClient) ListCertificatesComplete(ctx context.Context, resourceGroupName string, certificateOrderName string) (result AppServiceCertificateCollectionIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.ListCertificates")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListCertificates(ctx, resourceGroupName, certificateOrderName)
 	return
 }
@@ -928,16 +815,6 @@ func (client AppServiceCertificateOrdersClient) ListCertificatesComplete(ctx con
 // certificateOrderName - name of the certificate order.
 // reissueCertificateOrderRequest - parameters for the reissue.
 func (client AppServiceCertificateOrdersClient) Reissue(ctx context.Context, resourceGroupName string, certificateOrderName string, reissueCertificateOrderRequest ReissueCertificateOrderRequest) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.Reissue")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -993,8 +870,8 @@ func (client AppServiceCertificateOrdersClient) ReissuePreparer(ctx context.Cont
 // ReissueSender sends the Reissue request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) ReissueSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ReissueResponder handles the response to the Reissue request. The method always
@@ -1015,16 +892,6 @@ func (client AppServiceCertificateOrdersClient) ReissueResponder(resp *http.Resp
 // certificateOrderName - name of the certificate order.
 // renewCertificateOrderRequest - renew parameters
 func (client AppServiceCertificateOrdersClient) Renew(ctx context.Context, resourceGroupName string, certificateOrderName string, renewCertificateOrderRequest RenewCertificateOrderRequest) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.Renew")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1080,8 +947,8 @@ func (client AppServiceCertificateOrdersClient) RenewPreparer(ctx context.Contex
 // RenewSender sends the Renew request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) RenewSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // RenewResponder handles the response to the Renew request. The method always
@@ -1101,16 +968,6 @@ func (client AppServiceCertificateOrdersClient) RenewResponder(resp *http.Respon
 // resourceGroupName - name of the resource group to which the resource belongs.
 // certificateOrderName - name of the certificate order.
 func (client AppServiceCertificateOrdersClient) ResendEmail(ctx context.Context, resourceGroupName string, certificateOrderName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.ResendEmail")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1164,8 +1021,8 @@ func (client AppServiceCertificateOrdersClient) ResendEmailPreparer(ctx context.
 // ResendEmailSender sends the ResendEmail request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) ResendEmailSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ResendEmailResponder handles the response to the ResendEmail request. The method always
@@ -1186,16 +1043,6 @@ func (client AppServiceCertificateOrdersClient) ResendEmailResponder(resp *http.
 // certificateOrderName - name of the certificate order.
 // nameIdentifier - email address
 func (client AppServiceCertificateOrdersClient) ResendRequestEmails(ctx context.Context, resourceGroupName string, certificateOrderName string, nameIdentifier NameIdentifier) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.ResendRequestEmails")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1251,8 +1098,8 @@ func (client AppServiceCertificateOrdersClient) ResendRequestEmailsPreparer(ctx 
 // ResendRequestEmailsSender sends the ResendRequestEmails request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) ResendRequestEmailsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ResendRequestEmailsResponder handles the response to the ResendRequestEmails request. The method always
@@ -1272,16 +1119,6 @@ func (client AppServiceCertificateOrdersClient) ResendRequestEmailsResponder(res
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the certificate order.
 func (client AppServiceCertificateOrdersClient) RetrieveCertificateActions(ctx context.Context, resourceGroupName string, name string) (result ListCertificateOrderAction, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.RetrieveCertificateActions")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1335,8 +1172,8 @@ func (client AppServiceCertificateOrdersClient) RetrieveCertificateActionsPrepar
 // RetrieveCertificateActionsSender sends the RetrieveCertificateActions request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) RetrieveCertificateActionsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // RetrieveCertificateActionsResponder handles the response to the RetrieveCertificateActions request. The method always
@@ -1357,16 +1194,6 @@ func (client AppServiceCertificateOrdersClient) RetrieveCertificateActionsRespon
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the certificate order.
 func (client AppServiceCertificateOrdersClient) RetrieveCertificateEmailHistory(ctx context.Context, resourceGroupName string, name string) (result ListCertificateEmail, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.RetrieveCertificateEmailHistory")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1420,8 +1247,8 @@ func (client AppServiceCertificateOrdersClient) RetrieveCertificateEmailHistoryP
 // RetrieveCertificateEmailHistorySender sends the RetrieveCertificateEmailHistory request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) RetrieveCertificateEmailHistorySender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // RetrieveCertificateEmailHistoryResponder handles the response to the RetrieveCertificateEmailHistory request. The method always
@@ -1443,16 +1270,6 @@ func (client AppServiceCertificateOrdersClient) RetrieveCertificateEmailHistoryR
 // certificateOrderName - name of the certificate order.
 // siteSealRequest - site seal request.
 func (client AppServiceCertificateOrdersClient) RetrieveSiteSeal(ctx context.Context, resourceGroupName string, certificateOrderName string, siteSealRequest SiteSealRequest) (result SiteSeal, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.RetrieveSiteSeal")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1508,8 +1325,8 @@ func (client AppServiceCertificateOrdersClient) RetrieveSiteSealPreparer(ctx con
 // RetrieveSiteSealSender sends the RetrieveSiteSeal request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) RetrieveSiteSealSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // RetrieveSiteSealResponder handles the response to the RetrieveSiteSeal request. The method always
@@ -1529,18 +1346,8 @@ func (client AppServiceCertificateOrdersClient) RetrieveSiteSealResponder(resp *
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 // certificateOrderName - name of the certificate order.
-// certificateDistinguishedName - distinguished name to use for the certificate order.
+// certificateDistinguishedName - distinguished name to to use for the certificate order.
 func (client AppServiceCertificateOrdersClient) Update(ctx context.Context, resourceGroupName string, certificateOrderName string, certificateDistinguishedName AppServiceCertificateOrderPatchResource) (result AppServiceCertificateOrder, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1596,8 +1403,8 @@ func (client AppServiceCertificateOrdersClient) UpdatePreparer(ctx context.Conte
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always
@@ -1620,16 +1427,6 @@ func (client AppServiceCertificateOrdersClient) UpdateResponder(resp *http.Respo
 // name - name of the certificate.
 // keyVaultCertificate - key vault certificate resource Id.
 func (client AppServiceCertificateOrdersClient) UpdateCertificate(ctx context.Context, resourceGroupName string, certificateOrderName string, name string, keyVaultCertificate AppServiceCertificatePatchResource) (result AppServiceCertificateResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.UpdateCertificate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1686,8 +1483,8 @@ func (client AppServiceCertificateOrdersClient) UpdateCertificatePreparer(ctx co
 // UpdateCertificateSender sends the UpdateCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) UpdateCertificateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateCertificateResponder handles the response to the UpdateCertificate request. The method always
@@ -1707,16 +1504,6 @@ func (client AppServiceCertificateOrdersClient) UpdateCertificateResponder(resp 
 // Parameters:
 // appServiceCertificateOrder - information for a certificate order.
 func (client AppServiceCertificateOrdersClient) ValidatePurchaseInformation(ctx context.Context, appServiceCertificateOrder AppServiceCertificateOrder) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.ValidatePurchaseInformation")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: appServiceCertificateOrder,
 			Constraints: []validation.Constraint{{Target: "appServiceCertificateOrder.AppServiceCertificateOrderProperties", Name: validation.Null, Rule: false,
@@ -1773,8 +1560,8 @@ func (client AppServiceCertificateOrdersClient) ValidatePurchaseInformationPrepa
 // ValidatePurchaseInformationSender sends the ValidatePurchaseInformation request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) ValidatePurchaseInformationSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ValidatePurchaseInformationResponder handles the response to the ValidatePurchaseInformation request. The method always
@@ -1794,16 +1581,6 @@ func (client AppServiceCertificateOrdersClient) ValidatePurchaseInformationRespo
 // resourceGroupName - name of the resource group to which the resource belongs.
 // certificateOrderName - name of the certificate order.
 func (client AppServiceCertificateOrdersClient) VerifyDomainOwnership(ctx context.Context, resourceGroupName string, certificateOrderName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceCertificateOrdersClient.VerifyDomainOwnership")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1857,8 +1634,8 @@ func (client AppServiceCertificateOrdersClient) VerifyDomainOwnershipPreparer(ct
 // VerifyDomainOwnershipSender sends the VerifyDomainOwnership request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceCertificateOrdersClient) VerifyDomainOwnershipSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // VerifyDomainOwnershipResponder handles the response to the VerifyDomainOwnership request. The method always

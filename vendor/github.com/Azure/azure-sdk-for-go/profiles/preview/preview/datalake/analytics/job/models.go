@@ -19,16 +19,14 @@
 
 package job
 
-import (
-	"context"
-
-	original "github.com/Azure/azure-sdk-for-go/services/preview/datalake/analytics/2017-09-01-preview/job"
-)
+import original "github.com/Azure/azure-sdk-for-go/services/preview/datalake/analytics/2017-09-01-preview/job"
 
 const (
 	DefaultAdlaJobDNSSuffix = original.DefaultAdlaJobDNSSuffix
 )
 
+type BaseClient = original.BaseClient
+type Client = original.Client
 type CompileMode = original.CompileMode
 
 const (
@@ -110,14 +108,11 @@ const (
 	USQL  TypeEnum = original.USQL
 )
 
-type BaseClient = original.BaseClient
 type BaseJobParameters = original.BaseJobParameters
-type BasicCreateJobProperties = original.BasicCreateJobProperties
-type BasicProperties = original.BasicProperties
 type BuildJobParameters = original.BuildJobParameters
 type CancelFuture = original.CancelFuture
-type Client = original.Client
 type CreateJobParameters = original.CreateJobParameters
+type BasicCreateJobProperties = original.BasicCreateJobProperties
 type CreateJobProperties = original.CreateJobProperties
 type CreateScopeJobParameters = original.CreateScopeJobParameters
 type CreateScopeJobProperties = original.CreateScopeJobProperties
@@ -132,14 +127,13 @@ type InfoListResultPage = original.InfoListResultPage
 type Information = original.Information
 type InformationBasic = original.InformationBasic
 type InnerError = original.InnerError
-type PipelineClient = original.PipelineClient
 type PipelineInformation = original.PipelineInformation
 type PipelineInformationListResult = original.PipelineInformationListResult
 type PipelineInformationListResultIterator = original.PipelineInformationListResultIterator
 type PipelineInformationListResultPage = original.PipelineInformationListResultPage
 type PipelineRunInformation = original.PipelineRunInformation
+type BasicProperties = original.BasicProperties
 type Properties = original.Properties
-type RecurrenceClient = original.RecurrenceClient
 type RecurrenceInformation = original.RecurrenceInformation
 type RecurrenceInformationListResult = original.RecurrenceInformationListResult
 type RecurrenceInformationListResultIterator = original.RecurrenceInformationListResultIterator
@@ -153,43 +147,21 @@ type StateAuditRecord = original.StateAuditRecord
 type Statistics = original.Statistics
 type StatisticsVertex = original.StatisticsVertex
 type StatisticsVertexStage = original.StatisticsVertexStage
-type USQLJobProperties = original.USQLJobProperties
 type UpdateFuture = original.UpdateFuture
 type UpdateJobParameters = original.UpdateJobParameters
+type USQLJobProperties = original.USQLJobProperties
 type YieldFuture = original.YieldFuture
+type PipelineClient = original.PipelineClient
+type RecurrenceClient = original.RecurrenceClient
 
 func New() BaseClient {
 	return original.New()
 }
-func NewClient() Client {
-	return original.NewClient()
-}
-func NewInfoListResultIterator(page InfoListResultPage) InfoListResultIterator {
-	return original.NewInfoListResultIterator(page)
-}
-func NewInfoListResultPage(getNextPage func(context.Context, InfoListResult) (InfoListResult, error)) InfoListResultPage {
-	return original.NewInfoListResultPage(getNextPage)
-}
-func NewPipelineClient() PipelineClient {
-	return original.NewPipelineClient()
-}
-func NewPipelineInformationListResultIterator(page PipelineInformationListResultPage) PipelineInformationListResultIterator {
-	return original.NewPipelineInformationListResultIterator(page)
-}
-func NewPipelineInformationListResultPage(getNextPage func(context.Context, PipelineInformationListResult) (PipelineInformationListResult, error)) PipelineInformationListResultPage {
-	return original.NewPipelineInformationListResultPage(getNextPage)
-}
-func NewRecurrenceClient() RecurrenceClient {
-	return original.NewRecurrenceClient()
-}
-func NewRecurrenceInformationListResultIterator(page RecurrenceInformationListResultPage) RecurrenceInformationListResultIterator {
-	return original.NewRecurrenceInformationListResultIterator(page)
-}
-func NewRecurrenceInformationListResultPage(getNextPage func(context.Context, RecurrenceInformationListResult) (RecurrenceInformationListResult, error)) RecurrenceInformationListResultPage {
-	return original.NewRecurrenceInformationListResultPage(getNextPage)
-}
 func NewWithoutDefaults(adlaJobDNSSuffix string) BaseClient {
 	return original.NewWithoutDefaults(adlaJobDNSSuffix)
+}
+func NewClient() Client {
+	return original.NewClient()
 }
 func PossibleCompileModeValues() []CompileMode {
 	return original.PossibleCompileModeValues()
@@ -206,14 +178,20 @@ func PossibleSeverityTypesValues() []SeverityTypes {
 func PossibleStateValues() []State {
 	return original.PossibleStateValues()
 }
+func PossibleTypeValues() []Type {
+	return original.PossibleTypeValues()
+}
 func PossibleTypeBasicCreateJobPropertiesValues() []TypeBasicCreateJobProperties {
 	return original.PossibleTypeBasicCreateJobPropertiesValues()
 }
 func PossibleTypeEnumValues() []TypeEnum {
 	return original.PossibleTypeEnumValues()
 }
-func PossibleTypeValues() []Type {
-	return original.PossibleTypeValues()
+func NewPipelineClient() PipelineClient {
+	return original.NewPipelineClient()
+}
+func NewRecurrenceClient() RecurrenceClient {
+	return original.NewRecurrenceClient()
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

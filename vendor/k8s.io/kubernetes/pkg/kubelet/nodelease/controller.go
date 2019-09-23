@@ -17,25 +17,27 @@ limitations under the License.
 package nodelease
 
 import (
-	"fmt"
 	"time"
 
-	coordinationv1 "k8s.io/api/coordination/v1"
+	coordv1beta1 "k8s.io/api/coordination/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
-	coordclientset "k8s.io/client-go/kubernetes/typed/coordination/v1"
+	coordclientset "k8s.io/client-go/kubernetes/typed/coordination/v1beta1"
 	"k8s.io/utils/pointer"
 
 	"k8s.io/klog"
 )
 
 const (
-	// renewIntervalFraction is the fraction of lease duration to renew the lease
-	renewIntervalFraction = 0.25
+	// defaultRenewInterval is the default interval at which the lease is renewed
+	// TODO(mtaufen): 10s was the decision in the KEP, to keep the behavior as close to the
+	// current default behavior as possible. In the future, we should determine a reasonable
+	// fraction of the lease duration at which to renew, and use that instead.
+	defaultRenewInterval = 10 * time.Second
 	// maxUpdateRetries is the number of immediate, successive retries the Kubelet will attempt
 	// when renewing the lease before it waits for the renewal interval before trying again,
 	// similar to what we do for node status retries
@@ -57,24 +59,30 @@ type controller struct {
 	renewInterval              time.Duration
 	clock                      clock.Clock
 	onRepeatedHeartbeatFailure func()
-
-	// latestLease is the latest node lease which Kubelet updated or created
-	latestLease *coordinationv1.Lease
 }
 
 // NewController constructs and returns a controller
-func NewController(clock clock.Clock, client clientset.Interface, holderIdentity string, leaseDurationSeconds int32, onRepeatedHeartbeatFailure func()) Controller {
+func NewController(clock clock.Clock, client clientset.Interface, holderIdentity string, leaseDurationSeconds int32, nodeStatusUpdateFrequency time.Duration, onRepeatedHeartbeatFailure func()) Controller {
 	var leaseClient coordclientset.LeaseInterface
 	if client != nil {
-		leaseClient = client.CoordinationV1().Leases(corev1.NamespaceNodeLease)
+		leaseClient = client.CoordinationV1beta1().Leases(corev1.NamespaceNodeLease)
 	}
-	leaseDuration := time.Duration(leaseDurationSeconds) * time.Second
+	renewInterval := defaultRenewInterval
+	// Users are able to decrease the timeout after which nodes are being
+	// marked as "Ready: Unknown" by NodeLifecycleController to values
+	// smaller than defaultRenewInterval. Until the knob to configure
+	// lease renew interval is exposed to user, we temporarily decrease
+	// renewInterval based on the NodeStatusUpdateFrequency.
+	if renewInterval > nodeStatusUpdateFrequency {
+		renewInterval = nodeStatusUpdateFrequency
+	}
+
 	return &controller{
 		client:                     client,
 		leaseClient:                leaseClient,
 		holderIdentity:             holderIdentity,
 		leaseDurationSeconds:       leaseDurationSeconds,
-		renewInterval:              time.Duration(float64(leaseDuration) * renewIntervalFraction),
+		renewInterval:              renewInterval,
 		clock:                      clock,
 		onRepeatedHeartbeatFailure: onRepeatedHeartbeatFailure,
 	}
@@ -90,28 +98,10 @@ func (c *controller) Run(stopCh <-chan struct{}) {
 }
 
 func (c *controller) sync() {
-	if c.latestLease != nil {
-		// As long as node lease is not (or very rarely) updated by any other agent than Kubelet,
-		// we can optimistically assume it didn't change since our last update and try updating
-		// based on the version from that time. Thanks to it we avoid GET call and reduce load
-		// on etcd and kube-apiserver.
-		// If at some point other agents will also be frequently updating the Lease object, this
-		// can result in performance degradation, because we will end up with calling additional
-		// GET/PUT - at this point this whole "if" should be removed.
-		err := c.retryUpdateLease(c.newLease(c.latestLease))
-		if err == nil {
-			return
-		}
-		klog.Infof("failed to update lease using latest lease, fallback to ensure lease, err: %v", err)
-	}
-
 	lease, created := c.backoffEnsureLease()
-	c.latestLease = lease
 	// we don't need to update the lease if we just created it
 	if !created {
-		if err := c.retryUpdateLease(lease); err != nil {
-			klog.Errorf("%v, will retry after %v", err, c.renewInterval)
-		}
+		c.retryUpdateLease(lease)
 	}
 }
 
@@ -119,9 +109,9 @@ func (c *controller) sync() {
 // and uses exponentially increasing waits to prevent overloading the API server
 // with retries. Returns the lease, and true if this call created the lease,
 // false otherwise.
-func (c *controller) backoffEnsureLease() (*coordinationv1.Lease, bool) {
+func (c *controller) backoffEnsureLease() (*coordv1beta1.Lease, bool) {
 	var (
-		lease   *coordinationv1.Lease
+		lease   *coordv1beta1.Lease
 		created bool
 		err     error
 	)
@@ -141,7 +131,7 @@ func (c *controller) backoffEnsureLease() (*coordinationv1.Lease, bool) {
 
 // ensureLease creates the lease if it does not exist. Returns the lease and
 // a bool (true if this call created the lease), or any error that occurs.
-func (c *controller) ensureLease() (*coordinationv1.Lease, bool, error) {
+func (c *controller) ensureLease() (*coordv1beta1.Lease, bool, error) {
 	lease, err := c.leaseClient.Get(c.holderIdentity, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		// lease does not exist, create it
@@ -160,39 +150,33 @@ func (c *controller) ensureLease() (*coordinationv1.Lease, bool, error) {
 
 // retryUpdateLease attempts to update the lease for maxUpdateRetries,
 // call this once you're sure the lease has been created
-func (c *controller) retryUpdateLease(base *coordinationv1.Lease) error {
+func (c *controller) retryUpdateLease(base *coordv1beta1.Lease) {
 	for i := 0; i < maxUpdateRetries; i++ {
-		lease, err := c.leaseClient.Update(c.newLease(base))
+		_, err := c.leaseClient.Update(c.newLease(base))
 		if err == nil {
-			c.latestLease = lease
-			return nil
+			return
 		}
 		klog.Errorf("failed to update node lease, error: %v", err)
-		// OptimisticLockError requires getting the newer version of lease to proceed.
-		if apierrors.IsConflict(err) {
-			base, _ = c.backoffEnsureLease()
-			continue
-		}
 		if i > 0 && c.onRepeatedHeartbeatFailure != nil {
 			c.onRepeatedHeartbeatFailure()
 		}
 	}
-	return fmt.Errorf("failed %d attempts to update node lease", maxUpdateRetries)
+	klog.Errorf("failed %d attempts to update node lease, will retry after %v", maxUpdateRetries, c.renewInterval)
 }
 
 // newLease constructs a new lease if base is nil, or returns a copy of base
 // with desired state asserted on the copy.
-func (c *controller) newLease(base *coordinationv1.Lease) *coordinationv1.Lease {
+func (c *controller) newLease(base *coordv1beta1.Lease) *coordv1beta1.Lease {
 	// Use the bare minimum set of fields; other fields exist for debugging/legacy,
 	// but we don't need to make node heartbeats more complicated by using them.
-	var lease *coordinationv1.Lease
+	var lease *coordv1beta1.Lease
 	if base == nil {
-		lease = &coordinationv1.Lease{
+		lease = &coordv1beta1.Lease{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      c.holderIdentity,
 				Namespace: corev1.NamespaceNodeLease,
 			},
-			Spec: coordinationv1.LeaseSpec{
+			Spec: coordv1beta1.LeaseSpec{
 				HolderIdentity:       pointer.StringPtr(c.holderIdentity),
 				LeaseDurationSeconds: pointer.Int32Ptr(c.leaseDurationSeconds),
 			},

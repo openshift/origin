@@ -26,14 +26,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
@@ -47,52 +46,52 @@ const (
 var _ = SIGDescribe("Dockershim [Serial] [Disruptive] [Feature:Docker][Legacy:Docker]", func() {
 	f := framework.NewDefaultFramework("dockerhism-checkpoint-test")
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		framework.RunIfContainerRuntimeIs("docker")
 	})
 
-	ginkgo.It("should clean up pod sandbox checkpoint after pod deletion", func() {
+	It("should clean up pod sandbox checkpoint after pod deletion", func() {
 		podName := "pod-checkpoint-no-disrupt"
 		runPodCheckpointTest(f, podName, func() {
 			checkpoints := findCheckpoints(podName)
 			if len(checkpoints) == 0 {
-				e2elog.Failf("No checkpoint for the pod was found")
+				framework.Failf("No checkpoint for the pod was found")
 			}
 		})
 	})
 
-	ginkgo.It("should remove dangling checkpoint file", func() {
+	It("should remove dangling checkpoint file", func() {
 		filename := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s/%s", testCheckpoint, f.Namespace.Name))))
 		fullpath := path.Join(framework.TestContext.DockershimCheckpointDir, filename)
 
-		ginkgo.By(fmt.Sprintf("Write a file at %q", fullpath))
+		By(fmt.Sprintf("Write a file at %q", fullpath))
 		err := writeFileAndSync(fullpath, []byte(testCheckpointContent))
 		framework.ExpectNoError(err, "Failed to create file %q", fullpath)
 
-		ginkgo.By("Check if file is removed")
-		gomega.Eventually(func() bool {
+		By("Check if file is removed")
+		Eventually(func() bool {
 			if _, err := os.Stat(fullpath); os.IsNotExist(err) {
 				return true
 			}
 			return false
-		}, gcTimeout, 10*time.Second).Should(gomega.BeTrue())
+		}, gcTimeout, 10*time.Second).Should(BeTrue())
 
 	})
 
-	ginkgo.Context("When pod sandbox checkpoint is missing", func() {
-		ginkgo.It("should complete pod sandbox clean up", func() {
+	Context("When pod sandbox checkpoint is missing", func() {
+		It("should complete pod sandbox clean up", func() {
 			podName := "pod-checkpoint-missing"
 			runPodCheckpointTest(f, podName, func() {
 				checkpoints := findCheckpoints(podName)
 				if len(checkpoints) == 0 {
-					e2elog.Failf("No checkpoint for the pod was found")
+					framework.Failf("No checkpoint for the pod was found")
 				}
-				ginkgo.By("Removing checkpoint of test pod")
+				By("Removing checkpoint of test pod")
 				for _, filename := range checkpoints {
 					if len(filename) == 0 {
 						continue
 					}
-					e2elog.Logf("Removing checkpoint %q", filename)
+					framework.Logf("Removing checkpoint %q", filename)
 					_, err := exec.Command("sudo", "rm", filename).CombinedOutput()
 					framework.ExpectNoError(err, "Failed to remove checkpoint file %q: %v", string(filename), err)
 				}
@@ -100,10 +99,10 @@ var _ = SIGDescribe("Dockershim [Serial] [Disruptive] [Feature:Docker][Legacy:Do
 		})
 	})
 
-	ginkgo.Context("When all containers in pod are missing", func() {
-		ginkgo.It("should complete pod sandbox clean up based on the information in sandbox checkpoint", func() {
+	Context("When all containers in pod are missing", func() {
+		It("should complete pod sandbox clean up based on the information in sandbox checkpoint", func() {
 			runPodCheckpointTest(f, "pod-containers-missing", func() {
-				ginkgo.By("Gathering pod container ids")
+				By("Gathering pod container ids")
 				stdout, err := exec.Command("sudo", "docker", "ps", "-q", "-f",
 					fmt.Sprintf("name=%s", f.Namespace.Name)).CombinedOutput()
 				framework.ExpectNoError(err, "Failed to run docker ps: %v", err)
@@ -116,7 +115,7 @@ var _ = SIGDescribe("Dockershim [Serial] [Disruptive] [Feature:Docker][Legacy:Do
 					}
 				}
 
-				ginkgo.By("Stop and remove pod containers")
+				By("Stop and remove pod containers")
 				dockerStopCmd := append([]string{"docker", "stop"}, ids...)
 				_, err = exec.Command("sudo", dockerStopCmd...).CombinedOutput()
 				framework.ExpectNoError(err, "Failed to run command %v: %v", dockerStopCmd, err)
@@ -127,14 +126,14 @@ var _ = SIGDescribe("Dockershim [Serial] [Disruptive] [Feature:Docker][Legacy:Do
 		})
 	})
 
-	ginkgo.Context("When checkpoint file is corrupted", func() {
-		ginkgo.It("should complete pod sandbox clean up", func() {
+	Context("When checkpoint file is corrupted", func() {
+		It("should complete pod sandbox clean up", func() {
 			podName := "pod-checkpoint-corrupted"
 			runPodCheckpointTest(f, podName, func() {
-				ginkgo.By("Corrupt checkpoint file")
+				By("Corrupt checkpoint file")
 				checkpoints := findCheckpoints(podName)
 				if len(checkpoints) == 0 {
-					e2elog.Failf("No checkpoint for the pod was found")
+					framework.Failf("No checkpoint for the pod was found")
 				}
 				for _, file := range checkpoints {
 					f, err := os.OpenFile(file, os.O_WRONLY|os.O_APPEND, 0644)
@@ -151,7 +150,7 @@ var _ = SIGDescribe("Dockershim [Serial] [Disruptive] [Feature:Docker][Legacy:Do
 
 func runPodCheckpointTest(f *framework.Framework, podName string, twist func()) {
 	podName = podName + string(uuid.NewUUID())
-	ginkgo.By(fmt.Sprintf("Creating test pod: %s", podName))
+	By(fmt.Sprintf("Creating test pod: %s", podName))
 	f.PodClient().CreateSync(&v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: podName},
 		Spec: v1.PodSpec{
@@ -164,22 +163,22 @@ func runPodCheckpointTest(f *framework.Framework, podName string, twist func()) 
 		},
 	})
 
-	ginkgo.By("Performing disruptive operations")
+	By("Performing disruptive operations")
 	twist()
 
-	ginkgo.By("Remove test pod")
+	By("Remove test pod")
 	f.PodClient().DeleteSync(podName, &metav1.DeleteOptions{}, framework.DefaultPodDeletionTimeout)
 
-	ginkgo.By("Waiting for checkpoint to be removed")
+	By("Waiting for checkpoint to be removed")
 	if err := wait.PollImmediate(10*time.Second, gcTimeout, func() (bool, error) {
 		checkpoints := findCheckpoints(podName)
 		if len(checkpoints) == 0 {
 			return true, nil
 		}
-		e2elog.Logf("Checkpoint of %q still exists: %v", podName, checkpoints)
+		framework.Logf("Checkpoint of %q still exists: %v", podName, checkpoints)
 		return false, nil
 	}); err != nil {
-		e2elog.Failf("Failed to observe checkpoint being removed within timeout: %v", err)
+		framework.Failf("Failed to observe checkpoint being removed within timeout: %v", err)
 	}
 }
 
@@ -209,11 +208,11 @@ func writeFileAndSync(path string, data []byte) error {
 
 // findCheckpoints returns all checkpoint files containing input string
 func findCheckpoints(match string) []string {
-	ginkgo.By(fmt.Sprintf("Search checkpoints containing %q", match))
+	By(fmt.Sprintf("Search checkpoints containing %q", match))
 	checkpoints := []string{}
 	stdout, err := exec.Command("sudo", "grep", "-rl", match, framework.TestContext.DockershimCheckpointDir).CombinedOutput()
 	if err != nil {
-		e2elog.Logf("grep from dockershim checkpoint directory returns error: %v", err)
+		framework.Logf("grep from dockershim checkpoint directory returns error: %v", err)
 	}
 	if stdout == nil {
 		return checkpoints

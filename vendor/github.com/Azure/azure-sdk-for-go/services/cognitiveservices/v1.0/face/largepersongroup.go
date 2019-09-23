@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -36,52 +35,20 @@ func NewLargePersonGroupClient(endpoint string) LargePersonGroupClient {
 	return LargePersonGroupClient{New(endpoint)}
 }
 
-// Create create a new large person group with user-specified largePersonGroupId, name, an optional userData and
-// recognitionModel.
-// <br /> A large person group is the container of the uploaded person data, including face recognition feature, and up
-// to 1,000,000
-// people.
-// <br /> After creation, use [LargePersonGroup Person -
-// Create](/docs/services/563879b61984550e40cbbe8d/operations/599adcba3a7b9412a4d53f40) to add person into the group,
-// and call [LargePersonGroup - Train](/docs/services/563879b61984550e40cbbe8d/operations/599ae2d16ac60f11b48b5aa4) to
-// get this group ready for [Face -
-// Identify](/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395239).
-// <br /> No image will be stored. Only the person's extracted face features and userData will be stored on server
-// until [LargePersonGroup Person -
-// Delete](/docs/services/563879b61984550e40cbbe8d/operations/599ade5c6ac60f11b48b5aa2) or [LargePersonGroup -
-// Delete](/docs/services/563879b61984550e40cbbe8d/operations/599adc216ac60f11b48b5a9f) is called.
-// <br/>'recognitionModel' should be specified to associate with this large person group. The default value for
-// 'recognitionModel' is 'recognition_01', if the latest model needed, please explicitly specify the model you need in
-// this parameter. New faces that are added to an existing large person group will use the recognition model that's
-// already associated with the collection. Existing face features in a large person group can't be updated to features
-// extracted by another version of recognition model.
-// * 'recognition_01': The default recognition model for [LargePersonGroup -
-// Create](/docs/services/563879b61984550e40cbbe8d/operations/599acdee6ac60f11b48b5a9d). All those large person groups
-// created before 2019 March are bonded with this recognition model.
-// * 'recognition_02': Recognition model released in 2019 March. 'recognition_02' is recommended since its overall
-// accuracy is improved compared with 'recognition_01'.
-//
-// Large person group quota:
-// * Free-tier subscription quota: 1,000 large person groups.
-// * S0-tier subscription quota: 1,000,000 large person groups.
+// Create create a new large person group with specified largePersonGroupId, name and user-provided userData.
 // Parameters:
 // largePersonGroupID - id referencing a particular large person group.
 // body - request body for creating new large person group.
-func (client LargePersonGroupClient) Create(ctx context.Context, largePersonGroupID string, body MetaDataContract) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LargePersonGroupClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client LargePersonGroupClient) Create(ctx context.Context, largePersonGroupID string, body NameAndUserDataContract) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: largePersonGroupID,
 			Constraints: []validation.Constraint{{Target: "largePersonGroupID", Name: validation.MaxLength, Rule: 64, Chain: nil},
-				{Target: "largePersonGroupID", Name: validation.Pattern, Rule: `^[a-z0-9-_]+$`, Chain: nil}}}}); err != nil {
+				{Target: "largePersonGroupID", Name: validation.Pattern, Rule: `^[a-z0-9-_]+$`, Chain: nil}}},
+		{TargetValue: body,
+			Constraints: []validation.Constraint{{Target: "body.Name", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "body.Name", Name: validation.MaxLength, Rule: 128, Chain: nil}}},
+				{Target: "body.UserData", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "body.UserData", Name: validation.MaxLength, Rule: 16384, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewError("face.LargePersonGroupClient", "Create", err.Error())
 	}
 
@@ -107,7 +74,7 @@ func (client LargePersonGroupClient) Create(ctx context.Context, largePersonGrou
 }
 
 // CreatePreparer prepares the Create request.
-func (client LargePersonGroupClient) CreatePreparer(ctx context.Context, largePersonGroupID string, body MetaDataContract) (*http.Request, error) {
+func (client LargePersonGroupClient) CreatePreparer(ctx context.Context, largePersonGroupID string, body NameAndUserDataContract) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -128,8 +95,8 @@ func (client LargePersonGroupClient) CreatePreparer(ctx context.Context, largePe
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client LargePersonGroupClient) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -149,16 +116,6 @@ func (client LargePersonGroupClient) CreateResponder(resp *http.Response) (resul
 // Parameters:
 // largePersonGroupID - id referencing a particular large person group.
 func (client LargePersonGroupClient) Delete(ctx context.Context, largePersonGroupID string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LargePersonGroupClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: largePersonGroupID,
 			Constraints: []validation.Constraint{{Target: "largePersonGroupID", Name: validation.MaxLength, Rule: 64, Chain: nil},
@@ -207,8 +164,8 @@ func (client LargePersonGroupClient) DeletePreparer(ctx context.Context, largePe
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client LargePersonGroupClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -223,25 +180,10 @@ func (client LargePersonGroupClient) DeleteResponder(resp *http.Response) (resul
 	return
 }
 
-// Get retrieve the information of a large person group, including its name, userData and recognitionModel. This API
-// returns large person group information only, use [LargePersonGroup Person -
-// List](/docs/services/563879b61984550e40cbbe8d/operations/599adda06ac60f11b48b5aa1) instead to retrieve person
-// information under the large person group.
+// Get retrieve the information of a large person group, including its name and userData.
 // Parameters:
 // largePersonGroupID - id referencing a particular large person group.
-// returnRecognitionModel - a value indicating whether the operation should return 'recognitionModel' in
-// response.
-func (client LargePersonGroupClient) Get(ctx context.Context, largePersonGroupID string, returnRecognitionModel *bool) (result LargePersonGroup, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LargePersonGroupClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client LargePersonGroupClient) Get(ctx context.Context, largePersonGroupID string) (result LargePersonGroup, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: largePersonGroupID,
 			Constraints: []validation.Constraint{{Target: "largePersonGroupID", Name: validation.MaxLength, Rule: 64, Chain: nil},
@@ -249,7 +191,7 @@ func (client LargePersonGroupClient) Get(ctx context.Context, largePersonGroupID
 		return result, validation.NewError("face.LargePersonGroupClient", "Get", err.Error())
 	}
 
-	req, err := client.GetPreparer(ctx, largePersonGroupID, returnRecognitionModel)
+	req, err := client.GetPreparer(ctx, largePersonGroupID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "face.LargePersonGroupClient", "Get", nil, "Failure preparing request")
 		return
@@ -271,7 +213,7 @@ func (client LargePersonGroupClient) Get(ctx context.Context, largePersonGroupID
 }
 
 // GetPreparer prepares the Get request.
-func (client LargePersonGroupClient) GetPreparer(ctx context.Context, largePersonGroupID string, returnRecognitionModel *bool) (*http.Request, error) {
+func (client LargePersonGroupClient) GetPreparer(ctx context.Context, largePersonGroupID string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -280,26 +222,18 @@ func (client LargePersonGroupClient) GetPreparer(ctx context.Context, largePerso
 		"largePersonGroupId": autorest.Encode("path", largePersonGroupID),
 	}
 
-	queryParameters := map[string]interface{}{}
-	if returnRecognitionModel != nil {
-		queryParameters["returnRecognitionModel"] = autorest.Encode("query", *returnRecognitionModel)
-	} else {
-		queryParameters["returnRecognitionModel"] = autorest.Encode("query", false)
-	}
-
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithCustomBaseURL("{Endpoint}/face/v1.0", urlParameters),
-		autorest.WithPathParameters("/largepersongroups/{largePersonGroupId}", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
+		autorest.WithPathParameters("/largepersongroups/{largePersonGroupId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client LargePersonGroupClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -319,16 +253,6 @@ func (client LargePersonGroupClient) GetResponder(resp *http.Response) (result L
 // Parameters:
 // largePersonGroupID - id referencing a particular large person group.
 func (client LargePersonGroupClient) GetTrainingStatus(ctx context.Context, largePersonGroupID string) (result TrainingStatus, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LargePersonGroupClient.GetTrainingStatus")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: largePersonGroupID,
 			Constraints: []validation.Constraint{{Target: "largePersonGroupID", Name: validation.MaxLength, Rule: 64, Chain: nil},
@@ -377,8 +301,8 @@ func (client LargePersonGroupClient) GetTrainingStatusPreparer(ctx context.Conte
 // GetTrainingStatusSender sends the GetTrainingStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client LargePersonGroupClient) GetTrainingStatusSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetTrainingStatusResponder handles the response to the GetTrainingStatus request. The method always
@@ -394,33 +318,11 @@ func (client LargePersonGroupClient) GetTrainingStatusResponder(resp *http.Respo
 	return
 }
 
-// List list all existing large person groups’ largePersonGroupId, name, userData and recognitionModel.<br />
-// * Large person groups are stored in alphabetical order of largePersonGroupId.
-// * "start" parameter (string, optional) is a user-provided largePersonGroupId value that returned entries have larger
-// ids by string comparison. "start" set to empty to indicate return from the first item.
-// * "top" parameter (int, optional) specifies the number of entries to return. A maximal of 1000 entries can be
-// returned in one call. To fetch more, you can specify "start" with the last returned entry’s Id of the current call.
-// <br />
-// For example, total 5 large person groups: "group1", ..., "group5".
-// <br /> "start=&top=" will return all 5 groups.
-// <br /> "start=&top=2" will return "group1", "group2".
-// <br /> "start=group2&top=3" will return "group3", "group4", "group5".
+// List list large person groups and their information.
 // Parameters:
 // start - list large person groups from the least largePersonGroupId greater than the "start".
 // top - the number of large person groups to list.
-// returnRecognitionModel - a value indicating whether the operation should return 'recognitionModel' in
-// response.
-func (client LargePersonGroupClient) List(ctx context.Context, start string, top *int32, returnRecognitionModel *bool) (result ListLargePersonGroup, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LargePersonGroupClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
+func (client LargePersonGroupClient) List(ctx context.Context, start string, top *int32) (result ListLargePersonGroup, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: start,
 			Constraints: []validation.Constraint{{Target: "start", Name: validation.MaxLength, Rule: 64, Chain: nil}}},
@@ -432,7 +334,7 @@ func (client LargePersonGroupClient) List(ctx context.Context, start string, top
 		return result, validation.NewError("face.LargePersonGroupClient", "List", err.Error())
 	}
 
-	req, err := client.ListPreparer(ctx, start, top, returnRecognitionModel)
+	req, err := client.ListPreparer(ctx, start, top)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "face.LargePersonGroupClient", "List", nil, "Failure preparing request")
 		return
@@ -454,7 +356,7 @@ func (client LargePersonGroupClient) List(ctx context.Context, start string, top
 }
 
 // ListPreparer prepares the List request.
-func (client LargePersonGroupClient) ListPreparer(ctx context.Context, start string, top *int32, returnRecognitionModel *bool) (*http.Request, error) {
+func (client LargePersonGroupClient) ListPreparer(ctx context.Context, start string, top *int32) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -468,11 +370,6 @@ func (client LargePersonGroupClient) ListPreparer(ctx context.Context, start str
 	} else {
 		queryParameters["top"] = autorest.Encode("query", 1000)
 	}
-	if returnRecognitionModel != nil {
-		queryParameters["returnRecognitionModel"] = autorest.Encode("query", *returnRecognitionModel)
-	} else {
-		queryParameters["returnRecognitionModel"] = autorest.Encode("query", false)
-	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
@@ -485,8 +382,8 @@ func (client LargePersonGroupClient) ListPreparer(ctx context.Context, start str
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client LargePersonGroupClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -506,16 +403,6 @@ func (client LargePersonGroupClient) ListResponder(resp *http.Response) (result 
 // Parameters:
 // largePersonGroupID - id referencing a particular large person group.
 func (client LargePersonGroupClient) Train(ctx context.Context, largePersonGroupID string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LargePersonGroupClient.Train")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: largePersonGroupID,
 			Constraints: []validation.Constraint{{Target: "largePersonGroupID", Name: validation.MaxLength, Rule: 64, Chain: nil},
@@ -564,8 +451,8 @@ func (client LargePersonGroupClient) TrainPreparer(ctx context.Context, largePer
 // TrainSender sends the Train request. The method will close the
 // http.Response Body if it receives an error.
 func (client LargePersonGroupClient) TrainSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // TrainResponder handles the response to the Train request. The method always
@@ -586,16 +473,6 @@ func (client LargePersonGroupClient) TrainResponder(resp *http.Response) (result
 // largePersonGroupID - id referencing a particular large person group.
 // body - request body for updating large person group.
 func (client LargePersonGroupClient) Update(ctx context.Context, largePersonGroupID string, body NameAndUserDataContract) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LargePersonGroupClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: largePersonGroupID,
 			Constraints: []validation.Constraint{{Target: "largePersonGroupID", Name: validation.MaxLength, Rule: 64, Chain: nil},
@@ -646,8 +523,8 @@ func (client LargePersonGroupClient) UpdatePreparer(ctx context.Context, largePe
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client LargePersonGroupClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

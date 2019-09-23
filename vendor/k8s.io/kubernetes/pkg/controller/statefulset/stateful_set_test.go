@@ -648,11 +648,11 @@ func scaleUpStatefulSetController(set *apps.StatefulSet, ssc *StatefulSetControl
 		if err := assertMonotonicInvariants(set, spc); err != nil {
 			return err
 		}
-		obj, _, err := spc.setsIndexer.Get(set)
-		if err != nil {
+		if obj, _, err := spc.setsIndexer.Get(set); err != nil {
 			return err
+		} else {
+			set = obj.(*apps.StatefulSet)
 		}
-		set = obj.(*apps.StatefulSet)
 
 	}
 	return assertMonotonicInvariants(set, spc)
@@ -701,12 +701,11 @@ func scaleDownStatefulSetController(set *apps.StatefulSet, ssc *StatefulSetContr
 		spc.DeleteStatefulPod(set, pod)
 		ssc.deletePod(pod)
 		fakeWorker(ssc)
-		obj, _, err := spc.setsIndexer.Get(set)
-		if err != nil {
+		if obj, _, err := spc.setsIndexer.Get(set); err != nil {
 			return err
+		} else {
+			set = obj.(*apps.StatefulSet)
 		}
-		set = obj.(*apps.StatefulSet)
-
 	}
 	return assertMonotonicInvariants(set, spc)
 }

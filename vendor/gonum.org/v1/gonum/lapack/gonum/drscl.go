@@ -15,24 +15,8 @@ import (
 //
 // Drscl is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Drscl(n int, a float64, x []float64, incX int) {
-	switch {
-	case n < 0:
-		panic(nLT0)
-	case incX <= 0:
-		panic(badIncX)
-	}
-
-	// Quick return if possible.
-	if n == 0 {
-		return
-	}
-
-	if len(x) < 1+(n-1)*incX {
-		panic(shortX)
-	}
-
+	checkVector(n, x, incX)
 	bi := blas64.Implementation()
-
 	cden := a
 	cnum := 1.0
 	smlnum := dlamchS

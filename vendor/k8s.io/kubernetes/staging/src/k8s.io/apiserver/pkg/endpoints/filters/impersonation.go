@@ -68,18 +68,16 @@ func WithImpersonation(handler http.Handler, a authorizer.Authorizer, s runtime.
 		groups := []string{}
 		userExtra := map[string][]string{}
 		for _, impersonationRequest := range impersonationRequests {
-			gvk := impersonationRequest.GetObjectKind().GroupVersionKind()
 			actingAsAttributes := &authorizer.AttributesRecord{
 				User:            requestor,
 				Verb:            "impersonate",
-				APIGroup:        gvk.Group,
-				APIVersion:      gvk.Version,
+				APIGroup:        impersonationRequest.GetObjectKind().GroupVersionKind().Group,
 				Namespace:       impersonationRequest.Namespace,
 				Name:            impersonationRequest.Name,
 				ResourceRequest: true,
 			}
 
-			switch gvk.GroupKind() {
+			switch impersonationRequest.GetObjectKind().GroupVersionKind().GroupKind() {
 			case v1.SchemeGroupVersion.WithKind("ServiceAccount").GroupKind():
 				actingAsAttributes.Resource = "serviceaccounts"
 				username = serviceaccount.MakeUsername(impersonationRequest.Namespace, impersonationRequest.Name)

@@ -13,7 +13,6 @@ container_layer(
     name = "bins",
     directory = "/usr/local/bin",
     files = [
-        "//cluster/images/conformance/go-runner",
         "//cmd/kubectl",
         "//test/e2e:e2e.test_binary",
         "//vendor/github.com/onsi/ginkgo/ginkgo",
@@ -63,10 +62,7 @@ filegroup(
 
 filegroup(
     name = "all-srcs",
-    srcs = [
-        ":package-srcs",
-        "//cluster/images/conformance/go-runner:all-srcs",
-    ],
+    srcs = [":package-srcs"],
     tags = ["automanaged"],
     visibility = ["//visibility:public"],
 )

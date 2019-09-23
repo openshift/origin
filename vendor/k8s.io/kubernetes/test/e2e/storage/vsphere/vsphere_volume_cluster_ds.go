@@ -17,12 +17,11 @@ limitations under the License.
 package vsphere
 
 import (
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
@@ -47,7 +46,7 @@ var _ = utils.SIGDescribe("Volume Provisioning On Clustered Datastore [Feature:v
 		nodeInfo         *NodeInfo
 	)
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		framework.SkipUnlessProviderIs("vsphere")
 		Bootstrap(f)
 		client = f.ClientSet
@@ -67,46 +66,46 @@ var _ = utils.SIGDescribe("Volume Provisioning On Clustered Datastore [Feature:v
 		6. Delete the volume
 	*/
 
-	ginkgo.It("verify static provisioning on clustered datastore", func() {
+	It("verify static provisioning on clustered datastore", func() {
 		var volumePath string
 
-		ginkgo.By("creating a test vsphere volume")
+		By("creating a test vsphere volume")
 		volumeOptions := new(VolumeOptions)
 		volumeOptions.CapacityKB = 2097152
 		volumeOptions.Name = "e2e-vmdk-" + namespace
 		volumeOptions.Datastore = clusterDatastore
 
 		volumePath, err := nodeInfo.VSphere.CreateVolume(volumeOptions, nodeInfo.DataCenterRef)
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 
 		defer func() {
-			ginkgo.By("Deleting the vsphere volume")
+			By("Deleting the vsphere volume")
 			nodeInfo.VSphere.DeleteVolume(volumePath, nodeInfo.DataCenterRef)
 		}()
 
 		podspec := getVSpherePodSpecWithVolumePaths([]string{volumePath}, nil, nil)
 
-		ginkgo.By("Creating pod")
+		By("Creating pod")
 		pod, err := client.CoreV1().Pods(namespace).Create(podspec)
-		framework.ExpectNoError(err)
-		ginkgo.By("Waiting for pod to be ready")
-		gomega.Expect(e2epod.WaitForPodNameRunningInNamespace(client, pod.Name, namespace)).To(gomega.Succeed())
+		Expect(err).NotTo(HaveOccurred())
+		By("Waiting for pod to be ready")
+		Expect(framework.WaitForPodNameRunningInNamespace(client, pod.Name, namespace)).To(Succeed())
 
 		// get fresh pod info
 		pod, err = client.CoreV1().Pods(namespace).Get(pod.Name, metav1.GetOptions{})
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 		nodeName := pod.Spec.NodeName
 
-		ginkgo.By("Verifying volume is attached")
+		By("Verifying volume is attached")
 		expectVolumeToBeAttached(nodeName, volumePath)
 
-		ginkgo.By("Deleting pod")
-		err = e2epod.DeletePodWithWait(client, pod)
-		framework.ExpectNoError(err)
+		By("Deleting pod")
+		err = framework.DeletePodWithWait(f, client, pod)
+		Expect(err).NotTo(HaveOccurred())
 
-		ginkgo.By("Waiting for volumes to be detached from the node")
+		By("Waiting for volumes to be detached from the node")
 		err = waitForVSphereDiskToDetach(volumePath, nodeName)
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	/*
@@ -114,7 +113,7 @@ var _ = utils.SIGDescribe("Volume Provisioning On Clustered Datastore [Feature:v
 		1. Create storage class parameter and specify datastore to be a clustered datastore name
 		2. invokeValidPolicyTest - util to do e2e dynamic provision test
 	*/
-	ginkgo.It("verify dynamic provision with default parameter on clustered datastore", func() {
+	It("verify dynamic provision with default parameter on clustered datastore", func() {
 		scParameters[Datastore] = clusterDatastore
 		invokeValidPolicyTest(f, client, namespace, scParameters)
 	})
@@ -124,7 +123,7 @@ var _ = utils.SIGDescribe("Volume Provisioning On Clustered Datastore [Feature:v
 		1. Create storage class parameter and specify storage policy to be a tag based spbm policy
 		2. invokeValidPolicyTest - util to do e2e dynamic provision test
 	*/
-	ginkgo.It("verify dynamic provision with spbm policy on clustered datastore", func() {
+	It("verify dynamic provision with spbm policy on clustered datastore", func() {
 		policyDatastoreCluster := GetAndExpectStringEnvVar(SPBMPolicyDataStoreCluster)
 		scParameters[SpbmStoragePolicy] = policyDatastoreCluster
 		invokeValidPolicyTest(f, client, namespace, scParameters)

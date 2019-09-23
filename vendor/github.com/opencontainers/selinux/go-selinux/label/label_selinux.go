@@ -4,8 +4,6 @@ package label
 
 import (
 	"fmt"
-	"os"
-	"os/user"
 	"strings"
 
 	"github.com/opencontainers/selinux/go-selinux"
@@ -26,29 +24,17 @@ var ErrIncompatibleLabel = fmt.Errorf("Bad SELinux option z and Z can not be use
 // the container.  A list of options can be passed into this function to alter
 // the labels.  The labels returned will include a random MCS String, that is
 // guaranteed to be unique.
-func InitLabels(options []string) (plabel string, mlabel string, Err error) {
+func InitLabels(options []string) (string, string, error) {
 	if !selinux.GetEnabled() {
 		return "", "", nil
 	}
 	processLabel, mountLabel := selinux.ContainerLabels()
 	if processLabel != "" {
-		defer func() {
-			if Err != nil {
-				ReleaseLabel(mountLabel)
-			}
-		}()
-		pcon, err := selinux.NewContext(processLabel)
-		if err != nil {
-			return "", "", err
-		}
-
-		mcon, err := selinux.NewContext(mountLabel)
-		if err != nil {
-			return "", "", err
-		}
+		pcon := selinux.NewContext(processLabel)
+		mcon := selinux.NewContext(mountLabel)
 		for _, opt := range options {
 			if opt == "disable" {
-				return "", mountLabel, nil
+				return "", "", nil
 			}
 			if i := strings.Index(opt, ":"); i == -1 {
 				return "", "", fmt.Errorf("Bad label option %q, valid options 'disable' or \n'user, role, level, type' followed by ':' and a value", opt)
@@ -63,10 +49,8 @@ func InitLabels(options []string) (plabel string, mlabel string, Err error) {
 				mcon[con[0]] = con[1]
 			}
 		}
-		_ = ReleaseLabel(processLabel)
 		processLabel = pcon.Get()
 		mountLabel = mcon.Get()
-		_ = ReserveLabel(processLabel)
 	}
 	return processLabel, mountLabel, nil
 }
@@ -101,29 +85,10 @@ func FormatMountLabel(src, mountLabel string) string {
 // SetProcessLabel takes a process label and tells the kernel to assign the
 // label to the next program executed by the current process.
 func SetProcessLabel(processLabel string) error {
+	if processLabel == "" {
+		return nil
+	}
 	return selinux.SetExecLabel(processLabel)
-}
-
-// SetSocketLabel takes a process label and tells the kernel to assign the
-// label to the next socket that gets created
-func SetSocketLabel(processLabel string) error {
-	return selinux.SetSocketLabel(processLabel)
-}
-
-// SocketLabel retrieves the current default socket label setting
-func SocketLabel() (string, error) {
-	return selinux.SocketLabel()
-}
-
-// SetKeyLabel takes a process label and tells the kernel to assign the
-// label to the next kernel keyring that gets created
-func SetKeyLabel(processLabel string) error {
-	return selinux.SetKeyLabel(processLabel)
-}
-
-// KeyLabel retrieves the current default kernel keyring label setting
-func KeyLabel() (string, error) {
-	return selinux.KeyLabel()
 }
 
 // ProcessLabel returns the process label that the kernel will assign
@@ -133,7 +98,7 @@ func ProcessLabel() (string, error) {
 	return selinux.ExecLabel()
 }
 
-// FileLabel returns the label for specified path
+// GetFileLabel returns the label for specified path
 func FileLabel(path string) (string, error) {
 	return selinux.FileLabel(path)
 }
@@ -166,56 +131,13 @@ func Relabel(path string, fileLabel string, shared bool) error {
 		return nil
 	}
 
-	exclude_paths := map[string]bool{
-		"/":           true,
-		"/bin":        true,
-		"/boot":       true,
-		"/dev":        true,
-		"/etc":        true,
-		"/etc/passwd": true,
-		"/etc/pki":    true,
-		"/etc/shadow": true,
-		"/home":       true,
-		"/lib":        true,
-		"/lib64":      true,
-		"/media":      true,
-		"/opt":        true,
-		"/proc":       true,
-		"/root":       true,
-		"/run":        true,
-		"/sbin":       true,
-		"/srv":        true,
-		"/sys":        true,
-		"/tmp":        true,
-		"/usr":        true,
-		"/var":        true,
-		"/var/lib":    true,
-		"/var/log":    true,
-	}
-
-	if home := os.Getenv("HOME"); home != "" {
-		exclude_paths[home] = true
-	}
-
-	if sudoUser := os.Getenv("SUDO_USER"); sudoUser != "" {
-		if usr, err := user.Lookup(sudoUser); err == nil {
-			exclude_paths[usr.HomeDir] = true
-		}
-	}
-
-	if path != "/" {
-		path = strings.TrimSuffix(path, "/")
-	}
+	exclude_paths := map[string]bool{"/": true, "/usr": true, "/etc": true}
 	if exclude_paths[path] {
 		return fmt.Errorf("SELinux relabeling of %s is not allowed", path)
 	}
 
 	if shared {
-		c, err := selinux.NewContext(fileLabel)
-		if err != nil {
-			return err
-		}
-
+		c := selinux.NewContext(fileLabel)
 		c["level"] = "s0"
 		fileLabel = c.Get()
 	}
@@ -233,11 +155,6 @@ func PidLabel(pid int) (string, error) {
 // Init initialises the labeling system
 func Init() {
 	selinux.GetEnabled()
-}
-
-// ClearLabels will clear all reserved labels
-func ClearLabels() {
-	selinux.ClearLabels()
 }
 
 // ReserveLabel will record the fact that the MCS label has already been used.
@@ -258,7 +175,7 @@ func ReleaseLabel(label string) error {
 
 // DupSecOpt takes a process label and returns security options that
 // can be used to set duplicate labels on future container processes
-func DupSecOpt(src string) ([]string, error) {
+func DupSecOpt(src string) []string {
 	return selinux.DupSecOpt(src)
 }
 

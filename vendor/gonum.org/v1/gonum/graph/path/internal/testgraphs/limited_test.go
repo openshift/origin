@@ -1166,11 +1166,11 @@ func TestLimitedVisionGrid(t *testing.T) {
 		l.Grid.AllowDiagonal = test.diag
 
 		x, y := l.XY(test.path[0].ID())
-		for _, u := range graph.NodesOf(l.Nodes()) {
+		for _, u := range l.Nodes() {
 			uid := u.ID()
 			ux, uy := l.XY(uid)
 			uNear := math.Hypot(x-ux, y-uy) <= test.radius
-			for _, v := range graph.NodesOf(l.Nodes()) {
+			for _, v := range l.Nodes() {
 				vid := v.ID()
 				vx, vy := l.XY(vid)
 				vNear := math.Hypot(x-vx, y-vy) <= test.radius

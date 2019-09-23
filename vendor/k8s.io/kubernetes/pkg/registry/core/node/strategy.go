@@ -66,7 +66,11 @@ func (nodeStrategy) AllowCreateOnUpdate() bool {
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (nodeStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	node := obj.(*api.Node)
-	dropDisabledFields(node, nil)
+	// Nodes allow *all* fields, including status, to be set on create.
+	if !utilfeature.DefaultFeatureGate.Enabled(features.DynamicKubeletConfig) {
+		node.Spec.ConfigSource = nil
+		node.Status.Config = nil
+	}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
@@ -75,39 +79,9 @@ func (nodeStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Objec
 	oldNode := old.(*api.Node)
 	newNode.Status = oldNode.Status
 
-	dropDisabledFields(newNode, oldNode)
-}
-
-func dropDisabledFields(node *api.Node, oldNode *api.Node) {
-	// Nodes allow *all* fields, including status, to be set on create.
-	// for create
-	if !utilfeature.DefaultFeatureGate.Enabled(features.DynamicKubeletConfig) && oldNode == nil {
-		node.Spec.ConfigSource = nil
-		node.Status.Config = nil
+	if !utilfeature.DefaultFeatureGate.Enabled(features.DynamicKubeletConfig) && !nodeConfigSourceInUse(oldNode) {
+		newNode.Spec.ConfigSource = nil
 	}
-
-	// for update
-	if !utilfeature.DefaultFeatureGate.Enabled(features.DynamicKubeletConfig) && !nodeConfigSourceInUse(oldNode) && oldNode != nil {
-		node.Spec.ConfigSource = nil
-	}
-
-	if !utilfeature.DefaultFeatureGate.Enabled(features.IPv6DualStack) && !multiNodeCIDRsInUse(oldNode) {
-		if len(node.Spec.PodCIDRs) > 1 {
-			node.Spec.PodCIDRs = node.Spec.PodCIDRs[0:1]
-		}
-	}
-}
-
-// multiNodeCIDRsInUse returns true if Node.Spec.PodCIDRs is greater than one
-func multiNodeCIDRsInUse(node *api.Node) bool {
-	if node == nil {
-		return false
-	}
-
-	if len(node.Spec.PodCIDRs) > 1 {
-		return true
-	}
-	return false
 }
 
 // nodeConfigSourceInUse returns true if node's Spec ConfigSource is set(used)
@@ -225,9 +199,10 @@ func MatchNode(label labels.Selector, field fields.Selector) pkgstorage.Selectio
 	}
 }
 
-// NameTriggerFunc returns value metadata.namespace of given object.
-func NameTriggerFunc(obj runtime.Object) string {
-	return obj.(*api.Node).ObjectMeta.Name
+func NodeNameTriggerFunc(obj runtime.Object) []pkgstorage.MatchValue {
+	node := obj.(*api.Node)
+	result := pkgstorage.MatchValue{IndexName: "metadata.name", Value: node.ObjectMeta.Name}
+	return []pkgstorage.MatchValue{result}
 }
 
 // ResourceLocation returns a URL and transport which one can use to send traffic for the specified node.

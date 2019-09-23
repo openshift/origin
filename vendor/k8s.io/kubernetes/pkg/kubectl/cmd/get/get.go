@@ -24,36 +24,37 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	metav1beta1 "k8s.io/apimachinery/pkg/apis/meta/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
-	kubernetesscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	watchtools "k8s.io/client-go/tools/watch"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"k8s.io/kubectl/pkg/rawhttp"
-	"k8s.io/kubectl/pkg/util/i18n"
-	"k8s.io/kubectl/pkg/util/interrupt"
-	utilprinters "k8s.io/kubectl/pkg/util/printers"
-	"k8s.io/kubectl/pkg/util/templates"
-	utilpointer "k8s.io/utils/pointer"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
+	utilprinters "k8s.io/kubernetes/pkg/kubectl/util/printers"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
+	"k8s.io/kubernetes/pkg/util/interrupt"
 )
 
 // GetOptions contains the input to the get command.
 type GetOptions struct {
 	PrintFlags             *PrintFlags
-	ToPrinter              func(*meta.RESTMapping, *bool, bool, bool) (printers.ResourcePrinterFunc, error)
+	ToPrinter              func(*meta.RESTMapping, bool, bool) (printers.ResourcePrinterFunc, error)
 	IsHumanReadablePrinter bool
 	PrintWithOpenAPICols   bool
 
@@ -65,8 +66,6 @@ type GetOptions struct {
 	Watch     bool
 	WatchOnly bool
 	ChunkSize int64
-
-	OutputWatchEvents bool
 
 	LabelSelector     string
 	FieldSelector     string
@@ -174,7 +173,6 @@ func NewCmdGet(parent string, f cmdutil.Factory, streams genericclioptions.IOStr
 	cmd.Flags().StringVar(&o.Raw, "raw", o.Raw, "Raw URI to request from the server.  Uses the transport specified by the kubeconfig file.")
 	cmd.Flags().BoolVarP(&o.Watch, "watch", "w", o.Watch, "After listing/getting the requested object, watch for changes. Uninitialized objects are excluded if no object name is provided.")
 	cmd.Flags().BoolVar(&o.WatchOnly, "watch-only", o.WatchOnly, "Watch for changes to the requested object(s), without listing/getting first.")
-	cmd.Flags().BoolVar(&o.OutputWatchEvents, "output-watch-events", o.OutputWatchEvents, "Output watch event objects when --watch or --watch-only is used. Existing objects are output as initial ADDED events.")
 	cmd.Flags().Int64Var(&o.ChunkSize, "chunk-size", o.ChunkSize, "Return large lists in chunks rather than all at once. Pass 0 to disable. This flag is beta and may change in the future.")
 	cmd.Flags().BoolVar(&o.IgnoreNotFound, "ignore-not-found", o.IgnoreNotFound, "If the requested object does not exist the command will return exit code 0.")
 	cmd.Flags().StringVarP(&o.LabelSelector, "selector", "l", o.LabelSelector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
@@ -232,7 +230,7 @@ func (o *GetOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []stri
 		o.IsHumanReadablePrinter = true
 	}
 
-	o.ToPrinter = func(mapping *meta.RESTMapping, outputObjects *bool, withNamespace bool, withKind bool) (printers.ResourcePrinterFunc, error) {
+	o.ToPrinter = func(mapping *meta.RESTMapping, withNamespace bool, withKind bool) (printers.ResourcePrinterFunc, error) {
 		// make a new copy of current flags / opts before mutating
 		printFlags := o.PrintFlags.Copy()
 
@@ -258,9 +256,6 @@ func (o *GetOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []stri
 
 		if o.Sort {
 			printer = &SortingPrinter{Delegate: printer, SortField: sortBy}
-		}
-		if outputObjects != nil {
-			printer = &skipPrinter{delegate: printer, output: outputObjects}
 		}
 		if o.ServerPrint {
 			printer = &TablePrinter{Delegate: printer}
@@ -312,9 +307,6 @@ func (o *GetOptions) Validate(cmd *cobra.Command) error {
 		if outputOption != "" && outputOption != "wide" {
 			return fmt.Errorf("--show-labels option cannot be used with %s printer", outputOption)
 		}
-	}
-	if o.OutputWatchEvents && !(o.Watch || o.WatchOnly) {
-		return cmdutil.UsageErrorf(cmd, "--output-watch-events option can only be used with --watch or --watch-only")
 	}
 	return nil
 }
@@ -416,7 +408,7 @@ func NewRuntimeSorter(objects []runtime.Object, sortBy string) *RuntimeSorter {
 
 	return &RuntimeSorter{
 		field:   parsedField,
-		decoder: kubernetesscheme.Codecs.UniversalDecoder(),
+		decoder: legacyscheme.Codecs.UniversalDecoder(),
 		objects: objects,
 	}
 }
@@ -446,11 +438,7 @@ func (o *GetOptions) transformRequests(req *rest.Request) {
 // TODO: remove the need to pass these arguments, like other commands.
 func (o *GetOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if len(o.Raw) > 0 {
-		restClient, err := f.RESTClient()
-		if err != nil {
-			return err
-		}
-		return rawhttp.RawGet(restClient, o.IOStreams, o.Raw)
+		return o.raw(f)
 	}
 	if o.Watch || o.WatchOnly {
 		return o.watch(f, cmd, args)
@@ -521,10 +509,8 @@ func (o *GetOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 
 	// track if we write any output
 	trackingWriter := &trackingWriterWrapper{Delegate: o.Out}
-	// output an empty line separating output
-	separatorWriter := &separatorWriterWrapper{Delegate: trackingWriter}
 
-	w := utilprinters.GetNewTabWriter(separatorWriter)
+	w := utilprinters.GetNewTabWriter(trackingWriter)
 	for ix := range objs {
 		var mapping *meta.RESTMapping
 		var info *resource.Info
@@ -546,16 +532,14 @@ func (o *GetOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 			w.Flush()
 			w.SetRememberedWidths(nil)
 
-			// add linebreaks between resource groups (if there is more than one)
-			// when it satisfies all following 3 conditions:
-			// 1) it's not the first resource group
-			// 2) it has row header
-			// 3) we've written output since the last time we started a new set of headers
-			if lastMapping != nil && !o.NoHeaders && trackingWriter.Written > 0 {
-				separatorWriter.SetReady(true)
+			// TODO: this doesn't belong here
+			// add linebreak between resource groups (if there is more than one)
+			// skip linebreak above first resource group
+			if lastMapping != nil && !o.NoHeaders {
+				fmt.Fprintln(o.ErrOut)
 			}
 
-			printer, err = o.ToPrinter(mapping, nil, printWithNamespace, printWithKind)
+			printer, err = o.ToPrinter(mapping, printWithNamespace, printWithKind)
 			if err != nil {
 				if !errs.Has(err.Error()) {
 					errs.Insert(err.Error())
@@ -574,16 +558,19 @@ func (o *GetOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 			continue
 		}
 
-		printer.PrintObj(info.Object, w)
+		internalObj, err := legacyscheme.Scheme.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupKind().WithVersion(runtime.APIVersionInternal).GroupVersion())
+		if err != nil {
+			// if there's an error, try to print what you have (mirrors old behavior).
+			klog.V(1).Info(err)
+			printer.PrintObj(info.Object, w)
+		} else {
+			printer.PrintObj(internalObj, w)
+		}
 	}
 	w.Flush()
 	if trackingWriter.Written == 0 && !o.IgnoreNotFound && len(allErrs) == 0 {
 		// if we wrote no output, and had no errors, and are not ignoring NotFound, be sure we output something
-		if !o.AllNamespaces {
-			fmt.Fprintln(o.ErrOut, fmt.Sprintf("No resources found in %s namespace.", o.Namespace))
-		} else {
-			fmt.Fprintln(o.ErrOut, fmt.Sprintf("No resources found"))
-		}
+		fmt.Fprintln(o.ErrOut, "No resources found.")
 	}
 	return utilerrors.NewAggregate(allErrs)
 }
@@ -598,23 +585,25 @@ func (t *trackingWriterWrapper) Write(p []byte) (n int, err error) {
 	return t.Delegate.Write(p)
 }
 
-type separatorWriterWrapper struct {
-	Delegate io.Writer
-	Ready    bool
-}
-
-func (s *separatorWriterWrapper) Write(p []byte) (n int, err error) {
-	// If we're about to write non-empty bytes and `s` is ready,
-	// we prepend an empty line to `p` and reset `s.Read`.
-	if len(p) != 0 && s.Ready {
-		fmt.Fprintln(s.Delegate)
-		s.Ready = false
+// raw makes a simple HTTP request to the provided path on the server using the default
+// credentials.
+func (o *GetOptions) raw(f cmdutil.Factory) error {
+	restClient, err := f.RESTClient()
+	if err != nil {
+		return err
 	}
-	return s.Delegate.Write(p)
-}
 
-func (s *separatorWriterWrapper) SetReady(state bool) {
-	s.Ready = state
+	stream, err := restClient.Get().RequestURI(o.Raw).Stream()
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+
+	_, err = io.Copy(o.Out, stream)
+	if err != nil && err != io.EOF {
+		return err
+	}
+	return nil
 }
 
 // watch starts a client-side watch of one or more resources.
@@ -641,13 +630,12 @@ func (o *GetOptions) watch(f cmdutil.Factory, cmd *cobra.Command, args []string)
 		return err
 	}
 	if multipleGVKsRequested(infos) {
-		return i18n.Errorf("watch is only supported on individual resources and resource collections - more than 1 resource was found")
+		return i18n.Errorf("watch is only supported on individual resources and resource collections - more than 1 resources were found")
 	}
 
 	info := infos[0]
 	mapping := info.ResourceMapping()
-	outputObjects := utilpointer.BoolPtr(!o.WatchOnly)
-	printer, err := o.ToPrinter(mapping, outputObjects, o.AllNamespaces, false)
+	printer, err := o.ToPrinter(mapping, o.AllNamespaces, false)
 	if err != nil {
 		return err
 	}
@@ -673,28 +661,28 @@ func (o *GetOptions) watch(f cmdutil.Factory, cmd *cobra.Command, args []string)
 
 	writer := utilprinters.GetNewTabWriter(o.Out)
 
+	tableGK := metainternal.SchemeGroupVersion.WithKind("Table").GroupKind()
+
 	// print the current object
-	var objsToPrint []runtime.Object
-	if isList {
-		objsToPrint, _ = meta.ExtractList(obj)
-	} else {
-		objsToPrint = append(objsToPrint, obj)
-	}
-	for _, objToPrint := range objsToPrint {
-		if o.OutputWatchEvents {
-			objToPrint = &metav1.WatchEvent{Type: string(watch.Added), Object: runtime.RawExtension{Object: objToPrint}}
+	if !o.WatchOnly {
+		var objsToPrint []runtime.Object
+
+		if isList {
+			objsToPrint, _ = meta.ExtractList(obj)
+		} else {
+			objsToPrint = append(objsToPrint, obj)
 		}
-		if err := printer.PrintObj(objToPrint, writer); err != nil {
-			return fmt.Errorf("unable to output the provided object: %v", err)
+		for _, objToPrint := range objsToPrint {
+			if o.IsHumanReadablePrinter && objToPrint.GetObjectKind().GroupVersionKind().GroupKind() != tableGK {
+				// printing anything other than tables always takes the internal version, but the watch event uses externals
+				internalGV := mapping.GroupVersionKind.GroupKind().WithVersion(runtime.APIVersionInternal).GroupVersion()
+				objToPrint = attemptToConvertToInternal(objToPrint, legacyscheme.Scheme, internalGV)
+			}
+			if err := printer.PrintObj(objToPrint, writer); err != nil {
+				return fmt.Errorf("unable to output the provided object: %v", err)
+			}
 		}
-	}
-	writer.Flush()
-	if isList {
-		// we can start outputting objects now, watches started from lists don't emit synthetic added events
-		*outputObjects = true
-	} else {
-		// suppress output, since watches started for individual items emit a synthetic ADDED event first
-		*outputObjects = false
+		writer.Flush()
 	}
 
 	// print watched changes
@@ -703,26 +691,44 @@ func (o *GetOptions) watch(f cmdutil.Factory, cmd *cobra.Command, args []string)
 		return err
 	}
 
+	first := true
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	intr := interrupt.New(nil, cancel)
 	intr.Run(func() error {
 		_, err := watchtools.UntilWithoutRetry(ctx, w, func(e watch.Event) (bool, error) {
+			if !isList && first {
+				// drop the initial watch event in the single resource case
+				first = false
+				return false, nil
+			}
+
+			// printing always takes the internal version, but the watch event uses externals
+			// TODO fix printing to use server-side or be version agnostic
 			objToPrint := e.Object
-			if o.OutputWatchEvents {
-				objToPrint = &metav1.WatchEvent{Type: string(e.Type), Object: runtime.RawExtension{Object: objToPrint}}
+			if o.IsHumanReadablePrinter && objToPrint.GetObjectKind().GroupVersionKind().GroupKind() != tableGK {
+				internalGV := mapping.GroupVersionKind.GroupKind().WithVersion(runtime.APIVersionInternal).GroupVersion()
+				objToPrint = attemptToConvertToInternal(e.Object, legacyscheme.Scheme, internalGV)
 			}
 			if err := printer.PrintObj(objToPrint, writer); err != nil {
 				return false, err
 			}
 			writer.Flush()
-			// after processing at least one event, start outputting objects
-			*outputObjects = true
 			return false, nil
 		})
 		return err
 	})
 	return nil
+}
+
+// attemptToConvertToInternal tries to convert to an internal type, but returns the original if it can't
+func attemptToConvertToInternal(obj runtime.Object, converter runtime.ObjectConvertor, targetVersion schema.GroupVersion) runtime.Object {
+	internalObject, err := converter.ConvertToVersion(obj, targetVersion)
+	if err != nil {
+		klog.V(1).Infof("Unable to convert %T to %v: %v", obj, targetVersion, err)
+		return obj
+	}
+	return internalObject
 }
 
 func (o *GetOptions) printGeneric(r *resource.Result) error {
@@ -744,14 +750,14 @@ func (o *GetOptions) printGeneric(r *resource.Result) error {
 		return utilerrors.Reduce(utilerrors.Flatten(utilerrors.NewAggregate(errs)))
 	}
 
-	printer, err := o.ToPrinter(nil, nil, false, false)
+	printer, err := o.ToPrinter(nil, false, false)
 	if err != nil {
 		return err
 	}
 
 	var obj runtime.Object
-	if !singleItemImplied || len(infos) != 1 {
-		// we have zero or multple items, so coerce all items into a list.
+	if !singleItemImplied || len(infos) > 1 {
+		// we have more than one item, so coerce all items into a list.
 		// we don't want an *unstructured.Unstructured list yet, as we
 		// may be dealing with non-unstructured objects. Compose all items
 		// into an corev1.List, and then decode using an unstructured scheme.

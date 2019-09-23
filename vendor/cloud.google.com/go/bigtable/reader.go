@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Google LLC
+Copyright 2016 Google Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -152,8 +152,9 @@ func (cr *chunkReader) handleCellValue(cc *btpb.ReadRowsResponse_CellChunk) Row 
 
 		if cc.GetCommitRow() {
 			return cr.commitRow()
+		} else {
+			cr.state = rowInProgress
 		}
-		cr.state = rowInProgress
 	}
 
 	return nil
@@ -162,7 +163,7 @@ func (cr *chunkReader) handleCellValue(cc *btpb.ReadRowsResponse_CellChunk) Row 
 func (cr *chunkReader) finishCell() {
 	ri := ReadItem{
 		Row:       string(cr.curKey),
-		Column:    string(cr.curFam) + ":" + string(cr.curQual),
+		Column:    fmt.Sprintf("%s:%s", cr.curFam, cr.curQual),
 		Timestamp: Timestamp(cr.curTS),
 		Value:     cr.curVal,
 	}

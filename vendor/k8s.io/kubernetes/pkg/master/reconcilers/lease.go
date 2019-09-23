@@ -35,8 +35,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	endpointsv1 "k8s.io/kubernetes/pkg/api/v1/endpoints"
 )
 
@@ -106,7 +106,7 @@ func (s *storageLeases) UpdateLease(ip string) error {
 
 // RemoveLease removes the lease on a master IP in storage
 func (s *storageLeases) RemoveLease(ip string) error {
-	return s.storage.Delete(apirequest.NewDefaultContext(), s.baseKey+"/"+ip, &corev1.Endpoints{}, nil, rest.ValidateAllObjectFunc)
+	return s.storage.Delete(apirequest.NewDefaultContext(), s.baseKey+"/"+ip, &corev1.Endpoints{}, nil)
 }
 
 // NewLeases creates a new etcd-based Leases implementation.
@@ -119,16 +119,16 @@ func NewLeases(storage storage.Interface, baseKey string, leaseTime time.Duratio
 }
 
 type leaseEndpointReconciler struct {
-	epAdapter             EndpointsAdapter
+	endpointClient        corev1client.EndpointsGetter
 	masterLeases          Leases
 	stopReconcilingCalled bool
 	reconcilingLock       sync.Mutex
 }
 
 // NewLeaseEndpointReconciler creates a new LeaseEndpoint reconciler
-func NewLeaseEndpointReconciler(epAdapter EndpointsAdapter, masterLeases Leases) EndpointReconciler {
+func NewLeaseEndpointReconciler(endpointClient corev1client.EndpointsGetter, masterLeases Leases) EndpointReconciler {
 	return &leaseEndpointReconciler{
-		epAdapter:             epAdapter,
+		endpointClient:        endpointClient,
 		masterLeases:          masterLeases,
 		stopReconcilingCalled: false,
 	}
@@ -160,7 +160,7 @@ func (r *leaseEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.
 }
 
 func (r *leaseEndpointReconciler) doReconcile(serviceName string, endpointPorts []corev1.EndpointPort, reconcilePorts bool) error {
-	e, err := r.epAdapter.Get(corev1.NamespaceDefault, serviceName, metav1.GetOptions{})
+	e, err := r.endpointClient.Endpoints(corev1.NamespaceDefault).Get(serviceName, metav1.GetOptions{})
 	shouldCreate := false
 	if err != nil {
 		if !errors.IsNotFound(err) {
@@ -221,11 +221,11 @@ func (r *leaseEndpointReconciler) doReconcile(serviceName string, endpointPorts 
 
 	klog.Warningf("Resetting endpoints for master service %q to %v", serviceName, masterIPs)
 	if shouldCreate {
-		if _, err = r.epAdapter.Create(corev1.NamespaceDefault, e); errors.IsAlreadyExists(err) {
+		if _, err = r.endpointClient.Endpoints(corev1.NamespaceDefault).Create(e); errors.IsAlreadyExists(err) {
 			err = nil
 		}
 	} else {
-		_, err = r.epAdapter.Update(corev1.NamespaceDefault, e)
+		_, err = r.endpointClient.Endpoints(corev1.NamespaceDefault).Update(e)
 	}
 	return err
 }

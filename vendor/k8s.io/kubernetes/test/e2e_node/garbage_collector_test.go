@@ -23,13 +23,13 @@ import (
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	internalapi "k8s.io/cri-api/pkg/apis"
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -141,10 +141,10 @@ var _ = framework.KubeDescribe("GarbageCollect [Serial][NodeFeature:GarbageColle
 // 	once pods are killed, all containers are eventually cleaned up
 func containerGCTest(f *framework.Framework, test testRun) {
 	var runtime internalapi.RuntimeService
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		var err error
 		runtime, _, err = getCRIClient()
-		framework.ExpectNoError(err)
+		Expect(err).NotTo(HaveOccurred())
 	})
 	for _, pod := range test.testPods {
 		// Initialize the getContainerNames function to use CRI runtime client.
@@ -166,12 +166,12 @@ func containerGCTest(f *framework.Framework, test testRun) {
 		}
 	}
 
-	ginkgo.Context(fmt.Sprintf("Garbage Collection Test: %s", test.testName), func() {
-		ginkgo.BeforeEach(func() {
+	Context(fmt.Sprintf("Garbage Collection Test: %s", test.testName), func() {
+		BeforeEach(func() {
 			realPods := getPods(test.testPods)
 			f.PodClient().CreateBatch(realPods)
-			ginkgo.By("Making sure all containers restart the specified number of times")
-			gomega.Eventually(func() error {
+			By("Making sure all containers restart the specified number of times")
+			Eventually(func() error {
 				for _, podSpec := range test.testPods {
 					err := verifyPodRestartCount(f, podSpec.podName, podSpec.numContainers, podSpec.restartCount)
 					if err != nil {
@@ -179,15 +179,15 @@ func containerGCTest(f *framework.Framework, test testRun) {
 					}
 				}
 				return nil
-			}, setupDuration, runtimePollInterval).Should(gomega.BeNil())
+			}, setupDuration, runtimePollInterval).Should(BeNil())
 		})
 
-		ginkgo.It(fmt.Sprintf("Should eventually garbage collect containers when we exceed the number of dead containers per container"), func() {
+		It(fmt.Sprintf("Should eventually garbage collect containers when we exceed the number of dead containers per container"), func() {
 			totalContainers := 0
 			for _, pod := range test.testPods {
 				totalContainers += pod.numContainers*2 + 1
 			}
-			gomega.Eventually(func() error {
+			Eventually(func() error {
 				total := 0
 				for _, pod := range test.testPods {
 					containerNames, err := pod.getContainerNames()
@@ -200,7 +200,7 @@ func containerGCTest(f *framework.Framework, test testRun) {
 						containerCount := 0
 						for _, containerName := range containerNames {
 							if containerName == pod.getContainerName(i) {
-								containerCount++
+								containerCount += 1
 							}
 						}
 						if containerCount > maxPerPodContainer+1 {
@@ -214,11 +214,11 @@ func containerGCTest(f *framework.Framework, test testRun) {
 					return fmt.Errorf("expected total number of containers: %v, to be <= maxTotalContainers: %v", total, maxTotalContainers)
 				}
 				return nil
-			}, garbageCollectDuration, runtimePollInterval).Should(gomega.BeNil())
+			}, garbageCollectDuration, runtimePollInterval).Should(BeNil())
 
 			if maxPerPodContainer >= 2 && maxTotalContainers < 0 { // make sure constraints wouldn't make us gc old containers
-				ginkgo.By("Making sure the kubelet consistently keeps around an extra copy of each container.")
-				gomega.Consistently(func() error {
+				By("Making sure the kubelet consistently keeps around an extra copy of each container.")
+				Consistently(func() error {
 					for _, pod := range test.testPods {
 						containerNames, err := pod.getContainerNames()
 						if err != nil {
@@ -228,7 +228,7 @@ func containerGCTest(f *framework.Framework, test testRun) {
 							containerCount := 0
 							for _, containerName := range containerNames {
 								if containerName == pod.getContainerName(i) {
-									containerCount++
+									containerCount += 1
 								}
 							}
 							if pod.restartCount > 0 && containerCount < maxPerPodContainer+1 {
@@ -237,18 +237,18 @@ func containerGCTest(f *framework.Framework, test testRun) {
 						}
 					}
 					return nil
-				}, garbageCollectDuration, runtimePollInterval).Should(gomega.BeNil())
+				}, garbageCollectDuration, runtimePollInterval).Should(BeNil())
 			}
 		})
 
-		ginkgo.AfterEach(func() {
+		AfterEach(func() {
 			for _, pod := range test.testPods {
-				ginkgo.By(fmt.Sprintf("Deleting Pod %v", pod.podName))
+				By(fmt.Sprintf("Deleting Pod %v", pod.podName))
 				f.PodClient().DeleteSync(pod.podName, &metav1.DeleteOptions{}, framework.DefaultPodDeletionTimeout)
 			}
 
-			ginkgo.By("Making sure all containers get cleaned up")
-			gomega.Eventually(func() error {
+			By("Making sure all containers get cleaned up")
+			Eventually(func() error {
 				for _, pod := range test.testPods {
 					containerNames, err := pod.getContainerNames()
 					if err != nil {
@@ -259,9 +259,9 @@ func containerGCTest(f *framework.Framework, test testRun) {
 					}
 				}
 				return nil
-			}, garbageCollectDuration, runtimePollInterval).Should(gomega.BeNil())
+			}, garbageCollectDuration, runtimePollInterval).Should(BeNil())
 
-			if ginkgo.CurrentGinkgoTestDescription().Failed && framework.TestContext.DumpLogsOnFailure {
+			if CurrentGinkgoTestDescription().Failed && framework.TestContext.DumpLogsOnFailure {
 				logNodeEvents(f)
 				logPodEvents(f)
 			}
@@ -271,7 +271,7 @@ func containerGCTest(f *framework.Framework, test testRun) {
 
 func getPods(specs []*testPodSpec) (pods []*v1.Pod) {
 	for _, spec := range specs {
-		ginkgo.By(fmt.Sprintf("Creating %v containers with restartCount: %v", spec.numContainers, spec.restartCount))
+		By(fmt.Sprintf("Creating %v containers with restartCount: %v", spec.numContainers, spec.restartCount))
 		containers := []v1.Container{}
 		for i := 0; i < spec.numContainers; i++ {
 			containers = append(containers, v1.Container{

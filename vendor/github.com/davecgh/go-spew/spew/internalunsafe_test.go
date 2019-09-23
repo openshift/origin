@@ -16,7 +16,7 @@
 // when the code is not running on Google App Engine, compiled by GopherJS, and
 // "-tags safe" is not added to the go build command line.  The "disableunsafe"
 // tag is deprecated and thus should not be used.
-// +build !js,!appengine,!safe,!disableunsafe,go1.4
+// +build !js,!appengine,!safe,!disableunsafe
 
 /*
 This test file is part of the spew package rather than than the spew_test
@@ -30,6 +30,7 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
+	"unsafe"
 )
 
 // changeKind uses unsafe to intentionally change the kind of a reflect.Value to
@@ -37,13 +38,13 @@ import (
 // fallback code which punts to the standard fmt library for new types that
 // might get added to the language.
 func changeKind(v *reflect.Value, readOnly bool) {
-	flags := flagField(v)
+	rvf := (*uintptr)(unsafe.Pointer(uintptr(unsafe.Pointer(v)) + offsetFlag))
+	*rvf = *rvf | ((1<<flagKindWidth - 1) << flagKindShift)
 	if readOnly {
-		*flags |= flagRO
+		*rvf |= flagRO
 	} else {
-		*flags &^= flagRO
+		*rvf &= ^uintptr(flagRO)
 	}
-	*flags |= flagKindMask
 }
 
 // TestAddedReflectValue tests functionaly of the dump and formatter code which

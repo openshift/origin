@@ -9,7 +9,6 @@ import (
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/internal/ordered"
 	"gonum.org/v1/gonum/graph/internal/set"
@@ -120,7 +119,7 @@ func (p Shortest) WeightTo(vid int64) float64 {
 
 // To returns a shortest path to v and the weight of the path. If the path
 // to v includes a negative cycle, one pass through the cycle will be included
-// in path and weight will be returned as -Inf.
+// in path and weight will be returned as NaN.
 func (p Shortest) To(vid int64) (path []graph.Node, weight float64) {
 	to, toOK := p.indexOf[vid]
 	if !toOK || math.IsInf(p.dist[to], 1) {
@@ -134,7 +133,7 @@ func (p Shortest) To(vid int64) (path []graph.Node, weight float64) {
 		seen.Add(from)
 		for to != from {
 			if seen.Has(to) {
-				weight = math.Inf(-1)
+				weight = math.NaN()
 				break
 			}
 			seen.Add(to)
@@ -176,19 +175,6 @@ type AllShortest struct {
 	//
 	// dist contains the pairwise
 	// distances between nodes.
-	//
-	// Internally, edges on negative
-	// cycles are given a special NaN
-	// weight, NaN(0xdefaced).
-	// This is returned to the user as
-	// -Inf. This approach allows -Inf
-	// weight edges on simple paths to be
-	// distinguished from -Inf weight
-	// paths that contain negative cycles.
-	// The distinction is visible to the
-	// user through whether then path
-	// returned with a -Inf weight is
-	// nil or contains a set of nodes.
 	dist *mat.Dense
 	// next contains the shortest-path
 	// tree of the graph. The first index
@@ -210,20 +196,7 @@ type AllShortest struct {
 	forward bool
 }
 
-var (
-	// defaced is NaN(0xdefaced) used as a marker for -Inf weight edges
-	// within paths containing negative cycles. Routines marking these
-	// edges should use this value.
-	defaced = floats.NaNWith(0xdefaced)
-	// defacedBits is the bit pattern we look for in AllShortest to
-	// identify the edges.
-	defacedBits = math.Float64bits(defaced)
-)
-
 func newAllShortest(nodes []graph.Node, forward bool) AllShortest {
-	if len(nodes) == 0 {
-		return AllShortest{}
-	}
 	indexOf := make(map[int64]int, len(nodes))
 	for i, n := range nodes {
 		indexOf[n.ID()] = i
@@ -270,18 +243,13 @@ func (p AllShortest) Weight(uid, vid int64) float64 {
 	if !fromOK || !toOK {
 		return math.Inf(1)
 	}
-	w := p.dist.At(from, to)
-	if math.Float64bits(w) == defacedBits {
-		return math.Inf(-1)
-	}
-	return w
+	return p.dist.At(from, to)
 }
 
 // Between returns a shortest path from u to v and the weight of the path. If more than
 // one shortest path exists between u and v, a randomly chosen path will be returned and
 // unique is returned false. If a cycle with zero weight exists in the path, it will not
-// be included, but unique will be returned false. If a negative cycle exists on the path
-// from u to v, path will be returned nil, weight will be -Inf and unique will be false.
+// be included, but unique will be returned false.
 func (p AllShortest) Between(uid, vid int64) (path []graph.Node, weight float64, unique bool) {
 	from, fromOK := p.indexOf[uid]
 	to, toOK := p.indexOf[vid]
@@ -290,11 +258,6 @@ func (p AllShortest) Between(uid, vid int64) (path []graph.Node, weight float64,
 			return []graph.Node{p.nodes[from]}, 0, true
 		}
 		return nil, math.Inf(1), false
-	}
-
-	weight = p.dist.At(from, to)
-	if math.Float64bits(weight) == defacedBits {
-		return nil, math.Inf(-1), false
 	}
 
 	seen := make([]int, len(p.nodes))
@@ -311,6 +274,7 @@ func (p AllShortest) Between(uid, vid int64) (path []graph.Node, weight float64,
 	}
 
 	path = []graph.Node{n}
+	weight = p.dist.At(from, to)
 	unique = true
 
 	var next int
@@ -341,8 +305,7 @@ func (p AllShortest) Between(uid, vid int64) (path []graph.Node, weight float64,
 }
 
 // AllBetween returns all shortest paths from u to v and the weight of the paths. Paths
-// containing zero-weight cycles are not returned. If a negative cycle exists between
-// u and v, paths is returned nil and weight is returned as -Inf.
+// containing zero-weight cycles are not returned.
 func (p AllShortest) AllBetween(uid, vid int64) (paths [][]graph.Node, weight float64) {
 	from, fromOK := p.indexOf[uid]
 	to, toOK := p.indexOf[vid]
@@ -351,11 +314,6 @@ func (p AllShortest) AllBetween(uid, vid int64) (paths [][]graph.Node, weight fl
 			return [][]graph.Node{{p.nodes[from]}}, 0
 		}
 		return nil, math.Inf(1)
-	}
-
-	weight = p.dist.At(from, to)
-	if math.Float64bits(weight) == defacedBits {
-		return nil, math.Inf(-1)
 	}
 
 	var n graph.Node
@@ -367,7 +325,7 @@ func (p AllShortest) AllBetween(uid, vid int64) (paths [][]graph.Node, weight fl
 	seen := make([]bool, len(p.nodes))
 	paths = p.allBetween(from, to, seen, []graph.Node{n}, nil)
 
-	return paths, weight
+	return paths, p.dist.At(from, to)
 }
 
 func (p AllShortest) allBetween(from, to int, seen []bool, path []graph.Node, paths [][]graph.Node) [][]graph.Node {

@@ -55,10 +55,10 @@ func Dlacn2Test(t *testing.T, impl Dlacn2er) {
 				case 0:
 					break loop
 				case 1:
-					blas64.Gemv(blas.NoTrans, 1, a, blas64.Vector{Data: x, Inc: 1}, 0, blas64.Vector{Data: work, Inc: 1})
+					blas64.Gemv(blas.NoTrans, 1, a, blas64.Vector{1, x}, 0, blas64.Vector{1, work})
 					copy(x, work)
 				case 2:
-					blas64.Gemv(blas.Trans, 1, a, blas64.Vector{Data: x, Inc: 1}, 0, blas64.Vector{Data: work, Inc: 1})
+					blas64.Gemv(blas.Trans, 1, a, blas64.Vector{1, x}, 0, blas64.Vector{1, work})
 					copy(x, work)
 				}
 			}

@@ -24,18 +24,15 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"reflect"
 	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"k8s.io/api/core/v1"
-	discovery "k8s.io/api/discovery/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/proxy"
 	ipttest "k8s.io/kubernetes/pkg/util/iptables/testing"
 	"k8s.io/utils/exec"
@@ -87,16 +84,6 @@ func waitForClosedPortUDP(p *Proxier, proxyPort int) error {
 		time.Sleep(1 * time.Millisecond)
 	}
 	return fmt.Errorf("port %d still open", proxyPort)
-}
-
-func waitForServiceInfo(p *Proxier, service proxy.ServicePortName) (*ServiceInfo, bool) {
-	var svcInfo *ServiceInfo
-	var exists bool
-	wait.PollImmediate(50*time.Millisecond, 3*time.Second, func() (bool, error) {
-		svcInfo, exists = p.getServiceInfo(service)
-		return exists, nil
-	})
-	return svcInfo, exists
 }
 
 // udpEchoServer is a simple echo server in UDP, intended for testing the proxy.
@@ -238,15 +225,6 @@ func waitForNumProxyClients(t *testing.T, s *ServiceInfo, want int, timeout time
 	t.Errorf("expected %d ProxyClients live, got %d", want, got)
 }
 
-func startProxier(p *Proxier, t *testing.T) {
-	go func() {
-		p.SyncLoop()
-	}()
-	waitForNumProxyLoops(t, p, 0)
-	p.OnServiceSynced()
-	p.OnEndpointsSynced()
-}
-
 func TestTCPProxy(t *testing.T) {
 	lb := NewLoadBalancerRR()
 	service := proxy.ServicePortName{NamespacedName: types.NamespacedName{Namespace: "testnamespace", Name: "echo"}, Port: "p"}
@@ -264,8 +242,7 @@ func TestTCPProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "TCP", 0, time.Second)
 	if err != nil {
@@ -292,8 +269,7 @@ func TestUDPProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "UDP", 0, time.Second)
 	if err != nil {
@@ -320,8 +296,7 @@ func TestUDPProxyTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "UDP", 0, time.Second)
 	if err != nil {
@@ -360,8 +335,7 @@ func TestMultiPortProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfoP, err := p.addServiceOnPort(serviceP, "TCP", 0, time.Second)
 	if err != nil {
@@ -390,8 +364,7 @@ func TestMultiPortOnServiceAdd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	p.OnServiceAdd(&v1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: serviceP.Name, Namespace: serviceP.Namespace},
@@ -406,7 +379,7 @@ func TestMultiPortOnServiceAdd(t *testing.T) {
 		}}},
 	})
 	waitForNumProxyLoops(t, p, 2)
-	svcInfo, exists := waitForServiceInfo(p, serviceP)
+	svcInfo, exists := p.getServiceInfo(serviceP)
 	if !exists {
 		t.Fatalf("can't find serviceInfo for %s", serviceP)
 	}
@@ -414,7 +387,7 @@ func TestMultiPortOnServiceAdd(t *testing.T) {
 		t.Errorf("unexpected serviceInfo for %s: %#v", serviceP, svcInfo)
 	}
 
-	svcInfo, exists = waitForServiceInfo(p, serviceQ)
+	svcInfo, exists = p.getServiceInfo(serviceQ)
 	if !exists {
 		t.Fatalf("can't find serviceInfo for %s", serviceQ)
 	}
@@ -430,9 +403,7 @@ func TestMultiPortOnServiceAdd(t *testing.T) {
 
 // Helper: Stops the proxy for the named service.
 func stopProxyByName(proxier *Proxier, service proxy.ServicePortName) error {
-	proxier.mu.Lock()
-	defer proxier.mu.Unlock()
-	info, found := proxier.serviceMap[service]
+	info, found := proxier.getServiceInfo(service)
 	if !found {
 		return fmt.Errorf("unknown service: %s", service)
 	}
@@ -456,8 +427,7 @@ func TestTCPProxyStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "TCP", 0, time.Second)
 	if err != nil {
@@ -501,8 +471,7 @@ func TestUDPProxyStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "UDP", 0, time.Second)
 	if err != nil {
@@ -525,9 +494,9 @@ func TestUDPProxyStop(t *testing.T) {
 
 func TestTCPProxyUpdateDelete(t *testing.T) {
 	lb := NewLoadBalancerRR()
-	servicePortName := proxy.ServicePortName{NamespacedName: types.NamespacedName{Namespace: "testnamespace", Name: "echo"}, Port: "p"}
+	service := proxy.ServicePortName{NamespacedName: types.NamespacedName{Namespace: "testnamespace", Name: "echo"}, Port: "p"}
 	lb.OnEndpointsAdd(&v1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{Namespace: servicePortName.Namespace, Name: servicePortName.Name},
+		ObjectMeta: metav1.ObjectMeta{Namespace: service.Namespace, Name: service.Name},
 		Subsets: []v1.EndpointSubset{{
 			Addresses: []v1.EndpointAddress{{IP: "127.0.0.1"}},
 			Ports:     []v1.EndpointPort{{Name: "p", Port: tcpServerPort}},
@@ -540,22 +509,28 @@ func TestTCPProxyUpdateDelete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
-	service := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: servicePortName.Name, Namespace: servicePortName.Namespace},
+	svcInfo, err := p.addServiceOnPort(service, "TCP", 0, time.Second)
+	if err != nil {
+		t.Fatalf("error adding new service: %#v", err)
+	}
+	conn, err := net.Dial("tcp", joinHostPort("", svcInfo.proxyPort))
+	if err != nil {
+		t.Fatalf("error connecting to proxy: %v", err)
+	}
+	conn.Close()
+	waitForNumProxyLoops(t, p, 1)
+
+	p.OnServiceDelete(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: service.Name, Namespace: service.Namespace},
 		Spec: v1.ServiceSpec{ClusterIP: "1.2.3.4", Ports: []v1.ServicePort{{
 			Name:     "p",
-			Port:     9997,
+			Port:     int32(svcInfo.proxyPort),
 			Protocol: "TCP",
 		}}},
-	}
-
-	p.OnServiceAdd(service)
-	waitForNumProxyLoops(t, p, 1)
-	p.OnServiceDelete(service)
-	if err := waitForClosedPortTCP(p, int(service.Spec.Ports[0].Port)); err != nil {
+	})
+	if err := waitForClosedPortTCP(p, svcInfo.proxyPort); err != nil {
 		t.Fatalf(err.Error())
 	}
 	waitForNumProxyLoops(t, p, 0)
@@ -578,8 +553,7 @@ func TestUDPProxyUpdateDelete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "UDP", 0, time.Second)
 	if err != nil {
@@ -624,8 +598,7 @@ func TestTCPProxyUpdateDeleteUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "TCP", 0, time.Second)
 	if err != nil {
@@ -661,7 +634,7 @@ func TestTCPProxyUpdateDeleteUpdate(t *testing.T) {
 			Protocol: "TCP",
 		}}},
 	})
-	svcInfo, exists := waitForServiceInfo(p, service)
+	svcInfo, exists := p.getServiceInfo(service)
 	if !exists {
 		t.Fatalf("can't find serviceInfo for %s", service)
 	}
@@ -687,8 +660,7 @@ func TestUDPProxyUpdateDeleteUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "UDP", 0, time.Second)
 	if err != nil {
@@ -724,7 +696,7 @@ func TestUDPProxyUpdateDeleteUpdate(t *testing.T) {
 			Protocol: "UDP",
 		}}},
 	})
-	svcInfo, exists := waitForServiceInfo(p, service)
+	svcInfo, exists := p.getServiceInfo(service)
 	if !exists {
 		t.Fatalf("can't find serviceInfo")
 	}
@@ -749,8 +721,7 @@ func TestTCPProxyUpdatePort(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "TCP", 0, time.Second)
 	if err != nil {
@@ -771,7 +742,7 @@ func TestTCPProxyUpdatePort(t *testing.T) {
 	if err := waitForClosedPortTCP(p, svcInfo.proxyPort); err != nil {
 		t.Fatalf(err.Error())
 	}
-	svcInfo, exists := waitForServiceInfo(p, service)
+	svcInfo, exists := p.getServiceInfo(service)
 	if !exists {
 		t.Fatalf("can't find serviceInfo")
 	}
@@ -798,8 +769,7 @@ func TestUDPProxyUpdatePort(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "UDP", 0, time.Second)
 	if err != nil {
@@ -819,7 +789,7 @@ func TestUDPProxyUpdatePort(t *testing.T) {
 	if err := waitForClosedPortUDP(p, svcInfo.proxyPort); err != nil {
 		t.Fatalf(err.Error())
 	}
-	svcInfo, exists := waitForServiceInfo(p, service)
+	svcInfo, exists := p.getServiceInfo(service)
 	if !exists {
 		t.Fatalf("can't find serviceInfo")
 	}
@@ -844,8 +814,7 @@ func TestProxyUpdatePublicIPs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "TCP", 0, time.Second)
 	if err != nil {
@@ -870,7 +839,7 @@ func TestProxyUpdatePublicIPs(t *testing.T) {
 	if err := waitForClosedPortTCP(p, svcInfo.proxyPort); err != nil {
 		t.Fatalf(err.Error())
 	}
-	svcInfo, exists := waitForServiceInfo(p, service)
+	svcInfo, exists := p.getServiceInfo(service)
 	if !exists {
 		t.Fatalf("can't find serviceInfo")
 	}
@@ -898,8 +867,7 @@ func TestProxyUpdatePortal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	startProxier(p, t)
-	defer p.shutdown()
+	waitForNumProxyLoops(t, p, 0)
 
 	svcInfo, err := p.addServiceOnPort(service, "TCP", 0, time.Second)
 	if err != nil {
@@ -926,16 +894,7 @@ func TestProxyUpdatePortal(t *testing.T) {
 		}}},
 	}
 	p.OnServiceUpdate(svcv0, svcv1)
-
-	// Wait for the service to be removed because it had an empty ClusterIP
-	var exists bool
-	for i := 0; i < 50; i++ {
-		_, exists = p.getServiceInfo(service)
-		if !exists {
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
+	_, exists := p.getServiceInfo(service)
 	if exists {
 		t.Fatalf("service with empty ClusterIP should not be included in the proxy")
 	}
@@ -964,186 +923,12 @@ func TestProxyUpdatePortal(t *testing.T) {
 	}
 	p.OnServiceUpdate(svcv2, svcv3)
 	lb.OnEndpointsAdd(endpoint)
-	svcInfo, exists = waitForServiceInfo(p, service)
+	svcInfo, exists = p.getServiceInfo(service)
 	if !exists {
 		t.Fatalf("service with ClusterIP set not found in the proxy")
 	}
 	testEchoTCP(t, "127.0.0.1", svcInfo.proxyPort)
 	waitForNumProxyLoops(t, p, 1)
-}
-
-type fakeRunner struct{}
-
-// assert fakeAsyncRunner is a ProxyProvider
-var _ asyncRunnerInterface = &fakeRunner{}
-
-func (f fakeRunner) Run() {
-}
-
-func (f fakeRunner) Loop(stop <-chan struct{}) {
-}
-
-func TestOnServiceAddChangeMap(t *testing.T) {
-	fexec := makeFakeExec()
-
-	// Use long minSyncPeriod so we can test that immediate syncs work
-	p, err := createProxier(NewLoadBalancerRR(), net.ParseIP("0.0.0.0"), ipttest.NewFake(), fexec, net.ParseIP("127.0.0.1"), nil, time.Minute, time.Minute, udpIdleTimeoutForTest, newProxySocket)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Fake out sync runner
-	p.syncRunner = fakeRunner{}
-
-	serviceMeta := metav1.ObjectMeta{Namespace: "testnamespace", Name: "testname"}
-	service := &v1.Service{
-		ObjectMeta: serviceMeta,
-		Spec: v1.ServiceSpec{ClusterIP: "1.2.3.4", Ports: []v1.ServicePort{{
-			Name:     "p",
-			Port:     99,
-			Protocol: "TCP",
-		}}},
-	}
-
-	serviceUpdate := &v1.Service{
-		ObjectMeta: serviceMeta,
-		Spec: v1.ServiceSpec{ClusterIP: "1.2.3.5", Ports: []v1.ServicePort{{
-			Name:     "p",
-			Port:     100,
-			Protocol: "TCP",
-		}}},
-	}
-
-	serviceUpdate2 := &v1.Service{
-		ObjectMeta: serviceMeta,
-		Spec: v1.ServiceSpec{ClusterIP: "1.2.3.6", Ports: []v1.ServicePort{{
-			Name:     "p",
-			Port:     101,
-			Protocol: "TCP",
-		}}},
-	}
-
-	type onServiceTest struct {
-		detail         string
-		changes        []serviceChange
-		expectedChange *serviceChange
-	}
-
-	tests := []onServiceTest{
-		{
-			detail: "add",
-			changes: []serviceChange{
-				{current: service},
-			},
-			expectedChange: &serviceChange{
-				current: service,
-			},
-		},
-		{
-			detail: "add+update=add",
-			changes: []serviceChange{
-				{current: service},
-				{
-					previous: service,
-					current:  serviceUpdate,
-				},
-			},
-			expectedChange: &serviceChange{
-				current: serviceUpdate,
-			},
-		},
-		{
-			detail: "add+del=none",
-			changes: []serviceChange{
-				{current: service},
-				{previous: service},
-			},
-		},
-		{
-			detail: "update+update=update",
-			changes: []serviceChange{
-				{
-					previous: service,
-					current:  serviceUpdate,
-				},
-				{
-					previous: serviceUpdate,
-					current:  serviceUpdate2,
-				},
-			},
-			expectedChange: &serviceChange{
-				previous: service,
-				current:  serviceUpdate2,
-			},
-		},
-		{
-			detail: "update+del=del",
-			changes: []serviceChange{
-				{
-					previous: service,
-					current:  serviceUpdate,
-				},
-				{previous: serviceUpdate},
-			},
-			// change collapsing always keeps the oldest service
-			// info since correct unmerging depends on the least
-			// recent update, not the most current.
-			expectedChange: &serviceChange{
-				previous: service,
-			},
-		},
-		{
-			detail: "del+add=update",
-			changes: []serviceChange{
-				{previous: service},
-				{current: serviceUpdate},
-			},
-			expectedChange: &serviceChange{
-				previous: service,
-				current:  serviceUpdate,
-			},
-		},
-	}
-
-	for _, test := range tests {
-		for _, change := range test.changes {
-			p.serviceChange(change.previous, change.current, test.detail)
-		}
-
-		if test.expectedChange != nil {
-			if len(p.serviceChanges) != 1 {
-				t.Fatalf("[%s] expected 1 service change but found %d", test.detail, len(p.serviceChanges))
-			}
-			expectedService := test.expectedChange.current
-			if expectedService == nil {
-				expectedService = test.expectedChange.previous
-			}
-			svcName := types.NamespacedName{Namespace: expectedService.Namespace, Name: expectedService.Name}
-
-			change, ok := p.serviceChanges[svcName]
-			if !ok {
-				t.Fatalf("[%s] did not find service change for %v", test.detail, svcName)
-			}
-			if !reflect.DeepEqual(change.previous, test.expectedChange.previous) {
-				t.Fatalf("[%s] change previous service and expected previous service don't match\nchange: %+v\nexp:    %+v", test.detail, change.previous, test.expectedChange.previous)
-			}
-			if !reflect.DeepEqual(change.current, test.expectedChange.current) {
-				t.Fatalf("[%s] change current service and expected current service don't match\nchange: %+v\nexp:    %+v", test.detail, change.current, test.expectedChange.current)
-			}
-		} else {
-			if len(p.serviceChanges) != 0 {
-				t.Fatalf("[%s] expected no service changes but found %d", test.detail, len(p.serviceChanges))
-			}
-		}
-	}
-}
-
-func TestNoopEndpointSlice(t *testing.T) {
-	p := Proxier{}
-	p.OnEndpointSliceAdd(&discovery.EndpointSlice{})
-	p.OnEndpointSliceUpdate(&discovery.EndpointSlice{}, &discovery.EndpointSlice{})
-	p.OnEndpointSliceDelete(&discovery.EndpointSlice{})
-	p.OnEndpointSlicesSynced()
 }
 
 func makeFakeExec() *fakeexec.FakeExec {

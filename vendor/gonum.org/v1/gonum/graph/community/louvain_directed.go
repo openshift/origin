@@ -13,7 +13,6 @@ import (
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/internal/ordered"
 	"gonum.org/v1/gonum/graph/internal/set"
-	"gonum.org/v1/gonum/graph/iterator"
 )
 
 // qDirected returns the modularity Q score of the graph g subdivided into the
@@ -25,7 +24,7 @@ import (
 //  Q = 1/m \sum_{ij} [ A_{ij} - (\gamma k_i^in k_j^out)/m ] \delta(c_i,c_j)
 //
 func qDirected(g graph.Directed, communities [][]graph.Node, resolution float64) float64 {
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	weight := positiveWeightFuncFor(g)
 
 	// Calculate the total edge weight of the graph
@@ -36,16 +35,14 @@ func qDirected(g graph.Directed, communities [][]graph.Node, resolution float64)
 		var wOut float64
 		u := n
 		uid := u.ID()
-		to := g.From(uid)
-		for to.Next() {
-			wOut += weight(uid, to.Node().ID())
+		for _, v := range g.From(uid) {
+			wOut += weight(uid, v.ID())
 		}
 		var wIn float64
 		v := n
 		vid := v.ID()
-		from := g.To(vid)
-		for from.Next() {
-			wIn += weight(from.Node().ID(), vid)
+		for _, u := range g.To(vid) {
+			wIn += weight(u.ID(), vid)
 		}
 		id := n.ID()
 		w := weight(id, id)
@@ -180,7 +177,7 @@ func reduceDirected(g graph.Directed, communities [][]graph.Node) *ReducedDirect
 			return r
 		}
 
-		nodes := graph.NodesOf(g.Nodes())
+		nodes := g.Nodes()
 		// TODO(kortschak) This sort is necessary really only
 		// for testing. In practice we would not be using the
 		// community provided by the user for a Q calculation.
@@ -213,9 +210,8 @@ func reduceDirected(g graph.Directed, communities [][]graph.Node) *ReducedDirect
 			var out []int
 			u := n
 			uid := u.ID()
-			to := g.From(uid)
-			for to.Next() {
-				vid := to.Node().ID()
+			for _, v := range g.From(uid) {
+				vid := v.ID()
 				vcid := communityOf[vid]
 				if vcid != id {
 					out = append(out, vcid)
@@ -227,9 +223,8 @@ func reduceDirected(g graph.Directed, communities [][]graph.Node) *ReducedDirect
 			var in []int
 			v := n
 			vid := v.ID()
-			from := g.To(vid)
-			for from.Next() {
-				uid := from.Node().ID()
+			for _, u := range g.To(vid) {
+				uid := u.ID()
 				ucid := communityOf[uid]
 				if ucid != id {
 					in = append(in, ucid)
@@ -290,9 +285,8 @@ func reduceDirected(g graph.Directed, communities [][]graph.Node) *ReducedDirect
 				r.nodes[id].weight += weight(uid, v.ID())
 			}
 
-			to := g.From(uid)
-			for to.Next() {
-				vid := to.Node().ID()
+			for _, v := range g.From(uid) {
+				vid := v.ID()
 				vcid := communityOf[vid]
 				found := false
 				for _, e := range out {
@@ -311,9 +305,8 @@ func reduceDirected(g graph.Directed, communities [][]graph.Node) *ReducedDirect
 
 			v := n
 			vid := v.ID()
-			from := g.To(vid)
-			for from.Next() {
-				uid := from.Node().ID()
+			for _, u := range g.To(vid) {
+				uid := u.ID()
 				ucid := communityOf[uid]
 				found := false
 				for _, e := range in {
@@ -336,47 +329,38 @@ func reduceDirected(g graph.Directed, communities [][]graph.Node) *ReducedDirect
 	return &r
 }
 
-// Node returns the node with the given ID if it exists in the graph,
-// and nil otherwise.
-func (g *ReducedDirected) Node(id int64) graph.Node {
-	if g.has(id) {
-		return g.nodes[id]
-	}
-	return nil
-}
-
-// has returns whether the node exists within the graph.
-func (g *ReducedDirected) has(id int64) bool {
+// Has returns whether the node exists within the graph.
+func (g *ReducedDirected) Has(id int64) bool {
 	return 0 <= id && id < int64(len(g.nodes))
 }
 
 // Nodes returns all the nodes in the graph.
-func (g *ReducedDirected) Nodes() graph.Nodes {
+func (g *ReducedDirected) Nodes() []graph.Node {
 	nodes := make([]graph.Node, len(g.nodes))
 	for i := range g.nodes {
 		nodes[i] = node(i)
 	}
-	return iterator.NewOrderedNodes(nodes)
+	return nodes
 }
 
 // From returns all nodes in g that can be reached directly from u.
-func (g *ReducedDirected) From(uid int64) graph.Nodes {
+func (g *ReducedDirected) From(uid int64) []graph.Node {
 	out := g.edgesFrom[uid]
 	nodes := make([]graph.Node, len(out))
 	for i, vid := range out {
 		nodes[i] = g.nodes[vid]
 	}
-	return iterator.NewOrderedNodes(nodes)
+	return nodes
 }
 
 // To returns all nodes in g that can reach directly to v.
-func (g *ReducedDirected) To(vid int64) graph.Nodes {
+func (g *ReducedDirected) To(vid int64) []graph.Node {
 	in := g.edgesTo[vid]
 	nodes := make([]graph.Node, len(in))
 	for i, uid := range in {
 		nodes[i] = g.nodes[uid]
 	}
-	return iterator.NewOrderedNodes(nodes)
+	return nodes
 }
 
 // HasEdgeBetween returns whether an edge exists between nodes x and y.
@@ -489,7 +473,7 @@ type directedWeights struct {
 // nodes.
 // If g has a zero edge weight sum, nil is returned.
 func newDirectedLocalMover(g *ReducedDirected, communities [][]graph.Node, resolution float64) *directedLocalMover {
-	nodes := graph.NodesOf(g.Nodes())
+	nodes := g.Nodes()
 	l := directedLocalMover{
 		g:             g,
 		nodes:         nodes,
@@ -506,17 +490,15 @@ func newDirectedLocalMover(g *ReducedDirected, communities [][]graph.Node, resol
 		u := n
 		var wOut float64
 		uid := u.ID()
-		to := g.From(uid)
-		for to.Next() {
-			wOut += l.weight(uid, to.Node().ID())
+		for _, v := range g.From(uid) {
+			wOut += l.weight(uid, v.ID())
 		}
 
 		v := n
 		var wIn float64
 		vid := v.ID()
-		from := g.To(vid)
-		for from.Next() {
-			wIn += l.weight(from.Node().ID(), vid)
+		for _, u := range g.To(vid) {
+			wIn += l.weight(u.ID(), vid)
 		}
 
 		id := n.ID()

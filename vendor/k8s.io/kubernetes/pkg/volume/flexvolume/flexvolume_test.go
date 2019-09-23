@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"testing"
 	"text/template"
 
@@ -132,12 +132,12 @@ func installPluginUnderTest(t *testing.T, vendorName, plugName, tmpDir string, e
 	if vendorName != "" {
 		vendoredName = fmt.Sprintf("%s~%s", vendorName, plugName)
 	}
-	pluginDir := filepath.Join(tmpDir, vendoredName)
+	pluginDir := path.Join(tmpDir, vendoredName)
 	err := os.MkdirAll(pluginDir, 0777)
 	if err != nil {
 		t.Errorf("Failed to create plugin: %v", err)
 	}
-	pluginExec := filepath.Join(pluginDir, plugName)
+	pluginExec := path.Join(pluginDir, plugName)
 	f, err := os.Create(pluginExec)
 	if err != nil {
 		t.Errorf("Failed to install plugin")
@@ -149,7 +149,7 @@ func installPluginUnderTest(t *testing.T, vendorName, plugName, tmpDir string, e
 	if execTemplateData == nil {
 		execTemplateData = &map[string]interface{}{
 			"DevicePath": "/dev/sdx",
-			"OutputFile": filepath.Join(pluginDir, plugName+".out"),
+			"OutputFile": path.Join(pluginDir, plugName+".out"),
 		}
 	}
 

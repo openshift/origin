@@ -93,12 +93,6 @@ type DeleteResult struct {
 	gophercloud.ErrResult
 }
 
-// NotifyResult is the result from a Notify operation. Call its Extract
-// method to determine if the call succeeded or failed.
-type NotifyResult struct {
-	commonResult
-}
-
 // ReceiverPage contains a single page of all nodes from a List operation.
 type ReceiverPage struct {
 	pagination.LinkedPageBase
@@ -117,10 +111,4 @@ func ExtractReceivers(r pagination.Page) ([]Receiver, error) {
 	}
 	err := (r.(ReceiverPage)).ExtractInto(&s)
 	return s.Receivers, err
-}
-
-// Extract returns action for notify receivers
-func (r NotifyResult) Extract() (string, error) {
-	requestID := r.Header.Get("X-Openstack-Request-Id")
-	return requestID, r.Err
 }

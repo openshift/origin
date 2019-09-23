@@ -6,10 +6,8 @@ package distuv
 
 import (
 	"math"
-	"sort"
 	"testing"
 
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/floats"
 )
 
@@ -82,38 +80,6 @@ func TestNormalProbs(t *testing.T) {
 		},
 	}
 	testDistributionProbs(t, Normal{Mu: 2, Sigma: 5}, "normal", pts)
-}
-
-func TestNormal(t *testing.T) {
-	src := rand.New(rand.NewSource(1))
-	for i, dist := range []Normal{
-		{Mu: 0, Sigma: 3, Src: src},
-		{Mu: 1, Sigma: 1.5, Src: src},
-		{Mu: -1, Sigma: 0.9, Src: src},
-	} {
-		testNormal(t, dist, i)
-	}
-}
-
-func testNormal(t *testing.T, dist Normal, i int) {
-	const (
-		tol  = 1e-2
-		n    = 3e6
-		bins = 50
-	)
-	x := make([]float64, n)
-	generateSamples(x, dist)
-	sort.Float64s(x)
-
-	checkMean(t, i, x, dist, tol)
-	checkVarAndStd(t, i, x, dist, tol)
-	checkEntropy(t, i, x, dist, tol)
-	checkExKurtosis(t, i, x, dist, tol)
-	checkSkewness(t, i, x, dist, tol)
-	checkMedian(t, i, x, dist, tol)
-	checkQuantileCDFSurvival(t, i, x, dist, tol)
-	checkProbContinuous(t, i, x, dist, 1e-10)
-	checkProbQuantContinuous(t, i, x, dist, tol)
 }
 
 func TestNormFitPrior(t *testing.T) {
@@ -201,18 +167,5 @@ func BenchmarkNormalQuantile(b *testing.B) {
 			x := n.Quantile(v)
 			_ = x
 		}
-	}
-}
-
-// See https://github.com/gonum/gonum/issues/577 for details.
-func TestNormalIssue577(t *testing.T) {
-	x := -36.0
-	max := 1.e-282
-	cdf := Normal{Mu: 0, Sigma: 1}.CDF(x)
-	if cdf <= 0 {
-		t.Errorf("Normal{0,1}.CDF(%e) should be positive. got: %e", x, cdf)
-	}
-	if cdf > max {
-		t.Errorf("Normal{0,1}.CDF(%e) is greater than %e. got: %e", x, max, cdf)
 	}
 }

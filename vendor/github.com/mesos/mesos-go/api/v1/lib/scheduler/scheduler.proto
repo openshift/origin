@@ -1,0 +1,518 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package mesos.scheduler;
+
+import "github.com/mesos/mesos-go/api/v1/lib/mesos.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option go_package = "scheduler";
+option (gogoproto.benchgen_all) = true;
+option (gogoproto.enum_stringer_all) = true;
+option (gogoproto.equal_all) = true;
+option (gogoproto.goproto_enum_prefix_all) = false;
+option (gogoproto.goproto_enum_stringer_all) = false;
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.goproto_unrecognized_all) = false;
+option (gogoproto.gostring_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.protosizer_all) = true;
+option (gogoproto.stringer_all) =  true;
+option (gogoproto.testgen_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.verbose_equal_all) = true;
+
+/**
+ * Scheduler event API.
+ *
+ * An event is described using the standard protocol buffer "union"
+ * trick, see:
+ * https://developers.google.com/protocol-buffers/docs/techniques#union.
+ */
+message Event {
+  // Possible event types, followed by message definitions if
+  // applicable.
+  enum Type {
+    // This must be the first enum value in this list, to
+    // ensure that if 'type' is not set, the default value
+    // is UNKNOWN. This enables enum values to be added
+    // in a backwards-compatible way. See: MESOS-4997.
+    UNKNOWN = 0;
+
+    SUBSCRIBED = 1;               // See 'Subscribed' below.
+    OFFERS = 2;                   // See 'Offers' below.
+    INVERSE_OFFERS = 9;           // See 'InverseOffers' below.
+    RESCIND = 3;                  // See 'Rescind' below.
+    RESCIND_INVERSE_OFFER = 10;   // See 'RescindInverseOffer' below.
+    UPDATE = 4;                   // See 'Update' below.
+    UPDATE_OPERATION_STATUS = 11; // See 'UpdateOperationStatus' below.
+    MESSAGE = 5;                  // See 'Message' below.
+    FAILURE = 6;                  // See 'Failure' below.
+    ERROR = 7;                    // See 'Error' below.
+
+    // Periodic message sent by the Mesos master according to
+    // 'Subscribed.heartbeat_interval_seconds'. If the scheduler does
+    // not receive any events (including heartbeats) for an extended
+    // period of time (e.g., 5 x heartbeat_interval_seconds), there is
+    // likely a network partition. In such a case the scheduler should
+    // close the existing subscription connection and resubscribe
+    // using a backoff strategy.
+    HEARTBEAT = 8;
+
+    option (gogoproto.goproto_enum_prefix) = true;
+  }
+
+  // First event received when the scheduler subscribes.
+  message Subscribed {
+    required FrameworkID framework_id = 1 [(gogoproto.customname) = "FrameworkID"];
+
+    // This value will be set if the master is sending heartbeats. See
+    // the comment above on 'HEARTBEAT' for more details.
+    optional double heartbeat_interval_seconds = 2;
+
+    // Since Mesos 1.1.
+    optional MasterInfo master_info = 3;
+  }
+
+  // Received whenever there are new resources that are offered to the
+  // scheduler. Each offer corresponds to a set of resources on an
+  // agent. Until the scheduler accepts or declines an offer the
+  // resources are considered allocated to the scheduler.
+  message Offers {
+    repeated Offer offers = 1 [(gogoproto.nullable) = false];
+  }
+
+  // Received whenever there are resources requested back from the
+  // scheduler. Each inverse offer specifies the agent, and
+  // optionally specific resources. Accepting or Declining an inverse
+  // offer informs the allocator of the scheduler's ability to release
+  // the specified resources without violating an SLA. If no resources
+  // are specified then all resources on the agent are requested to be
+  // released.
+  message InverseOffers {
+    repeated InverseOffer inverse_offers = 1 [(gogoproto.nullable) = false];
+  }
+
+  // Received when a particular offer is no longer valid (e.g., the
+  // agent corresponding to the offer has been removed) and hence
+  // needs to be rescinded. Any future calls ('Accept' / 'Decline') made
+  // by the scheduler regarding this offer will be invalid.
+  message Rescind {
+    required OfferID offer_id = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "OfferID"];
+  }
+
+  // Received when a particular inverse offer is no longer valid
+  // (e.g., the agent corresponding to the offer has been removed)
+  // and hence needs to be rescinded. Any future calls ('Accept' /
+  // 'Decline') made by the scheduler regarding this inverse offer
+  // will be invalid.
+  message RescindInverseOffer {
+    required OfferID inverse_offer_id = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "InverseOfferID"];
+  }
+
+  // Received whenever there is a status update that is generated by
+  // the executor or agent or master. Status updates should be used by
+  // executors to reliably communicate the status of the tasks that
+  // they manage. It is crucial that a terminal update (see TaskState
+  // in v1/mesos.proto) is sent by the executor as soon as the task
+  // terminates, in order for Mesos to release the resources allocated
+  // to the task. It is also the responsibility of the scheduler to
+  // explicitly acknowledge the receipt of a status update. See
+  // 'Acknowledge' in the 'Call' section below for the semantics.
+  //
+  // A task status update may be used for guaranteed delivery of some
+  // task-related information, e.g., task's health update. Such
+  // information may be shadowed by subsequent task status updates, that
+  // do not preserve fields of the previously sent message.
+  message Update {
+    required TaskStatus status = 1 [(gogoproto.nullable) = false];
+  }
+
+  // Received when there is an operation status update generated by the
+  // master, agent, or resource provider. These updates are only sent to
+  // the framework for operations which had the operation ID set by the
+  // framework. It is the responsibility of the scheduler to explicitly
+  // acknowledge the receipt of a status update.
+  // See 'AcknowledgeOperationStatus' in the 'Call' section below for
+  // the semantics.
+  message UpdateOperationStatus {
+    required OperationStatus status = 1 [(gogoproto.nullable) = false];
+  }
+
+  // Received when a custom message generated by the executor is
+  // forwarded by the master. Note that this message is not
+  // interpreted by Mesos and is only forwarded (without reliability
+  // guarantees) to the scheduler. It is up to the executor to retry
+  // if the message is dropped for any reason.
+  message Message {
+    required AgentID agent_id = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "AgentID"];
+    required ExecutorID executor_id = 2 [(gogoproto.nullable) = false, (gogoproto.customname) = "ExecutorID"];
+    required bytes data = 3;
+  }
+
+  // Received when an agent is removed from the cluster (e.g., failed
+  // health checks) or when an executor is terminated. Note that, this
+  // event coincides with receipt of terminal UPDATE events for any
+  // active tasks belonging to the agent or executor and receipt of
+  // 'Rescind' events for any outstanding offers belonging to the
+  // agent. Note that there is no guaranteed order between the
+  // 'Failure', 'Update' and 'Rescind' events when an agent or executor
+  // is removed.
+  // TODO(vinod): Consider splitting the lost agent and terminated
+  // executor into separate events and ensure it's reliably generated.
+  message Failure {
+    optional AgentID agent_id = 1 [(gogoproto.customname) = "AgentID"];
+
+    // If this was just a failure of an executor on an agent then
+    // 'executor_id' will be set and possibly 'status' (if we were
+    // able to determine the exit status).
+    optional ExecutorID executor_id = 2 [(gogoproto.customname) = "ExecutorID"];
+
+    // On Posix, `status` corresponds to termination information in the
+    // `stat_loc` area returned from a `waitpid` call. On Windows, `status`
+    // is obtained via calling the `GetExitCodeProcess()` function. For
+    // messages coming from Posix agents, schedulers need to apply
+    // `WEXITSTATUS` family macros or equivalent transformations to obtain
+    // exit codes.
+    //
+    // TODO(alexr): Consider unifying Windows and Posix behavior by returning
+    // exit code here, see MESOS-7241.
+    optional int32 status = 3;
+  }
+
+  // Received when there is an unrecoverable error in the scheduler (e.g.,
+  // scheduler failed over, rate limiting, authorization errors etc.). The
+  // scheduler should abort on receiving this event.
+  message Error {
+    required string message = 1 [(gogoproto.nullable) = false];
+  }
+
+  // Type of the event, indicates which optional field below should be
+  // present if that type has a nested message definition.
+  // Enum fields should be optional, see: MESOS-4997.
+  optional Type type = 1 [(gogoproto.nullable) = false];
+
+  optional Subscribed subscribed = 2;
+  optional Offers offers = 3;
+  optional InverseOffers inverse_offers = 9;
+  optional Rescind rescind = 4;
+  optional RescindInverseOffer rescind_inverse_offer = 10;
+  optional Update update = 5;
+  optional UpdateOperationStatus update_operation_status = 11;
+  optional Message message = 6;
+  optional Failure failure = 7;
+  optional Error error = 8;
+}
+
+
+/**
+ * Synchronous responses for calls made to the scheduler API.
+ */
+message Response {
+  // Each of the responses of type `FOO` corresponds to `Foo` message below.
+  enum Type {
+    UNKNOWN = 0;
+
+    RECONCILE_OPERATIONS = 1; // See 'ReconcileOperations' below.
+
+    option (gogoproto.goproto_enum_prefix) = true;
+  }
+
+  message ReconcileOperations {
+    repeated OperationStatus operation_statuses = 1 [(gogoproto.nullable) = false];
+  }
+
+  optional Type type = 1 [(gogoproto.nullable) = false];
+  optional ReconcileOperations reconcile_operations = 2;
+}
+
+
+/**
+ * Scheduler call API.
+ *
+ * Like Event, a Call is described using the standard protocol buffer
+ * "union" trick (see above).
+ */
+message Call {
+  // Possible call types, followed by message definitions if
+  // applicable.
+  enum Type {
+    // See comments above on `Event::Type` for more details on this enum value.
+    UNKNOWN = 0;
+
+    SUBSCRIBE = 1;   // See 'Subscribe' below.
+    TEARDOWN = 2;    // Shuts down all tasks/executors and removes framework.
+    ACCEPT = 3;      // See 'Accept' below.
+    DECLINE = 4;     // See 'Decline' below.
+    ACCEPT_INVERSE_OFFERS = 13;  // See 'AcceptInverseOffers' below.
+    DECLINE_INVERSE_OFFERS = 14; // See 'DeclineInverseOffers' below.
+    REVIVE = 5;      // Removes any previous filters set via ACCEPT or DECLINE.
+    KILL = 6;        // See 'Kill' below.
+    SHUTDOWN = 7;    // See 'Shutdown' below.
+    ACKNOWLEDGE = 8; // See 'Acknowledge' below.
+    ACKNOWLEDGE_OPERATION_STATUS = 15; // See message below.
+    RECONCILE = 9;   // See 'Reconcile' below.
+    RECONCILE_OPERATIONS = 16; // See 'ReconcileOperations' below.
+    MESSAGE = 10;    // See 'Message' below.
+    REQUEST = 11;    // See 'Request' below.
+    SUPPRESS = 12;   // Inform master to stop sending offers to the framework.
+
+    // TODO(benh): Consider adding an 'ACTIVATE' and 'DEACTIVATE' for
+    // already subscribed frameworks as a way of stopping offers from
+    // being generated and other events from being sent by the master.
+    // Note that this functionality existed originally to support
+    // SchedulerDriver::abort which was only necessary to handle
+    // exceptions getting thrown from within Scheduler callbacks,
+    // something that is not an issue with the Event/Call API.
+
+    option (gogoproto.goproto_enum_prefix) = true;
+  }
+
+  // Subscribes the scheduler with the master to receive events. A
+  // scheduler must send other calls only after it has received the
+  // SUBCRIBED event.
+  message Subscribe {
+    // See the comments below on 'framework_id' on the semantics for
+    // 'framework_info.id'.
+    required FrameworkInfo framework_info = 1;
+
+    // List of suppressed roles for which the framework does not wish to be
+    // offered resources. The framework can decide to suppress all or a subset
+    // of roles the framework (re)registers as.
+    repeated string suppressed_roles = 2;
+  }
+
+  // Accepts an offer, performing the specified operations
+  // in a sequential manner.
+  //
+  // E.g. Launch a task with a newly reserved persistent volume:
+  //
+  //   Accept {
+  //     offer_ids: [ ... ]
+  //     operations: [
+  //       { type: RESERVE,
+  //         reserve: { resources: [ disk(role):2 ] } }
+  //       { type: CREATE,
+  //         create: { volumes: [ disk(role):1+persistence ] } }
+  //       { type: LAUNCH,
+  //         launch: { task_infos ... disk(role):1;disk(role):1+persistence } }
+  //     ]
+  //   }
+  //
+  // Note that any of the offer’s resources not used in the 'Accept'
+  // call (e.g., to launch a task) are considered unused and might be
+  // reoffered to other frameworks. In other words, the same OfferID
+  // cannot be used in more than one 'Accept' call.
+  message Accept {
+    repeated OfferID offer_ids = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "OfferIDs"];
+    repeated Offer.Operation operations = 2 [(gogoproto.nullable) = false];
+    optional Filters filters = 3;
+  }
+
+  // Declines an offer, signaling the master to potentially reoffer
+  // the resources to a different framework. Note that this is same
+  // as sending an Accept call with no operations. See comments on
+  // top of 'Accept' for semantics.
+  message Decline {
+    repeated OfferID offer_ids = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "OfferIDs"];
+    optional Filters filters = 2;
+  }
+
+  // Accepts an inverse offer. Inverse offers should only be accepted
+  // if the resources in the offer can be safely evacuated before the
+  // provided unavailability.
+  message AcceptInverseOffers {
+    repeated OfferID inverse_offer_ids = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "InverseOfferIDs"];
+    optional Filters filters = 2;
+  }
+
+  // Declines an inverse offer. Inverse offers should be declined if
+  // the resources in the offer might not be safely evacuated before
+  // the provided unavailability.
+  message DeclineInverseOffers {
+    repeated OfferID inverse_offer_ids = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "InverseOfferIDs"];
+    optional Filters filters = 2;
+  }
+
+  // Revive offers for the specified roles. If `roles` is empty,
+  // the `REVIVE` call will revive offers for all of the roles
+  // the framework is currently subscribed to.
+  message Revive {
+    repeated string roles = 1;
+  }
+
+  // Kills a specific task. If the scheduler has a custom executor,
+  // the kill is forwarded to the executor and it is up to the
+  // executor to kill the task and send a TASK_KILLED (or TASK_FAILED)
+  // update. Note that Mesos releases the resources for a task once it
+  // receives a terminal update (See TaskState in v1/mesos.proto) for
+  // it. If the task is unknown to the master, a TASK_LOST update is
+  // generated.
+  //
+  // If a task within a task group is killed before the group is
+  // delivered to the executor, all tasks in the task group are
+  // killed. When a task group has been delivered to the executor,
+  // it is up to the executor to decide how to deal with the kill.
+  // Note The default Mesos executor will currently kill all the
+  // tasks in the task group if it gets a kill for any task.
+  message Kill {
+    required TaskID task_id = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "TaskID"];
+    optional AgentID agent_id = 2 [(gogoproto.customname) = "AgentID"];
+
+    // If set, overrides any previously specified kill policy for this task.
+    // This includes 'TaskInfo.kill_policy' and 'Executor.kill.kill_policy'.
+    // Can be used to forcefully kill a task which is already being killed.
+    optional KillPolicy kill_policy = 3;
+  }
+
+  // Shuts down a custom executor. When the executor gets a shutdown
+  // event, it is expected to kill all its tasks (and send TASK_KILLED
+  // updates) and terminate. If the executor doesn’t terminate within
+  // a certain timeout (configurable via
+  // '--executor_shutdown_grace_period' agent flag), the agent will
+  // forcefully destroy the container (executor and its tasks) and
+  // transition its active tasks to TASK_LOST.
+  message Shutdown {
+    required ExecutorID executor_id = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "ExecutorID"];
+    required AgentID agent_id = 2 [(gogoproto.nullable) = false, (gogoproto.customname) = "AgentID"];
+  }
+
+  // Acknowledges the receipt of status update. Schedulers are
+  // responsible for explicitly acknowledging the receipt of status
+  // updates that have 'Update.status().uuid()' field set. Such status
+  // updates are retried by the agent until they are acknowledged by
+  // the scheduler.
+  message Acknowledge {
+    required AgentID agent_id = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "AgentID"];
+    required TaskID task_id = 2 [(gogoproto.nullable) = false, (gogoproto.customname) = "TaskID"];
+    required bytes uuid = 3 [(gogoproto.customname) = "UUID"];
+  }
+
+  // Acknowledges the receipt of an operation status update. Schedulers
+  // are responsible for explicitly acknowledging the receipt of updates
+  // which have the 'UpdateOperationStatus.status().uuid()' field set.
+  // Such status updates are retried by the agent or resource provider
+  // until they are acknowledged by the scheduler.
+  message AcknowledgeOperationStatus {
+    // If the operation affects resources that belong to a SLRP, both
+    // `agent_id` and `resource_provider_id` have to be set.
+    //
+    // If the operation affects resources that belong to a SERP, only
+    // `resource_provider_id` has to be set.
+    optional AgentID agent_id = 1 [(gogoproto.customname) = "AgentID"];
+    optional ResourceProviderID resource_provider_id = 2 [(gogoproto.customname) = "ResourceProviderID"];
+
+    required bytes uuid = 3 [(gogoproto.customname) = "UUID"];
+    required OperationID operation_id = 4 [(gogoproto.nullable) = false, (gogoproto.customname) = "OperationID"];
+  }
+
+  // Allows the scheduler to query the status for non-terminal tasks.
+  // This causes the master to send back the latest task status for
+  // each task in 'tasks', if possible. Tasks that are no longer known
+  // will result in a TASK_LOST, TASK_UNKNOWN, or TASK_UNREACHABLE update.
+  // If 'tasks' is empty, then the master will send the latest status
+  // for each task currently known.
+  message Reconcile {
+    // TODO(vinod): Support arbitrary queries than just state of tasks.
+    message Task {
+      required TaskID task_id = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "TaskID"];
+      optional AgentID agent_id = 2 [(gogoproto.customname) = "AgentID"];
+    }
+
+    repeated Task tasks = 1 [(gogoproto.nullable) = false];
+  }
+
+  // Allows the scheduler to query the status of operations. This causes
+  // the master to send back the latest status for each operation in
+  // 'operations', if possible. If 'operations' is empty, then the
+  // master will send the latest status for each operation currently
+  // known.
+  message ReconcileOperations {
+    message Operation {
+      required OperationID operation_id = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "OperationID"];
+
+      // If `agent_id` is not set and the master doesn't know the operation,
+      // then it will return `OPERATION_UNKNOWN`; if `agent_id` is set, it can
+      // return more fine-grained states depending on the state of the
+      // corresponding agent.
+      optional AgentID agent_id = 2 [(gogoproto.customname) = "AgentID"];
+
+      optional ResourceProviderID resource_provider_id = 3 [(gogoproto.customname) = "ResourceProviderID"];
+    }
+
+    repeated Operation operations = 1 [(gogoproto.nullable) = false];
+  }
+
+  // Sends arbitrary binary data to the executor. Note that Mesos
+  // neither interprets this data nor makes any guarantees about the
+  // delivery of this message to the executor.
+  message Message {
+    required AgentID agent_id = 1 [(gogoproto.nullable) = false, (gogoproto.customname) = "AgentID"];
+    required ExecutorID executor_id = 2 [(gogoproto.nullable) = false, (gogoproto.customname) = "ExecutorID"];
+    required bytes data = 3;
+  }
+
+  // Requests a specific set of resources from Mesos's allocator. If
+  // the allocator has support for this, corresponding offers will be
+  // sent asynchronously via the OFFERS event(s).
+  //
+  // NOTE: The built-in hierarchical allocator doesn't have support
+  // for this call and hence simply ignores it.
+  message Request {
+    repeated mesos.Request requests = 1 [(gogoproto.nullable) = false];
+  }
+
+  // Suppress offers for the specified roles. If `roles` is empty,
+  // the `SUPPRESS` call will suppress offers for all of the roles
+  // the framework is currently subscribed to.
+  message Suppress {
+    repeated string roles = 1;
+  }
+
+  // Identifies who generated this call. Master assigns a framework id
+  // when a new scheduler subscribes for the first time. Once assigned,
+  // the scheduler must set the 'framework_id' here and within its
+  // FrameworkInfo (in any further 'Subscribe' calls). This allows the
+  // master to identify a scheduler correctly across disconnections,
+  // failovers, etc.
+  optional FrameworkID framework_id = 1 [(gogoproto.customname) = "FrameworkID"];
+
+  // Type of the call, indicates which optional field below should be
+  // present if that type has a nested message definition.
+  // See comments on `Event::Type` above on the reasoning behind this
+  // field being optional.
+  optional Type type = 2 [(gogoproto.nullable) = false];
+
+  optional Subscribe subscribe = 3;
+  optional Accept accept = 4;
+  optional Decline decline = 5;
+  optional AcceptInverseOffers accept_inverse_offers = 13;
+  optional DeclineInverseOffers decline_inverse_offers = 14;
+  optional Revive revive = 15;
+  optional Kill kill = 6;
+  optional Shutdown shutdown = 7;
+  optional Acknowledge acknowledge = 8;
+  optional AcknowledgeOperationStatus acknowledge_operation_status = 17;
+  optional Reconcile reconcile = 9;
+  optional ReconcileOperations reconcile_operations = 18;
+  optional Message message = 10;
+  optional Request request = 11;
+  optional Suppress suppress = 16;
+}

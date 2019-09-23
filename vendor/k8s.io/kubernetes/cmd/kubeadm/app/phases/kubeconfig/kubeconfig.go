@@ -18,7 +18,7 @@ package kubeconfig
 
 import (
 	"bytes"
-	"crypto"
+	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -41,7 +41,7 @@ import (
 
 // clientCertAuth struct holds info required to build a client certificate to provide authentication info in a kubeconfig object
 type clientCertAuth struct {
-	CAKey         crypto.Signer
+	CAKey         *rsa.PrivateKey
 	Organizations []string
 }
 
@@ -57,6 +57,21 @@ type kubeConfigSpec struct {
 	ClientName     string
 	TokenAuth      *tokenAuth
 	ClientCertAuth *clientCertAuth
+}
+
+// CreateInitKubeConfigFiles will create and write to disk all kubeconfig files necessary in the kubeadm init phase
+// to establish the control plane, including also the admin kubeconfig file.
+// If kubeconfig files already exists, they are used only if evaluated equal; otherwise an error is returned.
+func CreateInitKubeConfigFiles(outDir string, cfg *kubeadmapi.InitConfiguration) error {
+	klog.V(1).Infoln("creating all kubeconfig files")
+	return createKubeConfigFiles(
+		outDir,
+		cfg,
+		kubeadmconstants.AdminKubeConfigFileName,
+		kubeadmconstants.KubeletKubeConfigFileName,
+		kubeadmconstants.ControllerManagerKubeConfigFileName,
+		kubeadmconstants.SchedulerKubeConfigFileName,
+	)
 }
 
 // CreateJoinControlPlaneKubeConfigFiles will create and write to disk the kubeconfig files required by kubeadm
@@ -91,10 +106,10 @@ func createKubeConfigFiles(outDir string, cfg *kubeadmapi.InitConfiguration, kub
 	}
 
 	for _, kubeConfigFileName := range kubeConfigFileNames {
-		// retrieves the KubeConfigSpec for given kubeConfigFileName
+		// retrives the KubeConfigSpec for given kubeConfigFileName
 		spec, exists := specs[kubeConfigFileName]
 		if !exists {
-			return errors.Errorf("couldn't retrieve KubeConfigSpec for %s", kubeConfigFileName)
+			return errors.Errorf("couldn't retrive KubeConfigSpec for %s", kubeConfigFileName)
 		}
 
 		// builds the KubeConfig object
@@ -224,13 +239,7 @@ func validateKubeConfig(outDir, filename string, config *clientcmdapi.Config) er
 	expectedCtx := config.CurrentContext
 	expectedCluster := config.Contexts[expectedCtx].Cluster
 	currentCtx := currentConfig.CurrentContext
-	if currentConfig.Contexts[currentCtx] == nil {
-		return errors.Errorf("failed to find CurrentContext in Contexts of the kubeconfig file %s", kubeConfigFilePath)
-	}
 	currentCluster := currentConfig.Contexts[currentCtx].Cluster
-	if currentConfig.Clusters[currentCluster] == nil {
-		return errors.Errorf("failed to find the given CurrentContext Cluster in Clusters of the kubeconfig file %s", kubeConfigFilePath)
-	}
 
 	// If the current CA cert on disk doesn't match the expected CA cert, error out because we have a file, but it's stale
 	if !bytes.Equal(currentConfig.Clusters[currentCluster].CertificateAuthorityData, config.Clusters[expectedCluster].CertificateAuthorityData) {

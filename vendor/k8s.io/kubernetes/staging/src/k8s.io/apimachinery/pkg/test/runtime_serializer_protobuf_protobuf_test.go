@@ -84,7 +84,7 @@ func (d *testBufferedMarshalable) DeepCopyObject() runtime.Object {
 }
 
 func TestRecognize(t *testing.T) {
-	s := protobuf.NewSerializer(nil, nil)
+	s := protobuf.NewSerializer(nil, nil, "application/protobuf")
 	ignores := [][]byte{
 		nil,
 		{},
@@ -172,7 +172,7 @@ func TestEncode(t *testing.T) {
 	}
 
 	for i, test := range testCases {
-		s := protobuf.NewSerializer(nil, nil)
+		s := protobuf.NewSerializer(nil, nil, "application/protobuf")
 		data, err := runtime.Encode(s, test.obj)
 
 		switch {
@@ -251,7 +251,7 @@ func TestProtobufDecode(t *testing.T) {
 					Kind:       "test",
 				},
 				// content type is set because the prefix matches the content
-				ContentType: runtime.ContentTypeProtobuf,
+				ContentType: "application/protobuf",
 				Raw:         []byte{0x6b, 0x38, 0x73, 0x00, 0x01, 0x02, 0x03},
 			},
 			data: wire2,
@@ -259,7 +259,7 @@ func TestProtobufDecode(t *testing.T) {
 	}
 
 	for i, test := range testCases {
-		s := protobuf.NewSerializer(nil, nil)
+		s := protobuf.NewSerializer(nil, nil, "application/protobuf")
 		unk := &runtime.Unknown{}
 		err := runtime.DecodeInto(s, test.data, unk)
 
@@ -320,15 +320,13 @@ func TestDecodeObjects(t *testing.T) {
 
 	wire1 = append([]byte{0x6b, 0x38, 0x73, 0x00}, wire1...)
 
-	obj1WithKind := obj1.DeepCopyObject()
-	obj1WithKind.GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Carp"})
 	testCases := []struct {
 		obj   runtime.Object
 		data  []byte
 		errFn func(error) bool
 	}{
 		{
-			obj:  obj1WithKind,
+			obj:  obj1,
 			data: wire1,
 		},
 	}
@@ -336,7 +334,7 @@ func TestDecodeObjects(t *testing.T) {
 	for i, test := range testCases {
 		scheme.AddKnownTypes(schema.GroupVersion{Version: "v1"}, &v1.Carp{})
 		require.NoError(t, v1.AddToScheme(scheme))
-		s := protobuf.NewSerializer(scheme, scheme)
+		s := protobuf.NewSerializer(scheme, scheme, "application/protobuf")
 		obj, err := runtime.Decode(s, test.data)
 
 		switch {

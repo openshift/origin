@@ -27,17 +27,15 @@ import json
 TAGS_SET = 'set'
 TAGS_UPDATE = 'update'
 TAGS_DELETE = 'delete'
-POLL_DELAY = 1  # in seconds
 
 
 class HeketiClient(object):
 
-    def __init__(self, host, user, key, verify=True, poll_delay=POLL_DELAY):
+    def __init__(self, host, user, key, verify=True):
         self.host = host
         self.user = user
         self.key = key
         self.verify = verify
-        self.poll_delay = poll_delay
 
     def _set_token_in_header(self, method, uri, headers={}):
         claims = {}
@@ -102,7 +100,7 @@ class HeketiClient(object):
             q.raise_for_status()
 
             if 'X-Pending' in q.headers:
-                time.sleep(self.poll_delay)
+                time.sleep(2)
             else:
                 if q.status_code == requests.codes.see_other:
                     return self._make_request('GET', q.headers['location'])

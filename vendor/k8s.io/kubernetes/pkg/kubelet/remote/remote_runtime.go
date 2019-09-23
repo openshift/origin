@@ -21,15 +21,15 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc"
 	"k8s.io/klog"
 
-	internalapi "k8s.io/cri-api/pkg/apis"
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/util"
-	"k8s.io/kubernetes/pkg/kubelet/util/logreduction"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -38,7 +38,10 @@ type RemoteRuntimeService struct {
 	timeout       time.Duration
 	runtimeClient runtimeapi.RuntimeServiceClient
 	// Cache last per-container error message to reduce log spam
-	logReduction *logreduction.LogReduction
+	lastError map[string]string
+	// Time last per-container error message was printed
+	errorPrinted map[string]time.Time
+	errorMapLock sync.Mutex
 }
 
 const (
@@ -65,7 +68,8 @@ func NewRemoteRuntimeService(endpoint string, connectionTimeout time.Duration) (
 	return &RemoteRuntimeService{
 		timeout:       connectionTimeout,
 		runtimeClient: runtimeapi.NewRuntimeServiceClient(conn),
-		logReduction:  logreduction.NewLogReduction(identicalErrorDelay),
+		lastError:     make(map[string]string),
+		errorPrinted:  make(map[string]time.Time),
 	}, nil
 }
 
@@ -234,7 +238,10 @@ func (r *RemoteRuntimeService) StopContainer(containerID string, timeout int64) 
 	ctx, cancel := getContextWithTimeout(t)
 	defer cancel()
 
-	r.logReduction.ClearID(containerID)
+	r.errorMapLock.Lock()
+	delete(r.lastError, containerID)
+	delete(r.errorPrinted, containerID)
+	r.errorMapLock.Unlock()
 	_, err := r.runtimeClient.StopContainer(ctx, &runtimeapi.StopContainerRequest{
 		ContainerId: containerID,
 		Timeout:     timeout,
@@ -253,7 +260,10 @@ func (r *RemoteRuntimeService) RemoveContainer(containerID string) error {
 	ctx, cancel := getContextWithTimeout(r.timeout)
 	defer cancel()
 
-	r.logReduction.ClearID(containerID)
+	r.errorMapLock.Lock()
+	delete(r.lastError, containerID)
+	delete(r.errorPrinted, containerID)
+	r.errorMapLock.Unlock()
 	_, err := r.runtimeClient.RemoveContainer(ctx, &runtimeapi.RemoveContainerRequest{
 		ContainerId: containerID,
 	})
@@ -281,6 +291,18 @@ func (r *RemoteRuntimeService) ListContainers(filter *runtimeapi.ContainerFilter
 	return resp.Containers, nil
 }
 
+// Clean up any expired last-error timers
+func (r *RemoteRuntimeService) cleanupErrorTimeouts() {
+	r.errorMapLock.Lock()
+	defer r.errorMapLock.Unlock()
+	for ID, timeout := range r.errorPrinted {
+		if time.Now().Sub(timeout) >= identicalErrorDelay {
+			delete(r.lastError, ID)
+			delete(r.errorPrinted, ID)
+		}
+	}
+}
+
 // ContainerStatus returns the container status.
 func (r *RemoteRuntimeService) ContainerStatus(containerID string) (*runtimeapi.ContainerStatus, error) {
 	ctx, cancel := getContextWithTimeout(r.timeout)
@@ -289,14 +311,21 @@ func (r *RemoteRuntimeService) ContainerStatus(containerID string) (*runtimeapi.
 	resp, err := r.runtimeClient.ContainerStatus(ctx, &runtimeapi.ContainerStatusRequest{
 		ContainerId: containerID,
 	})
+	r.cleanupErrorTimeouts()
+	r.errorMapLock.Lock()
+	defer r.errorMapLock.Unlock()
 	if err != nil {
 		// Don't spam the log with endless messages about the same failure.
-		if r.logReduction.ShouldMessageBePrinted(err.Error(), containerID) {
+		lastMsg, ok := r.lastError[containerID]
+		if !ok || err.Error() != lastMsg || time.Now().Sub(r.errorPrinted[containerID]) >= identicalErrorDelay {
 			klog.Errorf("ContainerStatus %q from runtime service failed: %v", containerID, err)
+			r.errorPrinted[containerID] = time.Now()
+			r.lastError[containerID] = err.Error()
 		}
 		return nil, err
 	}
-	r.logReduction.ClearID(containerID)
+	delete(r.lastError, containerID)
+	delete(r.errorPrinted, containerID)
 
 	if resp.Status != nil {
 		if err := verifyContainerStatus(resp.Status); err != nil {
@@ -471,13 +500,20 @@ func (r *RemoteRuntimeService) ContainerStats(containerID string) (*runtimeapi.C
 	resp, err := r.runtimeClient.ContainerStats(ctx, &runtimeapi.ContainerStatsRequest{
 		ContainerId: containerID,
 	})
+	r.cleanupErrorTimeouts()
+	r.errorMapLock.Lock()
+	defer r.errorMapLock.Unlock()
 	if err != nil {
-		if r.logReduction.ShouldMessageBePrinted(err.Error(), containerID) {
+		lastMsg, ok := r.lastError[containerID]
+		if !ok || err.Error() != lastMsg || time.Now().Sub(r.errorPrinted[containerID]) >= identicalErrorDelay {
 			klog.Errorf("ContainerStatus %q from runtime service failed: %v", containerID, err)
+			r.errorPrinted[containerID] = time.Now()
+			r.lastError[containerID] = err.Error()
 		}
 		return nil, err
 	}
-	r.logReduction.ClearID(containerID)
+	delete(r.lastError, containerID)
+	delete(r.errorPrinted, containerID)
 
 	return resp.GetStats(), nil
 }

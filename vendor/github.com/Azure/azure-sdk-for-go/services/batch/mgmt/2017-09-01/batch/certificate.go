@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -52,16 +51,6 @@ func NewCertificateClientWithBaseURI(baseURI string, subscriptionID string) Cert
 // certificateName - the identifier for the certificate. This must be made up of algorithm and thumbprint
 // separated by a dash, and must match the certificate data in the request. For example SHA1-a3d1c5.
 func (client CertificateClient) CancelDeletion(ctx context.Context, resourceGroupName string, accountName string, certificateName string) (result Certificate, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateClient.CancelDeletion")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -120,8 +109,8 @@ func (client CertificateClient) CancelDeletionPreparer(ctx context.Context, reso
 // CancelDeletionSender sends the CancelDeletion request. The method will close the
 // http.Response Body if it receives an error.
 func (client CertificateClient) CancelDeletionSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CancelDeletionResponder handles the response to the CancelDeletion request. The method always
@@ -149,16 +138,6 @@ func (client CertificateClient) CancelDeletionResponder(resp *http.Response) (re
 // ifNoneMatch - set to '*' to allow a new certificate to be created, but to prevent updating an existing
 // certificate. Other values will be ignored.
 func (client CertificateClient) Create(ctx context.Context, resourceGroupName string, accountName string, certificateName string, parameters CertificateCreateOrUpdateParameters, ifMatch string, ifNoneMatch string) (result CertificateCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -224,9 +203,13 @@ func (client CertificateClient) CreatePreparer(ctx context.Context, resourceGrou
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client CertificateClient) CreateSender(req *http.Request) (future CertificateCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
 	if err != nil {
 		return
 	}
@@ -254,16 +237,6 @@ func (client CertificateClient) CreateResponder(resp *http.Response) (result Cer
 // certificateName - the identifier for the certificate. This must be made up of algorithm and thumbprint
 // separated by a dash, and must match the certificate data in the request. For example SHA1-a3d1c5.
 func (client CertificateClient) Delete(ctx context.Context, resourceGroupName string, accountName string, certificateName string) (result CertificateDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -316,9 +289,13 @@ func (client CertificateClient) DeletePreparer(ctx context.Context, resourceGrou
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client CertificateClient) DeleteSender(req *http.Request) (future CertificateDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -345,16 +322,6 @@ func (client CertificateClient) DeleteResponder(resp *http.Response) (result aut
 // certificateName - the identifier for the certificate. This must be made up of algorithm and thumbprint
 // separated by a dash, and must match the certificate data in the request. For example SHA1-a3d1c5.
 func (client CertificateClient) Get(ctx context.Context, resourceGroupName string, accountName string, certificateName string) (result Certificate, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -413,8 +380,8 @@ func (client CertificateClient) GetPreparer(ctx context.Context, resourceGroupNa
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client CertificateClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -440,16 +407,6 @@ func (client CertificateClient) GetResponder(resp *http.Response) (result Certif
 // filter - oData filter expression. Valid properties for filtering are "properties/provisioningState",
 // "properties/provisioningStateTransitionTime", "name".
 func (client CertificateClient) ListByBatchAccount(ctx context.Context, resourceGroupName string, accountName string, maxresults *int32, selectParameter string, filter string) (result ListCertificatesResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateClient.ListByBatchAccount")
-		defer func() {
-			sc := -1
-			if result.lcr.Response.Response != nil {
-				sc = result.lcr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -513,8 +470,8 @@ func (client CertificateClient) ListByBatchAccountPreparer(ctx context.Context, 
 // ListByBatchAccountSender sends the ListByBatchAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client CertificateClient) ListByBatchAccountSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByBatchAccountResponder handles the response to the ListByBatchAccount request. The method always
@@ -531,8 +488,8 @@ func (client CertificateClient) ListByBatchAccountResponder(resp *http.Response)
 }
 
 // listByBatchAccountNextResults retrieves the next set of results, if any.
-func (client CertificateClient) listByBatchAccountNextResults(ctx context.Context, lastResults ListCertificatesResult) (result ListCertificatesResult, err error) {
-	req, err := lastResults.listCertificatesResultPreparer(ctx)
+func (client CertificateClient) listByBatchAccountNextResults(lastResults ListCertificatesResult) (result ListCertificatesResult, err error) {
+	req, err := lastResults.listCertificatesResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.CertificateClient", "listByBatchAccountNextResults", nil, "Failure preparing next results request")
 	}
@@ -553,16 +510,6 @@ func (client CertificateClient) listByBatchAccountNextResults(ctx context.Contex
 
 // ListByBatchAccountComplete enumerates all values, automatically crossing page boundaries as required.
 func (client CertificateClient) ListByBatchAccountComplete(ctx context.Context, resourceGroupName string, accountName string, maxresults *int32, selectParameter string, filter string) (result ListCertificatesResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateClient.ListByBatchAccount")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.ListByBatchAccount(ctx, resourceGroupName, accountName, maxresults, selectParameter, filter)
 	return
 }
@@ -577,16 +524,6 @@ func (client CertificateClient) ListByBatchAccountComplete(ctx context.Context, 
 // ifMatch - the entity state (ETag) version of the certificate to update. This value can be omitted or set to
 // "*" to apply the operation unconditionally.
 func (client CertificateClient) Update(ctx context.Context, resourceGroupName string, accountName string, certificateName string, parameters CertificateCreateOrUpdateParameters, ifMatch string) (result Certificate, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/CertificateClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
@@ -651,8 +588,8 @@ func (client CertificateClient) UpdatePreparer(ctx context.Context, resourceGrou
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client CertificateClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always

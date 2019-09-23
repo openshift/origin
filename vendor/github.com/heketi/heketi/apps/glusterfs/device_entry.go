@@ -161,27 +161,20 @@ func (d *DeviceEntry) ConflictString() string {
 	return fmt.Sprintf("Unable to delete device [%v] because it contains bricks", d.Info.Id)
 }
 
-func (d *DeviceEntry) CheckDelete() error {
+func (d *DeviceEntry) Delete(tx *bolt.Tx) error {
+	godbc.Require(tx != nil)
+
 	// Don't delete device unless it is in failed state
 	if d.State != api.EntryStateFailed {
 		return logger.LogError("device: %v is not in failed state", d.Info.Id)
 	}
+
 	// Check if the device still has bricks
 	// Ideally, if the device is in failed state it should have no bricks
 	// This is just for bricks with empty paths
 	if d.HasBricks() {
 		logger.LogError(d.ConflictString())
 		return ErrConflict
-	}
-
-	return nil
-}
-
-func (d *DeviceEntry) Delete(tx *bolt.Tx) error {
-	godbc.Require(tx != nil)
-
-	if err := d.CheckDelete(); err != nil {
-		return err
 	}
 
 	return EntryDelete(tx, d, d.Info.Id)
@@ -629,50 +622,4 @@ func (d *DeviceEntry) AllTags() map[string]string {
 func (d *DeviceEntry) SetTags(t map[string]string) error {
 	d.Info.Tags = t
 	return nil
-}
-
-// consistencyCheck ... verifies that a deviceEntry is consistent with rest of the database.
-// It is a method on deviceEntry and needs rest of the database as its input.
-func (d *DeviceEntry) consistencyCheck(db Db) (response DbEntryCheckResponse) {
-
-	var aggregateBricksSize uint64
-
-	// No consistency check required for following attributes
-	// Id
-	// Name
-	// Tags
-	// EntryState
-	// ExtentSize
-
-	// Node
-	if nodeEntry, found := db.Nodes[d.NodeId]; !found {
-		response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Device %v unknown node %v", d.Info.Id, d.NodeId))
-	} else {
-		if !sortedstrings.Has(nodeEntry.Devices, d.Info.Id) {
-			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Device %v no link back to device from node %v", d.Info.Id, d.NodeId))
-		}
-	}
-
-	// Bricks
-	for _, brick := range d.Bricks {
-		if brickEntry, found := db.Bricks[brick]; !found {
-			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Device %v unknown brick %v", d.Info.Id, brick))
-		} else {
-			if brickEntry.Info.DeviceId != d.Info.Id {
-				response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Device %v no link back to device from brick %v", d.Info.Id, brick))
-			}
-			aggregateBricksSize += brickEntry.TpSize + brickEntry.PoolMetadataSize
-		}
-	}
-
-	// Size validation
-	if d.Info.Storage.Total != d.Info.Storage.Free+d.Info.Storage.Used {
-		response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Device %v size values differ Total(%v) != Free(%v) + Used(%v)", d.Info.Id, d.Info.Storage.Total, d.Info.Storage.Free, d.Info.Storage.Used))
-	}
-	if aggregateBricksSize != d.Info.Storage.Used {
-		response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Device %v size values differ Used(%v) != aggregateBricksSize(%v)", d.Info.Id, d.Info.Storage.Used, aggregateBricksSize))
-	}
-
-	return
-
 }

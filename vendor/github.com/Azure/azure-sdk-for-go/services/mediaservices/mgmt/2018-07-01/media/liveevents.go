@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,16 +48,6 @@ func NewLiveEventsClientWithBaseURI(baseURI string, subscriptionID string) LiveE
 // parameters - live Event properties needed for creation.
 // autoStart - the flag indicates if the resource should be automatically started on creation.
 func (client LiveEventsClient) Create(ctx context.Context, resourceGroupName string, accountName string, liveEventName string, parameters LiveEvent, autoStart *bool) (result LiveEventsCreateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: liveEventName,
 			Constraints: []validation.Constraint{{Target: "liveEventName", Name: validation.MaxLength, Rule: 32, Chain: nil},
@@ -115,9 +104,13 @@ func (client LiveEventsClient) CreatePreparer(ctx context.Context, resourceGroup
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client LiveEventsClient) CreateSender(req *http.Request) (future LiveEventsCreateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -144,16 +137,6 @@ func (client LiveEventsClient) CreateResponder(resp *http.Response) (result Live
 // accountName - the Media Services account name.
 // liveEventName - the name of the Live Event.
 func (client LiveEventsClient) Delete(ctx context.Context, resourceGroupName string, accountName string, liveEventName string) (result LiveEventsDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: liveEventName,
 			Constraints: []validation.Constraint{{Target: "liveEventName", Name: validation.MaxLength, Rule: 32, Chain: nil},
@@ -202,9 +185,13 @@ func (client LiveEventsClient) DeletePreparer(ctx context.Context, resourceGroup
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client LiveEventsClient) DeleteSender(req *http.Request) (future LiveEventsDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -230,16 +217,6 @@ func (client LiveEventsClient) DeleteResponder(resp *http.Response) (result auto
 // accountName - the Media Services account name.
 // liveEventName - the name of the Live Event.
 func (client LiveEventsClient) Get(ctx context.Context, resourceGroupName string, accountName string, liveEventName string) (result LiveEvent, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: liveEventName,
 			Constraints: []validation.Constraint{{Target: "liveEventName", Name: validation.MaxLength, Rule: 32, Chain: nil},
@@ -294,8 +271,8 @@ func (client LiveEventsClient) GetPreparer(ctx context.Context, resourceGroupNam
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client LiveEventsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -316,16 +293,6 @@ func (client LiveEventsClient) GetResponder(resp *http.Response) (result LiveEve
 // resourceGroupName - the name of the resource group within the Azure subscription.
 // accountName - the Media Services account name.
 func (client LiveEventsClient) List(ctx context.Context, resourceGroupName string, accountName string) (result LiveEventListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventsClient.List")
-		defer func() {
-			sc := -1
-			if result.lelr.Response.Response != nil {
-				sc = result.lelr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, accountName)
 	if err != nil {
@@ -372,8 +339,8 @@ func (client LiveEventsClient) ListPreparer(ctx context.Context, resourceGroupNa
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client LiveEventsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -390,8 +357,8 @@ func (client LiveEventsClient) ListResponder(resp *http.Response) (result LiveEv
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client LiveEventsClient) listNextResults(ctx context.Context, lastResults LiveEventListResult) (result LiveEventListResult, err error) {
-	req, err := lastResults.liveEventListResultPreparer(ctx)
+func (client LiveEventsClient) listNextResults(lastResults LiveEventListResult) (result LiveEventListResult, err error) {
+	req, err := lastResults.liveEventListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "media.LiveEventsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -412,16 +379,6 @@ func (client LiveEventsClient) listNextResults(ctx context.Context, lastResults 
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client LiveEventsClient) ListComplete(ctx context.Context, resourceGroupName string, accountName string) (result LiveEventListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, accountName)
 	return
 }
@@ -432,16 +389,6 @@ func (client LiveEventsClient) ListComplete(ctx context.Context, resourceGroupNa
 // accountName - the Media Services account name.
 // liveEventName - the name of the Live Event.
 func (client LiveEventsClient) Reset(ctx context.Context, resourceGroupName string, accountName string, liveEventName string) (result LiveEventsResetFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventsClient.Reset")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: liveEventName,
 			Constraints: []validation.Constraint{{Target: "liveEventName", Name: validation.MaxLength, Rule: 32, Chain: nil},
@@ -490,9 +437,13 @@ func (client LiveEventsClient) ResetPreparer(ctx context.Context, resourceGroupN
 // ResetSender sends the Reset request. The method will close the
 // http.Response Body if it receives an error.
 func (client LiveEventsClient) ResetSender(req *http.Request) (future LiveEventsResetFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -518,16 +469,6 @@ func (client LiveEventsClient) ResetResponder(resp *http.Response) (result autor
 // accountName - the Media Services account name.
 // liveEventName - the name of the Live Event.
 func (client LiveEventsClient) Start(ctx context.Context, resourceGroupName string, accountName string, liveEventName string) (result LiveEventsStartFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventsClient.Start")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: liveEventName,
 			Constraints: []validation.Constraint{{Target: "liveEventName", Name: validation.MaxLength, Rule: 32, Chain: nil},
@@ -576,9 +517,13 @@ func (client LiveEventsClient) StartPreparer(ctx context.Context, resourceGroupN
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client LiveEventsClient) StartSender(req *http.Request) (future LiveEventsStartFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -605,16 +550,6 @@ func (client LiveEventsClient) StartResponder(resp *http.Response) (result autor
 // liveEventName - the name of the Live Event.
 // parameters - liveEvent stop parameters
 func (client LiveEventsClient) Stop(ctx context.Context, resourceGroupName string, accountName string, liveEventName string, parameters LiveEventActionInput) (result LiveEventsStopFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventsClient.Stop")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: liveEventName,
 			Constraints: []validation.Constraint{{Target: "liveEventName", Name: validation.MaxLength, Rule: 32, Chain: nil},
@@ -665,9 +600,13 @@ func (client LiveEventsClient) StopPreparer(ctx context.Context, resourceGroupNa
 // StopSender sends the Stop request. The method will close the
 // http.Response Body if it receives an error.
 func (client LiveEventsClient) StopSender(req *http.Request) (future LiveEventsStopFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -694,16 +633,6 @@ func (client LiveEventsClient) StopResponder(resp *http.Response) (result autore
 // liveEventName - the name of the Live Event.
 // parameters - live Event properties needed for creation.
 func (client LiveEventsClient) Update(ctx context.Context, resourceGroupName string, accountName string, liveEventName string, parameters LiveEvent) (result LiveEventsUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/LiveEventsClient.Update")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: liveEventName,
 			Constraints: []validation.Constraint{{Target: "liveEventName", Name: validation.MaxLength, Rule: 32, Chain: nil},
@@ -754,9 +683,13 @@ func (client LiveEventsClient) UpdatePreparer(ctx context.Context, resourceGroup
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client LiveEventsClient) UpdateSender(req *http.Request) (future LiveEventsUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+	if err != nil {
+		return
+	}
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}

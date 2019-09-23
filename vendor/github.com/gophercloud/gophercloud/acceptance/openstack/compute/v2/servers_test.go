@@ -11,14 +11,12 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/attachinterfaces"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/availabilityzones"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/extendedserverattributes"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/extendedstatus"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/lockunlock"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/pauseunpause"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/serverusage"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/suspendresume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
@@ -120,7 +118,7 @@ func TestServersWithoutImageRef(t *testing.T) {
 	server, err := CreateServerWithoutImageRef(t, client)
 	if err != nil {
 		if err400, ok := err.(*gophercloud.ErrUnexpectedResponseCode); ok {
-			if !strings.Contains(string(err400.Body), "Missing imageRef attribute") {
+			if !strings.Contains("Missing imageRef attribute", string(err400.Body)) {
 				defer DeleteServer(t, client, server)
 			}
 		}
@@ -467,96 +465,25 @@ func TestServersActionLock(t *testing.T) {
 }
 
 func TestServersConsoleOutput(t *testing.T) {
-	clients.RequireLong(t)
-
 	client, err := clients.NewComputeV2Client()
-	th.AssertNoErr(t, err)
+	if err != nil {
+		t.Fatalf("Unable to create a compute client: %v", err)
+	}
 
 	server, err := CreateServer(t, client)
-	th.AssertNoErr(t, err)
+	if err != nil {
+		t.Fatalf("Unable to create server: %v", err)
+	}
+
 	defer DeleteServer(t, client, server)
 
 	outputOpts := &servers.ShowConsoleOutputOpts{
 		Length: 4,
 	}
 	output, err := servers.ShowConsoleOutput(client, server.ID, outputOpts).Extract()
-	th.AssertNoErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	tools.PrintResource(t, output)
-}
-
-func TestServersTags(t *testing.T) {
-	clients.RequireLong(t)
-	clients.SkipRelease(t, "mitaka")
-	clients.SkipRelease(t, "newton")
-
-	choices, err := clients.AcceptanceTestChoicesFromEnv()
-	th.AssertNoErr(t, err)
-
-	client, err := clients.NewComputeV2Client()
-	th.AssertNoErr(t, err)
-	client.Microversion = "2.52"
-
-	networkClient, err := clients.NewNetworkV2Client()
-	th.AssertNoErr(t, err)
-
-	networkID, err := networks.IDFromName(networkClient, choices.NetworkName)
-	th.AssertNoErr(t, err)
-
-	server, err := CreateServerWithTags(t, client, networkID)
-	th.AssertNoErr(t, err)
-	defer DeleteServer(t, client, server)
-}
-
-func TestServersWithExtendedAttributesCreateDestroy(t *testing.T) {
-	clients.RequireLong(t)
-	clients.RequireAdmin(t)
-	clients.SkipRelease(t, "stable/mitaka")
-	clients.SkipRelease(t, "stable/newton")
-
-	client, err := clients.NewComputeV2Client()
-	th.AssertNoErr(t, err)
-	client.Microversion = "2.3"
-
-	server, err := CreateServer(t, client)
-	th.AssertNoErr(t, err)
-	defer DeleteServer(t, client, server)
-
-	result := servers.Get(client, server.ID)
-	th.AssertNoErr(t, result.Err)
-
-	reservationID, err := extendedserverattributes.ExtractReservationID(result.Result)
-	th.AssertNoErr(t, err)
-	th.AssertEquals(t, reservationID != "", true)
-	t.Logf("reservationID: %s", reservationID)
-
-	launchIndex, err := extendedserverattributes.ExtractLaunchIndex(result.Result)
-	th.AssertNoErr(t, err)
-	th.AssertEquals(t, launchIndex, 0)
-	t.Logf("launchIndex: %d", launchIndex)
-
-	ramdiskID, err := extendedserverattributes.ExtractRamdiskID(result.Result)
-	th.AssertNoErr(t, err)
-	th.AssertEquals(t, ramdiskID == "", true)
-	t.Logf("ramdiskID: %s", ramdiskID)
-
-	kernelID, err := extendedserverattributes.ExtractKernelID(result.Result)
-	th.AssertNoErr(t, err)
-	th.AssertEquals(t, kernelID == "", true)
-	t.Logf("kernelID: %s", kernelID)
-
-	hostname, err := extendedserverattributes.ExtractHostname(result.Result)
-	th.AssertNoErr(t, err)
-	th.AssertEquals(t, hostname != "", true)
-	t.Logf("hostname: %s", hostname)
-
-	rootDeviceName, err := extendedserverattributes.ExtractRootDeviceName(result.Result)
-	th.AssertNoErr(t, err)
-	th.AssertEquals(t, rootDeviceName != "", true)
-	t.Logf("rootDeviceName: %s", rootDeviceName)
-
-	userData, err := extendedserverattributes.ExtractUserData(result.Result)
-	th.AssertNoErr(t, err)
-	th.AssertEquals(t, userData == "", true)
-	t.Logf("userData: %s", userData)
 }

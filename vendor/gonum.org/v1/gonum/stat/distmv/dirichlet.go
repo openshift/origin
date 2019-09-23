@@ -66,7 +66,7 @@ func (d *Dirichlet) CovarianceMatrix(cov *mat.SymDense) *mat.SymDense {
 	if cov == nil {
 		cov = mat.NewSymDense(d.Dim(), nil)
 	} else if cov.Symmetric() == 0 {
-		*cov = *(cov.GrowSym(d.dim).(*mat.SymDense))
+		*cov = *(cov.GrowSquare(d.dim).(*mat.SymDense))
 	} else if cov.Symmetric() != d.dim {
 		panic("normal: input matrix size mismatch")
 	}

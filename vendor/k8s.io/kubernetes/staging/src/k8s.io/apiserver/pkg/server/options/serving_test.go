@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/server"
+	. "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/certs"
 	servingcerttesting "k8s.io/apiserver/pkg/server/options/testing"
 	"k8s.io/client-go/discovery"
@@ -40,11 +41,11 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 )
 
-func setUp(t *testing.T) server.Config {
+func setUp(t *testing.T) Config {
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
 
-	config := server.NewConfig(codecs)
+	config := NewConfig(codecs)
 
 	return *config
 }
@@ -197,7 +198,7 @@ func TestGetNamedCertificateMap(t *testing.T) {
 
 NextTest:
 	for i, test := range tests {
-		var namedTLSCerts []server.NamedTLSCert
+		var namedTLSCerts []NamedTLSCert
 		bySignature := map[string]int{} // index in test.certs by cert signature
 		for j, c := range test.certs {
 			cert, err := servingcerttesting.CreateTestTLSCerts(c.TestCertSpec)
@@ -206,7 +207,7 @@ NextTest:
 				continue NextTest
 			}
 
-			namedTLSCerts = append(namedTLSCerts, server.NamedTLSCert{
+			namedTLSCerts = append(namedTLSCerts, NamedTLSCert{
 				TLSCert: cert,
 				Names:   c.explicitNames,
 			})
@@ -219,7 +220,7 @@ NextTest:
 			bySignature[sig] = j
 		}
 
-		certMap, _, err := server.GetNamedCertificateMap(namedTLSCerts)
+		certMap, _, err := GetNamedCertificateMap(namedTLSCerts)
 		if err == nil && len(test.errorString) != 0 {
 			t.Errorf("%d - expected no error, got: %v", i, err)
 		} else if err != nil && err.Error() != test.errorString {
@@ -482,7 +483,7 @@ func TestServerRunWithSNI(t *testing.T) {
 
 			// add poststart hook to know when the server is up.
 			startedCh := make(chan struct{})
-			s.AddPostStartHookOrDie("test-notifier", func(context server.PostStartHookContext) error {
+			s.AddPostStartHookOrDie("test-notifier", func(context PostStartHookContext) error {
 				close(startedCh)
 				return nil
 			})

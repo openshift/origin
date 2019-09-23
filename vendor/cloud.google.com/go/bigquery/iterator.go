@@ -1,4 +1,4 @@
-// Copyright 2015 Google LLC
+// Copyright 2015 Google Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,208 +15,172 @@
 package bigquery
 
 import (
-	"context"
+	"errors"
 	"fmt"
-	"reflect"
 
-	bq "google.golang.org/api/bigquery/v2"
-	"google.golang.org/api/iterator"
+	"golang.org/x/net/context"
 )
 
-// Construct a RowIterator.
-// If pf is nil, there are no rows in the result set.
-func newRowIterator(ctx context.Context, t *Table, pf pageFetcher) *RowIterator {
-	it := &RowIterator{
-		ctx:   ctx,
-		table: t,
-		pf:    pf,
-	}
-	if pf != nil {
-		it.pageInfo, it.nextFunc = iterator.NewPageInfo(
-			it.fetch,
-			func() int { return len(it.rows) },
-			func() interface{} { r := it.rows; it.rows = nil; return r })
-	}
-	return it
+// A pageFetcher returns a page of rows, starting from the row specified by token.
+type pageFetcher interface {
+	fetch(ctx context.Context, s service, token string) (*readDataResult, error)
 }
 
-// A RowIterator provides access to the result of a BigQuery lookup.
-type RowIterator struct {
-	ctx      context.Context
-	table    *Table
-	pf       pageFetcher
-	pageInfo *iterator.PageInfo
-	nextFunc func() error
+// Iterator provides access to the result of a BigQuery lookup.
+// Next must be called before the first call to Get.
+type Iterator struct {
+	service service
 
-	// StartIndex can be set before the first call to Next. If PageInfo().Token
-	// is also set, StartIndex is ignored.
-	StartIndex uint64
+	err error // contains any error encountered during calls to Next.
 
-	// The schema of the table. Available after the first call to Next.
-	Schema Schema
-
-	// The total number of rows in the result. Available after the first call to Next.
-	// May be zero just after rows were inserted.
-	TotalRows uint64
-
-	rows         [][]Value
-	structLoader structLoader // used to populate a pointer to a struct
-}
-
-// Next loads the next row into dst. Its return value is iterator.Done if there
-// are no more results. Once Next returns iterator.Done, all subsequent calls
-// will return iterator.Done.
-//
-// dst may implement ValueLoader, or may be a *[]Value, *map[string]Value, or struct pointer.
-//
-// If dst is a *[]Value, it will be set to new []Value whose i'th element
-// will be populated with the i'th column of the row.
-//
-// If dst is a *map[string]Value, a new map will be created if dst is nil. Then
-// for each schema column name, the map key of that name will be set to the column's
-// value. STRUCT types (RECORD types or nested schemas) become nested maps.
-//
-// If dst is pointer to a struct, each column in the schema will be matched
-// with an exported field of the struct that has the same name, ignoring case.
-// Unmatched schema columns and struct fields will be ignored.
-//
-// Each BigQuery column type corresponds to one or more Go types; a matching struct
-// field must be of the correct type. The correspondences are:
-//
-//   STRING      string
-//   BOOL        bool
-//   INTEGER     int, int8, int16, int32, int64, uint8, uint16, uint32
-//   FLOAT       float32, float64
-//   BYTES       []byte
-//   TIMESTAMP   time.Time
-//   DATE        civil.Date
-//   TIME        civil.Time
-//   DATETIME    civil.DateTime
-//
-// A repeated field corresponds to a slice or array of the element type. A STRUCT
-// type (RECORD or nested schema) corresponds to a nested struct or struct pointer.
-// All calls to Next on the same iterator must use the same struct type.
-//
-// It is an error to attempt to read a BigQuery NULL value into a struct field,
-// unless the field is of type []byte or is one of the special Null types: NullInt64,
-// NullFloat64, NullBool, NullString, NullTimestamp, NullDate, NullTime or
-// NullDateTime. You can also use a *[]Value or *map[string]Value to read from a
-// table with NULLs.
-func (it *RowIterator) Next(dst interface{}) error {
-	if it.pf == nil { // There are no rows in the result set.
-		return iterator.Done
-	}
-	var vl ValueLoader
-	switch dst := dst.(type) {
-	case ValueLoader:
-		vl = dst
-	case *[]Value:
-		vl = (*valueList)(dst)
-	case *map[string]Value:
-		vl = (*valueMap)(dst)
-	default:
-		if !isStructPtr(dst) {
-			return fmt.Errorf("bigquery: cannot convert %T to ValueLoader (need pointer to []Value, map[string]Value, or struct)", dst)
-		}
-	}
-	if err := it.nextFunc(); err != nil {
-		return err
-	}
-	row := it.rows[0]
-	it.rows = it.rows[1:]
-
-	if vl == nil {
-		// This can only happen if dst is a pointer to a struct. We couldn't
-		// set vl above because we need the schema.
-		if err := it.structLoader.set(dst, it.Schema); err != nil {
-			return err
-		}
-		vl = &it.structLoader
-	}
-	return vl.Load(row, it.Schema)
-}
-
-func isStructPtr(x interface{}) bool {
-	t := reflect.TypeOf(x)
-	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
-}
-
-// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
-func (it *RowIterator) PageInfo() *iterator.PageInfo { return it.pageInfo }
-
-func (it *RowIterator) fetch(pageSize int, pageToken string) (string, error) {
-	res, err := it.pf(it.ctx, it.table, it.Schema, it.StartIndex, int64(pageSize), pageToken)
-	if err != nil {
-		return "", err
-	}
-	it.rows = append(it.rows, res.rows...)
-	it.Schema = res.schema
-	it.TotalRows = res.totalRows
-	return res.pageToken, nil
-}
-
-// A pageFetcher returns a page of rows from a destination table.
-type pageFetcher func(ctx context.Context, _ *Table, _ Schema, startIndex uint64, pageSize int64, pageToken string) (*fetchPageResult, error)
-
-type fetchPageResult struct {
-	pageToken string
-	rows      [][]Value
-	totalRows uint64
+	// Once Next has been called at least once, schema has the result schema, rs contains the current
+	// page of data, and nextToken contains the token for fetching the next
+	// page (empty if there is no more data to be fetched).
 	schema    Schema
+	rs        [][]Value
+	nextToken string
+
+	// The remaining fields contain enough information to fetch the current
+	// page of data, and determine which row of data from this page is the
+	// current row.
+
+	pf        pageFetcher
+	pageToken string
+
+	// The offset from the start of the current page to the current row.
+	// For a new iterator, this is -1.
+	offset int64
 }
 
-// fetchPage gets a page of rows from t.
-func fetchPage(ctx context.Context, t *Table, schema Schema, startIndex uint64, pageSize int64, pageToken string) (*fetchPageResult, error) {
-	// Fetch the table schema in the background, if necessary.
-	errc := make(chan error, 1)
-	if schema != nil {
-		errc <- nil
-	} else {
-		go func() {
-			var bqt *bq.Table
-			err := runWithRetry(ctx, func() (err error) {
-				bqt, err = t.c.bqs.Tables.Get(t.ProjectID, t.DatasetID, t.TableID).
-					Fields("schema").
-					Context(ctx).
-					Do()
-				return err
-			})
-			if err == nil && bqt.Schema != nil {
-				schema = bqToSchema(bqt.Schema)
-			}
-			errc <- err
-		}()
+func newIterator(s service, pf pageFetcher) *Iterator {
+	return &Iterator{
+		service: s,
+		pf:      pf,
+		offset:  -1,
 	}
-	call := t.c.bqs.Tabledata.List(t.ProjectID, t.DatasetID, t.TableID)
-	setClientHeader(call.Header())
-	if pageToken != "" {
-		call.PageToken(pageToken)
-	} else {
-		call.StartIndex(startIndex)
+}
+
+// fetchPage loads the current page of data from the server.
+// The contents of rs and nextToken are replaced with the loaded data.
+// If there is an error while fetching, the error is stored in it.err and false is returned.
+func (it *Iterator) fetchPage(ctx context.Context) bool {
+	var res *readDataResult
+	var err error
+	for {
+		res, err = it.pf.fetch(ctx, it.service, it.pageToken)
+		if err != errIncompleteJob {
+			break
+		}
 	}
-	if pageSize > 0 {
-		call.MaxResults(pageSize)
-	}
-	var res *bq.TableDataList
-	err := runWithRetry(ctx, func() (err error) {
-		res, err = call.Context(ctx).Do()
-		return err
-	})
+
 	if err != nil {
-		return nil, err
+		it.err = err
+		return false
 	}
-	err = <-errc
-	if err != nil {
-		return nil, err
+
+	it.schema = res.schema
+	it.rs = res.rows
+	it.nextToken = res.pageToken
+	return true
+}
+
+// getEnoughData loads new data into rs until offset no longer points beyond the end of rs.
+func (it *Iterator) getEnoughData(ctx context.Context) bool {
+	if len(it.rs) == 0 {
+		// Either we have not yet fetched any pages, or we are iterating over an empty dataset.
+		// In the former case, we should fetch a page of data, so that we can depend on the resultant nextToken.
+		// In the latter case, it is harmless to fetch a page of data.
+		if !it.fetchPage(ctx) {
+			return false
+		}
 	}
-	rows, err := convertRows(res.Rows, schema)
-	if err != nil {
-		return nil, err
+
+	for it.offset >= int64(len(it.rs)) {
+		// If offset is still outside the bounds of the loaded data,
+		// but there are no more pages of data to fetch, then we have
+		// failed to satisfy the offset.
+		if it.nextToken == "" {
+			return false
+		}
+
+		// offset cannot be satisfied with the currently loaded data,
+		// so we fetch the next page.  We no longer need the existing
+		// cached rows, so we remove them and update the offset to be
+		// relative to the new page that we're about to fetch.
+		// NOTE: we can't just set offset to 0, because after
+		// marshalling/unmarshalling, it's possible for the offset to
+		// point arbitrarily far beyond the end of rs.
+		// This can happen if the server returns a different size
+		// results page before and after marshalling.
+		it.offset -= int64(len(it.rs))
+		it.pageToken = it.nextToken
+		if !it.fetchPage(ctx) {
+			return false
+		}
 	}
-	return &fetchPageResult{
-		pageToken: res.PageToken,
-		rows:      rows,
-		totalRows: uint64(res.TotalRows),
-		schema:    schema,
-	}, nil
+	return true
+}
+
+// Next advances the Iterator to the next row, making that row available
+// via the Get method.
+// Next must be called before the first call to Get or Schema, and blocks until data is available.
+// Next returns false when there are no more rows available, either because
+// the end of the output was reached, or because there was an error (consult
+// the Err method to determine which).
+func (it *Iterator) Next(ctx context.Context) bool {
+	if it.err != nil {
+		return false
+	}
+
+	// Advance offset to where we want it to be for the next call to Get.
+	it.offset++
+
+	// offset may now point beyond the end of rs, so we fetch data
+	// until offset is within its bounds again.  If there are no more
+	// results available, offset will be left pointing beyond the bounds
+	// of rs.
+	// At the end of this method, rs will contain at least one element
+	// unless the dataset we are iterating over is empty.
+	return it.getEnoughData(ctx)
+}
+
+// Err returns the last error encountered by Next, or nil for no error.
+func (it *Iterator) Err() error {
+	return it.err
+}
+
+// verifyState checks that the iterator is pointing to a valid row.
+func (it *Iterator) verifyState() error {
+	if it.err != nil {
+		return fmt.Errorf("called on iterator in error state: %v", it.err)
+	}
+
+	// If Next has been called, then offset should always index into a
+	// valid row in rs, as long as there is still data available.
+	if it.offset >= int64(len(it.rs)) || it.offset < 0 {
+		return errors.New("called without preceding successful call to Next")
+	}
+
+	return nil
+}
+
+// Get loads the current row into dst, which must implement ValueLoader.
+func (it *Iterator) Get(dst interface{}) error {
+	if err := it.verifyState(); err != nil {
+		return fmt.Errorf("Get %v", err)
+	}
+
+	if dst, ok := dst.(ValueLoader); ok {
+		return dst.Load(it.rs[it.offset])
+	}
+	return errors.New("Get called with unsupported argument type")
+}
+
+// Schema returns the schema of the result rows.
+func (it *Iterator) Schema() (Schema, error) {
+	if err := it.verifyState(); err != nil {
+		return nil, fmt.Errorf("Schema %v", err)
+	}
+
+	return it.schema, nil
 }

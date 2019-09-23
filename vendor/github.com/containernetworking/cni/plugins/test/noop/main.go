@@ -121,25 +121,19 @@ func debugBehavior(args *skel.CmdArgs, command string) error {
 	if debug.ReportError != "" {
 		return errors.New(debug.ReportError)
 	} else if debug.ReportResult == "PASSTHROUGH" || debug.ReportResult == "INJECT-DNS" {
-		prevResult := netConf.PrevResult
 		if debug.ReportResult == "INJECT-DNS" {
-			prevResult, err = current.NewResultFromResult(netConf.PrevResult)
+			newResult, err := current.NewResultFromResult(netConf.PrevResult)
 			if err != nil {
 				return err
 			}
-			prevResult.DNS.Nameservers = []string{"1.2.3.4"}
+			newResult.DNS.Nameservers = []string{"1.2.3.4"}
+			netConf.PrevResult = newResult
 		}
-
-		// Must print the prevResult as the CNIVersion of the config
-		newResult, err := prevResult.GetAsVersion(netConf.CNIVersion)
-		if err != nil {
-			return fmt.Errorf("failed to convert result to config %q: %v", netConf.CNIVersion, err)
-		}
-		resultBytes, err := json.Marshal(newResult)
+		newResult, err := json.Marshal(netConf.PrevResult)
 		if err != nil {
 			return fmt.Errorf("failed to marshal new result: %v", err)
 		}
-		os.Stdout.WriteString(string(resultBytes))
+		os.Stdout.WriteString(string(newResult))
 	} else {
 		os.Stdout.WriteString(debug.ReportResult)
 	}
@@ -148,7 +142,7 @@ func debugBehavior(args *skel.CmdArgs, command string) error {
 }
 
 func debugGetSupportedVersions(stdinData []byte) []string {
-	vers := []string{"0.-42.0", "0.1.0", "0.2.0", "0.3.0", "0.3.1", "0.4.0"}
+	vers := []string{"0.-42.0", "0.1.0", "0.2.0", "0.3.0", "0.3.1"}
 	cniArgs := os.Getenv("CNI_ARGS")
 	if cniArgs == "" {
 		return vers
@@ -171,10 +165,6 @@ func debugGetSupportedVersions(stdinData []byte) []string {
 
 func cmdAdd(args *skel.CmdArgs) error {
 	return debugBehavior(args, "ADD")
-}
-
-func cmdCheck(args *skel.CmdArgs) error {
-	return debugBehavior(args, "CHECK")
 }
 
 func cmdDel(args *skel.CmdArgs) error {
@@ -212,5 +202,5 @@ func main() {
 	}
 
 	supportedVersions := debugGetSupportedVersions(stdinData)
-	skel.PluginMain(cmdAdd, cmdCheck, cmdDel, version.PluginSupports(supportedVersions...), "CNI noop plugin v0.7.0")
+	skel.PluginMain(cmdAdd, cmdDel, version.PluginSupports(supportedVersions...))
 }

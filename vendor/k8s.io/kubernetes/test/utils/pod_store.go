@@ -61,7 +61,6 @@ func NewPodStore(c clientset.Interface, namespace string, label labels.Selector,
 		}
 		return false, nil
 	}); err != nil {
-		close(stopCh)
 		return nil, err
 	}
 	return &PodStore{Store: store, stopCh: stopCh, Reflector: reflector}, nil

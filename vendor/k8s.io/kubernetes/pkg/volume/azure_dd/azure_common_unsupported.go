@@ -1,4 +1,3 @@
-// +build !providerless
 // +build !linux,!windows
 
 /*

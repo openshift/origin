@@ -16,10 +16,12 @@ spec:
     metadata:
       labels:
         k8s-app: calico-node-autoscaler
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
       priorityClassName: system-cluster-critical
       containers:
-        - image: k8s.gcr.io/cpvpa-amd64:v0.8.1
+        - image: k8s.gcr.io/cpvpa-amd64:v0.6.0
           name: autoscaler
           command:
             - /cpvpa

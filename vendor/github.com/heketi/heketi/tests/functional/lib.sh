@@ -28,17 +28,13 @@ wait_for_heketi() {
     return 1
 }
 
-build_heketi() {
-    ( cd "$HEKETI_SERVER_BUILD_DIR" && make server && cp heketi "$HEKETI_SERVER" )
-    if [ $? -ne 0 ] ; then
-        fail "Unable to build Heketi"
-    fi
-}
-
 HEKETI_PID=
 start_heketi() {
     HEKETI_PID=
-    build_heketi
+    ( cd "$HEKETI_SERVER_BUILD_DIR" && make && cp heketi "$HEKETI_SERVER" )
+    if [ $? -ne 0 ] ; then
+        fail "Unable to build Heketi"
+    fi
 
     # Start server
     rm -f heketi.db > /dev/null 2>&1
@@ -85,13 +81,8 @@ teardown_vagrant() {
 
 run_go_tests() {
     cd tests || fail "Unable to 'cd tests'."
-    targs=()
-    if [[ "$HEKETI_TEST_GO_TEST_RUN" ]]; then
-        targs+=("-run")
-        targs+=("$HEKETI_TEST_GO_TEST_RUN")
-    fi
     export HEKETI_PID
-    time go test -timeout=2h -tags functional -v "${targs[@]}"
+    time go test -timeout=2h -tags functional -v
     gotest_result=$?
     echo "~~~ go test exited with ${gotest_result}"
     cd ..
@@ -135,13 +126,7 @@ functional_tests() {
     then
         start_vagrant
     fi
-    if [[ "$HEKETI_TEST_SERVER" == "no" ]]; then
-        build_heketi
-        # make sure pid is unset so stop_heketi does nothing
-        HEKETI_PID=
-    else
-        start_heketi
-    fi
+    start_heketi
 
     pause_test "$HEKETI_TEST_PAUSE_BEFORE"
     run_go_tests

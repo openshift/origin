@@ -74,7 +74,7 @@ func (in *CarpCondition) DeepCopy() *CarpCondition {
 func (in *CarpList) DeepCopyInto(out *CarpList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Carp, len(*in))

@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -50,16 +49,6 @@ func NewSoftwareUpdateConfigurationsClientWithBaseURI(baseURI string, subscripti
 // parameters - request body.
 // clientRequestID - identifies this specific client request.
 func (client SoftwareUpdateConfigurationsClient) Create(ctx context.Context, resourceGroupName string, automationAccountName string, softwareUpdateConfigurationName string, parameters SoftwareUpdateConfiguration, clientRequestID string) (result SoftwareUpdateConfiguration, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SoftwareUpdateConfigurationsClient.Create")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -108,9 +97,6 @@ func (client SoftwareUpdateConfigurationsClient) CreatePreparer(ctx context.Cont
 		"api-version": APIVersion,
 	}
 
-	parameters.Name = nil
-	parameters.ID = nil
-	parameters.Type = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -128,8 +114,8 @@ func (client SoftwareUpdateConfigurationsClient) CreatePreparer(ctx context.Cont
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client SoftwareUpdateConfigurationsClient) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -152,16 +138,6 @@ func (client SoftwareUpdateConfigurationsClient) CreateResponder(resp *http.Resp
 // softwareUpdateConfigurationName - the name of the software update configuration to be created.
 // clientRequestID - identifies this specific client request.
 func (client SoftwareUpdateConfigurationsClient) Delete(ctx context.Context, resourceGroupName string, automationAccountName string, softwareUpdateConfigurationName string, clientRequestID string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SoftwareUpdateConfigurationsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -220,8 +196,8 @@ func (client SoftwareUpdateConfigurationsClient) DeletePreparer(ctx context.Cont
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client SoftwareUpdateConfigurationsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -243,16 +219,6 @@ func (client SoftwareUpdateConfigurationsClient) DeleteResponder(resp *http.Resp
 // softwareUpdateConfigurationName - the name of the software update configuration to be created.
 // clientRequestID - identifies this specific client request.
 func (client SoftwareUpdateConfigurationsClient) GetByName(ctx context.Context, resourceGroupName string, automationAccountName string, softwareUpdateConfigurationName string, clientRequestID string) (result SoftwareUpdateConfiguration, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SoftwareUpdateConfigurationsClient.GetByName")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -311,8 +277,8 @@ func (client SoftwareUpdateConfigurationsClient) GetByNamePreparer(ctx context.C
 // GetByNameSender sends the GetByName request. The method will close the
 // http.Response Body if it receives an error.
 func (client SoftwareUpdateConfigurationsClient) GetByNameSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetByNameResponder handles the response to the GetByName request. The method always
@@ -335,16 +301,6 @@ func (client SoftwareUpdateConfigurationsClient) GetByNameResponder(resp *http.R
 // clientRequestID - identifies this specific client request.
 // filter - the filter to apply on the operation.
 func (client SoftwareUpdateConfigurationsClient) List(ctx context.Context, resourceGroupName string, automationAccountName string, clientRequestID string, filter string) (result SoftwareUpdateConfigurationListResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/SoftwareUpdateConfigurationsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -405,8 +361,8 @@ func (client SoftwareUpdateConfigurationsClient) ListPreparer(ctx context.Contex
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client SoftwareUpdateConfigurationsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always

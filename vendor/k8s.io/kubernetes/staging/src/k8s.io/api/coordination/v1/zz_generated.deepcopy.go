@@ -55,7 +55,7 @@ func (in *Lease) DeepCopyObject() runtime.Object {
 func (in *LeaseList) DeepCopyInto(out *LeaseList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Lease, len(*in))

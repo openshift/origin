@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,12 +33,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
-	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 	testutils "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 // This test primarily checks 2 things:
@@ -52,17 +51,15 @@ const (
 	restartPollInterval = 5 * time.Second
 	restartTimeout      = 10 * time.Minute
 	numPods             = 10
-	// ADD represents the ADD event
-	ADD = "ADD"
-	// DEL represents the DEL event
-	DEL = "DEL"
-	// UPDATE represents the UPDATE event
-	UPDATE = "UPDATE"
+	sshPort             = 22
+	ADD                 = "ADD"
+	DEL                 = "DEL"
+	UPDATE              = "UPDATE"
 )
 
-// RestartDaemonConfig is a config to restart a running daemon on a node, and wait till
+// restartDaemonConfig is a config to restart a running daemon on a node, and wait till
 // it comes back up. It uses ssh to send a SIGTERM to the daemon.
-type RestartDaemonConfig struct {
+type restartDaemonConfig struct {
 	nodeName     string
 	daemonName   string
 	healthzPort  int
@@ -70,12 +67,12 @@ type RestartDaemonConfig struct {
 	pollTimeout  time.Duration
 }
 
-// NewRestartConfig creates a RestartDaemonConfig for the given node and daemon.
-func NewRestartConfig(nodeName, daemonName string, healthzPort int, pollInterval, pollTimeout time.Duration) *RestartDaemonConfig {
+// NewRestartConfig creates a restartDaemonConfig for the given node and daemon.
+func NewRestartConfig(nodeName, daemonName string, healthzPort int, pollInterval, pollTimeout time.Duration) *restartDaemonConfig {
 	if !framework.ProviderIs("gce") {
 		framework.Logf("WARNING: SSH through the restart config might not work on %s", framework.TestContext.Provider)
 	}
-	return &RestartDaemonConfig{
+	return &restartDaemonConfig{
 		nodeName:     nodeName,
 		daemonName:   daemonName,
 		healthzPort:  healthzPort,
@@ -84,18 +81,18 @@ func NewRestartConfig(nodeName, daemonName string, healthzPort int, pollInterval
 	}
 }
 
-func (r *RestartDaemonConfig) String() string {
+func (r *restartDaemonConfig) String() string {
 	return fmt.Sprintf("Daemon %v on node %v", r.daemonName, r.nodeName)
 }
 
 // waitUp polls healthz of the daemon till it returns "ok" or the polling hits the pollTimeout
-func (r *RestartDaemonConfig) waitUp() {
+func (r *restartDaemonConfig) waitUp() {
 	framework.Logf("Checking if %v is up by polling for a 200 on its /healthz endpoint", r)
 	healthzCheck := fmt.Sprintf(
 		"curl -s -o /dev/null -I -w \"%%{http_code}\" http://localhost:%v/healthz", r.healthzPort)
 
 	err := wait.Poll(r.pollInterval, r.pollTimeout, func() (bool, error) {
-		result, err := e2essh.NodeExec(r.nodeName, healthzCheck, framework.TestContext.Provider)
+		result, err := framework.NodeExec(r.nodeName, healthzCheck)
 		framework.ExpectNoError(err)
 		if result.Code == 0 {
 			httpCode, err := strconv.Atoi(result.Stdout)
@@ -113,14 +110,14 @@ func (r *RestartDaemonConfig) waitUp() {
 }
 
 // kill sends a SIGTERM to the daemon
-func (r *RestartDaemonConfig) kill() {
+func (r *restartDaemonConfig) kill() {
 	framework.Logf("Killing %v", r)
-	_, err := e2essh.NodeExec(r.nodeName, fmt.Sprintf("pgrep %v | xargs -I {} sudo kill {}", r.daemonName), framework.TestContext.Provider)
-	framework.ExpectNoError(err)
+	_, err := framework.NodeExec(r.nodeName, fmt.Sprintf("pgrep %v | xargs -I {} sudo kill {}", r.daemonName))
+	Expect(err).NotTo(HaveOccurred())
 }
 
 // Restart checks if the daemon is up, kills it, and waits till it comes back up
-func (r *RestartDaemonConfig) restart() {
+func (r *restartDaemonConfig) restart() {
 	r.waitUp()
 	r.kill()
 	r.waitUp()
@@ -194,7 +191,7 @@ var _ = SIGDescribe("DaemonRestart [Disruptive]", func() {
 	var stopCh chan struct{}
 	var tracker *podTracker
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		// These tests require SSH
 		framework.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
 		ns = f.Namespace.Name
@@ -202,14 +199,15 @@ var _ = SIGDescribe("DaemonRestart [Disruptive]", func() {
 		// All the restart tests need an rc and a watch on pods of the rc.
 		// Additionally some of them might scale the rc during the test.
 		config = testutils.RCConfig{
-			Client:      f.ClientSet,
-			Name:        rcName,
-			Namespace:   ns,
-			Image:       imageutils.GetPauseImageName(),
-			Replicas:    numPods,
-			CreatedPods: &[]*v1.Pod{},
+			Client:         f.ClientSet,
+			InternalClient: f.InternalClientset,
+			Name:           rcName,
+			Namespace:      ns,
+			Image:          imageutils.GetPauseImageName(),
+			Replicas:       numPods,
+			CreatedPods:    &[]*v1.Pod{},
 		}
-		framework.ExpectNoError(framework.RunRC(config))
+		Expect(framework.RunRC(config)).NotTo(HaveOccurred())
 		replacePods(*config.CreatedPods, existingPods)
 
 		stopCh = make(chan struct{})
@@ -243,11 +241,11 @@ var _ = SIGDescribe("DaemonRestart [Disruptive]", func() {
 		go controller.Run(stopCh)
 	})
 
-	ginkgo.AfterEach(func() {
+	AfterEach(func() {
 		close(stopCh)
 	})
 
-	ginkgo.It("Controller Manager should not create/delete replicas across restart", func() {
+	It("Controller Manager should not create/delete replicas across restart", func() {
 
 		// Requires master ssh access.
 		framework.SkipUnlessProviderIs("gce", "aws")
@@ -278,7 +276,7 @@ var _ = SIGDescribe("DaemonRestart [Disruptive]", func() {
 		}
 	})
 
-	ginkgo.It("Scheduler should continue assigning pods to nodes across restart", func() {
+	It("Scheduler should continue assigning pods to nodes across restart", func() {
 
 		// Requires master ssh access.
 		framework.SkipUnlessProviderIs("gce", "aws")
@@ -296,13 +294,10 @@ var _ = SIGDescribe("DaemonRestart [Disruptive]", func() {
 		framework.ExpectNoError(framework.ScaleRC(f.ClientSet, f.ScalesGetter, ns, rcName, numPods+5, true))
 	})
 
-	ginkgo.It("Kubelet should not restart containers across restart", func() {
-		nodeIPs, err := e2enode.GetPublicIps(f.ClientSet)
-		if err != nil {
-			framework.Logf("Unexpected error occurred: %v", err)
-		}
-		// TODO: write a wrapper for ExpectNoErrorWithOffset()
-		framework.ExpectNoErrorWithOffset(0, err)
+	It("Kubelet should not restart containers across restart", func() {
+
+		nodeIPs, err := framework.GetNodePublicIps(f.ClientSet)
+		framework.ExpectNoError(err)
 		preRestarts, badNodes := getContainerRestarts(f.ClientSet, ns, labelSelector)
 		if preRestarts != 0 {
 			framework.Logf("WARNING: Non-zero container restart count: %d across nodes %v", preRestarts, badNodes)
