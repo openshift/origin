@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -203,13 +204,13 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			})
 		})
 		g.It("should report less than two alerts in firing or pending state", func() {
+			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+				e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
+			}
 			oc.SetupProject()
 			ns := oc.Namespace()
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
-
-			// needed for cluster to settle and have metrics and alerts usable
-			time.Sleep(5 * time.Minute)
 
 			tests := map[string][]metricTest{
 				// should be checking there is no more than 1 alerts firing.
