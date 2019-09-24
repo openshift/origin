@@ -74,8 +74,8 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 
 	// OCP-24061 - [bz 1685230] OLM operator should use imagePullPolicy: IfNotPresent
 	// author: bandrade@redhat.com
-	g.It("have imagePullPolicy:IfNotPresent on thier deployments", func() {
-		var deploymentResource = [3]string{"catalog-operator", "olm-operator", "packageserver"}
+	g.It("have imagePullPolicy:IfNotPresent on thier deployments", func() {		
+		deploymentResources := []string{"catalog-operator", "olm-operator", "packageserver"}
 		for _, v := range deploymentResource {
 			msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-operator-lifecycle-manager", "deployment", v, "-o=jsonpath={.spec.template.spec.containers[*].imagePullPolicy}").Output()
 			e2e.Logf("%s.imagePullPolicy:%s", v, msg)
