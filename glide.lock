@@ -1,5 +1,5 @@
-hash: 2c90081f75085396f3c994364dfc61e6ba6388cced0bf300153e7224990dd0bf
-updated: 2019-09-25T14:14:13.301167226-05:00
+hash: 46a0b475f0430496b8a4b06cb19ba9d24fde3f30c59a4ea55fa308caa79a2ebe
+updated: 2019-09-25T14:19:31.213384475-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -936,7 +936,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 623481f3614327028294e05c4c712847c41c7184
+  version: 4d81e8c49306fab396f2ad574beb87e10203d578
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1

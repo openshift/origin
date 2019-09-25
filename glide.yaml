@@ -93,7 +93,7 @@ import:
 - package: github.com/openshift/library-go
   version: release-4.2
 - package: github.com/openshift/apiserver-library-go
-  version: 623481f3614327028294e05c4c712847c41c7184
+  version: 4d81e8c49306fab396f2ad574beb87e10203d578
 
 # forks third
 # master
