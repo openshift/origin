@@ -459,7 +459,7 @@ var (
 			`CSI mock volume CSI Volume expansion`,
 			`CSI mock volume CSI online volume expansion`,
 			`CSI mock volume CSI workload information using mock driver`,
-			`volume-expand should resize volume when PVC is edited while pod is using it `,
+			`volume-expand should resize volume when PVC is edited while pod is using it`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
