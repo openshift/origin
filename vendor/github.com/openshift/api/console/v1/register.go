@@ -32,9 +32,13 @@ func Resource(resource string) schema.GroupResource {
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
 		&ConsoleLink{},
+		&ConsoleLinkList{},
 		&ConsoleCLIDownload{},
+		&ConsoleCLIDownloadList{},
 		&ConsoleNotification{},
+		&ConsoleNotificationList{},
 		&ConsoleExternalLogLink{},
+		&ConsoleExternalLogLinkList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

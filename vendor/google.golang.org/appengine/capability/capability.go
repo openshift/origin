@@ -29,6 +29,11 @@ import (
 // If the underlying RPC fails (if the package is unknown, for example),
 // false is returned and information is written to the application log.
 func Enabled(ctx context.Context, api, capability string) bool {
+	// For non datastore*/write requests always return ENABLED
+	if !(api == "datastore_v3" && capability == "write") {
+		return true
+	}
+
 	req := &pb.IsEnabledRequest{
 		Package:    &api,
 		Capability: []string{capability},
@@ -38,15 +43,5 @@ func Enabled(ctx context.Context, api, capability string) bool {
 		log.Warningf(ctx, "capability.Enabled: RPC failed: %v", err)
 		return false
 	}
-	switch *res.SummaryStatus {
-	case pb.IsEnabledResponse_ENABLED,
-		pb.IsEnabledResponse_SCHEDULED_FUTURE,
-		pb.IsEnabledResponse_SCHEDULED_NOW:
-		return true
-	case pb.IsEnabledResponse_UNKNOWN:
-		log.Errorf(ctx, "capability.Enabled: unknown API capability %s/%s", api, capability)
-		return false
-	default:
-		return false
-	}
+	return *res.SummaryStatus == pb.IsEnabledResponse_ENABLED
 }

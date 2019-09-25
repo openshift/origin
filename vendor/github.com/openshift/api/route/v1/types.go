@@ -84,7 +84,7 @@ type RouteSpec struct {
 	// `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.
 	//
 	// +optional
-	Subdomain string `json:"subdomain" protobuf:"bytes,8,opt,name=subdomain"`
+	Subdomain string `json:"subdomain,omitempty" protobuf:"bytes,8,opt,name=subdomain"`
 
 	// path that the router watches for, to route traffic for to the service. Optional
 	Path string `json:"path,omitempty" protobuf:"bytes,2,opt,name=path"`

@@ -41,3 +41,12 @@ type ConsoleExternalLogLinkSpec struct {
 	// + optional
 	NamespaceFilter string `json:"namespaceFilter,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ConsoleExternalLogLinkList struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	metav1.ListMeta `json:"metadata"`
+	Items           []ConsoleExternalLogLink `json:"items"`
+}

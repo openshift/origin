@@ -87,13 +87,13 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: master
+  version: release-4.2
 - package: github.com/openshift/client-go
-  version: master
+  version: release-4.2
 - package: github.com/openshift/library-go
-  version: master
+  version: release-4.2
 - package: github.com/openshift/apiserver-library-go
-  version: master
+  version: 623481f3614327028294e05c4c712847c41c7184
 
 # forks third
 # master
