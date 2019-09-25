@@ -77,7 +77,6 @@ var (
 	hasStartTransientSliceUnit      bool
 	hasTransientDefaultDependencies bool
 	hasDelegateScope                bool
-	hasDelegateSlice                bool
 )
 
 func newProp(name string, units interface{}) systemdDbus.Property {
@@ -192,19 +191,6 @@ func UseSystemd() bool {
 		// Not critical because of the stop unit logic above.
 		theConn.StopUnit(slice, "replace", nil)
 
-		// Assume StartTransientUnit on a slice allows Delegate
-		hasDelegateSlice = true
-		dlSlice := newProp("Delegate", true)
-		if _, err := theConn.StartTransientUnit(slice, "replace", []systemdDbus.Property{dlSlice}, nil); err != nil {
-			if dbusError, ok := err.(dbus.Error); ok {
-				// Starting with systemd v237, Delegate is not even a property of slices anymore,
-				// so the D-Bus call fails with "InvalidArgs" error.
-				if strings.Contains(dbusError.Name, "org.freedesktop.DBus.Error.PropertyReadOnly") || strings.Contains(dbusError.Name, "org.freedesktop.DBus.Error.InvalidArgs") {
-					hasDelegateSlice = false
-				}
-			}
-		}
-
 		// Not critical because of the stop unit logic above.
 		theConn.StopUnit(scope, "replace", nil)
 		theConn.StopUnit(slice, "replace", nil)
@@ -261,12 +247,7 @@ func (m *Manager) Apply(pid int) error {
 	}
 
 	// Check if we can delegate. This is only supported on systemd versions 218 and above.
-	if strings.HasSuffix(unitName, ".slice") {
-		if hasDelegateSlice {
-			// systemd 237 and above no longer allows delegation on a slice
-			properties = append(properties, newProp("Delegate", true))
-		}
-	} else {
+	if !strings.HasSuffix(unitName, ".slice") {
 		if hasDelegateScope {
 			properties = append(properties, newProp("Delegate", true))
 		}

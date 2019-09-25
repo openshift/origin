@@ -1,5 +1,5 @@
-hash: fce1efab05e88ef1152d8fa55b234d1efe7c93b322506a25fab79c375f132996
-updated: 2019-09-25T13:55:34.868571645-05:00
+hash: 2c90081f75085396f3c994364dfc61e6ba6388cced0bf300153e7224990dd0bf
+updated: 2019-09-25T14:14:13.301167226-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -857,7 +857,7 @@ imports:
   - specs-go
   - specs-go/v1
 - name: github.com/opencontainers/runc
-  version: 7c7775178c25e952571573f44a8df281824cf8e1
+  version: a7f8722a9c79bf82b30f93f7f86a3768dbcd1424
   repo: https://github.com/openshift/opencontainers-runc.git
   subpackages:
   - libcontainer
