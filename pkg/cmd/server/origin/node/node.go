@@ -62,7 +62,7 @@ func SetDNSIP(nodeConfig *configapi.NodeConfig) error {
 	}
 
 	var ipAddr net.IP
-	addrs, _ := net.LookupIP(nodeConfig.NodeName)
+	addrs, _ := net.LookupIP(hostname)
 	for _, addr := range addrs {
 		if err := cmdutil.ValidateNodeIP(addr); err == nil {
 			if addr.To4() != nil {
