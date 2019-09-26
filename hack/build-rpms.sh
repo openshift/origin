@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # This script generates release zips and RPMs into _output/releases.
-# tito and other build dependencies are required on the host. We will
-# be running `hack/build-cross.sh` under the covers, so we transitively
-# consume all of the relevant envars.
+# All build dependencies are required on the host.
+# We will be running `hack/build-cross.sh` under the covers,
+# so we transitively consume all of the relevant envars.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 function cleanup() {
@@ -22,7 +22,7 @@ os::build::setup_env
 
 if [[ "${OS_ONLY_BUILD_PLATFORMS:-}" == 'linux/amd64' ]]; then
 	# when the user is asking for only Linux binaries, we will
-	# furthermore not build cross-platform clients in tito
+	# furthermore not build cross-platform clients
 	make_redistributable=0
 else
 	make_redistributable=1
@@ -58,12 +58,13 @@ if [[ -n "${dirty}" && "${OS_GIT_TREE_STATE}" == "dirty" ]]; then
 		--define "_sourcedir ${rpm_tmp_dir}/SOURCES" \
 		--define "_builddir ${rpm_tmp_dir}/BUILD" \
 		--define "skip_prep 1" \
-		--define "skip_dist 1" \
+		--define "skip_dist ${SKIP_DIST:-1}" \
 		--define "make_redistributable ${make_redistributable}" \
-		--define "version ${OS_RPM_VERSION}" --define "release ${OS_RPM_RELEASE}" \
+		--define "version ${OS_RPM_VERSION}" \
+		--define "release ${OS_RPM_RELEASE}" \
 		--define "commit ${OS_GIT_COMMIT}" \
 		--define "os_git_vars ${OS_RPM_GIT_VARS}" \
-		--define 'dist .el7' --define "_topdir ${rpm_tmp_dir}"
+		--define "_topdir ${rpm_tmp_dir}"
 	
 	mkdir -p "${OS_OUTPUT_RPMPATH}"
 	mv -f "${rpm_tmp_dir}"/RPMS/*/*.rpm "${OS_OUTPUT_RPMPATH}"
@@ -72,16 +73,18 @@ else
 	mkdir -p "${rpm_tmp_dir}/SOURCES"
 	tar czf "${rpm_tmp_dir}/SOURCES/${OS_RPM_NAME}-${OS_RPM_VERSION}.tar.gz" \
 		--owner=0 --group=0 \
-		--exclude=_output --exclude=.git --transform "s|^|${OS_RPM_NAME}-${OS_RPM_VERSION}/|rSH" \
+		--exclude=_output --exclude=.git \
+		--transform "s|^|${OS_RPM_NAME}-${OS_RPM_VERSION}/|rSH" \
 		.
 
 	rpmbuild -b${srpm} "${OS_RPM_SPECFILE}" \
-		--define "skip_dist 1" \
+		--define "skip_dist ${SKIP_DIST:-1}" \
 		--define "make_redistributable ${make_redistributable}" \
-		--define "version ${OS_RPM_VERSION}" --define "release ${OS_RPM_RELEASE}" \
+		--define "version ${OS_RPM_VERSION}" \
+		--define "release ${OS_RPM_RELEASE}" \
 		--define "commit ${OS_GIT_COMMIT}" \
 		--define "os_git_vars ${OS_RPM_GIT_VARS}" \
-		--define 'dist .el7' --define "_topdir ${rpm_tmp_dir}"
+		--define "_topdir ${rpm_tmp_dir}"
 
 	output_directory="$( find "${rpm_tmp_dir}" -type d -path "*/BUILD/${OS_RPM_NAME}-${OS_RPM_VERSION}/_output/local" )"
 	if [[ -z "${output_directory}" ]]; then
@@ -97,7 +100,7 @@ else
 	# an NFS volume exported with root_squash set.  This can occur when running this
 	# script on a Vagrant box.  The error shown is "mv: failed to preserve ownership
 	# for $FILE: Operation not permitted".  As a workaround, if
-	# ${tito_output_directory} and ${OS_OUTPUT} are on different devices, use cp and
+	# ${output_directory} and ${OS_OUTPUT} are on different devices, use cp and
 	# rm instead.
 	if [[ $(stat -c %d "${output_directory}") == $(stat -c %d "${OS_OUTPUT}") ]]; then
 		mv "${output_directory}"/* "${OS_OUTPUT}"
