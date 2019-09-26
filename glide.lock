@@ -1,5 +1,5 @@
-hash: 43fae334249fe7affafcbdb84cd49cfb0027e7bdb5d09565bce318233cccb195
-updated: 2019-09-23T12:01:56.433081+02:00
+hash: a3b7357c903eb619615a029fa91c27edc7312a5c870ee50dca3895e675d6d4b0
+updated: 2019-09-26T11:48:24.491287968-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -773,7 +773,8 @@ imports:
   - specs-go
   - specs-go/v1
 - name: github.com/opencontainers/runc
-  version: 6cc515888830787a93d82138821f0309ad970640
+  version: b942ff4cc6f8f16ca177cf09c34896bddd000b16
+  repo: https://github.com/openshift/opencontainers-runc
   subpackages:
   - libcontainer
   - libcontainer/apparmor
