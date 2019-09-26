@@ -1,4 +1,4 @@
-FROM centos/ruby-22-centos7:latest
+FROM centos/ruby-25-centos7:latest
 USER root
 RUN yum -y install expect
 RUN echo "root:redhat" | chpasswd

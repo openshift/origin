@@ -171,7 +171,7 @@ This section covers how to perform all the steps of building, deploying, and upd
             service "frontend" created
             route "route-edge" created
             imagestream "origin-ruby-sample" created
-            imagestream "ruby-22-centos7" created
+            imagestream "ruby-25-centos7" created
             buildconfig "ruby-sample-build" created
             deploymentconfig "frontend" created
             service "database" created
