@@ -105,8 +105,10 @@ func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest
 		oauthConfig.IdentityProviders = append(
 			[]osinv1.IdentityProvider{
 				{
-					Name:            bootstrap.BootstrapUser, // will never conflict with other IDPs due to the :
-					UseAsChallenger: true,
+					Name: bootstrap.BootstrapUser, // will never conflict with other IDPs due to the :
+					// don't set it up as challenger if RequestHeaders IdP already is set that way
+					// this would set challenging headers and break RequestHeaders IdP
+					UseAsChallenger: !isRequestHeaderSetAsChallenger(oauthConfig.IdentityProviders),
 					UseAsLogin:      true,
 					MappingMethod:   string(identitymapper.MappingMethodClaim), // irrelevant, but needs to be valid
 					Provider: runtime.RawExtension{
@@ -201,6 +203,15 @@ func getSessionSecrets(filename string) ([][]byte, error) {
 func isHTTPS(u string) bool {
 	parsedURL, err := url.Parse(u)
 	return err == nil && parsedURL.Scheme == "https"
+}
+
+func isRequestHeaderSetAsChallenger(providers []osinv1.IdentityProvider) bool {
+	for _, p := range providers {
+		if _, isRequestHeader := p.Provider.Object.(*osinv1.RequestHeaderIdentityProvider); isRequestHeader && p.UseAsChallenger {
+			return true
+		}
+	}
+	return false
 }
 
 type ExtraOAuthConfig struct {
