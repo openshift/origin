@@ -425,8 +425,6 @@ var (
 			// TODO(workloads): reenable
 			`SchedulerPreemption`,
 
-			`\[Driver: iscsi\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
-
 			`\[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should access volume from different nodes`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711688
 
 			// Test fails on platforms that use LoadBalancerService and HostNetwork endpoint publishing strategy
