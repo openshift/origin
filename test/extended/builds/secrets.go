@@ -40,6 +40,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 		g.Describe("build with secrets", func() {
 
 			g.It("should contain secrets during the source strategy build", func() {
+				g.Skip("skipping on 3.10 because the 3.10 AMIs have the bad docker version")
 				g.By("creating secret fixtures")
 				err := oc.Run("create").Args("-f", secretsFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -75,6 +76,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 			})
 
 			g.It("should contain secrets during the docker strategy build", func() {
+				g.Skip("skipping on 3.10 because the 3.10 AMIs have the bad docker version")
 				g.By("creating secret fixtures")
 				err := oc.Run("create").Args("-f", secretsFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

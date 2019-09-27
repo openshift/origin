@@ -237,12 +237,12 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 
 				g.It("shoud accept --from-file with https URL as an input", func() {
 					g.By("starting a valid build with input file served by https")
-					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfileURL))
+					br, err := exutil.StartBuildAndWait(oc, "sample-build-25", fmt.Sprintf("--from-file=%s", exampleGemfileURL))
 					br.AssertSuccess()
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("Uploading file from %q as binary input for the build", exampleGemfileURL)))
-					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+					o.Expect(buildLog).To(o.ContainSubstring("Build complete, no image push requested"))
 				})
 
 				g.It("shoud accept --from-archive with https URL as an input", func() {
