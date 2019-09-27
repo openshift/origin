@@ -226,7 +226,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
 
-			g.By("creating a non-default ingresscontroller")
+			g.By("creating a new ingresscontroller")
 			replicas := int32(1)
 			ingress := &operatorv1.IngressController{
 				ObjectMeta: metav1.ObjectMeta{
@@ -250,6 +250,18 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			defer func() {
+				dump := func(resources ...string) {
+					for _, resource := range resources {
+						out, err := oc.AsAdmin().Run("get").Args("--namespace", "openshift-ingress", resource, "-o", "json").Output()
+						if err == nil {
+							e2e.Logf("%s", out)
+						} else {
+							e2e.Logf("error getting %s: %v", resource, err)
+						}
+					}
+				}
+				dump("servicemonitors", "services", "endpoints", "pods")
+
 				if err := oc.AdminOperatorClient().OperatorV1().IngressControllers(ingress.Namespace).Delete(ingress.Name, metav1.NewDeleteOptions(1)); err != nil {
 					e2e.Logf("WARNING: failed to delete ingresscontroller '%s/%s' created during test cleanup: %v", ingress.Namespace, ingress.Name, err)
 				} else {
