@@ -226,15 +226,16 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
 
-			g.By("creating a non-default ingresscontroller")
+			g.By("creating an ingresscontroller")
+			ingressName := "prometheus-" + ns
 			replicas := int32(1)
 			ingress := &operatorv1.IngressController{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "openshift-ingress-operator",
-					Name:      "prometheus",
+					Name:      ingressName,
 				},
 				Spec: operatorv1.IngressControllerSpec{
-					Domain:   "prometheus.e2e.openshift.example.com",
+					Domain:   ingressName + ".e2e.openshift.example.com",
 					Replicas: &replicas,
 					EndpointPublishingStrategy: &operatorv1.EndpointPublishingStrategy{
 						Type: operatorv1.PrivateStrategyType,
@@ -257,8 +258,13 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				}
 			}()
 
-			var lastErrs []error
+			jobs := []string{
+				"router-internal-default",
+				"router-internal-" + ingress.Name,
+			}
+
 			o.Expect(wait.PollImmediate(10*time.Second, 4*time.Minute, func() (bool, error) {
+				// TODO(ironcladlou): This is very expensive (I've seen 2MB responses)
 				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", url), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -267,24 +273,25 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verifying all expected jobs have a working target")
-				lastErrs = all(
-					// Is there a good way to discover the name and thereby avoid leaking the naming algorithm?
-					targets.Expect(labels{"job": "router-internal-default"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "router-internal-prometheus"}, "up", "^https://.*/metrics$"),
-				)
-				if len(lastErrs) > 0 {
-					e2e.Logf("missing some targets: %v", lastErrs)
+				var errs []error
+				for _, job := range jobs {
+					if err := targets.Expect(labels{"job": job}, "up", "^https://.*/metrics$"); err != nil {
+						errs = append(errs, err)
+					}
+				}
+				if len(errs) > 0 {
+					e2e.Logf("missing some targets: %v", errs)
 					return false, nil
 				}
 				return true, nil
 			})).NotTo(o.HaveOccurred(), "ingress router cannot report metrics to monitoring system")
 
 			g.By("verifying standard metrics keys")
-			queries := map[string][]metricTest{
-				`template_router_reload_seconds_count{job="router-internal-default"}`:    {metricTest{greaterThanEqual: true, value: 1}},
-				`haproxy_server_up{job="router-internal-default"}`:                       {metricTest{greaterThanEqual: true, value: 1}},
-				`template_router_reload_seconds_count{job="router-internal-prometheus"}`: {metricTest{greaterThanEqual: true, value: 1}},
-				`haproxy_server_up{job="router-internal-prometheus"}`:                    {metricTest{greaterThanEqual: true, value: 1}},
+
+			queries := map[string][]metricTest{}
+			for _, job := range jobs {
+				queries[fmt.Sprintf(`template_router_reload_seconds_count{job="%s"}`, job)] = []metricTest{{greaterThanEqual: true, value: 1}}
+				queries[fmt.Sprintf(`haproxy_server_up{job="%s"}`, job)] = []metricTest{{greaterThanEqual: true, value: 1}}
 			}
 			runQueries(queries, oc, ns, execPod.Name, url, bearerToken)
 		})
