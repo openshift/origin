@@ -78,6 +78,10 @@ type APIGroupVersion struct {
 	// EnableAPIResponseCompression indicates whether API Responses should support compression
 	// if the client requests it via Accept-Encoding
 	EnableAPIResponseCompression bool
+
+	// The limit on the request body size that would be accepted and decoded in a write request.
+	// 0 means no limit.
+	MaxRequestBodyBytes int64
 }
 
 // InstallREST registers the REST handlers (storage, watch, proxy and redirect) into a restful Container.

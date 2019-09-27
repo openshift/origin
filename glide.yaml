@@ -38,7 +38,9 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: release-3.10
+  # the commit below points to working openshift/api commit from release-3.10 branch
+  # TODO(network): fix openshift/api network types - revert https://github.com/openshift/api/pull/90
+  version: 6ef6704e604af539af656171d5c0bde774923a43
 - package: github.com/openshift/client-go
   version: release-3.10
 - package: github.com/openshift/imagebuilder
@@ -72,10 +74,14 @@ import:
 # master
 - package: github.com/onsi/ginkgo
   repo:    https://github.com/openshift/onsi-ginkgo.git
-  version: release-v1.2.0
+# the commit below points to release-v1.2.0 branch
+# note that we pin it to a specific commit because we intend to freeze dependencies as updating might introduce risk
+  version: 6e93088a6ab736ec6a12d10ef99962f8d9e435ee
 - package: github.com/containers/image
   repo:    https://github.com/openshift/containers-image.git
-  version: openshift-3.8
+# the commit below points to openshift-3.8 branch
+# note that we pin it to a specific commit because we intend to freeze dependencies as updating might introduce risk
+  version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
 # pod - sjenning - from branch openshift-3.10-runc-595bea0
 - package: github.com/opencontainers/runc
   repo:    https://github.com/openshift/opencontainers-runc.git
@@ -91,7 +97,9 @@ import:
 # close-write carry
 - package: github.com/docker/docker
   repo:    https://github.com/openshift/moby-moby.git
-  version: openshift-3.10-docker-b68221c
+  # the commit below points to openshift-3.10-docker-b68221c branch
+  # note that we pin it to a specific commit because we intend to freeze dependencies as updating might introduce risk
+  version: fcdab531a6d9b133eaa3f2a3f6c11fd02a97de75
 
 # ours: shared with kube, but forced by openshift
 # master
@@ -183,11 +191,13 @@ import:
 - package: github.com/cockroachdb/cmux
   version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
 # keep us up to date with latest DNS security fixes
+# pinned to the specific commit because the newer version requires go 1.10+ and this repo uses go 1.9
 - package: github.com/miekg/dns
-  version: ~v1
+  version: 5a2b9fab83ff0f8bfc99684bd5f43a37abe560f1
 # etcd pins a very old version that has contention issues
+# note that we pin it to a specific commit because we intend to freeze dependencies as updating might introduce risk
 - package: github.com/google/btree
-  version: master
+  version: e89373fe6b4a7413d7acd6da1725b83ef713e6e4
 
 # why do we have this?
 - package: google.golang.org/appengine
@@ -298,8 +308,9 @@ import:
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
 - package: github.com/euank/go-kmsg-parser
   version: 5ba4d492e455a77d25dcf0d2c4acc9f2afebef4e
+# update json-patch to the specific commit just to pick up the bug fixes
 - package: github.com/evanphx/json-patch
-  version: 944e07253867aacae43c04b2e6a239005443f33a
+  version: 5858425f75500d40c52783dce87d085a483ce135
 - package: github.com/exponent-io/jsonpath
   version: d6023ce2651d8eafb5c75bb0c7167536102ec9f5
 - package: github.com/fatih/camelcase
