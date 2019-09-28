@@ -90,18 +90,11 @@ verify: build
 	hack/verify-generated-openapi.sh ||r=1;\
 	hack/verify-generated-json-codecs.sh ||r=1; \
 	hack/verify-generated-swagger-spec.sh ||r=1;\
+	hack/verify-upstream-commits.sh ||r=1;\
 	exit $$r ;\
 	}
 .PHONY: verify
 
-
-# Verify commit comments.
-#
-# Example:
-#   make verify-commits
-verify-commits:
-	hack/verify-upstream-commits.sh
-.PHONY: verify-commits
 
 # Update all generated artifacts.
 #
