@@ -30,18 +30,21 @@ import (
 )
 
 type networkPolicyPlugin struct {
-	node  *OsdnNode
-	vnids *nodeVNIDMap
+	node   *OsdnNode
+	vnids  *nodeVNIDMap
+	runner *async.BoundedFrequencyRunner
 
-	lock        sync.Mutex
-	namespaces  map[uint32]*npNamespace
-	kNamespaces map[string]corev1.Namespace
-	pods        map[ktypes.UID]corev1.Pod
-
-	// namespaceSelector match cache; see selectNamespacesInternal
+	lock sync.Mutex
+	// namespacesByName includes every Namespace, including ones that we haven't seen
+	// a NetNamespace for, and is only used in the informer-related methods.
+	namespacesByName map[string]*npNamespace
+	// namespaces includes only the namespaces that we have a VNID for, and is used
+	// for all flow-generating methods
+	namespaces map[uint32]*npNamespace
+	// nsMatchCache caches matches for namespaceSelectors; see selectNamespaceInternal
 	nsMatchCache map[string]map[string]uint32
 
-	runner *async.BoundedFrequencyRunner
+	pods map[ktypes.UID]corev1.Pod
 }
 
 // npNamespace tracks NetworkPolicy-related data for a Namespace
@@ -51,7 +54,11 @@ type npNamespace struct {
 	inUse bool
 	dirty bool
 
+	labels   map[string]string
 	policies map[ktypes.UID]*npPolicy
+
+	gotNamespace    bool
+	gotNetNamespace bool
 }
 
 // npPolicy is a parsed version of a single NetworkPolicy object
@@ -73,9 +80,9 @@ const (
 
 func NewNetworkPolicyPlugin() osdnPolicy {
 	return &networkPolicyPlugin{
-		namespaces:  make(map[uint32]*npNamespace),
-		kNamespaces: make(map[string]corev1.Namespace),
-		pods:        make(map[ktypes.UID]corev1.Pod),
+		namespaces:       make(map[uint32]*npNamespace),
+		namespacesByName: make(map[string]*npNamespace),
+		pods:             make(map[ktypes.UID]corev1.Pod),
 
 		nsMatchCache: make(map[string]map[string]uint32),
 	}
@@ -132,15 +139,16 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 		return err
 	}
 	for _, ns := range namespaces.Items {
-		np.kNamespaces[ns.Name] = ns
+		npns := newNPNamespace(ns.Name)
+		npns.labels = ns.Labels
+		npns.gotNamespace = true
+		np.namespacesByName[ns.Name] = npns
 
 		if vnid, err := np.vnids.WaitAndGetVNID(ns.Name); err == nil {
-			np.namespaces[vnid] = &npNamespace{
-				name:     ns.Name,
-				vnid:     vnid,
-				inUse:    inUseVNIDs.Has(int(vnid)),
-				policies: make(map[ktypes.UID]*npPolicy),
-			}
+			npns.vnid = vnid
+			npns.inUse = inUseVNIDs.Has(int(vnid))
+			npns.gotNetNamespace = true
+			np.namespaces[vnid] = npns
 		}
 	}
 
@@ -160,21 +168,31 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 	return nil
 }
 
+func newNPNamespace(name string) *npNamespace {
+	return &npNamespace{
+		name:     name,
+		policies: make(map[ktypes.UID]*npPolicy),
+	}
+}
+
 func (np *networkPolicyPlugin) AddNetNamespace(netns *networkv1.NetNamespace) {
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	if _, exists := np.namespaces[netns.NetID]; exists {
-		klog.Warningf("Got AddNetNamespace for already-existing namespace %s (%d)", netns.NetName, netns.NetID)
-		return
+	npns := np.namespacesByName[netns.NetName]
+	if npns == nil {
+		npns = newNPNamespace(netns.NetName)
+		np.namespacesByName[netns.NetName] = npns
 	}
 
-	np.flushNSMatchCache()
-	np.namespaces[netns.NetID] = &npNamespace{
-		name:     netns.NetName,
-		vnid:     netns.NetID,
-		inUse:    false,
-		policies: make(map[ktypes.UID]*npPolicy),
+	npns.vnid = netns.NetID
+	npns.inUse = false
+	np.namespaces[netns.NetID] = npns
+
+	npns.gotNetNamespace = true
+	if npns.gotNamespace {
+		np.flushNSMatchCache()
+		np.refreshNetworkPolicies(refreshForNamespaces)
 	}
 }
 
@@ -190,16 +208,23 @@ func (np *networkPolicyPlugin) DeleteNetNamespace(netns *networkv1.NetNamespace)
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	if npns, exists := np.namespaces[netns.NetID]; exists {
-		np.flushNSMatchCache()
-		if npns.inUse {
-			npns.inUse = false
-			// We call syncNamespaceFlows() not syncNamespace() because it
-			// needs to happen before we forget about the namespace.
-			np.syncNamespaceFlows(npns)
-		}
-		delete(np.namespaces, netns.NetID)
+	npns, exists := np.namespaces[netns.NetID]
+	if !exists {
+		return
 	}
+
+	if npns.inUse {
+		npns.inUse = false
+		// We call syncNamespaceFlows() not syncNamespace() because it
+		// needs to happen before we forget about the namespace.
+		np.syncNamespaceFlows(npns)
+	}
+	delete(np.namespaces, netns.NetID)
+	npns.gotNetNamespace = false
+
+	// We don't need to call flushNSMatchCache or refreshNetworkPolicies here; if the
+	// VNID doesn't get reused then the stale cache entries/flows won't hurt anything,
+	// and if it does get reused then things will be cleaned up then.
 }
 
 func (np *networkPolicyPlugin) GetVNID(namespace string) (uint32, error) {
@@ -320,11 +345,9 @@ func (np *networkPolicyPlugin) selectNamespacesInternal(sel labels.Selector) map
 	namespaces, wasCached := np.nsMatchCache[cacheKey]
 	if !wasCached {
 		namespaces = make(map[string]uint32)
-		for vnid, ns := range np.namespaces {
-			if kns, exists := np.kNamespaces[ns.name]; exists {
-				if sel.Matches(labels.Set(kns.Labels)) {
-					namespaces[ns.name] = vnid
-				}
+		for vnid, npns := range np.namespaces {
+			if npns.gotNamespace && sel.Matches(labels.Set(npns.labels)) {
+				namespaces[npns.name] = vnid
 			}
 		}
 		np.nsMatchCache[cacheKey] = namespaces
@@ -621,9 +644,22 @@ func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, ev
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	np.kNamespaces[ns.Name] = *ns
-	np.flushNSMatchCache()
-	np.refreshNetworkPolicies(refreshForNamespaces)
+	npns := np.namespacesByName[ns.Name]
+	if npns == nil {
+		npns = newNPNamespace(ns.Name)
+		np.namespacesByName[ns.Name] = npns
+	}
+
+	if npns.gotNamespace && reflect.DeepEqual(npns.labels, ns.Labels) {
+		return
+	}
+	npns.labels = ns.Labels
+
+	npns.gotNamespace = true
+	if npns.gotNetNamespace {
+		np.flushNSMatchCache()
+		np.refreshNetworkPolicies(refreshForNamespaces)
+	}
 }
 
 func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
@@ -633,9 +669,17 @@ func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	delete(np.kNamespaces, ns.Name)
-	np.flushNSMatchCache()
-	np.refreshNetworkPolicies(refreshForNamespaces)
+	npns := np.namespacesByName[ns.Name]
+	if npns == nil {
+		return
+	}
+
+	delete(np.namespacesByName, ns.Name)
+	npns.gotNamespace = false
+
+	// We don't need to call flushNSMatchCache or refreshNetworkPolicies here; if the
+	// VNID doesn't get reused then the stale cache entries/flows won't hurt anything,
+	// and if it does get reused then things will be cleaned up then.
 }
 
 func (np *networkPolicyPlugin) refreshNetworkPolicies(refreshFor refreshForType) {
