@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -528,5 +529,164 @@ func TestNetworkPolicy(t *testing.T) {
 	})
 	if err != nil {
 		t.Error(err.Error())
+	}
+}
+
+// Disabled (by initial "_") becaues it's really really slow in CI for some reason?
+func _TestNetworkPolicyCache(t *testing.T) {
+	const (
+		initialNamespaces uint32 = 1000
+		extraNamespaces   uint32 = 500
+	)
+
+	np := &networkPolicyPlugin{
+		namespaces:       make(map[uint32]*npNamespace),
+		namespacesByName: make(map[string]*npNamespace),
+		pods:             make(map[ktypes.UID]corev1.Pod),
+		nsMatchCache:     make(map[string]*npCacheEntry),
+	}
+	np.vnids = newNodeVNIDMap(np, nil)
+
+	start := time.Now()
+
+	// Create initialNamespaces namespaces, each with deny-all, allow-from-self, and
+	// allow-from-global-namespace policies
+	for vnid := uint32(0); vnid < initialNamespaces; vnid++ {
+		name := fmt.Sprintf("namespace-%d", vnid)
+		addNamespace(np, name, vnid, map[string]string{
+			"pod.network.openshift.io/legacy-netid": fmt.Sprintf("%d", vnid),
+			"name":                                  name,
+		})
+		npns := np.namespaces[vnid]
+
+		np.handleAddOrUpdateNetworkPolicy(&networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "deny-all",
+				UID:       uid(npns, "deny-all"),
+				Namespace: name,
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+				Ingress:     []networkingv1.NetworkPolicyIngressRule{},
+			},
+		}, nil, watch.Added)
+
+		np.handleAddOrUpdateNetworkPolicy(&networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-from-self",
+				UID:       uid(npns, "allow-from-self"),
+				Namespace: name,
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{{
+					From: []networkingv1.NetworkPolicyPeer{{
+						PodSelector: &metav1.LabelSelector{},
+					}},
+				}},
+			},
+		}, nil, watch.Added)
+
+		np.handleAddOrUpdateNetworkPolicy(&networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-from-global-namespaces",
+				UID:       uid(npns, "allow-from-global-namespaces"),
+				Namespace: name,
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{{
+					From: []networkingv1.NetworkPolicyPeer{{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"pod.network.openshift.io/legacy-netid": "0",
+							},
+						},
+					}},
+				}},
+			},
+		}, nil, watch.Added)
+	}
+
+	// Create an additional NetworkPolicy in namespace-1 for each namespace
+	// that comes after it, allowing access from only that one Namespace. (Ugh!)
+	npns1 := np.namespaces[1]
+	for vnid := uint32(2); vnid < initialNamespaces; vnid++ {
+		name := fmt.Sprintf("namespace-%d", vnid)
+		np.handleAddOrUpdateNetworkPolicy(&networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-from-" + name,
+				UID:       uid(npns1, name),
+				Namespace: npns1.name,
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{{
+					From: []networkingv1.NetworkPolicyPeer{{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"name": name,
+							},
+						},
+					}},
+				}},
+			},
+		}, nil, watch.Added)
+	}
+
+	// Re-add all the namespaces; this simulates what happens on sdn startup.
+	for vnid := uint32(0); vnid < initialNamespaces; vnid++ {
+		name := fmt.Sprintf("namespace-%d", vnid)
+		addNamespace(np, name, vnid, map[string]string{
+			"pod.network.openshift.io/legacy-netid": fmt.Sprintf("%d", vnid),
+			"name":                                  name,
+		})
+	}
+
+	// Add more namespaces...
+	for vnid := initialNamespaces; vnid < initialNamespaces+extraNamespaces; vnid++ {
+		name := fmt.Sprintf("namespace-%d", vnid)
+		addNamespace(np, name, vnid, map[string]string{
+			"pod.network.openshift.io/legacy-netid": fmt.Sprintf("%d", vnid),
+			"name":                                  name,
+		})
+	}
+
+	// On my laptop this runs in 4s with the cache and 1m45s without
+	elapsed := time.Since(start)
+	if elapsed > time.Minute {
+		t.Fatalf("Test took unexpectedly long (%v); cache is broken", elapsed)
+	}
+
+	// Deleting any namespace-selecting policy from any namespace will cause the cache
+	// to shrink
+	cacheSize := len(np.nsMatchCache)
+	npns2 := np.namespaces[2]
+	np.handleDeleteNetworkPolicy(&networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-global-namespaces",
+			UID:       uid(npns2, "allow-from-global-namespaces"),
+			Namespace: npns2.name,
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{{
+				From: []networkingv1.NetworkPolicyPeer{{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"pod.network.openshift.io/legacy-netid": "0",
+						},
+					},
+				}},
+			}},
+		},
+	})
+	if len(np.nsMatchCache) != cacheSize-1 {
+		t.Fatalf("Expected cache size to shrink from %d to %d, got %d", cacheSize, cacheSize-1, len(np.nsMatchCache))
 	}
 }
