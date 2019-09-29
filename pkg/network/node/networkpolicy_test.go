@@ -31,6 +31,21 @@ func addNamespace(np *networkPolicyPlugin, name string, vnid uint32, labels map[
 	}, nil, watch.Added)
 }
 
+func delNamespace(np *networkPolicyPlugin, name string, vnid uint32) {
+	np.vnids.handleDeleteNetNamespace(&networkv1.NetNamespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		NetName: name,
+		NetID:   vnid,
+	})
+	np.handleDeleteNamespace(&kapi.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	})
+}
+
 func uid(npns *npNamespace, name string) ktypes.UID {
 	return ktypes.UID(name + "-" + npns.name)
 }
@@ -112,9 +127,10 @@ func addPods(np *networkPolicyPlugin, npns *npNamespace) {
 
 func TestNetworkPolicy(t *testing.T) {
 	np := &networkPolicyPlugin{
-		namespaces:  make(map[uint32]*npNamespace),
-		kNamespaces: make(map[string]kapi.Namespace),
-		pods:        make(map[ktypes.UID]kapi.Pod),
+		namespaces:       make(map[uint32]*npNamespace),
+		namespacesByName: make(map[string]*npNamespace),
+		pods:             make(map[ktypes.UID]kapi.Pod),
+		nsMatchCache:     make(map[string]map[string]uint32),
 	}
 	np.vnids = newNodeVNIDMap(np, nil)
 
@@ -416,5 +432,40 @@ func TestNetworkPolicy(t *testing.T) {
 		default:
 			t.Errorf("Unexpected namespace %d / %s", vnid, npns.name)
 		}
+	}
+
+	// If we delete a namespace, then stale policies may be left behind...
+	delNamespace(np, "namespace-2", 2)
+	err = assertPolicies(npns1, 5, map[string]*npPolicy{
+		"allow-from-even": {
+			watchesNamespaces: true,
+			watchesPods:       false,
+			flows: []string{
+				"reg0=2",
+				"reg0=4",
+				"reg0=6",
+				"reg0=8",
+			},
+		},
+	})
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// ...but they'll be cleaned up as soon as we add any new namespace
+	addNamespace(np, "unrelated", 100, nil)
+	err = assertPolicies(npns1, 5, map[string]*npPolicy{
+		"allow-from-even": {
+			watchesNamespaces: true,
+			watchesPods:       false,
+			flows: []string{
+				"reg0=4",
+				"reg0=6",
+				"reg0=8",
+			},
+		},
+	})
+	if err != nil {
+		t.Error(err.Error())
 	}
 }
