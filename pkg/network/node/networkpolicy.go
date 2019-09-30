@@ -42,7 +42,7 @@ type networkPolicyPlugin struct {
 	// for all flow-generating methods
 	namespaces map[uint32]*npNamespace
 	// nsMatchCache caches matches for namespaceSelectors; see selectNamespaceInternal
-	nsMatchCache map[string]map[string]uint32
+	nsMatchCache map[string]*npCacheEntry
 
 	pods map[ktypes.UID]kapi.Pod
 }
@@ -71,6 +71,12 @@ type npPolicy struct {
 	selectedIPs []string
 }
 
+// npCacheEntry caches information about matches for a LabelSelector
+type npCacheEntry struct {
+	selector labels.Selector
+	matches  map[string]uint32
+}
+
 type refreshForType string
 
 const (
@@ -84,7 +90,7 @@ func NewNetworkPolicyPlugin() osdnPolicy {
 		namespacesByName: make(map[string]*npNamespace),
 		pods:             make(map[ktypes.UID]kapi.Pod),
 
-		nsMatchCache: make(map[string]map[string]uint32),
+		nsMatchCache: make(map[string]*npCacheEntry),
 	}
 }
 
@@ -191,7 +197,7 @@ func (np *networkPolicyPlugin) AddNetNamespace(netns *networkapi.NetNamespace) {
 
 	npns.gotNetNamespace = true
 	if npns.gotNamespace {
-		np.flushNSMatchCache()
+		np.updateMatchCache(npns)
 		np.refreshNetworkPolicies(refreshForNamespaces)
 	}
 }
@@ -222,9 +228,10 @@ func (np *networkPolicyPlugin) DeleteNetNamespace(netns *networkapi.NetNamespace
 	delete(np.namespaces, netns.NetID)
 	npns.gotNetNamespace = false
 
-	// We don't need to call flushNSMatchCache or refreshNetworkPolicies here; if the
-	// VNID doesn't get reused then the stale cache entries/flows won't hurt anything,
-	// and if it does get reused then things will be cleaned up then.
+	// We don't need to call refreshNetworkPolicies here; if the VNID doesn't get
+	// reused then the stale flows won't hurt anything, and if it does get reused then
+	// things will be cleaned up then. However, we do have to clean up the cache.
+	np.updateMatchCache(npns)
 }
 
 func (np *networkPolicyPlugin) GetVNID(namespace string) (uint32, error) {
@@ -340,23 +347,39 @@ func (np *networkPolicyPlugin) SyncVNIDRules() {
 // Yes, if a selector matches against multiple labels then the order they appear in
 // cacheKey here is non-deterministic, but that just means that, eg, we might compute the
 // results twice rather than just once, and twice is still better than 10,000 times.
-func (np *networkPolicyPlugin) selectNamespacesInternal(sel labels.Selector) map[string]uint32 {
-	cacheKey := sel.String()
-	namespaces, wasCached := np.nsMatchCache[cacheKey]
-	if !wasCached {
-		namespaces = make(map[string]uint32)
+func (np *networkPolicyPlugin) selectNamespacesInternal(selector labels.Selector) map[string]uint32 {
+	cacheKey := selector.String()
+	match := np.nsMatchCache[cacheKey]
+	if match == nil {
+		match = &npCacheEntry{selector: selector, matches: make(map[string]uint32)}
 		for vnid, npns := range np.namespaces {
-			if npns.gotNamespace && sel.Matches(labels.Set(npns.labels)) {
-				namespaces[npns.name] = vnid
+			if npns.gotNamespace && selector.Matches(labels.Set(npns.labels)) {
+				match.matches[npns.name] = vnid
 			}
 		}
-		np.nsMatchCache[cacheKey] = namespaces
+		np.nsMatchCache[cacheKey] = match
 	}
-	return namespaces
+	return match.matches
 }
 
-func (np *networkPolicyPlugin) flushNSMatchCache() {
-	np.nsMatchCache = make(map[string]map[string]uint32)
+func (np *networkPolicyPlugin) updateMatchCache(npns *npNamespace) {
+	for _, match := range np.nsMatchCache {
+		if npns.gotNamespace && npns.gotNetNamespace && match.selector.Matches(labels.Set(npns.labels)) {
+			match.matches[npns.name] = npns.vnid
+		} else {
+			delete(match.matches, npns.name)
+		}
+	}
+}
+
+func (np *networkPolicyPlugin) flushMatchCache(lsel *metav1.LabelSelector) {
+	selector, err := metav1.LabelSelectorAsSelector(lsel)
+	if err != nil {
+		// Shouldn't happen
+		utilruntime.HandleError(fmt.Errorf("ValidateNetworkPolicy() failure! Invalid NamespaceSelector: %v", err))
+		return
+	}
+	delete(np.nsMatchCache, selector.String())
 }
 
 func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []uint32 {
@@ -488,6 +511,21 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *net
 	return npp, nil
 }
 
+// Cleans up after a NetworkPolicy that is being deleted
+func (np *networkPolicyPlugin) cleanupNetworkPolicy(policy *networking.NetworkPolicy) {
+	for _, rule := range policy.Spec.Ingress {
+		for _, peer := range rule.From {
+			if peer.NamespaceSelector != nil {
+				if len(peer.NamespaceSelector.MatchLabels) != 0 || len(peer.NamespaceSelector.MatchExpressions) != 0 {
+					// This is overzealous; there may still be other policies
+					// with the same selector. But it's simple.
+					np.flushMatchCache(peer.NamespaceSelector)
+				}
+			}
+		}
+	}
+}
+
 func (np *networkPolicyPlugin) updateNetworkPolicy(npns *npNamespace, policy *networking.NetworkPolicy) bool {
 	npp, err := np.parseNetworkPolicy(npns, policy)
 	if err != nil {
@@ -546,6 +584,7 @@ func (np *networkPolicyPlugin) handleDeleteNetworkPolicy(obj interface{}) {
 	defer np.lock.Unlock()
 
 	if npns, exists := np.namespaces[vnid]; exists {
+		np.cleanupNetworkPolicy(policy)
 		delete(npns.policies, policy.UID)
 		if npns.inUse {
 			np.syncNamespace(npns)
@@ -627,7 +666,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, ev
 
 	npns.gotNamespace = true
 	if npns.gotNetNamespace {
-		np.flushNSMatchCache()
+		np.updateMatchCache(npns)
 		np.refreshNetworkPolicies(refreshForNamespaces)
 	}
 }
@@ -647,9 +686,10 @@ func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
 	delete(np.namespacesByName, ns.Name)
 	npns.gotNamespace = false
 
-	// We don't need to call flushNSMatchCache or refreshNetworkPolicies here; if the
-	// VNID doesn't get reused then the stale cache entries/flows won't hurt anything,
-	// and if it does get reused then things will be cleaned up then.
+	// We don't need to call refreshNetworkPolicies here; if the VNID doesn't get
+	// reused then the stale flows won't hurt anything, and if it does get reused then
+	// things will be cleaned up then. However, we do have to clean up the cache.
+	np.updateMatchCache(npns)
 }
 
 func (np *networkPolicyPlugin) refreshNetworkPolicies(refreshFor refreshForType) {

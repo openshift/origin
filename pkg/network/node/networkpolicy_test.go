@@ -130,7 +130,7 @@ func TestNetworkPolicy(t *testing.T) {
 		namespaces:       make(map[uint32]*npNamespace),
 		namespacesByName: make(map[string]*npNamespace),
 		pods:             make(map[ktypes.UID]kapi.Pod),
-		nsMatchCache:     make(map[string]map[string]uint32),
+		nsMatchCache:     make(map[string]*npCacheEntry),
 	}
 	np.vnids = newNodeVNIDMap(np, nil)
 
@@ -462,6 +462,62 @@ func TestNetworkPolicy(t *testing.T) {
 				"reg0=4",
 				"reg0=6",
 				"reg0=8",
+			},
+		},
+	})
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Deleting a policy in one namespace will not affect other namespaces
+	npns4 := np.namespaces[4]
+	np.handleDeleteNetworkPolicy(&networking.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-default",
+			UID:       uid(npns4, "allow-from-default"),
+			Namespace: npns4.name,
+		},
+		Spec: networking.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+			PolicyTypes: []networking.PolicyType{networking.PolicyTypeIngress},
+			Ingress: []networking.NetworkPolicyIngressRule{{
+				From: []networking.NetworkPolicyPeer{{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"default": "true",
+						},
+					},
+				}},
+			}},
+		},
+	})
+
+	err = assertPolicies(npns4, 2, map[string]*npPolicy{
+		"allow-from-self": {
+			watchesNamespaces: false,
+			watchesPods:       false,
+			flows: []string{
+				fmt.Sprintf("reg0=%d", npns4.vnid),
+			},
+		},
+		"allow-client-to-server": {
+			watchesNamespaces: false,
+			watchesPods:       true,
+			flows: []string{
+				fmt.Sprintf("ip, nw_dst=%s, reg0=%d, ip, nw_src=%s", serverIP(npns4), npns4.vnid, clientIP(npns4)),
+			},
+		},
+	})
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	err = assertPolicies(npns1, 5, map[string]*npPolicy{
+		"allow-from-default": {
+			watchesNamespaces: true,
+			watchesPods:       false,
+			flows: []string{
+				"reg0=0",
 			},
 		},
 	})
