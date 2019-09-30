@@ -399,11 +399,13 @@ var (
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
 		"[Disabled:Broken]": {
-			`mount an API token into pods`,                                               // We add 6 secrets, not 1
-			`ServiceAccounts should ensure a single API token exists`,                    // We create lots of secrets
-			`unchanging, static URL paths for kubernetes api services`,                   // the test needs to exclude URLs that are not part of conformance (/logs)
-			`Simple pod should handle in-cluster config`,                                 // kubectl cp is not preserving executable bit
-			`Services should be able to up and down services`,                            // we don't have wget installed on nodes
+			`mount an API token into pods`,                             // We add 6 secrets, not 1
+			`ServiceAccounts should ensure a single API token exists`,  // We create lots of secrets
+			`unchanging, static URL paths for kubernetes api services`, // the test needs to exclude URLs that are not part of conformance (/logs)
+			`Simple pod should handle in-cluster config`,               // kubectl cp is not preserving executable bit
+			`Services should be able to up and down services`,          // we don't have wget installed on nodes
+			`Services should implement service.kubernetes.io/headless`, // we don't have wget installed on nodes
+
 			`Network should set TCP CLOSE_WAIT timeout`,                                  // possibly some difference between ubuntu and fedora
 			`Services should be able to create a functioning NodePort service`,           // https://bugzilla.redhat.com/show_bug.cgi?id=1711603
 			`\[NodeFeature:Sysctls\]`,                                                    // needs SCC support
@@ -435,12 +437,6 @@ var (
 			"should run a Pod requesting a RuntimeClass with a configured handler",
 			"should reject a Pod requesting a RuntimeClass with conflicting node selector",
 			"should run a Pod requesting a RuntimeClass with scheduling",
-
-			// TODO(sdn): reenable when openshift/sdn is rebased to 1.16
-			`Services should implement service.kubernetes.io/headless`,
-
-			// TODO(sdn): test pod fails to connect in 1.16
-			`should allow ingress access from updated pod`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
