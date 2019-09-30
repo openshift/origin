@@ -69,6 +69,26 @@ func TestNoHandlersRedirect(t *testing.T) {
 	}
 }
 
+func TestUnknownIDPRedirect(t *testing.T) {
+	expectedError := "Unable to locate redirect handler: something&lt;iframe&gt;awfull&lt;/iframe&gt;&lt;iframe&gt;encoded&lt;/iframe&gt;"
+
+	authHandler := NewUnionAuthenticationHandler(nil, nil, nil, nil)
+	client := &testClient{&oauthapi.OAuthClient{}}
+	req, _ := http.NewRequest("GET", "http://example.org/?idp=something<iframe>awfull</iframe>%3Ciframe%3Eencoded%3C%2Fiframe%3E", nil)
+	responseRecorder := httptest.NewRecorder()
+	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
+
+	if err == nil {
+		t.Errorf("Expected error, got none")
+	} else if err.Error() != expectedError {
+		t.Errorf("expected error to be '%s', got '%v' instead", expectedError, err)
+	}
+
+	if handled {
+		t.Error("Unexpectedly handled.")
+	}
+}
+
 func TestNoHandlersChallenge(t *testing.T) {
 	authHandler := NewUnionAuthenticationHandler(nil, nil, nil, nil)
 	client := &testClient{&oauthapi.OAuthClient{RespondWithChallenges: true}}
