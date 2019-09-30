@@ -1,5 +1,5 @@
-hash: 43fae334249fe7affafcbdb84cd49cfb0027e7bdb5d09565bce318233cccb195
-updated: 2019-09-23T12:01:56.433081+02:00
+hash: b2a96844db465ddee049852e6716d95a24e43b7937a0779c4b309133d898eb23
+updated: 2019-09-30T13:18:12.924970965-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -801,7 +801,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 169848dd81372b8176b925c10b37a05424db5f2f
+  version: f63e5a750d92102c976926eb2d9c55d830d26977
   subpackages:
   - annotations
   - apps
@@ -851,7 +851,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 19dcb95e108ce9c22f3f134043def29c601733c8
+  version: 623481f3614327028294e05c4c712847c41c7184
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -871,7 +871,7 @@ imports:
   - pkg/securitycontextconstraints/util
   - pkg/securitycontextconstraints/util/sort
 - name: github.com/openshift/client-go
-  version: 6afefc9bb37281f45d12d624156e39e363eaf4fd
+  version: 3b6373338c9bb11fbcf329c25e81ae7e9a1ed8c6
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -972,7 +972,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 76b67dd70a86d147ea3e7677aa5f9682ff94770f
+  version: c355e2019bb35b1ae2b060208fdad8b488c28838
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -984,6 +984,7 @@ imports:
   - pkg/authorization/scopemetadata
   - pkg/build/naming
   - pkg/config/client
+  - pkg/config/clusteroperator/v1helpers
   - pkg/config/configdefaults
   - pkg/config/helpers
   - pkg/config/validation

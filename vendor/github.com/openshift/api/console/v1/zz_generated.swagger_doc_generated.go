@@ -58,6 +58,14 @@ func (ConsoleExternalLogLink) SwaggerDoc() map[string]string {
 	return map_ConsoleExternalLogLink
 }
 
+var map_ConsoleExternalLogLinkList = map[string]string{
+	"metadata": "Standard object's metadata.",
+}
+
+func (ConsoleExternalLogLinkList) SwaggerDoc() map[string]string {
+	return map_ConsoleExternalLogLinkList
+}
+
 var map_ConsoleExternalLogLinkSpec = map[string]string{
 	"":                "ConsoleExternalLogLinkSpec is the desired log link configuration. The log link will appear on the logs tab of the pod details page.",
 	"text":            "text is the display text for the link",
@@ -97,13 +105,23 @@ func (ConsoleLinkList) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleLinkSpec = map[string]string{
-	"":                "ConsoleLinkSpec is the desired console link configuration.",
-	"location":        "location determines which location in the console the link will be appended to.",
-	"applicationMenu": "applicationMenu holds information about section and icon used for the link in the application menu, and it is applicable only when location is set to ApplicationMenu.",
+	"":                   "ConsoleLinkSpec is the desired console link configuration.",
+	"location":           "location determines which location in the console the link will be appended to.",
+	"applicationMenu":    "applicationMenu holds information about section and icon used for the link in the application menu, and it is applicable only when location is set to ApplicationMenu.",
+	"namespaceDashboard": "namespaceDashboard holds information about namespaces in which the dashboard link should appear, and it is applicable only when location is set to NamespaceDashboard. If not specified, the link will appear in all namespaces.",
 }
 
 func (ConsoleLinkSpec) SwaggerDoc() map[string]string {
 	return map_ConsoleLinkSpec
+}
+
+var map_NamespaceDashboardSpec = map[string]string{
+	"":           "NamespaceDashboardSpec is a specification of namespaces in which the dashboard link should appear.",
+	"namespaces": "namespaces is an array of namespace names in which the dashboard link should appear.",
+}
+
+func (NamespaceDashboardSpec) SwaggerDoc() map[string]string {
+	return map_NamespaceDashboardSpec
 }
 
 var map_ConsoleNotification = map[string]string{

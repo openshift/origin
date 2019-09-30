@@ -24,6 +24,12 @@ type ConsoleLinkSpec struct {
 	//
 	// +optional
 	ApplicationMenu *ApplicationMenuSpec `json:"applicationMenu,omitempty"`
+	// namespaceDashboard holds information about namespaces in which the dashboard link should
+	// appear, and it is applicable only when location is set to NamespaceDashboard.
+	// If not specified, the link will appear in all namespaces.
+	//
+	// +optional
+	NamespaceDashboard *NamespaceDashboardSpec `json:"namespaceDashboard,omitempty"`
 }
 
 // ApplicationMenuSpec is the specification of the desired section and icon used for the link in the application menu.
@@ -36,6 +42,12 @@ type ApplicationMenuSpec struct {
 	ImageURL string `json:"imageURL,omitempty"`
 }
 
+// NamespaceDashboardSpec is a specification of namespaces in which the dashboard link should appear.
+type NamespaceDashboardSpec struct {
+	// namespaces is an array of namespace names in which the dashboard link should appear.
+	Namespaces []string `json:"namespaces"`
+}
+
 // ConsoleLinkLocationSelector is a set of possible menu targets to which a link may be appended.
 type ConsoleLinkLocation string
 
@@ -46,6 +58,8 @@ const (
 	UserMenu ConsoleLinkLocation = "UserMenu"
 	// ApplicationMenu indicates that the link should appear inside the application menu of the console.
 	ApplicationMenu ConsoleLinkLocation = "ApplicationMenu"
+	// NamespaceDashboard indicates that the link should appear in the namespaced dashboard of the console.
+	NamespaceDashboard ConsoleLinkLocation = "NamespaceDashboard"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

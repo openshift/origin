@@ -107,11 +107,10 @@ type OAuthClient struct {
 	// +patchStrategy=merge
 	RedirectURIs []string `json:"redirectURIs,omitempty" patchStrategy:"merge" protobuf:"bytes,5,rep,name=redirectURIs"`
 
-	// GrantMethod determines how to handle grants for this client. If no method is provided, the
-	// cluster default grant handling method will be used. Valid grant handling methods are:
+	// GrantMethod is a required field which determines how to handle grants for this client.
+	// Valid grant handling methods are:
 	//  - auto:   always approves grant requests, useful for trusted clients
 	//  - prompt: prompts the end user for approval of grant requests, useful for third-party clients
-	//  - deny:   always denies grant requests, useful for black-listed clients
 	GrantMethod GrantHandlerType `json:"grantMethod,omitempty" protobuf:"bytes,6,opt,name=grantMethod,casttype=GrantHandlerType"`
 
 	// ScopeRestrictions describes which scopes this client can request.  Each requested scope

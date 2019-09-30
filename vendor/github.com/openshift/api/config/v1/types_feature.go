@@ -35,6 +35,9 @@ var (
 	// Because of its nature, this setting cannot be validated.  If you have any typos or accidentally apply invalid combinations
 	// your cluster may fail in an unrecoverable way.
 	CustomNoUpgrade FeatureSet = "CustomNoUpgrade"
+
+	// TopologyManager enables ToplogyManager support. Upgrades are enabled with this feature.
+	LatencySensitive FeatureSet = "LatencySensitive"
 )
 
 type FeatureGateSpec struct {
@@ -105,11 +108,26 @@ var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
 			"LocalStorageCapacityIsolation", // sig-pod, sjenning
 		},
 	},
+	CustomNoUpgrade: {
+		Enabled:  []string{},
+		Disabled: []string{},
+	},
 	TechPreviewNoUpgrade: {
 		Enabled: []string{
 			"ExperimentalCriticalPodAnnotation", // sig-pod, sjenning
 			"RotateKubeletServerCertificate",    // sig-pod, sjenning
 			"SupportPodPidsLimit",               // sig-pod, sjenning
+		},
+		Disabled: []string{
+			"LocalStorageCapacityIsolation", // sig-pod, sjenning
+		},
+	},
+	LatencySensitive: {
+		Enabled: []string{
+			"ExperimentalCriticalPodAnnotation", // sig-pod, sjenning
+			"RotateKubeletServerCertificate",    // sig-pod, sjenning
+			"SupportPodPidsLimit",               // sig-pod, sjenning
+			"TopologyManager",                   // sig-pod, sjenning
 		},
 		Disabled: []string{
 			"LocalStorageCapacityIsolation", // sig-pod, sjenning

@@ -17,16 +17,13 @@ limitations under the License.
 package scheduling
 
 import (
-	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -419,6 +416,10 @@ var _ = SIGDescribe("NoExecuteTaintManager Multiple Pods [Serial]", func() {
 	*/
 	framework.ConformanceIt("evicts pods with minTolerationSeconds", func() {
 		podGroup := "taint-eviction-b"
+		observedDeletions := make(chan string, 100)
+		stopCh := make(chan struct{})
+		createTestController(cs, observedDeletions, stopCh, podGroup, ns)
+
 		// 1. Run two pods both with toleration; one with tolerationSeconds=5, the other with 25
 		pod1 := createPodForTaintsTest(true, additionalWaitPerDeleteSeconds, podGroup+"1", podGroup, ns)
 		pod2 := createPodForTaintsTest(true, 5*additionalWaitPerDeleteSeconds, podGroup+"2", podGroup, ns)
@@ -449,23 +450,19 @@ var _ = SIGDescribe("NoExecuteTaintManager Multiple Pods [Serial]", func() {
 		framework.ExpectNodeHasTaint(cs, nodeName, &testTaint)
 		defer framework.RemoveTaintOffNode(cs, nodeName, testTaint)
 
-		wait.PollImmediate(1*time.Second, (kubeletPodDeletionDelaySeconds+14*additionalWaitPerDeleteSeconds)*time.Second, func() (bool, error) {
-			deleted := 0
-			for i := 1; i < 3; i++ {
-				_, err := cs.CoreV1().Pods(ns).Get(fmt.Sprintf("%s%d", podGroup, i), metav1.GetOptions{})
-				if err == nil {
-					return false, nil
-				}
-				if errors.IsNotFound(err) {
-					deleted++
-				} else {
-					return false, err
-				}
+		// 3. Wait to see if both pods get evicted in between [5, 25] seconds
+		ginkgo.By("Waiting for Pod1 and Pod2 to be deleted")
+		timeoutChannel := time.NewTimer(time.Duration(kubeletPodDeletionDelaySeconds+3*additionalWaitPerDeleteSeconds) * time.Second).C
+		var evicted int
+		for evicted != 2 {
+			select {
+			case <-timeoutChannel:
+				e2elog.Failf("Failed to evict all Pods. %d pod(s) is not evicted.", 2-evicted)
+				return
+			case podName := <-observedDeletions:
+				e2elog.Logf("Noticed Pod %q gets evicted.", podName)
+				evicted++
 			}
-			if deleted == 2 {
-				return true, nil
-			}
-			return false, nil
-		})
+		}
 	})
 })

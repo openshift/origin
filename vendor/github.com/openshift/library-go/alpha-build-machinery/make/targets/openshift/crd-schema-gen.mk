@@ -9,6 +9,7 @@ crd_patches =$(subst $(CRD_SCHEMA_GEN_MANIFESTS),$(CRD_SCHEMA_GEN_OUTPUT),$(wild
 # $1 - crd file
 # $2 - patch file
 define patch-crd
+	cp -n $(CRD_SCHEMA_GEN_MANIFESTS)/$(notdir $2) '$(CRD_SCHEMA_GEN_OUTPUT)/' || true  # FIXME: centos
 	$(YQ) m -i '$(1)' '$(2)'
 
 endef
@@ -19,7 +20,6 @@ update-codegen-crds: ensure-controller-gen ensure-yq
 		schemapatch:manifests="$(CRD_SCHEMA_GEN_MANIFESTS)" \
 		paths="$(subst $(empty) ,;,$(CRD_SCHEMA_GEN_APIS))" \
 		output:dir="$(CRD_SCHEMA_GEN_OUTPUT)"
-	cp -n $(wildcard $(CRD_SCHEMA_GEN_MANIFESTS)/*.crd.yaml-merge-patch) '$(CRD_SCHEMA_GEN_OUTPUT)/' || true  # FIXME: centos
 	$(foreach p,$(crd_patches),$(call patch-crd,$(basename $(p)).yaml,$(p)))
 .PHONY: update-codegen-crds
 

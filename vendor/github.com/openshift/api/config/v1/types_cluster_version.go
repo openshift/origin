@@ -94,7 +94,7 @@ type ClusterVersionStatus struct {
 
 	// observedGeneration reports which version of the spec is being synced.
 	// If this value is not equal to metadata.generation, then the desired
-	// and conditions fields may represent from a previous version.
+	// and conditions fields may represent a previous version.
 	ObservedGeneration int64 `json:"observedGeneration"`
 
 	// versionHash is a fingerprint of the content that the cluster will be
