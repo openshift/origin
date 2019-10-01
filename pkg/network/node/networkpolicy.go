@@ -12,7 +12,6 @@ import (
 
 	"github.com/golang/glog"
 
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	ktypes "k8s.io/apimachinery/pkg/types"
@@ -142,9 +141,6 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 
 	policies, err := np.node.kClient.Networking().NetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
-		if kapierrs.IsForbidden(err) {
-			utilruntime.HandleError(fmt.Errorf("Unable to query NetworkPolicies (%v) - please ensure your nodes have access to view NetworkPolicy (eg, 'oc adm policy reconcile-cluster-roles')", err))
-		}
 		return err
 	}
 	for _, policy := range policies.Items {
@@ -348,9 +344,9 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *net
 		}
 	}
 	if !affectsIngress {
-		// The rest of this file assumes that all policies affect ingress: a policy that
-		// only affects egress is, for our purposes, equivalent to one that affects
-		// ingress but does not select any pods.
+		// The rest of this function assumes that all policies affect ingress: a
+		// policy that only affects egress is, for our purposes, equivalent to one
+		// that affects ingress but does not select any pods.
 		npp.selectedIPs = []string{""}
 		return npp, nil
 	}
@@ -379,7 +375,7 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *net
 			} else if *port.Protocol == kapi.ProtocolTCP || *port.Protocol == kapi.ProtocolUDP {
 				protocol = strings.ToLower(string(*port.Protocol))
 			} else {
-				// FIXME: validation should catch this
+				// upstream is unlikely to add any more protocol values, but just in case...
 				return nil, fmt.Errorf("policy specifies unrecognized protocol %q", *port.Protocol)
 			}
 			var portNum int
@@ -387,14 +383,9 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *net
 				// FIXME: implement this?
 				return nil, fmt.Errorf("port fields with no port value are not implemented")
 			} else if port.Port.Type != intstr.Int {
-				// FIXME: implement this?
 				return nil, fmt.Errorf("named port values (%q) are not implemented", port.Port.StrVal)
 			} else {
 				portNum = int(port.Port.IntVal)
-				if portNum < 0 || portNum > 0xFFFF {
-					// FIXME: validation should catch this
-					return nil, fmt.Errorf("port value out of bounds %q", port.Port.IntVal)
-				}
 			}
 			portFlows = append(portFlows, fmt.Sprintf("%s, tp_dst=%d, ", protocol, portNum))
 		}
