@@ -215,9 +215,7 @@ func (i *instance) startChild() (err error) {
 	if err != nil {
 		return err
 	}
-	if !(i.opts != nil && i.opts.SuppressDevAppServerLog) {
-		stderr = io.TeeReader(stderr, os.Stderr)
-	}
+
 	if err = i.child.Start(); err != nil {
 		return err
 	}
@@ -227,6 +225,10 @@ func (i *instance) startChild() (err error) {
 	go func() {
 		s := bufio.NewScanner(stderr)
 		for s.Scan() {
+			// Pass stderr along as we go so the user can see it.
+			if !(i.opts != nil && i.opts.SuppressDevAppServerLog) {
+				fmt.Fprintln(os.Stderr, s.Text())
+			}
 			if match := apiServerAddrRE.FindStringSubmatch(s.Text()); match != nil {
 				u, err := url.Parse(match[1])
 				if err != nil {
@@ -239,6 +241,10 @@ func (i *instance) startChild() (err error) {
 				i.adminURL = match[1]
 			}
 			if i.adminURL != "" && i.apiURL != nil {
+				// Pass along stderr to the user after we're done with it.
+				if !(i.opts != nil && i.opts.SuppressDevAppServerLog) {
+					go io.Copy(os.Stderr, stderr)
+				}
 				break
 			}
 		}

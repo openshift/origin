@@ -1,0 +1,6 @@
+spec:
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          pattern: "^(test|TEST)$"

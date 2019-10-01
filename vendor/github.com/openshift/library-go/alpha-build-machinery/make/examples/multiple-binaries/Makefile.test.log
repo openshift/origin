@@ -1,6 +1,4 @@
-make build
-fatal: No names found, cannot describe anything.
-fatal: No names found, cannot describe anything.
+make build SOURCE_GIT_TAG=v42.43.44 SOURCE_GIT_COMMIT=aaa SOURCE_GIT_TREE_STATE=clean
 go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
 go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
 [[ -f ./openshift ]]
@@ -8,18 +6,23 @@ go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machiner
 # test version is set correctly when linking
 #   majorFromGit, minorFromGit are deprecated upstream and set to empty value
 #   we avoid comparing time to avoid flakes
-#   we avoid comparing git tree state
-diff <( ./oc | grep -v -e 'clean' -e 'dirty' | sed '$d' ) <( \
-	echo ""; \
-	echo ""; \
-	git rev-parse --short "HEAD^{commit}" 2>/dev/null; \
-	git describe --long --tags --abbrev=7 --match 'v[0-9]*' || echo 'v0.0.0-unknown'; \
+diff <( ./oc | sed '$d' ) <( \
+	echo '' && \
+	echo '' && \
+	echo 'aaa' && \
+	echo 'v42.43.44' && \
+	echo 'clean' \
 )
-fatal: No names found, cannot describe anything.
 make clean
 rm -f oc openshift
 rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f -r '_output/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'
+if [ -d '_output/tools/src/sigs.k8s.io/controller-tools' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/src/sigs.k8s.io/controller-tools'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f '_output/tools/bin/yq'
+if [ -d '_output/tools/bin/' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/bin/'; fi
 rm -f -r '_output/bin'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
 [[ ! -f ./openshift ]]
@@ -28,9 +31,15 @@ make clean
 rm -f oc openshift
 rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f -r '_output/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'
+if [ -d '_output/tools/src/sigs.k8s.io/controller-tools' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/src/sigs.k8s.io/controller-tools'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f '_output/tools/bin/yq'
+if [ -d '_output/tools/bin/' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/bin/'; fi
 rm -f -r '_output/bin'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
-[[ ! -d ./_output/ ]]
+[[ ! -d ./_output/ ]] || (ls -l ./_output/ && false)
 make cross-build
 fatal: No names found, cannot describe anything.
 fatal: No names found, cannot describe anything.
@@ -54,16 +63,28 @@ make clean
 rm -f oc openshift
 rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f -r '_output/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'
+if [ -d '_output/tools/src/sigs.k8s.io/controller-tools' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/src/sigs.k8s.io/controller-tools'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f '_output/tools/bin/yq'
+if [ -d '_output/tools/bin/' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/bin/'; fi
 rm -f -r '_output/bin'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
-[[ ! -d ./_output/ ]]
+[[ ! -d ./_output/ ]] || (ls -l ./_output/ && false)
 make clean
 rm -f oc openshift
 rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f -r '_output/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'
+if [ -d '_output/tools/src/sigs.k8s.io/controller-tools' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/src/sigs.k8s.io/controller-tools'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f '_output/tools/bin/yq'
+if [ -d '_output/tools/bin/' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/bin/'; fi
 rm -f -r '_output/bin'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
-[[ ! -d ./_output/ ]]
+[[ ! -d ./_output/ ]] || (ls -l ./_output/ && false)
 make rpm-build
 rpmbuild -ba --define "_topdir /github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries" --define "go_package github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries" --quiet --define 'version 2.42.0' --define 'dist .el7' --define 'release 6' ocp.spec
 fatal: No names found, cannot describe anything.
@@ -74,12 +95,198 @@ make clean
 rm -f oc openshift
 rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f -r '_output/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'
+if [ -d '_output/tools/src/sigs.k8s.io/controller-tools' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/src/sigs.k8s.io/controller-tools'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f '_output/tools/bin/yq'
+if [ -d '_output/tools/bin/' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/bin/'; fi
 rm -f -r '_output/bin'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
-[[ ! -d ./_output/ ]]
+[[ ! -d ./_output/ ]] || (ls -l ./_output/ && false)
 make clean
 rm -f oc openshift
 rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f -r '_output/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'
+if [ -d '_output/tools/src/sigs.k8s.io/controller-tools' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/src/sigs.k8s.io/controller-tools'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f '_output/tools/bin/yq'
+if [ -d '_output/tools/bin/' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/bin/'; fi
+rm -f -r '_output/bin'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+cp -r ./testing/manifests/initial/* ./manifests/
+diff -Naup ./testing/manifests/initial/ ./manifests/
+! make verify-codegen-crds
+Installing controller-gen into "_output/tools/src/sigs.k8s.io/controller-tools/controller-gen"
+mkdir -p '_output/tools/src/sigs.k8s.io/controller-tools'
+git clone -b 'v0.2.1' --single-branch --depth=1 https://github.com/kubernetes-sigs/controller-tools.git '_output/tools/src/sigs.k8s.io/controller-tools'
+Cloning into '_output/tools/src/sigs.k8s.io/controller-tools'...
+Note: checking out 'ba11932048e4538f6e435f5ca0cdea19bf458338'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by performing another checkout.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -b with the checkout command again. Example:
+
+
+_output/tools/src/sigs.k8s.io/controller-tools/../..
+cd '_output/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src' && go mod vendor 2>/dev/null && go build -mod=vendor ./cmd/controller-gen
+Installing yq into '_output/tools/bin/yq'
+mkdir -p '_output/tools/bin/'
+curl -s -f -L https://github.com/mikefarah/yq/releases/download/2.4.0/yq_linux_amd64 -o '_output/tools/bin/yq'
+chmod +x '_output/tools/bin/yq';
+'_output/tools/src/sigs.k8s.io/controller-tools/controller-gen' \
+	schemapatch:manifests="./manifests" \
+	paths="./pkg/apis/v1;./pkg/apis/v1beta1" \
+--- ./manifests/operator.openshift.io_myotheroperatorresources.crd.yaml
+@@ -11,9 +11,39 @@ spec:
+   scope: ""
+   version: v1beta1
+   versions:
+-    - name: v1beta1
+-      served: true
+-      storage: true
++  - name: v1beta1
++    served: true
++    storage: true
++  "validation":
++    "openAPIV3Schema":
++      description: MyOtherOperatorResource is an example operator configuration type
++      type: object
++      required:
++      - metadata
++      - spec
++      properties:
++        apiVersion:
++          description: 'APIVersion defines the versioned schema of this representation
++            of an object. Servers should convert recognized schemas to the latest
++            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
++          type: string
++        kind:
++          description: 'Kind is a string value representing the REST resource this
++            object represents. Servers may infer this from the endpoint the client
++            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
++          type: string
++        metadata:
++          type: object
++        spec:
++          type: object
++          required:
++          - deprecatedField
++          - name
++          properties:
++            deprecatedField:
++              type: string
++            name:
++              type: string
+ status:
+   acceptedNames:
+     kind: ""
+make[2]: *** [verify-codegen-crds] Error 1
+make update-codegen-crds
+Using existing controller-gen from "_output/tools/src/sigs.k8s.io/controller-tools/controller-gen"
+Using existing yq from "_output/tools/bin/yq"
+'_output/tools/src/sigs.k8s.io/controller-tools/controller-gen' \
+	schemapatch:manifests="./manifests" \
+	paths="./pkg/apis/v1;./pkg/apis/v1beta1" \
+	output:dir="./manifests"
+cp -n ./manifests/operator.openshift.io_myoperatorresources.crd.yaml-merge-patch './manifests/' || true  # FIXME: centos
+_output/tools/bin/yq m -i './manifests/operator.openshift.io_myoperatorresources.crd.yaml' './manifests/operator.openshift.io_myoperatorresources.crd.yaml-merge-patch'
+make verify-codegen-crds
+Using existing controller-gen from "_output/tools/src/sigs.k8s.io/controller-tools/controller-gen"
+Using existing yq from "_output/tools/bin/yq"
+'_output/tools/src/sigs.k8s.io/controller-tools/controller-gen' \
+	schemapatch:manifests="./manifests" \
+	paths="./pkg/apis/v1;./pkg/apis/v1beta1" \
+! diff -Naup ./testing/manifests/initial/ ./manifests/ 2>/dev/null
+diff -Naup ./testing/manifests/initial/operator.openshift.io_myoperatorresources.crd.yaml ./manifests/operator.openshift.io_myoperatorresources.crd.yaml
+--- ./testing/manifests/initial/operator.openshift.io_myoperatorresources.crd.yaml
++++ ./manifests/operator.openshift.io_myoperatorresources.crd.yaml
+@@ -9,6 +9,11 @@ spec:
+     kind: MyOperatorResource
+     plural: myoperatorresources
+   scope: ""
++  validation:
++    openAPIV3Schema:
++      properties:
++        apiVersion:
++          pattern: ^(test|TEST)$
+ status:
+   acceptedNames:
+     kind: ""
+diff -Naup ./testing/manifests/initial/operator.openshift.io_myotheroperatorresources.crd.yaml ./manifests/operator.openshift.io_myotheroperatorresources.crd.yaml
+--- ./testing/manifests/initial/operator.openshift.io_myotheroperatorresources.crd.yaml
++++ ./manifests/operator.openshift.io_myotheroperatorresources.crd.yaml
+@@ -11,9 +11,39 @@ spec:
+   scope: ""
+   version: v1beta1
+   versions:
+-    - name: v1beta1
+-      served: true
+-      storage: true
++  - name: v1beta1
++    served: true
++    storage: true
++  "validation":
++    "openAPIV3Schema":
++      description: MyOtherOperatorResource is an example operator configuration type
++      type: object
++      required:
++      - metadata
++      - spec
++      properties:
++        apiVersion:
++          description: 'APIVersion defines the versioned schema of this representation
++            of an object. Servers should convert recognized schemas to the latest
++            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
++          type: string
++        kind:
++          description: 'Kind is a string value representing the REST resource this
++            object represents. Servers may infer this from the endpoint the client
++            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
++          type: string
++        metadata:
++          type: object
++        spec:
++          type: object
++          required:
++          - deprecatedField
++          - name
++          properties:
++            deprecatedField:
++              type: string
++            name:
++              type: string
+ status:
+   acceptedNames:
+     kind: ""
+diff -Naup ./testing/manifests/updated/ ./manifests/ 2>/dev/null
+make clean
+rm -f oc openshift
+rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f -r '_output/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'
+if [ -d '_output/tools/src/sigs.k8s.io/controller-tools' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/src/sigs.k8s.io/controller-tools'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f '_output/tools/bin/yq'
+if [ -d '_output/tools/bin/' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/bin/'; fi
+rm -f -r '_output/bin'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+[[ ! -d ./_output/ ]] || (ls -l ./_output/ && false)
+make clean
+rm -f oc openshift
+rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f -r '_output/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'
+if [ -d '_output/tools/src/sigs.k8s.io/controller-tools' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/src/sigs.k8s.io/controller-tools'; fi
+if [ -d '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/tools/src/pkg/mod'; fi
+rm -f '_output/tools/bin/yq'
+if [ -d '_output/tools/bin/' ]; then rmdir --ignore-fail-on-non-empty -p '_output/tools/bin/'; fi
 rm -f -r '_output/bin'
 if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi

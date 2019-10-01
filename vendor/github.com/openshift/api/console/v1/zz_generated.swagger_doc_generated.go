@@ -58,6 +58,14 @@ func (ConsoleExternalLogLink) SwaggerDoc() map[string]string {
 	return map_ConsoleExternalLogLink
 }
 
+var map_ConsoleExternalLogLinkList = map[string]string{
+	"metadata": "Standard object's metadata.",
+}
+
+func (ConsoleExternalLogLinkList) SwaggerDoc() map[string]string {
+	return map_ConsoleExternalLogLinkList
+}
+
 var map_ConsoleExternalLogLinkSpec = map[string]string{
 	"":                "ConsoleExternalLogLinkSpec is the desired log link configuration. The log link will appear on the logs tab of the pod details page.",
 	"text":            "text is the display text for the link",
