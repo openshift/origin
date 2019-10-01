@@ -113,12 +113,12 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("calling the binary using 'oc exec /bin/bash -c'")
-			out, err := oc.Run("exec").Args("-p", pod.Name, "--", "/bin/bash", "-c", t.Cmd).Output()
+			out, err := oc.Run("exec").Args(pod.Name, "--", "/bin/bash", "-c", t.Cmd).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).Should(o.ContainSubstring(t.Expected))
 
 			g.By("calling the binary using 'oc exec /bin/sh -ic'")
-			out, err = oc.Run("exec").Args("-p", pod.Name, "--", "/bin/sh", "-ic", t.Cmd).Output()
+			out, err = oc.Run("exec").Args(pod.Name, "--", "/bin/sh", "-ic", t.Cmd).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).Should(o.ContainSubstring(t.Expected))
 		})
