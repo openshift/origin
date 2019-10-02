@@ -180,7 +180,7 @@ func newGinkgoTestRenamerFromGlobals(provider string, networkSkips []string) *gi
 	for _, network := range networkSkips {
 		excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:Network/%s\]`, network))
 	}
-	klog.Infof("openshift-tests excluded test regex is %q", strings.Join(excludedTests, `|`))
+	klog.V(4).Infof("openshift-tests excluded test regex is %q", strings.Join(excludedTests, `|`))
 	excludedTestsFilter := regexp.MustCompile(strings.Join(excludedTests, `|`))
 
 	return &ginkgoTestRenamer{
