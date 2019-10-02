@@ -31,8 +31,6 @@ import (
 
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
-
-	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 const waitForPrometheusStartSeconds = 240
@@ -226,49 +224,6 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
 
-			g.By("creating a new ingresscontroller")
-			replicas := int32(1)
-			ingress := &operatorv1.IngressController{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "openshift-ingress-operator",
-					Name:      "prometheus",
-				},
-				Spec: operatorv1.IngressControllerSpec{
-					Domain:   "prometheus.e2e.openshift.example.com",
-					Replicas: &replicas,
-					EndpointPublishingStrategy: &operatorv1.EndpointPublishingStrategy{
-						Type: operatorv1.PrivateStrategyType,
-					},
-					RouteSelector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"e2e-test": ns,
-						},
-					},
-				},
-			}
-			_, err := oc.AdminOperatorClient().OperatorV1().IngressControllers(ingress.Namespace).Create(ingress)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			defer func() {
-				dump := func(resources ...string) {
-					for _, resource := range resources {
-						out, err := oc.AsAdmin().Run("get").Args("--namespace", "openshift-ingress", resource, "-o", "json").Output()
-						if err == nil {
-							e2e.Logf("%s", out)
-						} else {
-							e2e.Logf("error getting %s: %v", resource, err)
-						}
-					}
-				}
-				dump("servicemonitors", "services", "endpoints", "pods")
-
-				if err := oc.AdminOperatorClient().OperatorV1().IngressControllers(ingress.Namespace).Delete(ingress.Name, metav1.NewDeleteOptions(1)); err != nil {
-					e2e.Logf("WARNING: failed to delete ingresscontroller '%s/%s' created during test cleanup: %v", ingress.Namespace, ingress.Name, err)
-				} else {
-					e2e.Logf("deleted test ingresscontroller '%s/%s'", ingress.Namespace, ingress.Name)
-				}
-			}()
-
 			var lastErrs []error
 			o.Expect(wait.PollImmediate(10*time.Second, 4*time.Minute, func() (bool, error) {
 				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", url), bearerToken)
@@ -282,7 +237,6 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				lastErrs = all(
 					// Is there a good way to discover the name and thereby avoid leaking the naming algorithm?
 					targets.Expect(labels{"job": "router-internal-default"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "router-internal-prometheus"}, "up", "^https://.*/metrics$"),
 				)
 				if len(lastErrs) > 0 {
 					e2e.Logf("missing some targets: %v", lastErrs)
@@ -293,10 +247,8 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			g.By("verifying standard metrics keys")
 			queries := map[string][]metricTest{
-				`template_router_reload_seconds_count{job="router-internal-default"}`:    {metricTest{greaterThanEqual: true, value: 1}},
-				`haproxy_server_up{job="router-internal-default"}`:                       {metricTest{greaterThanEqual: true, value: 1}},
-				`template_router_reload_seconds_count{job="router-internal-prometheus"}`: {metricTest{greaterThanEqual: true, value: 1}},
-				`haproxy_server_up{job="router-internal-prometheus"}`:                    {metricTest{greaterThanEqual: true, value: 1}},
+				`template_router_reload_seconds_count{job="router-internal-default"}`: {metricTest{greaterThanEqual: true, value: 1}},
+				`haproxy_server_up{job="router-internal-default"}`:                    {metricTest{greaterThanEqual: true, value: 1}},
 			}
 			runQueries(queries, oc, ns, execPod.Name, url, bearerToken)
 		})
