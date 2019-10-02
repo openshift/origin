@@ -73,7 +73,7 @@ var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the pod container has saved artifacts")
-				out, err := oc.Run("exec").Args("-p", buildTestPod, "--", "curl", "http://0.0.0.0:8080").Output()
+				out, err := oc.Run("exec").Args(buildTestPod, "--", "curl", "http://0.0.0.0:8080").Output()
 				if err != nil {
 					logs, _ := oc.Run("logs").Args(buildTestPod).Output()
 					e2e.Failf("Failed to curl in application container: \n%q, pod logs: \n%q", out, logs)

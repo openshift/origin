@@ -74,7 +74,7 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the pod container has TEST_ENV variable set")
-				out, err := oc.Run("exec").Args("-p", buildTestPod, "--", "curl", "http://0.0.0.0:8080").Output()
+				out, err := oc.Run("exec").Args(buildTestPod, "--", "curl", "http://0.0.0.0:8080").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				if !strings.Contains(out, "success") {
