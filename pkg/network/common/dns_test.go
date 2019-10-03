@@ -59,6 +59,14 @@ func TestAddDNS(t *testing.T) {
 			dnsResolverOutput: "",
 			expectFailure:     true,
 		},
+		{
+			testCase:          "Test min TTL",
+			domainName:        "example.com",
+			dnsResolverOutput: "example.com. 0 IN A 10.11.12.13",
+			ips:               []net.IP{ip},
+			ttl:               1800,
+			expectFailure:     false,
+		},
 	}
 
 	for _, test := range tests {
@@ -148,6 +156,17 @@ func TestUpdateDNS(t *testing.T) {
 			addResolverOutput:    "",
 			updateResolverOutput: "",
 			expectFailure:        true,
+		},
+		{
+			testCase:             "Test dns update min TTL",
+			domainName:           "example.com",
+			addResolverOutput:    "example.com. 5 IN A 10.11.12.13",
+			addIPs:               []net.IP{addIP},
+			addTTL:               5,
+			updateResolverOutput: "example.com. 0 IN A 10.11.12.14",
+			updateIPs:            []net.IP{updateIP},
+			updateTTL:            1800,
+			expectFailure:        false,
 		},
 	}
 

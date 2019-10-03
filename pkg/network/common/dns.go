@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// defaultTTL is used if an invalid or zero TTL is provided.
 	defaultTTL = 30 * time.Minute
 )
 
@@ -110,7 +111,7 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 		return fmt.Errorf("DNS value not found in dnsMap for domain: %q", dns), false
 	}
 
-	ips, minTTL, err := d.getIPsAndMinTTL(dns)
+	ips, ttl, err := d.getIPsAndMinTTL(dns)
 	if err != nil {
 		res.nextQueryTime = time.Now().Add(defaultTTL)
 		d.dnsMap[dns] = res
@@ -122,7 +123,7 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 		changed = true
 	}
 	res.ips = ips
-	res.ttl = minTTL
+	res.ttl = ttl
 	res.nextQueryTime = time.Now().Add(res.ttl)
 	d.dnsMap[dns] = res
 	return nil, changed
@@ -131,7 +132,7 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 	ips := []net.IP{}
 	ttlSet := false
-	var minTTL uint32
+	var ttlSeconds uint32
 
 	for _, server := range d.nameservers {
 		msg := new(dns.Msg)
@@ -153,8 +154,8 @@ func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 
 		if in != nil && len(in.Answer) > 0 {
 			for _, a := range in.Answer {
-				if !ttlSet || a.Header().Ttl < minTTL {
-					minTTL = a.Header().Ttl
+				if !ttlSet || a.Header().Ttl < ttlSeconds {
+					ttlSeconds = a.Header().Ttl
 					ttlSet = true
 				}
 
@@ -170,9 +171,12 @@ func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 		return nil, defaultTTL, fmt.Errorf("IPv4 addr not found for domain: %q, nameservers: %v", domain, d.nameservers)
 	}
 
-	ttl, err := time.ParseDuration(fmt.Sprintf("%ds", minTTL))
+	ttl, err := time.ParseDuration(fmt.Sprintf("%ds", ttlSeconds))
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Invalid TTL value for domain: %q, err: %v, defaulting ttl=%s", domain, err, defaultTTL.String()))
+		ttl = defaultTTL
+	}
+	if ttl == 0 {
 		ttl = defaultTTL
 	}
 
