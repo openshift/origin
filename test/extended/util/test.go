@@ -454,14 +454,6 @@ var (
 
 			// TODO(workload): reactivate when oc is rebased
 			`should support exec using resource/name`,
-
-			// Disable these tests for now because they require 1.16 kubelet
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1755000
-			`VolumeSubpathEnvExpansion`,
-			`CSI mock volume CSI Volume expansion`,
-			`CSI mock volume CSI online volume expansion`,
-			`CSI mock volume CSI workload information using mock driver`,
-			`volume-expand should resize volume when PVC is edited while pod is using it`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
