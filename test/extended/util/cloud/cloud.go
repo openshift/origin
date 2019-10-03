@@ -48,14 +48,13 @@ func LoadConfig() (string, *e2e.CloudConfig, error) {
 		zones.Insert(node.Labels["failure-domain.beta.kubernetes.io/zone"])
 	}
 	zones.Delete("")
-	if len(zones) == 0 {
-		return "", nil, fmt.Errorf("no zone labels found on cloud deployment, the cloud provider is not correct")
-	}
 
 	cloudConfig := &e2e.CloudConfig{
 		MultiMaster: len(nodes.Items) > 1,
 		MultiZone:   zones.Len() > 1,
-		Zone:        zones.List()[0],
+	}
+	if zones.Len() > 0 {
+		cloudConfig.Zone = zones.List()[0]
 	}
 
 	var provider string
