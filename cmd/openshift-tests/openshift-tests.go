@@ -293,11 +293,11 @@ func initProvider(provider string, dryRun bool) error {
 	//exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
 
 	exutil.AnnotateTestSuite()
-	exutil.InitTest(dryRun)
+	err := exutil.InitTest(dryRun)
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	// TODO: infer SSH keys from the cluster
-	return nil
+	return err
 }
 
 func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
