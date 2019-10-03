@@ -111,7 +111,6 @@ others. The API Server services REST operations and provides the frontend to the
 cluster's shared state through which all other components interact.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			verflag.PrintAndExitIfRequested()
-			utilflag.PrintFlags(cmd.Flags())
 
 			if len(s.OpenShiftConfig) > 0 {
 				enablement.ForceOpenShift()
@@ -130,14 +129,21 @@ cluster's shared state through which all other components interact.`,
 				if err != nil {
 					return err
 				}
+
 				// hopefully this resets the flags?
 				if err := cmd.ParseFlags(args); err != nil {
 					return err
 				}
 
+				// print merged flags (merged from OpenshiftConfig)
+				utilflag.PrintFlags(cmd.Flags())
+
 				enablement.ForceGlobalInitializationForOpenShift(s)
 				enablement.InstallOpenShiftAdmissionPlugins(s)
 
+			} else {
+				// print default flags
+				utilflag.PrintFlags(cmd.Flags())
 			}
 
 			// set default options
