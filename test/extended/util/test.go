@@ -424,10 +424,10 @@ var (
 			`PreemptionExecutionPath runs ReplicaSets to verify preemption running path`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711606
 			`TaintBasedEvictions`,                                                        // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
 			`recreate nodes and ensure they function upon restart`,                       // https://bugzilla.redhat.com/show_bug.cgi?id=1756428
+			`\[Driver: iscsi\]`,                                                          // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
+			`volumeMode should not mount / map unused volumes in a pod`,                  // https://bugzilla.redhat.com/show_bug.cgi?id=1751640
 			// TODO(workloads): reenable
 			`SchedulerPreemption`,
-
-			`\[Driver: iscsi\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
 
 			// Test fails on platforms that use LoadBalancerService and HostNetwork endpoint publishing strategy
 			`\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should set Forwarded headers appropriately`, // https://bugzilla.redhat.com/show_bug.cgi?id=1752646
@@ -446,9 +446,6 @@ var (
 
 			// TODO(sdn): test pod fails to connect in 1.16
 			`should allow ingress access from updated pod`,
-
-			// TODO(storage): fix the use of SSH into the node
-			`volumeMode should not mount / map unused volumes in a pod`,
 
 			// TODO(workload): reactivate when oc is rebased
 			`should support exec using resource/name`,
