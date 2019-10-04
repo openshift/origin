@@ -691,13 +691,13 @@ var unmarshalTests = []struct {
 		M{"ñoño": "very yes 🟔"},
 	},
 
-	// YAML Float regex shouldn't match this
+	// This *is* in fact a float number, per the spec. #171 was a mistake.
 	{
 		"a: 123456e1\n",
-		M{"a": "123456e1"},
+		M{"a": 123456e1},
 	}, {
 		"a: 123456E1\n",
-		M{"a": "123456E1"},
+		M{"a": 123456E1},
 	},
 	// yaml-test-suite 3GZX: Spec Example 7.1. Alias Nodes
 	{
@@ -854,6 +854,18 @@ var unmarshalErrorTests = []struct {
 	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
 	{"b: *a\na: &a {c: 1}", `yaml: unknown anchor 'a' referenced`},
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
+	{
+		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
+		"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
+		"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
+		"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
+		"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
+		"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
+		"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
+		"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
+		"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
+		"yaml: document contains excessive aliasing",
+	},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {
