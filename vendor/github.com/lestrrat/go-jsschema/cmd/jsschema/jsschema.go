@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/lestrrat-go/jsschema"
-	"github.com/lestrrat-go/jsschema/validator"
+	"github.com/lestrrat/go-jsschema"
+	"github.com/lestrrat/go-jsschema/validator"
 )
 
 func main() {

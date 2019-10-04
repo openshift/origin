@@ -1,6 +1,8 @@
+objx - by Mat Ryer and Tyler Bunnell
+
 The MIT License (MIT)
 
-Copyright (c) 2016 lestrrat
+Copyright (c) 2014 Stretchr, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
