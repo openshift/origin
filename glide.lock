@@ -1,5 +1,5 @@
-hash: 46a0b475f0430496b8a4b06cb19ba9d24fde3f30c59a4ea55fa308caa79a2ebe
-updated: 2019-09-25T14:19:31.213384475-05:00
+hash: dd1b0fb63a26d53b145213c1268b9d79ce2058c95b85cb07aef1565f84eef517
+updated: 2019-10-04T08:57:16.574555756-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -10,7 +10,7 @@ imports:
   - compute/metadata
   - internal
 - name: github.com/apparentlymart/go-cidr
-  version: c0fb5fbe0acb592411e2db59add389a43260ad44
+  version: b1115bf8e14a60131a196f908223e4506b0ddc35
   subpackages:
   - cidr
 - name: github.com/armon/circbuf
@@ -377,7 +377,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -422,7 +422,7 @@ imports:
 - name: github.com/go-openapi/jsonreference
   version: 8483a886a90412cd6858df4ea3483dce9c8e35a3
 - name: github.com/go-openapi/loads
-  version: 150d36912387ec2f607be674c5be309ddccc0eed
+  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
 - name: github.com/go-openapi/runtime
   version: 231d7876b7019dbcbfc97a7ba764379497b67c1d
 - name: github.com/go-openapi/spec
@@ -492,13 +492,13 @@ imports:
   - ptypes/timestamp
   - ptypes/wrappers
 - name: github.com/gonum/blas
-  version: f22b278b28ac9805aadd613a754a60c35b24ae69
+  version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
   subpackages:
   - blas64
   - native
   - native/internal/math32
 - name: github.com/gonum/floats
-  version: c233463c7e827fd71a8cdb62dfda0e98f7c39ad5
+  version: f74b330d45c56584a6ea7a27f5c64ea2900631e9
 - name: github.com/gonum/graph
   version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
   subpackages:
@@ -515,17 +515,17 @@ imports:
   - path
   - simple
 - name: github.com/gonum/internal
-  version: f884aa71402950fb2796dbea0d5aa9ef9cfad8ca
+  version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914
   subpackages:
   - asm/f32
   - asm/f64
 - name: github.com/gonum/lapack
-  version: e4cdc5a0bff924bb10be88482e635bd40429f65e
+  version: 5ed4b826becd1807e09377508f51756586d1a98c
   subpackages:
   - lapack64
   - native
 - name: github.com/gonum/matrix
-  version: c518dec07be9a636c38a4650e217be059b5952ec
+  version: dd6034299e4242c9f0ea36735e6d4264dfcb3f9f
   subpackages:
   - mat64
 - name: github.com/google/btree
@@ -685,26 +685,18 @@ imports:
   version: 8fef92e41e22a70e700a96b29f066cda30ea24ef
 - name: github.com/karrick/godirwalk
   version: 2de2192f9e35ce981c152a873ed943b93b79ced4
-- name: github.com/kr/fs
-  version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
-- name: github.com/lestrrat-go/jspointer
-  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
-- name: github.com/lestrrat-go/jsref
-  version: 1b590508f37d3af76c77c8328e16978d2889b486
-  subpackages:
-  - provider
-- name: github.com/lestrrat-go/pdebug
-  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
-- name: github.com/lestrrat-go/structinfo
-  version: acd51874663bf3297433cb1f1015075c3cbe6130
+- name: github.com/konsorten/go-windows-terminal-sequences
+  version: 5c8c8bd35d3832f5d134ae1e1e375b69a4d25242
 - name: github.com/lestrrat/go-jspointer
-  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
+  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
   repo: https://github.com/lestrrat/go-jspointer.git
 - name: github.com/lestrrat/go-jsref
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
   repo: https://github.com/lestrrat/go-jsref.git
+  subpackages:
+  - provider
 - name: github.com/lestrrat/go-jsschema
-  version: 5c81c58ffcc359c4390d440b45f5462edb0107cb
+  version: a6a42341b50d8d7e2a733db922eefaa756321021
 - name: github.com/lestrrat/go-pdebug
   version: 569c97477ae8837e053e5a50bc739e15172b8ebe
   repo: https://github.com/lestrrat/go-pdebug.git
@@ -1069,6 +1061,7 @@ imports:
   - pkg/authorization/scopemetadata
   - pkg/build/naming
   - pkg/config/client
+  - pkg/config/clusteroperator/v1helpers
   - pkg/config/configdefaults
   - pkg/config/helpers
   - pkg/config/validation
@@ -1533,7 +1526,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 23dbba3a35ae81c159b1efee01ec3ca82e028938
+  version: 159fa656239e4ec20590375d7d43ec751f1fc5e4
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -2105,7 +2098,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 910ed37794970984599792084da6031e2353f43b
+  version: 3538c7842b1e43174e181b732cd3147a56711427
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
