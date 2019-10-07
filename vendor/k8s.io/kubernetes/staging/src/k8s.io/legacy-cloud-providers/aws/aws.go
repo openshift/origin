@@ -224,8 +224,8 @@ const (
 	// we get -  [1, 1.8, 3.24, 5.832000000000001, 10.4976]
 	// in total we wait for 2601 seconds
 	volumeAttachmentStatusInitialDelay = 1 * time.Second
-	volumeAttachmentStatusFactor       = 1.8
-	volumeAttachmentStatusSteps        = 13
+	volumeAttachmentStatusFactor       = 1
+	volumeAttachmentStatusSteps        = 2003
 
 	// createTag* is configuration of exponential backoff for CreateTag call. We
 	// retry mainly because if we create an object, we cannot tag it until it is
@@ -2081,8 +2081,10 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 	// But once we see more than 10 errors in a row, we return the error
 	describeErrorCount := 0
 	var attachment *ec2.VolumeAttachment
-
+	count := 0
+	start := time.Now()
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		count++
 		info, err := d.describeVolume()
 		if err != nil {
 			// The VolumeNotFound error is special -- we don't need to wait for it to repeat
@@ -2143,7 +2145,8 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 		klog.V(2).Infof("Waiting for volume %q state: actual=%s, desired=%s", d.awsID, attachmentStatus, status)
 		return false, nil
 	})
-
+	end := time.Now()
+	klog.Infof("JSAF: waitForAttachmentStatus finished for volume %s %s after %d [%f]", d.awsID, status, count, end.Sub(start).Seconds())
 	return attachment, err
 }
 

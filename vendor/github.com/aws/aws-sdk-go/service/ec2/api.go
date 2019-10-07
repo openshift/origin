@@ -4,8 +4,10 @@ package ec2
 
 import (
 	"fmt"
+	"runtime"
 	"time"
 
+	"k8s.io/klog"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -17177,6 +17179,9 @@ func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.
 // API operation DescribeVolumes for usage and error information.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumes
 func (c *EC2) DescribeVolumes(input *DescribeVolumesInput) (*DescribeVolumesOutput, error) {
+	stack  := make([]byte, 2048)
+	runtime.Stack(stack, false)
+	klog.Infof("JSAF: DescribeVolumes %s: %s", *input.VolumeIds[0], string(stack))
 	req, out := c.DescribeVolumesRequest(input)
 	return out, req.Send()
 }
