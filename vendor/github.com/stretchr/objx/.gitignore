@@ -1,11 +1,22 @@
-# Binaries for programs and plugins
-*.exe
-*.dll
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
 *.so
-*.dylib
 
-# Test binary, build with `go test -c`
-*.test
+# Folders
+_obj
+_test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.exe

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/lestrrat-go/jspointer"
+	"github.com/lestrrat/go-jspointer"
 	"github.com/xeipuuv/gojsonpointer"
 )
 
