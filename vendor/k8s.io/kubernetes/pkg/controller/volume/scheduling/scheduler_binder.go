@@ -347,10 +347,14 @@ func (b *volumeBinder) BindPodVolumes(assumedPod *v1.Pod) (err error) {
 		return err
 	}
 
-	return wait.Poll(time.Second, b.bindTimeout, func() (bool, error) {
+	err = wait.Poll(time.Second, b.bindTimeout, func() (bool, error) {
 		b, err := b.checkBindings(assumedPod, bindings, claimsToProvision)
 		return b, err
 	})
+	if err != nil {
+		return fmt.Errorf("Failed to bind volumes: %v", err)
+	}
+	return nil
 }
 
 func getPodName(pod *v1.Pod) string {
@@ -514,7 +518,10 @@ func (b *volumeBinder) checkBindings(pod *v1.Pod, bindings []*bindingInfo, claim
 		}
 		selectedNode := pvc.Annotations[pvutil.AnnSelectedNode]
 		if selectedNode != pod.Spec.NodeName {
-			return false, fmt.Errorf("selectedNode annotation value %q not set to scheduled node %q", selectedNode, pod.Spec.NodeName)
+			// If provisioner fails to provision a volume, selectedNode
+			// annotation will be removed to signal back to the scheduler to
+			// retry.
+			return false, fmt.Errorf("provisioning failed for PVC %q", pvc.Name)
 		}
 
 		// If the PVC is bound to a PV, check its node affinity
