@@ -112,10 +112,15 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 
 	for i := range pod {
 		pod[i] = fmt.Sprintf("multicast-%d", i+1)
-		ip[i], err[i] = launchTestMulticastPod(f, nodes[i/2].Name, pod[i])
-		expectNoError(err[i])
+		err := launchTestMulticastPod(f, nodes[i/2].Name, pod[i])
+		expectNoError(err)
 		var zero int64
 		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(pod[i], &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+	}
+
+	for i := range pod {
+		ip[i], err[i] = waitForTestMulticastPod(f, pod[i])
+		expectNoError(err[i])
 		failMatch[i] = regexp.MustCompile(ip[i] + ".*multicast.*/100%")
 		ch[i] = make(chan struct{})
 	}
@@ -135,6 +140,7 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 		for j := range pod {
 			if i != j {
 				if failMatch[j].MatchString(out[i]) {
+					e2e.Logf("Pod %d failed to send multicast to pod %d:\n%s", i+1, j+1, out[i])
 					return fmt.Errorf("pod %d failed to send multicast to pod %d", i+1, j+1)
 				}
 			}
@@ -144,7 +150,7 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 	return nil
 }
 
-func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) (string, error) {
+func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) error {
 	contName := fmt.Sprintf("%s-container", podName)
 	pod := &kapiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -165,23 +171,15 @@ func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) (
 			RestartPolicy: kapiv1.RestartPolicyNever,
 		},
 	}
-	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
-	_, err := podClient.Create(pod)
-	expectNoError(err)
+	_, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+	return err
+}
 
+func waitForTestMulticastPod(f *e2e.Framework, podName string) (string, error) {
 	podIP := ""
-	err = waitForPodCondition(f.ClientSet, f.Namespace.Name, podName, "running", podStartTimeout, func(pod *kapiv1.Pod) (bool, error) {
+	err := frameworkpod.WaitForPodCondition(f.ClientSet, f.Namespace.Name, podName, "running", podStartTimeout, func(pod *kapiv1.Pod) (bool, error) {
 		podIP = pod.Status.PodIP
 		return (podIP != "" && pod.Status.Phase != kapiv1.PodPending), nil
 	})
-
-	if err != nil {
-		logs, logErr := frameworkpod.GetPodLogs(f.ClientSet, f.Namespace.Name, podName, fmt.Sprintf("%s-pod", podName))
-		if logErr != nil {
-			e2e.Failf("Error getting container logs: %s", logErr)
-		}
-		e2e.Logf("Could not launch pod %s\nPod logs:\n%s", podName, logs)
-	}
-
 	return podIP, err
 }
