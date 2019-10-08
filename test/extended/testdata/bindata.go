@@ -157,6 +157,7 @@
 // test/extended/testdata/builds/webhook/github/testdata/pushevent.json
 // test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json
 // test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json
+// test/extended/testdata/cli/pod-with-two-containers.yaml
 // test/extended/testdata/cluster/master-vert.yaml
 // test/extended/testdata/cluster/quickstarts/cakephp-mysql.json
 // test/extended/testdata/cluster/quickstarts/dancer-mysql.json
@@ -24776,6 +24777,59 @@ func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson() (*asset, err
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCliPodWithTwoContainersYaml = []byte(`kind: Pod
+apiVersion: v1
+metadata:
+  name: doublecontainers
+  labels:
+    name: hello-centos
+spec:
+  containers:
+  - name: hello-centos
+    image: docker.io/centos:centos7
+    command:
+      - /bin/sleep
+      - infinity
+    resources:
+      limits:
+        memory: 256Mi
+    terminationMessagePath: "/dev/termination-log"
+    imagePullPolicy: IfNotPresent
+    capabilities: {}
+    securityContext: {}
+  - name: hello-centos-2
+    image: docker.io/centos:centos7
+    command:
+      - /bin/sleep
+      - infinity
+    resources:
+      limits:
+        memory: 256Mi
+    terminationMessagePath: "/dev/termination-log1"
+    imagePullPolicy: IfNotPresent
+    capabilities: {}
+    securityContext: {}
+  restartPolicy: Always
+  dnsPolicy: ClusterFirst
+  serviceAccount: ''
+status: {}
+`)
+
+func testExtendedTestdataCliPodWithTwoContainersYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCliPodWithTwoContainersYaml, nil
+}
+
+func testExtendedTestdataCliPodWithTwoContainersYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCliPodWithTwoContainersYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cli/pod-with-two-containers.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -57443,6 +57497,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/webhook/github/testdata/pushevent.json": testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson,
 	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json": testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson,
 	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json": testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson,
+	"test/extended/testdata/cli/pod-with-two-containers.yaml": testExtendedTestdataCliPodWithTwoContainersYaml,
 	"test/extended/testdata/cluster/master-vert.yaml": testExtendedTestdataClusterMasterVertYaml,
 	"test/extended/testdata/cluster/quickstarts/cakephp-mysql.json": testExtendedTestdataClusterQuickstartsCakephpMysqlJson,
 	"test/extended/testdata/cluster/quickstarts/dancer-mysql.json": testExtendedTestdataClusterQuickstartsDancerMysqlJson,
@@ -58034,6 +58089,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							}},
 						}},
 					}},
+				}},
+				"cli": &bintree{nil, map[string]*bintree{
+					"pod-with-two-containers.yaml": &bintree{testExtendedTestdataCliPodWithTwoContainersYaml, map[string]*bintree{}},
 				}},
 				"cluster": &bintree{nil, map[string]*bintree{
 					"master-vert.yaml": &bintree{testExtendedTestdataClusterMasterVertYaml, map[string]*bintree{}},
