@@ -1,0 +1,1881 @@
+diff --no-dereference -N -r current/vendor/bitbucket.org/ww/goautoneg/.hg_archival.txt updated/vendor/bitbucket.org/ww/goautoneg/.hg_archival.txt
+1,6d0
+< repo: 848b351341922ce39becda978778724d5b58dbca
+< node: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
+< branch: default
+< latesttag: null
+< latesttagdistance: 5
+< changessincelatesttag: 5
+diff --no-dereference -N -r current/vendor/github.com/getsentry/raven-go/Dockerfile.test updated/vendor/github.com/getsentry/raven-go/Dockerfile.test
+0a1,13
+> FROM golang:1.7
+> 
+> RUN mkdir -p /go/src/github.com/getsentry/raven-go
+> WORKDIR /go/src/github.com/getsentry/raven-go
+> ENV GOPATH /go
+> 
+> RUN go install -race std && go get golang.org/x/tools/cmd/cover
+> 
+> COPY . /go/src/github.com/getsentry/raven-go
+> 
+> RUN go get -v ./...
+> 
+> CMD ["./runtests.sh"]
+diff --no-dereference -N -r current/vendor/github.com/heketi/heketi/client/api/python/heketi/__init__.py updated/vendor/github.com/heketi/heketi/client/api/python/heketi/__init__.py
+0a1,11
+> # -*- coding: utf-8 -*-
+> # flake8: noqa
+> 
+> __title__ = 'heketi'
+> __version__ = '1.0.2'
+> __author__ = 'Heketi authors'
+> __license__ = 'Apache License (2.0) or LGPLv3+'
+> __copyright__ = 'Copyright 2016 Heketi authors'
+> 
+> 
+> from .heketi import HeketiClient, TAGS_SET, TAGS_UPDATE, TAGS_DELETE
+diff --no-dereference -N -r current/vendor/github.com/heketi/heketi/client/api/python/heketi/heketi.py updated/vendor/github.com/heketi/heketi/client/api/python/heketi/heketi.py
+0a1,283
+> #
+> # Copyright (c) 2015 The heketi Authors
+> #
+> # This file is licensed to you under your choice of the GNU Lesser
+> # General Public License, version 3 or any later version (LGPLv3 or
+> # later), as published by the Free Software Foundation,
+> # or under the Apache License, Version 2.0 <LICENSE-APACHE2 or
+> # http://www.apache.org/licenses/LICENSE-2.0>.
+> #
+> # You may not use this file except in compliance with those terms.
+> #
+> #
+> # Usage:
+> # # from heketi import HeketiClient
+> # # client = HeketiClient(server, user, key)
+> # # Eg.: Cluster creation: client.cluster_create()
+> 
+> import jwt
+> import datetime
+> import hashlib
+> import requests
+> import time
+> import json
+> 
+> 
+> # Constants related to setting tags
+> TAGS_SET = 'set'
+> TAGS_UPDATE = 'update'
+> TAGS_DELETE = 'delete'
+> 
+> 
+> class HeketiClient(object):
+> 
+>     def __init__(self, host, user, key, verify=True):
+>         self.host = host
+>         self.user = user
+>         self.key = key
+>         self.verify = verify
+> 
+>     def _set_token_in_header(self, method, uri, headers={}):
+>         claims = {}
+>         claims['iss'] = self.user
+> 
+>         # Issued at time
+>         claims['iat'] = datetime.datetime.utcnow()
+> 
+>         # Expiration time
+>         claims['exp'] = datetime.datetime.utcnow() \
+>             + datetime.timedelta(seconds=1)
+> 
+>         # URI tampering protection
+>         val = b'%s&%s' % (method.encode('utf8'), uri.encode('utf8'))
+>         claims['qsh'] = hashlib.sha256(val).hexdigest()
+> 
+>         token = jwt.encode(claims, self.key, algorithm='HS256')
+>         headers['Authorization'] = b'bearer ' + token
+> 
+>         return headers
+> 
+>     def hello(self):
+>         method = 'GET'
+>         uri = '/hello'
+> 
+>         headers = self._set_token_in_header(method, uri)
+>         r = requests.get(self.host + uri, headers=headers, verify=self.verify)
+>         return r.status_code == requests.codes.ok
+> 
+>     def _make_request(self, method, uri, data={}, headers={}):
+>         '''
+>         Ref:
+>         http://docs.python-requests.org
+>               /en/master/_modules/requests/api/#request
+>         '''
+>         headers.update(self._set_token_in_header(method, uri))
+>         r = requests.request(method,
+>                              self.host + uri,
+>                              headers=headers,
+>                              data=json.dumps(data),
+>                              verify=self.verify)
+> 
+>         r.raise_for_status()
+> 
+>         if r.status_code == requests.codes.accepted:
+>             return self._get_queued_response(r.headers['location'])
+>         else:
+>             return r
+> 
+>     def _get_queued_response(self, queue_uri):
+>         queue_uri = queue_uri
+>         response_ready = False
+> 
+>         while response_ready is False:
+>             headers = self._set_token_in_header('GET', queue_uri)
+>             q = requests.get(self.host + queue_uri,
+>                              headers=headers,
+>                              allow_redirects=False,
+>                              verify=self.verify)
+> 
+>             # Raise an exception when the request fails
+>             q.raise_for_status()
+> 
+>             if 'X-Pending' in q.headers:
+>                 time.sleep(2)
+>             else:
+>                 if q.status_code == requests.codes.see_other:
+>                     return self._make_request('GET', q.headers['location'])
+>                 else:
+>                     return q
+> 
+>     def cluster_create(self, cluster_options={}):
+>         ''' cluster_options is a dict with cluster creation options:
+>             https://github.com/heketi/heketi/wiki/API#cluster_create
+>         '''
+>         req = self._make_request('POST', '/clusters', cluster_options)
+>         if req.status_code == requests.codes.created:
+>             return req.json()
+> 
+>     def cluster_setflags(self, cluster_id, cluster_options={}):
+>         uri = "/clusters/" + cluster_id + "/flags"
+>         req = self._make_request('POST', uri, cluster_options)
+>         return req.status_code == requests.codes.ok
+> 
+>     def cluster_info(self, cluster_id):
+>         uri = "/clusters/" + cluster_id
+>         req = self._make_request('GET', uri)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def cluster_list(self):
+>         uri = "/clusters"
+>         req = self._make_request('GET', uri)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def cluster_delete(self, cluster_id):
+>         uri = "/clusters/" + cluster_id
+>         req = self._make_request('DELETE', uri)
+>         return req.status_code == requests.codes.ok
+> 
+>     def node_add(self, node_options={}):
+>         '''
+>         node_options is a dict consisting of paramters for
+>         adding a node: https://github.com/heketi/heketi/wiki/API#add-node
+>         '''
+>         uri = "/nodes"
+>         req = self._make_request('POST', uri, node_options)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def node_info(self, node_id):
+>         uri = '/nodes/' + node_id
+>         req = self._make_request('GET', uri)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def node_delete(self, node_id):
+>         uri = '/nodes/' + node_id
+>         req = self._make_request('DELETE', uri)
+>         return req.status_code == requests.codes.NO_CONTENT
+> 
+>     def node_state(self, node_id, state_request={}):
+>         uri = '/nodes/' + node_id + '/state'
+>         req = self._make_request('POST', uri, state_request)
+>         return req.status_code == requests.codes.NO_CONTENT
+>         '''if req.status_code == requests.codes.ok:
+>             return req.json()
+>         return req.status_code == requests.codes.ok
+>         '''
+> 
+>     def node_set_tags(self, node_id, tags_options):
+>         '''Set, update, or delete tags on a node.
+>         Specify tags with options key "tags" and a dict of tags & values,
+>         specify change type with options key "change_type" and a
+>         string value of "set", "update", "delete" (or use TAGS_* constants).
+>         '''
+>         uri = '/nodes/' + node_id + '/tags'
+>         req = self._make_request('POST', uri, tags_options)
+>         return req.status_code == requests.codes.ok
+> 
+>     def device_add(self, device_options={}):
+>         ''' device_options is a dict with parameters to be passed \
+>             in the json request: \
+>             https://github.com/heketi/heketi/wiki/API#add-device
+>         '''
+>         uri = '/devices'
+>         req = self._make_request('POST', uri, device_options)
+>         return req.status_code == requests.codes.NO_CONTENT
+> 
+>     def device_info(self, device_id):
+>         uri = '/devices/' + device_id
+>         req = self._make_request('GET', uri)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def device_delete(self, device_id):
+>         uri = '/devices/' + device_id
+>         req = self._make_request('DELETE', uri)
+>         return req.status_code == requests.codes.NO_CONTENT
+> 
+>     def device_state(self, device_id, state_request={}):
+>         uri = "/devices/" + device_id + "/state"
+>         req = self._make_request('POST', uri, state_request)
+>         return req.status_code == requests.codes.NO_CONTENT
+>         '''if req.status_code == requests.codes.ok:
+>             return req.json()
+>         return req.status_code == requests.codes.ok
+>         '''
+> 
+>     def device_resync(self, device_id):
+>         uri = '/devices/' + device_id + '/resync'
+>         req = self._make_request('GET', uri)
+>         return req.status_code == requests.codes.NO_CONTENT
+> 
+>     def device_set_tags(self, device_id, tags_options):
+>         '''Set, update, or delete tags on a device.
+>         Specify tags with options key "tags" and a dict of tags & values,
+>         specify change type with options key "change_type" and a
+>         string value of "set", "update", "delete" (or use TAGS_* constants).
+>         '''
+>         uri = '/devices/' + device_id + '/tags'
+>         req = self._make_request('POST', uri, tags_options)
+>         return req.status_code == requests.codes.ok
+> 
+>     def volume_create(self, volume_options={}):
+>         ''' volume_options is a dict with volume creation options:
+>             https://github.com/heketi/heketi/wiki/API#create-a-volume
+>         '''
+>         uri = '/volumes'
+>         req = self._make_request('POST', uri, volume_options)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def volume_list(self):
+>         uri = '/volumes'
+>         req = self._make_request('GET', uri)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def volume_info(self, volume_id):
+>         uri = '/volumes/' + volume_id
+>         req = self._make_request('GET', uri)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def volume_expand(self, volume_id, expand_size={}):
+>         uri = '/volumes/' + volume_id + '/expand'
+>         req = self._make_request('POST', uri, expand_size)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def volume_delete(self, volume_id):
+>         uri = '/volumes/' + volume_id
+>         req = self._make_request('DELETE', uri)
+>         return req.status_code == requests.codes.NO_CONTENT
+> 
+>     def block_volume_list(self):
+>         uri = '/blockvolumes'
+>         req = self._make_request('GET', uri)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def block_volume_info(self, volume_id):
+>         uri = '/blockvolumes/' + volume_id
+>         req = self._make_request('GET', uri)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def block_volume_create(self, volume_options={}):
+>         uri = '/blockvolumes'
+>         req = self._make_request('POST', uri, volume_options)
+>         if req.status_code == requests.codes.ok:
+>             return req.json()
+> 
+>     def block_volume_delete(self, volume_id):
+>         uri = '/blockvolumes/' + volume_id
+>         req = self._make_request('DELETE', uri)
+>         return req.status_code == requests.codes.NO_CONTENT
+> 
+>     def db_dump(self):
+>         uri = '/db/dump'
+>         req = self._make_request('GET', uri)
+>         if req.status_code == requests.codes.ok:
+>             return req
+diff --no-dereference -N -r current/vendor/github.com/jmespath/go-jmespath/cmd/jpgo/main.go updated/vendor/github.com/jmespath/go-jmespath/cmd/jpgo/main.go
+0a1,96
+> /*Basic command line interface for debug and testing purposes.
+> 
+> Examples:
+> 
+> Only print the AST for the expression:
+> 
+>     jp.go -ast "foo.bar.baz"
+> 
+> Evaluate the JMESPath expression against JSON data from a file:
+> 
+>     jp.go -input /tmp/data.json "foo.bar.baz"
+> 
+> This program can also be used as an executable to the jp-compliance
+> runner (github.com/jmespath/jmespath.test).
+> 
+> */
+> package main
+> 
+> import (
+> 	"flag"
+> 	"fmt"
+> 	"io/ioutil"
+> 	"os"
+> )
+> 
+> import (
+> 	"encoding/json"
+> 
+> 	"github.com/jmespath/go-jmespath"
+> )
+> 
+> func errMsg(msg string, a ...interface{}) int {
+> 	fmt.Fprintf(os.Stderr, msg, a...)
+> 	fmt.Fprintln(os.Stderr)
+> 	return 1
+> }
+> 
+> func run() int {
+> 
+> 	astOnly := flag.Bool("ast", false, "Print the AST for the input expression and exit.")
+> 	inputFile := flag.String("input", "", "Filename containing JSON data to search. If not provided, data is read from stdin.")
+> 
+> 	flag.Parse()
+> 	args := flag.Args()
+> 	if len(args) != 1 {
+> 		fmt.Fprintf(os.Stderr, "Usage:\n\n")
+> 		flag.PrintDefaults()
+> 		return errMsg("\nError: expected a single argument (the JMESPath expression).")
+> 	}
+> 
+> 	expression := args[0]
+> 	parser := jmespath.NewParser()
+> 	parsed, err := parser.Parse(expression)
+> 	if err != nil {
+> 		if syntaxError, ok := err.(jmespath.SyntaxError); ok {
+> 			return errMsg("%s\n%s\n", syntaxError, syntaxError.HighlightLocation())
+> 		}
+> 		return errMsg("%s", err)
+> 	}
+> 	if *astOnly {
+> 		fmt.Println("")
+> 		fmt.Printf("%s\n", parsed)
+> 		return 0
+> 	}
+> 
+> 	var inputData []byte
+> 	if *inputFile != "" {
+> 		inputData, err = ioutil.ReadFile(*inputFile)
+> 		if err != nil {
+> 			return errMsg("Error loading file %s: %s", *inputFile, err)
+> 		}
+> 	} else {
+> 		// If an input data file is not provided then we read the
+> 		// data from stdin.
+> 		inputData, err = ioutil.ReadAll(os.Stdin)
+> 		if err != nil {
+> 			return errMsg("Error reading from stdin: %s", err)
+> 		}
+> 	}
+> 	var data interface{}
+> 	json.Unmarshal(inputData, &data)
+> 	result, err := jmespath.Search(expression, data)
+> 	if err != nil {
+> 		return errMsg("Error executing expression: %s", err)
+> 	}
+> 	toJSON, err := json.MarshalIndent(result, "", "  ")
+> 	if err != nil {
+> 		return errMsg("Error serializing result to JSON: %s", err)
+> 	}
+> 	fmt.Println(string(toJSON))
+> 	return 0
+> }
+> 
+> func main() {
+> 	os.Exit(run())
+> }
+Binary files current/vendor/github.com/openshift/client-go/network/clientset/versioned/typed/network/v1/.clusternetwork.go.swp and updated/vendor/github.com/openshift/client-go/network/clientset/versioned/typed/network/v1/.clusternetwork.go.swp differ
+diff --no-dereference -N -r current/vendor/github.com/vishvananda/netlink/link_linux.go updated/vendor/github.com/vishvananda/netlink/link_linux.go
+1768c1768
+< 			gre.FlowBased = true
+---
+> 			gre.FlowBased = int8(datum.Value[0]) != 0
+File current/vendor/k8s.io/api is a symbolic link while file updated/vendor/k8s.io/api is a directory
+File current/vendor/k8s.io/apiextensions-apiserver is a symbolic link while file updated/vendor/k8s.io/apiextensions-apiserver is a directory
+File current/vendor/k8s.io/apimachinery is a symbolic link while file updated/vendor/k8s.io/apimachinery is a directory
+File current/vendor/k8s.io/apiserver is a symbolic link while file updated/vendor/k8s.io/apiserver is a directory
+File current/vendor/k8s.io/cli-runtime is a symbolic link while file updated/vendor/k8s.io/cli-runtime is a directory
+File current/vendor/k8s.io/client-go is a symbolic link while file updated/vendor/k8s.io/client-go is a directory
+File current/vendor/k8s.io/cloud-provider is a symbolic link while file updated/vendor/k8s.io/cloud-provider is a directory
+File current/vendor/k8s.io/cluster-bootstrap is a symbolic link while file updated/vendor/k8s.io/cluster-bootstrap is a directory
+File current/vendor/k8s.io/code-generator is a symbolic link while file updated/vendor/k8s.io/code-generator is a directory
+File current/vendor/k8s.io/csi-api is a symbolic link while file updated/vendor/k8s.io/csi-api is a directory
+File current/vendor/k8s.io/kube-aggregator is a symbolic link while file updated/vendor/k8s.io/kube-aggregator is a directory
+File current/vendor/k8s.io/kube-controller-manager is a symbolic link while file updated/vendor/k8s.io/kube-controller-manager is a directory
+File current/vendor/k8s.io/kube-proxy is a symbolic link while file updated/vendor/k8s.io/kube-proxy is a directory
+File current/vendor/k8s.io/kube-scheduler is a symbolic link while file updated/vendor/k8s.io/kube-scheduler is a directory
+File current/vendor/k8s.io/kubelet is a symbolic link while file updated/vendor/k8s.io/kubelet is a directory
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/cmd/kube-apiserver/app/options/options_test.go updated/vendor/k8s.io/kubernetes/cmd/kube-apiserver/app/options/options_test.go
+132,133c132,133
+< 			JSONPatchMaxCopyBytes:       int64(3 * 1024 * 1024),
+< 			MaxRequestBodyBytes:         int64(3 * 1024 * 1024),
+---
+> 			JSONPatchMaxCopyBytes:       int64(100 * 1024 * 1024),
+> 			MaxRequestBodyBytes:         int64(100 * 1024 * 1024),
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/pkg/kubectl/cmd/cp/cp.go updated/vendor/k8s.io/kubernetes/pkg/kubectl/cmd/cp/cp.go
+414d413
+< 	symlinks := map[string]string{} // map of link -> destination
+468,469c467,480
+< 			if _, exists := symlinks[destFileName]; exists {
+< 				return fmt.Errorf("duplicate symlink: %q", destFileName)
+---
+> 			linkname := header.Linkname
+> 			// We need to ensure that the link destination is always within boundries
+> 			// of the destination directory. This prevents any kind of path traversal
+> 			// from within tar archive.
+> 			linkTarget := linkname
+> 			if !filepath.IsAbs(linkname) {
+> 				linkTarget = filepath.Join(evaledPath, linkname)
+> 			}
+> 			if !isDestRelative(destDir, linkTarget) {
+> 				fmt.Fprintf(o.IOStreams.ErrOut, "warning: link %q is pointing to %q which is outside target destination, skipping\n", destFileName, header.Linkname)
+> 				continue
+> 			}
+> 			if err := os.Symlink(linkname, destFileName); err != nil {
+> 				return err
+471d481
+< 			symlinks[destFileName] = header.Linkname
+484,494d493
+< 		}
+< 	}
+< 
+< 	// Create symlinks after all regular files have been written.
+< 	// Ordering this way prevents writing data outside the destination directory through path
+< 	// traversals.
+< 	// Symlink chaining is prevented due to the directory tree being established (MkdirAll) before
+< 	// creating any symlinks.
+< 	for newname, oldname := range symlinks {
+< 		if err := os.Symlink(oldname, newname); err != nil {
+< 			return err
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/pkg/kubectl/cmd/cp/cp_test.go updated/vendor/k8s.io/kubernetes/pkg/kubectl/cmd/cp/cp_test.go
+36c36
+< 	v1 "k8s.io/api/core/v1"
+---
+> 	"k8s.io/api/core/v1"
+307a308
+> 			omitted:  true,
+312a314
+> 			omitted:  true,
+759,764d760
+< type testFile struct {
+< 	path       string
+< 	linkTarget string // For link types
+< 	expected   string // Expect to find the file here (or not, if empty)
+< }
+< 
+773c769,774
+< 	files := []testFile{{
+---
+> 	type file struct {
+> 		path       string
+> 		linkTarget string // For link types
+> 		expected   string // Expect to find the file here (or not, if empty)
+> 	}
+> 	files := []file{{
+806c807,816
+< 	links := []testFile{}
+---
+> 	mkBacklinkExpectation := func(expected, suffix string) string {
+> 		// "resolve" the back link relative to the expectation
+> 		targetDir := filepath.Dir(filepath.Dir(expected))
+> 		// If the "resolved" target is not nested in basedir, it is escaping.
+> 		if !filepath.HasPrefix(targetDir, basedir) {
+> 			return ""
+> 		}
+> 		return expected + suffix
+> 	}
+> 	links := []file{}
+808c818
+< 		links = append(links, testFile{
+---
+> 		links = append(links, file{
+812c822
+< 		}, testFile{
+---
+> 		}, file{
+816c826
+< 		}, testFile{
+---
+> 		}, file{
+819,820c829,830
+< 			expected:   mkExpectation(f.expected, "-backlink"),
+< 		}, testFile{
+---
+> 			expected:   mkBacklinkExpectation(f.expected, "-backlink"),
+> 		}, file{
+823c833
+< 			expected:   mkExpectation(f.expected, "-outerlink-abs"),
+---
+> 			expected:   "",
+829,830c839,840
+< 			links = append(links, testFile{
+< 				path:       f.path + "-outerlink",
+---
+> 			links = append(links, file{
+> 				path:       f.path + "outerlink",
+832c842
+< 				expected:   mkExpectation(f.expected, "-outerlink"),
+---
+> 				expected:   "",
+840c850
+< 		testFile{
+---
+> 		file{
+845c855
+< 		testFile{
+---
+> 		file{
+852c862
+< 		testFile{
+---
+> 		file{
+857,860c867,870
+< 		testFile{
+< 			path:       "nested/back-link-second",
+< 			linkTarget: "back-link-first/..",
+< 			expected:   filepath.Join(basedir, "nested/back-link-second"),
+---
+> 		file{
+> 			path:       "nested/back-link-first/back-link-second",
+> 			linkTarget: "../",
+> 			expected:   "",
+864c874
+< 		testFile{ // Relative directory path with terminating /
+---
+> 		file{ // Relative directory path with terminating /
+869,876c879,880
+< 	buf := makeTestTar(t, files)
+< 
+< 	// Capture warnings to stderr for debugging.
+< 	output := (*testWriter)(t)
+< 	opts := NewCopyOptions(genericclioptions.IOStreams{In: &bytes.Buffer{}, Out: output, ErrOut: output})
+< 
+< 	require.NoError(t, opts.untarAll(buf, filepath.Join(basedir), ""))
+< 
+---
+> 	buf := &bytes.Buffer{}
+> 	tw := tar.NewWriter(buf)
+882,945d885
+< 	}
+< 	filepath.Walk(testdir, func(path string, info os.FileInfo, err error) error {
+< 		if err != nil {
+< 			return err
+< 		}
+< 		if info.IsDir() {
+< 			return nil // Ignore directories.
+< 		}
+< 		if _, ok := expectations[path]; !ok {
+< 			t.Errorf("Unexpected file at %s", path)
+< 		} else {
+< 			expectations[path] = true
+< 		}
+< 		return nil
+< 	})
+< 	for path, found := range expectations {
+< 		if !found {
+< 			t.Errorf("Missing expected file %s", path)
+< 		}
+< 	}
+< }
+< 
+< func TestUntar_NestedSymlinks(t *testing.T) {
+< 	testdir, err := ioutil.TempDir("", "test-untar-nested")
+< 	require.NoError(t, err)
+< 	defer os.RemoveAll(testdir)
+< 	t.Logf("Test base: %s", testdir)
+< 
+< 	basedir := filepath.Join(testdir, "base")
+< 
+< 	// Test chaining back-tick symlinks.
+< 	backLinkFirst := testFile{
+< 		path:       "nested/back-link-first",
+< 		linkTarget: "../",
+< 		expected:   filepath.Join(basedir, "nested/back-link-first"),
+< 	}
+< 	files := []testFile{backLinkFirst, {
+< 		path:       "nested/back-link-first/back-link-second",
+< 		linkTarget: "../",
+< 		expected:   "",
+< 	}}
+< 
+< 	buf := makeTestTar(t, files)
+< 
+< 	// Capture warnings to stderr for debugging.
+< 	output := (*testWriter)(t)
+< 	opts := NewCopyOptions(genericclioptions.IOStreams{In: &bytes.Buffer{}, Out: output, ErrOut: output})
+< 
+< 	// Expect untarAll to fail. The second link will trigger a directory to be created at
+< 	// "nested/back-link-first", which should trigger a file exists error when the back-link-first
+< 	// symlink is created.
+< 	expectedErr := os.LinkError{
+< 		Op:  "symlink",
+< 		Old: backLinkFirst.linkTarget,
+< 		New: backLinkFirst.expected,
+< 		Err: fmt.Errorf("file exists")}
+< 	actualErr := opts.untarAll(buf, filepath.Join(basedir), "")
+< 	assert.EqualError(t, actualErr, expectedErr.Error())
+< }
+< 
+< func makeTestTar(t *testing.T, files []testFile) *bytes.Buffer {
+< 	buf := &bytes.Buffer{}
+< 	tw := tar.NewWriter(buf)
+< 	for _, f := range files {
+969c909,933
+< 	return buf
+---
+> 	// Capture warnings to stderr for debugging.
+> 	output := (*testWriter)(t)
+> 	opts := NewCopyOptions(genericclioptions.IOStreams{In: &bytes.Buffer{}, Out: output, ErrOut: output})
+> 
+> 	require.NoError(t, opts.untarAll(buf, filepath.Join(basedir), ""))
+> 
+> 	filepath.Walk(testdir, func(path string, info os.FileInfo, err error) error {
+> 		if err != nil {
+> 			return err
+> 		}
+> 		if info.IsDir() {
+> 			return nil // Ignore directories.
+> 		}
+> 		if _, ok := expectations[path]; !ok {
+> 			t.Errorf("Unexpected file at %s", path)
+> 		} else {
+> 			expectations[path] = true
+> 		}
+> 		return nil
+> 	})
+> 	for path, found := range expectations {
+> 		if !found {
+> 			t.Errorf("Missing expected file %s", path)
+> 		}
+> 	}
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver/pkg/apiserver/apiserver.go updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver/pkg/apiserver/apiserver.go
+198d197
+< 		c.GenericConfig.MaxRequestBodyBytes,
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver/pkg/apiserver/customresource_handler.go updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver/pkg/apiserver/customresource_handler.go
+105,108d104
+< 
+< 	// The limit on the request size that would be accepted and decoded in a write request
+< 	// 0 means no limit.
+< 	maxRequestBodyBytes int64
+150,151c146
+< 	requestTimeout time.Duration,
+< 	maxRequestBodyBytes int64) (*crdHandler, error) {
+---
+> 	requestTimeout time.Duration) (*crdHandler, error) {
+162d156
+< 		maxRequestBodyBytes:     maxRequestBodyBytes,
+632,633d625
+< 
+< 			MaxRequestBodyBytes: r.maxRequestBodyBytes,
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver/test/integration/BUILD updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver/test/integration/BUILD
+15d14
+<         "limit_test.go",
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver/test/integration/limit_test.go updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver/test/integration/limit_test.go
+1,216d0
+< /*
+< Copyright 2019 The Kubernetes Authors.
+< 
+< Licensed under the Apache License, Version 2.0 (the "License");
+< you may not use this file except in compliance with the License.
+< You may obtain a copy of the License at
+< 
+<     http://www.apache.org/licenses/LICENSE-2.0
+< 
+< Unless required by applicable law or agreed to in writing, software
+< distributed under the License is distributed on an "AS IS" BASIS,
+< WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+< See the License for the specific language governing permissions and
+< limitations under the License.
+< */
+< 
+< package integration
+< 
+< import (
+< 	"fmt"
+< 	"strings"
+< 	"testing"
+< 
+< 	"k8s.io/client-go/dynamic"
+< 
+< 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+< 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+< 	"k8s.io/apiextensions-apiserver/test/integration/fixtures"
+< 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+< 	"k8s.io/apimachinery/pkg/types"
+< )
+< 
+< func TestLimits(t *testing.T) {
+< 	tearDown, config, _, err := fixtures.StartDefaultServer(t)
+< 	if err != nil {
+< 		t.Fatal(err)
+< 	}
+< 	defer tearDown()
+< 
+< 	apiExtensionClient, err := clientset.NewForConfig(config)
+< 	if err != nil {
+< 		t.Fatal(err)
+< 	}
+< 	dynamicClient, err := dynamic.NewForConfig(config)
+< 	if err != nil {
+< 		t.Fatal(err)
+< 	}
+< 
+< 	noxuDefinition := fixtures.NewNoxuCustomResourceDefinition(apiextensionsv1beta1.ClusterScoped)
+< 	noxuDefinition, err = fixtures.CreateNewCustomResourceDefinition(noxuDefinition, apiExtensionClient, dynamicClient)
+< 	if err != nil {
+< 		t.Fatal(err)
+< 	}
+< 
+< 	kind := noxuDefinition.Spec.Names.Kind
+< 	apiVersion := noxuDefinition.Spec.Group + "/" + noxuDefinition.Spec.Version
+< 
+< 	rest := apiExtensionClient.Discovery().RESTClient()
+< 
+< 	// Create YAML over 3MB limit
+< 	t.Run("create YAML over limit", func(t *testing.T) {
+< 		yamlBody := []byte(fmt.Sprintf(`
+< apiVersion: %s
+< kind: %s
+< metadata:
+<   name: test
+< values: `+strings.Repeat("[", 3*1024*1024), apiVersion, kind))
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/yaml").
+< 			SetHeader("Content-Type", "application/yaml").
+< 			AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
+< 			Body(yamlBody).
+< 			DoRaw()
+< 		if !apierrors.IsRequestEntityTooLargeError(err) {
+< 			t.Errorf("expected too large error, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create YAML just under 3MB limit, nested
+< 	t.Run("create YAML doc under limit, nested", func(t *testing.T) {
+< 		yamlBody := []byte(fmt.Sprintf(`
+< 	apiVersion: %s
+< 	kind: %s
+< 	metadata:
+< 	  name: test
+< 	values: `+strings.Repeat("[", 3*1024*1024/2-500)+strings.Repeat("]", 3*1024*1024/2-500), apiVersion, kind))
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/yaml").
+< 			SetHeader("Content-Type", "application/yaml").
+< 			AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
+< 			Body(yamlBody).
+< 			DoRaw()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected bad request, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create YAML just under 3MB limit, not nested
+< 	t.Run("create YAML doc under limit, not nested", func(t *testing.T) {
+< 		yamlBody := []byte(fmt.Sprintf(`
+< 		apiVersion: %s
+< 		kind: %s
+< 		metadata:
+< 		  name: test
+< 		values: `+strings.Repeat("[", 3*1024*1024-1000), apiVersion, kind))
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/yaml").
+< 			SetHeader("Content-Type", "application/yaml").
+< 			AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
+< 			Body(yamlBody).
+< 			DoRaw()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected bad request, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create JSON over 3MB limit
+< 	t.Run("create JSON over limit", func(t *testing.T) {
+< 		jsonBody := []byte(fmt.Sprintf(`{
+< 	"apiVersion": %q,
+< 	"kind": %q,
+< 	"metadata": {
+< 	  "name": "test"
+< 	},
+< 	"values": `+strings.Repeat("[", 3*1024*1024/2)+strings.Repeat("]", 3*1024*1024/2)+"}", apiVersion, kind))
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/json").
+< 			SetHeader("Content-Type", "application/json").
+< 			AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
+< 			Body(jsonBody).
+< 			DoRaw()
+< 		if !apierrors.IsRequestEntityTooLargeError(err) {
+< 			t.Errorf("expected too large error, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create JSON just under 3MB limit, nested
+< 	t.Run("create JSON doc under limit, nested", func(t *testing.T) {
+< 		jsonBody := []byte(fmt.Sprintf(`{
+< 		"apiVersion": %q,
+< 		"kind": %q,
+< 		"metadata": {
+< 		  "name": "test"
+< 		},
+< 		"values": `+strings.Repeat("[", 3*1024*1024/2-500)+strings.Repeat("]", 3*1024*1024/2-500)+"}", apiVersion, kind))
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/json").
+< 			SetHeader("Content-Type", "application/json").
+< 			AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
+< 			Body(jsonBody).
+< 			DoRaw()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected bad request, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create JSON just under 3MB limit, not nested
+< 	t.Run("create JSON doc under limit, not nested", func(t *testing.T) {
+< 		jsonBody := []byte(fmt.Sprintf(`{
+< 			"apiVersion": %q,
+< 			"kind": %q,
+< 			"metadata": {
+< 			  "name": "test"
+< 			},
+< 			"values": `+strings.Repeat("[", 3*1024*1024-1000)+"}", apiVersion, kind))
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/json").
+< 			SetHeader("Content-Type", "application/json").
+< 			AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
+< 			Body(jsonBody).
+< 			DoRaw()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected bad request, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create instance to allow patching
+< 	{
+< 		jsonBody := []byte(fmt.Sprintf(`{"apiVersion": %q, "kind": %q, "metadata": {"name": "test"}}`, apiVersion, kind))
+< 		_, err := rest.Post().AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).Body(jsonBody).DoRaw()
+< 		if err != nil {
+< 			t.Fatalf("error creating object: %v", err)
+< 		}
+< 	}
+< 
+< 	t.Run("JSONPatchType nested patch under limit", func(t *testing.T) {
+< 		patchBody := []byte(`[{"op":"add","path":"/foo","value":` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + `}]`)
+< 		err = rest.Patch(types.JSONPatchType).AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural, "test").
+< 			Body(patchBody).Do().Error()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected success or bad request err, got %v", err)
+< 		}
+< 	})
+< 	t.Run("MergePatchType nested patch under limit", func(t *testing.T) {
+< 		patchBody := []byte(`{"value":` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + `}`)
+< 		err = rest.Patch(types.MergePatchType).AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural, "test").
+< 			Body(patchBody).Do().Error()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected success or bad request err, got %v", err)
+< 		}
+< 	})
+< 	t.Run("ApplyPatchType nested patch under limit", func(t *testing.T) {
+< 		patchBody := []byte(`{"value":` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + `}`)
+< 		err = rest.Patch(types.ApplyPatchType).Param("fieldManager", "test").AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural, "test").
+< 			Body(patchBody).Do().Error()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected bad request err, got %#v", err)
+< 		}
+< 	})
+< }
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/json/BUILD updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/json/BUILD
+12d11
+<         "json_limit_test.go",
+21d19
+<         "//staging/src/k8s.io/apimachinery/pkg/util/json:go_default_library",
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/json/json.go updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/json/json.go
+103,119d102
+< 		// init depth, if needed
+< 		if iter.Attachment == nil {
+< 			iter.Attachment = int(1)
+< 		}
+< 
+< 		// remember current depth
+< 		originalAttachment := iter.Attachment
+< 
+< 		// increment depth before descending
+< 		if i, ok := iter.Attachment.(int); ok {
+< 			iter.Attachment = i + 1
+< 			if i > 10000 {
+< 				iter.ReportError("parse", "exceeded max depth")
+< 				return
+< 			}
+< 		}
+< 
+121,123d103
+< 
+< 		// restore current depth
+< 		iter.Attachment = originalAttachment
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/json/json_limit_test.go updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/json/json_limit_test.go
+1,170d0
+< /*
+< Copyright 2019 The Kubernetes Authors.
+< 
+< Licensed under the Apache License, Version 2.0 (the "License");
+< you may not use this file except in compliance with the License.
+< You may obtain a copy of the License at
+< 
+<     http://www.apache.org/licenses/LICENSE-2.0
+< 
+< Unless required by applicable law or agreed to in writing, software
+< distributed under the License is distributed on an "AS IS" BASIS,
+< WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+< See the License for the specific language governing permissions and
+< limitations under the License.
+< */
+< 
+< package json
+< 
+< import (
+< 	gojson "encoding/json"
+< 	"strings"
+< 	"testing"
+< 
+< 	utiljson "k8s.io/apimachinery/pkg/util/json"
+< )
+< 
+< type testcase struct {
+< 	name     string
+< 	data     []byte
+< 	checkErr func(t testing.TB, err error)
+< 
+< 	benchmark bool
+< }
+< 
+< func testcases() []testcase {
+< 	// verify we got an error of some kind
+< 	nonNilError := func(t testing.TB, err error) {
+< 		if err == nil {
+< 			t.Errorf("expected error, got none")
+< 		}
+< 	}
+< 	// verify the parse completed, either with success or a max depth error
+< 	successOrMaxDepthError := func(t testing.TB, err error) {
+< 		if err != nil && !strings.Contains(err.Error(), "max depth") {
+< 			t.Errorf("expected success or error containing 'max depth', got: %v", err)
+< 		}
+< 	}
+< 
+< 	return []testcase{
+< 		{
+< 			name:     "3MB of deeply nested slices",
+< 			checkErr: successOrMaxDepthError,
+< 			data:     []byte(`{"a":` + strings.Repeat(`[`, 3*1024*1024/2) + strings.Repeat(`]`, 3*1024*1024/2) + "}"),
+< 		},
+< 		{
+< 			name:     "3MB of unbalanced nested slices",
+< 			checkErr: nonNilError,
+< 			data:     []byte(`{"a":` + strings.Repeat(`[`, 3*1024*1024)),
+< 		},
+< 		{
+< 			name:     "3MB of deeply nested maps",
+< 			checkErr: successOrMaxDepthError,
+< 			data:     []byte(strings.Repeat(`{"":`, 3*1024*1024/5/2) + "{}" + strings.Repeat(`}`, 3*1024*1024/5/2)),
+< 		},
+< 		{
+< 			name:     "3MB of unbalanced nested maps",
+< 			checkErr: nonNilError,
+< 			data:     []byte(strings.Repeat(`{"":`, 3*1024*1024/5)),
+< 		},
+< 		{
+< 			name:      "3MB of empty slices",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`[],`, 3*1024*1024/3-2) + `[]]}`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of slices",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`[0],`, 3*1024*1024/4-2) + `[0]]}`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of empty maps",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`{},`, 3*1024*1024/3-2) + `{}]}`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of maps",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`{"a":0},`, 3*1024*1024/8-2) + `{"a":0}]}`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of ints",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`0,`, 3*1024*1024/2-2) + `0]}`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of floats",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`0.0,`, 3*1024*1024/4-2) + `0.0]}`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of bools",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`true,`, 3*1024*1024/5-2) + `true]}`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of empty strings",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`"",`, 3*1024*1024/3-2) + `""]}`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of strings",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`"abcdefghijklmnopqrstuvwxyz012",`, 3*1024*1024/30-2) + `"abcdefghijklmnopqrstuvwxyz012"]}`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of nulls",
+< 			data:      []byte(`{"a":[` + strings.Repeat(`null,`, 3*1024*1024/5-2) + `null]}`),
+< 			benchmark: true,
+< 		},
+< 	}
+< }
+< 
+< var decoders = map[string]func([]byte, interface{}) error{
+< 	"gojson":   gojson.Unmarshal,
+< 	"utiljson": utiljson.Unmarshal,
+< 	"jsoniter": CaseSensitiveJsonIterator().Unmarshal,
+< }
+< 
+< func TestJSONLimits(t *testing.T) {
+< 	for _, tc := range testcases() {
+< 		if tc.benchmark {
+< 			continue
+< 		}
+< 		t.Run(tc.name, func(t *testing.T) {
+< 			for decoderName, decoder := range decoders {
+< 				t.Run(decoderName, func(t *testing.T) {
+< 					v := map[string]interface{}{}
+< 					err := decoder(tc.data, &v)
+< 
+< 					if tc.checkErr != nil {
+< 						tc.checkErr(t, err)
+< 					} else if err != nil {
+< 						t.Errorf("unexpected error: %v", err)
+< 					}
+< 				})
+< 			}
+< 		})
+< 	}
+< }
+< 
+< func BenchmarkJSONLimits(b *testing.B) {
+< 	for _, tc := range testcases() {
+< 		b.Run(tc.name, func(b *testing.B) {
+< 			for decoderName, decoder := range decoders {
+< 				b.Run(decoderName, func(b *testing.B) {
+< 					for i := 0; i < b.N; i++ {
+< 						v := map[string]interface{}{}
+< 						err := decoder(tc.data, &v)
+< 
+< 						if tc.checkErr != nil {
+< 							tc.checkErr(b, err)
+< 						} else if err != nil {
+< 							b.Errorf("unexpected error: %v", err)
+< 						}
+< 					}
+< 				})
+< 			}
+< 		})
+< 	}
+< }
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/yaml/BUILD updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/yaml/BUILD
+3c3,6
+< load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+---
+> load(
+>     "@io_bazel_rules_go//go:def.bzl",
+>     "go_library",
+> )
+28,38d30
+< )
+< 
+< go_test(
+<     name = "go_default_test",
+<     srcs = ["yaml_test.go"],
+<     data = glob(["testdata/**"]),
+<     embed = [":go_default_library"],
+<     deps = [
+<         "//staging/src/k8s.io/apimachinery/pkg/util/yaml:go_default_library",
+<         "//vendor/sigs.k8s.io/yaml:go_default_library",
+<     ],
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/yaml/yaml_test.go updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/runtime/serializer/yaml/yaml_test.go
+1,402d0
+< /*
+< Copyright 2019 The Kubernetes Authors.
+< 
+< Licensed under the Apache License, Version 2.0 (the "License");
+< you may not use this file except in compliance with the License.
+< You may obtain a copy of the License at
+< 
+<     http://www.apache.org/licenses/LICENSE-2.0
+< 
+< Unless required by applicable law or agreed to in writing, software
+< distributed under the License is distributed on an "AS IS" BASIS,
+< WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+< See the License for the specific language governing permissions and
+< limitations under the License.
+< */
+< 
+< package yaml
+< 
+< import (
+< 	"strings"
+< 	"testing"
+< 
+< 	"k8s.io/apimachinery/pkg/util/yaml"
+< 	sigsyaml "sigs.k8s.io/yaml"
+< )
+< 
+< type testcase struct {
+< 	name  string
+< 	data  []byte
+< 	error string
+< 
+< 	benchmark bool
+< }
+< 
+< func testcases() []testcase {
+< 	return []testcase{
+< 		{
+< 			name:  "arrays of string aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a ["webwebwebwebwebweb","webwebwebwebwebweb","webwebwebwebwebweb","webwebwebwebwebweb","webwebwebwebwebweb","webwebwebwebwebweb","webwebwebwebwebweb","webwebwebwebwebweb","webwebwebwebwebweb"]
+< b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a]
+< c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b]
+< d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c]
+< e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d]
+< f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e]
+< g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f]
+< h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g]
+< i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h]
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "arrays of empty string aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a ["","","","","","","","",""]
+< b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a]
+< c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b]
+< d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c]
+< e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d]
+< f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e]
+< g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f]
+< h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g]
+< i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h]
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "arrays of null aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a [null,null,null,null,null,null,null,null,null]
+< b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a]
+< c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b]
+< d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c]
+< e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d]
+< f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e]
+< g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f]
+< h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g]
+< i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h]
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "arrays of zero int aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a [0,0,0,0,0,0,0,0,0]
+< b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a]
+< c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b]
+< d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c]
+< e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d]
+< f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e]
+< g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f]
+< h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g]
+< i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h]
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "arrays of zero float aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+< b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a]
+< c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b]
+< d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c]
+< e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d]
+< f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e]
+< g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f]
+< h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g]
+< i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h]
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "arrays of big float aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a [1234567890.12345678,1234567890.12345678,1234567890.12345678,1234567890.12345678,1234567890.12345678,1234567890.12345678,1234567890.12345678,1234567890.12345678,1234567890.12345678]
+< b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a]
+< c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b]
+< d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c]
+< e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d]
+< f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e]
+< g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f]
+< h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g]
+< i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h]
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "arrays of bool aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a [true,true,true,true,true,true,true,true,true]
+< b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a,*a]
+< c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b,*b]
+< d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c,*c]
+< e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d,*d]
+< f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e,*e]
+< g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f,*f]
+< h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g,*g]
+< i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h,*h]
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "map key aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a {"verylongkey1":"","verylongkey2":"","verylongkey3":"","verylongkey4":"","verylongkey5":"","verylongkey6":"","verylongkey7":"","verylongkey8":"","verylongkey9":""}
+< b: &b {"verylongkey1":*a,"verylongkey2":*a,"verylongkey3":*a,"verylongkey4":*a,"verylongkey5":*a,"verylongkey6":*a,"verylongkey7":*a,"verylongkey8":*a,"verylongkey9":*a}
+< c: &c {"verylongkey1":*b,"verylongkey2":*b,"verylongkey3":*b,"verylongkey4":*b,"verylongkey5":*b,"verylongkey6":*b,"verylongkey7":*b,"verylongkey8":*b,"verylongkey9":*b}
+< d: &d {"verylongkey1":*c,"verylongkey2":*c,"verylongkey3":*c,"verylongkey4":*c,"verylongkey5":*c,"verylongkey6":*c,"verylongkey7":*c,"verylongkey8":*c,"verylongkey9":*c}
+< e: &e {"verylongkey1":*d,"verylongkey2":*d,"verylongkey3":*d,"verylongkey4":*d,"verylongkey5":*d,"verylongkey6":*d,"verylongkey7":*d,"verylongkey8":*d,"verylongkey9":*d}
+< f: &f {"verylongkey1":*e,"verylongkey2":*e,"verylongkey3":*e,"verylongkey4":*e,"verylongkey5":*e,"verylongkey6":*e,"verylongkey7":*e,"verylongkey8":*e,"verylongkey9":*e}
+< g: &g {"verylongkey1":*f,"verylongkey2":*f,"verylongkey3":*f,"verylongkey4":*f,"verylongkey5":*f,"verylongkey6":*f,"verylongkey7":*f,"verylongkey8":*f,"verylongkey9":*f}
+< h: &h {"verylongkey1":*g,"verylongkey2":*g,"verylongkey3":*g,"verylongkey4":*g,"verylongkey5":*g,"verylongkey6":*g,"verylongkey7":*g,"verylongkey8":*g,"verylongkey9":*g}
+< i: &i {"verylongkey1":*h,"verylongkey2":*h,"verylongkey3":*h,"verylongkey4":*h,"verylongkey5":*h,"verylongkey6":*h,"verylongkey7":*h,"verylongkey8":*h,"verylongkey9":*h}
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "map value aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a {"1":"verylongmapvalue","2":"verylongmapvalue","3":"verylongmapvalue","4":"verylongmapvalue","5":"verylongmapvalue","6":"verylongmapvalue","7":"verylongmapvalue","8":"verylongmapvalue","9":"verylongmapvalue"}
+< b: &b {"1":*a,"2":*a,"3":*a,"4":*a,"5":*a,"6":*a,"7":*a,"8":*a,"9":*a}
+< c: &c {"1":*b,"2":*b,"3":*b,"4":*b,"5":*b,"6":*b,"7":*b,"8":*b,"9":*b}
+< d: &d {"1":*c,"2":*c,"3":*c,"4":*c,"5":*c,"6":*c,"7":*c,"8":*c,"9":*c}
+< e: &e {"1":*d,"2":*d,"3":*d,"4":*d,"5":*d,"6":*d,"7":*d,"8":*d,"9":*d}
+< f: &f {"1":*e,"2":*e,"3":*e,"4":*e,"5":*e,"6":*e,"7":*e,"8":*e,"9":*e}
+< g: &g {"1":*f,"2":*f,"3":*f,"4":*f,"5":*f,"6":*f,"7":*f,"8":*f,"9":*f}
+< h: &h {"1":*g,"2":*g,"3":*g,"4":*g,"5":*g,"6":*g,"7":*g,"8":*g,"9":*g}
+< i: &i {"1":*h,"2":*h,"3":*h,"4":*h,"5":*h,"6":*h,"7":*h,"8":*h,"9":*h}
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "nested map aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a {"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+< b: &b {"1":*a,"2":*a,"3":*a,"4":*a,"5":*a,"6":*a,"7":*a,"8":*a,"9":*a}
+< c: &c {"1":*b,"2":*b,"3":*b,"4":*b,"5":*b,"6":*b,"7":*b,"8":*b,"9":*b}
+< d: &d {"1":*c,"2":*c,"3":*c,"4":*c,"5":*c,"6":*c,"7":*c,"8":*c,"9":*c}
+< e: &e {"1":*d,"2":*d,"3":*d,"4":*d,"5":*d,"6":*d,"7":*d,"8":*d,"9":*d}
+< f: &f {"1":*e,"2":*e,"3":*e,"4":*e,"5":*e,"6":*e,"7":*e,"8":*e,"9":*e}
+< g: &g {"1":*f,"2":*f,"3":*f,"4":*f,"5":*f,"6":*f,"7":*f,"8":*f,"9":*f}
+< h: &h {"1":*g,"2":*g,"3":*g,"4":*g,"5":*g,"6":*g,"7":*g,"8":*g,"9":*g}
+< i: &i {"1":*h,"2":*h,"3":*h,"4":*h,"5":*h,"6":*h,"7":*h,"8":*h,"9":*h}
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name:  "nested slice aliases",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< apiVersion: v1
+< data:
+< a: &a [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[""]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+< b: &b [[[[[[[[[[*a]]]]]]]]],[[[[[[[[[*a]]]]]]]]],[[[[[[[[[*a]]]]]]]]],[[[[[[[[[*a]]]]]]]]],[[[[[[[[[*a]]]]]]]]]]
+< c: &c [[[[[[[[[[*b]]]]]]]]],[[[[[[[[[*b]]]]]]]]],[[[[[[[[[*b]]]]]]]]],[[[[[[[[[*b]]]]]]]]],[[[[[[[[[*b]]]]]]]]]]
+< d: &d [[[[[[[[[[*c]]]]]]]]],[[[[[[[[[*c]]]]]]]]],[[[[[[[[[*c]]]]]]]]],[[[[[[[[[*c]]]]]]]]],[[[[[[[[[*c]]]]]]]]]]
+< e: &e [[[[[[[[[[*d]]]]]]]]],[[[[[[[[[*d]]]]]]]]],[[[[[[[[[*d]]]]]]]]],[[[[[[[[[*d]]]]]]]]],[[[[[[[[[*d]]]]]]]]]]
+< f: &f [[[[[[[[[[*e]]]]]]]]],[[[[[[[[[*e]]]]]]]]],[[[[[[[[[*e]]]]]]]]],[[[[[[[[[*e]]]]]]]]],[[[[[[[[[*e]]]]]]]]]]
+< g: &g [[[[[[[[[[*f]]]]]]]]],[[[[[[[[[*f]]]]]]]]],[[[[[[[[[*f]]]]]]]]],[[[[[[[[[*f]]]]]]]]],[[[[[[[[[*f]]]]]]]]]]
+< h: &h [[[[[[[[[[*g]]]]]]]]],[[[[[[[[[*g]]]]]]]]],[[[[[[[[[*g]]]]]]]]],[[[[[[[[[*g]]]]]]]]],[[[[[[[[[*g]]]]]]]]]]
+< i: &i [[[[[[[[[[*h]]]]]]]]],[[[[[[[[[*h]]]]]]]]],[[[[[[[[[*h]]]]]]]]],[[[[[[[[[*h]]]]]]]]],[[[[[[[[[*h]]]]]]]]]]
+< kind: ConfigMap
+< metadata:
+< name: yaml-bomb
+< namespace: default
+< `),
+< 		},
+< 		{
+< 			name: "3MB map without alias",
+< 			data: []byte(`a: &a [{a}` + strings.Repeat(`,{a}`, 3*1024*1024/4) + `]`),
+< 		},
+< 		{
+< 			name:  "3MB map with alias",
+< 			error: "excessive aliasing",
+< 			data: []byte(`
+< a: &a [{a}` + strings.Repeat(`,{a}`, 3*1024*1024/4) + `]
+< b: &b [*a]`),
+< 		},
+< 		{
+< 			name:  "deeply nested slices",
+< 			error: "max depth",
+< 			data:  []byte(strings.Repeat(`[`, 3*1024*1024)),
+< 		},
+< 		{
+< 			name:  "deeply nested maps",
+< 			error: "max depth",
+< 			data:  []byte("x: " + strings.Repeat(`{`, 3*1024*1024)),
+< 		},
+< 		{
+< 			name:  "deeply nested indents",
+< 			error: "max depth",
+< 			data:  []byte(strings.Repeat(`- `, 3*1024*1024)),
+< 		},
+< 		{
+< 			name:      "3MB of 1000-indent lines",
+< 			data:      []byte(strings.Repeat(strings.Repeat(`- `, 1000)+"\n", 3*1024/2)),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of empty slices",
+< 			data:      []byte(`[` + strings.Repeat(`[],`, 3*1024*1024/3-2) + `[]]`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of slices",
+< 			data:      []byte(`[` + strings.Repeat(`[0],`, 3*1024*1024/4-2) + `[0]]`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of empty maps",
+< 			data:      []byte(`[` + strings.Repeat(`{},`, 3*1024*1024/3-2) + `{}]`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of maps",
+< 			data:      []byte(`[` + strings.Repeat(`{a},`, 3*1024*1024/4-2) + `{a}]`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of ints",
+< 			data:      []byte(`[` + strings.Repeat(`0,`, 3*1024*1024/2-2) + `0]`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of floats",
+< 			data:      []byte(`[` + strings.Repeat(`0.0,`, 3*1024*1024/4-2) + `0.0]`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of bools",
+< 			data:      []byte(`[` + strings.Repeat(`true,`, 3*1024*1024/5-2) + `true]`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of empty strings",
+< 			data:      []byte(`[` + strings.Repeat(`"",`, 3*1024*1024/3-2) + `""]`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of strings",
+< 			data:      []byte(`[` + strings.Repeat(`"abcdefghijklmnopqrstuvwxyz012",`, 3*1024*1024/30-2) + `"abcdefghijklmnopqrstuvwxyz012"]`),
+< 			benchmark: true,
+< 		},
+< 		{
+< 			name:      "3MB of nulls",
+< 			data:      []byte(`[` + strings.Repeat(`null,`, 3*1024*1024/5-2) + `null]`),
+< 			benchmark: true,
+< 		},
+< 	}
+< }
+< 
+< var decoders = map[string]func([]byte) ([]byte, error){
+< 	"sigsyaml": sigsyaml.YAMLToJSON,
+< 	"utilyaml": yaml.ToJSON,
+< }
+< 
+< func TestYAMLLimits(t *testing.T) {
+< 	for _, tc := range testcases() {
+< 		if tc.benchmark {
+< 			continue
+< 		}
+< 		t.Run(tc.name, func(t *testing.T) {
+< 			for decoderName, decoder := range decoders {
+< 				t.Run(decoderName, func(t *testing.T) {
+< 					_, err := decoder(tc.data)
+< 					if len(tc.error) == 0 {
+< 						if err != nil {
+< 							t.Errorf("unexpected error: %v", err)
+< 						}
+< 					} else {
+< 						if err == nil || !strings.Contains(err.Error(), tc.error) {
+< 							t.Errorf("expected %q error, got %v", tc.error, err)
+< 						}
+< 					}
+< 				})
+< 			}
+< 		})
+< 	}
+< }
+< 
+< func BenchmarkYAMLLimits(b *testing.B) {
+< 	for _, tc := range testcases() {
+< 		b.Run(tc.name, func(b *testing.B) {
+< 			for decoderName, decoder := range decoders {
+< 				b.Run(decoderName, func(b *testing.B) {
+< 					for i := 0; i < b.N; i++ {
+< 						_, err := decoder(tc.data)
+< 						if len(tc.error) == 0 {
+< 							if err != nil {
+< 								b.Errorf("unexpected error: %v", err)
+< 							}
+< 						} else {
+< 							if err == nil || !strings.Contains(err.Error(), tc.error) {
+< 								b.Errorf("expected %q error, got %v", tc.error, err)
+< 							}
+< 						}
+< 					}
+< 				})
+< 			}
+< 		})
+< 	}
+< }
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/json/json.go updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/json/json.go
+22d21
+< 	"fmt"
+38,40d36
+< // limit recursive depth to prevent stack overflow errors
+< const maxDepth = 10000
+< 
+55c51
+< 		return convertMapNumbers(*v, 0)
+---
+> 		return convertMapNumbers(*v)
+67c63
+< 		return convertSliceNumbers(*v, 0)
+---
+> 		return convertSliceNumbers(*v)
+76,80c72
+< func convertMapNumbers(m map[string]interface{}, depth int) error {
+< 	if depth > maxDepth {
+< 		return fmt.Errorf("exceeded max depth of %d", maxDepth)
+< 	}
+< 
+---
+> func convertMapNumbers(m map[string]interface{}) error {
+87c79
+< 			err = convertMapNumbers(v, depth+1)
+---
+> 			err = convertMapNumbers(v)
+89c81
+< 			err = convertSliceNumbers(v, depth+1)
+---
+> 			err = convertSliceNumbers(v)
+100,104c92
+< func convertSliceNumbers(s []interface{}, depth int) error {
+< 	if depth > maxDepth {
+< 		return fmt.Errorf("exceeded max depth of %d", maxDepth)
+< 	}
+< 
+---
+> func convertSliceNumbers(s []interface{}) error {
+111c99
+< 			err = convertMapNumbers(v, depth+1)
+---
+> 			err = convertMapNumbers(v)
+113c101
+< 			err = convertSliceNumbers(v, depth+1)
+---
+> 			err = convertSliceNumbers(v)
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiserver/pkg/endpoints/handlers/patch.go updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiserver/pkg/endpoints/handlers/patch.go
+291,299d290
+< 		// sanity check potentially abusive patches
+< 		// TODO(liggitt): drop this once golang json parser limits stack depth (https://github.com/golang/go/issues/31789)
+< 		if len(p.patchJS) > 1024*1024 {
+< 			v := []interface{}{}
+< 			if err := json.Unmarshal(p.patchJS, v); err != nil {
+< 				return nil, errors.NewBadRequest(fmt.Sprintf("error decoding patch: %v", err))
+< 			}
+< 		}
+< 
+315,323d305
+< 		// sanity check potentially abusive patches
+< 		// TODO(liggitt): drop this once golang json parser limits stack depth (https://github.com/golang/go/issues/31789)
+< 		if len(p.patchJS) > 1024*1024 {
+< 			v := map[string]interface{}{}
+< 			if err := json.Unmarshal(p.patchJS, v); err != nil {
+< 				return nil, errors.NewBadRequest(fmt.Sprintf("error decoding patch: %v", err))
+< 			}
+< 		}
+< 
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiserver/pkg/server/config.go updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/apiserver/pkg/server/config.go
+165c165
+< 	// The limit on the request size that would be accepted and decoded in a write request
+---
+> 	// The limit on the request body size that would be accepted and decoded in a write request.
+282c282
+< 		// 1.5MB is the default client request size in bytes
+---
+> 		// 10MB is the recommended maximum client request size in bytes
+284c284
+< 		// https://github.com/etcd-io/etcd/blob/release-3.4/embed/config.go#L56.
+---
+> 		// https://github.com/etcd-io/etcd/blob/release-3.3/etcdserver/server.go#L90.
+286c286,287
+< 		// proto when persisted in etcd, so we allow 2x as the largest size
+---
+> 		// proto when persisted in etcd. Assuming the upper bound of
+> 		// the size ratio is 10:1, we set 100MB as the largest size
+288,289c289,290
+< 		JSONPatchMaxCopyBytes: int64(3 * 1024 * 1024),
+< 		// 1.5MB is the recommended client request size in byte
+---
+> 		JSONPatchMaxCopyBytes: int64(100 * 1024 * 1024),
+> 		// 10MB is the recommended maximum client request size in bytes
+291c292
+< 		// https://github.com/etcd-io/etcd/blob/release-3.4/embed/config.go#L56.
+---
+> 		// https://github.com/etcd-io/etcd/blob/release-3.3/etcdserver/server.go#L90.
+293c294,295
+< 		// proto when persisted in etcd, so we allow 2x as the largest request
+---
+> 		// proto when persisted in etcd. Assuming the upper bound of
+> 		// the size ratio is 10:1, we set 100MB as the largest request
+295c297
+< 		MaxRequestBodyBytes:          int64(3 * 1024 * 1024),
+---
+> 		MaxRequestBodyBytes:          int64(100 * 1024 * 1024),
+Binary files current/vendor/k8s.io/kubernetes/staging/src/k8s.io/client-go/scale/.client_test.go.swp and updated/vendor/k8s.io/kubernetes/staging/src/k8s.io/client-go/scale/.client_test.go.swp differ
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/test/integration/apiserver/max_request_body_bytes_test.go updated/vendor/k8s.io/kubernetes/test/integration/apiserver/max_request_body_bytes_test.go
+24c24
+< 	v1 "k8s.io/api/core/v1"
+---
+> 	"k8s.io/api/core/v1"
+26d25
+< 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+28a28
+> 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
+36,38c36,40
+< 	clientSet, _ := framework.StartTestServer(t, stopCh, framework.TestServerSetup{})
+< 
+< 	hugeData := []byte(strings.Repeat("x", 3*1024*1024+1))
+---
+> 	clientSet, _ := framework.StartTestServer(t, stopCh, framework.TestServerSetup{
+> 		ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
+> 			opts.GenericServerRunOptions.MaxRequestBodyBytes = 1024 * 1024
+> 		},
+> 	})
+40c42
+< 	rest := clientSet.Discovery().RESTClient()
+---
+> 	hugeData := []byte(strings.Repeat("x", 1024*1024+1))
+88,119d89
+< 	t.Run("JSONPatchType should handle a patch just under the max limit", func(t *testing.T) {
+< 		patchBody := []byte(`[{"op":"add","path":"/foo","value":` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + `}]`)
+< 		err = rest.Patch(types.JSONPatchType).AbsPath(fmt.Sprintf("/api/v1/namespaces/default/secrets/test")).
+< 			Body(patchBody).Do().Error()
+< 		if err != nil && !errors.IsBadRequest(err) {
+< 			t.Errorf("expected success or bad request err, got %v", err)
+< 		}
+< 	})
+< 	t.Run("MergePatchType should handle a patch just under the max limit", func(t *testing.T) {
+< 		patchBody := []byte(`{"value":` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + `}`)
+< 		err = rest.Patch(types.MergePatchType).AbsPath(fmt.Sprintf("/api/v1/namespaces/default/secrets/test")).
+< 			Body(patchBody).Do().Error()
+< 		if err != nil && !errors.IsBadRequest(err) {
+< 			t.Errorf("expected success or bad request err, got %v", err)
+< 		}
+< 	})
+< 	t.Run("StrategicMergePatchType should handle a patch just under the max limit", func(t *testing.T) {
+< 		patchBody := []byte(`{"value":` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + `}`)
+< 		err = rest.Patch(types.StrategicMergePatchType).AbsPath(fmt.Sprintf("/api/v1/namespaces/default/secrets/test")).
+< 			Body(patchBody).Do().Error()
+< 		if err != nil && !errors.IsBadRequest(err) {
+< 			t.Errorf("expected success or bad request err, got %v", err)
+< 		}
+< 	})
+< 	t.Run("ApplyPatchType should handle a patch just under the max limit", func(t *testing.T) {
+< 		patchBody := []byte(`{"value":` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + `}`)
+< 		err = rest.Patch(types.ApplyPatchType).Param("fieldManager", "test").AbsPath(fmt.Sprintf("/api/v1/namespaces/default/secrets/test")).
+< 			Body(patchBody).Do().Error()
+< 		if err != nil && !errors.IsBadRequest(err) {
+< 			t.Errorf("expected success or bad request err, got %#v", err)
+< 		}
+< 	})
+129,252d98
+< 		}
+< 	})
+< 
+< 	// Create YAML over 3MB limit
+< 	t.Run("create should limit yaml parsing", func(t *testing.T) {
+< 		yamlBody := []byte(`
+< apiVersion: v1
+< kind: ConfigMap
+< metadata:
+<   name: mytest
+< values: ` + strings.Repeat("[", 3*1024*1024))
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/yaml").
+< 			SetHeader("Content-Type", "application/yaml").
+< 			AbsPath("/api/v1/namespaces/default/configmaps").
+< 			Body(yamlBody).
+< 			DoRaw()
+< 		if !apierrors.IsRequestEntityTooLargeError(err) {
+< 			t.Errorf("expected too large error, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create YAML just under 3MB limit, nested
+< 	t.Run("create should handle a yaml document just under the maximum size with correct nesting", func(t *testing.T) {
+< 		yamlBody := []byte(`
+< apiVersion: v1
+< kind: ConfigMap
+< metadata:
+<   name: mytest
+< values: ` + strings.Repeat("[", 3*1024*1024/2-500) + strings.Repeat("]", 3*1024*1024/2-500))
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/yaml").
+< 			SetHeader("Content-Type", "application/yaml").
+< 			AbsPath("/api/v1/namespaces/default/configmaps").
+< 			Body(yamlBody).
+< 			DoRaw()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected bad request, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create YAML just under 3MB limit, not nested
+< 	t.Run("create should handle a yaml document just under the maximum size with unbalanced nesting", func(t *testing.T) {
+< 		yamlBody := []byte(`
+< apiVersion: v1
+< kind: ConfigMap
+< metadata:
+<   name: mytest
+< values: ` + strings.Repeat("[", 3*1024*1024-1000))
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/yaml").
+< 			SetHeader("Content-Type", "application/yaml").
+< 			AbsPath("/api/v1/namespaces/default/configmaps").
+< 			Body(yamlBody).
+< 			DoRaw()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected bad request, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create JSON over 3MB limit
+< 	t.Run("create should limit json parsing", func(t *testing.T) {
+< 		jsonBody := []byte(`{
+< 	"apiVersion": "v1",
+< 	"kind": "ConfigMap",
+< 	"metadata": {
+< 	  "name": "mytest"
+< 	},
+< 	"values": ` + strings.Repeat("[", 3*1024*1024/2) + strings.Repeat("]", 3*1024*1024/2) + "}")
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/json").
+< 			SetHeader("Content-Type", "application/json").
+< 			AbsPath("/api/v1/namespaces/default/configmaps").
+< 			Body(jsonBody).
+< 			DoRaw()
+< 		if !apierrors.IsRequestEntityTooLargeError(err) {
+< 			t.Errorf("expected too large error, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create JSON just under 3MB limit, nested
+< 	t.Run("create should handle a json document just under the maximum size with correct nesting", func(t *testing.T) {
+< 		jsonBody := []byte(`{
+< 	"apiVersion": "v1",
+< 	"kind": "ConfigMap",
+< 	"metadata": {
+< 	  "name": "mytest"
+< 	},
+< 	"values": ` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + "}")
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/json").
+< 			SetHeader("Content-Type", "application/json").
+< 			AbsPath("/api/v1/namespaces/default/configmaps").
+< 			Body(jsonBody).
+< 			DoRaw()
+< 		// TODO(liggitt): expect bad request on deep nesting, rather than success on dropped unknown field data
+< 		if err != nil && !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected bad request, got %v", err)
+< 		}
+< 	})
+< 
+< 	// Create JSON just under 3MB limit, not nested
+< 	t.Run("create should handle a json document just under the maximum size with unbalanced nesting", func(t *testing.T) {
+< 		jsonBody := []byte(`{
+< 	"apiVersion": "v1",
+< 	"kind": "ConfigMap",
+< 	"metadata": {
+< 	  "name": "mytest"
+< 	},
+< 	"values": ` + strings.Repeat("[", 3*1024*1024-1000) + "}")
+< 
+< 		_, err := rest.Post().
+< 			SetHeader("Accept", "application/json").
+< 			SetHeader("Content-Type", "application/json").
+< 			AbsPath("/api/v1/namespaces/default/configmaps").
+< 			Body(jsonBody).
+< 			DoRaw()
+< 		if !apierrors.IsBadRequest(err) {
+< 			t.Errorf("expected bad request, got %v", err)
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/test/integration/master/synthetic_master_test.go updated/vendor/k8s.io/kubernetes/test/integration/master/synthetic_master_test.go
+312,313c312
+< 	const DeploymentTwoMegabyteSize = 175000
+< 	const DeploymentThreeMegabyteSize = 250000
+---
+> 	const DeploymentTwoMegabyteSize = 1000000
+317d315
+< 	expectedMsgFor3MB := `Request entity too large: limit is 3145728`
+320,322c318,319
+< 	deployment1 := constructBody("a", DeploymentMegabyteSize, "labels", t)      // >1 MB file
+< 	deployment2 := constructBody("a", DeploymentTwoMegabyteSize, "labels", t)   // >2 MB file
+< 	deployment3 := constructBody("a", DeploymentThreeMegabyteSize, "labels", t) // >3 MB file
+---
+> 	deployment1 := constructBody("a", DeploymentMegabyteSize, "labels", t)    // >1 MB file
+> 	deployment2 := constructBody("a", DeploymentTwoMegabyteSize, "labels", t) // >2 MB file
+324c321
+< 	deployment4 := constructBody("a", DeploymentMegabyteSize, "annotations", t)
+---
+> 	deployment3 := constructBody("a", DeploymentMegabyteSize, "annotations", t)
+326,328c323,324
+< 	deployment5 := constructBody("sample/sample", DeploymentMegabyteSize, "finalizers", t)      // >1 MB file
+< 	deployment6 := constructBody("sample/sample", DeploymentTwoMegabyteSize, "finalizers", t)   // >2 MB file
+< 	deployment7 := constructBody("sample/sample", DeploymentThreeMegabyteSize, "finalizers", t) // >3 MB file
+---
+> 	deployment4 := constructBody("sample/sample", DeploymentMegabyteSize, "finalizers", t)    // >1 MB file
+> 	deployment5 := constructBody("sample/sample", DeploymentTwoMegabyteSize, "finalizers", t) // >2 MB file
+335,341c331,335
+< 		{"1 MB labels", deployment1, expectedMsgFor1MB},
+< 		{"2 MB labels", deployment2, expectedMsgFor2MB},
+< 		{"3 MB labels", deployment3, expectedMsgFor3MB},
+< 		{"1 MB annotations", deployment4, expectedMsgForLargeAnnotation},
+< 		{"1 MB finalizers", deployment5, expectedMsgFor1MB},
+< 		{"2 MB finalizers", deployment6, expectedMsgFor2MB},
+< 		{"3 MB finalizers", deployment7, expectedMsgFor3MB},
+---
+> 		{"1 MB", deployment1, expectedMsgFor1MB},
+> 		{"2 MB", deployment2, expectedMsgFor2MB},
+> 		{"1 MB", deployment3, expectedMsgForLargeAnnotation},
+> 		{"1 MB", deployment4, expectedMsgFor1MB},
+> 		{"2 MB", deployment5, expectedMsgFor2MB},
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/third_party/etcd.BUILD updated/vendor/k8s.io/kubernetes/third_party/etcd.BUILD
+0a1
+> exports_files(["etcd"])
+File current/vendor/k8s.io/metrics is a symbolic link while file updated/vendor/k8s.io/metrics is a directory
+File current/vendor/k8s.io/sample-apiserver is a symbolic link while file updated/vendor/k8s.io/sample-apiserver is a directory
+File current/vendor/k8s.io/sample-cli-plugin is a symbolic link while file updated/vendor/k8s.io/sample-cli-plugin is a directory
+File current/vendor/k8s.io/sample-controller is a symbolic link while file updated/vendor/k8s.io/sample-controller is a directory
