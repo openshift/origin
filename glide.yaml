@@ -81,6 +81,8 @@ import:
   version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
 - package: k8s.io/klog
   version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f # recent klog bump broke glog flags test in k8s.io/apiserver, pin
+- package: gopkg.in/yaml.v2
+  version: v2.2.4
 # for gengo
 - package: golang.org/x/tools/imports
   version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
