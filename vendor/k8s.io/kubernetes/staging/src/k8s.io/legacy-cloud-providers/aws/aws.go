@@ -219,13 +219,15 @@ const nodeWithImpairedVolumes = "NodeWithImpairedVolumes"
 const (
 	// volumeAttachmentConsecutiveErrorLimit is the number of consecutive errors we will ignore when waiting for a volume to attach/detach
 	volumeAttachmentStatusConsecutiveErrorLimit = 10
-	// most attach/detach operations on AWS finish within 1-4 seconds
-	// By using 1 second starting interval with a backoff of 1.8
-	// we get -  [1, 1.8, 3.24, 5.832000000000001, 10.4976]
-	// in total we wait for 2601 seconds
-	volumeAttachmentStatusInitialDelay = 1 * time.Second
-	volumeAttachmentStatusFactor       = 1.8
-	volumeAttachmentStatusSteps        = 13
+
+	// Attach typically takes 2-5 seconds (average is 2). Asking before 2 seconds is just waste of API quota.
+	volumeAttachmentStatusInitialDelay = 2*time.Second
+	// Detach typically takes 5-10 seconds (average is 6). Asking before 5 seconds is just waste of API quota.
+	volumeDetachmentStatusInitialDelay = 5*time.Second
+	// After the initial delay, poll attach/detach with exponential backoff (2046 seconds total)
+	volumeAttachmentStatusPollDelay = 2 * time.Second
+	volumeAttachmentStatusFactor    = 2
+	volumeAttachmentStatusSteps     = 11
 
 	// createTag* is configuration of exponential backoff for CreateTag call. We
 	// retry mainly because if we create an object, we cannot tag it until it is
@@ -2071,7 +2073,7 @@ func (c *Cloud) applyUnSchedulableTaint(nodeName types.NodeName, reason string) 
 // On success, it returns the last attachment state.
 func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment, error) {
 	backoff := wait.Backoff{
-		Duration: volumeAttachmentStatusInitialDelay,
+		Duration: volumeAttachmentStatusPollDelay,
 		Factor:   volumeAttachmentStatusFactor,
 		Steps:    volumeAttachmentStatusSteps,
 	}
@@ -2081,8 +2083,12 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 	// But once we see more than 10 errors in a row, we return the error
 	describeErrorCount := 0
 	var attachment *ec2.VolumeAttachment
+	count := 0
+	start := time.Now()
 
+	time.Sleep(getInitialAttachDetachDelay(status))
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		count++
 		info, err := d.describeVolume()
 		if err != nil {
 			// The VolumeNotFound error is special -- we don't need to wait for it to repeat
@@ -2143,7 +2149,8 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 		klog.V(2).Infof("Waiting for volume %q state: actual=%s, desired=%s", d.awsID, attachmentStatus, status)
 		return false, nil
 	})
-
+	end := time.Now()
+	klog.Infof("waitForAttachmentStatus finished for volume %s %s after %d [%f]", d.awsID, status, count, end.Sub(start).Seconds())
 	return attachment, err
 }
 
@@ -4606,4 +4613,13 @@ func setNodeDisk(
 		nodeDiskMap[nodeName] = volumeMap
 	}
 	volumeMap[volumeID] = check
+}
+
+func getInitialAttachDetachDelay(status string) time.Duration {
+	if status == "detached" {
+		return volumeDetachmentStatusInitialDelay
+	}
+
+	// Attach typically takes 2-6 seconds (average is 2). Asking before 2 seconds is just waste of API quota
+	return volumeAttachmentStatusInitialDelay
 }
