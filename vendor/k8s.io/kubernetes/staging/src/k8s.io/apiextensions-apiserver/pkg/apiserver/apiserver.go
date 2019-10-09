@@ -176,6 +176,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		c.GenericConfig.AdmissionControl,
 		establishingController,
 		c.ExtraConfig.MasterCount,
+		c.GenericConfig.MaxRequestBodyBytes,
 	)
 	s.GenericAPIServer.Handler.NonGoRestfulMux.Handle("/apis", crdHandler)
 	s.GenericAPIServer.Handler.NonGoRestfulMux.HandlePrefix("/apis/", crdHandler)
