@@ -70,9 +70,9 @@ type IngressControllerSpec struct {
 	// If unset, the default is based on
 	// infrastructure.config.openshift.io/cluster .status.platform:
 	//
-	//   AWS:      LoadBalancerService
-	//   Azure:    LoadBalancerService
-	//   GCP:      LoadBalancerService
+	//   AWS:      LoadBalancerService (with External scope)
+	//   Azure:    LoadBalancerService (with External scope)
+	//   GCP:      LoadBalancerService (with External scope)
 	//   Libvirt:  HostNetwork
 	//
 	// Any other platform types (including None) default to HostNetwork.
@@ -186,9 +186,10 @@ var (
 // LoadBalancerStrategy holds parameters for a load balancer.
 type LoadBalancerStrategy struct {
 	// scope indicates the scope at which the load balancer is exposed.
-	// Possible values are "External" and "Internal".  The default is
-	// "External".
-	// +optional
+	// Possible values are "External" and "Internal".
+	//
+	// +kubebuilder:validation:Required
+	// +required
 	Scope LoadBalancerScope `json:"scope"`
 }
 

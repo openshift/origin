@@ -1,5 +1,5 @@
-hash: 46a0b475f0430496b8a4b06cb19ba9d24fde3f30c59a4ea55fa308caa79a2ebe
-updated: 2019-09-25T14:19:31.213384475-05:00
+hash: 0cbd9151ca02eb4589ec42377f028ef04de462557b1985e6e972e3d6c831df29
+updated: 2019-10-09T16:17:36.270361974-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -886,7 +886,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: cdbe64fb0c9184ffe47d24d0ea490705a92d9fd8
+  version: d4a64ec2cbd86f11ea74dfdcf6520d5833d0c6cd
   subpackages:
   - annotations
   - apps
@@ -1421,7 +1421,7 @@ imports:
   - pubsub/v1
   - tpu/v1
 - name: google.golang.org/appengine
-  version: c71d63e301d75423acb410203c747cad31e9a5e7
+  version: 971852bfffca25b069c31162ae8f247a3dba083b
   subpackages:
   - internal
   - internal/app_identity
@@ -1489,7 +1489,7 @@ imports:
 - name: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: gopkg.in/yaml.v2
-  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
+  version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
 - name: k8s.io/api
   version: ffaba947a5e96ed8955a635a8bf105089e311cbc
   repo: https://github.com/openshift/kubernetes-api.git
