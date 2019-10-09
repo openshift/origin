@@ -193,7 +193,6 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		c.ExtraConfig.MasterCount,
 		s.GenericAPIServer.Authorizer,
 		c.GenericConfig.RequestTimeout,
-		c.GenericConfig.MaxRequestBodyBytes,
 	)
 	if err != nil {
 		return nil, err
