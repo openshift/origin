@@ -19,8 +19,11 @@ package json
 import (
 	"encoding/json"
 	"io"
+	"strconv"
+	"unsafe"
 
 	"github.com/ghodss/yaml"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/ugorji/go/codec"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,6 +68,64 @@ type Serializer struct {
 // Serializer implements Serializer
 var _ runtime.Serializer = &Serializer{}
 var _ recognizer.RecognizingDecoder = &Serializer{}
+
+func init() {
+	// Force jsoniter to decode number to interface{} via ints, if possible.
+	decodeNumberAsInt64IfPossible := func(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
+		switch iter.WhatIsNext() {
+		case jsoniter.NumberValue:
+			var number json.Number
+			iter.ReadVal(&number)
+			i64, err := strconv.ParseInt(string(number), 10, 64)
+			if err == nil {
+				*(*interface{})(ptr) = i64
+				return
+			}
+			f64, err := strconv.ParseFloat(string(number), 64)
+			if err == nil {
+				*(*interface{})(ptr) = f64
+				return
+			}
+		default:
+			// init depth, if needed
+			if iter.Attachment == nil {
+				iter.Attachment = int(1)
+			}
+
+			// remember current depth
+			originalAttachment := iter.Attachment
+
+			// increment depth before descending
+			if i, ok := iter.Attachment.(int); ok {
+				iter.Attachment = i + 1
+				if i > 10000 {
+					iter.ReportError("parse", "exceeded max depth")
+					return
+				}
+			}
+
+			*(*interface{})(ptr) = iter.Read()
+
+			// restore current depth
+			iter.Attachment = originalAttachment
+		}
+	}
+	jsoniter.RegisterTypeDecoderFunc("interface {}", decodeNumberAsInt64IfPossible)
+}
+
+// CaseSensitiveJsonIterator returns a jsoniterator API that's configured to be
+// case-sensitive when unmarshalling, and otherwise compatible with
+// the encoding/json standard library.
+func CaseSensitiveJsonIterator() jsoniter.API {
+	return jsoniter.Config{
+		EscapeHTML:             true,
+		SortMapKeys:            true,
+		ValidateJsonRawMessage: true,
+		CaseSensitive:          true,
+	}.Froze()
+}
+
+var caseSensitiveJsonIterator = CaseSensitiveJsonIterator()
 
 // gvkWithDefaults returns group kind and version defaulting from provided default
 func gvkWithDefaults(actual, defaultGVK schema.GroupVersionKind) schema.GroupVersionKind {

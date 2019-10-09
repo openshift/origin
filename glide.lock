@@ -1,5 +1,5 @@
-hash: 9b6e6da773f653564125ad07d26e1976ce47d248240a848ba191c61e1e2bf14a
-updated: 2019-10-17T15:35:09.416707573-04:00
+hash: 20f47d1aca455fde119b2d5b2d13e24b3171a705397a183b35acff8bbabdb428
+updated: 2019-10-17T17:53:05.08293679-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -667,6 +667,8 @@ imports:
   version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
 - name: github.com/jonboulle/clockwork
   version: 72f9bd7c4e0c2a40055ab3d0f09654f730cce982
+- name: github.com/json-iterator/go
+  version: f2b4162afba35581b6d4a50d3b8f34e33c144682
 - name: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
 - name: github.com/kardianos/osext
@@ -729,6 +731,10 @@ imports:
   version: ad45545899c7b13c020ea92b2072220eefad42b8
 - name: github.com/mitchellh/mapstructure
   version: 53818660ed4955e899c0bcafa97299a388bd7c8e
+- name: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- name: github.com/modern-go/reflect2
+  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/mohae/deepcopy
   version: 491d3605edfb866af34a48075bd4355ac1bf46ca
 - name: github.com/mreiferson/go-httpclient
