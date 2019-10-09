@@ -2081,8 +2081,11 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 	// But once we see more than 10 errors in a row, we return the error
 	describeErrorCount := 0
 	var attachment *ec2.VolumeAttachment
+	count := 0
+	start := time.Now()
 
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		count++
 		info, err := d.describeVolume()
 		if err != nil {
 			// The VolumeNotFound error is special -- we don't need to wait for it to repeat
@@ -2143,7 +2146,8 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 		klog.V(2).Infof("Waiting for volume %q state: actual=%s, desired=%s", d.awsID, attachmentStatus, status)
 		return false, nil
 	})
-
+	end := time.Now()
+	klog.Infof("waitForAttachmentStatus finished for volume %s %s after %d [%f]", d.awsID, status, count, end.Sub(start).Seconds())
 	return attachment, err
 }
 
