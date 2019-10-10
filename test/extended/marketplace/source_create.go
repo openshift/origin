@@ -19,7 +19,6 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		allNs         = "openshift-operators"
 		marketplaceNs = "openshift-marketplace"
 
-		//buildPruningBaseDir = exutil.FixturePath("testdata", "marketplace")
 		opsrcYamltem = exutil.FixturePath("testdata", "marketplace", "opsrc", "01-opsrc.yaml")
 		cscYamltem   = exutil.FixturePath("testdata", "marketplace", "csc", "01-csc.yaml")
 		subYamltem   = exutil.FixturePath("testdata", "marketplace", "sub", "01-subofdes.yaml")
@@ -30,8 +29,8 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		allresourcelist := [][]string{
 			{"operatorsource", "opsrctest", marketplaceNs},
 			{"catalogsourceconfig", "csctest", marketplaceNs},
-			{"csv", "descheduler.v0.0.3", allNs},
-			{"subscription", "descheduler-test", allNs},
+			{"csv", "camel-k-operator.v0.2.0", allNs},
+			{"subscription", "camel-k-marketplace-e2e-tests", allNs},
 		}
 		for _, source := range allresourcelist {
 			err := clearResources(oc, source[0], source[1], source[2])
@@ -43,7 +42,6 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 	g.It("[ocp-21405 21419 21479 21667]create and delete the basic source,sub one operator", func() {
 
 		//create one opsrc
-		//opsrcYaml := exutil.FixturePath("testdata", "marketplace", "opsrc", "01-opsrc.yaml")
 		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctest", "NAMESPACE=jfan", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -74,7 +72,6 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		//wait for the marketplace recover
 		time.Sleep(60 * time.Second)
 
-		//packageListLabel, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("packagemanifest", "-n", marketplaceNs, "-l", "opsrc-provider=opsrctest" "-o name").Output()
 		//get the packagelist with label opsrctest
 		packageListOpsrc2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.packages}").Output()
 		var packageEqual bool
@@ -86,7 +83,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		o.Expect(packageEqual).Should(o.BeTrue())
 
 		//OCP-21419 create one csc
-		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctest", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=descheduler-test").OutputToFile("config.json")
+		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctest", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=camel-k-marketplace-e2e-tests").OutputToFile("config.json")
 		err = createResources(oc, cscYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		time.Sleep(15 * time.Second)
@@ -104,16 +101,16 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 
 		//OCP-21479 sub to openshift-operators
 		time.Sleep(30 * time.Second)
-		msgofpkg, _ := existResources(oc, "packagemanifest", "descheduler-test", "openshift-operators")
+		msgofpkg, _ := existResources(oc, "packagemanifest", "camel-k-marketplace-e2e-tests", "openshift-operators")
 		o.Expect(msgofpkg).Should(o.BeTrue())
-		subYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subYamltem, "-p", "NAME=descheduler-test", fmt.Sprintf("NAMESPACE=%s", allNs), "SOURCE=csctest", "CSV=descheduler.v0.0.3").OutputToFile("config.json")
+		subYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subYamltem, "-p", "NAME=camel-k-marketplace-e2e-tests", fmt.Sprintf("NAMESPACE=%s", allNs), "SOURCE=csctest", "CSV=camel-k-operator.v0.2.0").OutputToFile("config.json")
 		err = createResources(oc, subYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		time.Sleep(80 * time.Second)
 
 		subResourceList := [][]string{
-			{"subscription", "descheduler-test", allNs},
-			{"csv", "descheduler.v0.0.3", allNs},
+			{"subscription", "camel-k-marketplace-e2e-tests", allNs},
+			{"csv", "camel-k-operator.v0.2.0", allNs},
 		}
 		for _, source := range subResourceList {
 			msg, _ := existResources(oc, source[0], source[1], source[2])
@@ -121,24 +118,22 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		}
 
 		//clear the csv resource
-		err = clearResources(oc, "csv", "descheduler.v0.0.3", "openshift-operators")
+		err = clearResources(oc, "csv", "camel-k-operator.v0.2.0", "openshift-operators")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		msgofcsv, err := existResources(oc, "csv", "descheduler.v0.0.3", "openshift-operators")
+		msgofcsv, err := existResources(oc, "csv", "camel-k-operator.v0.2.0", "openshift-operators")
 		o.Expect(msgofcsv).Should(o.BeFalse())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		//clear the sub resource
-		err = clearResources(oc, "subscription", "descheduler-test", "openshift-operators")
+		err = clearResources(oc, "subscription", "camel-k-marketplace-e2e-tests", "openshift-operators")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		msgofsub, err := existResources(oc, "subscription", "descheduler-test", "openshift-operators")
+		msgofsub, err := existResources(oc, "subscription", "camel-k-marketplace-e2e-tests", "openshift-operators")
 		o.Expect(msgofsub).Should(o.BeFalse())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		time.Sleep(60 * time.Second)
 
 		//OCP-21667 delete the csc
-		//msgofcsc, _ := existResources(oc, "catalogsourceconfig", "csctest", "openshift-marketplace")
-		//o.Expect(msgofcsc).Should(o.BeTrue())
 		err = clearResources(oc, "catalogsourceconfig", "csctest", "openshift-marketplace")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for _, source := range cscResourceList {
@@ -150,8 +145,6 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		time.Sleep(60 * time.Second)
 
 		//delete the opsrc
-		//msgofopsrc, _ := existResources(oc, "operatorsource", "opsrctest", "openshift-marketplace")
-		//o.Expect(msgofopsrc).Should(o.BeTrue())
 		err = clearResources(oc, "operatorsource", "opsrctest", "openshift-marketplace")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for _, source := range opsrcResourceList {
