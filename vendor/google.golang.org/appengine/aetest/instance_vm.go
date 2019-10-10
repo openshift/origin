@@ -278,8 +278,7 @@ func (i *instance) appYAML() string {
 const appYAMLTemplate = `
 application: %s
 version: 1
-runtime: go
-api_version: go1
+runtime: go111
 
 handlers:
 - url: /.*

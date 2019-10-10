@@ -118,14 +118,14 @@ var modVersionPat = regexp.MustCompile("@v[^/]+")
 // For calls from package main: strip all leading path entries, leaving just the filename.
 // For calls from anywhere else, strip $GOPATH/src, leaving just the package path and file path.
 func fileKey(file string) (string, error) {
-	if !internal.IsSecondGen() || internal.MainPath == "" {
+	if !internal.IsSecondGen() {
 		return file, nil
 	}
 	// If the caller is in the same Dir as mainPath, then strip everything but the file name.
 	if filepath.Dir(file) == internal.MainPath {
 		return filepath.Base(file), nil
 	}
-	// If the path contains "_gopath/src/", which is what the builder uses for
+	// If the path contains "gopath/src/", which is what the builder uses for
 	// apps which don't use go modules, strip everything up to and including src.
 	// Or, if the path starts with /tmp/staging, then we're importing a package
 	// from the app's module (and we must be using go modules), and we have a
@@ -133,7 +133,7 @@ func fileKey(file string) (string, error) {
 	// including the first /srv/.
 	// And be sure to look at the GOPATH, for local development.
 	s := string(filepath.Separator)
-	for _, s := range []string{filepath.Join("_gopath", "src") + s, s + "srv" + s, filepath.Join(build.Default.GOPATH, "src") + s} {
+	for _, s := range []string{filepath.Join("gopath", "src") + s, s + "srv" + s, filepath.Join(build.Default.GOPATH, "src") + s} {
 		if idx := strings.Index(file, s); idx > 0 {
 			return file[idx+len(s):], nil
 		}
