@@ -648,14 +648,16 @@ func BenchmarkDescendLessOrEqual(b *testing.B) {
 
 const cloneTestSize = 10000
 
-func cloneTest(t *testing.T, b *BTree, start int, p []Item, wg *sync.WaitGroup, trees *[]*BTree) {
+func cloneTest(t *testing.T, b *BTree, start int, p []Item, wg *sync.WaitGroup, trees *[]*BTree, lock *sync.Mutex) {
 	t.Logf("Starting new clone at %v", start)
+	lock.Lock()
 	*trees = append(*trees, b)
+	lock.Unlock()
 	for i := start; i < cloneTestSize; i++ {
 		b.ReplaceOrInsert(p[i])
 		if i%(cloneTestSize/5) == 0 {
 			wg.Add(1)
-			go cloneTest(t, b.Clone(), i+1, p, wg, trees)
+			go cloneTest(t, b.Clone(), i+1, p, wg, trees, lock)
 		}
 	}
 	wg.Done()
@@ -667,7 +669,7 @@ func TestCloneConcurrentOperations(t *testing.T) {
 	p := perm(cloneTestSize)
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go cloneTest(t, b, 0, p, &wg, &trees)
+	go cloneTest(t, b, 0, p, &wg, &trees, &sync.Mutex{})
 	wg.Wait()
 	want := rang(cloneTestSize)
 	t.Logf("Starting equality checks on %d trees", len(trees))

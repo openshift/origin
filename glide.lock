@@ -1,5 +1,5 @@
-hash: 9409c48ec721d1a3a1a6336845d10efe49bbf0dfe5e363e5d95b8b657beaefc3
-updated: 2019-08-16T14:35:45.701339235-05:00
+hash: 596910075828f36c9afed4b28c10bcc254c6f525a0455986c2b7b842a7473f90
+updated: 2019-10-10T15:04:12.542583042-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -513,7 +513,7 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: 20236160a414454a9c64b6c8829381c6f4bddcaa
+  version: be84af90a1f71c9eeac820a4cdacb863122396d6
 - name: github.com/google/cadvisor
   version: 087e94f7f4d628ac57e427d292607984dde59041
   repo: https://github.com/openshift/google-cadvisor.git
@@ -1365,7 +1365,7 @@ imports:
 - name: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: gopkg.in/yaml.v2
-  version: 670d4cfef0544295bc27a114dbac37980d83185a
+  version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
 - name: k8s.io/api
   version: 2d6f90ab1293a1fb871cf149423ebb72aa7423aa
   repo: https://github.com/openshift/kubernetes-api.git
@@ -1402,7 +1402,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 45cb0b8537cf79d23914721e0bf41a3479769b22
+  version: 7e311602c75d6a2483b2928d99c44183e42a0136
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1862,7 +1862,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 58be19a7e8bc2e29eef4936c8f6dedbcaa0d0388
+  version: ad88da9c44a16b896cd5eecdbed1d63515543b2d
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
