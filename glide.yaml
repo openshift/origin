@@ -608,7 +608,7 @@ import:
 - package: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - package: gopkg.in/yaml.v2
-  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
+  version: v2.2.4
 - package: k8s.io/cloud-provider
   version: 029ecc113e6d819f75bde3705b0ff3fafb52d397
 - package: k8s.io/cluster-bootstrap
