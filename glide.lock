@@ -1,5 +1,5 @@
-hash: 7fd17f328c54a53ec499a89f8237c51737763dc6e02de1aae81831870ceb9faa
-updated: 2019-08-16T15:59:50.809151648-05:00
+hash: e5a7eaf642dabf677e480e93652f6f995525881aea1f46d7af7c6a088ab50440
+updated: 2019-10-10T11:34:05.494261018-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -520,7 +520,7 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: 20236160a414454a9c64b6c8829381c6f4bddcaa
+  version: be84af90a1f71c9eeac820a4cdacb863122396d6
 - name: github.com/google/cadvisor
   version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
   repo: https://github.com/openshift/google-cadvisor.git
@@ -1026,7 +1026,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: a8b3af87bfde83643053d9d1c1da9b9593ffe20e
+  version: 7e7e7455fe760f855b2f960923381ebc2f9a1ed1
   subpackages:
   - pkg/assets
   - pkg/assets/create
@@ -1458,7 +1458,7 @@ imports:
 - name: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: gopkg.in/yaml.v2
-  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
+  version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
 - name: k8s.io/api
   version: b18e97b54e4005d2ff259a96a0b5d06f11779b9d
   repo: https://github.com/openshift/kubernetes-api.git
@@ -1498,7 +1498,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 00ff0d33d7129c5e11ce594bd8e08c025c53344d
+  version: f221ef6dc2779b4f80d2821997dfacaf927b73ee
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1610,7 +1610,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 1cbd0faf1cf2b8e13b55fd5139f4c0b1f2bb6818
+  version: 3dd83bc370868b345dd1f561c46d643ae093f95c
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1737,7 +1737,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/cli-runtime
-  version: a4a70814eb00a17b29dd59a8816444650687cd4c
+  version: d750280898b230fe3c83e4c654b08b528e0ead2b
   repo: https://github.com/openshift/kubernetes-cli-runtime.git
   subpackages:
   - pkg/genericclioptions
@@ -1980,6 +1980,8 @@ imports:
   - metrics/api/v1/types
 - name: k8s.io/klog
   version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
+  subpackages:
+  - glog
 - name: k8s.io/kube-aggregator
   version: 8d7d5114988a6a6530c83e22640230ea78bc1945
   repo: https://github.com/openshift/kubernetes-kube-aggregator.git
@@ -2042,7 +2044,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: fd7008ebbbb179b36367d02fc929ca7eb514d0b0
+  version: d04e86faec148bd2762e204335f2252d7ee260c5
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
