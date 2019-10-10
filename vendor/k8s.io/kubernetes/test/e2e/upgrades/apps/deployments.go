@@ -164,7 +164,11 @@ func (t *DeploymentUpgradeTest) Test(f *framework.Framework, done <-chan struct{
 	framework.ExpectNoError(err)
 
 	ginkgo.By(fmt.Sprintf("Waiting for deployment %q to complete after scaling", deploymentName))
-	framework.ExpectNoError(framework.WaitForDeploymentComplete(c, deployment))
+	err = framework.WaitForDeploymentComplete(c, deployment)
+	if err != nil {
+		framework.DumpAllNamespaceInfo(f.ClientSet, deployment.Namespace)
+	}
+	framework.ExpectNoError(err)
 }
 
 // Teardown cleans up any remaining resources.
