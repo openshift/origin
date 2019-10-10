@@ -238,6 +238,10 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				buildConfig.Spec.BuildOverrides = configv1.BuildOverrides{}
 				_, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
 				o.Expect(err).NotTo(o.HaveOccurred())
+				checkOCMProgressing(operatorv1.ConditionTrue)
+				checkOCMProgressing(operatorv1.ConditionFalse)
+				checkDSRolloutState(true)
+				checkDSRolloutState(false)
 			})
 
 			g.It("Apply default proxy configuration to source build pod through env vars", func() {
