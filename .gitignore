@@ -1,4 +1,5 @@
 /_output
+/cmd/openshift-tests/openshift-tests
 /openshift.local.*
 /third-party
 /.project

@@ -20,7 +20,6 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 		allNs         = "openshift-operators"
 		marketplaceNs = "openshift-marketplace"
 
-		//buildPruningBaseDir = exutil.FixturePath("testdata", "marketplace")
 		opsrcYamltem = exutil.FixturePath("testdata", "marketplace", "opsrc", "02-opsrc.yaml")
 		cscYamltem   = exutil.FixturePath("testdata", "marketplace", "csc", "02-csc.yaml")
 	)
@@ -42,8 +41,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 	g.It("[ocp-21728]create opsrc with labels", func() {
 
 		//create one opsrc with label
-		//opsrcYaml := exutil.FixturePath("testdata", "marketplace", "opsrc", "02-opsrc.yaml")
-		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctestlabel", "NAMESPACE=jfan", "LABEL=optestlabel", "DISPLAYNAME=optestlabel", "PUBLISHER=optestlabel", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
+		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctestlabel", "NAMESPACE=marketplace_e2e", "LABEL=optestlabel", "DISPLAYNAME=optestlabel", "PUBLISHER=optestlabel", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = createResources(oc, opsrcYaml)
