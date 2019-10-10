@@ -82,6 +82,7 @@ func (o *CertSyncControllerOptions) Run() error {
 		o.Namespace,
 		o.configMaps,
 		o.secrets,
+		o.kubeClient,
 		kubeInformers,
 		eventRecorder,
 	)
