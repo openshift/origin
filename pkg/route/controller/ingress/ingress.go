@@ -487,9 +487,9 @@ func newRouteForIngress(
 			return nil
 		}
 		tlsConfig = &routev1.TLSConfig{
-			Termination: routev1.TLSTerminationEdge,
-			Certificate: string(secret.Data[v1.TLSCertKey]),
-			Key:         string(secret.Data[v1.TLSPrivateKeyKey]),
+			Termination:                   routev1.TLSTerminationEdge,
+			Certificate:                   string(secret.Data[v1.TLSCertKey]),
+			Key:                           string(secret.Data[v1.TLSPrivateKeyKey]),
 			InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
 		}
 	}
@@ -583,14 +583,16 @@ func targetPortForService(namespace string, path *extensionsv1beta1.HTTPIngressP
 		expect := path.Backend.ServicePort.StrVal
 		for _, port := range service.Spec.Ports {
 			if port.Name == expect {
-				return &port.TargetPort
+				targetPort := intstr.FromString(port.Name)
+				return &targetPort
 			}
 		}
 	} else {
 		for _, port := range service.Spec.Ports {
 			expect := path.Backend.ServicePort.IntVal
 			if port.Port == expect {
-				return &port.TargetPort
+				targetPort := intstr.FromInt(int(port.Port))
+				return &targetPort
 			}
 		}
 	}

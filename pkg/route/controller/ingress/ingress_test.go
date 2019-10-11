@@ -369,7 +369,6 @@ func TestController_sync(t *testing.T) {
 			Spec: v1.ServiceSpec{
 				Ports: []v1.ServicePort{
 					{
-						Name:       "80-tcp",
 						Port:       80,
 						TargetPort: intstr.FromInt(8080),
 					},
@@ -635,7 +634,7 @@ func TestController_sync(t *testing.T) {
 							Name: "service-1",
 						},
 						Port: &routev1.RoutePort{
-							TargetPort: intstr.FromInt(8080),
+							TargetPort: intstr.FromString("http"),
 						},
 					},
 				},
@@ -652,7 +651,61 @@ func TestController_sync(t *testing.T) {
 							Name: "service-1",
 						},
 						Port: &routev1.RoutePort{
-							TargetPort: intstr.FromInt(8080),
+							TargetPort: intstr.FromString("http"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "create route - targetPort int",
+			fields: fields{
+				i: &ingressLister{Items: []*extensionsv1beta1.Ingress{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "1",
+							Namespace: "test",
+						},
+						Spec: extensionsv1beta1.IngressSpec{
+							Rules: []extensionsv1beta1.IngressRule{
+								{
+									Host: "test.com",
+									IngressRuleValue: extensionsv1beta1.IngressRuleValue{
+										HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
+											Paths: []extensionsv1beta1.HTTPIngressPath{
+												{
+													Path: "/", Backend: extensionsv1beta1.IngressBackend{
+														ServiceName: "service-2",
+														ServicePort: intstr.FromInt(80),
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				}},
+				r: &routeLister{},
+			},
+			args:        queueKey{namespace: "test", name: "1"},
+			wantExpects: []queueKey{{namespace: "test", name: "1"}},
+			wantCreates: []*routev1.Route{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:            "<generated>",
+						Namespace:       "test",
+						OwnerReferences: []metav1.OwnerReference{{APIVersion: "extensions/v1beta1", Kind: "Ingress", Name: "1", Controller: &boolTrue}},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "test.com",
+						Path: "/",
+						To: routev1.RouteTargetReference{
+							Name: "service-2",
+						},
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(80),
 						},
 					},
 				},
@@ -761,7 +814,7 @@ func TestController_sync(t *testing.T) {
 			wantPatches: []clientgotesting.PatchActionImpl{
 				{
 					Name:  "1-abcdef",
-					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080}}}]`),
+					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":"http"}}}]`),
 				},
 			},
 		},
@@ -809,7 +862,7 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 						},
@@ -863,7 +916,7 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 						},
@@ -891,7 +944,7 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 						},
@@ -947,7 +1000,7 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 						},
@@ -1008,14 +1061,14 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 							TLS: &routev1.TLSConfig{
 								Termination:                   routev1.TLSTerminationEdge,
 								InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-								Key:         "key",
-								Certificate: "cert",
+								Key:                           "key",
+								Certificate:                   "cert",
 							},
 						},
 					},
@@ -1025,7 +1078,7 @@ func TestController_sync(t *testing.T) {
 			wantPatches: []clientgotesting.PatchActionImpl{
 				{
 					Name:  "1-abcdef",
-					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080}}}]`),
+					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":"http"}}}]`),
 				},
 			},
 		},
@@ -1076,7 +1129,7 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 						},
@@ -1087,7 +1140,7 @@ func TestController_sync(t *testing.T) {
 			wantPatches: []clientgotesting.PatchActionImpl{
 				{
 					Name:  "1-abcdef",
-					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080},"tls":{"termination":"edge","certificate":"cert","key":"key","insecureEdgeTerminationPolicy":"Redirect"}}}]`),
+					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":"http"},"tls":{"termination":"edge","certificate":"cert","key":"key","insecureEdgeTerminationPolicy":"Redirect"}}}]`),
 				},
 			},
 		},
@@ -1138,7 +1191,7 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 							TLS: &routev1.TLSConfig{
@@ -1154,7 +1207,7 @@ func TestController_sync(t *testing.T) {
 			wantPatches: []clientgotesting.PatchActionImpl{
 				{
 					Name:  "1-abcdef",
-					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080},"tls":{"termination":"edge","certificate":"cert","key":"key2"}}}]`),
+					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":"http"},"tls":{"termination":"edge","certificate":"cert","key":"key2"}}}]`),
 				},
 			},
 		},
@@ -1205,14 +1258,14 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 							TLS: &routev1.TLSConfig{
 								Termination:                   routev1.TLSTerminationEdge,
 								InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-								Key:         "key",
-								Certificate: "cert",
+								Key:                           "key",
+								Certificate:                   "cert",
 							},
 						},
 					},
@@ -1267,14 +1320,14 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 							TLS: &routev1.TLSConfig{
 								Termination:                   routev1.TLSTerminationEdge,
 								InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-								Key:         "",
-								Certificate: "",
+								Key:                           "",
+								Certificate:                   "",
 							},
 						},
 					},
@@ -1329,7 +1382,7 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 							TLS: &routev1.TLSConfig{
@@ -1390,14 +1443,14 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 							TLS: &routev1.TLSConfig{
 								Termination:                   routev1.TLSTerminationEdge,
 								InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-								Key:         "key",
-								Certificate: "cert",
+								Key:                           "key",
+								Certificate:                   "cert",
 							},
 						},
 					},
@@ -1457,14 +1510,14 @@ func TestController_sync(t *testing.T) {
 								Name: "service-1",
 							},
 							Port: &routev1.RoutePort{
-								TargetPort: intstr.FromInt(8080),
+								TargetPort: intstr.FromString("http"),
 							},
 							WildcardPolicy: routev1.WildcardPolicyNone,
 							TLS: &routev1.TLSConfig{
 								Termination:                   routev1.TLSTerminationEdge,
 								InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-								Key:         "key",
-								Certificate: "",
+								Key:                           "key",
+								Certificate:                   "",
 							},
 						},
 					},
