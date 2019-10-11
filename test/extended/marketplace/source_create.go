@@ -42,7 +42,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 	g.It("[ocp-21405 21419 21479 21667]create and delete the basic source,sub one operator", func() {
 
 		//create one opsrc
-		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctest", "NAMESPACE=jfan", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
+		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctest", "NAMESPACE=marketplace_e2e", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = createResources(oc, opsrcYaml)
@@ -70,7 +70,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args(podName, "-n", marketplaceNs).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		//wait for the marketplace recover
-		time.Sleep(60 * time.Second)
+		time.Sleep(90 * time.Second)
 
 		//get the packagelist with label opsrctest
 		packageListOpsrc2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.packages}").Output()
