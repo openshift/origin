@@ -160,7 +160,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 			oc.Run("create").Args("-f", buildFixture2).Execute()
 		})
 
-		g.AfterEach(func() {
+		g.JustAfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
@@ -170,6 +170,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 
 		g.Context("registries config context", func() {
 
+			// Altering registries config does not force an OCM rollout
 			g.AfterEach(func() {
 				oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
 			})
@@ -228,8 +229,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 
 		})
 
-		g.Context("build config context", func() {
-
+		g.Context("build config no ocm rollout", func() {
 			g.AfterEach(func() {
 				g.By("reset build cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
@@ -238,10 +238,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				buildConfig.Spec.BuildOverrides = configv1.BuildOverrides{}
 				_, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				checkOCMProgressing(operatorv1.ConditionTrue)
-				checkOCMProgressing(operatorv1.ConditionFalse)
-				checkDSRolloutState(true)
-				checkDSRolloutState(false)
 			})
 
 			g.It("Apply default proxy configuration to source build pod through env vars", func() {
@@ -331,6 +327,23 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				o.Expect(*build.Spec.Source.Git.HTTPProxy).To(o.Equal(buildConfig.Spec.BuildDefaults.GitProxy.HTTPProxy))
 				o.Expect(*build.Spec.Source.Git.HTTPSProxy).To(o.Equal(buildConfig.Spec.BuildDefaults.GitProxy.HTTPSProxy))
 				o.Expect(*build.Spec.Source.Git.NoProxy).To(o.Equal(buildConfig.Spec.BuildDefaults.GitProxy.NoProxy))
+			})
+		})
+
+		g.Context("build config with ocm rollout", func() {
+
+			g.AfterEach(func() {
+				g.By("reset build cluster configuration")
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				buildConfig.Spec.BuildDefaults = configv1.BuildDefaults{}
+				buildConfig.Spec.BuildOverrides = configv1.BuildOverrides{}
+				_, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				checkOCMProgressing(operatorv1.ConditionTrue)
+				checkOCMProgressing(operatorv1.ConditionFalse)
+				checkDSRolloutState(true)
+				checkDSRolloutState(false)
 			})
 
 			// this replaces coverage from the TestBuildDefaultEnvironment integration test
