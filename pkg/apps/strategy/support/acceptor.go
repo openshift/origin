@@ -72,7 +72,8 @@ func (c *acceptAvailablePods) Accept(rc *corev1.ReplicationController) error {
 		case nil:
 			return nil
 		case watch.ErrWatchClosed:
-			fmt.Fprint(c.out, "Warning: acceptAvailablePods encountered %T, retrying", watch.ErrWatchClosed)
+			//fmt.Fprint(c.out, "Warning: acceptAvailablePods encountered %T, retrying", watch.ErrWatchClosed)
+			fmt.Fprint(c.out, "Warning: acceptAvailablePods encountered watch.ErrWatchClosed, retrying")
 			continue
 		case wait.ErrWaitTimeout:
 			return fmt.Errorf("pods for rc '%s/%s' took longer than %.f seconds to become available", rc.Namespace, rc.Name, c.timeout.Seconds())
