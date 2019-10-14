@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -160,13 +162,17 @@ var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
 						}
 						framework.Logf("Creating master %s", master)
 						newMaster := survivingMachine.DeepCopy()
+						// The providerID is relied upon by the machine controller to determine a machine
+						// has been provisioned
+						// https://github.com/openshift/cluster-api/blob/c4a461a19efb8a25b58c630bed0829512d244ba7/pkg/controller/machine/controller.go#L306-L308
+						unstructured.SetNestedField(newMaster.Object, "", "spec", "providerID")
 						newMaster.SetName(master)
 						newMaster.SetResourceVersion("")
 						newMaster.SetSelfLink("")
 						newMaster.SetUID("")
 						newMaster.SetCreationTimestamp(metav1.NewTime(time.Time{}))
 						// retry until the machine gets created
-						err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
+						err := wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
 							_, err := ms.Create(newMaster, metav1.CreateOptions{})
 							if errors.IsAlreadyExists(err) {
 								framework.Logf("Waiting for old machine object %s to be deleted so we can create a new one", master)
