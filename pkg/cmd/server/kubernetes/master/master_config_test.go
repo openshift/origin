@@ -59,12 +59,12 @@ func TestAPIServerDefaults(t *testing.T) {
 		},
 		Etcd: &apiserveroptions.EtcdOptions{
 			StorageConfig: storagebackend.Config{
-				ServerList:               nil,
-				Prefix:                   "/registry",
+				ServerList: nil,
+				Prefix:     "/registry",
 				DeserializationCacheSize: 0,
-				Quorum:                   true,
-				CompactionInterval:       300000000000, // five minutes
-				CountMetricPollPeriod:    60000000000,  // one minute
+				Quorum:                true,
+				CompactionInterval:    300000000000, // five minutes
+				CountMetricPollPeriod: 60000000000,  // one minute
 			},
 			DefaultStorageMediaType: "application/vnd.kubernetes.protobuf",
 			DeleteCollectionWorkers: 1,
@@ -166,7 +166,7 @@ func TestAPIServerDefaults(t *testing.T) {
 			TokenFailureCacheTTL: 0,
 		},
 		Authorization: &kubeoptions.BuiltInAuthorizationOptions{
-			Modes:                       []string{"AlwaysAllow"},
+			Modes: []string{"AlwaysAllow"},
 			WebhookCacheAuthorizedTTL:   5 * time.Minute,
 			WebhookCacheUnauthorizedTTL: 30 * time.Second,
 		},
@@ -255,8 +255,8 @@ func TestCMServerDefaults(t *testing.T) {
 			},
 		},
 		KubeCloudShared: &cmoptions.KubeCloudSharedOptions{
-			Address:                   "0.0.0.0",
-			Port:                      10252, // disabled
+			Address: "0.0.0.0",
+			Port:    10252, // disabled
 			RouteReconciliationPeriod: metav1.Duration{Duration: 10 * time.Second},
 			NodeMonitorPeriod:         metav1.Duration{Duration: 5 * time.Second},
 			ClusterName:               "kubernetes",
