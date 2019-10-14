@@ -301,11 +301,8 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	if len(opt.JUnitDir) > 0 {
-		if err := writeJUnitReport("junit_e2e", "openshift-tests", tests, opt.JUnitDir, duration, opt.ErrOut); err != nil {
+		if err := writeJUnitReport("junit_e2e", "openshift-tests", tests, opt.JUnitDir, duration, opt.ErrOut, syntheticTestResults...); err != nil {
 			fmt.Fprintf(opt.Out, "error: Unable to write e2e JUnit results: %v", err)
-		}
-		if err := writeJUnitReport("monitor", "openshift-tests", nil, opt.JUnitDir, duration, opt.ErrOut, syntheticTestResults...); err != nil {
-			fmt.Fprintf(opt.Out, "error: Unable to write monitor JUnit results: %v", err)
 		}
 	}
 

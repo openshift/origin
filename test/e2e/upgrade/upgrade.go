@@ -120,7 +120,7 @@ var _ = g.Describe("[Disruptive]", func() {
 
 			disruption.Run(
 				"Cluster upgrade",
-				"upgrade_tests",
+				"upgrade",
 				disruption.TestData{
 					UpgradeType:    upgrades.ClusterUpgrade,
 					UpgradeContext: *upgCtx,
