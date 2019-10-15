@@ -31,7 +31,8 @@ import (
 	"k8s.io/client-go/util/cert"
 )
 
-// TLS versions that are known to golang. Go 1.12 adds TLS 1.3 support with a build flag.
+// TLS versions that are known to golang. Go 1.13 adds support for
+// TLS 1.3 that's opt-out with a build flag.
 var versions = map[string]uint16{
 	"VersionTLS10": tls.VersionTLS10,
 	"VersionTLS11": tls.VersionTLS11,
@@ -44,6 +45,7 @@ var supportedVersions = map[string]uint16{
 	"VersionTLS10": tls.VersionTLS10,
 	"VersionTLS11": tls.VersionTLS11,
 	"VersionTLS12": tls.VersionTLS12,
+	"VersionTLS13": tls.VersionTLS13,
 }
 
 // TLSVersionToNameOrDie given a tls version as an int, return its readable name
@@ -107,6 +109,15 @@ func DefaultTLSVersion() uint16 {
 	return tls.VersionTLS12
 }
 
+// ciphersTLS13 copies golang 1.13 implementation, where TLS1.3 suites are not
+// configurable (cipherSuites field is ignored for TLS1.3 flows and all of the
+// below three - and none other - are used)
+var ciphersTLS13 = map[string]uint16{
+	"TLS_AES_128_GCM_SHA256":       tls.TLS_AES_128_GCM_SHA256,
+	"TLS_AES_256_GCM_SHA384":       tls.TLS_AES_256_GCM_SHA384,
+	"TLS_CHACHA20_POLY1305_SHA256": tls.TLS_CHACHA20_POLY1305_SHA256,
+}
+
 var ciphers = map[string]uint16{
 	"TLS_RSA_WITH_RC4_128_SHA":                tls.TLS_RSA_WITH_RC4_128_SHA,
 	"TLS_RSA_WITH_3DES_EDE_CBC_SHA":           tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
@@ -164,6 +175,11 @@ func CipherSuite(cipherName string) (uint16, error) {
 	if cipher, ok := ciphers[cipherName]; ok {
 		return cipher, nil
 	}
+
+	if _, ok := ciphersTLS13[cipherName]; ok {
+		return 0, fmt.Errorf("all golang TLSv1.3 ciphers are always used for TLSv1.3 flows")
+	}
+
 	return 0, fmt.Errorf("unknown cipher name %q", cipherName)
 }
 
