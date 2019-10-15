@@ -51,7 +51,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		//wait for the opsrc is created finished
-		err = wait.Poll(5*time.Second, ResourceWait, func() (bool, error) {
+		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("operatorsource", "opsrctestlabel", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
 			if err != nil {
 				e2e.Failf("Failed to create opsrctestlabel, error:%v", err)
@@ -84,7 +84,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		//wait for the csc is created finished
-		err = wait.Poll(5*time.Second, ResourceWait, func() (bool, error) {
+		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("catalogsourceconfig", "csctestlabel", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
 			if err != nil {
 				e2e.Failf("Failed to create csctestlabel, error:%v", err)
