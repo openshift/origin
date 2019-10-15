@@ -62,7 +62,7 @@ func privateKeyBlockVerifier(block *pem.Block) (*pem.Block, error) {
 		}
 	case *ecdsa.PrivateKey:
 		block = &pem.Block{
-			Type: "ECDSA PRIVATE KEY",
+			Type: "EC PRIVATE KEY",
 		}
 		if block.Bytes, err = x509.MarshalECPrivateKey(t); err != nil {
 			return nil, err
@@ -80,6 +80,7 @@ func ignoreBlockVerifier(block *pem.Block) (*pem.Block, error) {
 var knownBlockDecoders = map[string]blockVerifierFunc{
 	"RSA PRIVATE KEY":   privateKeyBlockVerifier,
 	"ECDSA PRIVATE KEY": privateKeyBlockVerifier,
+	"EC PRIVATE KEY":    privateKeyBlockVerifier,
 	"PRIVATE KEY":       privateKeyBlockVerifier,
 	"PUBLIC KEY":        publicKeyBlockVerifier,
 	// Potential "in the wild" PEM encoded blocks that can be normalized
