@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
+	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/sharedfilesystems/v2/sharetypes"
 )
 
@@ -18,7 +19,7 @@ func TestShareTypeCreateDestroy(t *testing.T) {
 		t.Fatalf("Unable to create share type: %v", err)
 	}
 
-	PrintShareType(t, shareType)
+	tools.PrintResource(t, shareType)
 
 	defer DeleteShareType(t, client, shareType)
 }
@@ -40,7 +41,7 @@ func TestShareTypeList(t *testing.T) {
 	}
 
 	for _, shareType := range allShareTypes {
-		PrintShareType(t, &shareType)
+		tools.PrintResource(t, &shareType)
 	}
 }
 
@@ -55,7 +56,7 @@ func TestShareTypeGetDefault(t *testing.T) {
 		t.Fatalf("Unable to retrieve the default share type: %v", err)
 	}
 
-	PrintShareType(t, shareType)
+	tools.PrintResource(t, shareType)
 }
 
 func TestShareTypeExtraSpecs(t *testing.T) {
@@ -105,7 +106,7 @@ func TestShareTypeExtraSpecs(t *testing.T) {
 		t.Fatalf("my_new_key was expected to be unset for Share type: %s", shareType.Name)
 	}
 
-	PrintShareType(t, shareType)
+	tools.PrintResource(t, shareType)
 
 	defer DeleteShareType(t, client, shareType)
 }
@@ -155,7 +156,7 @@ func TestShareTypeAccess(t *testing.T) {
 		t.Fatalf("No access should be left for the share type: %s", shareType.Name)
 	}
 
-	PrintShareType(t, shareType)
+	tools.PrintResource(t, shareType)
 
 	defer DeleteShareType(t, client, shareType)
 

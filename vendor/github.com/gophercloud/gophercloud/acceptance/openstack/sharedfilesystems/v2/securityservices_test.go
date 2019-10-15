@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
+	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/sharedfilesystems/v2/securityservices"
 )
 
@@ -27,7 +28,11 @@ func TestSecurityServiceCreateDelete(t *testing.T) {
 		t.Fatalf("Security service name was expeted to be: %s", securityService.Name)
 	}
 
-	PrintSecurityService(t, securityService)
+	if newSecurityService.Description != securityService.Description {
+		t.Fatalf("Security service description was expeted to be: %s", securityService.Description)
+	}
+
+	tools.PrintResource(t, securityService)
 
 	defer DeleteSecurityService(t, client, securityService)
 }
@@ -49,7 +54,7 @@ func TestSecurityServiceList(t *testing.T) {
 	}
 
 	for _, securityService := range allSecurityServices {
-		PrintSecurityService(t, &securityService)
+		tools.PrintResource(t, &securityService)
 	}
 }
 
@@ -91,7 +96,7 @@ func TestSecurityServiceListFiltering(t *testing.T) {
 		if listedSecurityService.Name != securityService.Name {
 			t.Fatalf("The name of the security service was expected to be %s", securityService.Name)
 		}
-		PrintSecurityService(t, &listedSecurityService)
+		tools.PrintResource(t, &listedSecurityService)
 	}
 }
 
@@ -108,9 +113,11 @@ func TestSecurityServiceUpdate(t *testing.T) {
 		t.Fatalf("Unable to create security service: %v", err)
 	}
 
+	name := "NewName"
+	description := ""
 	options := securityservices.UpdateOpts{
-		Name:        "NewName",
-		Description: "New security service description",
+		Name:        &name,
+		Description: &description,
 		Type:        "ldap",
 	}
 
@@ -124,19 +131,19 @@ func TestSecurityServiceUpdate(t *testing.T) {
 		t.Errorf("Unable to retrieve the security service: %v", err)
 	}
 
-	if newSecurityService.Name != options.Name {
-		t.Fatalf("Security service name was expeted to be: %s", options.Name)
+	if newSecurityService.Name != name {
+		t.Fatalf("Security service name was expeted to be: %s", name)
 	}
 
-	if newSecurityService.Description != options.Description {
-		t.Fatalf("Security service description was expeted to be: %s", options.Description)
+	if newSecurityService.Description != description {
+		t.Fatalf("Security service description was expeted to be: %s", description)
 	}
 
 	if newSecurityService.Type != options.Type {
 		t.Fatalf("Security service type was expected to be: %s", options.Type)
 	}
 
-	PrintSecurityService(t, securityService)
+	tools.PrintResource(t, securityService)
 
 	defer DeleteSecurityService(t, client, securityService)
 }

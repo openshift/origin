@@ -141,6 +141,29 @@ const ListAssignmentOutput = `
 }
 `
 
+// ListAssignmentsOnResourceOutput provides a result of ListAssignmentsOnResource request.
+const ListAssignmentsOnResourceOutput = `
+{
+    "links": {
+        "next": null,
+        "previous": null,
+        "self": "http://example.com/identity/v3/projects/9e5a15/users/b964a9/roles"
+    },
+    "roles": [
+        {
+            "id": "9fe1d3",
+            "links": {
+                "self": "https://example.com/identity/v3/roles/9fe1d3"
+            },
+            "name": "support",
+            "extra": {
+                "description": "read-only support role"
+            }
+        }
+    ]
+}
+`
+
 // FirstRole is the first role in the List request.
 var FirstRole = roles.Role{
 	DomainID: "default",
@@ -330,4 +353,76 @@ func HandleListRoleAssignmentsSuccessfully(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, ListAssignmentOutput)
 	})
+}
+
+// RoleOnResource is the role in the ListAssignmentsOnResource request.
+var RoleOnResource = roles.Role{
+	ID: "9fe1d3",
+	Links: map[string]interface{}{
+		"self": "https://example.com/identity/v3/roles/9fe1d3",
+	},
+	Name: "support",
+	Extra: map[string]interface{}{
+		"description": "read-only support role",
+	},
+}
+
+// ExpectedRolesOnResourceSlice is the slice of roles expected to be returned
+// from ListAssignmentsOnResourceOutput.
+var ExpectedRolesOnResourceSlice = []roles.Role{RoleOnResource}
+
+func HandleListAssignmentsOnResourceSuccessfully_ProjectsUsers(t *testing.T) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, ListAssignmentsOnResourceOutput)
+	}
+
+	th.Mux.HandleFunc("/projects/{project_id}/users/{user_id}/roles", fn)
+}
+
+func HandleListAssignmentsOnResourceSuccessfully_ProjectsGroups(t *testing.T) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, ListAssignmentsOnResourceOutput)
+	}
+
+	th.Mux.HandleFunc("/projects/{project_id}/groups/{group_id}/roles", fn)
+}
+
+func HandleListAssignmentsOnResourceSuccessfully_DomainsUsers(t *testing.T) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, ListAssignmentsOnResourceOutput)
+	}
+
+	th.Mux.HandleFunc("/domains/{domain_id}/users/{user_id}/roles", fn)
+}
+
+func HandleListAssignmentsOnResourceSuccessfully_DomainsGroups(t *testing.T) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, ListAssignmentsOnResourceOutput)
+	}
+
+	th.Mux.HandleFunc("/domains/{domain_id}/groups/{group_id}/roles", fn)
 }

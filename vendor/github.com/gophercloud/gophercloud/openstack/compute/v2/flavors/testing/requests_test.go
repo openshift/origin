@@ -35,7 +35,7 @@ func TestListFlavors(t *testing.T) {
 								"name": "m1.tiny",
 								"vcpus": 1,
 								"disk": 1,
-								"ram": 512,
+								"ram": 9216000,
 								"swap":"",
 								"os-flavor-access:is_public": true,
 								"OS-FLV-EXT-DATA:ephemeral": 10
@@ -87,7 +87,7 @@ func TestListFlavors(t *testing.T) {
 		}
 
 		expected := []flavors.Flavor{
-			{ID: "1", Name: "m1.tiny", VCPUs: 1, Disk: 1, RAM: 512, Swap: 0, IsPublic: true, Ephemeral: 10},
+			{ID: "1", Name: "m1.tiny", VCPUs: 1, Disk: 1, RAM: 9216000, Swap: 0, IsPublic: true, Ephemeral: 10},
 			{ID: "2", Name: "m1.small", VCPUs: 1, Disk: 20, RAM: 2048, Swap: 1000, IsPublic: true, Ephemeral: 0},
 			{ID: "3", Name: "m1.medium", VCPUs: 2, Disk: 40, RAM: 4096, Swap: 1000, IsPublic: false, Ephemeral: 0},
 		}

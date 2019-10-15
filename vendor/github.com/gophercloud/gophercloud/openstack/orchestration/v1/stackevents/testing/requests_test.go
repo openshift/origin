@@ -48,7 +48,7 @@ func TestListResourceEvents(t *testing.T) {
 	count := 0
 	err := stackevents.ListResourceEvents(fake.ServiceClient(), "hello_world", "49181cd6-169a-4130-9455-31185bbfc5bf", "my_resource", nil).EachPage(func(page pagination.Page) (bool, error) {
 		count++
-		actual, err := stackevents.ExtractEvents(page)
+		actual, err := stackevents.ExtractResourceEvents(page)
 		th.AssertNoErr(t, err)
 
 		th.CheckDeepEquals(t, ListResourceEventsExpected, actual)

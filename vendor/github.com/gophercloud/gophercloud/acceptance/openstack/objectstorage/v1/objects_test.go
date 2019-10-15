@@ -97,7 +97,10 @@ func TestObjects(t *testing.T) {
 	th.AssertNoErr(t, err)
 
 	// Download the another object that was create above.
-	downloadres = objects.Download(client, cName, oNames[1], nil)
+	downloadOpts := objects.DownloadOpts{
+		Newest: true,
+	}
+	downloadres = objects.Download(client, cName, oNames[1], downloadOpts)
 	th.AssertNoErr(t, downloadres.Err)
 	o2Content, err := downloadres.ExtractContent()
 	th.AssertNoErr(t, err)
@@ -127,7 +130,10 @@ func TestObjects(t *testing.T) {
 	}()
 
 	// Retrieve an object's metadata.
-	om, err := objects.Get(client, cName, oNames[0], nil).ExtractMetadata()
+	getOpts := objects.GetOpts{
+		Newest: true,
+	}
+	om, err := objects.Get(client, cName, oNames[0], getOpts).ExtractMetadata()
 	th.AssertNoErr(t, err)
 	for k := range metadata {
 		if om[k] != metadata[strings.Title(k)] {

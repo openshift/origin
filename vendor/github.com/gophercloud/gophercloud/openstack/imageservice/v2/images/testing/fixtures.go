@@ -212,6 +212,7 @@ func HandleImageCreationSuccessfullyNulls(t *testing.T) {
 		th.TestHeader(t, r, "X-Auth-Token", fakeclient.TokenID)
 		th.TestJSONRequest(t, r, `{
 			"id": "e7db3b45-8db7-47ad-8109-3fb55c2c24fd",
+			"architecture": "x86_64",
 			"name": "Ubuntu 12.10",
 			"tags": [
 				"ubuntu",
@@ -222,6 +223,7 @@ func HandleImageCreationSuccessfullyNulls(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 		w.Header().Add("Content-Type", "application/json")
 		fmt.Fprintf(w, `{
+			"architecture": "x86_64",
 			"status": "queued",
 			"name": "Ubuntu 12.10",
 			"protected": false,
@@ -310,6 +312,11 @@ func HandleImageUpdateSuccessfully(t *testing.T) {
 					"fedora",
 					"beefy"
 				]
+			},
+			{
+				"op": "replace",
+				"path": "/min_disk",
+				"value": 21
 			}
 		]`)
 
@@ -335,7 +342,7 @@ func HandleImageUpdateSuccessfully(t *testing.T) {
 			"schema": "/v2/schemas/image",
 			"owner": "",
 			"min_ram": 0,
-			"min_disk": 0,
+			"min_disk": 21,
 			"disk_format": "",
 			"virtual_size": 0,
 			"container_format": "",
@@ -384,5 +391,62 @@ func HandleImageListByTagsSuccessfully(t *testing.T) {
         }
     ]
 	}`)
+	})
+}
+
+// HandleImageUpdatePropertiesSuccessfully setup
+func HandleImageUpdatePropertiesSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/images/da3b75d9-3f4a-40e7-8a2c-bfab23927dea", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "PATCH")
+		th.TestHeader(t, r, "X-Auth-Token", fakeclient.TokenID)
+
+		th.TestJSONRequest(t, r, `[
+			{
+				"op": "add",
+				"path": "/hw_disk_bus",
+				"value": "scsi"
+			},
+			{
+				"op": "add",
+				"path": "/hw_disk_bus_model",
+				"value": "virtio-scsi"
+			},
+			{
+				"op": "add",
+				"path": "/hw_scsi_model",
+				"value": "virtio-scsi"
+			}
+		]`)
+
+		th.AssertEquals(t, "application/openstack-images-v2.1-json-patch", r.Header.Get("Content-Type"))
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Add("Content-Type", "application/json")
+		fmt.Fprintf(w, `{
+			"id": "da3b75d9-3f4a-40e7-8a2c-bfab23927dea",
+			"name": "Fedora 17",
+			"status": "active",
+			"visibility": "public",
+			"size": 2254249,
+			"checksum": "2cec138d7dae2aa59038ef8c9aec2390",
+			"tags": [
+				"fedora",
+				"beefy"
+			],
+			"created_at": "2012-08-10T19:23:50Z",
+			"updated_at": "2012-08-12T11:11:33Z",
+			"self": "/v2/images/da3b75d9-3f4a-40e7-8a2c-bfab23927dea",
+			"file": "/v2/images/da3b75d9-3f4a-40e7-8a2c-bfab23927dea/file",
+			"schema": "/v2/schemas/image",
+			"owner": "",
+			"min_ram": 0,
+			"min_disk": 0,
+			"disk_format": "",
+			"virtual_size": 0,
+			"container_format": "",
+			"hw_disk_bus": "scsi",
+			"hw_disk_bus_model": "virtio-scsi",
+			"hw_scsi_model": "virtio-scsi"
+		}`)
 	})
 }

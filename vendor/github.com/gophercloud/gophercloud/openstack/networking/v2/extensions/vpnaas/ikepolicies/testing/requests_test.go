@@ -74,13 +74,13 @@ func TestCreate(t *testing.T) {
 		IKEVersion:            "v2",
 		TenantID:              "9145d91459d248b1b02fdaca97c6a75d",
 		Phase1NegotiationMode: "main",
-		PFS:                 "Group5",
-		EncryptionAlgorithm: "aes-128",
-		Description:         "IKE policy",
-		Name:                "policy",
-		ID:                  "f2b08c1e-aa81-4668-8ae1-1401bcb0576c",
-		Lifetime:            expectedLifetime,
-		ProjectID:           "9145d91459d248b1b02fdaca97c6a75d",
+		PFS:                   "Group5",
+		EncryptionAlgorithm:   "aes-128",
+		Description:           "IKE policy",
+		Name:                  "policy",
+		ID:                    "f2b08c1e-aa81-4668-8ae1-1401bcb0576c",
+		Lifetime:              expectedLifetime,
+		ProjectID:             "9145d91459d248b1b02fdaca97c6a75d",
 	}
 	th.AssertDeepEquals(t, expected, *actual)
 }
@@ -130,12 +130,12 @@ func TestGet(t *testing.T) {
 		TenantID:              "9145d91459d248b1b02fdaca97c6a75d",
 		ProjectID:             "9145d91459d248b1b02fdaca97c6a75d",
 		Phase1NegotiationMode: "main",
-		PFS:                 "Group5",
-		EncryptionAlgorithm: "aes-128",
-		Description:         "IKE policy",
-		Name:                "policy",
-		ID:                  "5c561d9d-eaea-45f6-ae3e-08d1a7080828",
-		Lifetime:            expectedLifetime,
+		PFS:                   "Group5",
+		EncryptionAlgorithm:   "aes-128",
+		Description:           "IKE policy",
+		Name:                  "policy",
+		ID:                    "5c561d9d-eaea-45f6-ae3e-08d1a7080828",
+		Lifetime:              expectedLifetime,
 	}
 	th.AssertDeepEquals(t, expected, *actual)
 }
@@ -208,12 +208,12 @@ func TestList(t *testing.T) {
 				TenantID:              "9145d91459d248b1b02fdaca97c6a75d",
 				ProjectID:             "9145d91459d248b1b02fdaca97c6a75d",
 				Phase1NegotiationMode: "main",
-				PFS:                 "Group5",
-				EncryptionAlgorithm: "aes-128",
-				Description:         "IKE policy",
-				Name:                "policy",
-				ID:                  "5c561d9d-eaea-45f6-ae3e-08d1a7080828",
-				Lifetime:            expectedLifetime,
+				PFS:                   "Group5",
+				EncryptionAlgorithm:   "aes-128",
+				Description:           "IKE policy",
+				Name:                  "policy",
+				ID:                    "5c561d9d-eaea-45f6-ae3e-08d1a7080828",
+				Lifetime:              expectedLifetime,
 			},
 		}
 

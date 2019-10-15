@@ -16,8 +16,26 @@ find_files() {
     \) -name '*.go'
 }
 
-diff=$(find_files | xargs ${goimports} -d -e 2>&1)
-if [[ -n "${diff}" ]]; then
-  echo "${diff}"
-  exit 1
+ignore_files=(
+  "./openstack/compute/v2/extensions/quotasets/testing/fixtures.go"
+  "./openstack/networking/v2/extensions/vpnaas/ikepolicies/testing/requests_test.go"
+)
+
+bad_files=$(find_files | xargs ${goimports} -l)
+
+final_files=()
+for bad_file in $bad_files; do
+  found=
+  for ignore_file in "${ignore_files[@]}"; do
+    [[ "${bad_file}" == "${ignore_file}" ]] && { found=1; break; }
+  done
+  [[ -n $found ]] || final_files+=("$bad_file")
+done
+
+if [[ "${#final_files[@]}" -gt 0 ]]; then
+  diff=$(echo "${final_files[@]}" | xargs ${goimports} -d -e 2>&1)
+  if [[ -n "${diff}" ]]; then
+    echo "${diff}"
+    exit 1
+  fi
 fi

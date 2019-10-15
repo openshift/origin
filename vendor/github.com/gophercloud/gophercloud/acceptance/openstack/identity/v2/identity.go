@@ -10,6 +10,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/identity/v2/extensions/admin/roles"
 	"github.com/gophercloud/gophercloud/openstack/identity/v2/tenants"
 	"github.com/gophercloud/gophercloud/openstack/identity/v2/users"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // AddUserRole will grant a role to a user in a tenant. An error will be
@@ -33,6 +34,7 @@ func AddUserRole(t *testing.T, client *gophercloud.ServiceClient, tenant *tenant
 // unable to be created.
 func CreateTenant(t *testing.T, client *gophercloud.ServiceClient, c *tenants.CreateOpts) (*tenants.Tenant, error) {
 	name := tools.RandomString("ACPTTEST", 8)
+	description := tools.RandomString("ACPTTEST-DESC", 8)
 	t.Logf("Attempting to create tenant: %s", name)
 
 	var createOpts tenants.CreateOpts
@@ -43,14 +45,17 @@ func CreateTenant(t *testing.T, client *gophercloud.ServiceClient, c *tenants.Cr
 	}
 
 	createOpts.Name = name
+	createOpts.Description = description
 
 	tenant, err := tenants.Create(client, createOpts).Extract()
 	if err != nil {
-		t.Logf("Foo")
 		return tenant, err
 	}
 
 	t.Logf("Successfully created project %s with ID %s", name, tenant.ID)
+
+	th.AssertEquals(t, name, tenant.Name)
+	th.AssertEquals(t, description, tenant.Description)
 
 	return tenant, nil
 }
@@ -73,6 +78,8 @@ func CreateUser(t *testing.T, client *gophercloud.ServiceClient, tenant *tenants
 	if err != nil {
 		return user, err
 	}
+
+	th.AssertEquals(t, userName, user.Name)
 
 	return user, nil
 }
@@ -181,6 +188,8 @@ func UpdateUser(t *testing.T, client *gophercloud.ServiceClient, user *users.Use
 	if err != nil {
 		return newUser, err
 	}
+
+	th.AssertEquals(t, userName, newUser.Name)
 
 	return newUser, nil
 }

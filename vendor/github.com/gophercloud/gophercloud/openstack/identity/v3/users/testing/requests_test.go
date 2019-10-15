@@ -45,6 +45,38 @@ func TestListUsersAllPages(t *testing.T) {
 	th.AssertEquals(t, ExpectedUsersSlice[1].Extra["email"], "jsmith@example.com")
 }
 
+func TestListUsersFiltersCheck(t *testing.T) {
+	type test struct {
+		filterName string
+		wantErr    bool
+	}
+	tests := []test{
+		{"foo__contains", false},
+		{"foo", true},
+		{"foo_contains", true},
+		{"foo__", true},
+		{"__foo", true},
+	}
+
+	var listOpts users.ListOpts
+	for _, _test := range tests {
+		listOpts.Filters = map[string]string{_test.filterName: "bar"}
+		_, err := listOpts.ToUserListQuery()
+
+		if !_test.wantErr {
+			th.AssertNoErr(t, err)
+		} else {
+			switch _t := err.(type) {
+			case nil:
+				t.Fatal("error expected but got a nil")
+			case users.InvalidListFilter:
+			default:
+				t.Fatalf("unexpected error type: [%T]", _t)
+			}
+		}
+	}
+}
+
 func TestGetUser(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -128,6 +160,20 @@ func TestUpdateUser(t *testing.T) {
 	th.CheckDeepEquals(t, SecondUserUpdated, *actual)
 }
 
+func TestChangeUserPassword(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleChangeUserPasswordSuccessfully(t)
+
+	changePasswordOpts := users.ChangePasswordOpts{
+		OriginalPassword: "secretsecret",
+		Password:         "new_secretsecret",
+	}
+
+	res := users.ChangePassword(client.ServiceClient(), "9fe1d3", changePasswordOpts)
+	th.AssertNoErr(t, res.Err)
+}
+
 func TestDeleteUser(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -146,6 +192,31 @@ func TestListUserGroups(t *testing.T) {
 	actual, err := groups.ExtractGroups(allPages)
 	th.AssertNoErr(t, err)
 	th.CheckDeepEquals(t, ExpectedGroupsSlice, actual)
+}
+
+func TestAddToGroup(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleAddToGroupSuccessfully(t)
+	res := users.AddToGroup(client.ServiceClient(), "ea167b", "9fe1d3")
+	th.AssertNoErr(t, res.Err)
+}
+
+func TestIsMemberOfGroup(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleIsMemberOfGroupSuccessfully(t)
+	ok, err := users.IsMemberOfGroup(client.ServiceClient(), "ea167b", "9fe1d3").Extract()
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, true, ok)
+}
+
+func TestRemoveFromGroup(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleRemoveFromGroupSuccessfully(t)
+	res := users.RemoveFromGroup(client.ServiceClient(), "ea167b", "9fe1d3")
+	th.AssertNoErr(t, res.Err)
 }
 
 func TestListUserProjects(t *testing.T) {

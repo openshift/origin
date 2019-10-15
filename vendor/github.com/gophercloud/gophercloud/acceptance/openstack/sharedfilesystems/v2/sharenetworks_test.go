@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
+	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/sharedfilesystems/v2/sharenetworks"
 	"github.com/gophercloud/gophercloud/pagination"
 	th "github.com/gophercloud/gophercloud/testhelper"
@@ -29,9 +30,13 @@ func TestShareNetworkCreateDestroy(t *testing.T) {
 		t.Fatalf("Share network name was expeted to be: %s", shareNetwork.Name)
 	}
 
-	PrintShareNetwork(t, shareNetwork)
+	if newShareNetwork.Description != shareNetwork.Description {
+		t.Fatalf("Share network description was expeted to be: %s", shareNetwork.Description)
+	}
 
-	defer DeleteShareNetwork(t, client, shareNetwork)
+	tools.PrintResource(t, shareNetwork)
+
+	defer DeleteShareNetwork(t, client, shareNetwork.ID)
 }
 
 // Create a share network and update the name and description. Get the share
@@ -52,13 +57,15 @@ func TestShareNetworkUpdate(t *testing.T) {
 		t.Errorf("Unable to retrieve shareNetwork: %v", err)
 	}
 
+	name := "NewName"
+	description := ""
 	options := sharenetworks.UpdateOpts{
-		Name:        "NewName",
-		Description: "New share network description",
+		Name:        &name,
+		Description: &description,
 	}
 
-	expectedShareNetwork.Name = options.Name
-	expectedShareNetwork.Description = options.Description
+	expectedShareNetwork.Name = name
+	expectedShareNetwork.Description = description
 
 	_, err = sharenetworks.Update(client, shareNetwork.ID, options).Extract()
 	if err != nil {
@@ -75,9 +82,9 @@ func TestShareNetworkUpdate(t *testing.T) {
 
 	th.CheckDeepEquals(t, expectedShareNetwork, updatedShareNetwork)
 
-	PrintShareNetwork(t, shareNetwork)
+	tools.PrintResource(t, shareNetwork)
 
-	defer DeleteShareNetwork(t, client, shareNetwork)
+	defer DeleteShareNetwork(t, client, shareNetwork.ID)
 }
 
 func TestShareNetworkListDetail(t *testing.T) {
@@ -97,7 +104,7 @@ func TestShareNetworkListDetail(t *testing.T) {
 	}
 
 	for _, shareNetwork := range allShareNetworks {
-		PrintShareNetwork(t, &shareNetwork)
+		tools.PrintResource(t, &shareNetwork)
 	}
 }
 
@@ -113,13 +120,13 @@ func TestShareNetworkListFiltering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to create share network: %v", err)
 	}
-	defer DeleteShareNetwork(t, client, shareNetwork)
+	defer DeleteShareNetwork(t, client, shareNetwork.ID)
 
 	shareNetwork, err = CreateShareNetwork(t, client)
 	if err != nil {
 		t.Fatalf("Unable to create share network: %v", err)
 	}
-	defer DeleteShareNetwork(t, client, shareNetwork)
+	defer DeleteShareNetwork(t, client, shareNetwork.ID)
 
 	options := sharenetworks.ListOpts{
 		Name: shareNetwork.Name,
@@ -139,7 +146,7 @@ func TestShareNetworkListFiltering(t *testing.T) {
 		if listedShareNetwork.Name != shareNetwork.Name {
 			t.Fatalf("The name of the share network was expected to be %s", shareNetwork.Name)
 		}
-		PrintShareNetwork(t, &listedShareNetwork)
+		tools.PrintResource(t, &listedShareNetwork)
 	}
 }
 
@@ -153,13 +160,13 @@ func TestShareNetworkListPagination(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to create share network: %v", err)
 	}
-	defer DeleteShareNetwork(t, client, shareNetwork)
+	defer DeleteShareNetwork(t, client, shareNetwork.ID)
 
 	shareNetwork, err = CreateShareNetwork(t, client)
 	if err != nil {
 		t.Fatalf("Unable to create share network: %v", err)
 	}
-	defer DeleteShareNetwork(t, client, shareNetwork)
+	defer DeleteShareNetwork(t, client, shareNetwork.ID)
 
 	count := 0
 
@@ -199,7 +206,7 @@ func TestShareNetworkAddRemoveSecurityService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to create share network: %v", err)
 	}
-	defer DeleteShareNetwork(t, client, shareNetwork)
+	defer DeleteShareNetwork(t, client, shareNetwork.ID)
 
 	options := sharenetworks.AddSecurityServiceOpts{
 		SecurityServiceID: securityService.ID,
@@ -219,5 +226,5 @@ func TestShareNetworkAddRemoveSecurityService(t *testing.T) {
 		t.Errorf("Unable to remove security service: %v", err)
 	}
 
-	PrintShareNetwork(t, shareNetwork)
+	tools.PrintResource(t, shareNetwork)
 }

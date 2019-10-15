@@ -72,9 +72,10 @@ func TestUpdate(t *testing.T) {
 	defer th.TeardownHTTP()
 	HandleUpdateSuccessfully(t)
 
+	var description = "Updated Description"
 	updateOpts := zones.UpdateOpts{
 		TTL:         600,
-		Description: "Updated Description",
+		Description: &description,
 	}
 
 	UpdatedZone := CreatedZone

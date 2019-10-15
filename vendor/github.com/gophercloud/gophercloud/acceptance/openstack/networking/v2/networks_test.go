@@ -7,15 +7,93 @@ import (
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/external"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsecurity"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
-func TestNetworksList(t *testing.T) {
+func TestNetworksExternalList(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
+	th.AssertNoErr(t, err)
+
+	choices, err := clients.AcceptanceTestChoicesFromEnv()
+	th.AssertNoErr(t, err)
+
+	type networkWithExt struct {
+		networks.Network
+		external.NetworkExternalExt
 	}
+
+	var allNetworks []networkWithExt
+
+	iTrue := true
+	networkListOpts := networks.ListOpts{
+		ID: choices.ExternalNetworkID,
+	}
+	listOpts := external.ListOptsExt{
+		ListOptsBuilder: networkListOpts,
+		External:        &iTrue,
+	}
+
+	allPages, err := networks.List(client, listOpts).AllPages()
+	th.AssertNoErr(t, err)
+
+	err = networks.ExtractNetworksInto(allPages, &allNetworks)
+	th.AssertNoErr(t, err)
+
+	var found bool
+	for _, network := range allNetworks {
+		if network.External == true && network.ID == choices.ExternalNetworkID {
+			found = true
+		}
+	}
+
+	th.AssertEquals(t, found, true)
+
+	iFalse := false
+	networkListOpts = networks.ListOpts{
+		ID: choices.ExternalNetworkID,
+	}
+	listOpts = external.ListOptsExt{
+		ListOptsBuilder: networkListOpts,
+		External:        &iFalse,
+	}
+
+	allPages, err = networks.List(client, listOpts).AllPages()
+	th.AssertNoErr(t, err)
+
+	v, err := networks.ExtractNetworks(allPages)
+	th.AssertEquals(t, len(v), 0)
+}
+
+func TestNetworksCRUD(t *testing.T) {
+	client, err := clients.NewNetworkV2Client()
+	th.AssertNoErr(t, err)
+
+	// Create a network
+	network, err := CreateNetwork(t, client)
+	th.AssertNoErr(t, err)
+	defer DeleteNetwork(t, client, network.ID)
+
+	tools.PrintResource(t, network)
+
+	newName := tools.RandomString("TESTACC-", 8)
+	newDescription := ""
+	updateOpts := &networks.UpdateOpts{
+		Name:        &newName,
+		Description: &newDescription,
+	}
+
+	_, err = networks.Update(client, network.ID, updateOpts).Extract()
+	th.AssertNoErr(t, err)
+
+	newNetwork, err := networks.Get(client, network.ID).Extract()
+	th.AssertNoErr(t, err)
+
+	tools.PrintResource(t, newNetwork)
+	th.AssertEquals(t, newNetwork.Name, newName)
+	th.AssertEquals(t, newNetwork.Description, newDescription)
 
 	type networkWithExt struct {
 		networks.Network
@@ -25,58 +103,24 @@ func TestNetworksList(t *testing.T) {
 	var allNetworks []networkWithExt
 
 	allPages, err := networks.List(client, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list networks: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	err = networks.ExtractNetworksInto(allPages, &allNetworks)
-	if err != nil {
-		t.Fatalf("Unable to extract networks: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
+	var found bool
 	for _, network := range allNetworks {
-		tools.PrintResource(t, network)
-	}
-}
-
-func TestNetworksCRUD(t *testing.T) {
-	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
+		if network.ID == newNetwork.ID {
+			found = true
+		}
 	}
 
-	// Create a network
-	network, err := CreateNetwork(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create network: %v", err)
-	}
-	defer DeleteNetwork(t, client, network.ID)
-
-	tools.PrintResource(t, network)
-
-	newName := tools.RandomString("TESTACC-", 8)
-	updateOpts := &networks.UpdateOpts{
-		Name: newName,
-	}
-
-	_, err = networks.Update(client, network.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to update network: %v", err)
-	}
-
-	newNetwork, err := networks.Get(client, network.ID).Extract()
-	if err != nil {
-		t.Fatalf("Unable to retrieve network: %v", err)
-	}
-
-	tools.PrintResource(t, newNetwork)
+	th.AssertEquals(t, found, true)
 }
 
 func TestNetworksPortSecurityCRUD(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Create a network without port security
 	network, err := CreateNetworkWithoutPortSecurity(t, client)
@@ -91,9 +135,7 @@ func TestNetworksPortSecurityCRUD(t *testing.T) {
 	}
 
 	err = networks.Get(client, network.ID).ExtractInto(&networkWithExtensions)
-	if err != nil {
-		t.Fatalf("Unable to retrieve network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, networkWithExtensions)
 
@@ -105,9 +147,7 @@ func TestNetworksPortSecurityCRUD(t *testing.T) {
 	}
 
 	err = networks.Update(client, network.ID, updateOpts).ExtractInto(&networkWithExtensions)
-	if err != nil {
-		t.Fatalf("Unable to update network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, networkWithExtensions)
 }

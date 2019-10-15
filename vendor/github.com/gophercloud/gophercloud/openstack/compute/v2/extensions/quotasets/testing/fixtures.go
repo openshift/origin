@@ -22,7 +22,7 @@ const GetOutput = `
       "injected_file_content_bytes" : 10240,
       "injected_files" : 5,
       "metadata_items" : 128,
-      "ram" : 200000,
+      "ram" : 9216000,
       "key_pairs" : 10,
       "injected_file_path_bytes" : 255,
 	  "server_groups" : 2,
@@ -73,7 +73,7 @@ const GetDetailsOutput = `
       },
       "ram" : {
           "in_use": 0,
-          "limit": 200000,
+          "limit": 9216000,
           "reserved": 0
       },
       "key_pairs" : {
@@ -110,7 +110,7 @@ var FirstQuotaSet = quotasets.QuotaSet{
 	InjectedFiles:            5,
 	KeyPairs:                 10,
 	MetadataItems:            128,
-	RAM:                      200000,
+	RAM:                      9216000,
 	SecurityGroupRules:       20,
 	SecurityGroups:           10,
 	Cores:                    200,
@@ -121,13 +121,13 @@ var FirstQuotaSet = quotasets.QuotaSet{
 
 // FirstQuotaDetailsSet is the first result in ListOutput.
 var FirstQuotaDetailsSet = quotasets.QuotaDetailSet{
-	ID: FirstTenantID,
+	ID:                       FirstTenantID,
 	InjectedFileContentBytes: quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 10240},
 	InjectedFilePathBytes:    quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 255},
 	InjectedFiles:            quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 5},
 	KeyPairs:                 quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 10},
 	MetadataItems:            quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 128},
-	RAM:                      quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 200000},
+	RAM:                      quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 9216000},
 	SecurityGroupRules:       quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 20},
 	SecurityGroups:           quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 10},
 	Cores:                    quotasets.QuotaDetail{InUse: 0, Reserved: 0, Limit: 200},
@@ -137,7 +137,7 @@ var FirstQuotaDetailsSet = quotasets.QuotaDetailSet{
 }
 
 //The expected update Body. Is also returned by PUT request
-const UpdateOutput = `{"quota_set":{"cores":200,"fixed_ips":0,"floating_ips":0,"injected_file_content_bytes":10240,"injected_file_path_bytes":255,"injected_files":5,"instances":25,"key_pairs":10,"metadata_items":128,"ram":200000,"security_group_rules":20,"security_groups":10,"server_groups":2,"server_group_members":3}}`
+const UpdateOutput = `{"quota_set":{"cores":200,"fixed_ips":0,"floating_ips":0,"injected_file_content_bytes":10240,"injected_file_path_bytes":255,"injected_files":5,"instances":25,"key_pairs":10,"metadata_items":128,"ram":9216000,"security_group_rules":20,"security_groups":10,"server_groups":2,"server_group_members":3}}`
 
 //The expected partialupdate Body. Is also returned by PUT request
 const PartialUpdateBody = `{"quota_set":{"cores":200, "force":true}}`
@@ -151,7 +151,7 @@ var UpdatedQuotaSet = quotasets.UpdateOpts{
 	InjectedFiles:            gophercloud.IntToPointer(5),
 	KeyPairs:                 gophercloud.IntToPointer(10),
 	MetadataItems:            gophercloud.IntToPointer(128),
-	RAM:                      gophercloud.IntToPointer(200000),
+	RAM:                      gophercloud.IntToPointer(9216000),
 	SecurityGroupRules:       gophercloud.IntToPointer(20),
 	SecurityGroups:           gophercloud.IntToPointer(10),
 	Cores:                    gophercloud.IntToPointer(200),

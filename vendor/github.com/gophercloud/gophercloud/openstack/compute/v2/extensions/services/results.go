@@ -2,6 +2,8 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
@@ -20,7 +22,7 @@ type Service struct {
 	Host string `json:"host"`
 
 	// The id of the service.
-	ID int `json:"id"`
+	ID string `json:"-"`
 
 	// The state of the service. One of up or down.
 	State string `json:"state"`
@@ -40,6 +42,7 @@ func (r *Service) UnmarshalJSON(b []byte) error {
 	type tmp Service
 	var s struct {
 		tmp
+		ID        interface{}                     `json:"id"`
 		UpdatedAt gophercloud.JSONRFC3339MilliNoZ `json:"updated_at"`
 	}
 	err := json.Unmarshal(b, &s)
@@ -49,6 +52,19 @@ func (r *Service) UnmarshalJSON(b []byte) error {
 	*r = Service(s.tmp)
 
 	r.UpdatedAt = time.Time(s.UpdatedAt)
+
+	// OpenStack Compute service returns ID in string representation since
+	// 2.53 microversion API (Pike release).
+	switch t := s.ID.(type) {
+	case int:
+		r.ID = strconv.Itoa(t)
+	case float64:
+		r.ID = strconv.Itoa(int(t))
+	case string:
+		r.ID = t
+	default:
+		return fmt.Errorf("ID has unexpected type: %T", t)
+	}
 
 	return nil
 }

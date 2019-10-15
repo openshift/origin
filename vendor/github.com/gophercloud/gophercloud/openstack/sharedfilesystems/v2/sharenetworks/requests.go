@@ -135,9 +135,9 @@ type UpdateOptsBuilder interface {
 // the ShareNetwork object.
 type UpdateOpts struct {
 	// The share network name
-	Name string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty"`
 	// The share network description
-	Description string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 	// The UUID of the Neutron network to set up for share servers
 	NeutronNetID string `json:"neutron_net_id,omitempty"`
 	// The UUID of the Neutron subnet to set up for share servers

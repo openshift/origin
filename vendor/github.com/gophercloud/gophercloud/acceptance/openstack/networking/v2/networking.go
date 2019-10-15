@@ -11,14 +11,23 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
+
+// PortWithExtraDHCPOpts represents a port with extra DHCP options configuration.
+type PortWithExtraDHCPOpts struct {
+	ports.Port
+	extradhcpopts.ExtraDHCPOptsExt
+}
 
 // CreateNetwork will create basic network. An error will be returned if the
 // network could not be created.
 func CreateNetwork(t *testing.T, client *gophercloud.ServiceClient) (*networks.Network, error) {
 	networkName := tools.RandomString("TESTACC-", 8)
+	networkDescription := tools.RandomString("TESTACC-DESC-", 8)
 	createOpts := networks.CreateOpts{
 		Name:         networkName,
+		Description:  networkDescription,
 		AdminStateUp: gophercloud.Enabled,
 	}
 
@@ -30,6 +39,10 @@ func CreateNetwork(t *testing.T, client *gophercloud.ServiceClient) (*networks.N
 	}
 
 	t.Logf("Successfully created network.")
+
+	th.AssertEquals(t, network.Name, networkName)
+	th.AssertEquals(t, network.Description, networkDescription)
+
 	return network, nil
 }
 
@@ -56,6 +69,9 @@ func CreateNetworkWithoutPortSecurity(t *testing.T, client *gophercloud.ServiceC
 	}
 
 	t.Logf("Successfully created network.")
+
+	th.AssertEquals(t, network.Name, networkName)
+
 	return network, nil
 }
 
@@ -63,12 +79,14 @@ func CreateNetworkWithoutPortSecurity(t *testing.T, client *gophercloud.ServiceC
 // returned if the port could not be created.
 func CreatePort(t *testing.T, client *gophercloud.ServiceClient, networkID, subnetID string) (*ports.Port, error) {
 	portName := tools.RandomString("TESTACC-", 8)
+	portDescription := tools.RandomString("TESTACC-DESC-", 8)
 
 	t.Logf("Attempting to create port: %s", portName)
 
 	createOpts := ports.CreateOpts{
 		NetworkID:    networkID,
 		Name:         portName,
+		Description:  portDescription,
 		AdminStateUp: gophercloud.Enabled,
 		FixedIPs:     []ports.IP{ports.IP{SubnetID: subnetID}},
 	}
@@ -88,6 +106,9 @@ func CreatePort(t *testing.T, client *gophercloud.ServiceClient, networkID, subn
 	}
 
 	t.Logf("Successfully created port: %s", portName)
+
+	th.AssertEquals(t, port.Name, portName)
+	th.AssertEquals(t, port.Description, portDescription)
 
 	return newPort, nil
 }
@@ -123,6 +144,8 @@ func CreatePortWithNoSecurityGroup(t *testing.T, client *gophercloud.ServiceClie
 	}
 
 	t.Logf("Successfully created port: %s", portName)
+
+	th.AssertEquals(t, port.Name, portName)
 
 	return newPort, nil
 }
@@ -163,6 +186,94 @@ func CreatePortWithoutPortSecurity(t *testing.T, client *gophercloud.ServiceClie
 
 	t.Logf("Successfully created port: %s", portName)
 
+	th.AssertEquals(t, port.Name, portName)
+
+	return newPort, nil
+}
+
+// CreatePortWithExtraDHCPOpts will create a port with DHCP options on the
+// specified subnet. An error will be returned if the port could not be created.
+func CreatePortWithExtraDHCPOpts(t *testing.T, client *gophercloud.ServiceClient, networkID, subnetID string) (*PortWithExtraDHCPOpts, error) {
+	portName := tools.RandomString("TESTACC-", 8)
+
+	t.Logf("Attempting to create port: %s", portName)
+
+	portCreateOpts := ports.CreateOpts{
+		NetworkID:    networkID,
+		Name:         portName,
+		AdminStateUp: gophercloud.Enabled,
+		FixedIPs:     []ports.IP{ports.IP{SubnetID: subnetID}},
+	}
+
+	createOpts := extradhcpopts.CreateOptsExt{
+		CreateOptsBuilder: portCreateOpts,
+		ExtraDHCPOpts: []extradhcpopts.CreateExtraDHCPOpt{
+			{
+				OptName:  "test_option_1",
+				OptValue: "test_value_1",
+			},
+		},
+	}
+	port := &PortWithExtraDHCPOpts{}
+
+	err := ports.Create(client, createOpts).ExtractInto(port)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := WaitForPortToCreate(client, port.ID, 60); err != nil {
+		return nil, err
+	}
+
+	err = ports.Get(client, port.ID).ExtractInto(port)
+	if err != nil {
+		return port, err
+	}
+
+	t.Logf("Successfully created port: %s", portName)
+
+	return port, nil
+}
+
+// CreatePortWithMultipleFixedIPs will create a port with two FixedIPs on the
+// specified subnet. An error will be returned if the port could not be created.
+func CreatePortWithMultipleFixedIPs(t *testing.T, client *gophercloud.ServiceClient, networkID, subnetID string) (*ports.Port, error) {
+	portName := tools.RandomString("TESTACC-", 8)
+	portDescription := tools.RandomString("TESTACC-DESC-", 8)
+
+	t.Logf("Attempting to create port with two fixed IPs: %s", portName)
+
+	createOpts := ports.CreateOpts{
+		NetworkID:    networkID,
+		Name:         portName,
+		Description:  portDescription,
+		AdminStateUp: gophercloud.Enabled,
+		FixedIPs:     []ports.IP{ports.IP{SubnetID: subnetID}, ports.IP{SubnetID: subnetID}},
+	}
+
+	port, err := ports.Create(client, createOpts).Extract()
+	if err != nil {
+		return port, err
+	}
+
+	if err := WaitForPortToCreate(client, port.ID, 60); err != nil {
+		return port, err
+	}
+
+	newPort, err := ports.Get(client, port.ID).Extract()
+	if err != nil {
+		return newPort, err
+	}
+
+	t.Logf("Successfully created port: %s", portName)
+
+	th.AssertEquals(t, port.Name, portName)
+	th.AssertEquals(t, port.Description, portDescription)
+
+	if len(port.FixedIPs) != 2 {
+		t.Fatalf("Failed to create a port with two fixed IPs: %s", portName)
+	}
+
 	return newPort, nil
 }
 
@@ -170,16 +281,18 @@ func CreatePortWithoutPortSecurity(t *testing.T, client *gophercloud.ServiceClie
 // will be returned if the subnet could not be created.
 func CreateSubnet(t *testing.T, client *gophercloud.ServiceClient, networkID string) (*subnets.Subnet, error) {
 	subnetName := tools.RandomString("TESTACC-", 8)
+	subnetDescription := tools.RandomString("TESTACC-DESC-", 8)
 	subnetOctet := tools.RandomInt(1, 250)
 	subnetCIDR := fmt.Sprintf("192.168.%d.0/24", subnetOctet)
 	subnetGateway := fmt.Sprintf("192.168.%d.1", subnetOctet)
 	createOpts := subnets.CreateOpts{
-		NetworkID:  networkID,
-		CIDR:       subnetCIDR,
-		IPVersion:  4,
-		Name:       subnetName,
-		EnableDHCP: gophercloud.Disabled,
-		GatewayIP:  &subnetGateway,
+		NetworkID:   networkID,
+		CIDR:        subnetCIDR,
+		IPVersion:   4,
+		Name:        subnetName,
+		Description: subnetDescription,
+		EnableDHCP:  gophercloud.Disabled,
+		GatewayIP:   &subnetGateway,
 	}
 
 	t.Logf("Attempting to create subnet: %s", subnetName)
@@ -190,6 +303,12 @@ func CreateSubnet(t *testing.T, client *gophercloud.ServiceClient, networkID str
 	}
 
 	t.Logf("Successfully created subnet.")
+
+	th.AssertEquals(t, subnet.Name, subnetName)
+	th.AssertEquals(t, subnet.Description, subnetDescription)
+	th.AssertEquals(t, subnet.GatewayIP, subnetGateway)
+	th.AssertEquals(t, subnet.CIDR, subnetCIDR)
+
 	return subnet, nil
 }
 
@@ -200,6 +319,8 @@ func CreateSubnetWithDefaultGateway(t *testing.T, client *gophercloud.ServiceCli
 	subnetName := tools.RandomString("TESTACC-", 8)
 	subnetOctet := tools.RandomInt(1, 250)
 	subnetCIDR := fmt.Sprintf("192.168.%d.0/24", subnetOctet)
+	defaultGateway := fmt.Sprintf("192.168.%d.1", subnetOctet)
+
 	createOpts := subnets.CreateOpts{
 		NetworkID:  networkID,
 		CIDR:       subnetCIDR,
@@ -216,6 +337,11 @@ func CreateSubnetWithDefaultGateway(t *testing.T, client *gophercloud.ServiceCli
 	}
 
 	t.Logf("Successfully created subnet.")
+
+	th.AssertEquals(t, subnet.Name, subnetName)
+	th.AssertEquals(t, subnet.GatewayIP, defaultGateway)
+	th.AssertEquals(t, subnet.CIDR, subnetCIDR)
+
 	return subnet, nil
 }
 
@@ -252,6 +378,11 @@ func CreateSubnetWithNoGateway(t *testing.T, client *gophercloud.ServiceClient, 
 	}
 
 	t.Logf("Successfully created subnet.")
+
+	th.AssertEquals(t, subnet.Name, subnetName)
+	th.AssertEquals(t, subnet.GatewayIP, "")
+	th.AssertEquals(t, subnet.CIDR, subnetCIDR)
+
 	return subnet, nil
 }
 
@@ -278,6 +409,66 @@ func CreateSubnetWithSubnetPool(t *testing.T, client *gophercloud.ServiceClient,
 	}
 
 	t.Logf("Successfully created subnet.")
+
+	th.AssertEquals(t, subnet.Name, subnetName)
+	th.AssertEquals(t, subnet.CIDR, subnetCIDR)
+
+	return subnet, nil
+}
+
+// CreateSubnetWithSubnetPoolNoCIDR will create a subnet associated with the
+// provided subnetpool on the specified Network ID.
+// An error will be returned if the subnet or the subnetpool could not be created.
+func CreateSubnetWithSubnetPoolNoCIDR(t *testing.T, client *gophercloud.ServiceClient, networkID string, subnetPoolID string) (*subnets.Subnet, error) {
+	subnetName := tools.RandomString("TESTACC-", 8)
+	createOpts := subnets.CreateOpts{
+		NetworkID:    networkID,
+		IPVersion:    4,
+		Name:         subnetName,
+		EnableDHCP:   gophercloud.Disabled,
+		SubnetPoolID: subnetPoolID,
+	}
+
+	t.Logf("Attempting to create subnet: %s", subnetName)
+
+	subnet, err := subnets.Create(client, createOpts).Extract()
+	if err != nil {
+		return subnet, err
+	}
+
+	t.Logf("Successfully created subnet.")
+
+	th.AssertEquals(t, subnet.Name, subnetName)
+
+	return subnet, nil
+}
+
+// CreateSubnetWithSubnetPoolPrefixlen will create a subnet associated with the
+// provided subnetpool on the specified Network ID and with overwritten
+// prefixlen instead of the default subnetpool prefixlen.
+// An error will be returned if the subnet or the subnetpool could not be created.
+func CreateSubnetWithSubnetPoolPrefixlen(t *testing.T, client *gophercloud.ServiceClient, networkID string, subnetPoolID string) (*subnets.Subnet, error) {
+	subnetName := tools.RandomString("TESTACC-", 8)
+	createOpts := subnets.CreateOpts{
+		NetworkID:    networkID,
+		IPVersion:    4,
+		Name:         subnetName,
+		EnableDHCP:   gophercloud.Disabled,
+		SubnetPoolID: subnetPoolID,
+		Prefixlen:    12,
+	}
+
+	t.Logf("Attempting to create subnet: %s", subnetName)
+
+	subnet, err := subnets.Create(client, createOpts).Extract()
+	if err != nil {
+		return subnet, err
+	}
+
+	t.Logf("Successfully created subnet.")
+
+	th.AssertEquals(t, subnet.Name, subnetName)
+
 	return subnet, nil
 }
 
@@ -336,54 +527,4 @@ func WaitForPortToCreate(client *gophercloud.ServiceClient, portID string, secs 
 
 		return false, nil
 	})
-}
-
-// PortWithExtraDHCPOpts represents a port with extra DHCP options configuration.
-type PortWithExtraDHCPOpts struct {
-	ports.Port
-	extradhcpopts.ExtraDHCPOptsExt
-}
-
-// CreatePortWithExtraDHCPOpts will create a port with DHCP options on the
-// specified subnet. An error will be returned if the port could not be created.
-func CreatePortWithExtraDHCPOpts(t *testing.T, client *gophercloud.ServiceClient, networkID, subnetID string) (*PortWithExtraDHCPOpts, error) {
-	portName := tools.RandomString("TESTACC-", 8)
-
-	t.Logf("Attempting to create port: %s", portName)
-
-	portCreateOpts := ports.CreateOpts{
-		NetworkID:    networkID,
-		Name:         portName,
-		AdminStateUp: gophercloud.Enabled,
-		FixedIPs:     []ports.IP{ports.IP{SubnetID: subnetID}},
-	}
-
-	createOpts := extradhcpopts.CreateOptsExt{
-		CreateOptsBuilder: portCreateOpts,
-		ExtraDHCPOpts: []extradhcpopts.CreateExtraDHCPOpt{
-			{
-				OptName:  "test_option_1",
-				OptValue: "test_value_1",
-			},
-		},
-	}
-	port := &PortWithExtraDHCPOpts{}
-
-	err := ports.Create(client, createOpts).ExtractInto(port)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := WaitForPortToCreate(client, port.ID, 60); err != nil {
-		return nil, err
-	}
-
-	err = ports.Get(client, port.ID).ExtractInto(port)
-	if err != nil {
-		return port, err
-	}
-
-	t.Logf("Successfully created port: %s", portName)
-
-	return port, nil
 }

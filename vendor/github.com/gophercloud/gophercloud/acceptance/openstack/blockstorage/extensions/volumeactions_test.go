@@ -6,120 +6,87 @@ import (
 	"testing"
 
 	"github.com/gophercloud/gophercloud/acceptance/clients"
-	"github.com/gophercloud/gophercloud/acceptance/tools"
-	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
-
 	blockstorage "github.com/gophercloud/gophercloud/acceptance/openstack/blockstorage/v2"
 	compute "github.com/gophercloud/gophercloud/acceptance/openstack/compute/v2"
+	"github.com/gophercloud/gophercloud/acceptance/tools"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestVolumeActionsUploadImageDestroy(t *testing.T) {
+	t.Skip("This test is diabled because it sometimes fails in OpenLab")
+
 	blockClient, err := clients.NewBlockStorageV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a blockstorage client: %v", err)
-	}
+	th.AssertNoErr(t, err)
+
 	computeClient, err := clients.NewComputeV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a compute client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	volume, err := blockstorage.CreateVolume(t, blockClient)
-	if err != nil {
-		t.Fatalf("Unable to create volume: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer blockstorage.DeleteVolume(t, blockClient, volume)
 
 	volumeImage, err := CreateUploadImage(t, blockClient, volume)
-	if err != nil {
-		t.Fatalf("Unable to upload volume-backed image: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, volumeImage)
 
 	err = DeleteUploadedImage(t, computeClient, volumeImage.ImageName)
-	if err != nil {
-		t.Fatalf("Unable to delete volume-backed image: %v", err)
-	}
+	th.AssertNoErr(t, err)
 }
 
 func TestVolumeActionsAttachCreateDestroy(t *testing.T) {
 	blockClient, err := clients.NewBlockStorageV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a blockstorage client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	computeClient, err := clients.NewComputeV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a compute client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	server, err := compute.CreateServer(t, computeClient)
-	if err != nil {
-		t.Fatalf("Unable to create server: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer compute.DeleteServer(t, computeClient, server)
 
 	volume, err := blockstorage.CreateVolume(t, blockClient)
-	if err != nil {
-		t.Fatalf("Unable to create volume: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer blockstorage.DeleteVolume(t, blockClient, volume)
 
 	err = CreateVolumeAttach(t, blockClient, volume, server)
-	if err != nil {
-		t.Fatalf("Unable to attach volume: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	newVolume, err := volumes.Get(blockClient, volume.ID).Extract()
-	if err != nil {
-		t.Fatal("Unable to get updated volume information: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	DeleteVolumeAttach(t, blockClient, newVolume)
 }
 
 func TestVolumeActionsReserveUnreserve(t *testing.T) {
 	client, err := clients.NewBlockStorageV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create blockstorage client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	volume, err := blockstorage.CreateVolume(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create volume: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer blockstorage.DeleteVolume(t, client, volume)
 
 	err = CreateVolumeReserve(t, client, volume)
-	if err != nil {
-		t.Fatalf("Unable to create volume reserve: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteVolumeReserve(t, client, volume)
 }
 
 func TestVolumeActionsExtendSize(t *testing.T) {
 	blockClient, err := clients.NewBlockStorageV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a blockstorage client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	volume, err := blockstorage.CreateVolume(t, blockClient)
-	if err != nil {
-		t.Fatalf("Unable to create volume: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer blockstorage.DeleteVolume(t, blockClient, volume)
 
 	tools.PrintResource(t, volume)
 
 	err = ExtendVolumeSize(t, blockClient, volume)
-	if err != nil {
-		t.Fatalf("Unable to resize volume: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	newVolume, err := volumes.Get(blockClient, volume.ID).Extract()
-	if err != nil {
-		t.Fatal("Unable to get updated volume information: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newVolume)
 }
@@ -143,7 +110,7 @@ func TestVolumeConns(t *testing.T) {
         th.AssertNoErr(t, err)
 
         t.Logf("Deleting volume")
-        err = volumes.Delete(client, cv.ID).ExtractErr()
+        err = volumes.Delete(client, cv.ID, volumes.DeleteOpts{}).ExtractErr()
         th.AssertNoErr(t, err)
     }()
 
