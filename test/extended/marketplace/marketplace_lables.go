@@ -21,7 +21,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 		oc            = exutil.NewCLI("marketplace", exutil.KubeConfigPath())
 		allNs         = "openshift-operators"
 		marketplaceNs = "openshift-marketplace"
-		ResourceWait  = 60 * time.Second
+		resourceWait  = 60 * time.Second
 
 		opsrcYamltem = exutil.FixturePath("testdata", "marketplace", "opsrc", "02-opsrc.yaml")
 		cscYamltem   = exutil.FixturePath("testdata", "marketplace", "csc", "02-csc.yaml")
