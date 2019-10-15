@@ -8,6 +8,8 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
@@ -18,6 +20,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		oc            = exutil.NewCLI("marketplace", exutil.KubeConfigPath())
 		allNs         = "openshift-operators"
 		marketplaceNs = "openshift-marketplace"
+		resourceWait  = 100 * time.Second
 
 		opsrcYamltem = exutil.FixturePath("testdata", "marketplace", "opsrc", "01-opsrc.yaml")
 		cscYamltem   = exutil.FixturePath("testdata", "marketplace", "csc", "01-csc.yaml")
@@ -47,7 +50,20 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 
 		err = createResources(oc, opsrcYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		time.Sleep(30 * time.Second)
+		//wait for the opsrc is created finished
+		err = wait.Poll(5*time.Second, ResourceWait, func() (bool, error) {
+			output, err := oc.AsAdmin().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
+			if err != nil {
+				e2e.Failf("Failed to create opsrctest, error:%v", err)
+				return false, err
+			}
+			if strings.Contains(output, "has been successfully reconciled") {
+				return true, nil
+			}
+			return false, nil
+		})
+
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		opsrcResourceList := [][]string{
 			{"operatorsource", "opsrctest", marketplaceNs},
@@ -70,7 +86,17 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args(podName, "-n", marketplaceNs).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		//wait for the marketplace recover
-		time.Sleep(90 * time.Second)
+		err = wait.Poll(5*time.Second, ResourceWait, func() (bool, error) {
+			output, err := oc.AsAdmin().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
+			if err != nil {
+				e2e.Failf("Failed to create opsrctest, error:%v", err)
+				return false, err
+			}
+			if strings.Contains(output, "has been successfully reconciled") {
+				return true, nil
+			}
+			return false, nil
+		})
 
 		//get the packagelist with label opsrctest
 		packageListOpsrc2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.packages}").Output()
