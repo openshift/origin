@@ -9,6 +9,8 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels provider displayName", func() {
@@ -19,6 +21,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 		oc            = exutil.NewCLI("marketplace", exutil.KubeConfigPath())
 		allNs         = "openshift-operators"
 		marketplaceNs = "openshift-marketplace"
+		ResourceWait  = 60 * time.Second
 
 		opsrcYamltem = exutil.FixturePath("testdata", "marketplace", "opsrc", "02-opsrc.yaml")
 		cscYamltem   = exutil.FixturePath("testdata", "marketplace", "csc", "02-csc.yaml")
@@ -46,7 +49,21 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 
 		err = createResources(oc, opsrcYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		time.Sleep(30 * time.Second)
+
+		//wait for the opsrc is created finished
+		err = wait.Poll(5*time.Second, ResourceWait, func() (bool, error) {
+			output, err := oc.AsAdmin().Run("get").Args("operatorsource", "opsrctestlabel", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
+			if err != nil {
+				e2e.Failf("Failed to create opsrctestlabel, error:%v", err)
+				return false, err
+			}
+			if strings.Contains(output, "has been successfully reconciled") {
+				return true, nil
+			}
+			return false, nil
+		})
+
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		opsrcResourceList := [][]string{
 			{"operatorsource", "opsrctestlabel", "-o=jsonpath={.metadata.labels.opsrc-provider}", marketplaceNs},
@@ -62,10 +79,24 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 			o.Expect(msg).Should(o.ContainSubstring("optestlabel"))
 		}
 		//create one csc with provider&display&labels
-		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctestlabel", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=descheduler-test", "DISPLAYNAME=csctestlabel", "PUBLISHER=csctestlabel").OutputToFile("config.json")
+		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctestlabel", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=camel-k-marketplace-e2e-tests", "DISPLAYNAME=csctestlabel", "PUBLISHER=csctestlabel").OutputToFile("config.json")
 		err = createResources(oc, cscYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		time.Sleep(15 * time.Second)
+
+		//wait for the csc is created finished
+		err = wait.Poll(5*time.Second, ResourceWait, func() (bool, error) {
+			output, err := oc.AsAdmin().Run("get").Args("catalogsourceconfig", "csctestlabel", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
+			if err != nil {
+				e2e.Failf("Failed to create csctestlabel, error:%v", err)
+				return false, err
+			}
+			if strings.Contains(output, "has been successfully reconciled") {
+				return true, nil
+			}
+			return false, nil
+		})
+
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		cscResourceList := [][]string{
 			{"catalogsourceconfig", "csctestlabel", "-o=jsonpath={.spec.csDisplayName}", marketplaceNs},

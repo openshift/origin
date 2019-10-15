@@ -2,7 +2,6 @@ package marketplace
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	o "github.com/onsi/gomega"
@@ -50,18 +49,6 @@ func existResources(oc *exutil.CLI, resourcetype string, name string, ns string)
 		return false, err
 	}
 	return true, nil
-}
-
-func isResourceItemsEmpty(resourceList map[string]interface{}) bool {
-	// Get resource items and check if it is empty
-	items, err := resourceList["items"].([]interface{})
-	o.Expect(err).To(o.BeTrue(), "Unable to verify items is a slice:%v", items)
-
-	if reflect.ValueOf(items).Len() > 0 {
-		return false
-	} else {
-		return true
-	}
 }
 
 func getResourceByPath(oc *exutil.CLI, resourcetype string, name string, path string, ns string) (msg string, e error) {
