@@ -33,7 +33,7 @@ os::cleanup::tmpdir
 
 # Internalize environment variables we consume and default if they're not set
 dry_run="${DRY_RUN:-}"
-test_timeout="${TIMEOUT:-120s}"
+test_timeout="${TIMEOUT:-240s}"
 detect_races="${DETECT_RACES:-true}"
 coverage_output_dir="${COVERAGE_OUTPUT_DIR:-}"
 coverage_spec="${COVERAGE_SPEC:--cover -covermode atomic}"
@@ -131,7 +131,7 @@ if [[ -n "${junit_report}" ]]; then
     os::util::ensure::built_binary_exists 'gotest2junit'
     report_file="$( mktemp "${ARTIFACT_DIR}/unit_report_XXXXX" ).xml"
 
-    go test -json ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}" | gotest2junit > "${report_file}"
+    go test -p 1 -json ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}" | gotest2junit > "${report_file}"
     test_return_code="${PIPESTATUS[0]}"
 
     gzip "${test_error_file}" -c > "${ARTIFACT_DIR}/unit-error.log.gz"
@@ -163,7 +163,7 @@ elif [[ -n "${coverage_output_dir}" ]]; then
         mkdir -p "${coverage_output_dir}/${test_package}"
         local_gotest_flags="${gotest_flags} -coverprofile=${coverage_output_dir}/${test_package}/profile.out"
 
-        go test ${local_gotest_flags} ${test_package}
+        go test -p 1 ${local_gotest_flags} ${test_package}
     done
 
     # assemble all profiles and generate a coverage report
@@ -183,5 +183,5 @@ elif [[ -n "${dlv_debug}" ]]; then
     dlv test ${test_packages}
 else
     # we need to generate neither jUnit XML nor coverage reports
-    go test ${gotest_flags} ${test_packages}
+    go test -p 1 ${gotest_flags} ${test_packages}
 fi
