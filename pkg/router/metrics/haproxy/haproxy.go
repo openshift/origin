@@ -429,9 +429,9 @@ loop:
 		// displaying only backends and frontends.
 		if row[32] == serverType {
 			servers++
-		}
-		if servers > e.opts.ServerThreshold {
-			continue
+			if servers > e.opts.ServerThreshold {
+				continue
+			}
 		}
 
 		rows++
