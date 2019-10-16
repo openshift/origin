@@ -441,9 +441,6 @@ var (
 
 			// TODO(sdn): test pod fails to connect in 1.16
 			`should allow ingress access from updated pod`,
-
-			// TODO(workload): reactivate when oc is rebased
-			`should support exec using resource/name`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
