@@ -4,6 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -11,11 +18,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // e2e tests of the build controller configuration.
@@ -94,6 +96,12 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 					ds.Status.UpdatedNumberScheduled == ds.Status.DesiredNumberScheduled {
 					return true, nil
 				}
+				e2e.Logf("ocm Desired: %d, Current: %d, Ready: %d, Available: %d, Updated: %d",
+					ds.Status.DesiredNumberScheduled,
+					ds.Status.CurrentNumberScheduled,
+					ds.Status.NumberReady,
+					ds.Status.NumberAvailable,
+					ds.Status.UpdatedNumberScheduled)
 				return false, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
