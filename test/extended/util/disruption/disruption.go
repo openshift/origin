@@ -32,7 +32,7 @@ type TestData struct {
 // test is being executed. Description is used to populate the JUnit suite name, and testname is
 // used to define the overall test that will be run.
 func Run(description, testname string, adapter TestData, invariants []upgrades.Test, fn func()) {
-	testSuite := &junit.TestSuite{Name: description}
+	testSuite := &junit.TestSuite{Name: description, Package: testname}
 	test := &junit.TestCase{Name: testname, Classname: testname}
 	testSuite.TestCases = append(testSuite.TestCases, test)
 	cm := chaosmonkey.New(func() {
@@ -53,7 +53,7 @@ func runChaosmonkey(
 	for _, t := range tests {
 		testCase := &junit.TestCase{
 			Name:      t.Name(),
-			Classname: "upgrade_tests",
+			Classname: "disruption_tests",
 		}
 		testSuite.TestCases = append(testSuite.TestCases, testCase)
 
@@ -75,7 +75,7 @@ func runChaosmonkey(
 		testSuite.Update()
 		testSuite.Time = time.Since(start).Seconds()
 		if framework.TestContext.ReportDir != "" {
-			fname := filepath.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%s%s.xml", framework.TestContext.ReportPrefix, testSuite.TestCases[0].Classname))
+			fname := filepath.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%s_%d.xml", testSuite.Package, time.Now().Unix()))
 			f, err := os.Create(fname)
 			if err != nil {
 				return
