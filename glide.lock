@@ -1,5 +1,5 @@
-hash: 7f38509c06d6bbd6380075a92085632c6ee8772a84f34dbd95f33d61a6da5e25
-updated: 2019-08-16T12:42:03.600399+02:00
+hash: 9b6e6da773f653564125ad07d26e1976ce47d248240a848ba191c61e1e2bf14a
+updated: 2019-10-17T15:35:09.416707573-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -16,6 +16,7 @@ imports:
   version: c0ef4539dfab4d21c8ef20ba2924f9fc6f186d35
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
+  repo: https://github.com/openshift/gssapi.git
 - name: github.com/appc/spec
   version: fc380db5fc13c6dd71a5b0bf2af0d182865d1b1d
   subpackages:
@@ -1321,7 +1322,7 @@ imports:
 - name: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: gopkg.in/yaml.v2
-  version: 670d4cfef0544295bc27a114dbac37980d83185a
+  version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
 - name: k8s.io/api
   version: 2b43a61ee529e52685711fe64342885016cdc9cb
   repo: https://github.com/openshift/kubernetes-api.git
@@ -1357,7 +1358,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: bdb14b22f7539ab240d3aeb781796ec0ed700f51
+  version: d13eddffb553b9424a387ec18f643a454be2101f
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1391,7 +1392,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/testserver
 - name: k8s.io/apimachinery
-  version: 100678d127826c3c7c2e6ca383f9e50333fb5f27
+  version: c7e3b10d855a1f21d398c54c1ec384483544c4d6
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/equality
@@ -1459,7 +1460,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 293fea9d0ea11e8a665ae842c71fb68bf65b2c28
+  version: e17af4df0acf7d0f73b3fbbcab5cd82fce4c9fc4
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1801,7 +1802,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: f192690493ec6cd2f3fd19b35beeba685ebe1c9b
+  version: e89d742e9ea8690e3bbd49368335a9145b4bb93a
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

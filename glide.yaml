@@ -231,7 +231,8 @@ import:
 - package: github.com/abbot/go-http-auth
   version: c0ef4539dfab4d21c8ef20ba2924f9fc6f186d35
 - package: github.com/apcera/gssapi
-  version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
+  repo:    https://github.com/openshift/gssapi.git
+  version: release-2.6.3
 - package: github.com/appc/spec
   version: fc380db5fc13c6dd71a5b0bf2af0d182865d1b1d
 - package: github.com/armon/circbuf
