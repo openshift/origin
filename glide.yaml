@@ -554,7 +554,7 @@ import:
 - package: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - package: gopkg.in/yaml.v2
-  version: 670d4cfef0544295bc27a114dbac37980d83185a
+  version: v2.2.4
 - package: k8s.io/heapster
   version: c2ac40f1adf8c42a79badddb2a2acd673cae3bcb
 - package: k8s.io/sample-apiserver

@@ -47,8 +47,8 @@ func TestAPIServerDefaults(t *testing.T) {
 			MaxMutatingRequestsInFlight: 200,
 			MinRequestTimeout:           1800,
 			RequestTimeout:              time.Duration(60) * time.Second,
-			JSONPatchMaxCopyBytes:       int64(100 * 1024 * 1024),
-			MaxRequestBodyBytes:         int64(100 * 1024 * 1024),
+			JSONPatchMaxCopyBytes:       int64(3 * 1024 * 1024),
+			MaxRequestBodyBytes:         int64(3 * 1024 * 1024),
 		},
 		Admission: &kubeapiserveroptions.AdmissionOptions{
 			PluginNames: nil, // ignored

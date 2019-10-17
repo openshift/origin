@@ -85,9 +85,28 @@ func init() {
 				*(*interface{})(ptr) = f64
 				return
 			}
-			// Not much we can do here.
 		default:
+			// init depth, if needed
+			if iter.Attachment == nil {
+				iter.Attachment = int(1)
+			}
+
+			// remember current depth
+			originalAttachment := iter.Attachment
+
+			// increment depth before descending
+			if i, ok := iter.Attachment.(int); ok {
+				iter.Attachment = i + 1
+				if i > 10000 {
+					iter.ReportError("parse", "exceeded max depth")
+					return
+				}
+			}
+
 			*(*interface{})(ptr) = iter.Read()
+
+			// restore current depth
+			iter.Attachment = originalAttachment
 		}
 	}
 	jsoniter.RegisterTypeDecoderFunc("interface {}", decodeNumberAsInt64IfPossible)
