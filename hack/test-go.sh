@@ -137,7 +137,7 @@ if [[ -n "${junit_report}" ]]; then
     set +o pipefail
 
     go test -i ${gotest_flags} ${test_packages}
-    go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}"
+    go test -p 1 ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}"
 
     test_return_code="${PIPESTATUS[0]}"
 
@@ -189,5 +189,5 @@ elif [[ -n "${dlv_debug}" ]]; then
 else
     # we need to generate neither jUnit XML nor coverage reports
     go test -i ${gotest_flags} ${test_packages}
-    go test ${gotest_flags} ${test_packages}
+    go test -p 1 ${gotest_flags} ${test_packages}
 fi
