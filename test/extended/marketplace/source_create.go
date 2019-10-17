@@ -132,7 +132,6 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		subYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subYamltem, "-p", "NAME=camel-k-marketplace-e2e-tests", fmt.Sprintf("NAMESPACE=%s", allNs), "SOURCE=csctest", "CSV=camel-k-operator.v0.2.0").OutputToFile("config.json")
 		err = createResources(oc, subYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		time.Sleep(80 * time.Second)
 
 		subResourceList := [][]string{
 			{"subscription", "camel-k-marketplace-e2e-tests", allNs},
