@@ -41,7 +41,7 @@ os::cleanup::tmpdir
 
 # Internalize environment variables we consume and default if they're not set
 dry_run="${DRY_RUN:-}"
-test_timeout="${TIMEOUT:-120s}"
+test_timeout="${TIMEOUT:-240s}"
 detect_races="${DETECT_RACES:-true}"
 coverage_output_dir="${COVERAGE_OUTPUT_DIR:-}"
 coverage_spec="${COVERAGE_SPEC:--cover -covermode atomic}"
