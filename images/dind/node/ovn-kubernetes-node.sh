@@ -57,6 +57,7 @@ EOF
 
   echo "Enabling and start ovn-kubernetes node services"
   /usr/local/bin/ovnkube \
+	--loglevel=5 \
 	--k8s-apiserver "${apiserver}" \
 	--k8s-cacert "${config_dir}/ca.crt" \
 	--k8s-token "${token}" \
