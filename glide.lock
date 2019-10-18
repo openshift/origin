@@ -1,5 +1,5 @@
-hash: 7f38509c06d6bbd6380075a92085632c6ee8772a84f34dbd95f33d61a6da5e25
-updated: 2019-08-16T12:42:03.600399+02:00
+hash: 20f47d1aca455fde119b2d5b2d13e24b3171a705397a183b35acff8bbabdb428
+updated: 2019-10-17T17:53:05.08293679-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -16,6 +16,7 @@ imports:
   version: c0ef4539dfab4d21c8ef20ba2924f9fc6f186d35
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
+  repo: https://github.com/openshift/gssapi.git
 - name: github.com/appc/spec
   version: fc380db5fc13c6dd71a5b0bf2af0d182865d1b1d
   subpackages:
@@ -666,6 +667,8 @@ imports:
   version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
 - name: github.com/jonboulle/clockwork
   version: 72f9bd7c4e0c2a40055ab3d0f09654f730cce982
+- name: github.com/json-iterator/go
+  version: f2b4162afba35581b6d4a50d3b8f34e33c144682
 - name: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
 - name: github.com/kardianos/osext
@@ -728,6 +731,10 @@ imports:
   version: ad45545899c7b13c020ea92b2072220eefad42b8
 - name: github.com/mitchellh/mapstructure
   version: 53818660ed4955e899c0bcafa97299a388bd7c8e
+- name: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- name: github.com/modern-go/reflect2
+  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/mohae/deepcopy
   version: 491d3605edfb866af34a48075bd4355ac1bf46ca
 - name: github.com/mreiferson/go-httpclient
@@ -1321,7 +1328,7 @@ imports:
 - name: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: gopkg.in/yaml.v2
-  version: 670d4cfef0544295bc27a114dbac37980d83185a
+  version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
 - name: k8s.io/api
   version: 2b43a61ee529e52685711fe64342885016cdc9cb
   repo: https://github.com/openshift/kubernetes-api.git
@@ -1357,7 +1364,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: bdb14b22f7539ab240d3aeb781796ec0ed700f51
+  version: d13eddffb553b9424a387ec18f643a454be2101f
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1391,7 +1398,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/testserver
 - name: k8s.io/apimachinery
-  version: 100678d127826c3c7c2e6ca383f9e50333fb5f27
+  version: c7e3b10d855a1f21d398c54c1ec384483544c4d6
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/equality
@@ -1459,7 +1466,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 293fea9d0ea11e8a665ae842c71fb68bf65b2c28
+  version: e17af4df0acf7d0f73b3fbbcab5cd82fce4c9fc4
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1801,7 +1808,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: f192690493ec6cd2f3fd19b35beeba685ebe1c9b
+  version: e89d742e9ea8690e3bbd49368335a9145b4bb93a
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

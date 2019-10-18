@@ -41,7 +41,7 @@ os::cleanup::tmpdir
 
 # Internalize environment variables we consume and default if they're not set
 dry_run="${DRY_RUN:-}"
-test_timeout="${TIMEOUT:-120s}"
+test_timeout="${TIMEOUT:-240s}"
 detect_races="${DETECT_RACES:-true}"
 coverage_output_dir="${COVERAGE_OUTPUT_DIR:-}"
 coverage_spec="${COVERAGE_SPEC:--cover -covermode atomic}"
@@ -137,7 +137,7 @@ if [[ -n "${junit_report}" ]]; then
     set +o pipefail
 
     go test -i ${gotest_flags} ${test_packages}
-    go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}"
+    go test -p 1 ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${JUNIT_REPORT_OUTPUT}"
 
     test_return_code="${PIPESTATUS[0]}"
 
@@ -189,5 +189,5 @@ elif [[ -n "${dlv_debug}" ]]; then
 else
     # we need to generate neither jUnit XML nor coverage reports
     go test -i ${gotest_flags} ${test_packages}
-    go test ${gotest_flags} ${test_packages}
+    go test -p 1 ${gotest_flags} ${test_packages}
 fi
