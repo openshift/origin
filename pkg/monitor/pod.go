@@ -106,6 +106,26 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					Message: fmt.Sprintf("pod moved to the Unknown phase"),
 				})
 			case new == corev1.PodFailed && old != corev1.PodFailed:
+				switch pod.Status.Reason {
+				case "Evicted":
+					conditions = append(conditions, Condition{
+						Level:   Error,
+						Locator: locatePod(pod),
+						Message: fmt.Sprintf("pod evicted: %s", pod.Status.Message),
+					})
+				case "Preempting":
+					conditions = append(conditions, Condition{
+						Level:   Error,
+						Locator: locatePod(pod),
+						Message: fmt.Sprintf("pod preempted: %s", pod.Status.Message),
+					})
+				default:
+					conditions = append(conditions, Condition{
+						Level:   Error,
+						Locator: locatePod(pod),
+						Message: fmt.Sprintf("pod failed (%s): %s", pod.Status.Reason, pod.Status.Message),
+					})
+				}
 				for _, s := range pod.Status.InitContainerStatuses {
 					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
 						conditions = append(conditions, Condition{
