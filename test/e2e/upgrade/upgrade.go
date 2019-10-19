@@ -27,10 +27,12 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/util/disruption"
+	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 )
 
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
+		&controlplane.AvailableTest{},
 		&service.UpgradeTest{},
 		&upgrades.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
@@ -38,14 +40,7 @@ func AllTests() []upgrades.Test {
 		&apps.DeploymentUpgradeTest{},
 		&apps.JobUpgradeTest{},
 		&upgrades.ConfigMapUpgradeTest{},
-		// &upgrades.HPAUpgradeTest{},
-		//&storage.PersistentVolumeUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
-		// &upgrades.IngressUpgradeTest{},
-		// &upgrades.AppArmorUpgradeTest{},
-		// &upgrades.MySqlUpgradeTest{},
-		// &upgrades.EtcdUpgradeTest{},
-		// &upgrades.CassandraUpgradeTest{},
 	}
 }
 
