@@ -40,7 +40,7 @@ func Start(ctx context.Context) (*Monitor, error) {
 		return nil, err
 	}
 
-	if err := startAPIMonitoring(ctx, m, clusterConfig); err != nil {
+	if err := StartAPIMonitoring(ctx, m, clusterConfig); err != nil {
 		return nil, err
 	}
 	startPodMonitoring(ctx, m, client)
@@ -52,7 +52,7 @@ func Start(ctx context.Context) (*Monitor, error) {
 	return m, nil
 }
 
-func startAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config) error {
+func StartAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config) error {
 	pollingConfig := *clusterConfig
 	pollingConfig.Timeout = 3 * time.Second
 	pollingClient, err := clientcorev1.NewForConfig(&pollingConfig)
