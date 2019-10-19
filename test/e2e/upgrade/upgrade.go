@@ -27,10 +27,12 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/extended/util/disruption"
+	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 )
 
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
+		&controlplane.AvailableTest{},
 		&upgrades.ServiceUpgradeTest{},
 		&upgrades.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
