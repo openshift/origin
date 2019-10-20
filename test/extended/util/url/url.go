@@ -365,6 +365,7 @@ func (ut *Test) ToShell(i int) string {
 		cmd += ` -k`
 	}
 	cmd += " 2>/tmp/error 1>/tmp/output || rc=$?"
+	lines = append(lines, `: > /tmp/body /tmp/headers`)
 	lines = append(lines, cmd)
 	lines = append(lines, fmt.Sprintf(`echo "{\"test\":%d,\"rc\":$(echo $rc),\"curl\":$(cat /tmp/output),\"error\":$(cat /tmp/error | json_escape),\"body\":\"$(cat /tmp/body | base64 -w 0 -)\",\"headers\":$(cat /tmp/headers | json_escape)}"`, i))
 	return strings.Join(lines, "\n")
