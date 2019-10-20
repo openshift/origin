@@ -47,6 +47,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		viperConfig := reale2e.GetViperConfig()
 		if viperConfig == "" {
 			e2e.Logf("Undefined config file, using built-in config %v\n", masterVertFixture)
+			reale2e.SetViperConfig(masterVertFixture)
 			path := strings.Split(masterVertFixture, "/")
 			rootDir = strings.Join(path[:len(path)-5], "/")
 			err = ParseConfig(masterVertFixture, true)
@@ -152,8 +153,8 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 					}
 					step := metrics.NewTemplateStepDuration(rateDelay, stepPause)
 					err := CreateTemplates(oc, c, nsName, reale2e.GetViperConfig(), template, tuning, &step)
-					steps = append(steps, step)
 					o.Expect(err).NotTo(o.HaveOccurred())
+					steps = append(steps, step)
 				}
 
 				// This is too familiar, create pods
