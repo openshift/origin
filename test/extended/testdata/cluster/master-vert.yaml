@@ -9,7 +9,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./test/extended/testdata/cluster/quickstarts/cakephp-mysql.json
+          file: ./quickstarts/cakephp-mysql.json
   
     - num: 1
       basename: clusterloader-dancer-mysql
@@ -17,7 +17,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./test/extended/testdata/cluster/quickstarts/dancer-mysql.json
+          file: ./quickstarts/dancer-mysql.json
   
     - num: 1
       basename: clusterloader-django-postgresql
@@ -25,7 +25,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./test/extended/testdata/cluster/quickstarts/django-postgresql.json
+          file: ./quickstarts/django-postgresql.json
   
     - num: 1
       basename: clusterloader-nodejs-mongodb
@@ -33,7 +33,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json
+          file: ./quickstarts/nodejs-mongodb.json
   
     - num: 1
       basename: clusterloader-rails-postgresql
@@ -41,7 +41,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./test/extended/testdata/cluster/quickstarts/rails-postgresql.json
+          file: ./quickstarts/rails-postgresql.json
   
   tuningsets:
     - name: default
