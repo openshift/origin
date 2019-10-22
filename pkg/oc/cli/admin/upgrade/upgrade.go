@@ -48,16 +48,26 @@ func New(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStre
 			an error if no such version exists. The cluster will then upgrade itself and report
 			status that is available via "oc get clusterversion" and "oc describe clusterversion".
 
-			If the cluster is already being upgrade, or the cluster version has a failing or invalid
-			state you may pass --force to continue the upgrade anyway.
+			If the desired upgrade from --to-image is not in the list of available versions, you must
+			pass --allow-explicit-upgrade to allow upgrade to proceed. If the cluster is
+			already being upgraded, or if the cluster is reporting a failure or other error, you
+			must pass --allow-upgrade-with-warnings to proceed (see note below on the implications).
+
+			If the cluster reports that the upgrade should not be performed due to a content
+			verification error or an operator blocking upgrades, please verify those errors. Do not
+			upgrade to images that are not appropriately signed without understanding the risks of
+			upgrading your cluster to untrusted code. If you must override this protection use
+			the --force flag.
 
 			If there are no versions available, or a bug in the cluster version operator prevents
 			updates from being retrieved, the more powerful and dangerous --to-image=IMAGE option
-			may be used. This forces the cluster to upgrade to the contents of the specified release
+			may be used. This instructs the cluster to upgrade to the contents of the specified release
 			image, regardless of whether that upgrade is safe to apply to the current version. While
-			rolling back to a previous micro version (4.0.2 -> 4.0.1) may be safe, upgrading more
-			than one minor version ahead (4.0 -> 4.2) or downgrading one minor version (4.1 -> 4.0)
-			is likely to cause data corruption or to completely break a cluster.
+			rolling back to a previous micro version (4.1.2 -> 4.1.1) may be safe, upgrading more
+			than one minor version ahead (4.1 -> 4.3) or downgrading one minor version (4.2 -> 4.1)
+			is likely to cause data corruption or to completely break a cluster. Avoid upgrading
+			when the cluster is reporting errors or when another upgrade is in progress unless the
+			upgrade cannot make progress.
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
@@ -70,6 +80,8 @@ func New(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStre
 	flags.BoolVar(&o.ToLatestAvailable, "to-latest", o.ToLatestAvailable, "Use the next available version")
 	flags.BoolVar(&o.Clear, "clear", o.Clear, "If an upgrade has been requested but not yet downloaded, cancel the update. This has no effect once the update has started.")
 	flags.BoolVar(&o.Force, "force", o.Force, "Upgrade even if an upgrade is in process or other error is blocking update.")
+	flags.BoolVar(&o.AllowExplicitUpgrade, "allow-explicit-upgrade", o.AllowExplicitUpgrade, "Upgrade even if the upgrade target is not listed in the available versions list.")
+	flags.BoolVar(&o.AllowUpgradeWithWarnings, "allow-upgrade-with-warnings", o.AllowUpgradeWithWarnings, "Upgrade even if an upgrade is in process or a cluster error is blocking the update.")
 	return cmd
 }
 
@@ -80,8 +92,10 @@ type Options struct {
 	ToImage           string
 	ToLatestAvailable bool
 
-	Force bool
-	Clear bool
+	AllowExplicitUpgrade     bool
+	AllowUpgradeWithWarnings bool
+	Force                    bool
+	Clear                    bool
 
 	Client configv1client.Interface
 }
@@ -99,7 +113,7 @@ func (o *Options) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string
 			return fmt.Errorf("--to must be a semantic version (e.g. 4.0.1 or 4.1.0-nightly-20181104): %v", err)
 		}
 	}
-	// defend against simple mistakes (4.0.1 is a valid docker image)
+	// defend against simple mistakes (4.0.1 is a valid container image)
 	if len(o.ToImage) > 0 {
 		ref, err := imagereference.Parse(o.ToImage)
 		if err != nil {
@@ -129,7 +143,7 @@ func (o *Options) Run() error {
 	cv, err := o.Client.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return fmt.Errorf("No cluster version information available - you must be connected to a v4.0 OpenShift server to fetch the current version")
+			return fmt.Errorf("No cluster version information available - you must be connected to an OpenShift version 4 server to fetch the current version")
 		}
 		return err
 	}
@@ -159,7 +173,7 @@ func (o *Options) Run() error {
 			return nil
 		}
 
-		if !o.Force {
+		if !o.AllowUpgradeWithWarnings {
 			if err := checkForUpgrade(cv); err != nil {
 				return err
 			}
@@ -206,7 +220,29 @@ func (o *Options) Run() error {
 			}
 		}
 		if len(o.ToImage) > 0 {
-			if o.ToImage == cv.Status.Desired.Image && !o.Force {
+			if !o.AllowExplicitUpgrade {
+				var found bool
+				for _, available := range cv.Status.AvailableUpdates {
+					// if images exactly match
+					if available.Image == o.ToImage {
+						found = true
+						break
+					}
+					// if digests match (signature verification would match)
+					if refAvailable, err := imagereference.Parse(available.Image); err == nil {
+						if refTo, err := imagereference.Parse(o.ToImage); err == nil {
+							if len(refTo.ID) > 0 && refAvailable.ID == refTo.ID {
+								found = true
+								break
+							}
+						}
+					}
+				}
+				if !found {
+					return fmt.Errorf("The requested upgrade image is not one of the available updates, you must pass --allow-explicit-upgrade to continue")
+				}
+			}
+			if o.ToImage == cv.Status.Desired.Image && !o.AllowExplicitUpgrade {
 				fmt.Fprintf(o.Out, "info: Cluster is already using release image %s\n", o.ToImage)
 				return nil
 			}
@@ -216,9 +252,10 @@ func (o *Options) Run() error {
 			}
 		}
 
-		if o.Force {
+		switch {
+		case o.Force:
 			update.Force = true
-		} else {
+		case !o.AllowUpgradeWithWarnings:
 			if err := checkForUpgrade(cv); err != nil {
 				return err
 			}
@@ -267,6 +304,7 @@ func (o *Options) Run() error {
 			w := tabwriter.NewWriter(o.Out, 0, 2, 1, ' ', 0)
 			fmt.Fprintf(w, "VERSION\tIMAGE\n")
 			// TODO: add metadata about version
+			sortSemanticVersions(cv.Status.AvailableUpdates)
 			for _, update := range cv.Status.AvailableUpdates {
 				fmt.Fprintf(w, "%s\t%s\n", update.Version, update.Image)
 			}
@@ -376,10 +414,10 @@ func checkForUpgrade(cv *configv1.ClusterVersion) error {
 		return fmt.Errorf("The cluster version object is invalid, you must correct the invalid state first.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil && c.Status == configv1.ConditionTrue {
-		return fmt.Errorf("The cluster is experiencing an upgrade-blocking error, use --force to upgrade anyway.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
+		return fmt.Errorf("The cluster is experiencing an upgrade-blocking error, use --allow-upgrade-with-warnings to upgrade anyway.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.OperatorProgressing); c != nil && c.Status == configv1.ConditionTrue {
-		return fmt.Errorf("Already upgrading, pass --force to override.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
+		return fmt.Errorf("Already upgrading, pass --allow-upgrade-with-warnings to override.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
 	}
 	return nil
 }
