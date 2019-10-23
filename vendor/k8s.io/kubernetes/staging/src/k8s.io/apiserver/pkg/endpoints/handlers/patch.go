@@ -71,7 +71,7 @@ func PatchResource(r rest.Patcher, scope RequestScope, admit admission.Interface
 		}
 		patchType := types.PatchType(contentType)
 
-		patchJS, err := readBody(req)
+		patchJS, err := limitedReadBody(req, scope.MaxRequestBodyBytes)
 		if err != nil {
 			scope.err(err, w, req)
 			return

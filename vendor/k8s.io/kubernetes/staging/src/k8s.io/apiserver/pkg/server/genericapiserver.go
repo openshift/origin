@@ -153,6 +153,10 @@ type GenericAPIServer struct {
 	// HandlerChainWaitGroup allows you to wait for all chain handlers finish after the server shutdown.
 	HandlerChainWaitGroup *utilwaitgroup.SafeWaitGroup
 
+	// The limit on the request body size that would be accepted and decoded in a write request.
+	// 0 means no limit.
+	maxRequestBodyBytes int64
+
 	// delegationTarget only exists
 	openAPIDelegationTarget OpenAPIDelegationTarget
 }
@@ -370,6 +374,7 @@ func (s *GenericAPIServer) installAPIResources(apiPrefix string, apiGroupInfo *A
 		if apiGroupInfo.OptionsExternalVersion != nil {
 			apiGroupVersion.OptionsExternalVersion = apiGroupInfo.OptionsExternalVersion
 		}
+		apiGroupVersion.MaxRequestBodyBytes = s.maxRequestBodyBytes
 
 		if err := apiGroupVersion.InstallREST(s.Handler.GoRestfulContainer); err != nil {
 			return fmt.Errorf("Unable to setup API %v: %v", apiGroupInfo, err)

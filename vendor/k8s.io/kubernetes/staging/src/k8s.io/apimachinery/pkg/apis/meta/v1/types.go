@@ -651,6 +651,10 @@ const (
 	// can only be created. API calls that return MethodNotAllowed can never succeed.
 	StatusReasonMethodNotAllowed StatusReason = "MethodNotAllowed"
 
+	// StatusReasonRequestEntityTooLarge means that the request entity is too large.
+	// Status code 413
+	StatusReasonRequestEntityTooLarge StatusReason = "RequestEntityTooLarge"
+
 	// StatusReasonInternalError indicates that an internal error occurred, it is unexpected
 	// and the outcome of the call is unknown.
 	// Details (optional):
