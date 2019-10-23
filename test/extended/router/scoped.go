@@ -235,6 +235,7 @@ func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSecon
 		set -e
 		STOP=$(($(date '+%%s') + %d))
 		while [ $(date '+%%s') -lt $STOP ]; do
+			rc=0
 			code=$( curl -k -s -m 5 -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code
