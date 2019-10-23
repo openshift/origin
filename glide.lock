@@ -1,15 +1,15 @@
 hash: dd1b0fb63a26d53b145213c1268b9d79ce2058c95b85cb07aef1565f84eef517
-updated: 2019-10-04T08:57:16.574555756-04:00
+updated: 2019-10-23T21:23:30.784918+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
-  version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
+  version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
   repo: https://github.com/munnerz/goautoneg.git
 - name: cloud.google.com/go
   version: 8c41231e01b2085512d98153bcffb847ff9b4b9f
   subpackages:
   - compute/metadata
 - name: github.com/apparentlymart/go-cidr
-  version: b1115bf8e14a60131a196f908223e4506b0ddc35
+  version: c0fb5fbe0acb592411e2db59add389a43260ad44
   subpackages:
   - cidr
 - name: github.com/armon/circbuf
@@ -49,6 +49,7 @@ imports:
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
+  - private/protocol/restxml
   - private/protocol/xml/xmlutil
   - service/autoscaling
   - service/ec2
@@ -56,6 +57,7 @@ imports:
   - service/elb
   - service/elbv2
   - service/kms
+  - service/route53
   - service/sts
 - name: github.com/Azure/azure-sdk-for-go
   version: 07e904809009c506339e781db6167dd06e95cde6
@@ -316,7 +318,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
+  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -361,7 +363,7 @@ imports:
 - name: github.com/go-openapi/jsonreference
   version: 2903bfd4bfbaf188694f1edf731f2725a8fa344f
 - name: github.com/go-openapi/loads
-  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
+  version: 8548893a17237be4a5b2f74773f23002f4179bbe
 - name: github.com/go-openapi/runtime
   version: 109737172424d8a656fd1199e28c9f5cc89b0cca
 - name: github.com/go-openapi/spec
@@ -410,13 +412,13 @@ imports:
   - ptypes/timestamp
   - ptypes/wrappers
 - name: github.com/gonum/blas
-  version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
+  version: f22b278b28ac9805aadd613a754a60c35b24ae69
   subpackages:
   - blas64
   - native
   - native/internal/math32
 - name: github.com/gonum/floats
-  version: f74b330d45c56584a6ea7a27f5c64ea2900631e9
+  version: c233463c7e827fd71a8cdb62dfda0e98f7c39ad5
 - name: github.com/gonum/graph
   version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
   subpackages:
@@ -433,17 +435,17 @@ imports:
   - path
   - simple
 - name: github.com/gonum/internal
-  version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914
+  version: f884aa71402950fb2796dbea0d5aa9ef9cfad8ca
   subpackages:
   - asm/f32
   - asm/f64
 - name: github.com/gonum/lapack
-  version: 5ed4b826becd1807e09377508f51756586d1a98c
+  version: e4cdc5a0bff924bb10be88482e635bd40429f65e
   subpackages:
   - lapack64
   - native
 - name: github.com/gonum/matrix
-  version: dd6034299e4242c9f0ea36735e6d4264dfcb3f9f
+  version: c518dec07be9a636c38a4650e217be059b5952ec
   subpackages:
   - mat64
 - name: github.com/google/btree
@@ -584,6 +586,7 @@ imports:
   subpackages:
   - hcl/ast
   - hcl/parser
+  - hcl/printer
   - hcl/scanner
   - hcl/strconv
   - hcl/token
@@ -621,16 +624,24 @@ imports:
   version: 2de2192f9e35ce981c152a873ed943b93b79ced4
 - name: github.com/konsorten/go-windows-terminal-sequences
   version: 5c8c8bd35d3832f5d134ae1e1e375b69a4d25242
+- name: github.com/lestrrat-go/jspointer
+  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
+- name: github.com/lestrrat-go/jsref
+  version: 1b590508f37d3af76c77c8328e16978d2889b486
+  subpackages:
+  - provider
+- name: github.com/lestrrat-go/pdebug
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
+- name: github.com/lestrrat-go/structinfo
+  version: acd51874663bf3297433cb1f1015075c3cbe6130
 - name: github.com/lestrrat/go-jspointer
-  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
+  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
   repo: https://github.com/lestrrat/go-jspointer.git
 - name: github.com/lestrrat/go-jsref
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
   repo: https://github.com/lestrrat/go-jsref.git
-  subpackages:
-  - provider
 - name: github.com/lestrrat/go-jsschema
-  version: a6a42341b50d8d7e2a733db922eefaa756321021
+  version: 5c81c58ffcc359c4390d440b45f5462edb0107cb
 - name: github.com/lestrrat/go-pdebug
   version: 569c97477ae8837e053e5a50bc739e15172b8ebe
   repo: https://github.com/lestrrat/go-pdebug.git
@@ -1077,7 +1088,7 @@ imports:
 - name: github.com/spf13/pflag
   version: 298182f68c66c05229eb03ac171abe6e309ee79a
 - name: github.com/spf13/viper
-  version: 7fb2782df3d83e0036cc89f461ed0422628776f4
+  version: 9e56dacc08fbbf8c9ee2dbc717553c758ce42bc9
 - name: github.com/storageos/go-api
   version: 343b3eff91fcc84b0165e252eb843f5fd720fa4e
   subpackages:
@@ -1085,7 +1096,7 @@ imports:
   - serror
   - types
 - name: github.com/stretchr/objx
-  version: 1a9d0bb9f541897e62256577b352fdbc1fb4fd94
+  version: ea4fe68685ee0d3cee7032121851b57e7494e8ea
 - name: github.com/stretchr/testify
   version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
   subpackages:
@@ -1392,7 +1403,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
 - name: k8s.io/api
-  version: d2ab659560cb09bd6c9a3011b6468f0025c65e63
+  version: 98e251f27d2215a87c8e271db9affcea7284cbfe
   repo: https://github.com/openshift/kubernetes-api.git
   subpackages:
   - admission/v1
@@ -1437,7 +1448,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 159fa656239e4ec20590375d7d43ec751f1fc5e4
+  version: dccaaad1f79ea273396a21c44b5160e06d043d2d
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -1491,7 +1502,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: 27d36303b6556f377b4f34e64705fa9024a12b0c
+  version: 63ca3423f7c68b8e3e0a7a2a3a98a11840ab9a67
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1557,7 +1568,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: d24a1e961b50a111558447152a4c845629f41b6a
+  version: b59c55136d196a562ddcf5304236b3ea93e5817c
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1692,7 +1703,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: 6b125bdbf71e924ebf06a0003ae54c994f30ebe7
+  version: 3131d6e04e643e4a271c6b1fc5250baf1d40b602
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1946,7 +1957,7 @@ imports:
   version: d32e54a00c6a30786b8db3409983d6a96baacb68
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/component-base
-  version: c1db07a83ddd303366e4c13e16d2c1bfce990201
+  version: 9ddfa9e68ad865d401fd887b61c5712cb1459cc1
   repo: https://github.com/openshift/kubernetes-component-base.git
   subpackages:
   - cli/flag
@@ -2125,7 +2136,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 3538c7842b1e43174e181b732cd3147a56711427
+  version: 3a0cda23054b66327ea71c8a93c34e8fcd9ea83a
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -2912,6 +2923,7 @@ imports:
   - plugin/pkg/auth/authorizer/rbac
   - plugin/pkg/auth/authorizer/rbac/bootstrappolicy
   - staging/src/k8s.io/apimachinery/pkg/api/apitesting
+  - staging/src/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
   - test/e2e
   - test/e2e/apimachinery
   - test/e2e/apps
@@ -2996,7 +3008,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/legacy-cloud-providers
-  version: 94dfe4b16be51dea7f45abda3c88605b7fa886bb
+  version: 7da9d7c67070e78970b32cdf674dadfa042097e7
   repo: https://github.com/openshift/kubernetes-legacy-cloud-providers.git
   subpackages:
   - aws
