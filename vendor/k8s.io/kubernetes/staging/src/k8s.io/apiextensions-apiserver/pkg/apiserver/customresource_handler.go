@@ -77,6 +77,10 @@ type crdHandler struct {
 	delegate          http.Handler
 	restOptionsGetter generic.RESTOptionsGetter
 	admission         admission.Interface
+
+	// The limit on the request size that would be accepted and decoded in a write request
+	// 0 means no limit.
+	maxRequestBodyBytes int64
 }
 
 // crdInfo stores enough information to serve the storage for the custom resource
@@ -101,7 +105,8 @@ func NewCustomResourceDefinitionHandler(
 	crdInformer informers.CustomResourceDefinitionInformer,
 	delegate http.Handler,
 	restOptionsGetter generic.RESTOptionsGetter,
-	admission admission.Interface) *crdHandler {
+	admission admission.Interface,
+	maxRequestBodyBytes int64) *crdHandler {
 	ret := &crdHandler{
 		versionDiscoveryHandler: versionDiscoveryHandler,
 		groupDiscoveryHandler:   groupDiscoveryHandler,
@@ -111,6 +116,7 @@ func NewCustomResourceDefinitionHandler(
 		delegate:                delegate,
 		restOptionsGetter:       restOptionsGetter,
 		admission:               admission,
+		maxRequestBodyBytes:     maxRequestBodyBytes,
 	}
 
 	crdInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -400,6 +406,8 @@ func (r *crdHandler) getServingInfoFor(crd *apiextensions.CustomResourceDefiniti
 		Subresource: "",
 
 		MetaGroupVersion: metav1.SchemeGroupVersion,
+
+		MaxRequestBodyBytes: r.maxRequestBodyBytes,
 	}
 
 	ret = &crdInfo{

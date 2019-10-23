@@ -35,18 +35,19 @@ func TestMicroTimeMarshalYAML(t *testing.T) {
 		result string
 	}{
 		{MicroTime{}, "t: null\n"},
-		{DateMicro(1998, time.May, 5, 1, 5, 5, 50, time.FixedZone("test", -4*60*60)), "t: 1998-05-05T05:05:05.000000Z\n"},
-		{DateMicro(1998, time.May, 5, 5, 5, 5, 0, time.UTC), "t: 1998-05-05T05:05:05.000000Z\n"},
+		{DateMicro(1998, time.May, 5, 1, 5, 5, 50, time.FixedZone("test", -4*60*60)), "t: \"1998-05-05T05:05:05.000000Z\"\n"},
+		{DateMicro(1998, time.May, 5, 5, 5, 5, 0, time.UTC), "t: \"1998-05-05T05:05:05.000000Z\"\n"},
 	}
 
 	for _, c := range cases {
 		input := MicroTimeHolder{c.input}
 		result, err := yaml.Marshal(&input)
+
 		if err != nil {
 			t.Errorf("Failed to marshal input: '%v': %v", input, err)
 		}
 		if string(result) != c.result {
-			t.Errorf("Failed to marshal input: '%v': expected %+v, got %q", input, c.result, string(result))
+			t.Errorf("Failed to marshal input: '%v': expected %+v, got %v", input, c.result, string(result))
 		}
 	}
 }

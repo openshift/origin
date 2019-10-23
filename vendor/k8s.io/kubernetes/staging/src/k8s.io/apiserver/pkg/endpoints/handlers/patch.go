@@ -386,6 +386,15 @@ func patchObjectJSON(
 
 	switch patchType {
 	case types.JSONPatchType:
+		// sanity check potentially abusive patches
+		// TODO(liggitt): drop this once golang json parser limits stack depth (https://github.com/golang/go/issues/31789)
+		if len(patchJS) > 1024*1024 {
+			v := []interface{}{}
+			if err := json.Unmarshal(patchJS, v); err != nil {
+				return nil, nil, errors.NewBadRequest(fmt.Sprintf("error decoding patch: %v", err))
+			}
+		}
+
 		patchObj, err := jsonpatch.DecodePatch(patchJS)
 		if err != nil {
 			return nil, nil, err
@@ -394,10 +403,27 @@ func patchObjectJSON(
 			return nil, nil, err
 		}
 	case types.MergePatchType:
+		// sanity check potentially abusive patches
+		// TODO(liggitt): drop this once golang json parser limits stack depth (https://github.com/golang/go/issues/31789)
+		if len(patchJS) > 1024*1024 {
+			v := map[string]interface{}{}
+			if err := json.Unmarshal(patchJS, v); err != nil {
+				return nil, nil, errors.NewBadRequest(fmt.Sprintf("error decoding patch: %v", err))
+			}
+		}
+
 		if patchedObjJS, err = jsonpatch.MergePatch(originalObjJS, patchJS); err != nil {
 			return nil, nil, err
 		}
 	case types.StrategicMergePatchType:
+		// sanity check potentially abusive patches
+		// TODO(liggitt): drop this once golang json parser limits stack depth (https://github.com/golang/go/issues/31789)
+		if len(patchJS) > 1024*1024 {
+			v := map[string]interface{}{}
+			if err := json.Unmarshal(patchJS, v); err != nil {
+				return nil, nil, errors.NewBadRequest(fmt.Sprintf("error decoding patch: %v", err))
+			}
+		}
 		if patchedObjJS, err = strategicpatch.StrategicMergePatch(originalObjJS, patchJS, versionedObj); err != nil {
 			return nil, nil, err
 		}

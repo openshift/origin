@@ -8,9 +8,16 @@ load(
 
 go_test(
     name = "go_default_test",
-    srcs = ["meta_test.go"],
+    srcs = [
+        "json_limit_test.go",
+        "meta_test.go",
+    ],
+    embed = [":go_default_library"],
     importpath = "k8s.io/apimachinery/pkg/runtime/serializer/json",
     library = ":go_default_library",
+    deps = [
+        "//staging/src/k8s.io/apimachinery/pkg/util/json:go_default_library",
+    ],
 )
 
 go_library(
