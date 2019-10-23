@@ -82,7 +82,7 @@ You can see the [full list of Source-to-Image builder images](https://docs.okd.i
   * [Node.js](https://github.com/sclorg/s2i-nodejs-container)
   * [PHP](https://github.com/sclorg/s2i-php-container)
   * [Perl](https://github.com/sclorg/s2i-perl-container)
-  * [WildFly](https://github.com/openshift-s2i/s2i-wildfly)
+  * [WildFly](https://github.com/wildfly/wildfly-s2i)
 
 Your application image can be easily extended with a database service with our [database images](https://docs.okd.io/latest/using_images/db_images/overview.html):
 
