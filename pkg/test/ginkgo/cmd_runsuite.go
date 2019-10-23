@@ -148,7 +148,7 @@ func (opt *Options) Run(args []string) error {
 		parallelism = suite.Parallelism
 	}
 	if parallelism == 0 {
-		parallelism = 10
+		parallelism = 8
 	}
 	timeout := opt.Timeout
 	if timeout == 0 {
