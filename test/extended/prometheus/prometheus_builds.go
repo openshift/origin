@@ -114,7 +114,7 @@ type metricTest struct {
 	greaterThanEqual bool
 	nodata           bool
 	value            float64
-	success          bool
+	status           bool
 }
 
 func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
@@ -140,7 +140,7 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPod
 				}
 				for _, sample := range metrics {
 					if labelsWeWant(sample, tc.labels) && valueWeWant(sample, tc) {
-						tcs[j].success = true
+						tcs[j].status = !tcs[j].nodata
 						break
 					}
 				}
@@ -149,7 +149,7 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPod
 			// now check the results, see if any bad
 			delete(errsMap, query) // clear out any prior faliures
 			for _, tc := range tcs {
-				if !tc.success {
+				if !tc.status {
 					dbg := fmt.Sprintf("query %s for tests %#v had results %s", query, tcs, contents)
 					fmt.Fprintf(g.GinkgoWriter, dbg)
 					errsMap[query] = fmt.Errorf(dbg)
