@@ -212,7 +212,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			tests := map[string][]metricTest{
 				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
-				`ALERTS{alertname!="Watchdog",alertstate="firing"}`: {metricTest{greaterThanEqual: true, value: 1}},
+				`ALERTS{alertname!="Watchdog",alertstate="firing"}`: {metricTest{greaterThanEqual: true, value: 1, nodata: true}},
 			}
 			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})
