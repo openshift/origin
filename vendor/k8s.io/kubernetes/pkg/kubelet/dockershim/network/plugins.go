@@ -244,6 +244,26 @@ func getOnePodIP(execer utilexec.Interface, nsenterPath, netnsPath, interfaceNam
 		return nil, fmt.Errorf("CNI failed to parse ip from output %s due to %v", output, err)
 	}
 
+	// HACK: check for default route on kubelet restart.
+	//
+	// If the kubelet is restarted while the network is being set up, we may
+	// find ourselves in a bizarre state where the pod's networking is
+	// half-done. The most common symptom is the default route not being added,
+	// which is one of the last actions.
+	// Since this function is called after kubelet restart, add this extra
+	// check just for openshift (and 3.11, since 4.x doesn't use dockershim).
+	// It will cause the Sandbox to be recreated if there is no default route.
+	// ~cdc ref: rhbz 1744077
+	target := "255.255.255.255"
+	if addrType == "-6" {
+		target = "::2"
+	}
+	output, err = execer.Command(nsenterPath, fmt.Sprintf("--net=%s", netnsPath), "-F", "--",
+		"ip", "-o", addrType, "route", "get", target).CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("Checking interface default route failed: %s with error: %v", output, err)
+	}
+
 	return ip, nil
 }
 
