@@ -201,7 +201,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			})
 		})
-		g.It("should report less than two alerts in firing or pending state", func() {
+		g.It("shouldn't report any alerts in firing state apart from Watchdog", func() {
 			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 				e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 			}
@@ -211,9 +211,8 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
 
 			tests := map[string][]metricTest{
-				// should be checking there is no more than 1 alerts firing.
-				// Checking for specific alert is done in "should have a Watchdog alert in firing state".
-				`ALERTS{alertstate="firing"}`: {metricTest{greaterThanEqual: false, value: 2}},
+				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
+				`ALERTS{alertname!="Watchdog",alertstate="firing"}`: {metricTest{greaterThanEqual: true, value: 1, nodata: true}},
 			}
 			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})

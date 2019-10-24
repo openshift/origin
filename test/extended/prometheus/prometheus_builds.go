@@ -112,6 +112,7 @@ type metricTest struct {
 	// reliably filter; we do precise count validation in the unit tests, where "entire cluster" activity
 	// is more controlled :-)
 	greaterThanEqual bool
+	nodata           bool
 	value            float64
 	success          bool
 }
@@ -133,6 +134,10 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPod
 
 			// for each test case, register that one of the returned metrics has the desired labels and value
 			for j, tc := range tcs {
+				if tcs[j].nodata && len(metrics) == 0 {
+					tcs[j].success = true
+					break
+				}
 				for _, sample := range metrics {
 					if labelsWeWant(sample, tc.labels) && valueWeWant(sample, tc) {
 						tcs[j].success = true
