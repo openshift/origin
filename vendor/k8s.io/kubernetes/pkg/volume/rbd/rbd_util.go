@@ -694,8 +694,8 @@ func (util *RBDUtil) rbdInfo(b *rbdMounter) (int, error) {
 	// rbd: error opening image 1234: (2) No such file or directory
 	//
 	glog.V(4).Infof("rbd: info %s using mon %s, pool %s id %s key %s", b.Image, mon, b.Pool, id, secret)
-	output, err = b.exec.Run("rbd",
-		"info", b.Image, "--pool", b.Pool, "-m", mon, "--id", id, "--key="+secret, "-k=/dev/null", "--format=json")
+	cmd := exec.Command("rbd", "info", b.Image, "--pool", b.Pool, "-m", mon, "--id", id, "--key="+secret, "--format", "json")
+	output, err = cmd.Output()
 
 	if err, ok := err.(*exec.Error); ok {
 		if err.Err == exec.ErrNotFound {
