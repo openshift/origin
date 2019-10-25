@@ -138,15 +138,16 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "sa1", Namespace: saNamespace},
 		}
 
-		secretsWatch, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Watch(metav1.ListOptions{})
+		sa, err := clusterAdminKubeClient.CoreV1().ServiceAccounts(sa.Namespace).Create(sa)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		secretsWatch, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Watch(metav1.ListOptions{ResourceVersion: sa.ResourceVersion})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		defer secretsWatch.Stop()
-
-		if _, err := clusterAdminKubeClient.CoreV1().ServiceAccounts(sa.Namespace).Create(sa); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
 
 		// Get the service account dockercfg secret's name
 		dockercfgSecretName, _, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, sa.Namespace, sa.Name, 20, time.Second)
@@ -181,14 +182,17 @@ func waitForSecretDelete(secretName string, w watch.Interface, t g.GinkgoTInterf
 	for {
 		select {
 		case event := <-w.ResultChan():
-			secret := event.Object.(*corev1.Secret)
+			secret, ok := event.Object.(*corev1.Secret)
+			if !ok {
+				t.Fatalf("Got an event that was not a secret: %v %#v", event.Type, event.Object)
+			}
 			secret.Data = nil // reduce noise in log
-			t.Logf("got %#v %#v", event, secret)
+			t.Logf("%s got %s %s %#v", time.Now().Format(time.RFC3339Nano), event.Type, secret.ResourceVersion, secret)
 			if event.Type == watch.Deleted && secret.Name == secretName {
 				return
 			}
 
-		case <-time.After(3 * time.Minute):
+		case <-time.After(5 * time.Minute):
 			t.Fatalf("timeout: %v", secretName)
 		}
 	}
