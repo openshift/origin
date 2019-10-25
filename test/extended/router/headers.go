@@ -113,6 +113,7 @@ func dumpRouterHeadersLogs(oc *exutil.CLI, name string) {
 func getRoutePayloadExec(ns, execPodName, url, host string) (string, error) {
 	cmd := fmt.Sprintf(`
 		set -e
+		rc=0
 		payload=$( curl -s --header 'Host: %s' %q ) || rc=$?
 		if [[ "${rc:-0}" -eq 0 ]]; then
 			printf "${payload}"
