@@ -13,7 +13,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
+var _ = Describe("[Feature:Platform] Managed cluster should", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 
 	It("ensure control plane pods do not run in best-effort QoS", func() {
