@@ -221,9 +221,9 @@ const (
 	volumeAttachmentStatusConsecutiveErrorLimit = 10
 
 	// Attach typically takes 2-5 seconds (average is 2). Asking before 2 seconds is just waste of API quota.
-	volumeAttachmentStatusInitialDelay = 2*time.Second
+	volumeAttachmentStatusInitialDelay = 2 * time.Second
 	// Detach typically takes 5-10 seconds (average is 6). Asking before 5 seconds is just waste of API quota.
-	volumeDetachmentStatusInitialDelay = 5*time.Second
+	volumeDetachmentStatusInitialDelay = 5 * time.Second
 	// After the initial delay, poll attach/detach with exponential backoff (2046 seconds total)
 	volumeAttachmentStatusPollDelay = 2 * time.Second
 	volumeAttachmentStatusFactor    = 2
@@ -2116,13 +2116,15 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 	// So we tolerate a limited number of failures.
 	// But once we see more than 10 errors in a row, we return the error
 	describeErrorCount := 0
-	var attachment *ec2.VolumeAttachment
-	count := 0
-	start := time.Now()
 
+	// Attach/detach usually takes time. It does not make sense to start
+	// polling DescribeVolumes before some initial delay to let AWS
+	// process the request.
 	time.Sleep(getInitialAttachDetachDelay(status))
+
+	var attachment *ec2.VolumeAttachment
+
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		count++
 		info, err := d.describeVolume()
 		if err != nil {
 			// The VolumeNotFound error is special -- we don't need to wait for it to repeat
@@ -2183,8 +2185,6 @@ func (d *awsDisk) waitForAttachmentStatus(status string) (*ec2.VolumeAttachment,
 		klog.V(2).Infof("Waiting for volume %q state: actual=%s, desired=%s", d.awsID, attachmentStatus, status)
 		return false, nil
 	})
-	end := time.Now()
-	klog.Infof("waitForAttachmentStatus finished for volume %s %s after %d [%f]", d.awsID, status, count, end.Sub(start).Seconds())
 	return attachment, err
 }
 
@@ -4653,7 +4653,5 @@ func getInitialAttachDetachDelay(status string) time.Duration {
 	if status == "detached" {
 		return volumeDetachmentStatusInitialDelay
 	}
-
-	// Attach typically takes 2-6 seconds (average is 2). Asking before 2 seconds is just waste of API quota
 	return volumeAttachmentStatusInitialDelay
 }
