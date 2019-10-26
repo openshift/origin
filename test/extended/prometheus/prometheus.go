@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -196,6 +197,9 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
 		g.It("should report less than two alerts in firing or pending state", func() {
+			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+				e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
+			}
 			oc.SetupProject()
 			ns := oc.Namespace()
 			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
