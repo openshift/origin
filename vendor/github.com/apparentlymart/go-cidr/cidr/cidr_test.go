@@ -139,6 +139,16 @@ func TestHost(t *testing.T) {
 			Num:   -5,
 			Error: true, // 4 address (0-3) in 2 bits; cannot accomodate 5
 		},
+		Case{
+			Range:  "fd9d:bc11:4020::/64",
+			Num:    2,
+			Output: "fd9d:bc11:4020::2",
+		},
+		Case{
+			Range:  "fd9d:bc11:4020::/64",
+			Num:    -2,
+			Output: "fd9d:bc11:4020:0:ffff:ffff:ffff:fffe",
+		},
 	}
 
 	for _, testCase := range cases {
@@ -395,6 +405,15 @@ func TestVerifyNetowrk(t *testing.T) {
 				"192.168.12.0/25",
 				"192.168.12.64/26",
 				"192.168.12.128/26",
+			},
+		},
+		&testVerifyNetwork{
+			CIDRBlock: "10.42.0.0/24",
+			CIDRList: []string{
+
+				"10.42.0.16/28",
+				"10.42.0.32/28",
+				"10.42.0.0/24",
 			},
 		},
 	}
