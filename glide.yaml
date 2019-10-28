@@ -77,7 +77,7 @@ import:
   version: origin-4.3-kubernetes-1.16.0-rc.2
 - package: k8s.io/kubernetes
   repo:    https://github.com/openshift/kubernetes.git
-  version: origin-4.3-kubernetes-1.16.0-rc.2
+  version: origin-4.3-kubernetes-1.16.2
 # this matches the 1.16 branch from kube
 - package: k8s.io/gengo
   version: 26a664648505d962332bda642b27306bc10d1082
