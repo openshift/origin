@@ -1,5 +1,5 @@
-hash: dd1b0fb63a26d53b145213c1268b9d79ce2058c95b85cb07aef1565f84eef517
-updated: 2019-10-28T13:12:13.481665+01:00
+hash: 37739b9919a5b4ea5b24eb4adf0734609d309ed65e3d388650393e8ffb8ff8ad
+updated: 2019-10-28T18:16:19.642044+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -2136,7 +2136,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: afd1774727974e46322672977487b4942ac017d9
+  version: b3bb404ef49a1c763cbf97ede51c0de37cd7787b
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
