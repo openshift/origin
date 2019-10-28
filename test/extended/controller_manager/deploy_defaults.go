@@ -5,13 +5,16 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var (
@@ -97,8 +100,6 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 	oc := exutil.NewCLI("deployment-defaults", exutil.KubeConfigPath())
 
 	g.It("TestDeploymentConfigDefaults", func() {
-		t := g.GinkgoT()
-
 		namespace := oc.Namespace()
 		appsClient := oc.AdminAppsClient()
 
@@ -136,14 +137,11 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 		}
 		for _, tc := range ttApps {
 			appsDC, err := appsClient.AppsV1().DeploymentConfigs(namespace).Create(tc.obj)
-			if err != nil {
-				t.Fatalf("Failed to create DC: %v", err)
-			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			clearTransient(appsDC)
-			if !reflect.DeepEqual(appsDC, tc.apps) {
-				t.Errorf("Apps DC differs from expected output: %s", diff.ObjectReflectDiff(appsDC, tc.apps))
-			}
+			e2e.Logf("Apps DC object diff: %s", diff.ObjectReflectDiff(appsDC, tc.apps))
+			o.Expect(reflect.DeepEqual(appsDC, tc.apps)).To(o.BeTrue())
 		}
 	})
 })

@@ -1,7 +1,7 @@
 package controller_manager
 
 import (
-	"strings"
+	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -58,42 +59,30 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 	oc := exutil.NewCLI("pull-secrets", exutil.KubeConfigPath())
 
 	g.It("TestAutomaticCreationOfPullSecrets", func() {
-		t := g.GinkgoT()
 
 		clusterAdminKubeClient := oc.AdminKubeClient()
 		saNamespace := oc.Namespace()
 		saName := "default"
 
 		// Get a service account token
+		g.By("waiting for service account token")
 		saToken, err := waitForServiceAccountToken(clusterAdminKubeClient, saNamespace, saName, 20, time.Second)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if len(saToken) == 0 {
-			t.Errorf("token was not created")
-		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(saToken).NotTo(o.BeEmpty())
 
 		// Get the matching dockercfg secret
+		g.By("waiting for service account pull secret")
 		_, saPullSecret, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, saNamespace, saName, 20, time.Second)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if len(saPullSecret) == 0 {
-			t.Errorf("pull secret was not created")
-		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(saPullSecret).NotTo(o.BeEmpty())
 
 		imageConfig, err := oc.AdminConfigClient().ConfigV1().Images().Get("cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		if !strings.Contains(saPullSecret, imageConfig.Status.InternalRegistryHostname) {
-			t.Errorf("missing %q in %v", imageConfig.Status.InternalRegistryHostname, saPullSecret)
-		}
+		o.Expect(saPullSecret).To(o.ContainSubstring(imageConfig.Status.InternalRegistryHostname))
 
 		if len(imageConfig.Spec.ExternalRegistryHostnames) > 0 {
-			if !strings.Contains(saPullSecret, imageConfig.Spec.ExternalRegistryHostnames[0]) {
-				t.Errorf("missing %q in %v", imageConfig.Spec.ExternalRegistryHostnames[0], saPullSecret)
-			}
+			o.Expect(saPullSecret).To(o.ContainSubstring(imageConfig.Spec.ExternalRegistryHostnames[0]))
 		}
-
 	})
 })
 
@@ -129,67 +118,54 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 	oc := exutil.NewCLI("pull-secrets", exutil.KubeConfigPath())
 
 	g.It("TestDockercfgTokenDeletedController", func() {
-		t := g.GinkgoT()
-
 		clusterAdminKubeClient := oc.AdminKubeClient()
 		saNamespace := oc.Namespace()
 
 		sa := &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{Name: "sa1", Namespace: saNamespace},
 		}
-
+		g.By("creating service account")
 		secretsWatch, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Watch(metav1.ListOptions{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 		defer secretsWatch.Stop()
 
-		if _, err := clusterAdminKubeClient.CoreV1().ServiceAccounts(sa.Namespace).Create(sa); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		_, err = clusterAdminKubeClient.CoreV1().ServiceAccounts(sa.Namespace).Create(sa)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Get the service account dockercfg secret's name
 		dockercfgSecretName, _, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, sa.Namespace, sa.Name, 20, time.Second)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(dockercfgSecretName) == 0 {
-			t.Fatal("pull secret was not created")
-		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(dockercfgSecretName).NotTo(o.BeEmpty())
 
 		// Get the matching secret's name
 		dockercfgSecret, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Get(dockercfgSecretName, metav1.GetOptions{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 		secretName := dockercfgSecret.Annotations["openshift.io/token-secret.name"]
-		if len(secretName) == 0 {
-			t.Fatal("secret was not created")
-		}
+		o.Expect(secretName).NotTo(o.BeEmpty())
 
 		// Delete the service account's secret
-		if err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Delete(secretName, nil); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		g.By("deleting service account's secret")
+		err = clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Delete(secretName, nil)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Expect the matching dockercfg secret to also be deleted
-		waitForSecretDelete(dockercfgSecretName, secretsWatch, t)
+		waitForSecretDelete(dockercfgSecretName, secretsWatch)
 	})
 })
 
-func waitForSecretDelete(secretName string, w watch.Interface, t g.GinkgoTInterface) {
+func waitForSecretDelete(secretName string, w watch.Interface) {
 	for {
 		select {
 		case event := <-w.ResultChan():
 			secret := event.Object.(*corev1.Secret)
 			secret.Data = nil // reduce noise in log
-			t.Logf("got %#v %#v", event, secret)
+			e2e.Logf("got %#v %#v", event, secret)
 			if event.Type == watch.Deleted && secret.Name == secretName {
 				return
 			}
 
 		case <-time.After(3 * time.Minute):
-			t.Fatalf("timeout: %v", secretName)
+			g.Fail(fmt.Sprintf("timed out waiting for secret %s to be deleted", secretName))
 		}
 	}
 }
