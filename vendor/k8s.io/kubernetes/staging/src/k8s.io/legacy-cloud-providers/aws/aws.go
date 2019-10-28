@@ -591,6 +591,9 @@ type CloudConfig struct {
 		//yourself in an non-AWS cloud and open an issue, please indicate that in the
 		//issue body.
 		DisableStrictZoneCheck bool
+
+		// Temporary hack for IPv6-only
+		HackIPv6Only bool
 	}
 	// [ServiceOverride "1"]
 	//  Service = s3
@@ -1425,6 +1428,9 @@ func (c *Cloud) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.No
 				continue
 			}
 			ipPath := path.Join("network/interfaces/macs/", macID, "local-ipv4s")
+			if c.cfg.Global.HackIPv6Only {
+				ipPath = path.Join("network/interfaces/macs/", macID, "ipv6s")
+			}
 			macIPs[num], err = c.metadata.GetMetadata(ipPath)
 			if err != nil {
 				return nil, fmt.Errorf("error querying AWS metadata for %q: %q", ipPath, err)
@@ -1444,13 +1450,15 @@ func (c *Cloud) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.No
 			}
 		}
 
-		externalIP, err := c.metadata.GetMetadata("public-ipv4")
-		if err != nil {
-			//TODO: It would be nice to be able to determine the reason for the failure,
-			// but the AWS client masks all failures with the same error description.
-			klog.V(4).Info("Could not determine public IP from AWS metadata.")
-		} else {
-			addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: externalIP})
+		if !c.cfg.Global.HackIPv6Only {
+			externalIP, err := c.metadata.GetMetadata("public-ipv4")
+			if err != nil {
+				//TODO: It would be nice to be able to determine the reason for the failure,
+				// but the AWS client masks all failures with the same error description.
+				klog.V(4).Info("Could not determine public IP from AWS metadata.")
+			} else {
+				addresses = append(addresses, v1.NodeAddress{Type: v1.NodeExternalIP, Address: externalIP})
+			}
 		}
 
 		localHostname, err := c.metadata.GetMetadata("local-hostname")
