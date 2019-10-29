@@ -25,7 +25,7 @@ const (
 	operatorWait = 1 * time.Minute
 )
 
-var _ = g.Describe("[Feature:Machines][Smoke] Managed cluster should", func() {
+var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	g.It("have machine resources", func() {
