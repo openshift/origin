@@ -133,11 +133,11 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 					firstLog := false
 					for scanner.Scan() {
 						line := scanner.Text()
-						if strings.Contains(line, "docker_registry_service.go") && strings.Contains(line, registryHostname) {
+						if strings.Contains(line, "build_controller.go") && strings.Contains(line, "Starting build controller") {
 							firstLog = true
 							continue
 						}
-						if firstLog && strings.Contains(line, "build_controller.go") && strings.Contains(line, "Starting build controller") {
+						if firstLog && strings.Contains(line, "build_controller.go") && strings.Contains(line, registryHostname) {
 							e2e.Logf("the OCM pod logs indicate the build controller was started after the internal registry hostname has been set in the OCM config")
 							foundOCMLogs = true
 							break
