@@ -1,6 +1,7 @@
 OpenShift Application Platform
 ==============================
 
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/openshift/origin)](https://goreportcard.com/report/github.com/openshift/origin)
 [![GoDoc](https://godoc.org/github.com/openshift/origin?status.png)](https://godoc.org/github.com/openshift/origin)
 [![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
@@ -113,7 +114,7 @@ Many Docker containers expect to run as root (and therefore edit all the content
 If you are running your own cluster and want to run a container as root, you can grant that permission to the containers in your current project with the following command:
 
     # Gives the default service account in the current project access to run as UID 0 (root)
-    oc adm add-scc-to-user anyuid -z default 
+    oc adm add-scc-to-user anyuid -z default
 
 See the [security documentation](https://docs.openshift.org/latest/admin_guide/manage_scc.html) more on confining applications.
 
@@ -159,10 +160,10 @@ The list of features that qualify under these labels is described below, along w
 
 Feature | Kubernetes | OpenShift | Justification
 ------- | ---------- | --------- | -------------
-Custom Resource Definitions | GA (1.9) | GA (3.9) | 
+Custom Resource Definitions | GA (1.9) | GA (3.9) |
 Stateful Sets | GA (1.9) | GA (3.9) |
 Deployment | GA (1.9) | GA (1.9) |
-Replica Sets | GA (1.9) | GA (3.9) | Replica Sets perform the same function as Replication Controllers, but have a more powerful label syntax. Both ReplicationControllers and ReplicaSets can be used.  
+Replica Sets | GA (1.9) | GA (3.9) | Replica Sets perform the same function as Replication Controllers, but have a more powerful label syntax. Both ReplicationControllers and ReplicaSets can be used.
 Ingress | Beta (1.9) | Tech Preview (3.9) | OpenShift launched with Routes, a more full featured Ingress object. Ingress rules can be read by the router (disabled by default), but because Ingress objects reference secrets you must grant the routers access to your secrets manually.  Ingress is still beta in upstream Kubernetes.
 PodSecurityPolicy | Beta (1.9) | Tech Preview (3.9) | OpenShift launched with SecurityContextConstraints, and then upstreamed them as PodSecurityPolicy. We plan to enable upstream PodSecurityPolicy so as to automatically migrate existing SecurityContextConstraints. PodSecurityPolicy has not yet completed a full security review, which will be part of the criteria for tech preview. <br>SecurityContextConstraints are a superset of PodSecurityPolicy features.
 NetworkPolicy | GA (1.6) | GA (3.7) |
