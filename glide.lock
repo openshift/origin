@@ -1,5 +1,5 @@
-hash: 37739b9919a5b4ea5b24eb4adf0734609d309ed65e3d388650393e8ffb8ff8ad
-updated: 2019-10-28T18:16:19.642044+01:00
+hash: 612ae80e3fe1e705fa9dbf45bdf7866b06ab8b0552504864db8260064bc4c841
+updated: 2019-10-29T11:55:41.213439+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -1403,7 +1403,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
 - name: k8s.io/api
-  version: c1e2ddbd0dac6a9739e0530fc65faaa477bed327
+  version: c62e37bd4f95bccc115bb4550e85563cdfd77fd9
   repo: https://github.com/openshift/kubernetes-api.git
   subpackages:
   - admission/v1
@@ -1448,7 +1448,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: dccaaad1f79ea273396a21c44b5160e06d043d2d
+  version: 8ad32c96457a4999d828abfe24f895a10617f937
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -1502,7 +1502,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: 63ca3423f7c68b8e3e0a7a2a3a98a11840ab9a67
+  version: 91d1476ca247e7dac27aef3dc0b6fa95dab2cf74
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1568,7 +1568,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: b59c55136d196a562ddcf5304236b3ea93e5817c
+  version: b6a228dc94b2d5ac9777a627b144f1a837485c16
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1687,7 +1687,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/cli-runtime
-  version: 48793e229f244aa4d8483ba1ba2388b7db79bd13
+  version: 74ad18325ed51ea6de9ee19bae59156bad18ecd2
   repo: https://github.com/openshift/kubernetes-cli-runtime.git
   subpackages:
   - pkg/genericclioptions
@@ -1703,7 +1703,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: 3131d6e04e643e4a271c6b1fc5250baf1d40b602
+  version: f1de62cde740bad8ee21ce56fd6289e260da62e1
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1936,7 +1936,7 @@ imports:
   - util/retry
   - util/workqueue
 - name: k8s.io/cloud-provider
-  version: 32e6ab0de2a2c27817021e597481c735c50c4a39
+  version: 20453efc2458ed0adabeebbc87145f86d6a5abae
   repo: https://github.com/openshift/kubernetes-cloud-provider.git
   subpackages:
   - node/helpers
@@ -1945,7 +1945,7 @@ imports:
   - volume/errors
   - volume/helpers
 - name: k8s.io/cluster-bootstrap
-  version: c351f77e9a6211dda08005a38b6078ffed13760e
+  version: c07a134afb422dcb7636593de6802a7c39352896
   repo: https://github.com/openshift/kubernetes-cluster-bootstrap.git
   subpackages:
   - token/api
@@ -1954,10 +1954,10 @@ imports:
   - util/secrets
   - util/tokens
 - name: k8s.io/code-generator
-  version: d32e54a00c6a30786b8db3409983d6a96baacb68
+  version: e5d368fe6ec784c8ffb3b0b1d20316468efcf845
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/component-base
-  version: 9ddfa9e68ad865d401fd887b61c5712cb1459cc1
+  version: ec0548ab2ef8ac337e1a1964185681c6d63e80d8
   repo: https://github.com/openshift/kubernetes-component-base.git
   subpackages:
   - cli/flag
@@ -1977,10 +1977,10 @@ imports:
   - pkg/apis
   - pkg/apis/runtime/v1alpha2
 - name: k8s.io/csi-api
-  version: 608eb1dad4ac015f9d4f36a3fc70ad3e579af892
+  version: 68714f8a3ab8199322e0e1a53e0ed1ba5905e269
   repo: https://github.com/openshift/kubernetes-cri-api.git
 - name: k8s.io/csi-translation-lib
-  version: 0443d78e4a592e509df7f00d7c2a215e48e491e7
+  version: 756ffa5af0bd6461477d620165fb884c9c8e05db
   repo: https://github.com/openshift/kubernetes-csi-translation-lib.git
   subpackages:
   - plugins
@@ -1993,7 +1993,7 @@ imports:
 - name: k8s.io/klog
   version: 3ca30a56d8a775276f9cdae009ba326fdc05af7f
 - name: k8s.io/kube-aggregator
-  version: 168e327803f85584ae59eaa40dfddffaf6165b87
+  version: 2bac2e91fbd96622282f003a42ce36061ff613f8
   repo: https://github.com/openshift/kubernetes-kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -2024,7 +2024,7 @@ imports:
   - pkg/registry/apiservice/etcd
   - pkg/registry/apiservice/rest
 - name: k8s.io/kube-controller-manager
-  version: 7116f89e0eb2d21b87414805174ddf1c145d29c0
+  version: 2b2b218dc1df26ab9cc36be9feac1f4ad205136d
   repo: https://github.com/openshift/kubernetes-kube-controller-manager.git
   subpackages:
   - config/v1alpha1
@@ -2041,17 +2041,17 @@ imports:
   - pkg/util/proto/validation
   - pkg/util/sets
 - name: k8s.io/kube-proxy
-  version: 61cd20ae3d92a960a5e8ad97525c604e1ef11555
+  version: 2e83b6f202290c3df9044ebde38e5daec0ba9e6f
   repo: https://github.com/openshift/kubernetes-kube-proxy.git
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kube-scheduler
-  version: 88ce8cca4f5415b53f21e375aa9a80e6b7a8537a
+  version: 65049c67a58bca285082ac2e56be7c949623feff
   repo: https://github.com/openshift/kubernetes-kube-scheduler.git
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kubectl
-  version: a1b4a0ba183739d82cd88cd0e38a7cf0b98e9a8a
+  version: 3c960e4030b9e6ff473e8518276b759956e09ebe
   repo: https://github.com/openshift/kubernetes-kubectl.git
   subpackages:
   - pkg/apps
@@ -2131,12 +2131,12 @@ imports:
   - pkg/validation
   - pkg/version
 - name: k8s.io/kubelet
-  version: 8a485d6b870bac8ef2d87df19a47b1b68a75ac75
+  version: 7841ed97f1b27683bb19367f01d3155524d5f5f0
   repo: https://github.com/openshift/kubernetes-kubelet.git
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: b3bb404ef49a1c763cbf97ede51c0de37cd7787b
+  version: 0fe78070b864fb04089284ea3dfccf5cf68eafb7
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -3008,7 +3008,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/legacy-cloud-providers
-  version: d60d6f2bae8387b85397bdf1df28476e9d12ca5b
+  version: 767dcc54a570128762cce2242831894e23fb0061
   repo: https://github.com/openshift/kubernetes-legacy-cloud-providers.git
   subpackages:
   - aws
@@ -3021,7 +3021,7 @@ imports:
   - vsphere/vclib
   - vsphere/vclib/diskmanagers
 - name: k8s.io/metrics
-  version: f6bee5ba35c7dabd59a3f089a5a27ee8a2974445
+  version: 3b1a734dba6e5df0036b6553c685a6182116d638
   repo: https://github.com/openshift/kubernetes-metrics.git
   subpackages:
   - pkg/apis/custom_metrics
@@ -3040,16 +3040,16 @@ imports:
   - pkg/client/custom_metrics/scheme
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: 470afe49ddf476a91459b8c267a23ed436e0517a
+  version: 06bb3c9d77c97dc991d6bf5177cdb40740a034eb
   repo: https://github.com/openshift/kubernetes-sample-apiserver.git
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1
 - name: k8s.io/sample-cli-plugin
-  version: 73f3d345fb5f40f29972afbb792124f770017ab4
+  version: d25a4244b17f9886f965026bb39a667b391113a1
   repo: https://github.com/openshift/kubernetes-sample-cli-plugin.git
 - name: k8s.io/sample-controller
-  version: cdcbc45489153604e7c22aa090242368eff4b79f
+  version: 0c2dd40eec0c5cfe504059e37ec8117a6fa3416a
   repo: https://github.com/openshift/kubernetes-sample-controller.git
 - name: k8s.io/utils
   version: 581e00157fb1a0435d4fac54a52d1ca1e481d60e
