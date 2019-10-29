@@ -176,8 +176,7 @@ func checkLDAPConn(oc *CLI, host string) error {
 // Run an ldapsearch in a pod against host.
 func runLDAPSearchInPod(oc *CLI, host string) (string, error) {
 	mounts, volumes := LDAPClientMounts()
-	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", OpenLDAPTestImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts,
-		volumes, nil, 5*time.Minute)
+	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", OpenLDAPTestImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts, volumes, nil, 8*time.Minute)
 	if len(errs) != 0 {
 		return output, fmt.Errorf("errours encountered trying to run ldapsearch pod: %v", errs)
 	}

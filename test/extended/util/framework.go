@@ -1625,8 +1625,9 @@ func RunOneShotCommandPod(
 	// Wait for command completion.
 	err = wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
 		cmdPod, getErr := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(pod.Name, v1.GetOptions{})
-		if err != nil {
-			return false, getErr
+		if getErr != nil {
+			e2e.Logf("failed to get pod %q: %v", pod.Name, err)
+			return false, nil
 		}
 
 		if podHasErrored(cmdPod) {
