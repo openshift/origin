@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/RangelReale/osincli"
+	"github.com/davecgh/go-spew/spew"
+	"k8s.io/kubernetes/test/e2e/framework/pod"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -225,7 +227,7 @@ func waitForOAuthServerRouteReady(oc *exutil.CLI) error {
 	if err != nil {
 		return err
 	}
-	return wait.PollImmediate(time.Second, time.Minute, func() (done bool, err error) {
+	waitErr := wait.PollImmediate(time.Second, time.Minute, func() (done bool, err error) {
 		e2e.Logf("Waiting for the OAuth server route to be ready")
 		transport, err := restclient.TransportFor(restclient.AnonymousClientConfig(oc.AdminConfig()))
 		if err != nil {
@@ -244,6 +246,21 @@ func waitForOAuthServerRouteReady(oc *exutil.CLI) error {
 		}
 		return false, nil
 	})
+	if waitErr != nil {
+		serverPod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get("test-oauth-server", metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("unable to get %q pod: %v", "test-oauth-server", err)
+			return waitErr
+		}
+		e2e.Logf("%q pod status: %s", "test-oauth-server", spew.Sdump(serverPod.Status))
+		serverLogs, err := pod.GetPodLogs(oc.AdminKubeClient(), serverPod.Namespace, serverPod.Name, "oauth-server")
+		if err != nil {
+			e2e.Logf("unable to get %q pod logs: %v", "test-oauth-server", err)
+			return waitErr
+		}
+		e2e.Logf("%q pod logs:\n%s\n", "test-oauth-server", serverLogs)
+	}
+	return waitErr
 }
 
 func oauthServerPod(configMaps []corev1.ConfigMap, secrets []corev1.Secret, image string) (*corev1.Pod, error) {
