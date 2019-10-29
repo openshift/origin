@@ -46,7 +46,6 @@ const (
 	PLEGRelistIntervalKey                = "pleg_relist_interval_seconds"
 	EvictionsKey                         = "evictions"
 	EvictionStatsAgeKey                  = "eviction_stats_age_seconds"
-	PreemptionsKey                       = "preemptions"
 	DeprecatedPodWorkerLatencyKey        = "pod_worker_latency_microseconds"
 	DeprecatedPodStartLatencyKey         = "pod_start_latency_microseconds"
 	DeprecatedCgroupManagerOperationsKey = "cgroup_manager_latency_microseconds"
@@ -243,18 +242,6 @@ var (
 			StabilityLevel: metrics.ALPHA,
 		},
 		[]string{"eviction_signal"},
-	)
-	// Preemptions is a Counter that tracks the cumulative number of pod preemptions initiated by the kubelet.
-	// Broken down by preemption signal. A preemption is only recorded for one resource, the sum of all signals
-	// is the number of preemptions on the given node.
-	Preemptions = metrics.NewCounterVec(
-		&metrics.CounterOpts{
-			Subsystem:      KubeletSubsystem,
-			Name:           PreemptionsKey,
-			Help:           "Cumulative number of pod preemptions by preemption resource",
-			StabilityLevel: metrics.ALPHA,
-		},
-		[]string{"preemption_signal"},
 	)
 	// DevicePluginRegistrationCount is a Counter that tracks the cumulative number of device plugin registrations.
 	// Broken down by resource name.
@@ -516,7 +503,6 @@ func Register(containerCache kubecontainer.RuntimeCache, collectors ...prometheu
 		legacyregistry.MustRegister(RuntimeOperationsErrors)
 		legacyregistry.MustRegister(Evictions)
 		legacyregistry.MustRegister(EvictionStatsAge)
-		legacyregistry.MustRegister(Preemptions)
 		legacyregistry.MustRegister(DevicePluginRegistrationCount)
 		legacyregistry.MustRegister(DevicePluginAllocationDuration)
 		legacyregistry.MustRegister(DeprecatedPodWorkerLatency)
