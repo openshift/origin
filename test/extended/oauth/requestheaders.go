@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -24,6 +25,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
@@ -371,15 +373,19 @@ func waitForNewOAuthConfig(oc *exutil.CLI, caCerts *x509.CertPool, oauthURL stri
 	err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
 		authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get("authentication", metav1.GetOptions{})
 		if err != nil {
+			e2e.Logf("Error getting authentication operator: %v", err)
 			return false, err
 		}
 
 		if clusteroperatorhelpers.IsStatusConditionTrue(authn.Status.Conditions, configv1.OperatorProgressing) {
+			e2e.Logf("Waiting for progressing condition: %s", spew.Sdump(authn.Status.Conditions))
 			return false, nil
 		}
 
 		// it seems that if we do anonymous request too early, it still does not see the IdP as configured
 		if resp := oauthHTTPRequest(caCerts, oauthURL, "/oauth/authorize?client_id=openshift-challenging-client&response_type=token", "", nil, nil); resp.StatusCode != 302 {
+			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			e2e.Logf("OAuth HTTP request response is not 302: %q (%s)", resp.Status, string(bodyBytes))
 			return false, nil
 		}
 		return true, nil
