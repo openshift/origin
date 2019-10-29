@@ -19,15 +19,16 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-
 	configv1 "github.com/openshift/api/config/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
+	corev1 "k8s.io/api/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -440,18 +441,26 @@ func oauthHTTPRequest(caCerts *x509.CertPool, oauthBaseURL, endpoint, token stri
 		},
 	}
 
-	resp, err := httpClient.Do(req)
-	if urlErr, ok := err.(*url.Error); ok {
-		switch urlErr.Err {
-		case nil, tokenFoundError, outsideClusterError:
-		default:
-			o.Expect(err).NotTo(o.HaveOccurred())
+	var response *http.Response
+	err = wait.PollImmediate(1*time.Second, 5*time.Minute, func() (done bool, err error) {
+		resp, err := httpClient.Do(req)
+		if urlErr, ok := err.(*url.Error); ok {
+			switch urlErr.Err {
+			case nil, tokenFoundError, outsideClusterError:
+				response = resp
+				return true, nil
+			}
 		}
-	} else {
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
+		if err != nil {
+			e2e.Logf("Error making OAuth request: %v", err)
+			return false, nil
+		}
+		return true, nil
+	})
 
-	return resp
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	return response
 }
 
 func getTokenFromResponse(resp *http.Response) string {
