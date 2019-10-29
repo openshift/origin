@@ -19,6 +19,7 @@ package handlers
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -60,6 +61,8 @@ type RequestScope struct {
 	Subresource string
 
 	MetaGroupVersion schema.GroupVersion
+
+	MaxRequestBodyBytes int64
 }
 
 func (scope *RequestScope) err(err error, w http.ResponseWriter, req *http.Request) {
@@ -308,9 +311,23 @@ func summarizeData(data []byte, maxLength int) string {
 	}
 }
 
-func readBody(req *http.Request) ([]byte, error) {
+func limitedReadBody(req *http.Request, limit int64) ([]byte, error) {
 	defer req.Body.Close()
-	return ioutil.ReadAll(req.Body)
+	if limit <= 0 {
+		return ioutil.ReadAll(req.Body)
+	}
+	lr := &io.LimitedReader{
+		R: req.Body,
+		N: limit + 1,
+	}
+	data, err := ioutil.ReadAll(lr)
+	if err != nil {
+		return nil, err
+	}
+	if lr.N <= 0 {
+		return nil, errors.NewRequestEntityTooLargeError(fmt.Sprintf("limit is %d", limit))
+	}
+	return data, nil
 }
 
 func parseTimeout(str string) time.Duration {
