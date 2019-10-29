@@ -26,6 +26,11 @@ function ovn-kubernetes-master() {
     HYBRID_OVERLAY_ARGS="--enable-hybrid-overlay --hybrid-overlay-cluster-subnets=11.128.0.0/16/24 --no-hostsubnet-nodes=beta.kubernetes.io/os=windows"
   fi
 
+  if ! /usr/local/bin/oc --config="${kube_config}" get project ovn-kubernetes >/dev/null 2>&1; then
+    /usr/local/bin/oc --config="${kube_config}" new-project ovn-kubernetes
+    /usr/local/bin/oc --config="${kube_config}" project default
+  fi
+
   echo "Enabling and start ovn-kubernetes master services"
   /usr/local/bin/ovnkube \
 	--loglevel=5 \

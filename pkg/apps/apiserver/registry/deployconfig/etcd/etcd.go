@@ -18,7 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
-	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/openshift/api/apps"
 	appsapiv1 "github.com/openshift/api/apps/v1"
