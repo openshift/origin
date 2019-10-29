@@ -47,6 +47,14 @@ type Case struct {
 	doc, patch, result string
 }
 
+func repeatedA(r int) string {
+	var s string
+	for i := 0; i < r; i++ {
+		s += "A"
+	}
+	return s
+}
+
 var Cases = []Case{
 	{
 		`{ "foo": "bar"}`,
@@ -114,6 +122,11 @@ var Cases = []Case{
 		`{ "foo": [ "all", "cows", "eat", "grass" ] }`,
 	},
 	{
+		`{ "foo": [ "all", "grass", "cows", "eat" ] }`,
+		`[ { "op": "move", "from": "/foo/1", "path": "/foo/2" } ]`,
+		`{ "foo": [ "all", "cows", "grass", "eat" ] }`,
+	},
+	{
 		`{ "foo": "bar" }`,
 		`[ { "op": "add", "path": "/child", "value": { "grandchild": { } } } ]`,
 		`{ "foo": "bar", "child": { "grandchild": { } } }`,
@@ -169,6 +182,21 @@ var Cases = []Case{
 		`[ { "baz": {"bar": ["qux","baz"], "qux":"bum"}, "foo": {"bar": ["qux","baz"]}}]`,
 	},
 	{
+		`{ "foo": ["bar"]}`,
+		`[{"op": "copy", "path": "/foo/0", "from": "/foo"}]`,
+		`{ "foo": [["bar"], "bar"]}`,
+	},
+	{
+		`{ "foo": ["bar","qux","baz"]}`,
+		`[ { "op": "remove", "path": "/foo/-2"}]`,
+		`{ "foo": ["bar", "baz"]}`,
+	},
+	{
+		`{ "foo": []}`,
+		`[ { "op": "add", "path": "/foo/-1", "value": "qux"}]`,
+		`{ "foo": ["qux"]}`,
+	},
+	{
 		`{ "bar": [{"baz": null}]}`,
 		`[ { "op": "replace", "path": "/bar/0/baz", "value": 1 } ]`,
 		`{ "bar": [{"baz": 1}]}`,
@@ -187,6 +215,14 @@ var Cases = []Case{
 		`{ "bar": [1]}`,
 		`[ { "op": "replace", "path": "/bar/0", "value": null } ]`,
 		`{ "bar": [null]}`,
+	},
+	{
+		fmt.Sprintf(`{ "foo": ["A", %q] }`, repeatedA(48)),
+		// The wrapping quotes around 'A's are included in the copy
+		// size, so each copy operation increases the size by 50 bytes.
+		`[ { "op": "copy", "path": "/foo/-", "from": "/foo/1" },
+		   { "op": "copy", "path": "/foo/-", "from": "/foo/1" }]`,
+		fmt.Sprintf(`{ "foo": ["A", %q, %q, %q] }`, repeatedA(48), repeatedA(48), repeatedA(48)),
 	},
 }
 
@@ -242,7 +278,6 @@ var BadCases = []BadCase{
 		`{ "foo": ["bar","baz"]}`,
 		`[ { "op": "add", "path": "/foo/-4", "value": "bum"}]`,
 	},
-
 	{
 		`{ "name":{ "foo": "bat", "qux": "bum"}}`,
 		`[ { "op": "replace", "path": "/foo/bar", "value":"baz"}]`,
@@ -250,6 +285,18 @@ var BadCases = []BadCase{
 	{
 		`{ "foo": ["bar"]}`,
 		`[ {"op": "add", "path": "/foo/2", "value": "bum"}]`,
+	},
+	{
+		`{ "foo": []}`,
+		`[ {"op": "remove", "path": "/foo/-"}]`,
+	},
+	{
+		`{ "foo": []}`,
+		`[ {"op": "remove", "path": "/foo/-1"}]`,
+	},
+	{
+		`{ "foo": ["bar"]}`,
+		`[ {"op": "remove", "path": "/foo/-2"}]`,
 	},
 	{
 		`{}`,
@@ -263,9 +310,41 @@ var BadCases = []BadCase{
 		`{}`,
 		`[ { "op": "copy", "from": null }]`,
 	},
+	{
+		`{ "foo": ["bar"]}`,
+		`[{"op": "copy", "path": "/foo/6666666666", "from": "/"}]`,
+	},
+	// Can't copy into an index greater than the size of the array
+	{
+		`{ "foo": ["bar"]}`,
+		`[{"op": "copy", "path": "/foo/2", "from": "/foo/0"}]`,
+	},
+	// Accumulated copy size cannot exceed AccumulatedCopySizeLimit.
+	{
+		fmt.Sprintf(`{ "foo": ["A", %q] }`, repeatedA(49)),
+		// The wrapping quotes around 'A's are included in the copy
+		// size, so each copy operation increases the size by 51 bytes.
+		`[ { "op": "copy", "path": "/foo/-", "from": "/foo/1" },
+		   { "op": "copy", "path": "/foo/-", "from": "/foo/1" }]`,
+	},
+	// Can't move into an index greater than or equal to the size of the array
+	{
+		`{ "foo": [ "all", "grass", "cows", "eat" ] }`,
+		`[ { "op": "move", "from": "/foo/1", "path": "/foo/4" } ]`,
+	},
+}
+
+// This is not thread safe, so we cannot run patch tests in parallel.
+func configureGlobals(accumulatedCopySizeLimit int64) func() {
+	oldAccumulatedCopySizeLimit := AccumulatedCopySizeLimit
+	AccumulatedCopySizeLimit = accumulatedCopySizeLimit
+	return func() {
+		AccumulatedCopySizeLimit = oldAccumulatedCopySizeLimit
+	}
 }
 
 func TestAllCases(t *testing.T) {
+	defer configureGlobals(int64(100))()
 	for _, c := range Cases {
 		out, err := applyPatch(c.doc, c.patch)
 
@@ -296,7 +375,7 @@ func TestAllCases(t *testing.T) {
 		_, err := applyPatch(c.doc, c.patch)
 
 		if err == nil {
-			t.Errorf("Patch should have failed to apply but it did not")
+			t.Errorf("Patch %q should have failed to apply but it did not", c.patch)
 		}
 	}
 }
@@ -373,6 +452,12 @@ var TestCases = []TestCase{
 		`[ { "op": "test", "path": "/baz~1foo", "value": "qux"} ]`,
 		true,
 		"",
+	},
+	{
+		`{ "foo": [] }`,
+		`[ { "op": "test", "path": "/foo"} ]`,
+		false,
+		"/foo",
 	},
 }
 

@@ -42,7 +42,15 @@ type ServerRunOptions struct {
 	MaxMutatingRequestsInFlight int
 	RequestTimeout              time.Duration
 	MinRequestTimeout           int
-	TargetRAMMB                 int
+	// We intentionally did not add a flag for this option. Users of the
+	// apiserver library can wire it to a flag.
+	JSONPatchMaxCopyBytes int64
+	// The limit on the request body size that would be accepted and
+	// decoded in a write request. 0 means no limit.
+	// We intentionally did not add a flag for this option. Users of the
+	// apiserver library can wire it to a flag.
+	MaxRequestBodyBytes int64
+	TargetRAMMB         int
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -52,6 +60,8 @@ func NewServerRunOptions() *ServerRunOptions {
 		MaxMutatingRequestsInFlight: defaults.MaxMutatingRequestsInFlight,
 		RequestTimeout:              defaults.RequestTimeout,
 		MinRequestTimeout:           defaults.MinRequestTimeout,
+		JSONPatchMaxCopyBytes:       defaults.JSONPatchMaxCopyBytes,
+		MaxRequestBodyBytes:         defaults.MaxRequestBodyBytes,
 	}
 }
 
@@ -63,6 +73,8 @@ func (s *ServerRunOptions) ApplyTo(c *server.Config) error {
 	c.MaxMutatingRequestsInFlight = s.MaxMutatingRequestsInFlight
 	c.RequestTimeout = s.RequestTimeout
 	c.MinRequestTimeout = s.MinRequestTimeout
+	c.JSONPatchMaxCopyBytes = s.JSONPatchMaxCopyBytes
+	c.MaxRequestBodyBytes = s.MaxRequestBodyBytes
 	c.PublicAddress = s.AdvertiseAddress
 
 	return nil
@@ -101,6 +113,14 @@ func (s *ServerRunOptions) Validate() []error {
 
 	if s.RequestTimeout.Nanoseconds() < 0 {
 		errors = append(errors, fmt.Errorf("--request-timeout can not be negative value"))
+	}
+
+	if s.JSONPatchMaxCopyBytes < 0 {
+		errors = append(errors, fmt.Errorf("--json-patch-max-copy-bytes can not be negative value"))
+	}
+
+	if s.MaxRequestBodyBytes < 0 {
+		errors = append(errors, fmt.Errorf("--max-resource-write-bytes can not be negative value"))
 	}
 
 	return errors

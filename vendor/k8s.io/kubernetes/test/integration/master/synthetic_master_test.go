@@ -225,6 +225,122 @@ func TestStatus(t *testing.T) {
 	}
 }
 
+func constructBody(val string, size int, field string, t *testing.T) *appsv1.Deployment {
+	var replicas int32 = 1
+	deploymentObject := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "test",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"foo": "bar",
+				},
+			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"foo": "bar"},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "foo",
+							Image: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	switch field {
+	case "labels":
+		labelsMap := map[string]string{}
+		for i := 0; i < size; i++ {
+			key := val + strconv.Itoa(i)
+			labelsMap[key] = val
+		}
+		deploymentObject.ObjectMeta.Labels = labelsMap
+	case "annotations":
+		annotationsMap := map[string]string{}
+		for i := 0; i < size; i++ {
+			key := val + strconv.Itoa(i)
+			annotationsMap[key] = val
+		}
+		deploymentObject.ObjectMeta.Annotations = annotationsMap
+	case "finalizers":
+		finalizerString := []string{}
+		for i := 0; i < size; i++ {
+			finalizerString = append(finalizerString, val)
+		}
+		deploymentObject.ObjectMeta.Finalizers = finalizerString
+	default:
+		t.Fatalf("Unexpected field: %s used for making large deployment object value", field)
+	}
+
+	return deploymentObject
+}
+
+func TestObjectSizeResponses(t *testing.T) {
+	_, s, closeFn := framework.RunAMaster(nil)
+	defer closeFn()
+
+	client := clientsetv1.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Groups[api.GroupName].GroupVersion()}})
+
+	const DeploymentMegabyteSize = 100000
+	const DeploymentTwoMegabyteSize = 175000
+	const DeploymentThreeMegabyteSize = 250000
+
+	expectedMsgFor1MB := `etcdserver: request is too large`
+	expectedMsgFor2MB := `rpc error: code = ResourceExhausted desc = grpc: trying to send message larger than max`
+	expectedMsgFor3MB := `Request entity too large: limit is 3145728`
+	expectedMsgForLargeAnnotation := `metadata.annotations: Too long: must have at most 262144 characters`
+
+	deployment1 := constructBody("a", DeploymentMegabyteSize, "labels", t)      // >1 MB file
+	deployment2 := constructBody("a", DeploymentTwoMegabyteSize, "labels", t)   // >2 MB file
+	deployment3 := constructBody("a", DeploymentThreeMegabyteSize, "labels", t) // >3 MB file
+
+	deployment4 := constructBody("a", DeploymentMegabyteSize, "annotations", t)
+
+	deployment5 := constructBody("sample/sample", DeploymentMegabyteSize, "finalizers", t)      // >1 MB file
+	deployment6 := constructBody("sample/sample", DeploymentTwoMegabyteSize, "finalizers", t)   // >2 MB file
+	deployment7 := constructBody("sample/sample", DeploymentThreeMegabyteSize, "finalizers", t) // >3 MB file
+
+	requests := []struct {
+		size             string
+		deploymentObject *appsv1.Deployment
+		expectedMessage  string
+	}{
+		{"1 MB labels", deployment1, expectedMsgFor1MB},
+		{"2 MB labels", deployment2, expectedMsgFor2MB},
+		{"3 MB labels", deployment3, expectedMsgFor3MB},
+		{"1 MB annotations", deployment4, expectedMsgForLargeAnnotation},
+		{"1 MB finalizers", deployment5, expectedMsgFor1MB},
+		{"2 MB finalizers", deployment6, expectedMsgFor2MB},
+		{"3 MB finalizers", deployment7, expectedMsgFor3MB},
+	}
+
+	for _, r := range requests {
+		t.Run(r.size, func(t *testing.T) {
+			_, err := client.AppsV1().Deployments(metav1.NamespaceDefault).Create(r.deploymentObject)
+			if err != nil {
+				if !strings.Contains(err.Error(), r.expectedMessage) {
+					t.Errorf("got: %s;want: %s", err.Error(), r.expectedMessage)
+				}
+			}
+		})
+	}
+}
+
 func TestWatchSucceedsWithoutArgs(t *testing.T) {
 	_, s, closeFn := framework.RunAMaster(nil)
 	defer closeFn()

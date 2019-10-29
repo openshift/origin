@@ -206,10 +206,3 @@ type hijackedConn struct {
 func (c *hijackedConn) Read(b []byte) (int, error) {
 	return c.r.Read(b)
 }
-
-func (c *hijackedConn) CloseWrite() error {
-	if conn, ok := c.Conn.(types.CloseWriter); ok {
-		return conn.CloseWrite()
-	}
-	return nil
-}

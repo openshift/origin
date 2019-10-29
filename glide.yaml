@@ -40,9 +40,9 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: release-3.9
+  version: 0d921e363e951d89f583292c60d013c318df64dc
 - package: github.com/openshift/client-go
-  version: release-3.9
+  version: 1fa528d3be060e4c7178eb69e76d37cf7e699e3c
 # this is pinned because it doesn't have branches
 - package: github.com/openshift/imagebuilder
   version: eeb3c28f366cd654c136204f4ab8221593b0e899
@@ -59,7 +59,7 @@ import:
 # master
 - package: github.com/emicklei/go-restful-swagger12
   repo:    https://github.com/openshift/emicklei-go-restful-swagger12
-  version: release-1.0.1
+  version: 885875a92c2ab7d6222e257e41f6ca2c1f010b4e
 # master
 - package: github.com/cloudflare/cfssl
   repo:    https://github.com/openshift/cloudflare-cfssl
@@ -71,14 +71,14 @@ import:
 # master
 - package: github.com/onsi/ginkgo
   repo:    git@github.com:openshift/onsi-ginkgo
-  version: release-v1.2.0
+  version: 6e93088a6ab736ec6a12d10ef99962f8d9e435ee
 - package: github.com/containers/image
   repo:    git@github.com:openshift/containers-image
-  version: openshift-3.8
+  version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
 # pod - sjenning
 - package: github.com/opencontainers/runc
   repo:    git@github.com:openshift/opencontainers-runc
-  version: openshift-3.9
+  version: ca78c55f8146dae6b6f53be8ea1179b30c04d0fd
 # pod - sjenning
 - package: github.com/google/cadvisor
   repo:    git@github.com:openshift/google-cadvisor
@@ -189,7 +189,8 @@ import:
 - package: github.com/abbot/go-http-auth
   version: c0ef4539dfab4d21c8ef20ba2924f9fc6f186d35
 - package: github.com/apcera/gssapi
-  version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
+  repo:    git@github.com:openshift/gssapi
+  version: release-2.6.3
 - package: github.com/appc/spec
   version: fc380db5fc13c6dd71a5b0bf2af0d182865d1b1d
 - package: github.com/armon/circbuf
@@ -267,7 +268,7 @@ import:
 - package: github.com/euank/go-kmsg-parser
   version: 5ba4d492e455a77d25dcf0d2c4acc9f2afebef4e
 - package: github.com/evanphx/json-patch
-  version: 944e07253867aacae43c04b2e6a239005443f33a
+  version: 5858425f75500d40c52783dce87d085a483ce135
 - package: github.com/exponent-io/jsonpath
   version: d6023ce2651d8eafb5c75bb0c7167536102ec9f5
 - package: github.com/fatih/camelcase
@@ -388,6 +389,10 @@ import:
   version: ad45545899c7b13c020ea92b2072220eefad42b8
 - package: github.com/mitchellh/mapstructure
   version: 53818660ed4955e899c0bcafa97299a388bd7c8e
+- package: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- package: github.com/modern-go/reflect2
+  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - package: github.com/mohae/deepcopy
   version: 491d3605edfb866af34a48075bd4355ac1bf46ca
 - package: github.com/mreiferson/go-httpclient
@@ -533,7 +538,7 @@ import:
 - package: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - package: gopkg.in/yaml.v2
-  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
+  version: v2.2.4
 - package: k8s.io/heapster
   version: c2ac40f1adf8c42a79badddb2a2acd673cae3bcb
 - package: k8s.io/utils

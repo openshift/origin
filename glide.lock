@@ -1,5 +1,5 @@
-hash: 97e944b9a38cfef5a6c84841a467fce06f87f05001bb4edc1042aaaf70a57aa0
-updated: 2018-10-30T13:33:40.632697372-04:00
+hash: 2c18b26b5ab5f690941d9f242b96da2885b0d3f7b08b6c1827dbdbfaa5e20719
+updated: 2019-10-25T13:46:15.088644474-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -16,6 +16,7 @@ imports:
   version: c0ef4539dfab4d21c8ef20ba2924f9fc6f186d35
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
+  repo: git@github.com:openshift/gssapi
 - name: github.com/appc/spec
   version: fc380db5fc13c6dd71a5b0bf2af0d182865d1b1d
   subpackages:
@@ -418,7 +419,7 @@ imports:
   subpackages:
   - kmsgparser
 - name: github.com/evanphx/json-patch
-  version: 944e07253867aacae43c04b2e6a239005443f33a
+  version: 5858425f75500d40c52783dce87d085a483ce135
 - name: github.com/exponent-io/jsonpath
   version: d6023ce2651d8eafb5c75bb0c7167536102ec9f5
 - name: github.com/fatih/camelcase
@@ -769,6 +770,10 @@ imports:
   version: ad45545899c7b13c020ea92b2072220eefad42b8
 - name: github.com/mitchellh/mapstructure
   version: 53818660ed4955e899c0bcafa97299a388bd7c8e
+- name: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- name: github.com/modern-go/reflect2
+  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/mohae/deepcopy
   version: 491d3605edfb866af34a48075bd4355ac1bf46ca
 - name: github.com/mreiferson/go-httpclient
@@ -1332,7 +1337,7 @@ imports:
 - name: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: gopkg.in/yaml.v2
-  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
+  version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
 - name: k8s.io/api
   version: b31eb08de4e8d98cf75dc3b31f75afee5b5243e9
   repo: git@github.com:openshift/kubernetes-api
@@ -1368,7 +1373,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 3420cf9ba4b83258558ce3236b7898a955ab02fd
+  version: 3b5a7cf981a8e0183e750127eb8494d4fa3eb31f
   repo: git@github.com:openshift/kubernetes-apiextensions-apiserver
   subpackages:
   - pkg/apis/apiextensions
@@ -1575,7 +1580,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: d63f93b713e1f52651c8d4c263f1bb761e29b921
+  version: feb640bf1516e2c281b72c62af4bb640994dd19a
   repo: git@github.com:openshift/kubernetes-client-go
   subpackages:
   - discovery
@@ -1799,7 +1804,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: f31875c5a8a05bb281cb6900e86033ba6f65856c
+  version: 7e264dcf8a38200d39fead7165a0832c368e7909
   repo: git@github.com:openshift/kubernetes
   subpackages:
   - cmd/genutils
