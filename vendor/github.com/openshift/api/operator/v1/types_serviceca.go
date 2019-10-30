@@ -35,8 +35,8 @@ type ServiceCAStatus struct {
 // ServiceCAList is a collection of items
 type ServiceCAList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
+
 	// Items contains the items
 	Items []ServiceCA `json:"items"`
 }

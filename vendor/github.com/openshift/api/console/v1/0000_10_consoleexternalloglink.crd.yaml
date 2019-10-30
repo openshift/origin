@@ -1,0 +1,87 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: consoleexternalloglinks.console.openshift.io
+  annotations:
+    displayName: ConsoleExternalLogLinks
+    description: ConsoleExternalLogLink is an extension for customizing OpenShift
+      web console log links.
+spec:
+  scope: Cluster
+  preserveUnknownFields: false
+  group: console.openshift.io
+  versions:
+  - name: v1
+    served: true
+    storage: true
+  names:
+    plural: consoleexternalloglinks
+    singular: consoleexternalloglink
+    kind: ConsoleExternalLogLink
+    listKind: ConsoleExternalLogLinkList
+  additionalPrinterColumns:
+  - name: Text
+    type: string
+    JSONPath: .spec.text
+  - name: HrefTemplate
+    type: string
+    JSONPath: .spec.hrefTemplate
+  - name: Age
+    type: date
+    JSONPath: .metadata.creationTimestamp
+  subresources:
+    status: {}
+  "validation":
+    "openAPIV3Schema":
+      description: ConsoleExternalLogLink is an extension for customizing OpenShift
+        web console log links.
+      type: object
+      required:
+      - spec
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: ConsoleExternalLogLinkSpec is the desired log link configuration.
+            The log link will appear on the logs tab of the pod details page.
+          type: object
+          required:
+          - hrefTemplate
+          - text
+          properties:
+            hrefTemplate:
+              description: "hrefTemplate is an absolute secure URL (must use https)
+                for the log link including variables to be replaced. Variables are
+                specified in the URL with the format ${variableName}, for instance,
+                ${containerName} and will be replaced with the corresponding values
+                from the resource. Resource is a pod. Supported variables are: - ${resourceName}
+                - name of the resource which containes the logs - ${resourceUID} -
+                UID of the resource which contains the logs               - e.g. `11111111-2222-3333-4444-555555555555`
+                - ${containerName} - name of the resource's container that contains
+                the logs - ${resourceNamespace} - namespace of the resource that contains
+                the logs - ${resourceNamespaceUID} - namespace UID of the resource
+                that contains the logs - ${podLabels} - JSON representation of labels
+                matching the pod with the logs             - e.g. `{\"key1\":\"value1\",\"key2\":\"value2\"}`
+                \n e.g., https://example.com/logs?resourceName=${resourceName}&containerName=${containerName}&resourceNamespace=${resourceNamespace}&podLabels=${podLabels}"
+              type: string
+              pattern: ^https://
+            namespaceFilter:
+              description: namespaceFilter is a regular expression used to restrict
+                a log link to a matching set of namespaces (e.g., `^openshift-`).
+                The string is converted into a regular expression using the JavaScript
+                RegExp constructor. If not specified, links will be displayed for
+                all the namespaces.
+              type: string
+            text:
+              description: text is the display text for the link
+              type: string

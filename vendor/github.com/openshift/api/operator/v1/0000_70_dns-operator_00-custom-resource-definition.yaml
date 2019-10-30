@@ -1,0 +1,94 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: dnses.operator.openshift.io
+spec:
+  group: operator.openshift.io
+  names:
+    kind: DNS
+    listKind: DNSList
+    plural: dnses
+    singular: dns
+  scope: Cluster
+  preserveUnknownFields: false
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: "DNS manages the CoreDNS component to provide a name resolution
+        service for pods and services in the cluster. \n This supports the DNS-based
+        service discovery specification: https://github.com/kubernetes/dns/blob/master/docs/specification.md
+        \n More details: https://kubernetes.io/docs/tasks/administer-cluster/coredns"
+      type: object
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: spec is the specification of the desired behavior of the DNS.
+          type: object
+        status:
+          description: status is the most recently observed status of the DNS.
+          type: object
+          required:
+          - clusterDomain
+          - clusterIP
+          properties:
+            clusterDomain:
+              description: "clusterDomain is the local cluster DNS domain suffix for
+                DNS services. This will be a subdomain as defined in RFC 1034, section
+                3.5: https://tools.ietf.org/html/rfc1034#section-3.5 Example: \"cluster.local\"
+                \n More info: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service"
+              type: string
+            clusterIP:
+              description: "clusterIP is the service IP through which this DNS is
+                made available. \n In the case of the default DNS, this will be a
+                well known IP that is used as the default nameserver for pods that
+                are using the default ClusterFirst DNS policy. \n In general, this
+                IP can be specified in a pod's spec.dnsConfig.nameservers list or
+                used explicitly when performing name resolution from within the cluster.
+                Example: dig foo.com @<service IP> \n More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies"
+              type: string
+            conditions:
+              description: "conditions provide information about the state of the
+                DNS on the cluster. \n These are the supported DNS conditions: \n
+                \  * Available   - True if the following conditions are met:     *
+                DNS controller daemonset is available.   - False if any of those conditions
+                are unsatisfied."
+              type: array
+              items:
+                description: OperatorCondition is just the standard condition fields.
+                type: object
+                properties:
+                  lastTransitionTime:
+                    type: string
+                    format: date-time
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

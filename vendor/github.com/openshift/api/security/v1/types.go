@@ -22,9 +22,7 @@ var AllowAllCapabilities corev1.Capability = "*"
 // SecurityContextConstraints.
 // +kubebuilder:singular=securitycontextconstraint
 type SecurityContextConstraints struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Priority influences the sort order of SCCs when evaluating which SCCs to try first for
@@ -281,8 +279,6 @@ const (
 // SecurityContextConstraintsList is a list of SecurityContextConstraints objects
 type SecurityContextConstraintsList struct {
 	metav1.TypeMeta `json:",inline"`
-
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// List of security context constraints.
@@ -406,10 +402,7 @@ type ServiceAccountPodSecurityPolicyReviewStatus struct {
 
 // RangeAllocation is used so we can easily expose a RangeAllocation typed for security group
 type RangeAllocation struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
-	// +optional
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// range is a string representing a unique label for a range of uids, "1000000000-2000000000/10000".
@@ -425,8 +418,6 @@ type RangeAllocation struct {
 // RangeAllocationList is a list of RangeAllocations objects
 type RangeAllocationList struct {
 	metav1.TypeMeta `json:",inline"`
-
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// List of RangeAllocations.

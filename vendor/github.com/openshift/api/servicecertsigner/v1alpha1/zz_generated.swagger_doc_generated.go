@@ -38,9 +38,8 @@ func (ServiceCertSignerOperatorConfig) SwaggerDoc() map[string]string {
 }
 
 var map_ServiceCertSignerOperatorConfigList = map[string]string{
-	"":         "ServiceCertSignerOperatorConfigList is a collection of items",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items contains the items",
+	"":      "ServiceCertSignerOperatorConfigList is a collection of items",
+	"items": "Items contains the items",
 }
 
 func (ServiceCertSignerOperatorConfigList) SwaggerDoc() map[string]string {

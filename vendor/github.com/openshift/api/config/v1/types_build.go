@@ -16,6 +16,7 @@ import (
 type Build struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+
 	// Spec holds user-settable values for the build controller configuration
 	// +kubebuilder:validation:Required
 	// +required
@@ -102,7 +103,7 @@ type BuildOverrides struct {
 
 type BuildList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
-	Items           []Build `json:"items"`
+
+	Items []Build `json:"items"`
 }

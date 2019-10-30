@@ -25,7 +25,6 @@ option go_package = "v1";
 // as editable to end users while namespaces are not. Direct creation of a project is typically restricted
 // to administrators, while end users should use the requestproject resource.
 message Project {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec defines the behavior of the Namespace.
@@ -37,7 +36,6 @@ message Project {
 
 // ProjectList is a list of Project objects.
 message ProjectList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of projects
@@ -46,7 +44,6 @@ message ProjectList {
 
 // ProjecRequest is the set of options necessary to fully qualify a project request
 message ProjectRequest {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // DisplayName is the display name to apply to a project

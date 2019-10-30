@@ -16,7 +16,6 @@ option go_package = "v1";
 // into a project.  It allows a project-admin to know which ClusterResourceQuotas are applied to
 // his project and their associated usage.
 message AppliedClusterResourceQuota {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec defines the desired quota
@@ -28,7 +27,6 @@ message AppliedClusterResourceQuota {
 
 // AppliedClusterResourceQuotaList is a collection of AppliedClusterResourceQuotas
 message AppliedClusterResourceQuotaList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of AppliedClusterResourceQuota
@@ -38,7 +36,6 @@ message AppliedClusterResourceQuotaList {
 // ClusterResourceQuota mirrors ResourceQuota at a cluster scope.  This object is easily convertible to
 // synthetic ResourceQuota object to allow quota evaluation re-use.
 message ClusterResourceQuota {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec defines the desired quota
@@ -50,7 +47,6 @@ message ClusterResourceQuota {
 
 // ClusterResourceQuotaList is a collection of ClusterResourceQuotas
 message ClusterResourceQuotaList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of ClusterResourceQuotas

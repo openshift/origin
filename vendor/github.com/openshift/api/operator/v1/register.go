@@ -46,6 +46,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&KubeControllerManagerList{},
 		&KubeScheduler{},
 		&KubeSchedulerList{},
+		&KubeStorageVersionMigrator{},
+		&KubeStorageVersionMigratorList{},
 		&Network{},
 		&NetworkList{},
 		&OpenShiftAPIServer{},

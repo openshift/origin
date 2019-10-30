@@ -1,0 +1,85 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: consoleclidownloads.console.openshift.io
+  annotations:
+    displayName: ConsoleCLIDownload
+    description: Extension for configuring openshift web console command line interface
+      (CLI) downloads.
+spec:
+  scope: Cluster
+  preserveUnknownFields: false
+  group: console.openshift.io
+  versions:
+  - name: v1
+    served: true
+    storage: true
+  names:
+    plural: consoleclidownloads
+    singular: consoleclidownload
+    kind: ConsoleCLIDownload
+    listKind: ConsoleCLIDownloadList
+  additionalPrinterColumns:
+  - name: Display name
+    type: string
+    JSONPath: .spec.displayName
+  - name: Age
+    type: string
+    JSONPath: .metadata.creationTimestamp
+  - name: Description
+    type: string
+    JSONPath: .spec.description
+  subresources:
+    status: {}
+  "validation":
+    "openAPIV3Schema":
+      description: ConsoleCLIDownload is an extension for configuring openshift web
+        console command line interface (CLI) downloads.
+      type: object
+      required:
+      - spec
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: ConsoleCLIDownloadSpec is the desired cli download configuration.
+          type: object
+          required:
+          - description
+          - displayName
+          - links
+          properties:
+            description:
+              description: description is the description of the CLI download (can
+                include markdown).
+              type: string
+            displayName:
+              description: displayName is the display name of the CLI download.
+              type: string
+            links:
+              description: links is a list of objects that provide CLI download link
+                details.
+              type: array
+              items:
+                type: object
+                required:
+                - href
+                properties:
+                  href:
+                    description: href is the absolute secure URL for the link (must
+                      use https)
+                    type: string
+                    pattern: ^https://
+                  text:
+                    description: text is the display text for the link
+                    type: string

@@ -22,4 +22,7 @@ type MyOtherOperatorResource struct {
 type MyOtherOperatorResourceSpec struct {
 	Name            string `json:"name"`
 	DeprecatedField string `json:"deprecatedField"`
+
+	// +kubebuilder:validation:Pattern=^(Managed|Unmanaged)$
+	OverwritePattern string `json:"overwritePattern"`
 }

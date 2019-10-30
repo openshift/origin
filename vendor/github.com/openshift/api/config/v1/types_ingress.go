@@ -9,8 +9,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // Ingress holds cluster-wide information about ingress, including the default ingress domain
 // used for routes. The canonical name is `cluster`.
 type Ingress struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
@@ -41,7 +40,7 @@ type IngressStatus struct {
 
 type IngressList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
-	Items           []Ingress `json:"items"`
+
+	Items []Ingress `json:"items"`
 }

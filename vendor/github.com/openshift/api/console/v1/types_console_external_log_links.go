@@ -8,10 +8,10 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // ConsoleExternalLogLink is an extension for customizing OpenShift web console log links.
 type ConsoleExternalLogLink struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              ConsoleExternalLogLinkSpec `json:"spec"`
+
+	Spec ConsoleExternalLogLinkSpec `json:"spec"`
 }
 
 // ConsoleExternalLogLinkSpec is the desired log link configuration.
@@ -29,15 +29,26 @@ type ConsoleExternalLogLinkSpec struct {
 	//               - e.g. `11111111-2222-3333-4444-555555555555`
 	// - ${containerName} - name of the resource's container that contains the logs
 	// - ${resourceNamespace} - namespace of the resource that contains the logs
+	// - ${resourceNamespaceUID} - namespace UID of the resource that contains the logs
 	// - ${podLabels} - JSON representation of labels matching the pod with the logs
 	//             - e.g. `{"key1":"value1","key2":"value2"}`
 	//
 	// e.g., https://example.com/logs?resourceName=${resourceName}&containerName=${containerName}&resourceNamespace=${resourceNamespace}&podLabels=${podLabels}
+	// +kubebuilder:validation:Pattern=`^https://`
 	HrefTemplate string `json:"hrefTemplate"`
 	// namespaceFilter is a regular expression used to restrict a log link to a
 	// matching set of namespaces (e.g., `^openshift-`). The string is converted
 	// into a regular expression using the JavaScript RegExp constructor.
 	// If not specified, links will be displayed for all the namespaces.
-	// + optional
+	// +optional
 	NamespaceFilter string `json:"namespaceFilter,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type ConsoleExternalLogLinkList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []ConsoleExternalLogLink `json:"items"`
 }

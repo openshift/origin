@@ -76,18 +76,21 @@ type ServiceCertSignerOperatorConfigSpec struct {
 	// it will end up overlaying in the following order:
 	// 1. hardcoded default
 	// 2. this config
+	// +kubebuilder:validation:PreserveUnknownFields
 	ServiceServingCertSignerConfig runtime.RawExtension `json:"serviceServingCertSignerConfig"`
 
 	// apiServiceCABundleInjectorConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults
 	// it will end up overlaying in the following order:
 	// 1. hardcoded default
 	// 2. this config
+	// +kubebuilder:validation:PreserveUnknownFields
 	APIServiceCABundleInjectorConfig runtime.RawExtension `json:"apiServiceCABundleInjectorConfig"`
 
 	// configMapCABundleInjectorConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults
 	// it will end up overlaying in the following order:
 	// 1. hardcoded default
 	// 2. this config
+	// +kubebuilder:validation:PreserveUnknownFields
 	ConfigMapCABundleInjectorConfig runtime.RawExtension `json:"configMapCABundleInjectorConfig"`
 }
 
@@ -100,8 +103,8 @@ type ServiceCertSignerOperatorConfigStatus struct {
 // ServiceCertSignerOperatorConfigList is a collection of items
 type ServiceCertSignerOperatorConfigList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty"`
+
 	// Items contains the items
 	Items []ServiceCertSignerOperatorConfig `json:"items"`
 }

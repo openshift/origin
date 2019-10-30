@@ -27,8 +27,7 @@ import (
 // If a client chooses a duplicate name, for instance, the route status conditions are used
 // to indicate the route cannot be chosen.
 type Route struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec is the desired state of the route
@@ -42,7 +41,6 @@ type Route struct {
 // RouteList is a collection of Routes.
 type RouteList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// items is a list of routes
@@ -84,7 +82,7 @@ type RouteSpec struct {
 	// `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.
 	//
 	// +optional
-	Subdomain string `json:"subdomain" protobuf:"bytes,8,opt,name=subdomain"`
+	Subdomain string `json:"subdomain,omitempty" protobuf:"bytes,8,opt,name=subdomain"`
 
 	// path that the router watches for, to route traffic for to the service. Optional
 	Path string `json:"path,omitempty" protobuf:"bytes,2,opt,name=path"`

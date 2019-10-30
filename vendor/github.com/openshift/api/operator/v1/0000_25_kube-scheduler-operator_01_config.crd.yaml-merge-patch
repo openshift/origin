@@ -1,0 +1,10 @@
+# this file can be removed once we switch to v0.2 of crd generator
+# see: https://github.com/openshift/cluster-kube-scheduler-operator/pull/148
+spec:
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          properties:
+            managementState:
+              pattern: "^(Managed|Force)$"

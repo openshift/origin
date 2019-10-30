@@ -14,7 +14,6 @@ option go_package = "v1";
 
 // Group represents a referenceable set of Users
 message Group {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Users is the list of users in this group.
@@ -23,7 +22,6 @@ message Group {
 
 // GroupList is a collection of Groups
 message GroupList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of groups
@@ -36,7 +34,6 @@ message GroupList {
 // user. Information retrieved from the authentication provider is stored in the extra field
 // using a schema determined by the provider.
 message Identity {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // ProviderName is the source of identity information
@@ -55,7 +52,6 @@ message Identity {
 
 // IdentityList is a collection of Identities
 message IdentityList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of identities
@@ -77,7 +73,6 @@ message OptionalNames {
 // identity provider - if a user already exists with the incoming name, the user name may have
 // a number appended to it depending on the configuration of the system.
 message User {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // FullName is the full name of user
@@ -94,7 +89,6 @@ message User {
 
 // UserIdentityMapping maps a user to an identity
 message UserIdentityMapping {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Identity is a reference to an identity
@@ -106,7 +100,6 @@ message UserIdentityMapping {
 
 // UserList is a collection of Users
 message UserList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of users

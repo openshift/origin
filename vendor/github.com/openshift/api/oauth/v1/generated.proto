@@ -25,7 +25,6 @@ message ClusterRoleScopeRestriction {
 
 // OAuthAccessToken describes an OAuth access token
 message OAuthAccessToken {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // ClientName references the client that created this token.
@@ -60,7 +59,6 @@ message OAuthAccessToken {
 
 // OAuthAccessTokenList is a collection of OAuth access tokens
 message OAuthAccessTokenList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of OAuth access tokens
@@ -69,7 +67,6 @@ message OAuthAccessTokenList {
 
 // OAuthAuthorizeToken describes an OAuth authorization token
 message OAuthAuthorizeToken {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // ClientName references the client that created this token.
@@ -103,7 +100,6 @@ message OAuthAuthorizeToken {
 
 // OAuthAuthorizeTokenList is a collection of OAuth authorization tokens
 message OAuthAuthorizeTokenList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of OAuth authorization tokens
@@ -112,7 +108,6 @@ message OAuthAuthorizeTokenList {
 
 // OAuthClient describes an OAuth client
 message OAuthClient {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Secret is the unique secret associated with a client
@@ -129,11 +124,10 @@ message OAuthClient {
   // +patchStrategy=merge
   repeated string redirectURIs = 5;
 
-  // GrantMethod determines how to handle grants for this client. If no method is provided, the
-  // cluster default grant handling method will be used. Valid grant handling methods are:
+  // GrantMethod is a required field which determines how to handle grants for this client.
+  // Valid grant handling methods are:
   //  - auto:   always approves grant requests, useful for trusted clients
   //  - prompt: prompts the end user for approval of grant requests, useful for third-party clients
-  //  - deny:   always denies grant requests, useful for black-listed clients
   optional string grantMethod = 6;
 
   // ScopeRestrictions describes which scopes this client can request.  Each requested scope
@@ -161,7 +155,6 @@ message OAuthClient {
 
 // OAuthClientAuthorization describes an authorization created by an OAuth client
 message OAuthClientAuthorization {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // ClientName references the client that created this authorization
@@ -180,7 +173,6 @@ message OAuthClientAuthorization {
 
 // OAuthClientAuthorizationList is a collection of OAuth client authorizations
 message OAuthClientAuthorizationList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of OAuth client authorizations
@@ -189,7 +181,6 @@ message OAuthClientAuthorizationList {
 
 // OAuthClientList is a collection of OAuth clients
 message OAuthClientList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of OAuth clients
@@ -198,7 +189,6 @@ message OAuthClientList {
 
 // OAuthRedirectReference is a reference to an OAuth redirect object.
 message OAuthRedirectReference {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // The reference to an redirect object in the current namespace.

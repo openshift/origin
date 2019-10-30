@@ -1,0 +1,541 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: ingresscontrollers.operator.openshift.io
+spec:
+  group: operator.openshift.io
+  names:
+    kind: IngressController
+    listKind: IngressControllerList
+    plural: ingresscontrollers
+    singular: ingresscontroller
+  scope: ""
+  preserveUnknownFields: false
+  subresources:
+    scale:
+      labelSelectorPath: .status.selector
+      specReplicasPath: .spec.replicas
+      statusReplicasPath: .status.availableReplicas
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: "IngressController describes a managed ingress controller for the
+        cluster. The controller can service OpenShift Route and Kubernetes Ingress
+        resources. \n When an IngressController is created, a new ingress controller
+        deployment is created to allow external traffic to reach the services that
+        expose Ingress or Route resources. Updating this resource may lead to disruption
+        for public facing network connections as a new ingress controller revision
+        may be rolled out. \n https://kubernetes.io/docs/concepts/services-networking/ingress-controllers
+        \n Whenever possible, sensible defaults for the platform are used. See each
+        field for more details."
+      type: object
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: spec is the specification of the desired behavior of the IngressController.
+          type: object
+          properties:
+            defaultCertificate:
+              description: "defaultCertificate is a reference to a secret containing
+                the default certificate served by the ingress controller. When Routes
+                don't specify their own certificate, defaultCertificate is used. \n
+                The secret must contain the following keys and data: \n   tls.crt:
+                certificate file contents   tls.key: key file contents \n If unset,
+                a wildcard certificate is automatically generated and used. The certificate
+                is valid for the ingress controller domain (and subdomains) and the
+                generated certificate's CA will be automatically integrated with the
+                cluster's trust store. \n The in-use certificate (whether generated
+                or user-specified) will be automatically integrated with OpenShift's
+                built-in OAuth server."
+              type: object
+              properties:
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    TODO: Add other useful fields. apiVersion, kind, uid?'
+                  type: string
+            domain:
+              description: "domain is a DNS name serviced by the ingress controller
+                and is used to configure multiple features: \n * For the LoadBalancerService
+                endpoint publishing strategy, domain is   used to configure DNS records.
+                See endpointPublishingStrategy. \n * When using a generated default
+                certificate, the certificate will be valid   for domain and its subdomains.
+                See defaultCertificate. \n * The value is published to individual
+                Route statuses so that end-users   know where to target external DNS
+                records. \n domain must be unique among all IngressControllers, and
+                cannot be updated. \n If empty, defaults to ingress.config.openshift.io/cluster
+                .spec.domain."
+              type: string
+            endpointPublishingStrategy:
+              description: "endpointPublishingStrategy is used to publish the ingress
+                controller endpoints to other networks, enable load balancer integrations,
+                etc. \n If unset, the default is based on infrastructure.config.openshift.io/cluster
+                .status.platform: \n   AWS:      LoadBalancerService (with External
+                scope)   Azure:    LoadBalancerService (with External scope)   GCP:
+                \     LoadBalancerService (with External scope)   Libvirt:  HostNetwork
+                \n Any other platform types (including None) default to HostNetwork.
+                \n endpointPublishingStrategy cannot be updated."
+              type: object
+              required:
+              - type
+              properties:
+                hostNetwork:
+                  description: hostNetwork holds parameters for the HostNetwork endpoint
+                    publishing strategy. Present only if type is HostNetwork.
+                  type: object
+                loadBalancer:
+                  description: loadBalancer holds parameters for the load balancer.
+                    Present only if type is LoadBalancerService.
+                  type: object
+                  required:
+                  - scope
+                  properties:
+                    scope:
+                      description: scope indicates the scope at which the load balancer
+                        is exposed. Possible values are "External" and "Internal".
+                      type: string
+                private:
+                  description: private holds parameters for the Private endpoint publishing
+                    strategy. Present only if type is Private.
+                  type: object
+                type:
+                  description: "type is the publishing strategy to use. Valid values
+                    are: \n * LoadBalancerService \n Publishes the ingress controller
+                    using a Kubernetes LoadBalancer Service. \n In this configuration,
+                    the ingress controller deployment uses container networking. A
+                    LoadBalancer Service is created to publish the deployment. \n
+                    See: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
+                    \n If domain is set, a wildcard DNS record will be managed to
+                    point at the LoadBalancer Service's external name. DNS records
+                    are managed only in DNS zones defined by dns.config.openshift.io/cluster
+                    .spec.publicZone and .spec.privateZone. \n Wildcard DNS management
+                    is currently supported only on the AWS, Azure, and GCP platforms.
+                    \n * HostNetwork \n Publishes the ingress controller on node ports
+                    where the ingress controller is deployed. \n In this configuration,
+                    the ingress controller deployment uses host networking, bound
+                    to node ports 80 and 443. The user is responsible for configuring
+                    an external load balancer to publish the ingress controller via
+                    the node ports. \n * Private \n Does not publish the ingress controller.
+                    \n In this configuration, the ingress controller deployment uses
+                    container networking, and is not explicitly published. The user
+                    must manually publish the ingress controller."
+                  type: string
+            namespaceSelector:
+              description: "namespaceSelector is used to filter the set of namespaces
+                serviced by the ingress controller. This is useful for implementing
+                shards. \n If unset, the default is no filtering."
+              type: object
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements.
+                    The requirements are ANDed.
+                  type: array
+                  items:
+                    description: A label selector requirement is a selector that contains
+                      values, a key, and an operator that relates the key and values.
+                    type: object
+                    required:
+                    - key
+                    - operator
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies
+                          to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a
+                          set of values. Valid operators are In, NotIn, Exists and
+                          DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator
+                          is In or NotIn, the values array must be non-empty. If the
+                          operator is Exists or DoesNotExist, the values array must
+                          be empty. This array is replaced during a strategic merge
+                          patch.
+                        type: array
+                        items:
+                          type: string
+                matchLabels:
+                  description: matchLabels is a map of {key,value} pairs. A single
+                    {key,value} in the matchLabels map is equivalent to an element
+                    of matchExpressions, whose key field is "key", the operator is
+                    "In", and the values array contains only "value". The requirements
+                    are ANDed.
+                  type: object
+                  additionalProperties:
+                    type: string
+            nodePlacement:
+              description: "nodePlacement enables explicit control over the scheduling
+                of the ingress controller. \n If unset, defaults are used. See NodePlacement
+                for more details."
+              type: object
+              properties:
+                nodeSelector:
+                  description: "nodeSelector is the node selector applied to ingress
+                    controller deployments. \n If unset, the default is: \n   beta.kubernetes.io/os:
+                    linux   node-role.kubernetes.io/worker: '' \n If set, the specified
+                    selector is used and replaces the default."
+                  type: object
+                  properties:
+                    matchExpressions:
+                      description: matchExpressions is a list of label selector requirements.
+                        The requirements are ANDed.
+                      type: array
+                      items:
+                        description: A label selector requirement is a selector that
+                          contains values, a key, and an operator that relates the
+                          key and values.
+                        type: object
+                        required:
+                        - key
+                        - operator
+                        properties:
+                          key:
+                            description: key is the label key that the selector applies
+                              to.
+                            type: string
+                          operator:
+                            description: operator represents a key's relationship
+                              to a set of values. Valid operators are In, NotIn, Exists
+                              and DoesNotExist.
+                            type: string
+                          values:
+                            description: values is an array of string values. If the
+                              operator is In or NotIn, the values array must be non-empty.
+                              If the operator is Exists or DoesNotExist, the values
+                              array must be empty. This array is replaced during a
+                              strategic merge patch.
+                            type: array
+                            items:
+                              type: string
+                    matchLabels:
+                      description: matchLabels is a map of {key,value} pairs. A single
+                        {key,value} in the matchLabels map is equivalent to an element
+                        of matchExpressions, whose key field is "key", the operator
+                        is "In", and the values array contains only "value". The requirements
+                        are ANDed.
+                      type: object
+                      additionalProperties:
+                        type: string
+                tolerations:
+                  description: "tolerations is a list of tolerations applied to ingress
+                    controller deployments. \n The default is an empty list. \n See
+                    https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
+                  type: array
+                  items:
+                    description: The pod this Toleration is attached to tolerates
+                      any taint that matches the triple <key,value,effect> using the
+                      matching operator <operator>.
+                    type: object
+                    properties:
+                      effect:
+                        description: Effect indicates the taint effect to match. Empty
+                          means match all taint effects. When specified, allowed values
+                          are NoSchedule, PreferNoSchedule and NoExecute.
+                        type: string
+                      key:
+                        description: Key is the taint key that the toleration applies
+                          to. Empty means match all taint keys. If the key is empty,
+                          operator must be Exists; this combination means to match
+                          all values and all keys.
+                        type: string
+                      operator:
+                        description: Operator represents a key's relationship to the
+                          value. Valid operators are Exists and Equal. Defaults to
+                          Equal. Exists is equivalent to wildcard for value, so that
+                          a pod can tolerate all taints of a particular category.
+                        type: string
+                      tolerationSeconds:
+                        description: TolerationSeconds represents the period of time
+                          the toleration (which must be of effect NoExecute, otherwise
+                          this field is ignored) tolerates the taint. By default,
+                          it is not set, which means tolerate the taint forever (do
+                          not evict). Zero and negative values will be treated as
+                          0 (evict immediately) by the system.
+                        type: integer
+                        format: int64
+                      value:
+                        description: Value is the taint value the toleration matches
+                          to. If the operator is Exists, the value should be empty,
+                          otherwise just a regular string.
+                        type: string
+            replicas:
+              description: replicas is the desired number of ingress controller replicas.
+                If unset, defaults to 2.
+              type: integer
+              format: int32
+            routeSelector:
+              description: "routeSelector is used to filter the set of Routes serviced
+                by the ingress controller. This is useful for implementing shards.
+                \n If unset, the default is no filtering."
+              type: object
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements.
+                    The requirements are ANDed.
+                  type: array
+                  items:
+                    description: A label selector requirement is a selector that contains
+                      values, a key, and an operator that relates the key and values.
+                    type: object
+                    required:
+                    - key
+                    - operator
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies
+                          to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a
+                          set of values. Valid operators are In, NotIn, Exists and
+                          DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator
+                          is In or NotIn, the values array must be non-empty. If the
+                          operator is Exists or DoesNotExist, the values array must
+                          be empty. This array is replaced during a strategic merge
+                          patch.
+                        type: array
+                        items:
+                          type: string
+                matchLabels:
+                  description: matchLabels is a map of {key,value} pairs. A single
+                    {key,value} in the matchLabels map is equivalent to an element
+                    of matchExpressions, whose key field is "key", the operator is
+                    "In", and the values array contains only "value". The requirements
+                    are ANDed.
+                  type: object
+                  additionalProperties:
+                    type: string
+            tlsSecurityProfile:
+              description: "tlsSecurityProfile specifies settings for TLS connections
+                for ingresscontrollers. \n If unset, the default is based on the apiservers.config.openshift.io/cluster
+                resource. \n Note that when using the Old, Intermediate, and Modern
+                profile types, the effective profile configuration is subject to change
+                between releases. For example, given a specification to use the Intermediate
+                profile deployed on release X.Y.Z, an upgrade to release X.Y.Z+1 may
+                cause a new profile configuration to be applied to the ingress controller,
+                resulting in a rollout. \n Note that the minimum TLS version for ingress
+                controllers is 1.1, and the maximum TLS version is 1.2.  An implication
+                of this restriction is that the Modern TLS profile type cannot be
+                used because it requires TLS 1.3."
+              type: object
+              properties:
+                custom:
+                  description: "custom is a user-defined TLS security profile. Be
+                    extremely careful using a custom profile as invalid configurations
+                    can be catastrophic. An example custom profile looks like this:
+                    \n   ciphers:     - ECDHE-ECDSA-CHACHA20-POLY1305     - ECDHE-RSA-CHACHA20-POLY1305
+                    \    - ECDHE-RSA-AES128-GCM-SHA256     - ECDHE-ECDSA-AES128-GCM-SHA256
+                    \  minTLSVersion: TLSv1.1"
+                  type: object
+                  properties:
+                    ciphers:
+                      description: "ciphers is used to specify the cipher algorithms
+                        that are negotiated during the TLS handshake.  Operators may
+                        remove entries their operands do not support.  For example,
+                        to use DES-CBC3-SHA  (yaml): \n   ciphers:     - DES-CBC3-SHA"
+                      type: array
+                      items:
+                        type: string
+                    minTLSVersion:
+                      description: "minTLSVersion is used to specify the minimal version
+                        of the TLS protocol that is negotiated during the TLS handshake.
+                        For example, to use TLS versions 1.1, 1.2 and 1.3 (yaml):
+                        \n   minTLSVersion: TLSv1.1"
+                      type: string
+                  nullable: true
+                intermediate:
+                  description: "intermediate is a TLS security profile based on: \n
+                    https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29
+                    \n and looks like this (yaml): \n   ciphers:     - TLS_AES_128_GCM_SHA256
+                    \    - TLS_AES_256_GCM_SHA384     - TLS_CHACHA20_POLY1305_SHA256
+                    \    - ECDHE-ECDSA-AES128-GCM-SHA256     - ECDHE-RSA-AES128-GCM-SHA256
+                    \    - ECDHE-ECDSA-AES256-GCM-SHA384     - ECDHE-RSA-AES256-GCM-SHA384
+                    \    - ECDHE-ECDSA-CHACHA20-POLY1305     - ECDHE-RSA-CHACHA20-POLY1305
+                    \    - DHE-RSA-AES128-GCM-SHA256     - DHE-RSA-AES256-GCM-SHA384
+                    \  minTLSVersion: TLSv1.2"
+                  type: object
+                  nullable: true
+                modern:
+                  description: "modern is a TLS security profile based on: \n https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
+                    \n and looks like this (yaml): \n   ciphers:     - TLS_AES_128_GCM_SHA256
+                    \    - TLS_AES_256_GCM_SHA384     - TLS_CHACHA20_POLY1305_SHA256
+                    \  minTLSVersion: TLSv1.3"
+                  type: object
+                  nullable: true
+                old:
+                  description: "old is a TLS security profile based on: \n https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility
+                    \n and looks like this (yaml): \n   ciphers:     - TLS_AES_128_GCM_SHA256
+                    \    - TLS_AES_256_GCM_SHA384     - TLS_CHACHA20_POLY1305_SHA256
+                    \    - ECDHE-ECDSA-AES128-GCM-SHA256     - ECDHE-RSA-AES128-GCM-SHA256
+                    \    - ECDHE-ECDSA-AES256-GCM-SHA384     - ECDHE-RSA-AES256-GCM-SHA384
+                    \    - ECDHE-ECDSA-CHACHA20-POLY1305     - ECDHE-RSA-CHACHA20-POLY1305
+                    \    - DHE-RSA-AES128-GCM-SHA256     - DHE-RSA-AES256-GCM-SHA384
+                    \    - DHE-RSA-CHACHA20-POLY1305     - ECDHE-ECDSA-AES128-SHA256
+                    \    - ECDHE-RSA-AES128-SHA256     - ECDHE-ECDSA-AES128-SHA     -
+                    ECDHE-RSA-AES128-SHA     - ECDHE-ECDSA-AES256-SHA384     - ECDHE-RSA-AES256-SHA384
+                    \    - ECDHE-ECDSA-AES256-SHA     - ECDHE-RSA-AES256-SHA     -
+                    DHE-RSA-AES128-SHA256     - DHE-RSA-AES256-SHA256     - AES128-GCM-SHA256
+                    \    - AES256-GCM-SHA384     - AES128-SHA256     - AES256-SHA256
+                    \    - AES128-SHA     - AES256-SHA     - DES-CBC3-SHA   minTLSVersion:
+                    TLSv1.0"
+                  type: object
+                  nullable: true
+                type:
+                  description: "type is one of Old, Intermediate, Modern or Custom.
+                    Custom provides the ability to specify individual TLS security
+                    profile parameters. Old, Intermediate and Modern are TLS security
+                    profiles based on: \n https://wiki.mozilla.org/Security/Server_Side_TLS#Recommended_configurations
+                    \n The profiles are intent based, so they may change over time
+                    as new ciphers are developed and existing ciphers are found to
+                    be insecure.  Depending on precisely which ciphers are available
+                    to a process, the list may be reduced."
+                  type: string
+        status:
+          description: status is the most recently observed status of the IngressController.
+          type: object
+          properties:
+            availableReplicas:
+              description: availableReplicas is number of observed available replicas
+                according to the ingress controller deployment.
+              type: integer
+              format: int32
+            conditions:
+              description: "conditions is a list of conditions and their status. \n
+                Available means the ingress controller deployment is available and
+                servicing route and ingress resources (i.e, .status.availableReplicas
+                equals .spec.replicas) \n There are additional conditions which indicate
+                the status of other ingress controller features and capabilities.
+                \n   * LoadBalancerManaged   - True if the following conditions are
+                met:     * The endpoint publishing strategy requires a service load
+                balancer.   - False if any of those conditions are unsatisfied. \n
+                \  * LoadBalancerReady   - True if the following conditions are met:
+                \    * A load balancer is managed.     * The load balancer is ready.
+                \  - False if any of those conditions are unsatisfied. \n   * DNSManaged
+                \  - True if the following conditions are met:     * The endpoint
+                publishing strategy and platform support DNS.     * The ingress controller
+                domain is set.     * dns.config.openshift.io/cluster configures DNS
+                zones.   - False if any of those conditions are unsatisfied. \n   *
+                DNSReady   - True if the following conditions are met:     * DNS is
+                managed.     * DNS records have been successfully created.   - False
+                if any of those conditions are unsatisfied."
+              type: array
+              items:
+                description: OperatorCondition is just the standard condition fields.
+                type: object
+                properties:
+                  lastTransitionTime:
+                    type: string
+                    format: date-time
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+            domain:
+              description: domain is the actual domain in use.
+              type: string
+            endpointPublishingStrategy:
+              description: endpointPublishingStrategy is the actual strategy in use.
+              type: object
+              required:
+              - type
+              properties:
+                hostNetwork:
+                  description: hostNetwork holds parameters for the HostNetwork endpoint
+                    publishing strategy. Present only if type is HostNetwork.
+                  type: object
+                loadBalancer:
+                  description: loadBalancer holds parameters for the load balancer.
+                    Present only if type is LoadBalancerService.
+                  type: object
+                  required:
+                  - scope
+                  properties:
+                    scope:
+                      description: scope indicates the scope at which the load balancer
+                        is exposed. Possible values are "External" and "Internal".
+                      type: string
+                private:
+                  description: private holds parameters for the Private endpoint publishing
+                    strategy. Present only if type is Private.
+                  type: object
+                type:
+                  description: "type is the publishing strategy to use. Valid values
+                    are: \n * LoadBalancerService \n Publishes the ingress controller
+                    using a Kubernetes LoadBalancer Service. \n In this configuration,
+                    the ingress controller deployment uses container networking. A
+                    LoadBalancer Service is created to publish the deployment. \n
+                    See: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
+                    \n If domain is set, a wildcard DNS record will be managed to
+                    point at the LoadBalancer Service's external name. DNS records
+                    are managed only in DNS zones defined by dns.config.openshift.io/cluster
+                    .spec.publicZone and .spec.privateZone. \n Wildcard DNS management
+                    is currently supported only on the AWS, Azure, and GCP platforms.
+                    \n * HostNetwork \n Publishes the ingress controller on node ports
+                    where the ingress controller is deployed. \n In this configuration,
+                    the ingress controller deployment uses host networking, bound
+                    to node ports 80 and 443. The user is responsible for configuring
+                    an external load balancer to publish the ingress controller via
+                    the node ports. \n * Private \n Does not publish the ingress controller.
+                    \n In this configuration, the ingress controller deployment uses
+                    container networking, and is not explicitly published. The user
+                    must manually publish the ingress controller."
+                  type: string
+            observedGeneration:
+              description: observedGeneration is the most recent generation observed.
+              type: integer
+              format: int64
+            selector:
+              description: selector is a label selector, in string format, for ingress
+                controller pods corresponding to the IngressController. The number
+                of matching pods should equal the value of availableReplicas.
+              type: string
+            tlsProfile:
+              description: tlsProfile is the TLS connection configuration that is
+                in effect.
+              type: object
+              properties:
+                ciphers:
+                  description: "ciphers is used to specify the cipher algorithms that
+                    are negotiated during the TLS handshake.  Operators may remove
+                    entries their operands do not support.  For example, to use DES-CBC3-SHA
+                    \ (yaml): \n   ciphers:     - DES-CBC3-SHA"
+                  type: array
+                  items:
+                    type: string
+                minTLSVersion:
+                  description: "minTLSVersion is used to specify the minimal version
+                    of the TLS protocol that is negotiated during the TLS handshake.
+                    For example, to use TLS versions 1.1, 1.2 and 1.3 (yaml): \n   minTLSVersion:
+                    TLSv1.1"
+                  type: string
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

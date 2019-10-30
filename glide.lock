@@ -1,5 +1,5 @@
-hash: 612ae80e3fe1e705fa9dbf45bdf7866b06ab8b0552504864db8260064bc4c841
-updated: 2019-10-29T11:55:41.213439+01:00
+hash: 4e2aa6536866507323c2a6311dfc8b48e0f25d213dd6d8da203ce062bd50ddeb
+updated: 2019-10-30T10:14:10.129898366+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -804,7 +804,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 169848dd81372b8176b925c10b37a05424db5f2f
+  version: d752785a7d26e12a7d213a078cc428b932b3f9f4
   subpackages:
   - annotations
   - apps
@@ -851,10 +851,8 @@ imports:
   - unidling/v1alpha1
   - user
   - user/v1
-  - webconsole
-  - webconsole/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 19dcb95e108ce9c22f3f134043def29c601733c8
+  version: 623481f3614327028294e05c4c712847c41c7184
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -874,7 +872,7 @@ imports:
   - pkg/securitycontextconstraints/util
   - pkg/securitycontextconstraints/util/sort
 - name: github.com/openshift/client-go
-  version: 6afefc9bb37281f45d12d624156e39e363eaf4fd
+  version: 2823239d2298214509c3536714f684101799e81b
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -975,7 +973,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 76b67dd70a86d147ea3e7677aa5f9682ff94770f
+  version: d368763acf527b139373e58d3d5356b21f8e7cc5
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -2136,7 +2134,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 0fe78070b864fb04089284ea3dfccf5cf68eafb7
+  version: ecdef8e738677851272495bf014c2fef6231eb11
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app

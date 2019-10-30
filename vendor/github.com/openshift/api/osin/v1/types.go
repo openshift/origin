@@ -105,6 +105,7 @@ type IdentityProvider struct {
 	// mappingMethod determines how identities from this provider are mapped to users
 	MappingMethod string `json:"mappingMethod"`
 	// provider contains the information about how to set up a specific identity provider
+	// +kubebuilder:validation:PreserveUnknownFields
 	Provider runtime.RawExtension `json:"provider"`
 }
 

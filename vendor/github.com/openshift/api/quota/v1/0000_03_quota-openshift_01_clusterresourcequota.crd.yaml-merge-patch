@@ -1,0 +1,14 @@
+spec:
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          properties:
+            quota:
+              properties:
+                hard:
+                  additionalProperties:
+                    anyOf:
+                    - type: string
+                    - type: integer
+                    type: null

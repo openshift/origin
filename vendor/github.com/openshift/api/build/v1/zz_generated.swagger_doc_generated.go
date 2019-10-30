@@ -13,7 +13,6 @@ package v1
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_BinaryBuildRequestOptions = map[string]string{
 	"":                        "BinaryBuildRequestOptions are the options required to fully speficy a binary build request",
-	"metadata":                "metadata for BinaryBuildRequestOptions.",
 	"asFile":                  "asFile determines if the binary should be created as a file within the source rather than extracted as an archive",
 	"revision.commit":         "revision.commit is the value identifying a specific commit",
 	"revision.message":        "revision.message is the description of a specific commit",
@@ -45,10 +44,9 @@ func (BitbucketWebHookCause) SwaggerDoc() map[string]string {
 }
 
 var map_Build = map[string]string{
-	"":         "Build encapsulates the inputs needed to produce a new deployable image, as well as the status of the execution and a reference to the Pod which executed the build.",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec is all the inputs used to execute the build.",
-	"status":   "status is the current status of the build.",
+	"":       "Build encapsulates the inputs needed to produce a new deployable image, as well as the status of the execution and a reference to the Pod which executed the build.",
+	"spec":   "spec is all the inputs used to execute the build.",
+	"status": "status is the current status of the build.",
 }
 
 func (Build) SwaggerDoc() map[string]string {
@@ -56,10 +54,9 @@ func (Build) SwaggerDoc() map[string]string {
 }
 
 var map_BuildConfig = map[string]string{
-	"":         "Build configurations define a build process for new container images. There are three types of builds possible - a container image build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary container images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the container image registry specified in the \"output\" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.\n\nEach build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have \"output\" set can be used to test code or run a verification build.",
-	"metadata": "metadata for BuildConfig.",
-	"spec":     "spec holds all the input necessary to produce a new build, and the conditions when to trigger them.",
-	"status":   "status holds any relevant information about a build config",
+	"":       "Build configurations define a build process for new container images. There are three types of builds possible - a container image build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary container images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the container image registry specified in the \"output\" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.\n\nEach build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have \"output\" set can be used to test code or run a verification build.",
+	"spec":   "spec holds all the input necessary to produce a new build, and the conditions when to trigger them.",
+	"status": "status holds any relevant information about a build config",
 }
 
 func (BuildConfig) SwaggerDoc() map[string]string {
@@ -67,9 +64,8 @@ func (BuildConfig) SwaggerDoc() map[string]string {
 }
 
 var map_BuildConfigList = map[string]string{
-	"":         "BuildConfigList is a collection of BuildConfigs.",
-	"metadata": "metadata for BuildConfigList.",
-	"items":    "items is a list of build configs",
+	"":      "BuildConfigList is a collection of BuildConfigs.",
+	"items": "items is a list of build configs",
 }
 
 func (BuildConfigList) SwaggerDoc() map[string]string {
@@ -98,9 +94,8 @@ func (BuildConfigStatus) SwaggerDoc() map[string]string {
 }
 
 var map_BuildList = map[string]string{
-	"":         "BuildList is a collection of Builds.",
-	"metadata": "metadata for BuildList.",
-	"items":    "items is a list of builds",
+	"":      "BuildList is a collection of Builds.",
+	"items": "items is a list of builds",
 }
 
 func (BuildList) SwaggerDoc() map[string]string {
@@ -157,7 +152,6 @@ func (BuildPostCommitSpec) SwaggerDoc() map[string]string {
 
 var map_BuildRequest = map[string]string{
 	"":                      "BuildRequest is the resource used to pass parameters to build generator",
-	"metadata":              "metadata for BuildRequest.",
 	"revision":              "revision is the information from the source for a specific repo snapshot.",
 	"triggeredByImage":      "triggeredByImage is the Image that triggered this build.",
 	"from":                  "from is the reference to the ImageStreamTag that triggered the build.",

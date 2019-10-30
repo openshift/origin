@@ -16,8 +16,7 @@ import (
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec is all the inputs used to execute the build.
@@ -874,8 +873,7 @@ type ImageLabel struct {
 //
 // Each build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have "output" set can be used to test code or run a verification build.
 type BuildConfig struct {
-	metav1.TypeMeta `json:",inline"`
-	// metadata for BuildConfig.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec holds all the input necessary to produce a new build, and the conditions when
@@ -1035,7 +1033,6 @@ const (
 // BuildList is a collection of Builds.
 type BuildList struct {
 	metav1.TypeMeta `json:",inline"`
-	// metadata for BuildList.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// items is a list of builds
@@ -1047,7 +1044,6 @@ type BuildList struct {
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
 	metav1.TypeMeta `json:",inline"`
-	// metadata for BuildConfigList.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// items is a list of build configs
@@ -1115,8 +1111,7 @@ type SourceStrategyOptions struct {
 
 // BuildRequest is the resource used to pass parameters to build generator
 type BuildRequest struct {
-	metav1.TypeMeta `json:",inline"`
-	// metadata for BuildRequest.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// revision is the information from the source for a specific repo snapshot.
@@ -1154,8 +1149,7 @@ type BuildRequest struct {
 
 // BinaryBuildRequestOptions are the options required to fully speficy a binary build request
 type BinaryBuildRequestOptions struct {
-	metav1.TypeMeta `json:",inline"`
-	// metadata for BinaryBuildRequestOptions.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// asFile determines if the binary should be created as a file within the source rather than extracted as an archive

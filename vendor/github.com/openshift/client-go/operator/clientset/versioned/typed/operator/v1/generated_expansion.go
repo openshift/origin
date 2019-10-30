@@ -18,6 +18,8 @@ type KubeControllerManagerExpansion interface{}
 
 type KubeSchedulerExpansion interface{}
 
+type KubeStorageVersionMigratorExpansion interface{}
+
 type NetworkExpansion interface{}
 
 type OpenShiftAPIServerExpansion interface{}

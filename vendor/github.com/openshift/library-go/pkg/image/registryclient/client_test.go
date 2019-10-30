@@ -18,6 +18,7 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
+	registryclient "github.com/docker/distribution/registry/client"
 	"github.com/opencontainers/go-digest"
 	"golang.org/x/net/context"
 )
@@ -320,7 +321,155 @@ func TestRetryFailure(t *testing.T) {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 
-	// retry four times
+	// verify docker known errors
+	repo = &mockRepository{
+		getErr: temporaryError{},
+		blobs: &mockBlobStore{
+			serveErr: errcode.ErrorCodeTooManyRequests.WithDetail(struct{}{}),
+			statErr:  errcode.ErrorCodeUnavailable.WithDetail(struct{}{}),
+			// not retriable
+			openErr: errcode.ErrorCodeUnknown.WithDetail(struct{}{}),
+		},
+	}
+	r = NewLimitedRetryRepository(repo, 4, unlimited).(*retryRepository)
+	sleeps = 0
+	r.sleepFn = sleepFn
+	if m, err = r.Manifests(ctx); err != nil {
+		t.Fatal(err)
+	}
+	r.retries = 1
+	if _, err := m.Get(ctx, digest.Digest("foo")); err != repo.getErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	r.retries = 2
+	if m, err := m.Exists(ctx, "foo"); m || err != repo.getErr {
+		t.Fatalf("unexpected: %v %v %#v", m, err, r)
+	}
+	if sleeps != 3 {
+		t.Fatal(sleeps)
+	}
+
+	sleeps = 0
+	r.retries = 1
+	b := r.Blobs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.Stat(ctx, digest.Digest("x")); err != repo.blobs.statErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	r.retries = 2
+	if err := b.ServeBlob(ctx, nil, nil, digest.Digest("foo")); err != repo.blobs.serveErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	r.retries = 4
+	if _, err := b.Open(ctx, digest.Digest("foo")); err != repo.blobs.openErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	// Open did not retry
+	if sleeps != 3 {
+		t.Fatal(sleeps)
+	}
+
+	// verify unknown client errors
+	repo = &mockRepository{
+		getErr: temporaryError{},
+		blobs: &mockBlobStore{
+			serveErr: &registryclient.UnexpectedHTTPResponseError{StatusCode: http.StatusTooManyRequests},
+			statErr:  &registryclient.UnexpectedHTTPResponseError{StatusCode: http.StatusServiceUnavailable},
+			openErr:  &registryclient.UnexpectedHTTPResponseError{StatusCode: http.StatusInternalServerError},
+		},
+	}
+	r = NewLimitedRetryRepository(repo, 4, unlimited).(*retryRepository)
+	sleeps = 0
+	r.sleepFn = sleepFn
+	if m, err = r.Manifests(ctx); err != nil {
+		t.Fatal(err)
+	}
+	r.retries = 1
+	if _, err := m.Get(ctx, digest.Digest("foo")); err != repo.getErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	r.retries = 2
+	if m, err := m.Exists(ctx, "foo"); m || err != repo.getErr {
+		t.Fatalf("unexpected: %v %v %#v", m, err, r)
+	}
+	if sleeps != 3 {
+		t.Fatal(sleeps)
+	}
+
+	sleeps = 0
+	r.retries = 1
+	b = r.Blobs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.Stat(ctx, digest.Digest("x")); err != repo.blobs.statErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	r.retries = 2
+	if err := b.ServeBlob(ctx, nil, nil, digest.Digest("foo")); err != repo.blobs.serveErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	r.retries = 4
+	if _, err := b.Open(ctx, digest.Digest("foo")); err != repo.blobs.openErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	// Open did not retry
+	if sleeps != 7 {
+		t.Fatal(sleeps)
+	}
+
+	// verify more unknown client errors
+	repo = &mockRepository{
+		getErr: temporaryError{},
+		blobs: &mockBlobStore{
+			serveErr: &registryclient.UnexpectedHTTPResponseError{StatusCode: http.StatusBadGateway},
+			statErr:  &registryclient.UnexpectedHTTPResponseError{StatusCode: http.StatusGatewayTimeout},
+			openErr:  &registryclient.UnexpectedHTTPResponseError{StatusCode: http.StatusInternalServerError},
+		},
+	}
+	r = NewLimitedRetryRepository(repo, 4, unlimited).(*retryRepository)
+	sleeps = 0
+	r.sleepFn = sleepFn
+	if m, err = r.Manifests(ctx); err != nil {
+		t.Fatal(err)
+	}
+	r.retries = 1
+	if _, err := m.Get(ctx, digest.Digest("foo")); err != repo.getErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	r.retries = 2
+	if m, err := m.Exists(ctx, "foo"); m || err != repo.getErr {
+		t.Fatalf("unexpected: %v %v %#v", m, err, r)
+	}
+	if sleeps != 3 {
+		t.Fatal(sleeps)
+	}
+
+	sleeps = 0
+	r.retries = 1
+	b = r.Blobs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.Stat(ctx, digest.Digest("x")); err != repo.blobs.statErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	r.retries = 2
+	if err := b.ServeBlob(ctx, nil, nil, digest.Digest("foo")); err != repo.blobs.serveErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	r.retries = 4
+	if _, err := b.Open(ctx, digest.Digest("foo")); err != repo.blobs.openErr {
+		t.Fatalf("unexpected: %v %#v", err, r)
+	}
+	// Open did not retry
+	if sleeps != 7 {
+		t.Fatal(sleeps)
+	}
+
+	// retry with temporary errors
 	repo = &mockRepository{
 		getErr: temporaryError{},
 		blobs: &mockBlobStore{
@@ -335,7 +484,7 @@ func TestRetryFailure(t *testing.T) {
 	if m, err = r.Manifests(ctx); err != nil {
 		t.Fatal(err)
 	}
-	r.retries = 2
+	r.retries = 1
 	if _, err := m.Get(ctx, digest.Digest("foo")); err != repo.getErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
@@ -343,25 +492,8 @@ func TestRetryFailure(t *testing.T) {
 	if m, err := m.Exists(ctx, "foo"); m || err != repo.getErr {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
-	if sleeps != 4 {
+	if sleeps != 3 {
 		t.Fatal(sleeps)
-	}
-
-	r.retries = 2
-	b := r.Blobs(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := b.Stat(ctx, digest.Digest("x")); err != repo.blobs.statErr {
-		t.Fatalf("unexpected: %v %#v", err, r)
-	}
-	r.retries = 2
-	if err := b.ServeBlob(ctx, nil, nil, digest.Digest("foo")); err != repo.blobs.serveErr {
-		t.Fatalf("unexpected: %v %#v", err, r)
-	}
-	r.retries = 2
-	if _, err := b.Open(ctx, digest.Digest("foo")); err != repo.blobs.openErr {
-		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 }
 

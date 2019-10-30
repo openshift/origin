@@ -10,8 +10,8 @@ import (
 // ProjectList is a list of Project objects.
 type ProjectList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
 	// Items is the list of projects
 	Items []Project `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -39,6 +39,7 @@ type ProjectStatus struct {
 	// Phase is the current lifecycle phase of the project
 	// +optional
 	Phase corev1.NamespacePhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=k8s.io/api/core/v1.NamespacePhase"`
+
 	// Represents the latest available observations of the project current state.
 	// +optional
 	// +patchMergeKey=type
@@ -63,8 +64,7 @@ type ProjectStatus struct {
 // as editable to end users while namespaces are not. Direct creation of a project is typically restricted
 // to administrators, while end users should use the requestproject resource.
 type Project struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the behavior of the Namespace.
@@ -82,9 +82,9 @@ type Project struct {
 
 // ProjecRequest is the set of options necessary to fully qualify a project request
 type ProjectRequest struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
 	// DisplayName is the display name to apply to a project
 	DisplayName string `json:"displayName,omitempty" protobuf:"bytes,2,opt,name=displayName"`
 	// Description is the description to apply to a project

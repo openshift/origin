@@ -3,7 +3,7 @@ TMP_GOPATH :=$(shell mktemp -d)
 
 .ensure-go-bindata:
 	ln -s $(abspath ./vendor) "$(TMP_GOPATH)/src"
-	export GOPATH=$(TMP_GOPATH) && export GOBIN=$(TMP_GOPATH)/bin && go install "./vendor/github.com/jteeuwen/go-bindata/..."
+	export GO111MODULE=off && export GOPATH=$(TMP_GOPATH) && export GOBIN=$(TMP_GOPATH)/bin && go install "./vendor/github.com/jteeuwen/go-bindata/..."
 
 # $1 - input dirs
 # $2 - prefix

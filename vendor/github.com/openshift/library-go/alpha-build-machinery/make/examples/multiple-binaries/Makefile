@@ -2,11 +2,11 @@ include $(addprefix ../../, \
 	golang.mk \
 	targets/openshift/rpm.mk \
 	targets/openshift/crd-schema-gen.mk \
+	targets/openshift/deps.mk \
 )
 
 # Set crd-schema-gen variables
-CRD_SCHEMA_GEN_APIS :=$(addprefix ./pkg/apis/,v1 v1beta1)
-CRD_SCHEMA_GEN_VERSION :=v0.2.1
+CRD_APIS :=$(addprefix ./pkg/apis/,v1 v1beta1)
 
 # rpm wants build-id set
 GO_LD_EXTRAFLAGS +=-B 0x$$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')
@@ -14,6 +14,12 @@ GO_LD_EXTRAFLAGS +=-B 0x$$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')
 OUTPUT_DIR :=_output
 CROSS_BUILD_BINDIR :=$(OUTPUT_DIR)/bin
 RPM_EXTRAFLAGS :=--quiet --define 'version 2.42.0' --define 'dist .el7' --define 'release 6'
+
+# $1 - target name
+# $2 - apis
+# $3 - manifests
+# $4 - output
+$(call add-crd-gen,manifests,$(CRD_APIS),./manifests,./manifests)
 
 cross-build-darwin-amd64:
 	+@GOOS=darwin GOARCH=amd64 $(MAKE) --no-print-directory build GO_BUILD_BINDIR:=$(CROSS_BUILD_BINDIR)/darwin_amd64

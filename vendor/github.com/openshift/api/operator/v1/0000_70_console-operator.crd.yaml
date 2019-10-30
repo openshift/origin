@@ -1,0 +1,197 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: consoles.operator.openshift.io
+spec:
+  scope: Cluster
+  preserveUnknownFields: false
+  group: operator.openshift.io
+  names:
+    kind: Console
+    listKind: ConsoleList
+    plural: consoles
+    singular: console
+  subresources:
+    status: {}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+  validation:
+    openAPIV3Schema:
+      description: Console provides a means to configure an operator to manage the
+        console.
+      type: object
+      required:
+      - spec
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: ConsoleSpec is the specification of the desired behavior of
+            the Console.
+          type: object
+          properties:
+            customization:
+              description: customization is used to optionally provide a small set
+                of customization options to the web console.
+              type: object
+              properties:
+                brand:
+                  description: brand is the default branding of the web console which
+                    can be overridden by providing the brand field.  There is a limited
+                    set of specific brand options. This field controls elements of
+                    the console such as the logo. Invalid value will prevent a console
+                    rollout.
+                  type: string
+                  pattern: ^$|^(ocp|origin|okd|dedicated|online|azure)$
+                customLogoFile:
+                  description: 'customLogoFile replaces the default OpenShift logo
+                    in the masthead and about dialog. It is a reference to a ConfigMap
+                    in the openshift-config namespace. This can be created with a
+                    command like ''oc create configmap custom-logo --from-file=/path/to/file
+                    -n openshift-config''. Image size must be less than 1 MB due to
+                    constraints on the ConfigMap size. The ConfigMap key should include
+                    a file extension so that the console serves the file with the
+                    correct MIME type. Recommended logo specifications: Dimensions:
+                    Max height of 68px and max width of 200px SVG format preferred'
+                  type: object
+                  properties:
+                    key:
+                      description: Key allows pointing to a specific key/value inside
+                        of the configmap.  This is useful for logical file references.
+                      type: string
+                    name:
+                      type: string
+                customProductName:
+                  description: customProductName is the name that will be displayed
+                    in page titles, logo alt text, and the about dialog instead of
+                    the normal OpenShift product name.
+                  type: string
+                documentationBaseURL:
+                  description: documentationBaseURL links to external documentation
+                    are shown in various sections of the web console.  Providing documentationBaseURL
+                    will override the default documentation URL. Invalid value will
+                    prevent a console rollout.
+                  type: string
+                  pattern: ^$|^((https):\/\/?)[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/?))\/$
+            logLevel:
+              description: logLevel is an intent based logging for an overall component.  It
+                does not give fine grained control, but it is a simple way to manage
+                coarse grained logging choices that operators have to interpret for
+                their operands.
+              type: string
+            managementState:
+              description: managementState indicates whether and how the operator
+                should manage the component
+              type: string
+              pattern: ^(Managed|Unmanaged|Force|Removed)$
+            observedConfig:
+              description: observedConfig holds a sparse config that controller has
+                observed from the cluster state.  It exists in spec because it is
+                an input to the level for the operator
+              type: object
+              nullable: true
+            operatorLogLevel:
+              description: operatorLogLevel is an intent based logging for the operator
+                itself.  It does not give fine grained control, but it is a simple
+                way to manage coarse grained logging choices that operators have to
+                interpret for themselves.
+              type: string
+            providers:
+              description: providers contains configuration for using specific service
+                providers.
+              type: object
+              properties:
+                statuspage:
+                  description: statuspage contains ID for statuspage.io page that
+                    provides status info about.
+                  type: object
+                  properties:
+                    pageID:
+                      description: pageID is the unique ID assigned by Statuspage
+                        for your page. This must be a public page.
+                      type: string
+            unsupportedConfigOverrides:
+              description: 'unsupportedConfigOverrides holds a sparse config that
+                will override any previously set options.  It only needs to be the
+                fields to override it will end up overlaying in the following order:
+                1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides'
+              type: object
+              nullable: true
+        status:
+          description: ConsoleStatus defines the observed status of the Console.
+          type: object
+          properties:
+            conditions:
+              description: conditions is a list of conditions and their status
+              type: array
+              items:
+                description: OperatorCondition is just the standard condition fields.
+                type: object
+                properties:
+                  lastTransitionTime:
+                    type: string
+                    format: date-time
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+            generations:
+              description: generations are used to determine when an item needs to
+                be reconciled or has changed in a way that needs a reaction.
+              type: array
+              items:
+                description: GenerationStatus keeps track of the generation for a
+                  given resource so that decisions about forced updates can be made.
+                type: object
+                properties:
+                  group:
+                    description: group is the group of the thing you're tracking
+                    type: string
+                  hash:
+                    description: hash is an optional field set for resources without
+                      generation that are content sensitive like secrets and configmaps
+                    type: string
+                  lastGeneration:
+                    description: lastGeneration is the last generation of the workload
+                      controller involved
+                    type: integer
+                    format: int64
+                  name:
+                    description: name is the name of the thing you're tracking
+                    type: string
+                  namespace:
+                    description: namespace is where the thing you're tracking is
+                    type: string
+                  resource:
+                    description: resource is the resource type of the thing you're
+                      tracking
+                    type: string
+            observedGeneration:
+              description: observedGeneration is the last generation change you've
+                dealt with
+              type: integer
+              format: int64
+            readyReplicas:
+              description: readyReplicas indicates how many replicas are ready and
+                at the desired state
+              type: integer
+              format: int32
+            version:
+              description: version is the level this availability applies to
+              type: string
