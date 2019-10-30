@@ -56,14 +56,6 @@ type certAuthTest struct {
 	expectedError string
 }
 
-// helper error to retrieve the token from a redirect chain stopped by custom
-// http client CheckRedirect
-type tokenFoundError struct{}
-
-func (e *tokenFoundError) Error() string {
-	return fmt.Sprintf("token found")
-}
-
 var _ = g.Describe("[Serial] [Feature:OAuthServer] [RequestHeaders] [IdP]", func() {
 	var oc = exutil.NewCLI("request-headers", exutil.KubeConfigPath())
 
