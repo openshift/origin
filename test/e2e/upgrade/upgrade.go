@@ -2,16 +2,10 @@ package upgrade
 
 import (
 	"context"
-	"encoding/xml"
 	"fmt"
 	"math/rand"
 	"os"
-	"path/filepath"
-	"regexp"
-	"runtime/debug"
 	"strconv"
-	"strings"
-	"sync"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,18 +17,16 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/ginkgowrapper"
 	"k8s.io/kubernetes/test/e2e/lifecycle"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
-	"k8s.io/kubernetes/test/utils/junit"
 
 	g "github.com/onsi/ginkgo"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
 func AllTests() []upgrades.Test {
@@ -118,10 +110,6 @@ var _ = g.Describe("[Disruptive]", func() {
 
 	g.Describe("Cluster upgrade", func() {
 		g.It("should maintain a functioning cluster [Feature:ClusterUpgrade]", func() {
-			// Create the frameworks here because we can only create them
-			// in a "Describe".
-			testFrameworks := createUpgradeFrameworks(upgradeTests)
-
 			config, err := framework.LoadConfig()
 			framework.ExpectNoError(err)
 			client := configv1client.NewForConfigOrDie(config)
@@ -130,143 +118,21 @@ var _ = g.Describe("[Disruptive]", func() {
 			upgCtx, err := getUpgradeContext(client, lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
 			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
 
-			testSuite := &junit.TestSuite{Name: "Cluster upgrade"}
-			clusterUpgradeTest := &junit.TestCase{Name: "cluster-upgrade", Classname: "upgrade_tests"}
-			testSuite.TestCases = append(testSuite.TestCases, clusterUpgradeTest)
-			upgradeFunc := func() {
-				start := time.Now()
-				defer finalizeUpgradeTest(start, clusterUpgradeTest)
-				framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[1]), "during upgrade")
-			}
-			runUpgradeSuite(f, upgradeTests, testFrameworks, testSuite, upgCtx, upgrades.ClusterUpgrade, upgradeFunc)
+			disruption.Run(
+				"Cluster upgrade",
+				"upgrade",
+				disruption.TestData{
+					UpgradeType:    upgrades.ClusterUpgrade,
+					UpgradeContext: *upgCtx,
+				},
+				upgradeTests,
+				func() {
+					framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[1]), "during upgrade")
+				},
+			)
 		})
 	})
 })
-
-type chaosMonkeyAdapter struct {
-	test        upgrades.Test
-	testReport  *junit.TestCase
-	framework   *framework.Framework
-	upgradeType upgrades.UpgradeType
-	upgCtx      upgrades.UpgradeContext
-}
-
-func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
-	start := time.Now()
-	var once sync.Once
-	ready := func() {
-		once.Do(func() {
-			sem.Ready()
-		})
-	}
-	defer finalizeUpgradeTest(start, cma.testReport)
-	defer ready()
-	if skippable, ok := cma.test.(upgrades.Skippable); ok && skippable.Skip(cma.upgCtx) {
-		g.By("skipping test " + cma.test.Name())
-		cma.testReport.Skipped = "skipping test " + cma.test.Name()
-		return
-	}
-
-	cma.framework.BeforeEach()
-	cma.test.Setup(cma.framework)
-	defer cma.test.Teardown(cma.framework)
-	ready()
-	cma.test.Test(cma.framework, sem.StopCh, cma.upgradeType)
-}
-
-func finalizeUpgradeTest(start time.Time, tc *junit.TestCase) {
-	tc.Time = time.Since(start).Seconds()
-	r := recover()
-	if r == nil {
-		return
-	}
-
-	switch r := r.(type) {
-	case ginkgowrapper.FailurePanic:
-		tc.Failures = []*junit.Failure{
-			{
-				Message: r.Message,
-				Type:    "Failure",
-				Value:   fmt.Sprintf("%s\n\n%s", r.Message, r.FullStackTrace),
-			},
-		}
-	case ginkgowrapper.SkipPanic:
-		tc.Skipped = fmt.Sprintf("%s:%d %q", r.Filename, r.Line, r.Message)
-	default:
-		tc.Errors = []*junit.Error{
-			{
-				Message: fmt.Sprintf("%v", r),
-				Type:    "Panic",
-				Value:   fmt.Sprintf("%v\n\n%s", r, debug.Stack()),
-			},
-		}
-	}
-}
-
-func createUpgradeFrameworks(tests []upgrades.Test) map[string]*framework.Framework {
-	nsFilter := regexp.MustCompile("[^[:word:]-]+") // match anything that's not a word character or hyphen
-	testFrameworks := map[string]*framework.Framework{}
-	for _, t := range tests {
-		ns := nsFilter.ReplaceAllString(t.Name(), "-") // and replace with a single hyphen
-		ns = strings.Trim(ns, "-")
-		testFrameworks[t.Name()] = &framework.Framework{
-			BaseName:                 ns,
-			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
-			Options: framework.FrameworkOptions{
-				ClientQPS:   20,
-				ClientBurst: 50,
-			},
-		}
-	}
-	return testFrameworks
-}
-
-func runUpgradeSuite(
-	f *framework.Framework,
-	tests []upgrades.Test,
-	testFrameworks map[string]*framework.Framework,
-	testSuite *junit.TestSuite,
-	upgCtx *upgrades.UpgradeContext,
-	upgradeType upgrades.UpgradeType,
-	upgradeFunc func(),
-) {
-	cm := chaosmonkey.New(upgradeFunc)
-	for _, t := range tests {
-		f, ok := testFrameworks[t.Name()]
-		if !ok {
-			panic(fmt.Sprintf("can't find test framework for %q", t.Name()))
-		}
-		testCase := &junit.TestCase{
-			Name:      t.Name(),
-			Classname: "upgrade_tests",
-		}
-		testSuite.TestCases = append(testSuite.TestCases, testCase)
-		cma := chaosMonkeyAdapter{
-			test:        t,
-			testReport:  testCase,
-			framework:   f,
-			upgradeType: upgradeType,
-			upgCtx:      *upgCtx,
-		}
-		cm.Register(cma.Test)
-	}
-
-	start := time.Now()
-	defer func() {
-		testSuite.Update()
-		testSuite.Time = time.Since(start).Seconds()
-		if framework.TestContext.ReportDir != "" {
-			fname := filepath.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%supgrades.xml", framework.TestContext.ReportPrefix))
-			f, err := os.Create(fname)
-			if err != nil {
-				return
-			}
-			defer f.Close()
-			xml.NewEncoder(f).Encode(testSuite)
-		}
-	}()
-	cm.Do()
-}
 
 func latestHistory(history []configv1.UpdateHistory) *configv1.UpdateHistory {
 	if len(history) > 0 {
