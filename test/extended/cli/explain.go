@@ -41,19 +41,21 @@ var (
 	}
 
 	crdTypes = []schema.GroupVersionResource{
-		{Group: "operators.coreos.com", Version: "v1", Resource: "catalogsourceconfigs"},
-		// FIXME:
+		// FIXME
+		// {Group: "operators.coreos.com", Version: "v1", Resource: "catalogsourceconfigs"},
 		// {Group: "operators.coreos.com", Version: "v1", Resource: "catalogsources"},
 		// {Group: "operators.coreos.com", Version: "v1", Resource: "clusterserviceversions"},
 		// {Group: "operators.coreos.com", Version: "v1", Resource: "installplans"},
-		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorgroups"},
-		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorsources"},
-		// FIXME:
+		// {Group: "operators.coreos.com", Version: "v1", Resource: "operatorgroups"},
+		// {Group: "operators.coreos.com", Version: "v1", Resource: "operatorsources"},
 		// {Group: "operators.coreos.com", Version: "v1", Resource: "subscriptions"},
 
-		{Group: "autoscaling.openshift.io", Version: "v1", Resource: "clusterautoscalers"},
-		// FIXME:
+		// FIXME
+		// {Group: "autoscaling.openshift.io", Version: "v1", Resource: "clusterautoscalers"},
 		// {Group: "autoscaling.openshift.io", Version: "v1", Resource: "machineautoscalers"},
+
+		{Group: "authorization.openshift.io", Version: "v1", Resource: "selfsubjectrulesreviews"},
+		{Group: "authorization.openshift.io", Version: "v1", Resource: "subjectrulesreviews"},
 
 		{Group: "config.openshift.io", Version: "v1", Resource: "apiservers"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "authentications"},
@@ -68,22 +70,29 @@ var (
 		{Group: "config.openshift.io", Version: "v1", Resource: "ingresses"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "networks"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "oauths"},
+		{Group: "config.openshift.io", Version: "v1", Resource: "operatorhubs"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "projects"},
+		{Group: "config.openshift.io", Version: "v1", Resource: "proxies"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "schedulers"},
 
-		{Group: "cloudcredential.openshift.io", Version: "v1", Resource: "credentialsrequests"},
+		// FIXME
+		// {Group: "cloudcredential.openshift.io", Version: "v1", Resource: "credentialsrequests"},
 
 		// FIXME
 		// {Group: "healthchecking.openshift.io", Version: "v1", Resource: "machinehealthchecks"},
 		// {Group: "imageregistry.operator.openshift", Version: "v1", Resource: "configs"},
 
-		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
-		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
+		// FIXME
+		// {Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinedisruptionbudgets"},
+		// {Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinehealthchecks"},
+		// {Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
+		// {Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
 
-		{Group: "monitoring.coreos.com", Version: "v1", Resource: "alertmanagers"},
-		{Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheuses"},
-		{Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheusrules"},
-		{Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"},
+		// FIXME
+		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "alertmanagers"},
+		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheuses"},
+		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheusrules"},
+		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"},
 
 		// FIXME
 		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
@@ -93,25 +102,46 @@ var (
 		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
 		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "mcoconfigs"},
 
-		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
+		{Group: "operator.openshift.io", Version: "v1alpha1", Resource: "imagecontentsourcepolicies"},
+
 		{Group: "operator.openshift.io", Version: "v1", Resource: "consoles"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "dnses"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "ingresscontrollers"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogapiservers"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogcontrollermanagers"},
+
+		// FIXME
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "credentialsrequestses"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "ingresscontrollers"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogapiservers"},
+		// {Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogcontrollermanagers"},
+
+		{Group: "quota.openshift.io", Version: "v1", Resource: "appliedclusterresourcequotas"},
 
 		{Group: "quota.openshift.io", Version: "v1", Resource: "clusterresourcequotas"},
 
-		{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
+		// FIXME
+		// {Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"},
 
-		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
+		// FIXME
+		// {Group: "ingress.operator.openshift.io", Version: "v1", Resource: "dnsrecords"},
+
+		// FIXME
+		// {Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
+
+		// FIXME
+		// {Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
+
+		// FIXME
+		// {Group: "network.openshift.io", Version: "v1", Resource: "clusternetworks"},
+		// {Group: "network.openshift.io", Version: "v1", Resource: "egressnetworkpolicies"},
+		// {Group: "network.openshift.io", Version: "v1", Resource: "hostsubnets"},
+		// {Group: "network.openshift.io", Version: "v1", Resource: "netnamespaces"},
+		// {Group: "network.operator.openshift.io", Version: "v1", Resource: "operatorpkis"},
 	}
 
 	specialTypes = []explainExceptions{
@@ -127,18 +157,53 @@ var (
 		},
 		{
 			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "resourceaccessreviews.resourceAPIGroup",
-			pattern: `FIELD\: +resourceAPIGroup`,
+			field:   "clusterrolebindings.userNames",
+			pattern: `FIELD\: +userNames`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "resourceaccessreviews.resourceAPIVersion",
-			pattern: `FIELD\: +resourceAPIVersion`,
+			field:   "clusterroles.rules",
+			pattern: `FIELDS\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+			field:   "localresourceaccessreviews",
+			pattern: `FIELDS\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+			field:   "localsubjectaccessreviews",
+			pattern: `FIELDS\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+			field:   "resourceaccessreviews",
+			pattern: `FIELDS\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+			field:   "resourceaccessreviews",
+			pattern: `FIELDS\:.*`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
 			field:   "rolebindingrestrictions.spec",
 			pattern: `FIELDS\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+			field:   "rolebindings.userNames",
+			pattern: `FIELD\: +userNames`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+			field:   "roles.rules",
+			pattern: `FIELDS\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+			field:   "subjectaccessreviews.scopes",
+			pattern: `FIELD\: +scopes`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
@@ -224,6 +289,36 @@ var (
 			gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
 			field:   "users.fullName",
 			pattern: `FIELD\: +fullName`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
+			field:   "securitycontextconstraints",
+			pattern: `FIELDS\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+			field:   "consoleclidownloads.spec",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+			field:   "consoleexternalloglinks.spec",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+			field:   "consolelinks.spec",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+			field:   "consolenotifications.spec",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+			field:   "consoleyamlsamples.spec",
+			pattern: `DESCRIPTION\:.*`,
 		},
 	}
 )
