@@ -31,7 +31,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
-			exutil.DumpPodLogsStartingWithInNamespace("router", "default", oc.AsAdmin())
+			exutil.DumpPodLogsStartingWithInNamespace("router", "openshift-ingress", oc.AsAdmin())
 		}
 	})
 
