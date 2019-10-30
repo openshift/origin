@@ -30995,7 +30995,7 @@ os::test::junit::declare_suite_start "cmd/completions"
 # This test validates basic resource retrieval and command interaction
 
 # test completion command help
-os::cmd::expect_success_and_text "oc completion -h" "prints shell code"
+os::cmd::expect_success_and_text "oc completion -h" "interactive completion of oc commands"
 # test completion command output
 os::cmd::expect_failure_and_text "oc completion" "Shell not specified."
 os::cmd::expect_success "oc completion bash"
