@@ -41,9 +41,6 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 
 	g.Describe("when installed on the cluster", func() {
 		g.It("should start and expose a secured proxy and verify build metrics", func() {
-			const (
-				buildCountQuery = "openshift_build_total"
-			)
 			oc.SetupProject()
 			ns := oc.Namespace()
 			appTemplate := exutil.FixturePath("testdata", "builds", "build-pruning", "successful-build-config.yaml")
@@ -77,13 +74,9 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 
 			g.By("verifying a service account token is able to query terminal build metrics from the Prometheus API")
 			// note, no longer register a metric if it is zero, so a successful build won't have failed or cancelled metrics
-			terminalTests := map[string][]metricTest{
-				buildCountQuery: {
-					metricTest{
-						labels:           map[string]string{"phase": string(buildv1.BuildPhaseComplete)},
-						greaterThanEqual: true,
-					},
-				},
+			buildCountMetricName := fmt.Sprintf(`openshift_build_total{phase="%s"} >= 0`, string(buildv1.BuildPhaseComplete))
+			terminalTests := map[string]bool{
+				buildCountMetricName: true,
 			}
 			runQueries(terminalTests, oc, ns, execPod.Name, url, bearerToken)
 
@@ -105,23 +98,11 @@ type prometheusResponseData struct {
 	Result     model.Vector `json:"result"`
 }
 
-type metricTest struct {
-	labels map[string]string
-	// we are not more precise (greater than only, or equal only) becauses the extended build tests
-	// run in parallel on the CI system, and some of the metrics are cross namespace, so we cannot
-	// reliably filter; we do precise count validation in the unit tests, where "entire cluster" activity
-	// is more controlled :-)
-	greaterThanEqual bool
-	nodata           bool
-	value            float64
-	status           bool
-}
-
-func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
+func runQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
 	// expect all correct metrics within a reasonable time period
 	errsMap := map[string]error{}
 	for i := 0; i < waitForPrometheusStartSeconds; i++ {
-		for query, tcs := range metricTests {
+		for query, expected := range promQueries {
 			//TODO when the http/query apis discussed at https://github.com/prometheus/client_golang#client-for-the-prometheus-http-api
 			// and introduced at https://github.com/prometheus/client_golang/blob/master/api/prometheus/v1/api.go are vendored into
 			// openshift/origin, look to replace this homegrown http request / query param with that API
@@ -132,36 +113,18 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPod
 			json.Unmarshal([]byte(contents), &result)
 			metrics := result.Data.Result
 
-			// for each test case, register that one of the returned metrics has the desired labels and value
-			for j, tc := range tcs {
-				if tcs[j].nodata && len(metrics) == 0 {
-					tcs[j].success = true
-					break
-				}
-				for _, sample := range metrics {
-					if labelsWeWant(sample, tc.labels) && valueWeWant(sample, tc) {
-						tcs[j].status = !tcs[j].nodata
-						break
-					}
-				}
+			delete(errsMap, query) // clear out any prior failures
+			if (len(metrics) > 0 && !expected) || (len(metrics) == 0 && expected) {
+				dbg := fmt.Sprintf("promQL query: %s had reported incorrect results: %v", query, metrics)
+				fmt.Fprintf(g.GinkgoWriter, dbg)
+				errsMap[query] = fmt.Errorf(dbg)
 			}
 
-			// now check the results, see if any bad
-			delete(errsMap, query) // clear out any prior faliures
-			for _, tc := range tcs {
-				if !tc.status {
-					dbg := fmt.Sprintf("query %s for tests %#v had results %s", query, tcs, contents)
-					fmt.Fprintf(g.GinkgoWriter, dbg)
-					errsMap[query] = fmt.Errorf(dbg)
-					break
-				}
-			}
 		}
 
 		if len(errsMap) == 0 {
 			break
 		}
-
 		time.Sleep(time.Second)
 	}
 
@@ -179,29 +142,4 @@ func startOpenShiftBuild(oc *exutil.CLI, appTemplate string) *exutil.BuildResult
 	br, err := exutil.StartBuildResult(oc, "myphp")
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return br
-}
-
-func labelsWeWant(sample *model.Sample, labels map[string]string) bool {
-	//NOTE - prometheus LabelSet.Equals is of little use to us, since the "instance" label
-	// is specific to the host things are running on, so we can't craft an accurate Metric
-	// to compare against
-	for labelName, labelValue := range labels {
-		if v, ok := sample.Metric[model.LabelName(labelName)]; ok {
-			if string(v) != labelValue {
-				return false
-			}
-		} else {
-			return false
-		}
-	}
-	return true
-}
-
-func valueWeWant(sample *model.Sample, tc metricTest) bool {
-	//NOTE - we could use SampleValue has an Equals func, but since SampleValue has no GreaterThanEqual,
-	// we have to go down the float64 compare anyway
-	if tc.greaterThanEqual {
-		return float64(sample.Value) >= tc.value
-	}
-	return float64(sample.Value) < tc.value
 }
