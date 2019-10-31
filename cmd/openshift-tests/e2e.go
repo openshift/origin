@@ -105,7 +105,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Matches: func(name string) bool {
 			return strings.Contains(name, "[Feature:Jenkins]")
 		},
-		Parallelism: 3,
+		Parallelism: 4,
 		TestTimeout: 20 * time.Minute,
 	},
 	{
