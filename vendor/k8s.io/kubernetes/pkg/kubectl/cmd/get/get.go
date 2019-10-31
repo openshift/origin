@@ -249,6 +249,10 @@ func (o *GetOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []stri
 		if err != nil {
 			return nil, err
 		}
+		printer, err = printers.NewTypeSetter(legacyscheme.Scheme).WrapToPrinter(printer, nil)
+		if err != nil {
+			return nil, err
+		}
 
 		printer = maybeWrapSortingPrinter(printer, isSorting)
 		return printer.PrintObj, nil
