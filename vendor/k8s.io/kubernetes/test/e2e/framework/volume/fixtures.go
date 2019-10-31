@@ -426,7 +426,7 @@ func TestCleanup(f *framework.Framework, config TestConfig) {
 	}
 }
 
-func runVolumeTesterPod(client clientset.Interface, config TestConfig, podSuffix string, fsGroup *int64, privileged bool, tests []Test) (*v1.Pod, error) {
+func runVolumeTesterPod(client clientset.Interface, config TestConfig, podSuffix string, privileged bool, fsGroup *int64, tests []Test) (*v1.Pod, error) {
 	ginkgo.By(fmt.Sprint("starting ", config.Prefix, "-", podSuffix))
 	var gracePeriod int64 = 1
 	var command string
@@ -472,6 +472,17 @@ func runVolumeTesterPod(client clientset.Interface, config TestConfig, podSuffix
 
 	for i, test := range tests {
 		volumeName := fmt.Sprintf("%s-%s-%d", config.Prefix, "volume", i)
+
+		// We need to make the container privileged when SELinux is enabled on the
+		// host,  so the test can write data to a location like /tmp. Also, due to
+		// the Docker bug below, it's not currently possible to map a device with
+		// a privileged container, so we don't go privileged for block volumes.
+		// https://github.com/moby/moby/issues/35991
+		if privileged && test.Mode == v1.PersistentVolumeBlock {
+			privileged = false
+		}
+		clientPod.Spec.Containers[0].SecurityContext = GenerateSecurityContext(privileged)
+
 		if test.Mode == v1.PersistentVolumeBlock {
 			clientPod.Spec.Containers[0].VolumeDevices = append(clientPod.Spec.Containers[0].VolumeDevices, v1.VolumeDevice{
 				Name:       volumeName,
@@ -548,7 +559,7 @@ func testVolumeContent(client clientset.Interface, pod *v1.Pod, fsGroup *int64, 
 // Multiple Tests can be specified to mount multiple volumes to a single
 // pod.
 func TestVolumeClient(client clientset.Interface, config TestConfig, fsGroup *int64, fsType string, tests []Test) {
-	clientPod, err := runVolumeTesterPod(client, config, "client", fsGroup, false, tests)
+	clientPod, err := runVolumeTesterPod(client, config, "client", false, fsGroup, tests)
 	if err != nil {
 		framework.Failf("Failed to create client pod: %v", err)
 
@@ -561,7 +572,11 @@ func TestVolumeClient(client clientset.Interface, config TestConfig, fsGroup *in
 // starting and auxiliary pod which writes the file there.
 // The volume must be writable.
 func InjectContent(client clientset.Interface, config TestConfig, fsGroup *int64, fsType string, tests []Test) {
-	injectorPod, err := runVolumeTesterPod(client, config, "injector", fsGroup, true, tests)
+	privileged := true
+	if framework.NodeOSDistroIs("windows") {
+		privileged = false
+	}
+	injectorPod, err := runVolumeTesterPod(client, config, "injector", privileged, fsGroup, tests)
 	if err != nil {
 		framework.Failf("Failed to create injector pod: %v", err)
 		return
