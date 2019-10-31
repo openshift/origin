@@ -140,6 +140,7 @@ func waitForRouteToRespond(ns, execPodName, proto, host, abspath, ipaddr string,
 	cmd := fmt.Sprintf(`
 		set -e
 		for i in $(seq 1 %d); do
+			rc=0
 			code=$( curl -k -s -o /dev/null -w '%%{http_code}\n' --resolve %s:%d:%s %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code

@@ -242,6 +242,7 @@ func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSecon
 	cmd := fmt.Sprintf(`
 		set -e
 		for i in $(seq 1 %d); do
+			rc=0
 			code=$( curl -k -s -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code
@@ -272,6 +273,7 @@ func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, status
 	cmd := fmt.Sprintf(`
 		set -e
 		for i in $(seq 1 %d); do
+			rc=0
 			code=$( curl -s -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code
