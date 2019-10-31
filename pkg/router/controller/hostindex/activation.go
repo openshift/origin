@@ -128,7 +128,7 @@ func hasExistingMatch(exists []*routev1.Route, route *routev1.Route) bool {
 		}
 		// Path-based TLS routes cannot have the same host as a
 		// passthrough route.
-		if existing.Spec.TLS != nil && route.Spec.TLS != nil && existing.Spec.TLS.Termination == routev1.TLSTerminationPassthrough {
+		if existing.Spec.TLS != nil && route.Spec.TLS != nil && (existing.Spec.TLS.Termination == routev1.TLSTerminationPassthrough || route.Spec.TLS.Termination == routev1.TLSTerminationPassthrough) {
 			return true
 		}
 	}

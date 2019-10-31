@@ -304,6 +304,18 @@ func Test_hostIndex(t *testing.T) {
 			displaces: map[string]struct{}{"003": {}},
 			inactive:  map[string][]string{"test.com": {"003"}},
 		},
+		{
+			name:       "passthrough route that conflicts with path-based route",
+			activateFn: SameNamespace,
+			steps: []step{
+				{route: newRoute("test", "1", 1, 1, routev1.RouteSpec{Host: "test.com", TLS: &routev1.TLSConfig{Termination: routev1.TLSTerminationEdge}, Path: "/foo"})},
+				{route: newRoute("test", "2", 2, 1, routev1.RouteSpec{Host: "test.com", TLS: &routev1.TLSConfig{Termination: routev1.TLSTerminationPassthrough}})},
+			},
+			newRoute:  true,
+			active:    map[string][]string{"test.com": {"001"}},
+			displaces: map[string]struct{}{"002": {}},
+			inactive:  map[string][]string{"test.com": {"002"}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
