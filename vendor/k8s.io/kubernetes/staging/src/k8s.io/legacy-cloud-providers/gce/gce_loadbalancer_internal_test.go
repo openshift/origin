@@ -21,7 +21,6 @@ package gce
 import (
 	"context"
 	"fmt"
-	"github.com/GoogleCloudPlatform/k8s-cloud-provider/pkg/cloud/meta"
 	"strings"
 	"testing"
 
@@ -29,10 +28,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/GoogleCloudPlatform/k8s-cloud-provider/pkg/cloud"
+	"github.com/GoogleCloudPlatform/k8s-cloud-provider/pkg/cloud/meta"
 	"github.com/GoogleCloudPlatform/k8s-cloud-provider/pkg/cloud/mock"
 	computebeta "google.golang.org/api/compute/v0.beta"
 	compute "google.golang.org/api/compute/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
@@ -674,6 +674,52 @@ func TestEnsureLoadBalancerDeletedSucceedsOnXPN(t *testing.T) {
 	err = gce.ensureInternalLoadBalancerDeleted(vals.ClusterName, vals.ClusterID, fakeLoadbalancerService(string(LBTypeInternal)))
 	assert.NoError(t, err)
 	checkEvent(t, recorder, FilewallChangeMsg, true)
+}
+
+func TestEnsureInternalInstanceGroupsReuseGroups(t *testing.T) {
+	vals := DefaultTestClusterValues()
+	gce, err := fakeGCECloud(vals)
+	require.NoError(t, err)
+	gce.externalInstanceGroupsPrefix = "pre-existing"
+
+	_, err = createAndInsertNodes(gce, []string{"test-node-1", "test-node-2"}, vals.ZoneName)
+	require.NoError(t, err)
+
+	preIGName := "pre-existing-ig"
+	igName := makeInstanceGroupName(vals.ClusterID)
+	err = gce.CreateInstanceGroup(&compute.InstanceGroup{Name: preIGName}, vals.ZoneName)
+	require.NoError(t, err)
+	gce.AddInstancesToInstanceGroup(preIGName, vals.ZoneName, gce.ToInstanceReferences(vals.ZoneName, []string{"test-node-1"}))
+
+	svc := fakeLoadbalancerService(string(LBTypeInternal))
+	_, err = createInternalLoadBalancer(gce, svc, nil, []string{"test-node-1", "test-node-2"}, vals.ClusterName, vals.ClusterID, vals.ZoneName)
+	assert.NoError(t, err)
+
+	backendServiceName := makeBackendServiceName(gce.GetLoadBalancerName(context.TODO(), "", svc), vals.ClusterID, shareBackendService(svc), cloud.SchemeInternal, "TCP", svc.Spec.SessionAffinity)
+	bs, err := gce.GetRegionBackendService(backendServiceName, gce.region)
+	require.NoError(t, err)
+	assert.Equal(t, 2, len(bs.Backends), "Want two backends referencing two instances groups")
+
+	for _, name := range []string{preIGName, igName} {
+		var found bool
+		for _, be := range bs.Backends {
+			if strings.Contains(be.Group, name) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Expected list of backends to have group %q", name)
+	}
+
+	// Expect initial zone to have test-node-2
+	instances, err := gce.ListInstancesInInstanceGroup(igName, vals.ZoneName, "ALL")
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(instances))
+	assert.Contains(
+		t,
+		instances[0].Instance,
+		fmt.Sprintf("projects/%s/zones/%s/instances/%s", vals.ProjectID, vals.ZoneName, "test-node-2"),
+	)
 }
 
 func TestEnsureInternalInstanceGroupsDeleted(t *testing.T) {
