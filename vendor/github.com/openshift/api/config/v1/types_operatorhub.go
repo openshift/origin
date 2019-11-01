@@ -70,7 +70,7 @@ type HubSource struct {
 // HubSourceStatus is used to reflect the current state of applying the
 // configuration to a default source
 type HubSourceStatus struct {
-	HubSource `json:"",omitempty`
+	HubSource `json:",omitempty"`
 	// status indicates success or failure in applying the configuration
 	Status string `json:"status,omitempty"`
 	// message provides more information regarding failures

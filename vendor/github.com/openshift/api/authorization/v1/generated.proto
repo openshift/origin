@@ -43,12 +43,12 @@ message Action {
   optional bool isNonResourceURL = 9;
 
   // Content is the actual content of the request for create and update
+  // +kubebuilder:validation:PreserveUnknownFields
   optional k8s.io.apimachinery.pkg.runtime.RawExtension content = 7;
 }
 
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
 message ClusterRole {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Rules holds all the PolicyRules for this ClusterRole
@@ -64,7 +64,6 @@ message ClusterRole {
 // It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in.
 // ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 message ClusterRoleBinding {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // UserNames holds all the usernames directly bound to the role.
@@ -94,7 +93,6 @@ message ClusterRoleBinding {
 
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
 message ClusterRoleBindingList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of ClusterRoleBindings
@@ -103,7 +101,6 @@ message ClusterRoleBindingList {
 
 // ClusterRoleList is a collection of ClusterRoles
 message ClusterRoleList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of ClusterRoles
@@ -215,6 +212,7 @@ message PolicyRule {
 
   // AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
   // If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
+  // +kubebuilder:validation:PreserveUnknownFields
   optional k8s.io.apimachinery.pkg.runtime.RawExtension attributeRestrictions = 2;
 
   // APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.
@@ -261,7 +259,6 @@ message ResourceAccessReviewResponse {
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 message Role {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Rules holds all the PolicyRules for this Role
@@ -272,7 +269,6 @@ message Role {
 // It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in.
 // RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 message RoleBinding {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // UserNames holds all the usernames directly bound to the role.
@@ -302,7 +298,6 @@ message RoleBinding {
 
 // RoleBindingList is a collection of RoleBindings
 message RoleBindingList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of RoleBindings
@@ -315,7 +310,6 @@ message RoleBindingList {
 // belongs.  If any one of those RoleBindingRestriction objects matches
 // a subject, rolebindings on that subject in the namespace are allowed.
 message RoleBindingRestriction {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec defines the matcher.
@@ -324,7 +318,6 @@ message RoleBindingRestriction {
 
 // RoleBindingRestrictionList is a collection of RoleBindingRestriction objects.
 message RoleBindingRestrictionList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of RoleBindingRestriction objects.
@@ -349,7 +342,6 @@ message RoleBindingRestrictionSpec {
 
 // RoleList is a collection of Roles
 message RoleList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of Roles

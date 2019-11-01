@@ -24,7 +24,6 @@ func (ClusterRoleScopeRestriction) SwaggerDoc() map[string]string {
 
 var map_OAuthAccessToken = map[string]string{
 	"":                         "OAuthAccessToken describes an OAuth access token",
-	"metadata":                 "Standard object's metadata.",
 	"clientName":               "ClientName references the client that created this token.",
 	"expiresIn":                "ExpiresIn is the seconds from CreationTime before this token expires.",
 	"scopes":                   "Scopes is an array of the requested scopes.",
@@ -41,9 +40,8 @@ func (OAuthAccessToken) SwaggerDoc() map[string]string {
 }
 
 var map_OAuthAccessTokenList = map[string]string{
-	"":         "OAuthAccessTokenList is a collection of OAuth access tokens",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is the list of OAuth access tokens",
+	"":      "OAuthAccessTokenList is a collection of OAuth access tokens",
+	"items": "Items is the list of OAuth access tokens",
 }
 
 func (OAuthAccessTokenList) SwaggerDoc() map[string]string {
@@ -52,7 +50,6 @@ func (OAuthAccessTokenList) SwaggerDoc() map[string]string {
 
 var map_OAuthAuthorizeToken = map[string]string{
 	"":                    "OAuthAuthorizeToken describes an OAuth authorization token",
-	"metadata":            "Standard object's metadata.",
 	"clientName":          "ClientName references the client that created this token.",
 	"expiresIn":           "ExpiresIn is the seconds from CreationTime before this token expires.",
 	"scopes":              "Scopes is an array of the requested scopes.",
@@ -69,9 +66,8 @@ func (OAuthAuthorizeToken) SwaggerDoc() map[string]string {
 }
 
 var map_OAuthAuthorizeTokenList = map[string]string{
-	"":         "OAuthAuthorizeTokenList is a collection of OAuth authorization tokens",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is the list of OAuth authorization tokens",
+	"":      "OAuthAuthorizeTokenList is a collection of OAuth authorization tokens",
+	"items": "Items is the list of OAuth authorization tokens",
 }
 
 func (OAuthAuthorizeTokenList) SwaggerDoc() map[string]string {
@@ -80,12 +76,11 @@ func (OAuthAuthorizeTokenList) SwaggerDoc() map[string]string {
 
 var map_OAuthClient = map[string]string{
 	"":                                    "OAuthClient describes an OAuth client",
-	"metadata":                            "Standard object's metadata.",
 	"secret":                              "Secret is the unique secret associated with a client",
 	"additionalSecrets":                   "AdditionalSecrets holds other secrets that may be used to identify the client.  This is useful for rotation and for service account token validation",
 	"respondWithChallenges":               "RespondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects",
 	"redirectURIs":                        "RedirectURIs is the valid redirection URIs associated with a client",
-	"grantMethod":                         "GrantMethod determines how to handle grants for this client. If no method is provided, the cluster default grant handling method will be used. Valid grant handling methods are:\n - auto:   always approves grant requests, useful for trusted clients\n - prompt: prompts the end user for approval of grant requests, useful for third-party clients\n - deny:   always denies grant requests, useful for black-listed clients",
+	"grantMethod":                         "GrantMethod is a required field which determines how to handle grants for this client. Valid grant handling methods are:\n - auto:   always approves grant requests, useful for trusted clients\n - prompt: prompts the end user for approval of grant requests, useful for third-party clients",
 	"scopeRestrictions":                   "ScopeRestrictions describes which scopes this client can request.  Each requested scope is checked against each restriction.  If any restriction matches, then the scope is allowed. If no restriction matches, then the scope is denied.",
 	"accessTokenMaxAgeSeconds":            "AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client. 0 means no expiration.",
 	"accessTokenInactivityTimeoutSeconds": "AccessTokenInactivityTimeoutSeconds overrides the default token inactivity timeout for tokens granted to this client. The value represents the maximum amount of time that can occur between consecutive uses of the token. Tokens become invalid if they are not used within this temporal window. The user will need to acquire a new token to regain access once a token times out. This value needs to be set only if the default set in configuration is not appropriate for this client. Valid values are: - 0: Tokens for this client never time out - X: Tokens time out if there is no activity for X seconds The current minimum allowed value for X is 300 (5 minutes)",
@@ -97,7 +92,6 @@ func (OAuthClient) SwaggerDoc() map[string]string {
 
 var map_OAuthClientAuthorization = map[string]string{
 	"":           "OAuthClientAuthorization describes an authorization created by an OAuth client",
-	"metadata":   "Standard object's metadata.",
 	"clientName": "ClientName references the client that created this authorization",
 	"userName":   "UserName is the user name that authorized this client",
 	"userUID":    "UserUID is the unique UID associated with this authorization. UserUID and UserName must both match for this authorization to be valid.",
@@ -109,9 +103,8 @@ func (OAuthClientAuthorization) SwaggerDoc() map[string]string {
 }
 
 var map_OAuthClientAuthorizationList = map[string]string{
-	"":         "OAuthClientAuthorizationList is a collection of OAuth client authorizations",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is the list of OAuth client authorizations",
+	"":      "OAuthClientAuthorizationList is a collection of OAuth client authorizations",
+	"items": "Items is the list of OAuth client authorizations",
 }
 
 func (OAuthClientAuthorizationList) SwaggerDoc() map[string]string {
@@ -119,9 +112,8 @@ func (OAuthClientAuthorizationList) SwaggerDoc() map[string]string {
 }
 
 var map_OAuthClientList = map[string]string{
-	"":         "OAuthClientList is a collection of OAuth clients",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is the list of OAuth clients",
+	"":      "OAuthClientList is a collection of OAuth clients",
+	"items": "Items is the list of OAuth clients",
 }
 
 func (OAuthClientList) SwaggerDoc() map[string]string {
@@ -130,7 +122,6 @@ func (OAuthClientList) SwaggerDoc() map[string]string {
 
 var map_OAuthRedirectReference = map[string]string{
 	"":          "OAuthRedirectReference is a reference to an OAuth redirect object.",
-	"metadata":  "Standard object's metadata.",
 	"reference": "The reference to an redirect object in the current namespace.",
 }
 

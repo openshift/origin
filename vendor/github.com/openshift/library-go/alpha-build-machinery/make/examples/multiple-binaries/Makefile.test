@@ -27,7 +27,7 @@ test-build:
 
 test-cross-build:
 	[[ ! -d ./_output/ ]] || (ls -l ./_output/ && false)
-	$(MAKE) cross-build
+	$(MAKE) cross-build SOURCE_GIT_TAG=v42.43.44 SOURCE_GIT_COMMIT=aaa SOURCE_GIT_TREE_STATE=clean
 	[[ ! -f ./openshift ]]
 	[[ ! -f ./oc ]]
 	[[ -f ./_output/bin/darwin_amd64/openshift ]]
@@ -43,7 +43,7 @@ test-cross-build:
 test-rpm:
 	[[ ! -d ./_output/ ]] || (ls -l ./_output/ && false)
 
-	$(MAKE) rpm-build
+	$(MAKE) rpm-build SOURCE_GIT_TAG=v42.43.44 SOURCE_GIT_COMMIT=aaa SOURCE_GIT_TREE_STATE=clean
 	[[ -f ./_output/rpms/x86_64/openshift-2.42.0-6.el7.x86_64.rpm ]]
 	[[ -f ./_output/srpms/openshift-2.42.0-6.el7.src.rpm ]]
 
@@ -59,8 +59,9 @@ test-codegen:
 
 	$(MAKE) update-codegen-crds
 	$(MAKE) verify-codegen-crds
-	! diff -Naup ./testing/manifests/initial/ ./manifests/ 2>/dev/null
-	diff -Naup ./testing/manifests/updated/ ./manifests/ 2>/dev/null
+	cp -r ./testing/manifests/initial/*.crd.yaml-merge-patch ./manifests/
+	! diff -Naup ./testing/manifests/initial/ ./manifests/ 2>/dev/null 1>&2
+	diff -Naup ./testing/manifests/updated/ ./manifests/
 
 	$(MAKE) clean
 	[[ ! -d ./_output/ ]] || (ls -l ./_output/ && false)

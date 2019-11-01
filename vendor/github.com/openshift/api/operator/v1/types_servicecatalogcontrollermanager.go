@@ -33,8 +33,8 @@ type ServiceCatalogControllerManagerStatus struct {
 // ServiceCatalogControllerManagerList is a collection of items
 type ServiceCatalogControllerManagerList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
+
 	// Items contains the items
 	Items []ServiceCatalogControllerManager `json:"items"`
 }

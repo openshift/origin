@@ -263,7 +263,7 @@ func load(assetsDir string, options CreateOptions) (map[string]*unstructured.Uns
 		}
 		manifestUnstructured, ok := manifestObj.(*unstructured.Unstructured)
 		if !ok {
-			errs[manifestPath] = fmt.Errorf("unable to convert asset %q to unstructed", manifestPath)
+			errs[manifestPath] = fmt.Errorf("unable to convert asset %q to unstructured", manifestPath)
 			continue
 		}
 		manifests[manifestPath] = manifestUnstructured

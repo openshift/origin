@@ -44,6 +44,10 @@ func (c *FakeOperatorV1) KubeSchedulers() v1.KubeSchedulerInterface {
 	return &FakeKubeSchedulers{c}
 }
 
+func (c *FakeOperatorV1) KubeStorageVersionMigrators() v1.KubeStorageVersionMigratorInterface {
+	return &FakeKubeStorageVersionMigrators{c}
+}
+
 func (c *FakeOperatorV1) Networks() v1.NetworkInterface {
 	return &FakeNetworks{c}
 }

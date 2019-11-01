@@ -26,7 +26,6 @@ func (DockerImageReference) SwaggerDoc() map[string]string {
 
 var map_Image = map[string]string{
 	"":                             "Image is an immutable representation of a container image and metadata at a point in time.",
-	"metadata":                     "Standard object's metadata.",
 	"dockerImageReference":         "DockerImageReference is the string that can be used to pull this image.",
 	"dockerImageMetadata":          "DockerImageMetadata contains metadata about this image",
 	"dockerImageMetadataVersion":   "DockerImageMetadataVersion conveys the version of the object, which if empty defaults to \"1.0\"",
@@ -99,9 +98,8 @@ func (ImageLayerData) SwaggerDoc() map[string]string {
 }
 
 var map_ImageList = map[string]string{
-	"":         "ImageList is a list of Image objects.",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of images",
+	"":      "ImageList is a list of Image objects.",
+	"items": "Items is a list of images",
 }
 
 func (ImageList) SwaggerDoc() map[string]string {
@@ -119,7 +117,6 @@ func (ImageLookupPolicy) SwaggerDoc() map[string]string {
 
 var map_ImageSignature = map[string]string{
 	"":              "ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims as long as the signature is trusted. Based on this information it is possible to restrict runnable images to those matching cluster-wide policy. Mandatory fields should be parsed by clients doing image verification. The others are parsed from signature's content by the server. They serve just an informative purpose.",
-	"metadata":      "Standard object's metadata.",
 	"type":          "Required: Describes a type of stored blob.",
 	"content":       "Required: An opaque binary string which is an image's signature.",
 	"conditions":    "Conditions represent the latest available observations of a signature's current state.",
@@ -135,10 +132,9 @@ func (ImageSignature) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStream = map[string]string{
-	"":         "ImageStream stores a mapping of tags to images, metadata overrides that are applied when images are tagged in a stream, and an optional reference to a container image repository on a registry.",
-	"metadata": "Standard object's metadata.",
-	"spec":     "Spec describes the desired state of this stream",
-	"status":   "Status describes the current state of this stream",
+	"":       "ImageStream stores a mapping of tags to images, metadata overrides that are applied when images are tagged in a stream, and an optional reference to a container image repository on a registry.",
+	"spec":   "Spec describes the desired state of this stream",
+	"status": "Status describes the current state of this stream",
 }
 
 func (ImageStream) SwaggerDoc() map[string]string {
@@ -146,9 +142,8 @@ func (ImageStream) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamImage = map[string]string{
-	"":         "ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.",
-	"metadata": "Standard object's metadata.",
-	"image":    "Image associated with the ImageStream and image name.",
+	"":      "ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.",
+	"image": "Image associated with the ImageStream and image name.",
 }
 
 func (ImageStreamImage) SwaggerDoc() map[string]string {
@@ -156,10 +151,9 @@ func (ImageStreamImage) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamImport = map[string]string{
-	"":         "The image stream import resource provides an easy way for a user to find and import container images from other container image registries into the server. Individual images or an entire image repository may be imported, and users may choose to see the results of the import prior to tagging the resulting images into the specified image stream.\n\nThis API is intended for end-user tools that need to see the metadata of the image prior to import (for instance, to generate an application from it). Clients that know the desired image can continue to create spec.tags directly into their image streams.",
-	"metadata": "Standard object's metadata.",
-	"spec":     "Spec is a description of the images that the user wishes to import",
-	"status":   "Status is the the result of importing the image",
+	"":       "The image stream import resource provides an easy way for a user to find and import container images from other container image registries into the server. Individual images or an entire image repository may be imported, and users may choose to see the results of the import prior to tagging the resulting images into the specified image stream.\n\nThis API is intended for end-user tools that need to see the metadata of the image prior to import (for instance, to generate an application from it). Clients that know the desired image can continue to create spec.tags directly into their image streams.",
+	"spec":   "Spec is a description of the images that the user wishes to import",
+	"status": "Status is the the result of importing the image",
 }
 
 func (ImageStreamImport) SwaggerDoc() map[string]string {
@@ -189,10 +183,9 @@ func (ImageStreamImportStatus) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamLayers = map[string]string{
-	"":         "ImageStreamLayers describes information about the layers referenced by images in this image stream.",
-	"metadata": "Standard object's metadata.",
-	"blobs":    "blobs is a map of blob name to metadata about the blob.",
-	"images":   "images is a map between an image name and the names of the blobs and config that comprise the image.",
+	"":       "ImageStreamLayers describes information about the layers referenced by images in this image stream.",
+	"blobs":  "blobs is a map of blob name to metadata about the blob.",
+	"images": "images is a map between an image name and the names of the blobs and config that comprise the image.",
 }
 
 func (ImageStreamLayers) SwaggerDoc() map[string]string {
@@ -200,9 +193,8 @@ func (ImageStreamLayers) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamList = map[string]string{
-	"":         "ImageStreamList is a list of ImageStream objects.",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of imageStreams",
+	"":      "ImageStreamList is a list of ImageStream objects.",
+	"items": "Items is a list of imageStreams",
 }
 
 func (ImageStreamList) SwaggerDoc() map[string]string {
@@ -210,10 +202,9 @@ func (ImageStreamList) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamMapping = map[string]string{
-	"":         "ImageStreamMapping represents a mapping from a single tag to a container image as well as the reference to the container image stream the image came from.",
-	"metadata": "Standard object's metadata.",
-	"image":    "Image is a container image.",
-	"tag":      "Tag is a string value this image can be located with inside the stream.",
+	"":      "ImageStreamMapping represents a mapping from a single tag to a container image as well as the reference to the container image stream the image came from.",
+	"image": "Image is a container image.",
+	"tag":   "Tag is a string value this image can be located with inside the stream.",
 }
 
 func (ImageStreamMapping) SwaggerDoc() map[string]string {
@@ -244,7 +235,6 @@ func (ImageStreamStatus) SwaggerDoc() map[string]string {
 
 var map_ImageStreamTag = map[string]string{
 	"":             "ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.",
-	"metadata":     "Standard object's metadata.",
 	"tag":          "tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
 	"generation":   "generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or conditions will be filled out indicating any error.",
 	"lookupPolicy": "lookupPolicy indicates whether this tag will handle image references in this namespace.",
@@ -257,9 +247,8 @@ func (ImageStreamTag) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamTagList = map[string]string{
-	"":         "ImageStreamTagList is a list of ImageStreamTag objects.",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is the list of image stream tags",
+	"":      "ImageStreamTagList is a list of ImageStreamTag objects.",
+	"items": "Items is the list of image stream tags",
 }
 
 func (ImageStreamTagList) SwaggerDoc() map[string]string {

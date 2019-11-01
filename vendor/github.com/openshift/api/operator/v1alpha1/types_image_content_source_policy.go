@@ -9,8 +9,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // ImageContentSourcePolicy holds cluster-wide information about how to handle registry mirror rules.
 // When multiple policies are defined, the outcome of the behavior is defined on each field.
 type ImageContentSourcePolicy struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
@@ -46,9 +45,9 @@ type ImageContentSourcePolicySpec struct {
 // ImageContentSourcePolicyList lists the items in the ImageContentSourcePolicy CRD.
 type ImageContentSourcePolicyList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
-	Items           []ImageContentSourcePolicy `json:"items"`
+
+	Items []ImageContentSourcePolicy `json:"items"`
 }
 
 // RepositoryDigestMirrors holds cluster-wide information about how to handle mirros in the registries config.

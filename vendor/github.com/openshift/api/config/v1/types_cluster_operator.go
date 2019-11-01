@@ -57,29 +57,40 @@ type ClusterOperatorStatus struct {
 	// operator which owns this status object.
 	// +nullable
 	// +optional
+	// +kubebuilder:validation:PreserveUnknownFields
 	Extension runtime.RawExtension `json:"extension"`
 }
 
 type OperandVersion struct {
 	// name is the name of the particular operand this version is for.  It usually matches container images, not operators.
+	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 
 	// version indicates which version of a particular operand is currently being manage.  It must always match the Available
 	// condition.  If 1.0.0 is Available, then this must indicate 1.0.0 even if the operator is trying to rollout
 	// 1.1.0
+	// +kubebuilder:validation:Required
+	// +required
 	Version string `json:"version"`
 }
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
 type ObjectReference struct {
 	// group of the referent.
+	// +kubebuilder:validation:Required
+	// +required
 	Group string `json:"group"`
 	// resource of the referent.
+	// +kubebuilder:validation:Required
+	// +required
 	Resource string `json:"resource"`
 	// namespace of the referent.
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
 	// name of the referent.
+	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 }
 
@@ -100,19 +111,27 @@ const (
 // +k8s:deepcopy-gen=true
 type ClusterOperatorStatusCondition struct {
 	// type specifies the state of the operator's reconciliation functionality.
+	// +kubebuilder:validation:Required
+	// +required
 	Type ClusterStatusConditionType `json:"type"`
 
 	// status of the condition, one of True, False, Unknown.
+	// +kubebuilder:validation:Required
+	// +required
 	Status ConditionStatus `json:"status"`
 
 	// lastTransitionTime is the time of the last update to the current status object.
+	// +kubebuilder:validation:Required
+	// +required
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 
 	// reason is the reason for the condition's last transition.  Reasons are CamelCase
+	// +optional
 	Reason string `json:"reason,omitempty"`
 
 	// message provides additional information about the current condition.
 	// This is only to be consumed by humans.
+	// +optional
 	Message string `json:"message,omitempty"`
 }
 

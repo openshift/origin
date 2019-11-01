@@ -33,7 +33,6 @@ message DockerImageReference {
 
 // Image is an immutable representation of a container image and metadata at a point in time.
 message Image {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // DockerImageReference is the string that can be used to pull this image.
@@ -41,6 +40,7 @@ message Image {
 
   // DockerImageMetadata contains metadata about this image
   // +patchStrategy=replace
+  // +kubebuilder:validation:PreserveUnknownFields
   optional k8s.io.apimachinery.pkg.runtime.RawExtension dockerImageMetadata = 3;
 
   // DockerImageMetadataVersion conveys the version of the object, which if empty defaults to "1.0"
@@ -142,7 +142,6 @@ message ImageLayerData {
 
 // ImageList is a list of Image objects.
 message ImageList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of images
@@ -166,7 +165,6 @@ message ImageLookupPolicy {
 // Mandatory fields should be parsed by clients doing image verification. The others are parsed from
 // signature's content by the server. They serve just an informative purpose.
 message ImageSignature {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Required: Describes a type of stored blob.
@@ -203,7 +201,6 @@ message ImageSignature {
 // when images are tagged in a stream, and an optional reference to a container image
 // repository on a registry.
 message ImageStream {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec describes the desired state of this stream
@@ -215,7 +212,6 @@ message ImageStream {
 
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 message ImageStreamImage {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Image associated with the ImageStream and image name.
@@ -231,7 +227,6 @@ message ImageStreamImage {
 // (for instance, to generate an application from it). Clients that know the desired image can continue
 // to create spec.tags directly into their image streams.
 message ImageStreamImport {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec is a description of the images that the user wishes to import
@@ -270,7 +265,6 @@ message ImageStreamImportStatus {
 // ImageStreamLayers describes information about the layers referenced by images in this
 // image stream.
 message ImageStreamLayers {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // blobs is a map of blob name to metadata about the blob.
@@ -283,7 +277,6 @@ message ImageStreamLayers {
 
 // ImageStreamList is a list of ImageStream objects.
 message ImageStreamList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of imageStreams
@@ -293,7 +286,6 @@ message ImageStreamList {
 // ImageStreamMapping represents a mapping from a single tag to a container image as
 // well as the reference to the container image stream the image came from.
 message ImageStreamMapping {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Image is a container image.
@@ -339,7 +331,6 @@ message ImageStreamStatus {
 
 // ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.
 message ImageStreamTag {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // tag is the spec tag associated with this image stream tag, and it may be null
@@ -365,7 +356,6 @@ message ImageStreamTag {
 
 // ImageStreamTagList is a list of ImageStreamTag objects.
 message ImageStreamTagList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of image stream tags

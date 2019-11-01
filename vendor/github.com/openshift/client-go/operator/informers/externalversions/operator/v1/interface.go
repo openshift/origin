@@ -24,6 +24,8 @@ type Interface interface {
 	KubeControllerManagers() KubeControllerManagerInformer
 	// KubeSchedulers returns a KubeSchedulerInformer.
 	KubeSchedulers() KubeSchedulerInformer
+	// KubeStorageVersionMigrators returns a KubeStorageVersionMigratorInformer.
+	KubeStorageVersionMigrators() KubeStorageVersionMigratorInformer
 	// Networks returns a NetworkInformer.
 	Networks() NetworkInformer
 	// OpenShiftAPIServers returns a OpenShiftAPIServerInformer.
@@ -87,6 +89,11 @@ func (v *version) KubeControllerManagers() KubeControllerManagerInformer {
 // KubeSchedulers returns a KubeSchedulerInformer.
 func (v *version) KubeSchedulers() KubeSchedulerInformer {
 	return &kubeSchedulerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// KubeStorageVersionMigrators returns a KubeStorageVersionMigratorInformer.
+func (v *version) KubeStorageVersionMigrators() KubeStorageVersionMigratorInformer {
+	return &kubeStorageVersionMigratorInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Networks returns a NetworkInformer.

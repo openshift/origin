@@ -167,6 +167,7 @@ type AdmissionPluginConfig struct {
 	// Configuration is an embedded configuration object to be used as the plugin's
 	// configuration. If present, it will be used instead of the path to the configuration file.
 	// +nullable
+	// +kubebuilder:validation:PreserveUnknownFields
 	Configuration runtime.RawExtension `json:"configuration"`
 }
 
@@ -210,6 +211,7 @@ type AuditConfig struct {
 	// as the audit policy configuration. If present, it will be used instead of
 	// the path to the policy file.
 	// +nullable
+	// +kubebuilder:validation:PreserveUnknownFields
 	PolicyConfiguration runtime.RawExtension `json:"policyConfiguration"`
 
 	// Format of saved audits (legacy or json).

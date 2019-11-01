@@ -1,0 +1,25 @@
+The following make targets are available:
+all
+build
+clean
+clean-binaries
+help
+image-ocp-cli
+images
+test
+test-unit
+update
+update-bindata
+update-codegen
+update-deps
+update-deps-overrides
+update-generated
+update-gofmt
+verify
+verify-bindata
+verify-codegen
+verify-deps
+verify-generated
+verify-gofmt
+verify-golint
+verify-govet

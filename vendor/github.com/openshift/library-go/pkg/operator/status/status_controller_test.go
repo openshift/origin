@@ -204,6 +204,33 @@ func TestDegraded(t *testing.T) {
 				"TypeAAvailable: a message from type a",
 			},
 		},
+		{
+			name: "two present/one available/one unknown",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeAAvailable", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a is great"},
+				{Type: "TypeBAvailable", Status: operatorv1.ConditionUnknown, LastTransitionTime: fiveSecondsAgo, Message: "b is confused"},
+			},
+			expectedType:   configv1.OperatorAvailable,
+			expectedStatus: configv1.ConditionUnknown,
+			expectedReason: "TypeBAvailable",
+			expectedMessages: []string{
+				"TypeBAvailable: b is confused",
+			},
+		},
+		{
+			name: "two present/one unavailable/one unknown",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeAAvailable", Status: operatorv1.ConditionFalse, LastTransitionTime: fiveSecondsAgo, Message: "a is bad"},
+				{Type: "TypeBAvailable", Status: operatorv1.ConditionUnknown, LastTransitionTime: fiveSecondsAgo, Message: "b is confused"},
+			},
+			expectedType:   configv1.OperatorAvailable,
+			expectedStatus: configv1.ConditionFalse,
+			expectedReason: "MultipleConditionsMatching",
+			expectedMessages: []string{
+				"TypeAAvailable: a is bad",
+				"TypeBAvailable: b is confused",
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

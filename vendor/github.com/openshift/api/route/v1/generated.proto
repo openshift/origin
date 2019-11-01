@@ -31,7 +31,6 @@ option go_package = "v1";
 // If a client chooses a duplicate name, for instance, the route status conditions are used
 // to indicate the route cannot be chosen.
 message Route {
-  // Standard object metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec is the desired state of the route
@@ -84,7 +83,6 @@ message RouteIngressCondition {
 
 // RouteList is a collection of Routes.
 message RouteList {
-  // Standard object metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // items is a list of routes

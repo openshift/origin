@@ -125,9 +125,6 @@ message PodSecurityPolicySubjectReviewStatus {
 
 // RangeAllocation is used so we can easily expose a RangeAllocation typed for security group
 message RangeAllocation {
-  // Standard object's metadata.
-  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
-  // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // range is a string representing a unique label for a range of uids, "1000000000-2000000000/10000".
@@ -140,7 +137,6 @@ message RangeAllocation {
 
 // RangeAllocationList is a list of RangeAllocations objects
 message RangeAllocationList {
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // List of RangeAllocations.
@@ -180,8 +176,6 @@ message SELinuxContextStrategyOptions {
 // SecurityContextConstraints.
 // +kubebuilder:singular=securitycontextconstraint
 message SecurityContextConstraints {
-  // Standard object's metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Priority influences the sort order of SCCs when evaluating which SCCs to try first for
@@ -322,7 +316,6 @@ message SecurityContextConstraints {
 
 // SecurityContextConstraintsList is a list of SecurityContextConstraints objects
 message SecurityContextConstraintsList {
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // List of security context constraints.

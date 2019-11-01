@@ -75,7 +75,8 @@ type NetworkSpec struct {
 // HostPrefix (in CIDR notation) will be allocated when nodes join the cluster.
 // Not all network providers support multiple ClusterNetworks
 type ClusterNetworkEntry struct {
-	CIDR       string `json:"cidr"`
+	CIDR string `json:"cidr"`
+	// +kubebuilder:validation:Minimum=0
 	HostPrefix uint32 `json:"hostPrefix"`
 }
 
@@ -117,6 +118,7 @@ type SimpleMacvlanConfig struct {
 
 	// mtu is the mtu to use for the macvlan interface. if unset, host's
 	// kernel will select the value.
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	MTU uint32 `json:"mtu,omitempty"`
 }
@@ -209,11 +211,13 @@ type OpenShiftSDNConfig struct {
 	Mode SDNMode `json:"mode"`
 
 	// vxlanPort is the port to use for all vxlan packets. The default is 4789.
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	VXLANPort *uint32 `json:"vxlanPort,omitempty"`
 
 	// mtu is the mtu to use for the tunnel interface. Defaults to 1450 if unset.
 	// This must be 50 bytes smaller than the machine's uplink.
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	MTU *uint32 `json:"mtu,omitempty"`
 
@@ -230,10 +234,12 @@ type OpenShiftSDNConfig struct {
 // KuryrConfig configures the Kuryr-Kubernetes SDN
 type KuryrConfig struct {
 	// The port kuryr-daemon will listen for readiness and liveness requests.
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	DaemonProbesPort *uint32 `json:"daemonProbesPort,omitempty"`
 
 	// The port kuryr-controller will listen for readiness and liveness requests.
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	ControllerProbesPort *uint32 `json:"controllerProbesPort,omitempty"`
 
@@ -252,13 +258,29 @@ type KuryrConfig struct {
 	OpenStackServiceNetwork string `json:"openStackServiceNetwork,omitempty"`
 }
 
-// ovnKubernetesConfig is the proposed configuration parameters for networks
+// ovnKubernetesConfig contains the configuration parameters for networks
 // using the ovn-kubernetes network project
 type OVNKubernetesConfig struct {
 	// mtu is the MTU to use for the tunnel interface. This must be 100
 	// bytes smaller than the uplink mtu.
 	// Default is 1400
+	// +kubebuilder:validation:Minimum=0
+	// +optional
 	MTU *uint32 `json:"mtu,omitempty"`
+	// geneve port is the UDP port to be used by geneve encapulation.
+	// Default is 6081
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	GenevePort *uint32 `json:"genevePort,omitempty"`
+	// HybridOverlayConfig configures an additional overlay network for peers that are
+	// not using OVN.
+	// +optional
+	HybridOverlayConfig *HybridOverlayConfig `json:"hybridOverlayConfig,omitempty"`
+}
+
+type HybridOverlayConfig struct {
+	// HybridClusterNetwork defines a network space given to nodes on an additional overlay network.
+	HybridClusterNetwork []ClusterNetworkEntry `json:"hybridClusterNetwork"`
 }
 
 // NetworkType describes the network plugin type to configure

@@ -18,6 +18,7 @@ type OperatorV1Interface interface {
 	KubeAPIServersGetter
 	KubeControllerManagersGetter
 	KubeSchedulersGetter
+	KubeStorageVersionMigratorsGetter
 	NetworksGetter
 	OpenShiftAPIServersGetter
 	OpenShiftControllerManagersGetter
@@ -61,6 +62,10 @@ func (c *OperatorV1Client) KubeControllerManagers() KubeControllerManagerInterfa
 
 func (c *OperatorV1Client) KubeSchedulers() KubeSchedulerInterface {
 	return newKubeSchedulers(c)
+}
+
+func (c *OperatorV1Client) KubeStorageVersionMigrators() KubeStorageVersionMigratorInterface {
+	return newKubeStorageVersionMigrators(c)
 }
 
 func (c *OperatorV1Client) Networks() NetworkInterface {

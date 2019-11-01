@@ -1,0 +1,332 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: networks.operator.openshift.io
+spec:
+  group: operator.openshift.io
+  names:
+    kind: Network
+    listKind: NetworkList
+    plural: networks
+    singular: network
+  scope: Cluster
+  preserveUnknownFields: false
+  versions:
+  - name: v1
+    served: true
+    storage: true
+  validation:
+    # Ensure we will be able to deserialize the object into the golang type
+    openAPIV3Schema:
+      description: Network describes the cluster's desired network configuration.
+        It is consumed by the cluster-network-operator.
+      type: object
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: NetworkSpec is the top-level network configuration object.
+          type: object
+          properties:
+            additionalNetworks:
+              description: additionalNetworks is a list of extra networks to make
+                available to pods when multiple networks are enabled.
+              type: array
+              items:
+                description: AdditionalNetworkDefinition configures an extra network
+                  that is available but not created by default. Instead, pods must
+                  request them by name. type must be specified, along with exactly
+                  one "Config" that matches the type.
+                type: object
+                properties:
+                  name:
+                    description: name is the name of the network. This will be populated
+                      in the resulting CRD This must be unique.
+                    type: string
+                  namespace:
+                    description: namespace is the namespace of the network. This will
+                      be populated in the resulting CRD If not given the network will
+                      be created in the default namespace.
+                    type: string
+                  rawCNIConfig:
+                    description: rawCNIConfig is the raw CNI configuration json to
+                      create in the NetworkAttachmentDefinition CRD
+                    type: string
+                  simpleMacvlanConfig:
+                    description: SimpleMacvlanConfig configures the macvlan interface
+                      in case of type:NetworkTypeSimpleMacvlan
+                    type: object
+                    properties:
+                      ipamConfig:
+                        description: IPAMConfig configures IPAM module will be used
+                          for IP Address Management (IPAM).
+                        type: object
+                        properties:
+                          staticIPAMConfig:
+                            description: StaticIPAMConfig configures the static IP
+                              address in case of type:IPAMTypeStatic
+                            type: object
+                            properties:
+                              addresses:
+                                description: Addresses configures IP address for the
+                                  interface
+                                type: array
+                                items:
+                                  description: StaticIPAMAddresses provides IP address
+                                    and Gateway for static IPAM addresses
+                                  type: object
+                                  properties:
+                                    address:
+                                      description: Address is the IP address in CIDR
+                                        format
+                                      type: string
+                                    gateway:
+                                      description: Gateway is IP inside of subnet
+                                        to designate as the gateway
+                                      type: string
+                              dns:
+                                description: DNS configures DNS for the interface
+                                type: object
+                                properties:
+                                  domain:
+                                    description: Domain configures the domainname
+                                      the local domain used for short hostname lookups
+                                    type: string
+                                  nameservers:
+                                    description: Nameservers points DNS servers for
+                                      IP lookup
+                                    type: array
+                                    items:
+                                      type: string
+                                  search:
+                                    description: Search configures priority ordered
+                                      search domains for short hostname lookups
+                                    type: array
+                                    items:
+                                      type: string
+                              routes:
+                                description: Routes configures IP routes for the interface
+                                type: array
+                                items:
+                                  description: StaticIPAMRoutes provides Destination/Gateway
+                                    pairs for static IPAM routes
+                                  type: object
+                                  properties:
+                                    destination:
+                                      description: Destination points the IP route
+                                        destination
+                                      type: string
+                                    gateway:
+                                      description: Gateway is the route's next-hop
+                                        IP address If unset, a default gateway is
+                                        assumed (as determined by the CNI plugin).
+                                      type: string
+                          type:
+                            description: Type is the type of IPAM module will be used
+                              for IP Address Management(IPAM). The supported values
+                              are IPAMTypeDHCP, IPAMTypeStatic
+                            type: string
+                      master:
+                        description: master is the host interface to create the macvlan
+                          interface from. If not specified, it will be default route
+                          interface
+                        type: string
+                      mode:
+                        description: 'mode is the macvlan mode: bridge, private, vepa,
+                          passthru. The default is bridge'
+                        type: string
+                      mtu:
+                        description: mtu is the mtu to use for the macvlan interface.
+                          if unset, host's kernel will select the value.
+                        type: integer
+                        format: int32
+                        minimum: 0
+                  type:
+                    description: type is the type of network The supported values
+                      are NetworkTypeRaw, NetworkTypeSimpleMacvlan
+                    type: string
+            clusterNetwork:
+              description: clusterNetwork is the IP address pool to use for pod IPs.
+                Some network providers, e.g. OpenShift SDN, support multiple ClusterNetworks.
+                Others only support one. This is equivalent to the cluster-cidr.
+              type: array
+              items:
+                description: ClusterNetworkEntry is a subnet from which to allocate
+                  PodIPs. A network of size HostPrefix (in CIDR notation) will be
+                  allocated when nodes join the cluster. Not all network providers
+                  support multiple ClusterNetworks
+                type: object
+                properties:
+                  cidr:
+                    type: string
+                  hostPrefix:
+                    type: integer
+                    format: int32
+                    minimum: 0
+            defaultNetwork:
+              description: defaultNetwork is the "default" network that all pods will
+                receive
+              type: object
+              properties:
+                kuryrConfig:
+                  description: KuryrConfig configures the kuryr plugin
+                  type: object
+                  properties:
+                    controllerProbesPort:
+                      description: The port kuryr-controller will listen for readiness
+                        and liveness requests.
+                      type: integer
+                      format: int32
+                      minimum: 0
+                    daemonProbesPort:
+                      description: The port kuryr-daemon will listen for readiness
+                        and liveness requests.
+                      type: integer
+                      format: int32
+                      minimum: 0
+                    openStackServiceNetwork:
+                      description: openStackServiceNetwork contains the CIDR of network
+                        from which to allocate IPs for OpenStack Octavia's Amphora
+                        VMs. Please note that with Amphora driver Octavia uses two
+                        IPs from that network for each loadbalancer - one given by
+                        OpenShift and second for VRRP connections. As the first one
+                        is managed by OpenShift's and second by Neutron's IPAMs, those
+                        need to come from different pools. Therefore `openStackServiceNetwork`
+                        needs to be at least twice the size of `serviceNetwork`, and
+                        whole `serviceNetwork` must be overlapping with `openStackServiceNetwork`.
+                        cluster-network-operator will then make sure VRRP IPs are
+                        taken from the ranges inside `openStackServiceNetwork` that
+                        are not overlapping with `serviceNetwork`, effectivly preventing
+                        conflicts. If not set cluster-network-operator will use `serviceNetwork`
+                        expanded by decrementing the prefix size by 1.
+                      type: string
+                openshiftSDNConfig:
+                  description: openShiftSDNConfig configures the openshift-sdn plugin
+                  type: object
+                  properties:
+                    enableUnidling:
+                      description: enableUnidling controls whether or not the service
+                        proxy will support idling and unidling of services. By default,
+                        unidling is enabled.
+                      type: boolean
+                    mode:
+                      description: mode is one of "Multitenant", "Subnet", or "NetworkPolicy"
+                      type: string
+                    mtu:
+                      description: mtu is the mtu to use for the tunnel interface.
+                        Defaults to 1450 if unset. This must be 50 bytes smaller than
+                        the machine's uplink.
+                      type: integer
+                      format: int32
+                      minimum: 0
+                    useExternalOpenvswitch:
+                      description: useExternalOpenvswitch tells the operator not to
+                        install openvswitch, because it will be provided separately.
+                        If set, you must provide it yourself.
+                      type: boolean
+                    vxlanPort:
+                      description: vxlanPort is the port to use for all vxlan packets.
+                        The default is 4789.
+                      type: integer
+                      format: int32
+                      minimum: 0
+                ovnKubernetesConfig:
+                  description: oVNKubernetesConfig configures the ovn-kubernetes plugin.
+                    This is currently not implemented.
+                  type: object
+                  properties:
+                    genevePort:
+                      description: geneve port is the UDP port to be used by geneve
+                        encapulation. Default is 6081
+                      type: integer
+                      format: int32
+                      minimum: 1
+                    hybridOverlayConfig:
+                      description: HybridOverlayConfig configures an additional overlay
+                        network for peers that are not using OVN.
+                      type: object
+                      properties:
+                        hybridClusterNetwork:
+                          description: HybridClusterNetwork defines a network space
+                            given to nodes on an additional overlay network.
+                          type: array
+                          items:
+                            description: ClusterNetworkEntry is a subnet from which
+                              to allocate PodIPs. A network of size HostPrefix (in
+                              CIDR notation) will be allocated when nodes join the
+                              cluster. Not all network providers support multiple
+                              ClusterNetworks
+                            type: object
+                            properties:
+                              cidr:
+                                type: string
+                              hostPrefix:
+                                type: integer
+                                format: int32
+                                minimum: 0
+                    mtu:
+                      description: mtu is the MTU to use for the tunnel interface.
+                        This must be 100 bytes smaller than the uplink mtu. Default
+                        is 1400
+                      type: integer
+                      format: int32
+                      minimum: 0
+                type:
+                  description: type is the type of network All NetworkTypes are supported
+                    except for NetworkTypeRaw
+                  type: string
+            deployKubeProxy:
+              description: deployKubeProxy specifies whether or not a standalone kube-proxy
+                should be deployed by the operator. Some network providers include
+                kube-proxy or similar functionality. If unset, the plugin will attempt
+                to select the correct value, which is false when OpenShift SDN and
+                ovn-kubernetes are used and true otherwise.
+              type: boolean
+            disableMultiNetwork:
+              description: disableMultiNetwork specifies whether or not multiple pod
+                network support should be disabled. If unset, this property defaults
+                to 'false' and multiple network support is enabled.
+              type: boolean
+            kubeProxyConfig:
+              description: kubeProxyConfig lets us configure desired proxy configuration.
+                If not specified, sensible defaults will be chosen by OpenShift directly.
+                Not consumed by all network providers - currently only openshift-sdn.
+              type: object
+              properties:
+                bindAddress:
+                  description: The address to "bind" on Defaults to 0.0.0.0
+                  type: string
+                iptablesSyncPeriod:
+                  description: 'The period that iptables rules are refreshed. Default:
+                    30s'
+                  type: string
+                proxyArguments:
+                  description: Any additional arguments to pass to the kubeproxy process
+                  type: object
+                  additionalProperties:
+                    description: ProxyArgumentList is a list of arguments to pass
+                      to the kubeproxy process
+                    type: array
+                    items:
+                      type: string
+            serviceNetwork:
+              description: serviceNetwork is the ip address pool to use for Service
+                IPs Currently, all existing network providers only support a single
+                value here, but this is an array to allow for growth.
+              type: array
+              items:
+                type: string
+        status:
+          description: NetworkStatus is currently unused. Instead, status is reported
+            in the Network.config.openshift.io object.
+          type: object

@@ -31,7 +31,8 @@ import (
 	"k8s.io/client-go/util/cert"
 )
 
-// TLS versions that are known to golang. Go 1.12 adds TLS 1.3 support with a build flag.
+// TLS versions that are known to golang. Go 1.13 adds support for
+// TLS 1.3 that's opt-out with a build flag.
 var versions = map[string]uint16{
 	"VersionTLS10": tls.VersionTLS10,
 	"VersionTLS11": tls.VersionTLS11,
@@ -44,6 +45,7 @@ var supportedVersions = map[string]uint16{
 	"VersionTLS10": tls.VersionTLS10,
 	"VersionTLS11": tls.VersionTLS11,
 	"VersionTLS12": tls.VersionTLS12,
+	"VersionTLS13": tls.VersionTLS13,
 }
 
 // TLSVersionToNameOrDie given a tls version as an int, return its readable name
@@ -107,6 +109,15 @@ func DefaultTLSVersion() uint16 {
 	return tls.VersionTLS12
 }
 
+// ciphersTLS13 copies golang 1.13 implementation, where TLS1.3 suites are not
+// configurable (cipherSuites field is ignored for TLS1.3 flows and all of the
+// below three - and none other - are used)
+var ciphersTLS13 = map[string]uint16{
+	"TLS_AES_128_GCM_SHA256":       tls.TLS_AES_128_GCM_SHA256,
+	"TLS_AES_256_GCM_SHA384":       tls.TLS_AES_256_GCM_SHA384,
+	"TLS_CHACHA20_POLY1305_SHA256": tls.TLS_CHACHA20_POLY1305_SHA256,
+}
+
 var ciphers = map[string]uint16{
 	"TLS_RSA_WITH_RC4_128_SHA":                tls.TLS_RSA_WITH_RC4_128_SHA,
 	"TLS_RSA_WITH_3DES_EDE_CBC_SHA":           tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
@@ -130,6 +141,39 @@ var ciphers = map[string]uint16{
 	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305":    tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305":  tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+}
+
+// openSSLToIANACiphersMap maps OpenSSL cipher suite names to IANA names
+// ref: https://www.iana.org/assignments/tls-parameters/tls-parameters.xml
+var openSSLToIANACiphersMap = map[string]string{
+	// TLS 1.3 ciphers - not configurable in go 1.13, all of them are used in TLSv1.3 flows
+	//	"TLS_AES_128_GCM_SHA256":       "TLS_AES_128_GCM_SHA256",       // 0x13,0x01
+	//	"TLS_AES_256_GCM_SHA384":       "TLS_AES_256_GCM_SHA384",       // 0x13,0x02
+	//	"TLS_CHACHA20_POLY1305_SHA256": "TLS_CHACHA20_POLY1305_SHA256", // 0x13,0x03
+
+	// TLS 1.2
+	"ECDHE-ECDSA-AES128-GCM-SHA256": "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", // 0xC0,0x2B
+	"ECDHE-RSA-AES128-GCM-SHA256":   "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",   // 0xC0,0x2F
+	"ECDHE-ECDSA-AES256-GCM-SHA384": "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", // 0xC0,0x2C
+	"ECDHE-RSA-AES256-GCM-SHA384":   "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",   // 0xC0,0x30
+	"ECDHE-ECDSA-CHACHA20-POLY1305": "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",  // 0xCC,0xA9
+	"ECDHE-RSA-CHACHA20-POLY1305":   "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305",    // 0xCC,0xA8
+	"ECDHE-ECDSA-AES128-SHA256":     "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256", // 0xC0,0x23
+	"ECDHE-RSA-AES128-SHA256":       "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",   // 0xC0,0x27
+	"AES128-GCM-SHA256":             "TLS_RSA_WITH_AES_128_GCM_SHA256",         // 0x00,0x9C
+	"AES256-GCM-SHA384":             "TLS_RSA_WITH_AES_256_GCM_SHA384",         // 0x00,0x9D
+	"AES128-SHA256":                 "TLS_RSA_WITH_AES_128_CBC_SHA256",         // 0x00,0x3C
+
+	// TLS 1
+	"ECDHE-ECDSA-AES128-SHA": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", // 0xC0,0x09
+	"ECDHE-RSA-AES128-SHA":   "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",   // 0xC0,0x13
+	"ECDHE-ECDSA-AES256-SHA": "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", // 0xC0,0x0A
+	"ECDHE-RSA-AES256-SHA":   "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",   // 0xC0,0x14
+
+	// SSL 3
+	"AES128-SHA":   "TLS_RSA_WITH_AES_128_CBC_SHA",  // 0x00,0x2F
+	"AES256-SHA":   "TLS_RSA_WITH_AES_256_CBC_SHA",  // 0x00,0x35
+	"DES-CBC3-SHA": "TLS_RSA_WITH_3DES_EDE_CBC_SHA", // 0x00,0x0A
 }
 
 // CipherSuitesToNamesOrDie given a list of cipher suites as ints, return their readable names
@@ -164,6 +208,11 @@ func CipherSuite(cipherName string) (uint16, error) {
 	if cipher, ok := ciphers[cipherName]; ok {
 		return cipher, nil
 	}
+
+	if _, ok := ciphersTLS13[cipherName]; ok {
+		return 0, fmt.Errorf("all golang TLSv1.3 ciphers are always used for TLSv1.3 flows")
+	}
+
 	return 0, fmt.Errorf("unknown cipher name %q", cipherName)
 }
 
@@ -232,6 +281,22 @@ func SecureTLSConfig(config *tls.Config) *tls.Config {
 		config.CipherSuites = DefaultCiphers()
 	}
 	return config
+}
+
+// OpenSSLToIANACipherSuites maps input OpenSSL Cipher Suite names to their
+// IANA counterparts.
+// Unknown ciphers are left out.
+func OpenSSLToIANACipherSuites(ciphers []string) []string {
+	ianaCiphers := make([]string, 0, len(ciphers))
+
+	for _, c := range ciphers {
+		ianaCipher, found := openSSLToIANACiphersMap[c]
+		if found {
+			ianaCiphers = append(ianaCiphers, ianaCipher)
+		}
+	}
+
+	return ianaCiphers
 }
 
 type TLSCertificateConfig struct {
@@ -542,27 +607,36 @@ func MakeSelfSignedCA(certFile, keyFile, serialFile, name string, expireDays int
 }
 
 func MakeSelfSignedCAConfig(name string, expireDays int) (*TLSCertificateConfig, error) {
+	subject := pkix.Name{CommonName: name}
+	return MakeSelfSignedCAConfigForSubject(subject, expireDays)
+}
+
+func MakeSelfSignedCAConfigForSubject(subject pkix.Name, expireDays int) (*TLSCertificateConfig, error) {
 	var caLifetimeInDays = DefaultCACertificateLifetimeInDays
 	if expireDays > 0 {
 		caLifetimeInDays = expireDays
 	}
 
 	if caLifetimeInDays > DefaultCACertificateLifetimeInDays {
-		warnAboutCertificateLifeTime(name, DefaultCACertificateLifetimeInDays)
+		warnAboutCertificateLifeTime(subject.CommonName, DefaultCACertificateLifetimeInDays)
 	}
 
 	caLifetime := time.Duration(caLifetimeInDays) * 24 * time.Hour
-
-	return MakeSelfSignedCAConfigForDuration(name, caLifetime)
+	return makeSelfSignedCAConfigForSubjectAndDuration(subject, caLifetime)
 }
 
 func MakeSelfSignedCAConfigForDuration(name string, caLifetime time.Duration) (*TLSCertificateConfig, error) {
+	subject := pkix.Name{CommonName: name}
+	return makeSelfSignedCAConfigForSubjectAndDuration(subject, caLifetime)
+}
+
+func makeSelfSignedCAConfigForSubjectAndDuration(subject pkix.Name, caLifetime time.Duration) (*TLSCertificateConfig, error) {
 	// Create CA cert
 	rootcaPublicKey, rootcaPrivateKey, err := NewKeyPair()
 	if err != nil {
 		return nil, err
 	}
-	rootcaTemplate := newSigningCertificateTemplateForDuration(pkix.Name{CommonName: name}, caLifetime, time.Now)
+	rootcaTemplate := newSigningCertificateTemplateForDuration(subject, caLifetime, time.Now)
 	rootcaCert, err := signCertificate(rootcaTemplate, rootcaPublicKey, rootcaTemplate, rootcaPrivateKey)
 	if err != nil {
 		return nil, err

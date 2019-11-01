@@ -49,6 +49,9 @@ type DNSStatus struct {
 	// Example: dig foo.com @<service IP>
 	//
 	// More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
+	//
+	// +kubebuilder:validation:Required
+	// +required
 	ClusterIP string `json:"clusterIP"`
 
 	// clusterDomain is the local cluster DNS domain suffix for DNS services.
@@ -57,6 +60,9 @@ type DNSStatus struct {
 	// Example: "cluster.local"
 	//
 	// More info: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service
+	//
+	// +kubebuilder:validation:Required
+	// +required
 	ClusterDomain string `json:"clusterDomain"`
 
 	// conditions provide information about the state of the DNS on the cluster.

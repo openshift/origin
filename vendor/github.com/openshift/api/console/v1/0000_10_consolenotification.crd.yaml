@@ -1,0 +1,89 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: consolenotifications.console.openshift.io
+  annotations:
+    displayName: ConsoleNotification
+    description: Extension for configuring openshift web console notifications.
+spec:
+  scope: Cluster
+  preserveUnknownFields: false
+  group: console.openshift.io
+  versions:
+  - name: v1
+    served: true
+    storage: true
+  names:
+    plural: consolenotifications
+    singular: consolenotification
+    kind: ConsoleNotification
+    listKind: ConsoleNotificationList
+  additionalPrinterColumns:
+  - name: Text
+    type: string
+    JSONPath: .spec.text
+  - name: Location
+    type: string
+    JSONPath: .spec.location
+  - name: Age
+    type: date
+    JSONPath: .metadata.creationTimestamp
+  subresources:
+    status: {}
+  "validation":
+    "openAPIV3Schema":
+      description: ConsoleNotification is the extension for configuring openshift
+        web console notifications.
+      type: object
+      required:
+      - spec
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: ConsoleNotificationSpec is the desired console notification
+            configuration.
+          type: object
+          required:
+          - text
+          properties:
+            backgroundColor:
+              description: backgroundColor is the color of the background for the
+                notification as CSS data type color.
+              type: string
+            color:
+              description: color is the color of the text for the notification as
+                CSS data type color.
+              type: string
+            link:
+              description: link is an object that holds notification link details.
+              type: object
+              required:
+              - href
+              - text
+              properties:
+                href:
+                  description: href is the absolute secure URL for the link (must
+                    use https)
+                  type: string
+                  pattern: ^https://
+                text:
+                  description: text is the display text for the link
+                  type: string
+            location:
+              description: location is the location of the notification in the console.
+              type: string
+              pattern: ^(BannerTop|BannerBottom|BannerTopBottom)$
+            text:
+              description: text is the visible text of the notification.
+              type: string

@@ -38,12 +38,16 @@ func internalUnionCondition(conditionType string, defaultConditionStatus operato
 
 	interestingConditions := []operatorv1.OperatorCondition{}
 	badConditions := []operatorv1.OperatorCondition{}
+	badConditionStatus := operatorv1.ConditionUnknown
 	for _, condition := range allConditions {
 		if strings.HasSuffix(condition.Type, conditionType) {
 			interestingConditions = append(interestingConditions, condition)
 
-			if condition.Status == oppositeConditionStatus {
+			if condition.Status != defaultConditionStatus {
 				badConditions = append(badConditions, condition)
+				if condition.Status == oppositeConditionStatus {
+					badConditionStatus = oppositeConditionStatus
+				}
 			}
 		}
 	}
@@ -69,7 +73,7 @@ func internalUnionCondition(conditionType string, defaultConditionStatus operato
 	}
 
 	// at this point we have bad conditions
-	unionedCondition.Status = oppositeConditionStatus
+	unionedCondition.Status = badConditionStatus
 	unionedCondition.Message = unionMessage(badConditions)
 	unionedCondition.Reason = unionReason(badConditions)
 	unionedCondition.LastTransitionTime = latestTransitionTime(badConditions)

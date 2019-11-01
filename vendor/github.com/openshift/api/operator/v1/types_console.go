@@ -3,7 +3,7 @@ package v1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 // +genclient
@@ -63,6 +63,7 @@ type ConsoleCustomization struct {
 	// of the web console.  Providing documentationBaseURL will override the default
 	// documentation URL.
 	// Invalid value will prevent a console rollout.
+	// +kubebuilder:validation:Pattern=`^$|^((https):\/\/?)[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/?))\/$`
 	DocumentationBaseURL string `json:"documentationBaseURL,omitempty"`
 	// customProductName is the name that will be displayed in page titles, logo alt text, and the about dialog
 	// instead of the normal OpenShift product name.
@@ -78,10 +79,11 @@ type ConsoleCustomization struct {
 	// Dimensions: Max height of 68px and max width of 200px
 	// SVG format preferred
 	// +optional
-	CustomLogoFile v1.ConfigMapFileReference `json:"customLogoFile,omitempty"`
+	CustomLogoFile configv1.ConfigMapFileReference `json:"customLogoFile,omitempty"`
 }
 
 // Brand is a specific supported brand within the console.
+// +kubebuilder:validation:Pattern=`^$|^(ocp|origin|okd|dedicated|online|azure)$`
 type Brand string
 
 const (

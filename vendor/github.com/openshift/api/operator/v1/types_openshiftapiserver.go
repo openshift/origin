@@ -26,6 +26,13 @@ type OpenShiftAPIServerSpec struct {
 
 type OpenShiftAPIServerStatus struct {
 	OperatorStatus `json:",inline"`
+
+	// latestAvailableRevision is the latest revision used as suffix of revisioned
+	// secrets like encryption-config. A new revision causes a new deployment of
+	// pods.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	LatestAvailableRevision int32 `json:"latestAvailableRevision,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -33,8 +40,8 @@ type OpenShiftAPIServerStatus struct {
 // OpenShiftAPIServerList is a collection of items
 type OpenShiftAPIServerList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
+
 	// Items contains the items
 	Items []OpenShiftAPIServer `json:"items"`
 }

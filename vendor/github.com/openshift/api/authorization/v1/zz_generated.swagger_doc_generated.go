@@ -30,7 +30,6 @@ func (Action) SwaggerDoc() map[string]string {
 
 var map_ClusterRole = map[string]string{
 	"":                "ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.",
-	"metadata":        "Standard object's metadata.",
 	"rules":           "Rules holds all the PolicyRules for this ClusterRole",
 	"aggregationRule": "AggregationRule is an optional field that describes how to build the Rules for this ClusterRole. If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be stomped by the controller.",
 }
@@ -41,7 +40,6 @@ func (ClusterRole) SwaggerDoc() map[string]string {
 
 var map_ClusterRoleBinding = map[string]string{
 	"":           "ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
-	"metadata":   "Standard object's metadata.",
 	"userNames":  "UserNames holds all the usernames directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
 	"groupNames": "GroupNames holds all the groups directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
 	"subjects":   "Subjects hold object references to authorize with this rule. This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers. Thus newer clients that do not need to support backwards compatibility should send only fully qualified Subjects and should omit the UserNames and GroupNames fields. Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.",
@@ -53,9 +51,8 @@ func (ClusterRoleBinding) SwaggerDoc() map[string]string {
 }
 
 var map_ClusterRoleBindingList = map[string]string{
-	"":         "ClusterRoleBindingList is a collection of ClusterRoleBindings",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of ClusterRoleBindings",
+	"":      "ClusterRoleBindingList is a collection of ClusterRoleBindings",
+	"items": "Items is a list of ClusterRoleBindings",
 }
 
 func (ClusterRoleBindingList) SwaggerDoc() map[string]string {
@@ -63,9 +60,8 @@ func (ClusterRoleBindingList) SwaggerDoc() map[string]string {
 }
 
 var map_ClusterRoleList = map[string]string{
-	"":         "ClusterRoleList is a collection of ClusterRoles",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of ClusterRoles",
+	"":      "ClusterRoleList is a collection of ClusterRoles",
+	"items": "Items is a list of ClusterRoles",
 }
 
 func (ClusterRoleList) SwaggerDoc() map[string]string {
@@ -184,9 +180,8 @@ func (ResourceAccessReviewResponse) SwaggerDoc() map[string]string {
 }
 
 var map_Role = map[string]string{
-	"":         "Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.",
-	"metadata": "Standard object's metadata.",
-	"rules":    "Rules holds all the PolicyRules for this Role",
+	"":      "Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.",
+	"rules": "Rules holds all the PolicyRules for this Role",
 }
 
 func (Role) SwaggerDoc() map[string]string {
@@ -195,7 +190,6 @@ func (Role) SwaggerDoc() map[string]string {
 
 var map_RoleBinding = map[string]string{
 	"":           "RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
-	"metadata":   "Standard object's metadata.",
 	"userNames":  "UserNames holds all the usernames directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
 	"groupNames": "GroupNames holds all the groups directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
 	"subjects":   "Subjects hold object references to authorize with this rule. This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers. Thus newer clients that do not need to support backwards compatibility should send only fully qualified Subjects and should omit the UserNames and GroupNames fields. Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.",
@@ -207,9 +201,8 @@ func (RoleBinding) SwaggerDoc() map[string]string {
 }
 
 var map_RoleBindingList = map[string]string{
-	"":         "RoleBindingList is a collection of RoleBindings",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of RoleBindings",
+	"":      "RoleBindingList is a collection of RoleBindings",
+	"items": "Items is a list of RoleBindings",
 }
 
 func (RoleBindingList) SwaggerDoc() map[string]string {
@@ -217,9 +210,8 @@ func (RoleBindingList) SwaggerDoc() map[string]string {
 }
 
 var map_RoleBindingRestriction = map[string]string{
-	"":         "RoleBindingRestriction is an object that can be matched against a subject (user, group, or service account) to determine whether rolebindings on that subject are allowed in the namespace to which the RoleBindingRestriction belongs.  If any one of those RoleBindingRestriction objects matches a subject, rolebindings on that subject in the namespace are allowed.",
-	"metadata": "Standard object's metadata.",
-	"spec":     "Spec defines the matcher.",
+	"":     "RoleBindingRestriction is an object that can be matched against a subject (user, group, or service account) to determine whether rolebindings on that subject are allowed in the namespace to which the RoleBindingRestriction belongs.  If any one of those RoleBindingRestriction objects matches a subject, rolebindings on that subject in the namespace are allowed.",
+	"spec": "Spec defines the matcher.",
 }
 
 func (RoleBindingRestriction) SwaggerDoc() map[string]string {
@@ -227,9 +219,8 @@ func (RoleBindingRestriction) SwaggerDoc() map[string]string {
 }
 
 var map_RoleBindingRestrictionList = map[string]string{
-	"":         "RoleBindingRestrictionList is a collection of RoleBindingRestriction objects.",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of RoleBindingRestriction objects.",
+	"":      "RoleBindingRestrictionList is a collection of RoleBindingRestriction objects.",
+	"items": "Items is a list of RoleBindingRestriction objects.",
 }
 
 func (RoleBindingRestrictionList) SwaggerDoc() map[string]string {
@@ -248,9 +239,8 @@ func (RoleBindingRestrictionSpec) SwaggerDoc() map[string]string {
 }
 
 var map_RoleList = map[string]string{
-	"":         "RoleList is a collection of Roles",
-	"metadata": "Standard object's metadata.",
-	"items":    "Items is a list of Roles",
+	"":      "RoleList is a collection of Roles",
+	"items": "Items is a list of Roles",
 }
 
 func (RoleList) SwaggerDoc() map[string]string {

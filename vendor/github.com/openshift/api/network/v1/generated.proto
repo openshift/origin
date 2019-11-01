@@ -15,7 +15,6 @@ option go_package = "v1";
 // named "default", which is created by the SDN network plugin based on the master configuration
 // when the cluster is brought up for the first time.
 message ClusterNetwork {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Network is a CIDR string specifying the global overlay network's L3 space
@@ -30,7 +29,7 @@ message ClusterNetwork {
   // PluginName is the name of the network plugin being used
   optional string pluginName = 5;
 
-  // ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.
+  // ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addresses from.
   repeated ClusterNetworkEntry clusterNetworks = 6;
 
   // VXLANPort sets the VXLAN destination port used by the cluster. It is set by the master configuration file on startup and cannot be edited manually. Valid values for VXLANPort are integers 1-65535 inclusive and if unset defaults to 4789. Changing VXLANPort allows users to resolve issues between openshift SDN and other software trying to use the same VXLAN destination port.
@@ -51,7 +50,6 @@ message ClusterNetworkEntry {
 
 // ClusterNetworkList is a collection of ClusterNetworks
 message ClusterNetworkList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of cluster networks
@@ -64,7 +62,6 @@ message ClusterNetworkList {
 // namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy
 // is present) then the traffic will be allowed by default.
 message EgressNetworkPolicy {
-  // metadata for EgressNetworkPolicy
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec is the specification of the current egress network policy
@@ -73,7 +70,6 @@ message EgressNetworkPolicy {
 
 // EgressNetworkPolicyList is a collection of EgressNetworkPolicy
 message EgressNetworkPolicyList {
-  // metadata for EgressNetworkPolicyList
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // items is the list of policies
@@ -107,7 +103,6 @@ message EgressNetworkPolicySpec {
 // HostSubnet describes the container subnet network on a node. The HostSubnet object must have the
 // same name as the Node object it corresponds to.
 message HostSubnet {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Host is the name of the node. (This is the same as the object's name, but both fields must be set.)
@@ -134,7 +129,6 @@ message HostSubnet {
 
 // HostSubnetList is a collection of HostSubnets
 message HostSubnetList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of host subnets
@@ -145,7 +139,6 @@ message HostSubnetList {
 // plugin, every Namespace will have a corresponding NetNamespace object with the same name.
 // (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)
 message NetNamespace {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)
@@ -161,7 +154,6 @@ message NetNamespace {
 
 // NetNamespaceList is a collection of NetNamespaces
 message NetNamespaceList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of net namespaces

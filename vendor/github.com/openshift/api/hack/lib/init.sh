@@ -30,7 +30,6 @@ security/v1 \
 servicecertsigner/v1alpha1 \
 template/v1 \
 user/v1 \
-webconsole/v1 \
 "
 API_PACKAGES="\
 github.com/openshift/api/apps/v1,\

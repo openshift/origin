@@ -12,10 +12,9 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_Route = map[string]string{
-	"":         "A route allows developers to expose services through an HTTP(S) aware load balancing and proxy layer via a public DNS entry. The route may further specify TLS options and a certificate, or specify a public CNAME that the router should also accept for HTTP and HTTPS traffic. An administrator typically configures their router to be visible outside the cluster firewall, and may also add additional security, caching, or traffic controls on the service content. Routers usually talk directly to the service endpoints.\n\nOnce a route is created, the `host` field may not be changed. Generally, routers use the oldest route with a given host when resolving conflicts.\n\nRouters are subject to additional customization and may support additional controls via the annotations field.\n\nBecause administrators may configure multiple routers, the route status field is used to return information to clients about the names and states of the route under each router. If a client chooses a duplicate name, for instance, the route status conditions are used to indicate the route cannot be chosen.",
-	"metadata": "Standard object metadata.",
-	"spec":     "spec is the desired state of the route",
-	"status":   "status is the current state of the route",
+	"":       "A route allows developers to expose services through an HTTP(S) aware load balancing and proxy layer via a public DNS entry. The route may further specify TLS options and a certificate, or specify a public CNAME that the router should also accept for HTTP and HTTPS traffic. An administrator typically configures their router to be visible outside the cluster firewall, and may also add additional security, caching, or traffic controls on the service content. Routers usually talk directly to the service endpoints.\n\nOnce a route is created, the `host` field may not be changed. Generally, routers use the oldest route with a given host when resolving conflicts.\n\nRouters are subject to additional customization and may support additional controls via the annotations field.\n\nBecause administrators may configure multiple routers, the route status field is used to return information to clients about the names and states of the route under each router. If a client chooses a duplicate name, for instance, the route status conditions are used to indicate the route cannot be chosen.",
+	"spec":   "spec is the desired state of the route",
+	"status": "status is the current state of the route",
 }
 
 func (Route) SwaggerDoc() map[string]string {
@@ -49,9 +48,8 @@ func (RouteIngressCondition) SwaggerDoc() map[string]string {
 }
 
 var map_RouteList = map[string]string{
-	"":         "RouteList is a collection of Routes.",
-	"metadata": "Standard object metadata.",
-	"items":    "items is a list of routes",
+	"":      "RouteList is a collection of Routes.",
+	"items": "items is a list of routes",
 }
 
 func (RouteList) SwaggerDoc() map[string]string {

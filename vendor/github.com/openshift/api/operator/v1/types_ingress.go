@@ -4,13 +4,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1 "k8s.io/api/core/v1"
+
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.availableReplicas,selectorpath=.status.labelSelector
+// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.availableReplicas,selectorpath=.status.selector
 
 // IngressController describes a managed ingress controller for the cluster. The
 // controller can service OpenShift Route and Kubernetes Ingress resources.
@@ -70,9 +72,9 @@ type IngressControllerSpec struct {
 	// If unset, the default is based on
 	// infrastructure.config.openshift.io/cluster .status.platform:
 	//
-	//   AWS:      LoadBalancerService
-	//   Azure:    LoadBalancerService
-	//   GCP:      LoadBalancerService
+	//   AWS:      LoadBalancerService (with External scope)
+	//   Azure:    LoadBalancerService (with External scope)
+	//   GCP:      LoadBalancerService (with External scope)
 	//   Libvirt:  HostNetwork
 	//
 	// Any other platform types (including None) default to HostNetwork.
@@ -125,6 +127,24 @@ type IngressControllerSpec struct {
 	//
 	// +optional
 	NodePlacement *NodePlacement `json:"nodePlacement,omitempty"`
+
+	// tlsSecurityProfile specifies settings for TLS connections for ingresscontrollers.
+	//
+	// If unset, the default is based on the apiservers.config.openshift.io/cluster resource.
+	//
+	// Note that when using the Old, Intermediate, and Modern profile types, the effective
+	// profile configuration is subject to change between releases. For example, given
+	// a specification to use the Intermediate profile deployed on release X.Y.Z, an upgrade
+	// to release X.Y.Z+1 may cause a new profile configuration to be applied to the ingress
+	// controller, resulting in a rollout.
+	//
+	// Note that the minimum TLS version for ingress controllers is 1.1, and
+	// the maximum TLS version is 1.2.  An implication of this restriction
+	// is that the Modern TLS profile type cannot be used because it
+	// requires TLS 1.3.
+	//
+	// +optional
+	TLSSecurityProfile *configv1.TLSSecurityProfile `json:"tlsSecurityProfile,omitempty"`
 }
 
 // NodePlacement describes node scheduling configuration for an ingress
@@ -186,9 +206,10 @@ var (
 // LoadBalancerStrategy holds parameters for a load balancer.
 type LoadBalancerStrategy struct {
 	// scope indicates the scope at which the load balancer is exposed.
-	// Possible values are "External" and "Internal".  The default is
-	// "External".
-	// +optional
+	// Possible values are "External" and "Internal".
+	//
+	// +kubebuilder:validation:Required
+	// +required
 	Scope LoadBalancerScope `json:"scope"`
 }
 
@@ -216,14 +237,15 @@ type EndpointPublishingStrategy struct {
 	// In this configuration, the ingress controller deployment uses container
 	// networking. A LoadBalancer Service is created to publish the deployment.
 	//
-	// See: https://kubernetes.io/docs/concepts/services-networking/#loadbalancer
+	// See: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
 	//
 	// If domain is set, a wildcard DNS record will be managed to point at the
 	// LoadBalancer Service's external name. DNS records are managed only in DNS
 	// zones defined by dns.config.openshift.io/cluster .spec.publicZone and
 	// .spec.privateZone.
 	//
-	// Wildcard DNS management is currently supported only on the AWS platform.
+	// Wildcard DNS management is currently supported only on the AWS, Azure,
+	// and GCP platforms.
 	//
 	// * HostNetwork
 	//
@@ -243,25 +265,23 @@ type EndpointPublishingStrategy struct {
 	// networking, and is not explicitly published. The user must manually publish
 	// the ingress controller.
 	// +unionDiscriminator
-	// +optional
+	// +kubebuilder:validation:Required
+	// +required
 	Type EndpointPublishingStrategyType `json:"type"`
 
 	// loadBalancer holds parameters for the load balancer. Present only if
 	// type is LoadBalancerService.
 	// +optional
-	// +nullable
 	LoadBalancer *LoadBalancerStrategy `json:"loadBalancer,omitempty"`
 
 	// hostNetwork holds parameters for the HostNetwork endpoint publishing
 	// strategy. Present only if type is HostNetwork.
 	// +optional
-	// +nullable
 	HostNetwork *HostNetworkStrategy `json:"hostNetwork,omitempty"`
 
 	// private holds parameters for the Private endpoint publishing
 	// strategy. Present only if type is Private.
 	// +optional
-	// +nullable
 	Private *PrivateStrategy `json:"private,omitempty"`
 }
 
@@ -332,6 +352,14 @@ type IngressControllerStatus struct {
 	//     * DNS records have been successfully created.
 	//   - False if any of those conditions are unsatisfied.
 	Conditions []OperatorCondition `json:"conditions,omitempty"`
+
+	// tlsProfile is the TLS connection configuration that is in effect.
+	// +optional
+	TLSProfile *configv1.TLSProfileSpec `json:"tlsProfile,omitempty"`
+
+	// observedGeneration is the most recent generation observed.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
