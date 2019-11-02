@@ -184,6 +184,17 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			}
 			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})
+		g.It("shouldn't have failing rules evaluation", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string]bool{
+				`prometheus_rule_evaluation_failures_total >= 1`: false,
+			}
+			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		})
 		networking.InOpenShiftSDNContext(func() {
 			g.It("should be able to get the sdn ovs flows", func() {
 				oc.SetupProject()
