@@ -29,7 +29,7 @@ var _ = Describe("[Feature:Platform] Managed cluster should", func() {
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
 		excludeNamespaces := sets.NewString("openshift-operator-lifecycle-manager")
-		excludePodPrefix := sets.NewString("revision-pruner-", "installer-")
+		excludePodPrefix := sets.NewString("revision-pruner-", "installer-", "must-gather-")
 		for _, pod := range pods.Items {
 			// exclude non-control plane namespaces
 			if !hasPrefixSet(pod.Namespace, namespacePrefixes) {
