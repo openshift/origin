@@ -12,9 +12,10 @@ import (
 	o "github.com/onsi/gomega"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -77,7 +78,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, "weighted.example.com", changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			// all requests should now succeed
-			err = expectRouteStatusCodeRepeatedExec(ns, execPodName, routerURL, "weighted.example.com", http.StatusOK, times)
+			err = expectRouteStatusCodeRepeatedExec(ns, execPodName, routerURL, "weighted.example.com", http.StatusOK, times, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("checking that there are three weighted backends in the router stats"))
