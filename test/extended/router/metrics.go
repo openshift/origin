@@ -16,16 +16,15 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
-	clientset "k8s.io/client-go/kubernetes"
-	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/kubernetes/pkg/client/conditions"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-
 	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clientset "k8s.io/client-go/kubernetes"
+	watchtools "k8s.io/client-go/tools/watch"
+	"k8s.io/kubernetes/pkg/client/conditions"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -35,41 +34,44 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	var (
 		oc = exutil.NewCLI("router-metrics", exutil.KubeConfigPath())
 
-		username, password, bearerToken string
-		metricsPort                     int32
-		execPodName, ns, host           string
+		username, password, execPodName, ns, host string
+		statsPort                                 int
+		routerNamespace, serviceIP, bearerToken   string
 	)
 
 	g.BeforeEach(func() {
-		// This test needs to make assertions against a single router pod, so all access
-		// to the router should happen through a single endpoint.
-
-		// Discover the endpoint.
-		endpoint, err := oc.AdminKubeClient().CoreV1().Endpoints("openshift-ingress").Get("router-internal-default", metav1.GetOptions{})
+		var err error
+		var template *corev1.PodTemplateSpec
+		template, routerNamespace, err = exutil.GetRouterPodTemplate(oc)
+		if kapierrs.IsNotFound(err) {
+			g.Skip("no router installed on the cluster")
+			return
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(endpoint.Subsets).NotTo(o.BeEmpty())
-		subset := endpoint.Subsets[0]
-		o.Expect(subset.Addresses).NotTo(o.BeEmpty())
+		env := template.Spec.Containers[0].Env
 
-		// Extract the metrics port by name.
-		for _, port := range subset.Ports {
-			if port.Name == "metrics" {
-				metricsPort = port.Port
-				break
+		if len(findEnvVar(env, "ROUTER_METRICS_TYPE")) == 0 {
+			g.Skip("router does not have ROUTER_METRICS_TYPE set")
+			return
+		}
+
+		username, password, err = findStatsUsernameAndPassword(oc, routerNamespace, env)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		statsPort = 1936
+		statsPortString := findEnvVar(env, "STATS_PORT")
+		if len(statsPortString) > 0 {
+			if port, err := strconv.Atoi(statsPortString); err == nil {
+				statsPort = port
 			}
 		}
-		o.Expect(metricsPort).NotTo(o.BeZero())
 
-		// Extract the IP of a single router pod.
-		host = subset.Addresses[0].IP
-
-		// Extract the router pod's stats credentials.
-		statsSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-ingress").Get("router-stats-default", metav1.GetOptions{})
+		host, err = exutil.WaitForRouterInternalIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		username, password = string(statsSecret.Data["statsUsername"]), string(statsSecret.Data["statsPassword"])
 
-		// Extract a bearer token from Prometheus authorized to access
-		// the router metrics URL.
+		serviceIP, err = exutil.WaitForRouterServiceIP(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		bearerToken, err = findMetricsBearerToken(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -88,11 +90,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("listening on the health port")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/healthz", host, metricsPort), 200)
+			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/healthz", host, statsPort), 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should expose prometheus metrics for a route", func() {
+		g.It("[Flaky] should expose prometheus metrics for a route", func() {
 			g.By("when a route exists")
 			configPath := exutil.FixturePath("testdata", "router", "router-metrics.yaml")
 			err := oc.Run("create").Args("-f", configPath).Execute()
@@ -102,11 +104,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
-			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), 401, 403)
+			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("validate access using username and password")
-			_, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), username, password)
+			_, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("checking for the expected metrics")
@@ -119,11 +121,12 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			p := expfmt.TextParser{}
 
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
-				results, err = getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), bearerToken)
+				results, err = getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
 				o.Expect(err).NotTo(o.HaveOccurred())
+				//e2e.Logf("Metrics:\n%s", results)
 
 				if len(findGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) == 2 {
 					if findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)[0] >= float64(times) {
@@ -131,7 +134,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					}
 					// send a burst of traffic to the router
 					g.By("sending traffic to a weighted route")
-					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), "weighted.metrics.example.com", http.StatusOK, times)
+					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", serviceIP), "weighted.metrics.example.com", http.StatusOK, times)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 				g.By("retrying metrics until all backend servers appear")
@@ -193,7 +196,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			time.Sleep(15 * time.Second)
 
 			g.By("checking that some metrics are not reset to 0 after router restart")
-			updatedResults, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), bearerToken)
+			updatedResults, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() { e2e.Logf("final metrics:\n%s", updatedResults) }()
 
@@ -208,11 +211,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", host, metricsPort), 401, 403)
+			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", host, statsPort), 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("at /debug/pprof")
-			results, err := getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap?debug=1", host, metricsPort), username, password)
+			results, err := getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap?debug=1", host, statsPort), username, password)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(results).To(o.ContainSubstring("# runtime.MemStats"))
 		})
@@ -333,6 +336,15 @@ func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 	return "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
 
+func findEnvVar(vars []corev1.EnvVar, key string) string {
+	for _, v := range vars {
+		if v.Name == key {
+			return v.Value
+		}
+	}
+	return ""
+}
+
 func findMetricsWithLabels(f *dto.MetricFamily, promLabels map[string]string) []*dto.Metric {
 	var result []*dto.Metric
 	if f == nil {
@@ -415,6 +427,39 @@ func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
 	return output, nil
+}
+
+func findEnvVarSecret(vars []corev1.EnvVar, key string) (string, string) {
+	for _, v := range vars {
+		if v.Name == key {
+			if v.ValueFrom != nil && v.ValueFrom.SecretKeyRef != nil {
+				ref := v.ValueFrom.SecretKeyRef
+				return ref.Name, ref.Key
+			}
+		}
+	}
+	return "", ""
+}
+
+func findStatsUsernameAndPassword(oc *exutil.CLI, ns string, env []corev1.EnvVar) (string, string, error) {
+	secretName, userKey := findEnvVarSecret(env, "STATS_USERNAME")
+	_, passKey := findEnvVarSecret(env, "STATS_PASSWORD")
+
+	if len(secretName) == 0 || len(userKey) == 0 || len(passKey) == 0 {
+		return "", "", fmt.Errorf("stats username and password not found, env: %v", env)
+	}
+
+	secret, err := oc.AdminKubeClient().CoreV1().Secrets(ns).Get(secretName, metav1.GetOptions{})
+	if err != nil {
+		return "", "", err
+	}
+
+	username, ok1 := secret.Data[userKey]
+	password, ok2 := secret.Data[passKey]
+	if !ok1 || !ok2 {
+		return "", "", fmt.Errorf("secret '%s/%s' does not contain key %q or %q", ns, secretName, userKey, passKey)
+	}
+	return string(username), string(password), nil
 }
 
 func findMetricsBearerToken(oc *exutil.CLI) (string, error) {
