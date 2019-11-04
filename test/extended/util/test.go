@@ -420,7 +420,6 @@ var (
 			`TaintBasedEvictions`,                                                        // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
 			`recreate nodes and ensure they function upon restart`,                       // https://bugzilla.redhat.com/show_bug.cgi?id=1756428
 			`\[Driver: iscsi\]`,                                                          // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
-			`volumeMode should not mount / map unused volumes in a pod`,                  // https://bugzilla.redhat.com/show_bug.cgi?id=1751640
 			// TODO(workloads): reenable
 			`SchedulerPreemption`,
 
