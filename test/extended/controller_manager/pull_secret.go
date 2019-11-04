@@ -128,7 +128,8 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("pull-secrets", exutil.KubeConfigPath())
 
-	g.It("TestDockercfgTokenDeletedController", func() {
+	// https://bugzilla.redhat.com/show_bug.cgi?id=1765294
+	g.It("TestDockercfgTokenDeletedController [Disabled:Broken]", func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClient := oc.AdminKubeClient()
