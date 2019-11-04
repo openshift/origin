@@ -262,13 +262,19 @@ func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSecon
 	return nil
 }
 
-func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, statusCode int, times int) error {
+func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, statusCode int, times int, proxy bool) error {
+	var extraArgs []string
+	if proxy {
+		extraArgs = append(extraArgs, "--haproxy-protocol")
+	}
+	args := strings.Join(extraArgs, " ")
+
 	cmd := fmt.Sprintf(`
 		set -e
 		STOP=$(($(date '+%%s') + %d))
 		while [ $(date '+%%s') -lt $STOP ]; do
 			rc=0
-			code=$( curl -s -m 5 -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
+			code=$( curl %s -s -m 5 -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code
 				if [[ $code -ne %d ]]; then
@@ -278,7 +284,7 @@ func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, status
 				echo "error ${rc}" 1>&2
 			fi
 		done
-		`, times, host, url, statusCode)
+		`, times, args, host, url, statusCode)
 	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)

@@ -28,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
@@ -38,9 +40,15 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		username, password, bearerToken string
 		metricsPort                     int32
 		execPodName, ns, host           string
+
+		proxyProtocol bool
 	)
 
 	g.BeforeEach(func() {
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		proxyProtocol = infra.Status.PlatformStatus.Type == configv1.AWSPlatformType
+
 		// This test needs to make assertions against a single router pod, so all access
 		// to the router should happen through a single endpoint.
 
@@ -131,7 +139,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					}
 					// send a burst of traffic to the router
 					g.By("sending traffic to a weighted route")
-					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), "weighted.metrics.example.com", http.StatusOK, times)
+					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), "weighted.metrics.example.com", http.StatusOK, times, proxyProtocol)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 				g.By("retrying metrics until all backend servers appear")
