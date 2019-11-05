@@ -101,6 +101,10 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 		}
 
 		for _, pod := range pending {
+			if strings.HasPrefix(pod.Name, "must-gather-") {
+				e2e.Logf("Pod status %s/%s ignored for being pending", pod.Namespace, pod.Name)
+				continue
+			}
 			if _, ok := ns[pod.Namespace]; !ok {
 				e2e.DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
 					return c.CoreV1().Events(ns).List(opts)
