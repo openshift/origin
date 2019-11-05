@@ -51457,7 +51457,7 @@ spec:
     spec:
       containers:
       - name: simplev1
-        image: gcr.io/google_containers/busybox
+        image: docker.io/busybox
         command: ["/bin/sh", "-c", "exit 0"]
       restartPolicy: Never
 `)
