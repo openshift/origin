@@ -401,7 +401,7 @@ items:
     phase: Running
     podIP: 172.17.0.4
     startTime: 2016-07-27T03:00:58Z
-- apiVersion: apps/v1beta1
+- apiVersion: apps/v1
   kind: StatefulSet
   metadata:
     creationTimestamp: 2016-07-21T15:53:09Z
@@ -411,7 +411,7 @@ items:
     name: mysql
     namespace: default
     resourceVersion: "6790"
-    selfLink: /apis/apps/v1beta1/namespaces/default/statefulsets/mysql
+    selfLink: /apis/apps/v1/namespaces/default/statefulsets/mysql
     uid: 3900c985-4f5b-11e6-b8a1-080027242396
   spec:
     replicas: 3

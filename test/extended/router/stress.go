@@ -375,7 +375,7 @@ func verifyCommandEquivalent(c clientset.Interface, rs *appsv1.ReplicaSet, cmd s
 // Waits for longer than the standard e2e method.
 func waitForReadyReplicaSet(c clientset.Interface, ns, name string) error {
 	err := wait.Poll(3*time.Second, 3*time.Minute, func() (bool, error) {
-		rs, err := c.ExtensionsV1beta1().ReplicaSets(ns).Get(name, metav1.GetOptions{})
+		rs, err := c.AppsV1().ReplicaSets(ns).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

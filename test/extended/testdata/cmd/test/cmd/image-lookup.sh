@@ -48,7 +48,7 @@ os::cmd::expect_success "oc delete deploy,dc,rs,rc,pods --all"
 #
 ## Resource annotated with image lookup will create pods that resolve
 os::cmd::expect_success          "oc tag nginx:latest alternate:latest"
-rc='{"kind":"Deployment","apiVersion":"apps/v1beta1","metadata":{"name":"alternate"},"spec":{"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"alternate:latest"}]}}}}'
+rc='{"kind":"Deployment","apiVersion":"apps/v1","metadata":{"name":"alternate"},"spec":{"selector":{"matchLabels":{"app":"test"}},"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"alternate:latest"}]}}}}'
 os::cmd::expect_success          "echo '${rc}' | oc set image-lookup --local -f - -o json | oc create -f -"
 os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=alternate:latest alternate"
 os::cmd::expect_success_and_text "oc get pod/alternate -o jsonpath='{.spec.containers[0].image}'" "alternate:latest"
