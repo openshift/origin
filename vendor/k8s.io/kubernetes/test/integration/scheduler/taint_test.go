@@ -20,9 +20,10 @@ package scheduler
 
 import (
 	"fmt"
-	"k8s.io/apiserver/pkg/admission"
 	"testing"
 	"time"
+
+	"k8s.io/apiserver/pkg/admission"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -732,6 +733,34 @@ func TestTaintBasedEvictions(t *testing.T) {
 				t.Errorf("Failed to create node, err: %v", err)
 			}
 		}
+
+		// Regularly send heartbeat event to APIServer so that the cluster doesn't enter fullyDisruption mode.
+		// TODO(Huang-Wei): use "NodeDisruptionExclusion" feature to simply the below logic when it's beta.
+		var heartbeatChans []chan struct{}
+		for i := 0; i < nodeCount; i++ {
+			heartbeatChans = append(heartbeatChans, make(chan struct{}))
+		}
+		for i := 0; i < nodeCount; i++ {
+			// Spin up <nodeCount> goroutines to send heartbeat event to APIServer periodically.
+			go func(i int) {
+				for {
+					select {
+					case <-heartbeatChans[i]:
+						return
+					case <-time.Tick(2 * time.Second):
+						nodes[i].Status.Conditions = []v1.NodeCondition{
+							{
+								Type:              v1.NodeReady,
+								Status:            v1.ConditionTrue,
+								LastHeartbeatTime: metav1.Now(),
+							},
+						}
+						updateNodeStatus(cs, nodes[i])
+					}
+				}
+			}(i)
+		}
+
 		neededNode := nodes[1]
 		if test.pod != nil {
 			test.pod.Name = fmt.Sprintf("testpod-%d", i)
@@ -758,6 +787,14 @@ func TestTaintBasedEvictions(t *testing.T) {
 			}
 		}
 
+		for i := 0; i < nodeCount; i++ {
+			// Stop the neededNode's heartbeat goroutine.
+			if neededNode.Name == fmt.Sprintf("node-%d", i) {
+				heartbeatChans[i] <- struct{}{}
+				break
+			}
+		}
+
 		neededNode.Status.Conditions = test.nodeConditions
 		// Update node condition.
 		err = updateNodeStatus(cs, neededNode)
@@ -770,7 +807,6 @@ func TestTaintBasedEvictions(t *testing.T) {
 		}
 
 		if test.pod != nil {
-
 			err = pod.WaitForPodCondition(cs, context.ns.Name, test.pod.Name, test.waitForPodCondition, time.Second*15, func(pod *v1.Pod) (bool, error) {
 				// as node is unreachable, pod0 is expected to be in Terminating status
 				// rather than getting deleted
@@ -787,6 +823,10 @@ func TestTaintBasedEvictions(t *testing.T) {
 				t.Fatalf("Error: %v, Expected test pod to be %s but it's %v", err, test.waitForPodCondition, pod)
 			}
 			cleanupPods(cs, t, []*v1.Pod{test.pod})
+		}
+		// Close all heartbeat channels.
+		for i := 0; i < nodeCount; i++ {
+			close(heartbeatChans[i])
 		}
 		cleanupNodes(cs, t)
 		waitForSchedulerCacheCleanup(context.scheduler, t)
