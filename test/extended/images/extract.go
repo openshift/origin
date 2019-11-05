@@ -76,7 +76,7 @@ var _ = g.Describe("[Feature:ImageExtract] Image extract", func() {
 			mkdir -p /tmp/test
 			oc image extract --insecure %[2]s/%[1]s/1:busybox --path=/:/tmp/test
 			[ -d /tmp/test/etc ] && [ -d /tmp/test/bin ]
-			[ -f /tmp/test/bin/ls ] && /tmp/test/bin/ls /tmp/test
+			[ -f /tmp/test/etc/passwd ] && grep root /tmp/test/etc/passwd
 
 			# extract multiple individual files
 			mkdir -p /tmp/test2
