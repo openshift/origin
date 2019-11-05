@@ -66,5 +66,13 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("error: invalid name: "))
 		})
+
+		g.It("should succeed with an imagestream", func() {
+			// Bug 1767163 - oc new-app with --image-stream produced invalid labels
+			g.By("calling oc new-app with imagestream")
+			out, err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--image-stream=nodejs:latest").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).NotTo(o.ContainSubstring("error:"))
+		})
 	})
 })
