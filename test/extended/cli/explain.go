@@ -117,8 +117,8 @@ var (
 		// {Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
 		// {Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"},
 		// {Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogapiservers"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogcontrollermanagers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogapiservers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogcontrollermanagers"},
 
 		{Group: "quota.openshift.io", Version: "v1", Resource: "appliedclusterresourcequotas"},
 
