@@ -253,8 +253,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("is", "ruby").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				// TODO: Update to ruby 2.5
-				err = oc.Run("delete").Args("is", "ruby-22-centos7").Execute()
+				err = oc.Run("delete").Args("is", "ruby-25-centos7").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// doing this as admin to avoid errors like this:
