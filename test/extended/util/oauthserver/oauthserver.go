@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -185,8 +186,15 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 	})
 	e2e.Logf("Created: %v %v/%v", oauthClient.Kind, oauthClient.Namespace, oauthClient.Name)
 
+	anonClientConfig := restclient.AnonymousClientConfig(oc.AdminConfig())
+	cert, err := GetRouterCA(oc)
+	if err != nil {
+		return nil, cleanupFunc, err
+	}
+	anonClientConfig.CAData = cert
+
 	newRequestTokenOptionFunc := func(username, password string) *tokencmd.RequestTokenOptions {
-		return newRequestTokenOptions(restclient.AnonymousClientConfig(oc.AdminConfig()), routeURL, oc.Namespace(), username, password)
+		return newRequestTokenOptions(anonClientConfig, routeURL, oc.Namespace(), username, password)
 	}
 
 	return newRequestTokenOptionFunc, cleanupFunc, nil
@@ -216,6 +224,26 @@ func waitForOAuthServerPodReady(oc *exutil.CLI) error {
 	})
 }
 
+// GetRouterCA is used to retrieve the router CA certificates
+func GetRouterCA(oc *exutil.CLI) ([]byte, error) {
+	caCert, err := oc.AsAdmin().KubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get("router-ca", metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return []byte(caCert.Data["ca-bundle.crt"]), nil
+}
+
+//InjectRouterCA is the function that injects the route CA certificates into the configuration
+func InjectRouterCA(oc *exutil.CLI, config *rest.Config) (*rest.Config, error) {
+	cfg := *config
+	cert, err := GetRouterCA(oc)
+	if err != nil {
+		return nil, err
+	}
+	cfg.CAData = append(config.CAData, cert...)
+	return &cfg, nil
+}
+
 func waitForOAuthServerRouteReady(oc *exutil.CLI) error {
 	route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(RouteName, metav1.GetOptions{})
 	if err != nil {
@@ -227,7 +255,8 @@ func waitForOAuthServerRouteReady(oc *exutil.CLI) error {
 	}
 	return wait.PollImmediate(time.Second, time.Minute, func() (done bool, err error) {
 		e2e.Logf("Waiting for the OAuth server route to be ready")
-		transport, err := restclient.TransportFor(restclient.AnonymousClientConfig(oc.AdminConfig()))
+		cfg, err := InjectRouterCA(oc, restclient.AnonymousClientConfig(oc.AdminConfig()))
+		transport, err := restclient.TransportFor(cfg)
 		if err != nil {
 			e2e.Logf("Error getting transport: %v", err)
 			return false, err

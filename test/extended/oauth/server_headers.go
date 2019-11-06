@@ -25,7 +25,9 @@ var _ = g.Describe("[Feature:OAuthServer] [Headers]", func() {
 	g.BeforeEach(func() {
 		var err error
 
-		transport, err = rest.TransportFor(rest.AnonymousClientConfig(oc.UserConfig()))
+		cfg, err := oauthserver.InjectRouterCA(oc, rest.AnonymousClientConfig(oc.UserConfig()))
+		o.Expect(err).ToNot(o.HaveOccurred())
+		transport, err = rest.TransportFor(cfg)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// deploy oauth server

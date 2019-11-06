@@ -1,7 +1,9 @@
 package oauth
 
 import (
+	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"path"
@@ -15,6 +17,7 @@ import (
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
 var _ = g.Describe("[Feature:OAuthServer] well-known endpoint", func() {
@@ -46,6 +49,16 @@ var _ = g.Describe("[Feature:OAuthServer] well-known endpoint", func() {
 		rt := http.Transport{
 			TLSClientConfig: tlsClientConfig,
 		}
+
+		cert, err := oauthserver.GetRouterCA(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		pool := x509.NewCertPool()
+		if ok := pool.AppendCertsFromPEM(cert); !ok {
+			o.Expect(errors.New("failed to add server CA certificates to client pool")).NotTo(o.HaveOccurred())
+		}
+
+		rt.TLSClientConfig.RootCAs = pool
 
 		req, err := http.NewRequest(http.MethodHead, metadata.Issuer, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())

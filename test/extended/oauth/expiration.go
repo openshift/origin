@@ -114,7 +114,8 @@ func testTokenFlow(oc *util.CLI, newRequestTokenOptions oauthserver.NewRequestTo
 }
 
 func testCodeFlow(oc *util.CLI, newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc, client *oauthv1.OAuthClient, expectedExpiresIn int32) {
-	anonymousClientConfig := rest.AnonymousClientConfig(oc.AdminConfig())
+	anonymousClientConfig, err := oauthserver.InjectRouterCA(oc, rest.AnonymousClientConfig(oc.AdminConfig()))
+	o.Expect(err).ToNot(o.HaveOccurred())
 	rt, err := rest.TransportFor(anonymousClientConfig)
 	o.Expect(err).ToNot(o.HaveOccurred())
 
