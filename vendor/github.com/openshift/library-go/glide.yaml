@@ -17,6 +17,11 @@ import:
   - package: github.com/openshift/client-go
     version: master
 
+  # sig-master - needed until https://github.com/kubernetes-sigs/kube-storage-version-migrator/pull/41 merged
+  - package: github.com/kubernetes-sigs/kube-storage-version-migrator
+    repo: https://github.com/openshift/kubernetes-kube-storage-version-migrator.git
+    version: master
+
   # sig-master - needed for file observer
   - package: github.com/sigma/go-inotify
     version: c87b6cf5033d2c6486046f045eeebdc3d910fd38

@@ -102,6 +102,7 @@ spec:
                 an input to the level for the operator
               type: object
               nullable: true
+              x-kubernetes-preserve-unknown-fields: true
             operatorLogLevel:
               description: operatorLogLevel is an intent based logging for the operator
                 itself.  It does not give fine grained control, but it is a simple
@@ -129,6 +130,7 @@ spec:
                 1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides'
               type: object
               nullable: true
+              x-kubernetes-preserve-unknown-fields: true
         status:
           description: ConsoleStatus defines the observed status of the Console.
           type: object

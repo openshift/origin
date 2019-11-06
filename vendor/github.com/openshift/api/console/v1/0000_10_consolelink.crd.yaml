@@ -98,9 +98,53 @@ spec:
                 when location is set to NamespaceDashboard. If not specified, the
                 link will appear in all namespaces.
               type: object
-              required:
-              - namespaces
               properties:
+                namespaceSelector:
+                  description: namespaceSelector is used to select the Namespaces
+                    that should contain dashboard link by label. If the namespace
+                    labels match, dashboard link will be shown for the namespaces.
+                  type: object
+                  properties:
+                    matchExpressions:
+                      description: matchExpressions is a list of label selector requirements.
+                        The requirements are ANDed.
+                      type: array
+                      items:
+                        description: A label selector requirement is a selector that
+                          contains values, a key, and an operator that relates the
+                          key and values.
+                        type: object
+                        required:
+                        - key
+                        - operator
+                        properties:
+                          key:
+                            description: key is the label key that the selector applies
+                              to.
+                            type: string
+                          operator:
+                            description: operator represents a key's relationship
+                              to a set of values. Valid operators are In, NotIn, Exists
+                              and DoesNotExist.
+                            type: string
+                          values:
+                            description: values is an array of string values. If the
+                              operator is In or NotIn, the values array must be non-empty.
+                              If the operator is Exists or DoesNotExist, the values
+                              array must be empty. This array is replaced during a
+                              strategic merge patch.
+                            type: array
+                            items:
+                              type: string
+                    matchLabels:
+                      description: matchLabels is a map of {key,value} pairs. A single
+                        {key,value} in the matchLabels map is equivalent to an element
+                        of matchExpressions, whose key field is "key", the operator
+                        is "In", and the values array contains only "value". The requirements
+                        are ANDed.
+                      type: object
+                      additionalProperties:
+                        type: string
                 namespaces:
                   description: namespaces is an array of namespace names in which
                     the dashboard link should appear.

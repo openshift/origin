@@ -8,7 +8,6 @@ spec:
               properties:
                 hard:
                   additionalProperties:
-                    anyOf:
-                    - type: string
-                    - type: integer
-                    type: null
+                    type: ""
+                    x-kubernetes-int-or-string: true
+

@@ -63,6 +63,7 @@ spec:
                 an input to the level for the operator
               nullable: true
               type: object
+              x-kubernetes-preserve-unknown-fields: true
             operatorLogLevel:
               description: operatorLogLevel is an intent based logging for the operator
                 itself.  It does not give fine grained control, but it is a simple
@@ -82,6 +83,7 @@ spec:
                 1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides'
               nullable: true
               type: object
+              x-kubernetes-preserve-unknown-fields: true
           type: object
         status:
           properties:

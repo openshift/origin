@@ -6,6 +6,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -632,11 +633,14 @@ func MakeSelfSignedCAConfigForDuration(name string, caLifetime time.Duration) (*
 
 func makeSelfSignedCAConfigForSubjectAndDuration(subject pkix.Name, caLifetime time.Duration) (*TLSCertificateConfig, error) {
 	// Create CA cert
-	rootcaPublicKey, rootcaPrivateKey, err := NewKeyPair()
+	rootcaPublicKey, rootcaPrivateKey, publicKeyHash, err := newKeyPairWithHash()
 	if err != nil {
 		return nil, err
 	}
-	rootcaTemplate := newSigningCertificateTemplateForDuration(subject, caLifetime, time.Now)
+	// AuthorityKeyId and SubjectKeyId should match for a self-signed CA
+	authorityKeyId := publicKeyHash
+	subjectKeyId := publicKeyHash
+	rootcaTemplate := newSigningCertificateTemplateForDuration(subject, caLifetime, time.Now, authorityKeyId, subjectKeyId)
 	rootcaCert, err := signCertificate(rootcaTemplate, rootcaPublicKey, rootcaTemplate, rootcaPrivateKey)
 	if err != nil {
 		return nil, err
@@ -650,11 +654,13 @@ func makeSelfSignedCAConfigForSubjectAndDuration(subject pkix.Name, caLifetime t
 
 func MakeCAConfigForDuration(name string, caLifetime time.Duration, issuer *CA) (*TLSCertificateConfig, error) {
 	// Create CA cert
-	signerPublicKey, signerPrivateKey, err := NewKeyPair()
+	signerPublicKey, signerPrivateKey, publicKeyHash, err := newKeyPairWithHash()
 	if err != nil {
 		return nil, err
 	}
-	signerTemplate := newSigningCertificateTemplateForDuration(pkix.Name{CommonName: name}, caLifetime, time.Now)
+	authorityKeyId := issuer.Config.Certs[0].SubjectKeyId
+	subjectKeyId := publicKeyHash
+	signerTemplate := newSigningCertificateTemplateForDuration(pkix.Name{CommonName: name}, caLifetime, time.Now, authorityKeyId, subjectKeyId)
 	signerCert, err := issuer.signCertificate(signerTemplate, signerPublicKey)
 	if err != nil {
 		return nil, err
@@ -712,8 +718,10 @@ func (ca *CA) MakeAndWriteServerCert(certFile, keyFile string, hostnames sets.St
 type CertificateExtensionFunc func(*x509.Certificate) error
 
 func (ca *CA) MakeServerCert(hostnames sets.String, expireDays int, fns ...CertificateExtensionFunc) (*TLSCertificateConfig, error) {
-	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
-	serverTemplate := newServerCertificateTemplate(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List(), expireDays, time.Now)
+	serverPublicKey, serverPrivateKey, publicKeyHash, _ := newKeyPairWithHash()
+	authorityKeyId := ca.Config.Certs[0].SubjectKeyId
+	subjectKeyId := publicKeyHash
+	serverTemplate := newServerCertificateTemplate(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List(), expireDays, time.Now, authorityKeyId, subjectKeyId)
 	for _, fn := range fns {
 		if err := fn(serverTemplate); err != nil {
 			return nil, err
@@ -731,8 +739,10 @@ func (ca *CA) MakeServerCert(hostnames sets.String, expireDays int, fns ...Certi
 }
 
 func (ca *CA) MakeServerCertForDuration(hostnames sets.String, lifetime time.Duration, fns ...CertificateExtensionFunc) (*TLSCertificateConfig, error) {
-	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
-	serverTemplate := newServerCertificateTemplateForDuration(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List(), lifetime, time.Now)
+	serverPublicKey, serverPrivateKey, publicKeyHash, _ := newKeyPairWithHash()
+	authorityKeyId := ca.Config.Certs[0].SubjectKeyId
+	subjectKeyId := publicKeyHash
+	serverTemplate := newServerCertificateTemplateForDuration(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List(), lifetime, time.Now, authorityKeyId, subjectKeyId)
 	for _, fn := range fns {
 		if err := fn(serverTemplate); err != nil {
 			return nil, err
@@ -869,6 +879,21 @@ func (ca *CA) signCertificate(template *x509.Certificate, requestKey crypto.Publ
 }
 
 func NewKeyPair() (crypto.PublicKey, crypto.PrivateKey, error) {
+	return newRSAKeyPair()
+}
+
+func newKeyPairWithHash() (crypto.PublicKey, crypto.PrivateKey, []byte, error) {
+	publicKey, privateKey, err := newRSAKeyPair()
+	var publicKeyHash []byte
+	if err == nil {
+		hash := sha1.New()
+		hash.Write(publicKey.N.Bytes())
+		publicKeyHash = hash.Sum(nil)
+	}
+	return publicKey, privateKey, publicKeyHash, err
+}
+
+func newRSAKeyPair() (*rsa.PublicKey, *rsa.PrivateKey, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, keyBits)
 	if err != nil {
 		return nil, nil, err
@@ -877,7 +902,7 @@ func NewKeyPair() (crypto.PublicKey, crypto.PrivateKey, error) {
 }
 
 // Can be used for CA or intermediate signing certs
-func newSigningCertificateTemplateForDuration(subject pkix.Name, caLifetime time.Duration, currentTime func() time.Time) *x509.Certificate {
+func newSigningCertificateTemplateForDuration(subject pkix.Name, caLifetime time.Duration, currentTime func() time.Time, authorityKeyId, subjectKeyId []byte) *x509.Certificate {
 	return &x509.Certificate{
 		Subject: subject,
 
@@ -890,11 +915,14 @@ func newSigningCertificateTemplateForDuration(subject pkix.Name, caLifetime time
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 		IsCA:                  true,
+
+		AuthorityKeyId: authorityKeyId,
+		SubjectKeyId:   subjectKeyId,
 	}
 }
 
 // Can be used for ListenAndServeTLS
-func newServerCertificateTemplate(subject pkix.Name, hosts []string, expireDays int, currentTime func() time.Time) *x509.Certificate {
+func newServerCertificateTemplate(subject pkix.Name, hosts []string, expireDays int, currentTime func() time.Time, authorityKeyId, subjectKeyId []byte) *x509.Certificate {
 	var lifetimeInDays = DefaultCertificateLifetimeInDays
 	if expireDays > 0 {
 		lifetimeInDays = expireDays
@@ -906,11 +934,11 @@ func newServerCertificateTemplate(subject pkix.Name, hosts []string, expireDays 
 
 	lifetime := time.Duration(lifetimeInDays) * 24 * time.Hour
 
-	return newServerCertificateTemplateForDuration(subject, hosts, lifetime, currentTime)
+	return newServerCertificateTemplateForDuration(subject, hosts, lifetime, currentTime, authorityKeyId, subjectKeyId)
 }
 
 // Can be used for ListenAndServeTLS
-func newServerCertificateTemplateForDuration(subject pkix.Name, hosts []string, lifetime time.Duration, currentTime func() time.Time) *x509.Certificate {
+func newServerCertificateTemplateForDuration(subject pkix.Name, hosts []string, lifetime time.Duration, currentTime func() time.Time, authorityKeyId, subjectKeyId []byte) *x509.Certificate {
 	template := &x509.Certificate{
 		Subject: subject,
 
@@ -923,6 +951,9 @@ func newServerCertificateTemplateForDuration(subject pkix.Name, hosts []string, 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
+
+		AuthorityKeyId: authorityKeyId,
+		SubjectKeyId:   subjectKeyId,
 	}
 
 	template.IPAddresses, template.DNSNames = IPAddressesDNSNames(hosts)

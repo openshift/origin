@@ -32,7 +32,7 @@ type PolicyRule struct {
 	Verbs []string `json:"verbs" protobuf:"bytes,1,rep,name=verbs"`
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-	// +kubebuilder:validation:PreserveUnknownFields
+	// +kubebuilder:pruning:PreserveUnknownFields
 	AttributeRestrictions kruntime.RawExtension `json:"attributeRestrictions,omitempty" protobuf:"bytes,2,opt,name=attributeRestrictions"`
 	// APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.
 	// That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request
@@ -325,7 +325,7 @@ type Action struct {
 	// IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)
 	IsNonResourceURL bool `json:"isNonResourceURL" protobuf:"varint,9,opt,name=isNonResourceURL"`
 	// Content is the actual content of the request for create and update
-	// +kubebuilder:validation:PreserveUnknownFields
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Content kruntime.RawExtension `json:"content,omitempty" protobuf:"bytes,7,opt,name=content"`
 }
 

@@ -98,8 +98,9 @@ func (ConsoleLinkSpec) SwaggerDoc() map[string]string {
 }
 
 var map_NamespaceDashboardSpec = map[string]string{
-	"":           "NamespaceDashboardSpec is a specification of namespaces in which the dashboard link should appear.",
-	"namespaces": "namespaces is an array of namespace names in which the dashboard link should appear.",
+	"":                  "NamespaceDashboardSpec is a specification of namespaces in which the dashboard link should appear. If both namespaces and namespaceSelector are specified, the link will appear in namespaces that match either",
+	"namespaces":        "namespaces is an array of namespace names in which the dashboard link should appear.",
+	"namespaceSelector": "namespaceSelector is used to select the Namespaces that should contain dashboard link by label. If the namespace labels match, dashboard link will be shown for the namespaces.",
 }
 
 func (NamespaceDashboardSpec) SwaggerDoc() map[string]string {
@@ -137,10 +138,11 @@ func (ConsoleYAMLSample) SwaggerDoc() map[string]string {
 
 var map_ConsoleYAMLSampleSpec = map[string]string{
 	"":               "ConsoleYAMLSampleSpec is the desired YAML sample configuration. Samples will appear with their descriptions in a samples sidebar when creating a resources in the web console.",
-	"TargetResource": "targetResource contains apiVersion and kind of the resource YAML sample is representating.",
+	"targetResource": "targetResource contains apiVersion and kind of the resource YAML sample is representating.",
 	"title":          "title of the YAML sample.",
 	"description":    "description of the YAML sample.",
 	"yaml":           "yaml is the YAML sample to display.",
+	"snippet":        "snippet indicates that the YAML sample is not the full YAML resource definition, but a fragment that can be inserted into the existing YAML document at the user's cursor.",
 }
 
 func (ConsoleYAMLSampleSpec) SwaggerDoc() map[string]string {

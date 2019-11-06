@@ -45,9 +45,17 @@ type ApplicationMenuSpec struct {
 }
 
 // NamespaceDashboardSpec is a specification of namespaces in which the dashboard link should appear.
+// If both namespaces and namespaceSelector are specified, the link will appear in namespaces that match either
 type NamespaceDashboardSpec struct {
 	// namespaces is an array of namespace names in which the dashboard link should appear.
-	Namespaces []string `json:"namespaces"`
+	//
+	// +optional
+	Namespaces []string `json:"namespaces,omitempty"`
+	// namespaceSelector is used to select the Namespaces that should contain dashboard link by label.
+	// If the namespace labels match, dashboard link will be shown for the namespaces.
+	//
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 }
 
 // ConsoleLinkLocationSelector is a set of possible menu targets to which a link may be appended.

@@ -153,7 +153,7 @@ func newSigningCertificateTemplate(subject pkix.Name, expireDays int, currentTim
 
 	caLifetime := time.Duration(caLifetimeInDays) * 24 * time.Hour
 
-	return newSigningCertificateTemplateForDuration(subject, caLifetime, currentTime)
+	return newSigningCertificateTemplateForDuration(subject, caLifetime, currentTime, nil, nil)
 }
 
 func buildCA(t *testing.T) (crypto.PrivateKey, *x509.Certificate) {
@@ -191,7 +191,7 @@ func buildServer(t *testing.T, signingKey crypto.PrivateKey, signingCrt *x509.Ce
 		t.Fatalf("Unexpected error: %#v", err)
 	}
 	hosts := []string{"127.0.0.1", "localhost", "www.example.com"}
-	serverTemplate := newServerCertificateTemplate(pkix.Name{CommonName: "Server"}, hosts, certificateLifetime, time.Now)
+	serverTemplate := newServerCertificateTemplate(pkix.Name{CommonName: "Server"}, hosts, certificateLifetime, time.Now, nil, nil)
 	serverCrt, err := signCertificate(serverTemplate, serverPublicKey, signingCrt, signingKey)
 	if err != nil {
 		t.Fatalf("Unexpected error: %#v", err)
@@ -239,7 +239,7 @@ func TestRandomSerialGenerator(t *testing.T) {
 	generator := &RandomSerialGenerator{}
 
 	hostnames := []string{"foo", "bar"}
-	template := newServerCertificateTemplate(pkix.Name{CommonName: hostnames[0]}, hostnames, certificateLifetime, time.Now)
+	template := newServerCertificateTemplate(pkix.Name{CommonName: hostnames[0]}, hostnames, certificateLifetime, time.Now, nil, nil)
 	if _, err := generator.Next(template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -311,6 +311,8 @@ func TestValidityPeriodOfServerCertificate(t *testing.T) {
 			[]string{"www.example.com"},
 			test.passedExpireDays,
 			currentFakeTime,
+			nil,
+			nil,
 		)
 		expirationDate := cert.NotAfter
 		expectedExpirationDate := currentTime.Add(time.Duration(test.realExpireDays) * 24 * time.Hour)

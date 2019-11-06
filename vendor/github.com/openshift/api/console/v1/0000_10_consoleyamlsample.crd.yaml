@@ -46,24 +46,36 @@ spec:
           type: object
           required:
           - description
+          - targetResource
           - title
           - yaml
           properties:
-            apiVersion:
-              description: 'APIVersion defines the versioned schema of this representation
-                of an object. Servers should convert recognized schemas to the latest
-                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-              type: string
             description:
               description: description of the YAML sample.
               type: string
               pattern: ^(.|\s)*\S(.|\s)*$
-            kind:
-              description: 'Kind is a string value representing the REST resource
-                this object represents. Servers may infer this from the endpoint the
-                client submits requests to. Cannot be updated. In CamelCase. More
-                info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-              type: string
+            snippet:
+              description: snippet indicates that the YAML sample is not the full
+                YAML resource definition, but a fragment that can be inserted into
+                the existing YAML document at the user's cursor.
+              type: boolean
+            targetResource:
+              description: targetResource contains apiVersion and kind of the resource
+                YAML sample is representating.
+              type: object
+              properties:
+                apiVersion:
+                  description: 'APIVersion defines the versioned schema of this representation
+                    of an object. Servers should convert recognized schemas to the
+                    latest internal value, and may reject unrecognized values. More
+                    info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                  type: string
+                kind:
+                  description: 'Kind is a string value representing the REST resource
+                    this object represents. Servers may infer this from the endpoint
+                    the client submits requests to. Cannot be updated. In CamelCase.
+                    More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                  type: string
             title:
               description: title of the YAML sample.
               type: string

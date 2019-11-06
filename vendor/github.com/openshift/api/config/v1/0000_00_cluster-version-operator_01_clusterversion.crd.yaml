@@ -201,7 +201,7 @@ spec:
               type: array
               items:
                 description: ClusterOperatorStatusCondition represents the state of
-                  the operator's reconciliation functionality.
+                  the operator's managed and monitored components.
                 type: object
                 required:
                 - lastTransitionTime
@@ -210,7 +210,7 @@ spec:
                 properties:
                   lastTransitionTime:
                     description: lastTransitionTime is the time of the last update
-                      to the current status object.
+                      to the current status property.
                     type: string
                     format: date-time
                   message:
@@ -218,15 +218,14 @@ spec:
                       current condition. This is only to be consumed by humans.
                     type: string
                   reason:
-                    description: reason is the reason for the condition's last transition.  Reasons
-                      are CamelCase
+                    description: reason is the CamelCase reason for the condition's
+                      current status.
                     type: string
                   status:
                     description: status of the condition, one of True, False, Unknown.
                     type: string
                   type:
-                    description: type specifies the state of the operator's reconciliation
-                      functionality.
+                    description: type specifies the aspect reported by this condition.
                     type: string
             desired:
               description: desired is the version that the cluster is reconciling

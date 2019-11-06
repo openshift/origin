@@ -5,14 +5,12 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/require"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 )
@@ -25,22 +23,6 @@ const (
 	aesCBCTransformerPrefixV1    = "k8s:enc:aescbc:v1:"
 	secretboxTransformerPrefixV1 = "k8s:enc:secretbox:v1:"
 )
-
-func AssertSecretOfLifeNotEncrypted(t testing.TB, clientSet ClientSet, secretOfLife *corev1.Secret) {
-	t.Helper()
-	rawSecretValue := GetRawSecretOfLife(t, clientSet, secretOfLife.Namespace)
-	if !strings.Contains(rawSecretValue, string(secretOfLife.Data["quote"])) {
-		t.Errorf("The secret received from etcd doesn't have %q, content of the secret (etcd) %s", string(secretOfLife.Data["quote"]), rawSecretValue)
-	}
-}
-
-func AssertSecretOfLifeEncrypted(t testing.TB, clientSet ClientSet, secretOfLife *corev1.Secret) {
-	t.Helper()
-	rawSecretValue := GetRawSecretOfLife(t, clientSet, secretOfLife.Namespace)
-	if strings.Contains(rawSecretValue, string(secretOfLife.Data["quote"])) {
-		t.Errorf("The secret received from etcd have %q (plain text), content of the secret (etcd) %s", string(secretOfLife.Data["quote"]), rawSecretValue)
-	}
-}
 
 func AssertLastMigratedKey(t testing.TB, kubeClient kubernetes.Interface, targetGRs []schema.GroupResource, namespace, labelSelector string) {
 	t.Helper()
@@ -64,7 +46,7 @@ func AssertLastMigratedKey(t testing.TB, kubeClient kubernetes.Interface, target
 	}
 }
 
-func VerifyResources(t testing.TB, etcdClient EtcdClient, etcdKeyPreifx, expectedMode string) (int, error) {
+func VerifyResources(t testing.TB, etcdClient EtcdClient, etcdKeyPreifx string, expectedMode string, allowEmpty bool) (int, error) {
 	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
@@ -72,7 +54,7 @@ func VerifyResources(t testing.TB, etcdClient EtcdClient, etcdKeyPreifx, expecte
 	switch {
 	case err != nil:
 		return 0, fmt.Errorf("failed to list prefix %s: %v", etcdKeyPreifx, err)
-	case resp.Count == 0 || len(resp.Kvs) == 0:
+	case (resp.Count == 0 || len(resp.Kvs) == 0) && !allowEmpty:
 		return 0, fmt.Errorf("empty list response for prefix %s: %+v", etcdKeyPreifx, resp)
 	case resp.More:
 		return 0, fmt.Errorf("incomplete list response for prefix %s: %+v", etcdKeyPreifx, resp)

@@ -93,7 +93,7 @@ func NewKeyController(
 		apiServerClient: apiServerClient,
 
 		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "EncryptionKeyController"),
-		eventRecorder: eventRecorder.WithComponentSuffix("encryption-key-controller"), // TODO unused
+		eventRecorder: eventRecorder.WithComponentSuffix("encryption-key-controller"),
 
 		encryptedGRs: encryptedGRs,
 		component:    component,
@@ -194,7 +194,14 @@ func (c *keyController) checkAndCreateKeys() error {
 	if errors.IsAlreadyExists(createErr) {
 		return c.validateExistingSecret(keySecret, newKeyID)
 	}
-	return createErr
+	if createErr != nil {
+		c.eventRecorder.Warningf("EncryptionKeyCreateFailed", "Secret %q failed to create: %v", keySecret.Name, err)
+		return createErr
+	}
+
+	c.eventRecorder.Eventf("EncryptionKeyCreated", "Secret %q successfully created: %q", keySecret.Name, reasons)
+
+	return nil
 }
 
 func (c *keyController) validateExistingSecret(keySecret *corev1.Secret, keyID uint64) error {

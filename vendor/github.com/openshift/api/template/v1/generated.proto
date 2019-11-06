@@ -116,7 +116,7 @@ message Template {
   // is, or contains, a ${PARAMETER_REFERENCE}, the resolved
   // value after parameter substitution will be respected and the object
   // will be created in that namespace.
-  // +kubebuilder:validation:PreserveUnknownFields
+  // +kubebuilder:pruning:PreserveUnknownFields
   repeated k8s.io.apimachinery.pkg.runtime.RawExtension objects = 3;
 
   // parameters is an optional array of Parameters used during the

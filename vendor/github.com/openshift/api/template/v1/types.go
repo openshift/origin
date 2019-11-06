@@ -30,7 +30,7 @@ type Template struct {
 	// is, or contains, a ${PARAMETER_REFERENCE}, the resolved
 	// value after parameter substitution will be respected and the object
 	// will be created in that namespace.
-	// +kubebuilder:validation:PreserveUnknownFields
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Objects []runtime.RawExtension `json:"objects" protobuf:"bytes,3,rep,name=objects"`
 
 	// parameters is an optional array of Parameters used during the

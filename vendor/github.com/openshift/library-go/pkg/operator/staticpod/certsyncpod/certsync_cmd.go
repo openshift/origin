@@ -27,7 +27,8 @@ type CertSyncControllerOptions struct {
 	configMaps []revision.RevisionResource
 	secrets    []revision.RevisionResource
 
-	kubeClient kubernetes.Interface
+	kubeClient            kubernetes.Interface
+	tlsServerNameOverride string
 }
 
 func NewCertSyncControllerCommand(configmaps, secrets []revision.RevisionResource) *cobra.Command {
@@ -51,6 +52,7 @@ func NewCertSyncControllerCommand(configmaps, secrets []revision.RevisionResourc
 	cmd.Flags().StringVar(&o.DestinationDir, "destination-dir", o.DestinationDir, "Directory to write to")
 	cmd.Flags().StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "Namespace to read from (default to 'POD_NAMESPACE' environment variable)")
 	cmd.Flags().StringVar(&o.KubeConfigFile, "kubeconfig", o.KubeConfigFile, "Location of the master configuration file to run from.")
+	cmd.Flags().StringVar(&o.tlsServerNameOverride, "tls-server-name-override", o.tlsServerNameOverride, "Server name override used by TLS to negotiate the serving cert via SNI.")
 
 	return cmd
 }
@@ -116,6 +118,10 @@ func (o *CertSyncControllerOptions) Complete() error {
 	protoKubeConfig := rest.CopyConfig(kubeConfig)
 	protoKubeConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
 	protoKubeConfig.ContentType = "application/vnd.kubernetes.protobuf"
+
+	if len(o.tlsServerNameOverride) > 0 {
+		protoKubeConfig.TLSClientConfig.ServerName = o.tlsServerNameOverride
+	}
 
 	// This kube client use protobuf, do not use it for CR
 	kubeClient, err := kubernetes.NewForConfig(protoKubeConfig)

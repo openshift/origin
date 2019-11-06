@@ -71,6 +71,7 @@ func TestPruneController(t *testing.T) {
 				"delete:secrets:openshift-config-managed",
 				"update:secrets:openshift-config-managed",
 				"delete:secrets:openshift-config-managed",
+				"create:events:kms",
 			},
 			validateFunc: func(ts *testing.T, actions []clientgotesting.Action, initialSecrets []*corev1.Secret) {
 				validateSecretsWerePruned(ts, actions, initialSecrets[:3])

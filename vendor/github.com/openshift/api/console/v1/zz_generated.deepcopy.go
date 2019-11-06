@@ -5,6 +5,7 @@
 package v1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -465,6 +466,11 @@ func (in *NamespaceDashboardSpec) DeepCopyInto(out *NamespaceDashboardSpec) {
 		in, out := &in.Namespaces, &out.Namespaces
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.NamespaceSelector != nil {
+		in, out := &in.NamespaceSelector, &out.NamespaceSelector
+		*out = new(metav1.LabelSelector)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }

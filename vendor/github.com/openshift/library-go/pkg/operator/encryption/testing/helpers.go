@@ -39,7 +39,7 @@ func CreateEncryptionKeySecretNoDataWithMode(targetNS string, grs []schema.Group
 				state.KubernetesDescriptionKey: state.KubernetesDescriptionScaryValue,
 
 				"encryption.apiserver.operator.openshift.io/mode":            mode,
-				"encryption.apiserver.operator.openshift.io/internal-reason": "no-secrets",
+				"encryption.apiserver.operator.openshift.io/internal-reason": "",
 				"encryption.apiserver.operator.openshift.io/external-reason": "",
 			},
 			Labels: map[string]string{
@@ -122,7 +122,7 @@ func CreateDummyKubeAPIPodInUnknownPhase(name, namespace string, nodeName string
 
 func ValidateActionsVerbs(actualActions []clientgotesting.Action, expectedActions []string) error {
 	if len(actualActions) != len(expectedActions) {
-		return fmt.Errorf("expected to get %d actions but got %d, expected=%v, got=%v", len(expectedActions), len(actualActions), expectedActions, actionStrings(actualActions))
+		return fmt.Errorf("expected to get %d actions but got %d\nexpected=%v \n got=%v", len(expectedActions), len(actualActions), expectedActions, actionStrings(actualActions))
 	}
 	for i, a := range actualActions {
 		if got, expected := actionString(a), expectedActions[i]; got != expected {
