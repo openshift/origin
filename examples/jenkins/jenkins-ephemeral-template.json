@@ -67,7 +67,6 @@
                     "spec": {
                         "containers": [
                             {
-                                "capabilities": {},
                                 "env": [
                                     {
                                         "name": "OPENSHIFT_ENABLE_OAUTH",

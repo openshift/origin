@@ -42,7 +42,7 @@ var _ = g.Describe("[Feature:Builds][Conformance][valueFrom] process valueFrom i
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test image stream")
-			err = oc.Run("create").Args("-f", testImageStreamFixture).Execute()
+			err = oc.Run("create").Args("-f", testImageStreamFixture, "--validate=false").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test secret")

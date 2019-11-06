@@ -15,7 +15,6 @@ spec:
   selector:
     app: test-oauth-server
   type: ClusterIP
-  serviceAffinitiy: None
 ---
 
 apiVersion: route.openshift.io/v1
