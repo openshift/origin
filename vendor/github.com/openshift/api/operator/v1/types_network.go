@@ -69,6 +69,13 @@ type NetworkSpec struct {
 	// If not specified, sensible defaults will be chosen by OpenShift directly.
 	// Not consumed by all network providers - currently only openshift-sdn.
 	KubeProxyConfig *ProxyConfig `json:"kubeProxyConfig,omitempty"`
+
+	// logLevel allows configuring the logging level of the components deployed
+	// by the operator. Currently only Kuryr SDN is affected by this setting.
+	// Please note that turning on extensive logging may affect performance.
+	// The default value is "Normal".
+	// +optional
+	LogLevel LogLevel `json:"logLevel"`
 }
 
 // ClusterNetworkEntry is a subnet from which to allocate PodIPs. A network of size
@@ -256,6 +263,38 @@ type KuryrConfig struct {
 	// size by 1.
 	// +optional
 	OpenStackServiceNetwork string `json:"openStackServiceNetwork,omitempty"`
+
+	// enablePortPoolsPrepopulation when true will make Kuryr prepopulate each newly created port
+	// pool with a minimum number of ports. Kuryr uses Neutron port pooling to fight the fact
+	// that it takes a significant amount of time to create one. Instead of creating it when
+	// pod is being deployed, Kuryr keeps a number of ports ready to be attached to pods. By
+	// default port prepopulation is disabled.
+	// +optional
+	EnablePortPoolsPrepopulation bool `json:"enablePortPoolsPrepopulation,omitempty"`
+
+	// poolMaxPorts sets a maximum number of free ports that are being kept in a port pool.
+	// If the number of ports exceeds this setting, free ports will get deleted. Setting 0
+	// will disable this upper bound, effectively preventing pools from shrinking and this
+	// is the default value. For more information about port pools see
+	// enablePortPoolsPrepopulation setting.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	PoolMaxPorts uint `json:"poolMaxPorts,omitempty"`
+
+	// poolMinPorts sets a minimum number of free ports that should be kept in a port pool.
+	// If the number of ports is lower than this setting, new ports will get created and
+	// added to pool. The default is 1. For more information about port pools see
+	// enablePortPoolsPrepopulation setting.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	PoolMinPorts uint `json:"poolMinPorts,omitempty"`
+
+	// poolBatchPorts sets a number of ports that should be created in a single batch request
+	// to extend the port pool. The default is 3. For more information about port pools see
+	// enablePortPoolsPrepopulation setting.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	PoolBatchPorts *uint `json:"poolBatchPorts,omitempty"`
 }
 
 // ovnKubernetesConfig contains the configuration parameters for networks

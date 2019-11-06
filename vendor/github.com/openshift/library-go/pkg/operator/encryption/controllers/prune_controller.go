@@ -137,6 +137,7 @@ func (c *pruneController) deleteOldMigratedSecrets() error {
 
 	var deleteErrs []error
 	skippedKeys := 0
+	deletedKeys := 0
 NextEncryptionSecret:
 	for _, s := range encryptionSecrets {
 		k, err := secrets.ToKeyState(s)
@@ -175,8 +176,12 @@ NextEncryptionSecret:
 		if err := c.secretClient.Secrets("openshift-config-managed").Delete(secret.Name, nil); err != nil {
 			deleteErrs = append(deleteErrs, err)
 		} else {
+			deletedKeys++
 			klog.V(4).Infof("Successfully pruned secret %s/%s", secret.Namespace, secret.Name)
 		}
+	}
+	if deletedKeys > 0 {
+		c.eventRecorder.Eventf("EncryptionKeysPruned", "Successfully pruned %d secrets", deletedKeys)
 	}
 	return utilerrors.FilterOut(utilerrors.NewAggregate(deleteErrs), errors.IsNotFound)
 }

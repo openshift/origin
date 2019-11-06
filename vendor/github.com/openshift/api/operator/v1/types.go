@@ -66,14 +66,14 @@ type OperatorSpec struct {
 	// 3. unsupportedConfigOverrides
 	// +optional
 	// +nullable
-	// +kubebuilder:validation:PreserveUnknownFields
+	// +kubebuilder:pruning:PreserveUnknownFields
 	UnsupportedConfigOverrides runtime.RawExtension `json:"unsupportedConfigOverrides"`
 
 	// observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because
 	// it is an input to the level for the operator
 	// +optional
 	// +nullable
-	// +kubebuilder:validation:PreserveUnknownFields
+	// +kubebuilder:pruning:PreserveUnknownFields
 	ObservedConfig runtime.RawExtension `json:"observedConfig"`
 }
 

@@ -3,6 +3,9 @@ kind: StatefulSet
 metadata:
   name: testapp
 spec:
+  selector:
+    matchLabels:
+      app: testapp
   replicas: 1
   template:
     metadata:

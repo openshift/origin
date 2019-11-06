@@ -14,6 +14,9 @@ type TLSSecurityProfile struct {
 	// are found to be insecure.  Depending on precisely which ciphers are available to a process, the list may be
 	// reduced.
 	//
+	// Note that the Modern profile is currently not supported because it is not
+	// yet well adopted by common software libraries.
+	//
 	// +unionDiscriminator
 	// +optional
 	Type TLSProfileType `json:"type"`
@@ -93,6 +96,8 @@ type TLSSecurityProfile struct {
 	//     - TLS_CHACHA20_POLY1305_SHA256
 	//   minTLSVersion: TLSv1.3
 	//
+	// NOTE: Currently unsupported.
+	//
 	// +optional
 	// +nullable
 	Modern *ModernTLSProfile `json:"modern,omitempty"`
@@ -162,6 +167,8 @@ type TLSProfileSpec struct {
 	// versions 1.1, 1.2 and 1.3 (yaml):
 	//
 	//   minTLSVersion: TLSv1.1
+	//
+	// NOTE: currently the highest minTLSVersion allowed is VersionTLS12
 	//
 	MinTLSVersion TLSProtocolVersion `json:"minTLSVersion"`
 }

@@ -95,7 +95,7 @@ func TestKeyController(t *testing.T) {
 				{Group: "", Resource: "secrets"},
 			},
 			targetNamespace: "kms",
-			expectedActions: []string{"list:pods:kms", "get:secrets:kms", "list:secrets:openshift-config-managed", "create:secrets:openshift-config-managed"},
+			expectedActions: []string{"list:pods:kms", "get:secrets:kms", "list:secrets:openshift-config-managed", "create:secrets:openshift-config-managed", "create:events:kms"},
 			initialObjects: []runtime.Object{
 				encryptiontesting.CreateDummyKubeAPIPod("kube-apiserver-1", "kms", "node-1"),
 			},
@@ -114,6 +114,7 @@ func TestKeyController(t *testing.T) {
 						createAction := action.(clientgotesting.CreateAction)
 						actualSecret := createAction.GetObject().(*corev1.Secret)
 						expectedSecret := encryptiontesting.CreateEncryptionKeySecretWithKeyFromExistingSecret(targetNamespace, []schema.GroupResource{}, 1, actualSecret)
+						expectedSecret.Annotations["encryption.apiserver.operator.openshift.io/internal-reason"] = "no-secrets" // TODO: Fix this
 						if !equality.Semantic.DeepEqual(actualSecret, expectedSecret) {
 							ts.Errorf(diff.ObjectDiff(expectedSecret, actualSecret))
 						}
@@ -169,7 +170,7 @@ func TestKeyController(t *testing.T) {
 			},
 			apiServerObjects: apiServerAesCBC,
 			targetNamespace:  "kms",
-			expectedActions:  []string{"list:pods:kms", "get:secrets:kms", "list:secrets:openshift-config-managed", "create:secrets:openshift-config-managed"},
+			expectedActions:  []string{"list:pods:kms", "get:secrets:kms", "list:secrets:openshift-config-managed", "create:secrets:openshift-config-managed", "create:events:kms"},
 		},
 
 		{
@@ -183,7 +184,7 @@ func TestKeyController(t *testing.T) {
 			},
 			apiServerObjects: apiServerAesCBC,
 			targetNamespace:  "kms",
-			expectedActions:  []string{"list:pods:kms", "get:secrets:kms", "list:secrets:openshift-config-managed", "create:secrets:openshift-config-managed"},
+			expectedActions:  []string{"list:pods:kms", "get:secrets:kms", "list:secrets:openshift-config-managed", "create:secrets:openshift-config-managed", "create:events:kms"},
 			validateFunc: func(ts *testing.T, actions []clientgotesting.Action, targetNamespace string, targetGRs []schema.GroupResource) {
 				wasSecretValidated := false
 				for _, action := range actions {

@@ -1,5 +1,5 @@
-hash: a0b165129788498ed7cce6fbb74b199d93267da70ca145ed6f5fe489ccade8e6
-updated: 2019-10-21T10:43:26.014139+02:00
+hash: 3095b969974ba27081bfe48993b336f7defa680c29541c553144eb955cfe43da
+updated: 2019-11-01T10:28:41.529138+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -103,13 +103,13 @@ imports:
   - pkg/term
   - pkg/term/windows
 - name: github.com/docker/go-connections
-  version: fd1b1942c4d55f7f210a8387e612dc6ffee78ff6
+  version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
   subpackages:
   - nat
 - name: github.com/docker/go-metrics
   version: b619b3592b65de4f087d9f16863a7e6ff905973c
 - name: github.com/docker/go-units
-  version: 519db1ee28dcc9fd2474ae59fca29a810482bfb1
+  version: 47565b4f722fb6ceae66b95f853feed578a4a51c
 - name: github.com/docker/libnetwork
   version: 7f13a5c99f4bb76a4122035d495984b6a09739bb
   subpackages:
@@ -127,7 +127,7 @@ imports:
 - name: github.com/getsentry/raven-go
   version: c977f96e109525a5d8fa10a19165341f601f38b0
 - name: github.com/ghodss/yaml
-  version: 25d852aebe32c875e9c044af3eef9c7dc6bc777f
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/go-openapi/jsonpointer
   version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
 - name: github.com/go-openapi/jsonreference
@@ -210,7 +210,7 @@ imports:
   - compiler
   - extensions
 - name: github.com/gorilla/mux
-  version: ff4e71f144166b1dfe3017a146f8ed32a82e688b
+  version: f395758b854c4efa789b8c1e9b73479704c548cb
 - name: github.com/grpc-ecosystem/go-grpc-prometheus
   version: c225b8c3b01faf2899099b768856a9e916e5087b
 - name: github.com/hashicorp/golang-lru
@@ -227,6 +227,17 @@ imports:
   version: a0ff2567cfb70903282db057e799fd826784d41d
 - name: github.com/konsorten/go-windows-terminal-sequences
   version: 5c8c8bd35d3832f5d134ae1e1e375b69a4d25242
+- name: github.com/kubernetes-sigs/kube-storage-version-migrator
+  version: bdca3bf7d454105b7853d0d60b385877486a9dc6
+  repo: https://github.com/openshift/kubernetes-kube-storage-version-migrator.git
+  subpackages:
+  - pkg/apis/migration/v1alpha1
+  - pkg/clients/clientset
+  - pkg/clients/clientset/scheme
+  - pkg/clients/clientset/typed/migration/v1alpha1
+  - pkg/clients/informer/internalinterfaces
+  - pkg/clients/informer/migration/v1alpha1
+  - pkg/clients/lister/migration/v1alpha1
 - name: github.com/mailru/easyjson
   version: d5b7844b561a7bc640052f1b935f7b800330d7e0
   subpackages:
@@ -238,9 +249,7 @@ imports:
   subpackages:
   - pbutil
 - name: github.com/Microsoft/go-winio
-  version: fc70bd9a86b5562b3b5eb1040e803febee1e90a1
-  subpackages:
-  - pkg/guid
+  version: 97e4973ce50b2ff5f09635a57e2b88a037aae829
 - name: github.com/modern-go/concurrent
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
@@ -252,19 +261,19 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/opencontainers/go-digest
-  version: ac19fd6e7483ff933754af248d80be865e543d22
+  version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
 - name: github.com/opencontainers/image-spec
-  version: 775207bd45b6cb8153ce218cc59351799217451f
+  version: d60099175f88c47cd379c4738d158884749ed235
   subpackages:
   - specs-go
   - specs-go/v1
 - name: github.com/opencontainers/runc
-  version: 4e3701702e966b4258fbab5b92efa6418c5ae6c6
+  version: b133feaeeb2e69ba94aa95eac3a455a143435ea9
   subpackages:
   - libcontainer/system
   - libcontainer/user
 - name: github.com/openshift/api
-  version: d0b31d707c464221d1eb24846b0d0bbe57040102
+  version: bac53ab1eb76f33fe58ad587f6894bd84cc6c5ef
   subpackages:
   - apps
   - apps/v1
@@ -309,7 +318,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/client-go
-  version: 3b0e988f8cb09a07f375dfc304b86c1a81cbc82b
+  version: 2823239d2298214509c3536714f684101799e81b
   subpackages:
   - apps/clientset/versioned/scheme
   - apps/clientset/versioned/typed/apps/v1
@@ -999,6 +1008,6 @@ imports:
   version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 testImports:
 - name: vbom.ml/util
-  version: efcd4e0f97874370259c7d93e12aad57911dea81
+  version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:
   - sortorder

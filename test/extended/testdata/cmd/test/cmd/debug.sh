@@ -45,7 +45,7 @@ os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-hellowo
 
 tmp_deploy="$(mktemp)"
 os::cmd::expect_success 'oc create -f - >> $tmp_deploy << __EOF__
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: test-deployment

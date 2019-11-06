@@ -43,7 +43,7 @@ message Action {
   optional bool isNonResourceURL = 9;
 
   // Content is the actual content of the request for create and update
-  // +kubebuilder:validation:PreserveUnknownFields
+  // +kubebuilder:pruning:PreserveUnknownFields
   optional k8s.io.apimachinery.pkg.runtime.RawExtension content = 7;
 }
 
@@ -212,7 +212,7 @@ message PolicyRule {
 
   // AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
   // If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-  // +kubebuilder:validation:PreserveUnknownFields
+  // +kubebuilder:pruning:PreserveUnknownFields
   optional k8s.io.apimachinery.pkg.runtime.RawExtension attributeRestrictions = 2;
 
   // APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.

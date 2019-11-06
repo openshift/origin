@@ -191,7 +191,7 @@ func restartSDNPods(oc *exutil.CLI) {
 	}
 
 	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		sdnDaemonset, err := oc.AdminKubeClient().ExtensionsV1beta1().DaemonSets("openshift-sdn").Get("sdn", metav1.GetOptions{})
+		sdnDaemonset, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-sdn").Get("sdn", metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -213,7 +213,7 @@ func restartOpenshiftAPIPods(oc *exutil.CLI) {
 	}
 
 	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		apiServerDS, err := oc.AdminKubeClient().ExtensionsV1beta1().DaemonSets("openshift-apiserver").Get("apiserver", metav1.GetOptions{})
+		apiServerDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-apiserver").Get("apiserver", metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -235,7 +235,7 @@ func restartMCDPods(oc *exutil.CLI) {
 	}
 
 	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		mcDS, err := oc.AdminKubeClient().ExtensionsV1beta1().DaemonSets("openshift-machine-config-operator").Get("machine-config-daemon", metav1.GetOptions{})
+		mcDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-machine-config-operator").Get("machine-config-daemon", metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}

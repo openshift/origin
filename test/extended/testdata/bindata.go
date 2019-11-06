@@ -31500,7 +31500,7 @@ os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-hellowo
 
 tmp_deploy="$(mktemp)"
 os::cmd::expect_success 'oc create -f - >> $tmp_deploy << __EOF__
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: test-deployment
@@ -32374,7 +32374,7 @@ os::cmd::expect_success "oc delete deploy,dc,rs,rc,pods --all"
 #
 ## Resource annotated with image lookup will create pods that resolve
 os::cmd::expect_success          "oc tag nginx:latest alternate:latest"
-rc='{"kind":"Deployment","apiVersion":"apps/v1beta1","metadata":{"name":"alternate"},"spec":{"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"alternate:latest"}]}}}}'
+rc='{"kind":"Deployment","apiVersion":"apps/v1","metadata":{"name":"alternate"},"spec":{"selector":{"matchLabels":{"app":"test"}},"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"alternate:latest"}]}}}}'
 os::cmd::expect_success          "echo '${rc}' | oc set image-lookup --local -f - -o json | oc create -f -"
 os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=alternate:latest alternate"
 os::cmd::expect_success_and_text "oc get pod/alternate -o jsonpath='{.spec.containers[0].image}'" "alternate:latest"
@@ -38242,7 +38242,7 @@ items:
     phase: Running
     podIP: 172.17.0.4
     startTime: 2016-07-27T03:00:58Z
-- apiVersion: apps/v1beta1
+- apiVersion: apps/v1
   kind: StatefulSet
   metadata:
     creationTimestamp: 2016-07-21T15:53:09Z
@@ -38252,7 +38252,7 @@ items:
     name: mysql
     namespace: default
     resourceVersion: "6790"
-    selfLink: /apis/apps/v1beta1/namespaces/default/statefulsets/mysql
+    selfLink: /apis/apps/v1/namespaces/default/statefulsets/mysql
     uid: 3900c985-4f5b-11e6-b8a1-080027242396
   spec:
     replicas: 3
@@ -44686,11 +44686,14 @@ func testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml() (*asset, error
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml = []byte(`apiVersion: extensions/v1beta1
+var _testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml = []byte(`apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: bind
 spec:
+  selector:
+    matchLabels:
+      service: bind
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
@@ -44950,6 +44953,9 @@ kind: StatefulSet
 metadata:
   name: testapp
 spec:
+  selector:
+    matchLabels:
+      app: testapp
   replicas: 1
   template:
     metadata:
@@ -48123,7 +48129,7 @@ func testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYaml() (*as
 	return a, nil
 }
 
-var _testExtendedTestdataDisasterRecoverySshBastionDeploymentYaml = []byte(`apiVersion: extensions/v1beta1
+var _testExtendedTestdataDisasterRecoverySshBastionDeploymentYaml = []byte(`apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:

@@ -23,15 +23,17 @@ func SetDefaults_ImagePolicyConfig(obj *ImagePolicyConfig) {
 
 	if obj.ResolutionRules == nil {
 		obj.ResolutionRules = []ImageResolutionPolicyRule{
-			{TargetResource: metav1.GroupResource{Resource: "pods"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "", Resource: "pods"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "", Resource: "replicationcontrollers"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "apps", Resource: "daemonsets"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "apps", Resource: "deployments"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "apps", Resource: "statefulsets"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "apps", Resource: "replicasets"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}, LocalNames: true},
-			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "replicasets"}, LocalNames: true},
-			{TargetResource: metav1.GroupResource{Resource: "replicationcontrollers"}, LocalNames: true},
-			{TargetResource: metav1.GroupResource{Group: "apps", Resource: "deployments"}, LocalNames: true},
-			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "deployments"}, LocalNames: true},
-			{TargetResource: metav1.GroupResource{Group: "apps", Resource: "statefulsets"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "daemonsets"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "deployments"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "replicasets"}, LocalNames: true},
 		}
 		// default the resolution policy to the global default
 		for i := range obj.ResolutionRules {

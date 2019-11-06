@@ -2,26 +2,24 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
-	openapi_v2 "github.com/googleapis/gnostic/OpenAPIv2"
-
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/version"
 	apiserverconfigv1 "k8s.io/apiserver/pkg/apis/config/v1"
-	"k8s.io/client-go/discovery"
-	dynamicfakeclient "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	encryptiondeployer "github.com/openshift/library-go/pkg/operator/encryption/deployer"
 	"github.com/openshift/library-go/pkg/operator/encryption/secrets"
 	encryptiontesting "github.com/openshift/library-go/pkg/operator/encryption/testing"
@@ -39,8 +37,13 @@ func TestMigrationController(t *testing.T) {
 		targetGRs                []schema.GroupResource
 		targetAPIResources       []metav1.APIResource
 		// expectedActions holds actions to be verified in the form of "verb:resource:namespace"
-		expectedActions            []string
-		validateFunc               func(ts *testing.T, actionsKube []clientgotesting.Action, actionsDynamic []clientgotesting.Action, initialSecrets []*corev1.Secret, targetGRs []schema.GroupResource, unstructuredObjs []runtime.Object)
+		expectedActions []string
+
+		expectedMigratorCalls []string
+		migratorEnsureReplies map[schema.GroupResource]map[string]finishedResultErr
+		migratorPruneReplies  map[schema.GroupResource]error
+
+		validateFunc               func(ts *testing.T, actionsKube []clientgotesting.Action, initialSecrets []*corev1.Secret, targetGRs []schema.GroupResource, unstructuredObjs []runtime.Object)
 		validateOperatorClientFunc func(ts *testing.T, operatorClient v1helpers.OperatorClient)
 		expectedError              error
 	}{
@@ -67,18 +70,6 @@ func TestMigrationController(t *testing.T) {
 			},
 			initialResources: []runtime.Object{
 				encryptiontesting.CreateDummyKubeAPIPod("kube-apiserver-1", "kms", "node-1"),
-				func() runtime.Object {
-					cm := createConfigMap("cm-1", "os")
-					cm.Kind = "ConfigMap"
-					cm.APIVersion = corev1.SchemeGroupVersion.String()
-					return cm
-				}(),
-				func() runtime.Object {
-					cm := createConfigMap("cm-2", "os")
-					cm.Kind = "ConfigMap"
-					cm.APIVersion = corev1.SchemeGroupVersion.String()
-					return cm
-				}(),
 			},
 			initialSecrets: nil,
 			expectedActions: []string{
@@ -89,7 +80,7 @@ func TestMigrationController(t *testing.T) {
 		},
 
 		{
-			name:            "a happy path scenario that tests resources encryption and secrets annotation",
+			name:            "migrations are unfinished",
 			targetNamespace: "kms",
 			targetGRs: []schema.GroupResource{
 				{Group: "", Resource: "secrets"},
@@ -111,18 +102,6 @@ func TestMigrationController(t *testing.T) {
 			},
 			initialResources: []runtime.Object{
 				encryptiontesting.CreateDummyKubeAPIPod("kube-apiserver-1", "kms", "node-1"),
-				func() runtime.Object {
-					cm := createConfigMap("cm-1", "os")
-					cm.Kind = "ConfigMap"
-					cm.APIVersion = corev1.SchemeGroupVersion.String()
-					return cm
-				}(),
-				func() runtime.Object {
-					cm := createConfigMap("cm-2", "os")
-					cm.Kind = "ConfigMap"
-					cm.APIVersion = corev1.SchemeGroupVersion.String()
-					return cm
-				}(),
 			},
 			initialSecrets: []*corev1.Secret{
 				func() *corev1.Secret {
@@ -157,14 +136,202 @@ func TestMigrationController(t *testing.T) {
 
 					return ecs
 				}(),
+			},
+			migratorEnsureReplies: map[schema.GroupResource]map[string]finishedResultErr{
+				{Group: "", Resource: "secrets"}:    {"1": {finished: false}},
+				{Group: "", Resource: "configmaps"}: {"1": {finished: false}},
+			},
+			expectedActions: []string{
+				"list:pods:kms",
+				"get:secrets:kms",
+				"list:secrets:openshift-config-managed",
+				"list:secrets:openshift-config-managed",
+				"list:secrets:openshift-config-managed",
+			},
+			expectedMigratorCalls: []string{
+				"ensure:configmaps:1",
+				"ensure:secrets:1",
+			},
+			validateFunc: func(ts *testing.T, actionsKube []clientgotesting.Action, initialSecrets []*corev1.Secret, targetGRs []schema.GroupResource, unstructuredObjs []runtime.Object) {
+				validateSecretsWereAnnotated(ts, []schema.GroupResource{}, actionsKube, nil, []*corev1.Secret{initialSecrets[0]})
+			},
+			validateOperatorClientFunc: func(ts *testing.T, operatorClient v1helpers.OperatorClient) {
+				expectedConditions := []operatorv1.OperatorCondition{
+					{
+						Type:   "EncryptionMigrationControllerDegraded",
+						Status: "False",
+					},
+					{
+						Type:    "EncryptionMigrationControllerProgressing",
+						Reason:  "Migrating",
+						Message: "migrating resources to a new write key: [core/configmaps core/secrets]",
+						Status:  "True",
+					},
+				}
+				// TODO: test sequence of condition changes, not only the end result
+				encryptiontesting.ValidateOperatorClientConditions(ts, operatorClient, expectedConditions)
+			},
+		},
+
+		{
+			name:            "configmaps are migrated, secrets are not finished",
+			targetNamespace: "kms",
+			targetGRs: []schema.GroupResource{
+				{Group: "", Resource: "secrets"},
+				{Group: "", Resource: "configmaps"},
+			},
+			targetAPIResources: []metav1.APIResource{
+				{
+					Name:       "secrets",
+					Namespaced: true,
+					Group:      "",
+					Version:    "v1",
+				},
+				{
+					Name:       "configmaps",
+					Namespaced: true,
+					Group:      "",
+					Version:    "v1",
+				},
+			},
+			initialResources: []runtime.Object{
+				encryptiontesting.CreateDummyKubeAPIPod("kube-apiserver-1", "kms", "node-1"),
+			},
+			initialSecrets: []*corev1.Secret{
 				func() *corev1.Secret {
-					s := &corev1.Secret{}
-					s.Name = "s-in-abc"
-					s.Namespace = "abc-ns"
+					s := encryptiontesting.CreateEncryptionKeySecretWithRawKey("kms", nil, 1, []byte("71ea7c91419a68fd1224f88d50316b4e"))
 					s.Kind = "Secret"
 					s.APIVersion = corev1.SchemeGroupVersion.String()
 					return s
 				}(),
+				func() *corev1.Secret {
+					keysResForSecrets := encryptiontesting.EncryptionKeysResourceTuple{
+						Resource: "secrets",
+						Keys: []apiserverconfigv1.Key{
+							{
+								Name:   "1",
+								Secret: "NzFlYTdjOTE0MTlhNjhmZDEyMjRmODhkNTAzMTZiNGU=",
+							},
+						},
+					}
+					keysResForConfigMaps := encryptiontesting.EncryptionKeysResourceTuple{
+						Resource: "configmaps",
+						Keys: []apiserverconfigv1.Key{
+							{
+								Name:   "1",
+								Secret: "NzFlYTdjOTE0MTlhNjhmZDEyMjRmODhkNTAzMTZiNGU=",
+							},
+						},
+					}
+
+					ec := encryptiontesting.CreateEncryptionCfgWithWriteKey([]encryptiontesting.EncryptionKeysResourceTuple{keysResForConfigMaps, keysResForSecrets})
+					ecs := createEncryptionCfgSecret(t, "kms", "1", ec)
+					ecs.APIVersion = corev1.SchemeGroupVersion.String()
+
+					return ecs
+				}(),
+			},
+			migratorEnsureReplies: map[schema.GroupResource]map[string]finishedResultErr{
+				{Group: "", Resource: "secrets"}:    {"1": {finished: false}},
+				{Group: "", Resource: "configmaps"}: {"1": {finished: true}},
+			},
+			expectedActions: []string{
+				"list:pods:kms",
+				"get:secrets:kms",
+				"list:secrets:openshift-config-managed",
+				"list:secrets:openshift-config-managed",
+				"get:secrets:openshift-config-managed",
+				"get:secrets:openshift-config-managed",
+				"update:secrets:openshift-config-managed",
+				"create:events:operator",
+				"list:secrets:openshift-config-managed",
+			},
+			expectedMigratorCalls: []string{
+				"ensure:configmaps:1",
+				"ensure:secrets:1",
+			},
+			validateFunc: func(ts *testing.T, actionsKube []clientgotesting.Action, initialSecrets []*corev1.Secret, targetGRs []schema.GroupResource, unstructuredObjs []runtime.Object) {
+				validateSecretsWereAnnotated(ts, []schema.GroupResource{{Group: "", Resource: "configmaps"}}, actionsKube, []*corev1.Secret{initialSecrets[0]}, nil)
+			},
+			validateOperatorClientFunc: func(ts *testing.T, operatorClient v1helpers.OperatorClient) {
+				expectedConditions := []operatorv1.OperatorCondition{
+					{
+						Type:   "EncryptionMigrationControllerDegraded",
+						Status: "False",
+					},
+					{
+						Type:    "EncryptionMigrationControllerProgressing",
+						Reason:  "Migrating",
+						Message: "migrating resources to a new write key: [core/secrets]",
+						Status:  "True",
+					},
+				}
+				// TODO: test sequence of condition changes, not only the end result
+				encryptiontesting.ValidateOperatorClientConditions(ts, operatorClient, expectedConditions)
+			},
+		},
+
+		{
+			name:            "all migrations are finished",
+			targetNamespace: "kms",
+			targetGRs: []schema.GroupResource{
+				{Group: "", Resource: "secrets"},
+				{Group: "", Resource: "configmaps"},
+			},
+			targetAPIResources: []metav1.APIResource{
+				{
+					Name:       "secrets",
+					Namespaced: true,
+					Group:      "",
+					Version:    "v1",
+				},
+				{
+					Name:       "configmaps",
+					Namespaced: true,
+					Group:      "",
+					Version:    "v1",
+				},
+			},
+			initialResources: []runtime.Object{
+				encryptiontesting.CreateDummyKubeAPIPod("kube-apiserver-1", "kms", "node-1"),
+			},
+			initialSecrets: []*corev1.Secret{
+				func() *corev1.Secret {
+					s := encryptiontesting.CreateEncryptionKeySecretWithRawKey("kms", nil, 1, []byte("71ea7c91419a68fd1224f88d50316b4e"))
+					s.Kind = "Secret"
+					s.APIVersion = corev1.SchemeGroupVersion.String()
+					return s
+				}(),
+				func() *corev1.Secret {
+					keysResForSecrets := encryptiontesting.EncryptionKeysResourceTuple{
+						Resource: "secrets",
+						Keys: []apiserverconfigv1.Key{
+							{
+								Name:   "1",
+								Secret: "NzFlYTdjOTE0MTlhNjhmZDEyMjRmODhkNTAzMTZiNGU=",
+							},
+						},
+					}
+					keysResForConfigMaps := encryptiontesting.EncryptionKeysResourceTuple{
+						Resource: "configmaps",
+						Keys: []apiserverconfigv1.Key{
+							{
+								Name:   "1",
+								Secret: "NzFlYTdjOTE0MTlhNjhmZDEyMjRmODhkNTAzMTZiNGU=",
+							},
+						},
+					}
+
+					ec := encryptiontesting.CreateEncryptionCfgWithWriteKey([]encryptiontesting.EncryptionKeysResourceTuple{keysResForConfigMaps, keysResForSecrets})
+					ecs := createEncryptionCfgSecret(t, "kms", "1", ec)
+					ecs.APIVersion = corev1.SchemeGroupVersion.String()
+
+					return ecs
+				}(),
+			},
+			migratorEnsureReplies: map[schema.GroupResource]map[string]finishedResultErr{
+				{Group: "", Resource: "secrets"}:    {"1": {finished: true}},
+				{Group: "", Resource: "configmaps"}: {"1": {finished: true}},
 			},
 			expectedActions: []string{
 				"list:pods:kms",
@@ -181,11 +348,12 @@ func TestMigrationController(t *testing.T) {
 				"update:secrets:openshift-config-managed",
 				"create:events:operator",
 			},
-			validateFunc: func(ts *testing.T, actionsKube []clientgotesting.Action, actionsDynamic []clientgotesting.Action, initialSecrets []*corev1.Secret, targetGRs []schema.GroupResource, unstructuredObjs []runtime.Object) {
-				// validate if the secrets were properly annotated
-				validateSecretsWereAnnotated(ts, []schema.GroupResource{{Group: "", Resource: "configmaps"}, {Group: "", Resource: "secrets"}}, actionsKube, []*corev1.Secret{initialSecrets[0]})
-				// validate if the resources were "encrypted"
-				validateMigratedResources(ts, actionsDynamic, unstructuredObjs, targetGRs)
+			expectedMigratorCalls: []string{
+				"ensure:configmaps:1",
+				"ensure:secrets:1",
+			},
+			validateFunc: func(ts *testing.T, actionsKube []clientgotesting.Action, initialSecrets []*corev1.Secret, targetGRs []schema.GroupResource, unstructuredObjs []runtime.Object) {
+				validateSecretsWereAnnotated(ts, []schema.GroupResource{{Group: "", Resource: "configmaps"}, {Group: "", Resource: "secrets"}}, actionsKube, []*corev1.Secret{initialSecrets[0]}, nil)
 			},
 			validateOperatorClientFunc: func(ts *testing.T, operatorClient v1helpers.OperatorClient) {
 				expectedConditions := []operatorv1.OperatorCondition{
@@ -196,6 +364,200 @@ func TestMigrationController(t *testing.T) {
 					{
 						Type:   "EncryptionMigrationControllerProgressing",
 						Status: "False",
+					},
+				}
+				// TODO: test sequence of condition changes, not only the end result
+				encryptiontesting.ValidateOperatorClientConditions(ts, operatorClient, expectedConditions)
+			},
+		},
+
+		{
+			name:            "configmap migration failed",
+			targetNamespace: "kms",
+			targetGRs: []schema.GroupResource{
+				{Group: "", Resource: "secrets"},
+				{Group: "", Resource: "configmaps"},
+			},
+			targetAPIResources: []metav1.APIResource{
+				{
+					Name:       "secrets",
+					Namespaced: true,
+					Group:      "",
+					Version:    "v1",
+				},
+				{
+					Name:       "configmaps",
+					Namespaced: true,
+					Group:      "",
+					Version:    "v1",
+				},
+			},
+			initialResources: []runtime.Object{
+				encryptiontesting.CreateDummyKubeAPIPod("kube-apiserver-1", "kms", "node-1"),
+			},
+			initialSecrets: []*corev1.Secret{
+				func() *corev1.Secret {
+					s := encryptiontesting.CreateEncryptionKeySecretWithRawKey("kms", nil, 1, []byte("71ea7c91419a68fd1224f88d50316b4e"))
+					s.Kind = "Secret"
+					s.APIVersion = corev1.SchemeGroupVersion.String()
+					return s
+				}(),
+				func() *corev1.Secret {
+					keysResForSecrets := encryptiontesting.EncryptionKeysResourceTuple{
+						Resource: "secrets",
+						Keys: []apiserverconfigv1.Key{
+							{
+								Name:   "1",
+								Secret: "NzFlYTdjOTE0MTlhNjhmZDEyMjRmODhkNTAzMTZiNGU=",
+							},
+						},
+					}
+					keysResForConfigMaps := encryptiontesting.EncryptionKeysResourceTuple{
+						Resource: "configmaps",
+						Keys: []apiserverconfigv1.Key{
+							{
+								Name:   "1",
+								Secret: "NzFlYTdjOTE0MTlhNjhmZDEyMjRmODhkNTAzMTZiNGU=",
+							},
+						},
+					}
+
+					ec := encryptiontesting.CreateEncryptionCfgWithWriteKey([]encryptiontesting.EncryptionKeysResourceTuple{keysResForConfigMaps, keysResForSecrets})
+					ecs := createEncryptionCfgSecret(t, "kms", "1", ec)
+					ecs.APIVersion = corev1.SchemeGroupVersion.String()
+
+					return ecs
+				}(),
+			},
+			migratorEnsureReplies: map[schema.GroupResource]map[string]finishedResultErr{
+				{Group: "", Resource: "secrets"}:    {"1": {finished: false}},
+				{Group: "", Resource: "configmaps"}: {"1": {finished: true, result: errors.New("configmap migration failed")}},
+			},
+			expectedError: errors.New("configmap migration failed"),
+			expectedActions: []string{
+				"list:pods:kms",
+				"get:secrets:kms",
+				"list:secrets:openshift-config-managed",
+				"list:secrets:openshift-config-managed",
+				"list:secrets:openshift-config-managed",
+			},
+			expectedMigratorCalls: []string{
+				"ensure:configmaps:1",
+				"ensure:secrets:1",
+			},
+			validateFunc: func(ts *testing.T, actionsKube []clientgotesting.Action, initialSecrets []*corev1.Secret, targetGRs []schema.GroupResource, unstructuredObjs []runtime.Object) {
+				validateSecretsWereAnnotated(ts, []schema.GroupResource{}, actionsKube, nil, []*corev1.Secret{initialSecrets[0]})
+			},
+			validateOperatorClientFunc: func(ts *testing.T, operatorClient v1helpers.OperatorClient) {
+				expectedConditions := []operatorv1.OperatorCondition{
+					{
+						Type:    "EncryptionMigrationControllerDegraded",
+						Reason:  "Error",
+						Message: "configmap migration failed",
+						Status:  "True",
+					},
+					{
+						Type:    "EncryptionMigrationControllerProgressing",
+						Reason:  "Migrating",
+						Message: "migrating resources to a new write key: [core/secrets]",
+						Status:  "True",
+					},
+				}
+				// TODO: test sequence of condition changes, not only the end result
+				encryptiontesting.ValidateOperatorClientConditions(ts, operatorClient, expectedConditions)
+			},
+		},
+
+		{
+			name:            "configmap migration creation failed",
+			targetNamespace: "kms",
+			targetGRs: []schema.GroupResource{
+				{Group: "", Resource: "secrets"},
+				{Group: "", Resource: "configmaps"},
+			},
+			targetAPIResources: []metav1.APIResource{
+				{
+					Name:       "secrets",
+					Namespaced: true,
+					Group:      "",
+					Version:    "v1",
+				},
+				{
+					Name:       "configmaps",
+					Namespaced: true,
+					Group:      "",
+					Version:    "v1",
+				},
+			},
+			initialResources: []runtime.Object{
+				encryptiontesting.CreateDummyKubeAPIPod("kube-apiserver-1", "kms", "node-1"),
+			},
+			initialSecrets: []*corev1.Secret{
+				func() *corev1.Secret {
+					s := encryptiontesting.CreateEncryptionKeySecretWithRawKey("kms", nil, 1, []byte("71ea7c91419a68fd1224f88d50316b4e"))
+					s.Kind = "Secret"
+					s.APIVersion = corev1.SchemeGroupVersion.String()
+					return s
+				}(),
+				func() *corev1.Secret {
+					keysResForSecrets := encryptiontesting.EncryptionKeysResourceTuple{
+						Resource: "secrets",
+						Keys: []apiserverconfigv1.Key{
+							{
+								Name:   "1",
+								Secret: "NzFlYTdjOTE0MTlhNjhmZDEyMjRmODhkNTAzMTZiNGU=",
+							},
+						},
+					}
+					keysResForConfigMaps := encryptiontesting.EncryptionKeysResourceTuple{
+						Resource: "configmaps",
+						Keys: []apiserverconfigv1.Key{
+							{
+								Name:   "1",
+								Secret: "NzFlYTdjOTE0MTlhNjhmZDEyMjRmODhkNTAzMTZiNGU=",
+							},
+						},
+					}
+
+					ec := encryptiontesting.CreateEncryptionCfgWithWriteKey([]encryptiontesting.EncryptionKeysResourceTuple{keysResForConfigMaps, keysResForSecrets})
+					ecs := createEncryptionCfgSecret(t, "kms", "1", ec)
+					ecs.APIVersion = corev1.SchemeGroupVersion.String()
+
+					return ecs
+				}(),
+			},
+			migratorEnsureReplies: map[schema.GroupResource]map[string]finishedResultErr{
+				{Group: "", Resource: "secrets"}:    {"1": {finished: false}},
+				{Group: "", Resource: "configmaps"}: {"1": {finished: false, err: errors.New("failed to start configmap migration")}},
+			},
+			expectedError: errors.New("failed to start configmap migration"),
+			expectedActions: []string{
+				"list:pods:kms",
+				"get:secrets:kms",
+				"list:secrets:openshift-config-managed",
+				"list:secrets:openshift-config-managed",
+				"list:secrets:openshift-config-managed",
+			},
+			expectedMigratorCalls: []string{
+				"ensure:configmaps:1",
+				"ensure:secrets:1",
+			},
+			validateFunc: func(ts *testing.T, actionsKube []clientgotesting.Action, initialSecrets []*corev1.Secret, targetGRs []schema.GroupResource, unstructuredObjs []runtime.Object) {
+				validateSecretsWereAnnotated(ts, []schema.GroupResource{}, actionsKube, nil, []*corev1.Secret{initialSecrets[0]})
+			},
+			validateOperatorClientFunc: func(ts *testing.T, operatorClient v1helpers.OperatorClient) {
+				expectedConditions := []operatorv1.OperatorCondition{
+					{
+						Type:    "EncryptionMigrationControllerDegraded",
+						Reason:  "Error",
+						Message: "failed to start configmap migration",
+						Status:  "True",
+					},
+					{
+						Type:    "EncryptionMigrationControllerProgressing",
+						Reason:  "Migrating",
+						Message: "migrating resources to a new write key: [core/secrets]",
+						Status:  "True",
 					},
 				}
 				// TODO: test sequence of condition changes, not only the end result
@@ -260,7 +622,6 @@ func TestMigrationController(t *testing.T) {
 				}
 				return false
 			}
-			scheme := runtime.NewScheme()
 			unstructuredObjs := []runtime.Object{}
 			for _, rawObject := range allResources {
 				rawUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(rawObject.DeepCopyObject())
@@ -272,30 +633,26 @@ func TestMigrationController(t *testing.T) {
 					unstructuredObjs = append(unstructuredObjs, unstructuredObj)
 				}
 			}
-			fakeDynamicClient := dynamicfakeclient.NewSimpleDynamicClient(scheme, unstructuredObjs...)
-			fakeDiscoveryClient := &fakeDisco{fakeKubeClient.Discovery(), []*metav1.APIResourceList{
-				{
-					TypeMeta:     metav1.TypeMeta{},
-					APIResources: scenario.targetAPIResources,
-				},
-			}}
 
 			deployer, err := encryptiondeployer.NewRevisionLabelPodDeployer("revision", scenario.targetNamespace, kubeInformers, nil, fakeKubeClient.CoreV1(), fakeSecretClient, encryptiondeployer.StaticPodNodeProvider{OperatorClient: fakeOperatorClient})
 			if err != nil {
 				t.Fatal(err)
 			}
+			migrator := &fakeMigrator{
+				ensureReplies: scenario.migratorEnsureReplies,
+				pruneReplies:  scenario.migratorPruneReplies,
+			}
 
 			// act
 			target := NewMigrationController(
 				deployer,
+				migrator,
 				fakeOperatorClient,
 				kubeInformers,
 				fakeSecretClient,
 				scenario.encryptionSecretSelector,
 				eventRecorder,
 				scenario.targetGRs,
-				fakeDynamicClient,
-				fakeDiscoveryClient,
 			)
 			err = target.sync()
 
@@ -316,8 +673,11 @@ func TestMigrationController(t *testing.T) {
 			if err := encryptiontesting.ValidateActionsVerbs(fakeKubeClient.Actions(), scenario.expectedActions); err != nil {
 				t.Fatalf("incorrect action(s) detected: %v", err)
 			}
+			if !reflect.DeepEqual(scenario.expectedMigratorCalls, migrator.calls) {
+				t.Fatalf("incorrect migrator calls:\n  expected: %v\n       got: %v", scenario.expectedMigratorCalls, migrator.calls)
+			}
 			if scenario.validateFunc != nil {
-				scenario.validateFunc(t, fakeKubeClient.Actions(), fakeDynamicClient.Actions(), scenario.initialSecrets, scenario.targetGRs, unstructuredObjs)
+				scenario.validateFunc(t, fakeKubeClient.Actions(), scenario.initialSecrets, scenario.targetGRs, unstructuredObjs)
 			}
 			if scenario.validateOperatorClientFunc != nil {
 				scenario.validateOperatorClientFunc(t, fakeOperatorClient)
@@ -326,56 +686,7 @@ func TestMigrationController(t *testing.T) {
 	}
 }
 
-func validateMigratedResources(ts *testing.T, actions []clientgotesting.Action, unstructuredObjs []runtime.Object, targetGRs []schema.GroupResource) {
-	ts.Helper()
-
-	expectedActionsNoList := len(actions) - len(targetGRs) // subtract "list" requests
-	if expectedActionsNoList != len(unstructuredObjs) {
-		ts.Fatalf("incorrect number of resources were encrypted, expected %d, got %d", len(unstructuredObjs), expectedActionsNoList)
-	}
-
-	// validate LIST requests
-	{
-		validatedListRequests := 0
-		for _, gr := range targetGRs {
-			for _, action := range actions {
-				if action.Matches("list", gr.Resource) {
-					validatedListRequests++
-					break
-				}
-			}
-		}
-		if validatedListRequests != len(targetGRs) {
-			ts.Fatalf("incorrect number of LIST request, expedted %d, got %d", len(targetGRs), validatedListRequests)
-		}
-	}
-
-	// validate UPDATE requests
-	for _, action := range actions {
-		if action.GetVerb() == "update" {
-			unstructuredObjValidated := false
-
-			updateAction := action.(clientgotesting.UpdateAction)
-			updatedObj := updateAction.GetObject().(*unstructured.Unstructured)
-			for _, rawUnstructuredObj := range unstructuredObjs {
-				expectedUnstructuredObj, ok := rawUnstructuredObj.(*unstructured.Unstructured)
-				if !ok {
-					ts.Fatalf("object %T is not *unstructured.Unstructured", expectedUnstructuredObj)
-				}
-				if equality.Semantic.DeepEqual(updatedObj, expectedUnstructuredObj) {
-					unstructuredObjValidated = true
-					break
-				}
-			}
-
-			if !unstructuredObjValidated {
-				ts.Fatalf("encrypted object with kind = %s, namespace = %s and name = %s wasn't expected to be encrypted", updatedObj.GetKind(), updatedObj.GetNamespace(), updatedObj.GetName())
-			}
-		}
-	}
-}
-
-func validateSecretsWereAnnotated(ts *testing.T, grs []schema.GroupResource, actions []clientgotesting.Action, expectedSecrets []*corev1.Secret) {
+func validateSecretsWereAnnotated(ts *testing.T, grs []schema.GroupResource, actions []clientgotesting.Action, expectedSecrets []*corev1.Secret, notExpectedSecrets []*corev1.Secret) {
 	ts.Helper()
 
 	lastSeen := map[string]*corev1.Secret{}
@@ -416,54 +727,38 @@ func validateSecretsWereAnnotated(ts *testing.T, grs []schema.GroupResource, act
 			}
 		}
 	}
-}
 
-func createConfigMap(name, namespace string) *corev1.ConfigMap {
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+	for _, unexpected := range notExpectedSecrets {
+		_, found := lastSeen[fmt.Sprintf("%s/%s", unexpected.Namespace, unexpected.Name)]
+		if found {
+			ts.Errorf("unexpected update on %s/%s", unexpected.Namespace, unexpected.Name)
+			continue
+		}
 	}
 }
 
-type fakeDisco struct {
-	delegate           discovery.DiscoveryInterface
-	serverPreferredRes []*metav1.APIResourceList
+type finishedResultErr struct {
+	finished    bool
+	result, err error
 }
 
-func (f *fakeDisco) RESTClient() interface{} {
-	return f.delegate
+type fakeMigrator struct {
+	calls         []string
+	ensureReplies map[schema.GroupResource]map[string]finishedResultErr
+	pruneReplies  map[schema.GroupResource]error
 }
 
-func (f *fakeDisco) ServerGroups() (*metav1.APIGroupList, error) {
-	return f.delegate.ServerGroups()
+func (m *fakeMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, err error) {
+	m.calls = append(m.calls, fmt.Sprintf("ensure:%s:%s", gr, writeKey))
+	r := m.ensureReplies[gr][writeKey]
+	return r.finished, r.result, r.err
 }
 
-func (f *fakeDisco) ServerResourcesForGroupVersion(groupVersion string) (*metav1.APIResourceList, error) {
-	return f.delegate.ServerResourcesForGroupVersion(groupVersion)
+func (m *fakeMigrator) PruneMigration(gr schema.GroupResource) error {
+	m.calls = append(m.calls, fmt.Sprintf("prune:%s", gr))
+	return m.pruneReplies[gr]
 }
 
-func (f *fakeDisco) ServerGroupsAndResources() ([]*metav1.APIGroup, []*metav1.APIResourceList, error) {
-	return f.delegate.ServerGroupsAndResources()
-}
-
-func (f *fakeDisco) ServerResources() ([]*metav1.APIResourceList, error) {
-	return f.delegate.ServerResources()
-}
-
-func (f *fakeDisco) ServerPreferredResources() ([]*metav1.APIResourceList, error) {
-	return f.serverPreferredRes, nil
-}
-
-func (f *fakeDisco) ServerPreferredNamespacedResources() ([]*metav1.APIResourceList, error) {
-	return f.delegate.ServerPreferredNamespacedResources()
-}
-
-func (f *fakeDisco) ServerVersion() (*version.Info, error) {
-	return f.delegate.ServerVersion()
-}
-
-func (f *fakeDisco) OpenAPISchema() (*openapi_v2.Document, error) {
-	return f.delegate.OpenAPISchema()
+func (m *fakeMigrator) AddEventHandler(handler cache.ResourceEventHandler) []cache.InformerSynced {
+	return nil
 }

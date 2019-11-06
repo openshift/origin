@@ -1,5 +1,5 @@
 hash: 4e2aa6536866507323c2a6311dfc8b48e0f25d213dd6d8da203ce062bd50ddeb
-updated: 2019-10-30T10:14:10.129898366+01:00
+updated: 2019-11-06T09:44:07.130224209+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -804,7 +804,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: d752785a7d26e12a7d213a078cc428b932b3f9f4
+  version: 21e87c8db5692e119529c2a80c8997bee050f038
   subpackages:
   - annotations
   - apps
@@ -852,7 +852,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 623481f3614327028294e05c4c712847c41c7184
+  version: d679cd370bf7ac46712c470d22be4e2268089c86
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -973,7 +973,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: d368763acf527b139373e58d3d5356b21f8e7cc5
+  version: 500a6f7314d3b246bacd94d66c32b35df37e2d8e
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1373,7 +1373,7 @@ imports:
   - tap
   - transport
 - name: gopkg.in/asn1-ber.v1
-  version: f715ec2f112d1e4195b827ad68cf44017a3ef2b1
+  version: 158c9f99fc9c29a5ca9203be28f0fdf31cfb9701
 - name: gopkg.in/fsnotify.v1
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: gopkg.in/gcfg.v1
@@ -1500,7 +1500,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: 91d1476ca247e7dac27aef3dc0b6fa95dab2cf74
+  version: a4fe85af4d295b06cebcd32f654bec276db0479c
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1566,7 +1566,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: b6a228dc94b2d5ac9777a627b144f1a837485c16
+  version: 939d81789a75146779e42baf6e3a7130b9440d08
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2134,7 +2134,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: ecdef8e738677851272495bf014c2fef6231eb11
+  version: 068386879ed562a59bed379f283dd5320bc35c81
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -3006,7 +3006,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/legacy-cloud-providers
-  version: 767dcc54a570128762cce2242831894e23fb0061
+  version: 1711f9b96085a2e263fbca12360b8b132b1fddfc
   repo: https://github.com/openshift/kubernetes-legacy-cloud-providers.git
   subpackages:
   - aws

@@ -15,7 +15,9 @@ import (
 	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	"github.com/openshift/library-go/pkg/operator/encryption/encryptionconfig"
+	"github.com/openshift/library-go/pkg/operator/encryption/state"
 	"github.com/openshift/library-go/pkg/operator/encryption/statemachine"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
@@ -102,6 +104,11 @@ func (c *stateController) sync() error {
 	return configError
 }
 
+type eventWithReason struct {
+	reason  string
+	message string
+}
+
 func (c *stateController) generateAndApplyCurrentEncryptionConfigSecret() error {
 	currentConfig, desiredEncryptionState, secretsFound, transitioningReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, c.encryptedGRs)
 	if err != nil {
@@ -119,7 +126,18 @@ func (c *stateController) generateAndApplyCurrentEncryptionConfigSecret() error 
 		return nil
 	}
 
-	return c.applyEncryptionConfigSecret(encryptionconfig.FromEncryptionState(desiredEncryptionState))
+	desiredEncryptionConfig := encryptionconfig.FromEncryptionState(desiredEncryptionState)
+	if err := c.applyEncryptionConfigSecret(desiredEncryptionConfig); err != nil {
+		return err
+	}
+
+	currentEncryptionConfig := encryptionconfig.ToEncryptionState(currentConfig)
+	if actionEvents := eventsFromEncryptionConfigChanges(currentEncryptionConfig, desiredEncryptionState); len(actionEvents) > 0 {
+		for _, event := range actionEvents {
+			c.eventRecorder.Eventf(event.reason, event.message)
+		}
+	}
+	return nil
 }
 
 func (c *stateController) applyEncryptionConfigSecret(encryptionConfig *apiserverconfigv1.EncryptionConfiguration) error {
@@ -179,4 +197,71 @@ func (c *stateController) eventHandler() cache.ResourceEventHandler {
 		UpdateFunc: func(old, new interface{}) { c.queue.Add(stateWorkKey) },
 		DeleteFunc: func(obj interface{}) { c.queue.Add(stateWorkKey) },
 	}
+}
+
+// eventsFromEncryptionConfigChanges return slice of event reasons with messages corresponding to a difference between current and desired encryption state.
+func eventsFromEncryptionConfigChanges(current, desired map[schema.GroupResource]state.GroupResourceState) []eventWithReason {
+	var result []eventWithReason
+	// handle removals from current first
+	for currentGroupResource := range current {
+		if _, exists := desired[currentGroupResource]; !exists {
+			result = append(result, eventWithReason{
+				reason:  "EncryptionResourceRemoved",
+				message: fmt.Sprintf("Resource %q was removed from encryption config", currentGroupResource),
+			})
+		}
+	}
+	for desiredGroupResource, desiredGroupResourceState := range desired {
+		currentGroupResource, exists := current[desiredGroupResource]
+		if !exists {
+			keyMessage := "without write key"
+			if desiredGroupResourceState.HasWriteKey() {
+				keyMessage = fmt.Sprintf("with write key %q", desiredGroupResourceState.WriteKey.Key.Name)
+			}
+			result = append(result, eventWithReason{
+				reason:  "EncryptionResourceAdded",
+				message: fmt.Sprintf("Resource %q was added to encryption config %s", desiredGroupResource, keyMessage),
+			})
+			continue
+		}
+		if !currentGroupResource.HasWriteKey() && desiredGroupResourceState.HasWriteKey() {
+			result = append(result, eventWithReason{
+				reason:  "EncryptionKeyPromoted",
+				message: fmt.Sprintf("Promoting key %q for resource %q to write key", desiredGroupResourceState.WriteKey.Key.Name, desiredGroupResource),
+			})
+		}
+		if currentGroupResource.HasWriteKey() && !desiredGroupResourceState.HasWriteKey() {
+			result = append(result, eventWithReason{
+				reason:  "EncryptionKeyRemoved",
+				message: fmt.Sprintf("Removing key %q for resource %q to write key", currentGroupResource.WriteKey.Key.Name, desiredGroupResource),
+			})
+		}
+		if currentGroupResource.HasWriteKey() && desiredGroupResourceState.HasWriteKey() {
+			if currentGroupResource.WriteKey.ExternalReason != desiredGroupResourceState.WriteKey.ExternalReason {
+				result = append(result, eventWithReason{
+					reason:  "EncryptionWriteKeyTriggeredExternal",
+					message: fmt.Sprintf("Triggered key %q for resource %q because %s", currentGroupResource.WriteKey.Key.Name, desiredGroupResource, desiredGroupResourceState.WriteKey.ExternalReason),
+				})
+			}
+			if currentGroupResource.WriteKey.InternalReason != desiredGroupResourceState.WriteKey.InternalReason {
+				result = append(result, eventWithReason{
+					reason:  "EncryptionWriteKeyTriggeredInternal",
+					message: fmt.Sprintf("Triggered key %q for resource %q because %s", currentGroupResource.WriteKey.Key.Name, desiredGroupResource, desiredGroupResourceState.WriteKey.InternalReason),
+				})
+			}
+			if !state.EqualKeyAndEqualID(&currentGroupResource.WriteKey, &desiredGroupResourceState.WriteKey) {
+				result = append(result, eventWithReason{
+					reason:  "EncryptionWriteKeyChanged",
+					message: fmt.Sprintf("Write key %q for resource %q changed", currentGroupResource.WriteKey.Key.Name, desiredGroupResource),
+				})
+			}
+		}
+		if len(currentGroupResource.ReadKeys) != len(desiredGroupResourceState.ReadKeys) {
+			result = append(result, eventWithReason{
+				reason:  "EncryptionReadKeysChanged",
+				message: fmt.Sprintf("Number of read keys for resource %q changed from %d to %d", desiredGroupResource, len(currentGroupResource.ReadKeys), len(desiredGroupResourceState.ReadKeys)),
+			})
+		}
+	}
+	return result
 }

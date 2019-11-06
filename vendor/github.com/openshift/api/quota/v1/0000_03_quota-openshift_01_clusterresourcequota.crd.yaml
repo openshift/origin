@@ -39,10 +39,8 @@ spec:
               properties:
                 hard:
                   additionalProperties:
-                    anyOf:
-                    - type: string
-                    - type: integer
-                    type: string
+                    type: ""
+                    x-kubernetes-int-or-string: true
                   description: 'hard is the set of desired hard limits for each named
                     resource. More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/'
                   type: object

@@ -30,7 +30,7 @@ type Image struct {
 	DockerImageReference string `json:"dockerImageReference,omitempty" protobuf:"bytes,2,opt,name=dockerImageReference"`
 	// DockerImageMetadata contains metadata about this image
 	// +patchStrategy=replace
-	// +kubebuilder:validation:PreserveUnknownFields
+	// +kubebuilder:pruning:PreserveUnknownFields
 	DockerImageMetadata runtime.RawExtension `json:"dockerImageMetadata,omitempty" patchStrategy:"replace" protobuf:"bytes,3,opt,name=dockerImageMetadata"`
 	// DockerImageMetadataVersion conveys the version of the object, which if empty defaults to "1.0"
 	DockerImageMetadataVersion string `json:"dockerImageMetadataVersion,omitempty" protobuf:"bytes,4,opt,name=dockerImageMetadataVersion"`

@@ -4,8 +4,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
 	kapiv1 "k8s.io/api/core/v1"
-	kextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -48,9 +48,9 @@ var _ = g.Describe("[Feature:ImageLookup][registry][Conformance] Image policy", 
 		defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(pod.Name, nil) }()
 
 		// replica sets should auto replace local references
-		rs, err := oc.KubeClient().ExtensionsV1beta1().ReplicaSets(oc.Namespace()).Create(&kextensionsv1beta1.ReplicaSet{
+		rs, err := oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Create(&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{Name: "resolve"},
-			Spec: kextensionsv1beta1.ReplicaSetSpec{
+			Spec: appsv1.ReplicaSetSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{"resolve": "true"},
 				},
@@ -67,7 +67,7 @@ var _ = g.Describe("[Feature:ImageLookup][registry][Conformance] Image policy", 
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(rs.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
-		defer func() { oc.KubeClient().ExtensionsV1beta1().ReplicaSets(oc.Namespace()).Delete(rs.Name, nil) }()
+		defer func() { oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Delete(rs.Name, nil) }()
 	})
 
 	g.It("should perform lookup when the pod has the resolve-names annotation", func() {
@@ -104,14 +104,14 @@ var _ = g.Describe("[Feature:ImageLookup][registry][Conformance] Image policy", 
 		defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(pod.Name, nil) }()
 
 		// replica sets should auto replace local references
-		rs, err := oc.KubeClient().ExtensionsV1beta1().ReplicaSets(oc.Namespace()).Create(&kextensionsv1beta1.ReplicaSet{
+		rs, err := oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Create(&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 				Annotations: map[string]string{
 					"alpha.image.policy.openshift.io/resolve-names": "*",
 				},
 			},
-			Spec: kextensionsv1beta1.ReplicaSetSpec{
+			Spec: appsv1.ReplicaSetSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{"resolve": "true"},
 				},
@@ -128,6 +128,6 @@ var _ = g.Describe("[Feature:ImageLookup][registry][Conformance] Image policy", 
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(rs.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
-		defer func() { oc.KubeClient().ExtensionsV1beta1().ReplicaSets(oc.Namespace()).Delete(rs.Name, nil) }()
+		defer func() { oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Delete(rs.Name, nil) }()
 	})
 })

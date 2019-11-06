@@ -3,12 +3,13 @@ package encryption
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	"github.com/openshift/library-go/pkg/operator/encryption/controllers/migrators"
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions/config/v1"
+
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorv1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 
@@ -24,14 +25,13 @@ type runner interface {
 func NewControllers(
 	component string,
 	deployer statemachine.Deployer,
+	migrator migrators.Migrator,
 	operatorClient operatorv1helpers.OperatorClient,
 	apiServerClient configv1client.APIServerInterface,
 	apiServerInformer configv1informers.APIServerInformer,
 	kubeInformersForNamespaces operatorv1helpers.KubeInformersForNamespaces,
 	secretsClient corev1.SecretsGetter,
-	discovery discovery.DiscoveryInterface,
 	eventRecorder events.Recorder,
-	dynamicClient dynamic.Interface, // temporary hack for in-process storage migration
 	encryptedGRs ...schema.GroupResource,
 ) (*Controllers, error) {
 	// avoid using the CachedSecretGetter as we need strong guarantees that our encryptionSecretSelector works
@@ -75,14 +75,13 @@ func NewControllers(
 			),
 			controllers.NewMigrationController(
 				deployer,
+				migrator,
 				operatorClient,
 				kubeInformersForNamespaces,
 				secretsClient,
 				encryptionSecretSelector,
 				eventRecorder,
 				encryptedGRs,
-				dynamicClient,
-				discovery,
 			),
 		},
 	}, nil
