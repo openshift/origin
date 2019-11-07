@@ -269,7 +269,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("is", "ruby").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "ruby-22-centos7").Execute()
+				err = oc.Run("delete").Args("is", "ruby-25-centos7").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
