@@ -269,7 +269,6 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 				})
 
 				g.It("shoud accept --from-file with https URL as an input", func() {
-					g.Skip("TODO: update https://github.com/openshift/ruby-hello-world to be compatible with ruby 2.5")
 					g.By("starting a valid build with input file served by https")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfileURL))
 					br.AssertSuccess()
@@ -281,7 +280,6 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 				})
 
 				g.It("shoud accept --from-archive with https URL as an input", func() {
-					g.Skip("TODO: update https://github.com/openshift/ruby-hello-world to be compatible with ruby 2.5")
 					g.By("starting a valid build with input archive served by https")
 					// can't use sample-build-binary because we need contextDir due to github archives containing the top-level directory
 					br, err := exutil.StartBuildAndWait(oc, "sample-build-github-archive", fmt.Sprintf("--from-archive=%s", exampleArchiveURL))

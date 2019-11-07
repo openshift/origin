@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: testapp
-        image: centos/ruby-22-centos7:latest
+        image: centos/ruby-25-centos7:latest
         command:
         - /bin/sleep
         args:
