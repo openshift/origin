@@ -30,10 +30,10 @@ os::cmd::expect_success 'oc process ruby-helloworld-sample -o go-template-file=/
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath --template "{.kind}"' "List"
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath={.kind}'              "List"
 os::cmd::expect_success 'oc process ruby-helloworld-sample -o jsonpath-file=/dev/null'
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o describe' "ruby-22-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o json'     "ruby-22-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o yaml'     "ruby-22-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o name'     "ruby-22-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o describe' "ruby-25-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o json'     "ruby-25-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o yaml'     "ruby-25-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o name'     "ruby-25-centos7"
 os::cmd::expect_success_and_text 'oc describe templates ruby-helloworld-sample' "BuildConfig.*ruby-sample-build"
 os::cmd::expect_success 'oc delete templates ruby-helloworld-sample'
 os::cmd::expect_success 'oc get templates'

@@ -460,7 +460,7 @@ os::cmd::expect_success_and_text 'oc new-build mysql https://github.com/openshif
 os::cmd::expect_failure_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --binary' 'specifying binary builds and source repositories at the same time is not allowed'
 # binary builds cannot be created unless a builder image is specified.
 os::cmd::expect_failure_and_text 'oc new-build --name mybuild --binary --strategy=source -o yaml' 'you must provide a builder image when using the source strategy with a binary build'
-os::cmd::expect_success_and_text 'oc new-build --name mybuild centos/ruby-22-centos7 --binary --strategy=source -o yaml' 'name: ruby-22-centos7:latest'
+os::cmd::expect_success_and_text 'oc new-build --name mybuild centos/ruby-25-centos7 --binary --strategy=source -o yaml' 'name: ruby-25-centos7:latest'
 # binary builds can be created with no builder image if no strategy or docker strategy is specified
 os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary -o yaml' 'type: Binary'
 os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary --strategy=docker -o yaml' 'type: Binary'
@@ -544,7 +544,7 @@ os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest --code https://git
 os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest --code ./test/testdata/testapp --dry-run'
 
 os::cmd::expect_success 'oc new-app --code ./test/testdata/testapp --name test'
-os::cmd::expect_success_and_text 'oc get bc test --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-22-centos7:latest'
+os::cmd::expect_success_and_text 'oc get bc test --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-25-centos7:latest'
 
 os::cmd::expect_success 'oc new-app -i php-55-centos7:latest --code ./test/testdata/testapp --name test2'
 os::cmd::expect_success_and_text 'oc get bc test2 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
@@ -562,7 +562,7 @@ os::cmd::expect_success 'oc new-app php-55-centos7:latest --code https://github.
 os::cmd::expect_success_and_text 'oc get bc test6 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
 
 os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world.git --name test7'
-os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-22-centos7:latest'
+os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-25-centos7:latest'
 
 os::cmd::expect_success 'oc new-app php-55-centos7:latest https://github.com/openshift/ruby-hello-world.git --name test8'
 os::cmd::expect_success_and_text 'oc get bc test8 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'

@@ -21,7 +21,7 @@ items:
       dockerStrategy:
         from:
           kind: ImageStreamTag
-          name: ruby-22-centos7:latest
+          name: ruby-25-centos7:latest
       type: Docker
     triggers:
     - github:
@@ -53,7 +53,7 @@ items:
       dockerStrategy:
         from:
           kind: ImageStreamTag
-          name: ruby-22-centos7:latest
+          name: ruby-25-centos7:latest
       type: Docker
     triggers:
     - github:

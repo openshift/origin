@@ -4,7 +4,7 @@ items:
   kind: BuildConfig
   metadata:
     creationTimestamp: null
-    name: ruby-22-centos7
+    name: ruby-25-centos7
     namespace: example
   spec:
     output:
@@ -20,7 +20,7 @@ items:
       dockerStrategy:
         from:
           kind: ImageStreamTag
-          name: ruby-22-centos7:latest
+          name: ruby-25-centos7:latest
       type: Docker
     triggers:
     - github:
@@ -76,7 +76,7 @@ items:
     output:
       to:
         kind: ImageStreamTag
-        name: ruby-22-centos7:latest
+        name: ruby-25-centos7:latest
     resources: {}
     source:
       git:

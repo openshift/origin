@@ -14,7 +14,7 @@
       "git": {
         "uri":"https://github.com/sclorg/s2i-ruby-container"
       },
-      "contextDir": "2.3/test/puma-test-app"
+      "contextDir": "2.5/test/puma-test-app"
     },
     "strategy": {
       "type": "Source",
@@ -27,7 +27,7 @@
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-23-centos7"
+          "name": "centos/ruby-25-centos7"
         }
       }
     },

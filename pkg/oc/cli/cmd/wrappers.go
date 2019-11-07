@@ -321,8 +321,8 @@ var (
 		given resource.`)
 
 	describeExample = templates.Examples(`
-		# Provide details about the ruby-22-centos7 image repository
-	  %[1]s describe imageRepository ruby-22-centos7
+		# Provide details about the ruby-25-centos7 image repository
+	  %[1]s describe imageRepository ruby-25-centos7
 
 	  # Provide details about the ruby-sample-build build configuration
 	  %[1]s describe bc ruby-sample-build`)

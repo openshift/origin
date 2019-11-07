@@ -304,9 +304,9 @@ echo "[INFO] Installing the registry"
 # COMPATIBILITY remove --credentials parameter
 openshift admin registry --create --images="${USE_IMAGES}"
 
-echo "[INFO] Pre-pulling and pushing ruby-22-centos7"
-docker pull centos/ruby-22-centos7:latest
-echo "[INFO] Pulled ruby-22-centos7"
+echo "[INFO] Pre-pulling and pushing ruby-25-centos7"
+docker pull centos/ruby-25-centos7:latest
+echo "[INFO] Pulled ruby-25-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
 # TODO: simplify when #4702 is fixed upstream
@@ -336,10 +336,10 @@ echo "[INFO] Docker login as e2e-user to ${DOCKER_REGISTRY}"
 docker login -u e2e-user -p ${token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}
 echo "[INFO] Docker login successful"
 
-echo "[INFO] Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
-docker tag centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest
-docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest
-echo "[INFO] Pushed ruby-22-centos7"
+echo "[INFO] Tagging and pushing ruby-25-centos7 to ${DOCKER_REGISTRY}/cache/ruby-25-centos7:latest"
+docker tag centos/ruby-25-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-25-centos7:latest
+docker push ${DOCKER_REGISTRY}/cache/ruby-25-centos7:latest
+echo "[INFO] Pushed ruby-25-centos7"
 
 echo "[INFO] Back to 'default' project with 'admin' user..."
 oc project ${CLUSTER_ADMIN_CONTEXT}
