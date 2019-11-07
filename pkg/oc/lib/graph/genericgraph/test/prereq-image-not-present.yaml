@@ -56,7 +56,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: openshift/ruby-20-centos7
+          name: centos/ruby-25-centos7
       type: Docker
     triggers:
     - github:

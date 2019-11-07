@@ -3212,7 +3212,7 @@ items:
         from:
           # TODO: use ruby 2.5 image
           kind: DockerImage
-          name: docker.io/centos/ruby-22-centos7
+          name: docker.io/centos/ruby-25-centos7
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
