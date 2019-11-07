@@ -4,9 +4,9 @@ items:
   kind: ImageStream
   metadata:
     creationTimestamp: null
-    name: ruby-22-centos7
+    name: ruby-25-centos7
   spec:
-    dockerImageRepository: centos/ruby-22-centos7
+    dockerImageRepository: centos/ruby-25-centos7
   status:
     dockerImageRepository: ""
 - apiVersion: v1
@@ -36,7 +36,7 @@ items:
       dockerStrategy:
         from:
           kind: ImageStreamTag
-          name: ruby-22-centos7:latest
+          name: ruby-25-centos7:latest
       type: Docker
     triggers:
     - github:

@@ -78,7 +78,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""

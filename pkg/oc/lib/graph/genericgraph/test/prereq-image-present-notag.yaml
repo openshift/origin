@@ -23,7 +23,7 @@ items:
       dockerStrategy:
         from:
           kind: ImageStreamTag
-          name: ruby-20-centos7:latest
+          name: ruby-25-centos7:latest
           namespace: openshift
       type: Docker
     triggers:
@@ -48,7 +48,7 @@ items:
     output:
       to:
         kind: ImageStreamTag
-        name: ruby-20-centos7:latest
+        name: ruby-25-centos7:latest
         namespace: openshift
     resources: {}
     source: {}
@@ -56,7 +56,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: ruby-20-centos7:latest
+          name: ruby-25-centos7:latest
           namespace: openshift
       type: Docker
     triggers:
@@ -91,7 +91,7 @@ items:
       dockerStrategy:
         from:
           kind: ImageStream
-          name: ruby-20-centos7
+          name: ruby-25-centos7
           namespace: openshift
       type: Docker
     triggers:
@@ -126,7 +126,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: openshift/ruby-20-centos7
+          name: centos/ruby-25-centos7
       type: Docker
     triggers:
     - github:
@@ -160,7 +160,7 @@ items:
       sourceStrategy:
         from:
           kind: ImageStreamImage
-          name: ruby-20-centos7@sha256:603bfa418e1ff0a486f3d795a8b69a2f8f5eed488fbf5c286bffd8ab77b8e7a5
+          name: ruby-25-centos7@sha256:603bfa418e1ff0a486f3d795a8b69a2f8f5eed488fbf5c286bffd8ab77b8e7a5
           namespace: openshift
       type: Docker
     triggers:
@@ -217,10 +217,10 @@ items:
     creationTimestamp: null
     labels:
       app: ruby
-    name: ruby-20-centos7
+    name: ruby-25-centos7
     namespace: openshift
   spec:
-    dockerImageRepository: openshift/ruby-20-centos7
+    dockerImageRepository: openshift/ruby-25-centos7
   status: {}
 kind: List
 metadata: {}
