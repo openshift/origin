@@ -173,6 +173,29 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			e2e.Logf("Watchdog alert is firing")
 		})
+		g.It("should have important platform topology metrics", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string]bool{
+				// track infrastructure type
+				`cluster_infrastructure_provider{type!=""}`: true,
+				`cluster_feature_set`:                       true,
+
+				// track installer type
+				`cluster_installer{type!="",invoker!=""}`: true,
+
+				// track sum of etcd
+				`instance:etcd_object_counts:sum > 0`: true,
+
+				// track cores and sockets across node types
+				`sum(node_role_os_version_machine:cpu_capacity_cores:sum{label_kubernetes_io_arch!="",label_node_role_kubernetes_io_master!=""}) > 0`:                                      true,
+				`sum(node_role_os_version_machine:cpu_capacity_sockets:sum{label_kubernetes_io_arch!="",label_node_hyperthread_enabled!="",label_node_role_kubernetes_io_master!=""}) > 0`: true,
+			}
+			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		})
 		g.It("should have non-Pod host cAdvisor metrics", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
