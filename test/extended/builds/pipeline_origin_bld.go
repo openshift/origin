@@ -158,7 +158,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 			g.By("waiting for jenkins deployment")
 			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "jenkins", 1, false, oc)
 			if err != nil {
-				exutil.DumpApplicationPodLogs("jenkins", oc)
+                               exutil.DumpPodLogsStartingWith("jenkins", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -168,7 +168,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 			_, err = j.WaitForContent("", 200, 10*time.Minute, "")
 
 			if err != nil {
-				exutil.DumpApplicationPodLogs("jenkins", oc)
+				exutil.DumpPodLogsStartingWith("jenkins", oc)
 			}
 
 			o.Expect(err).NotTo(o.HaveOccurred())
