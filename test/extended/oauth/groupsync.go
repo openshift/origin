@@ -39,7 +39,13 @@ var _ = g.Describe("[Suite:openshift/oauth][Serial] ldap group sync", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Install stuff needed for the exec pod to run groupsync.sh and hack/lib
-		_, err = pod.Exec("dnf install findutils golang docker which bc openldap-clients -y")
+		for i := 0; i < 5; i++ {
+			if _, err = pod.Exec("dnf install -y findutils golang docker which bc openldap-clients"); err == nil {
+				break
+			}
+			// it apparently hit error syncing caches, clean all to try again
+			pod.Exec("dnf clean all")
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Copy oc
