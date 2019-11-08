@@ -172,6 +172,29 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			e2e.Logf("Watchdog alert is firing")
 		})
+		g.It("should have important platform topology metrics", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string][]metricTest{
+				// track infrastructure type
+				`count(cluster_infrastructure_provider{type!=""}) == 1`: []metricTest{{success: true}},
+				`count(cluster_feature_set) ==  1`:                      []metricTest{{success: true}},
+
+				// track installer type
+				`count(cluster_installer{type!="",invoker!=""}) == 1`: []metricTest{{success: true}},
+
+				// track sum of etcd
+				`count(instance:etcd_object_counts:sum) == 1`: []metricTest{{success: true}},
+
+				// track cores and sockets across node types
+				`sum(node_role_os_version_machine:cpu_capacity_cores:sum{label_kubernetes_io_arch!="",label_node_role_kubernetes_io_master!=""}) > 0`:                                      []metricTest{{success: true}},
+				`sum(node_role_os_version_machine:cpu_capacity_sockets:sum{label_kubernetes_io_arch!="",label_node_hyperthread_enabled!="",label_node_role_kubernetes_io_master!=""}) > 0`: []metricTest{{success: true}},
+			}
+			runQueries(tests, oc, ns, execPod, url, bearerToken)
+		})
 		g.It("should have non-Pod host cAdvisor metrics", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
