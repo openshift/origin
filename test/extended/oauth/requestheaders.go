@@ -124,11 +124,11 @@ var _ = g.Describe("[Serial] [Feature:OAuthServer] [RequestHeaders] [IdP]", func
 				expectToken: true,
 			},
 			{
-				name:          "/authorize - challenging-client - unknown CA cert: expect 500 because the verifier can generally return TLS errors :(",
+				name:          "/authorize - challenging-client - unknown CA cert: expect 302 because we never get authenticated",
 				cert:          unknownCACert,
 				key:           unknownCAKey,
 				endpoint:      "/oauth/authorize?client_id=openshift-challenging-client&response_type=token",
-				expectedError: "500 Internal Server Error",
+				expectedError: "302 Found",
 			},
 			{
 				name:          "/authorize - challenging-client - wrong CN cert: expect 500 because the verifier can generally return TLS errors :(",
@@ -154,7 +154,7 @@ var _ = g.Describe("[Serial] [Feature:OAuthServer] [RequestHeaders] [IdP]", func
 				cert:          unknownCACert,
 				key:           unknownCAKey,
 				endpoint:      "/metrics",
-				expectedError: "401 Unauthorized",
+				expectedError: "403 Forbidden",
 			},
 			{
 				name:     "/healtz - anonymous: anyone should be able to access it",
@@ -430,7 +430,7 @@ func oauthHTTPRequest(caCerts *x509.CertPool, oauthBaseURL, endpoint, token stri
 		tlsCert, err := tls.X509KeyPair(certBytes, keyBytes)
 
 		o.Expect(err).NotTo(o.HaveOccurred())
-		transport.TLSClientConfig.GetClientCertificate = func(_ *tls.CertificateRequestInfo) (*tls.Certificate, error) { return &tlsCert, nil }
+		transport.TLSClientConfig.Certificates = []tls.Certificate{tlsCert}
 	}
 
 	oauthServerURL, err := url.Parse(oauthBaseURL)
