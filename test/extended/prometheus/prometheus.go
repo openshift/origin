@@ -33,7 +33,9 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const waitForPrometheusStartSeconds = 240
+const (
+	maxPrometheusQueryRetries = 5
+)
 
 var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	defer g.GinkgoRecover()
@@ -81,7 +83,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			g.By("checking the unsecured metrics path")
 			var metrics map[string]*dto.MetricFamily
-			o.Expect(wait.PollImmediate(10*time.Second, waitForPrometheusStartSeconds*time.Second, func() (bool, error) {
+			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
 				results, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", url))
 				if err != nil {
 					e2e.Logf("unable to get unsecured metrics: %v", err)

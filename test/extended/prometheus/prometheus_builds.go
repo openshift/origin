@@ -52,7 +52,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			// allow for some retry, a la prometheus.go and its initial hitting of the metrics endpoint after
 			// instantiating prometheus tempalte
 			var err error
-			for i := 0; i < waitForPrometheusStartSeconds; i++ {
+			for i := 0; i < maxPrometheusQueryRetries; i++ {
 				err = expectURLStatusCodeExec(ns, execPod.Name, url, 403)
 				if err == nil {
 					break
@@ -100,38 +100,60 @@ type prometheusResponseData struct {
 
 func runQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
 	// expect all correct metrics within a reasonable time period
-	errsMap := map[string]error{}
-	for i := 0; i < waitForPrometheusStartSeconds; i++ {
+	queryErrors := make(map[string]error)
+	passed := make(map[string]struct{})
+	for i := 0; i < maxPrometheusQueryRetries; i++ {
 		for query, expected := range promQueries {
+			if _, ok := passed[query]; ok {
+				continue
+			}
 			//TODO when the http/query apis discussed at https://github.com/prometheus/client_golang#client-for-the-prometheus-http-api
 			// and introduced at https://github.com/prometheus/client_golang/blob/master/api/prometheus/v1/api.go are vendored into
 			// openshift/origin, look to replace this homegrown http request / query param with that API
 			g.By("perform prometheus metric query " + query)
-			contents, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode()), bearerToken)
+			url := fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode())
+			contents, err := getBearerTokenURLViaPod(ns, execPodName, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			result := prometheusResponse{}
-			json.Unmarshal([]byte(contents), &result)
-			metrics := result.Data.Result
 
-			delete(errsMap, query) // clear out any prior failures
+			// check query result, if this is a new error log it, otherwise remain silent
+			var result prometheusResponse
+			if err := json.Unmarshal([]byte(contents), &result); err != nil {
+				e2e.Logf("unable to parse query response for %s: %v", query, err)
+				continue
+			}
+			metrics := result.Data.Result
+			if result.Status != "success" {
+				msg := fmt.Sprintf("promQL query: %s had reported incorrect status: %#v", query, metrics)
+				if prev, ok := queryErrors[query]; !ok || prev.Error() != msg {
+					e2e.Logf("%s", msg)
+				}
+				queryErrors[query] = fmt.Errorf(msg)
+				continue
+			}
 			if (len(metrics) > 0 && !expected) || (len(metrics) == 0 && expected) {
-				dbg := fmt.Sprintf("promQL query: %s had reported incorrect results: %v", query, metrics)
-				fmt.Fprintf(g.GinkgoWriter, dbg)
-				errsMap[query] = fmt.Errorf(dbg)
+				msg := fmt.Sprintf("promQL query: %s had reported incorrect results: %#v", query, metrics)
+				if prev, ok := queryErrors[query]; !ok || prev.Error() != msg {
+					e2e.Logf("%s", msg)
+				}
+				queryErrors[query] = fmt.Errorf(msg)
+				continue
 			}
 
+			// query successful
+			passed[query] = struct{}{}
+			delete(queryErrors, query)
 		}
 
-		if len(errsMap) == 0 {
+		if len(queryErrors) == 0 {
 			break
 		}
 		time.Sleep(time.Second)
 	}
 
-	if len(errsMap) != 0 {
+	if len(queryErrors) != 0 {
 		exutil.DumpPodLogsStartingWith("prometheus-0", oc)
 	}
-	o.Expect(errsMap).To(o.BeEmpty())
+	o.Expect(queryErrors).To(o.BeEmpty())
 }
 
 func startOpenShiftBuild(oc *exutil.CLI, appTemplate string) *exutil.BuildResult {
