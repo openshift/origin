@@ -4,6 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -11,11 +18,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // e2e tests of the build controller configuration.
@@ -94,6 +96,12 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 					ds.Status.UpdatedNumberScheduled == ds.Status.DesiredNumberScheduled {
 					return true, nil
 				}
+				e2e.Logf("ocm Desired: %d, Current: %d, Ready: %d, Available: %d, Updated: %d",
+					ds.Status.DesiredNumberScheduled,
+					ds.Status.CurrentNumberScheduled,
+					ds.Status.NumberReady,
+					ds.Status.NumberAvailable,
+					ds.Status.UpdatedNumberScheduled)
 				return false, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -160,7 +168,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 			oc.Run("create").Args("-f", buildFixture2).Execute()
 		})
 
-		g.AfterEach(func() {
+		g.JustAfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
@@ -170,6 +178,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 
 		g.Context("registries config context", func() {
 
+			// Altering registries config does not force an OCM rollout
 			g.AfterEach(func() {
 				oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
 			})
@@ -228,8 +237,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 
 		})
 
-		g.Context("build config context", func() {
-
+		g.Context("build config no ocm rollout", func() {
 			g.AfterEach(func() {
 				g.By("reset build cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
@@ -327,6 +335,23 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				o.Expect(*build.Spec.Source.Git.HTTPProxy).To(o.Equal(buildConfig.Spec.BuildDefaults.GitProxy.HTTPProxy))
 				o.Expect(*build.Spec.Source.Git.HTTPSProxy).To(o.Equal(buildConfig.Spec.BuildDefaults.GitProxy.HTTPSProxy))
 				o.Expect(*build.Spec.Source.Git.NoProxy).To(o.Equal(buildConfig.Spec.BuildDefaults.GitProxy.NoProxy))
+			})
+		})
+
+		g.Context("build config with ocm rollout", func() {
+
+			g.AfterEach(func() {
+				g.By("reset build cluster configuration")
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				buildConfig.Spec.BuildDefaults = configv1.BuildDefaults{}
+				buildConfig.Spec.BuildOverrides = configv1.BuildOverrides{}
+				_, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				checkOCMProgressing(operatorv1.ConditionTrue)
+				checkOCMProgressing(operatorv1.ConditionFalse)
+				checkDSRolloutState(true)
+				checkDSRolloutState(false)
 			})
 
 			// this replaces coverage from the TestBuildDefaultEnvironment integration test
