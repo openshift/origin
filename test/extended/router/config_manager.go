@@ -43,10 +43,10 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		routerImage, _ := exutil.FindRouterImage(oc)
-		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
+		routerImage, err := exutil.FindRouterImage(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+		err = oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 

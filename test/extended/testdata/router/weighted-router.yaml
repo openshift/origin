@@ -22,7 +22,7 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
+      args: ["--namespace=$(POD_NAMESPACE)", "-v=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
       hostNetwork: false
       ports:
       - containerPort: 80

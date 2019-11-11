@@ -53928,7 +53928,7 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--haproxy-config-manager=true", "--blueprint-route-labels=select=hapcm-blueprint", "--labels=select=haproxy-cfgmgr", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
+      args: ["--namespace=$(POD_NAMESPACE)", "-v=4", "--haproxy-config-manager=true", "--blueprint-route-labels=select=hapcm-blueprint", "--labels=select=haproxy-cfgmgr", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
       hostNetwork: false
       ports:
       - containerPort: 80
@@ -54419,7 +54419,7 @@ objects:
       args:
       - "--name=test-override-domains"
       - "--namespace=$(POD_NAMESPACE)"
-      - "--loglevel=4"
+      - "-v=4"
       - "--override-domains=null.ptr,void.str"
       - "--hostname-template=${name}-${namespace}.apps.veto.test"
       - "--stats-port=1936"
@@ -54482,7 +54482,7 @@ objects:
       args:
       - "--name=test-override"
       - "--namespace=$(POD_NAMESPACE)"
-      - "--loglevel=4"
+      - "-v=4"
       - "--override-hostname"
       - "--hostname-template=${name}-${namespace}.myapps.mycompany.com"
       - "--stats-port=1936"
@@ -54549,7 +54549,7 @@ objects:
       - "--name=${ROUTER_NAME}"
       - "--namespace=$(POD_NAMESPACE)"
       - "--update-status=${UPDATE_STATUS}"
-      - "--loglevel=4"
+      - "-v=4"
       - "--labels=select=first"
       - "--stats-port=1936"
       - "--metrics-type=haproxy"
@@ -54607,7 +54607,7 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
+      args: ["--namespace=$(POD_NAMESPACE)", "-v=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
       hostNetwork: false
       ports:
       - containerPort: 80

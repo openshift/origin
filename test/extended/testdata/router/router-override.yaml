@@ -26,7 +26,7 @@ objects:
       args:
       - "--name=test-override"
       - "--namespace=$(POD_NAMESPACE)"
-      - "--loglevel=4"
+      - "-v=4"
       - "--override-hostname"
       - "--hostname-template=${name}-${namespace}.myapps.mycompany.com"
       - "--stats-port=1936"
