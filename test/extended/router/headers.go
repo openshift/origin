@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -95,11 +96,84 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			req, err := http.ReadRequest(reader)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			// check that the header is what we expect
 			g.By(fmt.Sprintf("inspecting the echoed headers"))
 			ffHeader := req.Header.Get("X-Forwarded-For")
-			if ffHeader != clientIP {
-				e2e.Failf("Unexpected header: '%s' (expected %s); All headers: %#v", ffHeader, clientIP, req.Header)
+
+			switch infra.Status.PlatformStatus.Type {
+			case configv1.AWSPlatformType:
+				// On AWS we can only assert that we
+				// get an X-Forwarded-For header; we
+				// cannot assert its value because of
+				// the following:
+				//
+				// The test runs as:
+				//
+				// # curl -s --header 'Host: router-headers.example.com' "http://a6d5a355fbd0f432da218598659513d5-219208002.us-east-1.elb.amazonaws.com"
+				//
+				// The curl address is routerIP, which
+				// comes from:
+				//
+				// $ oc get service -n openshift-ingress -o yaml router-default
+				// ...
+				// apiVersion: v1
+				// kind: Service
+				// metadata:
+				//   annotations:
+				//     service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
+				// ...
+				// status:
+				//  loadBalancer:
+				//    ingress:
+				//    - hostname: a6d5a355fbd0f432da218598659513d5-219208002.us-east-1.elb.amazonaws.com
+				//
+				// If we resolve ingress.hostname we get:
+				//
+				// $ dig a6d5a355fbd0f432da218598659513d5-219208002.us-east-1.elb.amazonaws.com +short
+				// 18.214.169.21
+				// 3.233.35.82
+				//
+				// Looking at the route for the HTTP GET we see:
+				//
+				// traceroute to 18.214.169.21 (18.214.169.21), 30 hops max, 46 byte packets
+				//  1  ip-10-128-2-1.ec2.internal (10.128.2.1)
+				//  2  ip-10-0-39-215.ec2.internal (10.0.39.215)
+				//  3  216.182.226.180 (216.182.226.180)
+				//
+				// At (2) we hit the elastic-IP. Our
+				// path back is via the public-facing
+				// side of the elastic IP address
+				// (which is 35.175.101.212) -- egress
+				// from the POD will now have source
+				// addresses NAT'd to this elastic IP.
+				// This is reflected in the
+				// results/headers:
+				//
+				// GET / HTTP/1.1
+				// User-Agent: curl/7.61.1
+				// Accept: */*
+				// Host: router-headers.example.com
+				// X-Forwarded-Host: router-headers.example.com
+				// X-Forwarded-Port: 80
+				// X-Forwarded-Proto: http
+				// Forwarded: for=35.175.101.212;host=router-headers.example.com;proto=http;proto-version=""
+				// X-Forwarded-For: 35.175.101.212
+				//
+				// And the X-Forwarded-For value
+				// (35.175.101.212) will never match
+				// `clientIP` given the route the GET
+				// request takes. So for AWS we just
+				// expect the header to be present.
+				if ffHeader == "" {
+					e2e.Failf("Expected X-Forwarded-For header; All headers: %#v", req.Header)
+				}
+			default:
+				if ffHeader != clientIP {
+					e2e.Failf("Unexpected header: '%s' (expected %s); All headers: %#v", ffHeader, clientIP, req.Header)
+				}
 			}
 		})
 	})
