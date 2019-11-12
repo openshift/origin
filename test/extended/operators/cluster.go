@@ -23,7 +23,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var lastPodsWithProblems []*corev1.Pod
-		var pending map[string]*corev1.Pod
+		var lastPending map[string]*corev1.Pod
 		wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
 			allPods, err := c.CoreV1().Pods("").List(metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -37,29 +37,22 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 				pods = append(pods, pod)
 			}
 
-			if pending == nil {
-				pending = make(map[string]*corev1.Pod)
-				for _, pod := range pods {
-					if pod.Status.Phase == corev1.PodPending {
-						hasInitContainerRunning := false
-						for _, initContainerStatus := range pod.Status.InitContainerStatuses {
-							if initContainerStatus.State.Running != nil {
-								hasInitContainerRunning = true
-								break
-							}
-						}
-						if !hasInitContainerRunning {
-							pending[fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)] = pod
+			pending := make(map[string]*corev1.Pod)
+			for _, pod := range pods {
+				if pod.Status.Phase == corev1.PodPending {
+					hasInitContainerRunning := false
+					for _, initContainerStatus := range pod.Status.InitContainerStatuses {
+						if initContainerStatus.State.Running != nil {
+							hasInitContainerRunning = true
+							break
 						}
 					}
-				}
-			} else {
-				for _, pod := range pods {
-					if pod.Status.Phase != corev1.PodPending {
-						delete(pending, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+					if !hasInitContainerRunning {
+						pending[fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)] = pod
 					}
 				}
 			}
+			lastPending = pending
 
 			var podsWithProblems []*corev1.Pod
 			var names []string
@@ -88,7 +81,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 		var msg []string
 		ns := make(map[string]struct{})
 		for _, pod := range lastPodsWithProblems {
-			delete(pending, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+			delete(lastPending, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 			if _, ok := ns[pod.Namespace]; !ok {
 				e2e.DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
 					return c.CoreV1().Events(ns).List(opts)
@@ -100,7 +93,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 			msg = append(msg, fmt.Sprintf("Pod %s/%s is not healthy: %v", pod.Namespace, pod.Name, pod.Status.Message))
 		}
 
-		for _, pod := range pending {
+		for _, pod := range lastPending {
 			if strings.HasPrefix(pod.Name, "must-gather-") {
 				e2e.Logf("Pod status %s/%s ignored for being pending", pod.Namespace, pod.Name)
 				continue
