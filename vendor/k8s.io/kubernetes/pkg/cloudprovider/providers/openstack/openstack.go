@@ -288,12 +288,12 @@ func (os *OpenStack) setConfigFromSecret() error {
 		err = gcfg.ReadStringInto(cfg, string(content))
 		if err != nil {
 			klog.Errorf("Cannot parse data from the secret.")
-			return fmt.Errorf("cannot parse data from the secret")
+			return fmt.Errorf("cannot parse data from the secret: %v", err)
 		}
 		provider, err := newProvider(*cfg)
 		if err != nil {
 			klog.Errorf("Cannot initialize cloud provider using data from the secret.")
-			return fmt.Errorf("cannot initialize cloud provider using data from the secret")
+			return fmt.Errorf("cannot initialize cloud provider using data from the secret: %v", err)
 		}
 		os.provider = provider
 		os.region = cfg.Global.Region
