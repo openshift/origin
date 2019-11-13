@@ -27,10 +27,13 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 		routerIP  string
 		metricsIP string
+		infra     *configv1.Infrastructure
 	)
 
 	g.BeforeEach(func() {
 		var err error
+		infra, err = oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 		routerIP, err = exutil.WaitForRouterServiceIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		metricsIP, err = exutil.WaitForRouterInternalIP(oc)
@@ -39,6 +42,14 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should set Forwarded headers appropriately", func() {
+			o.Expect(infra).NotTo(o.BeNil())
+
+			if !(infra.Status.PlatformStatus.Type == configv1.AWSPlatformType ||
+				infra.Status.PlatformStatus.Type == configv1.AzurePlatformType ||
+				infra.Status.PlatformStatus.Type == configv1.GCPPlatformType) {
+				g.Skip(fmt.Sprintf("BZ 1772125 -- not verified on platform type %q", infra.Status.PlatformStatus.Type))
+			}
+
 			defer func() {
 				// This should be done if the test fails but
 				// for now always dump the logs.
@@ -94,9 +105,6 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			// parse the echoed request
 			reader := bufio.NewReader(strings.NewReader(payload))
 			req, err := http.ReadRequest(reader)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// check that the header is what we expect
