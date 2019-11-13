@@ -152,16 +152,21 @@ imports:
   - pkg/types/current
   - pkg/version
 - name: github.com/coreos/bbolt
-  version: 48ea1b39c25fc1bab3506fbc712ecbaa842c4d2d
+  version: a0458a2b35708eef59eb5f620ceb3cd1c01a824d
 - name: github.com/coreos/etcd
-  version: 27fc7e2296f506182f58ce846e48f36b34fe6842
+  version: 6d8052314b9e01447d1bb2030bd762e0baf2d433
   subpackages:
   - alarm
   - auth
   - auth/authpb
   - client
   - clientv3
+  - clientv3/balancer
+  - clientv3/balancer/connectivity
+  - clientv3/balancer/picker
+  - clientv3/balancer/resolver/endpoint
   - clientv3/concurrency
+  - clientv3/credentials
   - clientv3/namespace
   - clientv3/naming
   - compactor
@@ -212,6 +217,7 @@ imports:
   - pkg/runtime
   - pkg/schedule
   - pkg/srv
+  - pkg/systemd
   - pkg/testutil
   - pkg/tlsutil
   - pkg/transport
