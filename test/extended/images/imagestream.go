@@ -79,6 +79,7 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	if _, err := clusterAdminImageClient.Images().Create(image); err == nil {
 		t.Error("unexpected non-error")
 	}
+	defer clusterAdminImageClient.Images().Delete(image.Name, nil)
 	image.DockerImageReference = "some/other/name" // can reuse references across multiple images
 	actual, err := clusterAdminImageClient.Images().Create(image)
 	o.Expect(err).NotTo(o.HaveOccurred())
