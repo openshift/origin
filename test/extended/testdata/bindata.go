@@ -307,6 +307,8 @@
 // test/extended/testdata/cmd/test/cmd/volumes.sh
 // test/extended/testdata/cmd/test/cmd/whoami.sh
 // test/extended/testdata/config-map-jenkins-slave-pods.yaml
+// test/extended/testdata/csi/aws-ebs/install-template.yaml
+// test/extended/testdata/csi/aws-ebs/manifest.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
 // test/extended/testdata/deployments/custom-deployment.yaml
@@ -46946,6 +46948,341 @@ func testExtendedTestdataConfigMapJenkinsSlavePodsYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataCsiAwsEbsInstallTemplateYaml = []byte(`# Installation of AWS EBS CSI driver into OpenShift.
+# Source: https://github.com/kubernetes-sigs/aws-ebs-csi-driver/blob/e727882eae38614ec3246b243255e536aeef5a0f/deploy/kubernetes/manifest.yaml
+# Tailored for OCP 4.2:
+#  - Removed features we don't support in 4.2 (snapshots)
+#  - Run controllers with hostNetwork: true to access AWS instance metadata (https://bugzilla.redhat.com/show_bug.cgi?id=1734600)
+#    - Removed livenessprobe for this
+#    - Scaled controllers to 1
+#  - Run in kube-system and use aws-creds secrets there
+
+# Controller Service
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ebs-csi-controller-sa
+  namespace: kube-system
+
+--- 
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ebs-external-provisioner-role
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["csinodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ebs-csi-provisioner-binding
+subjects:
+  - kind: ServiceAccount
+    name: ebs-csi-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: ebs-external-provisioner-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ebs-external-attacher-role
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csinodeinfos"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ebs-csi-attacher-binding
+subjects:
+  - kind: ServiceAccount
+    name: ebs-csi-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: ebs-external-attacher-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+kind: StatefulSet
+apiVersion: apps/v1beta1
+metadata:
+  name: ebs-csi-controller
+  namespace: kube-system
+spec:
+  serviceName: ebs-csi-controller
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ebs-csi-controller
+    spec:
+      hostNetwork: true
+      serviceAccount: ebs-csi-controller-sa
+      priorityClassName: system-cluster-critical
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+      containers:
+        - name: ebs-plugin
+          image: amazon/aws-ebs-csi-driver:latest
+          args:
+            - --endpoint=$(CSI_ENDPOINT)
+            - --logtostderr
+            - --v=5
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-creds
+                  key: aws_access_key_id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-creds
+                  key: aws_secret_access_key
+                  optional: true
+          ports:
+            - name: healthz
+              containerPort: 19808
+              protocol: TCP
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-provisioner
+          image: {{.ProvisionerImage}}
+          args:
+            - --provisioner=ebs.csi.aws.com
+            - --csi-address=$(ADDRESS)
+            - --v=5
+            - --feature-gates=Topology=true
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-attacher
+          image: {{.AttacherImage}}
+          args:
+            - --csi-address=$(ADDRESS)
+            - --v=5
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+      volumes:
+        - name: socket-dir
+          emptyDir: {}
+
+---
+# Node Service
+kind: DaemonSet
+apiVersion: apps/v1beta2
+metadata:
+  name: ebs-csi-node
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: ebs-csi-node
+  template:
+    metadata:
+      labels:
+        app: ebs-csi-node
+    spec:
+      hostNetwork: true
+      priorityClassName: system-node-critical
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+      containers:
+        - name: ebs-plugin
+          securityContext:
+            privileged: true
+          image: amazon/aws-ebs-csi-driver:latest
+          args:
+            - --endpoint=$(CSI_ENDPOINT)
+            - --logtostderr
+            - --v=5
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:/csi/csi.sock
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet
+              mountPropagation: "Bidirectional"
+            - name: plugin-dir
+              mountPath: /csi
+            - name: device-dir
+              mountPath: /dev
+          ports:
+            - name: healthz
+              containerPort: 9808
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 5
+        - name: node-driver-registrar
+          securityContext:
+            privileged: true
+          image: {{.NodeDriverRegistrarImage}}
+          args:
+            - --csi-address=$(ADDRESS)
+            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+            - --v=5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -rf /registration/ebs.csi.aws.com-reg.sock /csi/csi.sock"]
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: /var/lib/kubelet/plugins/ebs.csi.aws.com/csi.sock
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+        - name: liveness-probe
+          image: {{.LivenessProbeImage}}
+          args:
+            - --csi-address=/csi/csi.sock
+            - --connection-timeout=3s
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+      volumes:
+        - name: kubelet-dir
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/ebs.csi.aws.com/
+            type: DirectoryOrCreate
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: Directory
+        - name: device-dir
+          hostPath:
+            path: /dev
+            type: Directory
+
+---
+
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: ebs.csi.aws.com
+spec:
+  attachRequired: true
+  podInfoOnMount: false
+`)
+
+func testExtendedTestdataCsiAwsEbsInstallTemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCsiAwsEbsInstallTemplateYaml, nil
+}
+
+func testExtendedTestdataCsiAwsEbsInstallTemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCsiAwsEbsInstallTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/csi/aws-ebs/install-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCsiAwsEbsManifestYaml = []byte(`# Test manifest for https://github.com/kubernetes/kubernetes/tree/master/test/e2e/storage/external
+ShortName: ebs
+StorageClass:
+  FromName: true
+SupportedMountOption:
+ dirsync: true
+DriverInfo:
+  Name: ebs.csi.aws.com
+  SnapshotClass:
+    FromName: true
+  SupportedFsType:
+    # xfs: {} xfs is broken: https://github.com/kubernetes-sigs/aws-ebs-csi-driver/issues/326
+    ext4: {}
+  SupportedMountOption:
+    dirsync: {}
+  Capabilities:
+    persistence: true
+    fsGroup: true
+    block: true
+    exec: true
+    volumeLimits: true
+`)
+
+func testExtendedTestdataCsiAwsEbsManifestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCsiAwsEbsManifestYaml, nil
+}
+
+func testExtendedTestdataCsiAwsEbsManifestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCsiAwsEbsManifestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/csi/aws-ebs/manifest.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataCustomSecretBuilderDockerfile = []byte(`FROM openshift/origin-custom-docker-builder
 # Override the default build script
 ADD build.sh /tmp/build.sh
@@ -57925,6 +58262,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/volumes.sh": testExtendedTestdataCmdTestCmdVolumesSh,
 	"test/extended/testdata/cmd/test/cmd/whoami.sh": testExtendedTestdataCmdTestCmdWhoamiSh,
 	"test/extended/testdata/config-map-jenkins-slave-pods.yaml": testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
+	"test/extended/testdata/csi/aws-ebs/install-template.yaml": testExtendedTestdataCsiAwsEbsInstallTemplateYaml,
+	"test/extended/testdata/csi/aws-ebs/manifest.yaml": testExtendedTestdataCsiAwsEbsManifestYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh": testExtendedTestdataCustomSecretBuilderBuildSh,
 	"test/extended/testdata/deployments/custom-deployment.yaml": testExtendedTestdataDeploymentsCustomDeploymentYaml,
@@ -58574,6 +58913,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 				}},
 				"config-map-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataConfigMapJenkinsSlavePodsYaml, map[string]*bintree{}},
+				"csi": &bintree{nil, map[string]*bintree{
+					"aws-ebs": &bintree{nil, map[string]*bintree{
+						"install-template.yaml": &bintree{testExtendedTestdataCsiAwsEbsInstallTemplateYaml, map[string]*bintree{}},
+						"manifest.yaml": &bintree{testExtendedTestdataCsiAwsEbsManifestYaml, map[string]*bintree{}},
+					}},
+				}},
 				"custom-secret-builder": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataCustomSecretBuilderDockerfile, map[string]*bintree{}},
 					"build.sh": &bintree{testExtendedTestdataCustomSecretBuilderBuildSh, map[string]*bintree{}},
