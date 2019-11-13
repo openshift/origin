@@ -8,8 +8,9 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -128,8 +129,7 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("pull-secrets", exutil.KubeConfigPath())
 
-	// https://bugzilla.redhat.com/show_bug.cgi?id=1765294
-	g.It("TestDockercfgTokenDeletedController [Disabled:Broken]", func() {
+	g.It("TestDockercfgTokenDeletedController", func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClient := oc.AdminKubeClient()
@@ -143,12 +143,6 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-
-		secretsWatch, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Watch(metav1.ListOptions{ResourceVersion: sa.ResourceVersion})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		defer secretsWatch.Stop()
 
 		// Get the service account dockercfg secret's name
 		dockercfgSecretName, _, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, sa.Namespace, sa.Name, 20, time.Second)
@@ -175,26 +169,14 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 		}
 
 		// Expect the matching dockercfg secret to also be deleted
-		waitForSecretDelete(dockercfgSecretName, secretsWatch, t)
+		if err := wait.Poll(5*time.Second, 5*time.Minute, func() (bool, error) {
+			_, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Get(
+				dockercfgSecretName,
+				metav1.GetOptions{},
+			)
+			return errors.IsNotFound(err), nil
+		}); err != nil {
+			t.Fatalf("waiting for secret deletion: %v", err)
+		}
 	})
 })
-
-func waitForSecretDelete(secretName string, w watch.Interface, t g.GinkgoTInterface) {
-	for {
-		select {
-		case event := <-w.ResultChan():
-			secret, ok := event.Object.(*corev1.Secret)
-			if !ok {
-				t.Fatalf("Got an event that was not a secret: %v %#v", event.Type, event.Object)
-			}
-			secret.Data = nil // reduce noise in log
-			t.Logf("%s got %s %s %#v", time.Now().Format(time.RFC3339Nano), event.Type, secret.ResourceVersion, secret)
-			if event.Type == watch.Deleted && secret.Name == secretName {
-				return
-			}
-
-		case <-time.After(5 * time.Minute):
-			t.Fatalf("timeout: %v", secretName)
-		}
-	}
-}
