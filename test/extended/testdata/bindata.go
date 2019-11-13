@@ -2529,7 +2529,7 @@ items:
           value: 127.0.0.1:3128
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
 - kind: BuildConfig
   apiVersion: v1
   metadata:
@@ -2551,7 +2551,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -3575,12 +3575,13 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "centos/ruby-25-centos7"
         }
       }
     }
   }
-}`)
+}
+`)
 
 func testExtendedTestdataBuildsTestDockerNoOutputnameJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsTestDockerNoOutputnameJson, nil
@@ -4298,12 +4299,13 @@ var _testExtendedTestdataBuildsTestS2iNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "centos/ruby-25-centos7"
         }
       }
     }
   }
-}`)
+}
+`)
 
 func testExtendedTestdataBuildsTestS2iNoOutputnameJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsTestS2iNoOutputnameJson, nil
@@ -12832,7 +12834,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7",
+        "dockerImageRepository": "centos/ruby-25-centos7",
         "tags": [
           {
             "name": "valid"
@@ -12868,7 +12870,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             },
             "incremental": true
           }
@@ -12910,7 +12912,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             },
             "incremental": true
           }
@@ -19628,10 +19630,10 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7"
+        "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -19683,7 +19685,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
           "dockerStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-22-centos7:latest"
+              "name": "ruby-25-centos7:latest"
             },
             "env": [
               {
@@ -20582,10 +20584,10 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7"
+        "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -20637,7 +20639,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-22-centos7:latest"
+              "name": "ruby-25-centos7:latest"
             },
             "env": [
               {

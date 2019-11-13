@@ -477,7 +477,7 @@ func TestNewAppRunAll(t *testing.T) {
 			},
 			checkPort: "8080",
 			expected: map[string][]string{
-				"imageStream":      {"ruby-hello-world", "ruby-22-centos7"},
+				"imageStream":      {"ruby-hello-world", "ruby-25-centos7"},
 				"buildConfig":      {"ruby-hello-world"},
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
@@ -677,7 +677,7 @@ func TestNewAppRunAll(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: app.DockerClientSearcher{
 						Client: &apptest.FakeDockerClient{
-							Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
+							Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-25-centos7"}}},
 							Image:  dockerBuilderImage(),
 						},
 						Insecure:         true,
@@ -706,7 +706,7 @@ func TestNewAppRunAll(t *testing.T) {
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
-				"imageStream":      {"ruby-hello-world", "ruby-22-centos7"},
+				"imageStream":      {"ruby-hello-world", "ruby-25-centos7"},
 				"buildConfig":      {"ruby-hello-world"},
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
@@ -724,7 +724,7 @@ func TestNewAppRunAll(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: app.DockerClientSearcher{
 						Client: &apptest.FakeDockerClient{
-							Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
+							Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-25-centos7"}}},
 							Image:  dockerBuilderImage(),
 						},
 						Insecure: true,
@@ -1020,7 +1020,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
-					DockerImages:       []string{"centos/ruby-22-centos7", "openshift/nodejs-010-centos7"},
+					DockerImages:       []string{"centos/ruby-25-centos7", "openshift/nodejs-010-centos7"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					OutputDocker: true,
@@ -1030,7 +1030,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				// TODO: this test used to silently ignore components that were not builders (i.e. user input)
 				//   That's bad, so the code should either error in this case or be a bit smarter.
 				"buildConfig": {"ruby-hello-world", "ruby-hello-world-1"},
-				"imageStream": {"nodejs-010-centos7", "ruby-22-centos7"},
+				"imageStream": {"nodejs-010-centos7", "ruby-25-centos7"},
 			},
 		},
 		{
@@ -1126,12 +1126,12 @@ func TestNewAppRunBuilds(t *testing.T) {
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Dockerfile: "FROM centos/ruby-22-centos7\nRUN false",
+					Dockerfile: "FROM centos/ruby-25-centos7\nRUN false",
 				},
 			},
 			expected: map[string][]string{
 				"buildConfig": {"ruby-hello-world"},
-				"imageStream": {"ruby-22-centos7", "ruby-hello-world"},
+				"imageStream": {"ruby-25-centos7", "ruby-hello-world"},
 			},
 			checkResult: func(res *cmd.AppResult) error {
 				var bc *buildapi.BuildConfig
@@ -1151,7 +1151,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				if bc.Spec.Source.Dockerfile != nil {
 					got = *bc.Spec.Source.Dockerfile
 				}
-				want := "FROM centos/ruby-22-centos7\nRUN false"
+				want := "FROM centos/ruby-25-centos7\nRUN false"
 				if got != want {
 					return fmt.Errorf("bc.Spec.Source.Dockerfile = %q; want %q", got, want)
 				}
@@ -1192,7 +1192,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Dockerfile: "FROM centos/ruby-22-centos7\nRUN false",
+					Dockerfile: "FROM centos/ruby-25-centos7\nRUN false",
 				},
 			},
 			expectedErr: func(err error) bool {
@@ -1214,7 +1214,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			},
 			expected: map[string][]string{
 				"buildConfig": {"ruby-hello-world"},
-				"imageStream": {"mongodb-26-centos7", "ruby-22-centos7", "ruby-hello-world"},
+				"imageStream": {"mongodb-26-centos7", "ruby-25-centos7", "ruby-hello-world"},
 			},
 			checkResult: func(res *cmd.AppResult) error {
 				var bc *buildapi.BuildConfig
@@ -1756,7 +1756,7 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
-					DockerImages:       []string{"centos/ruby-22-centos7", "openshift/nodejs-010-centos7"},
+					DockerImages:       []string{"centos/ruby-25-centos7", "openshift/nodejs-010-centos7"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					OutputDocker:     true,
@@ -1831,7 +1831,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
-					DockerImages:       []string{"centos/ruby-22-centos7", "centos/mongodb-26-centos7"},
+					DockerImages:       []string{"centos/ruby-25-centos7", "centos/mongodb-26-centos7"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					OutputDocker: true,
