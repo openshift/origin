@@ -61,7 +61,7 @@ function os::util::is-master() {
 }
 readonly -f os::util::is-master
 
-# os::util::wait-for-apiserver waits up to 120s for the apiserver to become ready
+# os::util::wait-for-apiserver waits up to 240s for the apiserver to become ready
 #
 # Globals:
 #  None
@@ -71,11 +71,11 @@ readonly -f os::util::is-master
 #  1 if the apiserver is not ready after the timeout, 0 otherwise
 function os::util::wait-for-apiserver() {
   local kube_config=$1
-  os::util::wait-for-condition "apiserver" "/usr/local/bin/oc --config=${kube_config} get --raw /healthz/ready" "120"
+  os::util::wait-for-condition "apiserver" "/usr/local/bin/oc --config=${kube_config} get --raw /healthz/ready" "240"
 }
 readonly -f os::util::wait-for-apiserver
 
-# os::util::wait-for-anyuid waits up to 120s for the anyuid SCC to be created
+# os::util::wait-for-anyuid waits up to 240s for the anyuid SCC to be created
 #
 # Globals:
 #  None
@@ -85,6 +85,6 @@ readonly -f os::util::wait-for-apiserver
 #  1 if the anyuid SCC is not created after the timeout, 0 otherwise
 function os::util::wait-for-anyuid() {
   local kube_config=$1
-  os::util::wait-for-condition "anyuid" "/usr/local/bin/oc --config=${kube_config} get scc anyuid" "120"
+  os::util::wait-for-condition "anyuid" "/usr/local/bin/oc --config=${kube_config} get scc anyuid" "240"
 }
 readonly -f os::util::wait-for-anyuid
