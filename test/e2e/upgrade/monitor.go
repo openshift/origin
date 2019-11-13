@@ -113,7 +113,7 @@ func (m *versionMonitor) ShouldUpgradeAbort(abortAt int) bool {
 		}
 	}
 	percent := float64(changed) / float64(len(coList.Items))
-	if percent <= float64(abortAt)/100 {
+	if percent < float64(abortAt)/100 {
 		return false
 	}
 
