@@ -17,7 +17,6 @@ limitations under the License.
 package authenticator
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-openapi/spec"
@@ -34,8 +33,7 @@ import (
 	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
 	"k8s.io/apiserver/pkg/authentication/token/tokenfile"
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
-	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/pkg/server/certs"
+	"k8s.io/apiserver/pkg/server/dynamiccertificates"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/plugin/pkg/authenticator/password/passwordfile"
 	"k8s.io/apiserver/plugin/pkg/authenticator/request/basicauth"
@@ -44,7 +42,6 @@ import (
 
 	// Initialize all known client auth plugins.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -52,10 +49,10 @@ import (
 
 // Config contains the data on how to authenticate a request to the Kube API Server
 type Config struct {
-	Anonymous                   bool
-	BasicAuthFile               string
-	BootstrapToken              bool
-	ClientCAFile                string
+	Anonymous      bool
+	BasicAuthFile  string
+	BootstrapToken bool
+
 	TokenAuthFile               string
 	OIDCIssuerURL               string
 	OIDCClientID                string
@@ -71,6 +68,7 @@ type Config struct {
 	ServiceAccountIssuer        string
 	APIAudiences                authenticator.Audiences
 	WebhookTokenAuthnConfigFile string
+	WebhookTokenAuthnVersion    string
 	WebhookTokenAuthnCacheTTL   time.Duration
 
 	TokenSuccessCacheTTL time.Duration
@@ -81,33 +79,29 @@ type Config struct {
 	// TODO, this is the only non-serializable part of the entire config.  Factor it out into a clientconfig
 	ServiceAccountTokenGetter   serviceaccount.ServiceAccountTokenGetter
 	BootstrapTokenAuthenticator authenticator.Token
+	// ClientCAContentProvider are the options for verifying incoming connections using mTLS and directly assigning to users.
+	// Generally this is the CA bundle file used to authenticate client certificates
+	// If this value is nil, then mutual TLS is disabled.
+	ClientCAContentProvider dynamiccertificates.CAContentProvider
 }
 
 // New returns an authenticator.Request or an error that supports the standard
 // Kubernetes authentication mechanisms.
-func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, map[string]genericapiserver.PostStartHookFunc, error) {
+func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, error) {
 	var authenticators []authenticator.Request
 	var tokenAuthenticators []authenticator.Token
 	securityDefinitions := spec.SecurityDefinitions{}
-	dynamicReloadHooks := map[string]genericapiserver.PostStartHookFunc{}
 
 	// front-proxy, BasicAuth methods, local first, then remote
 	// Add the front proxy authenticator if requested
 	if config.RequestHeaderConfig != nil {
-		requestHeaderAuthenticator, dynamicReloadFn, err := headerrequest.NewSecure(
-			config.RequestHeaderConfig.ClientCA,
+		requestHeaderAuthenticator := headerrequest.NewDynamicVerifyOptionsSecure(
+			config.RequestHeaderConfig.CAContentProvider.VerifyOptions,
 			config.RequestHeaderConfig.AllowedClientNames,
 			config.RequestHeaderConfig.UsernameHeaders,
 			config.RequestHeaderConfig.GroupHeaders,
 			config.RequestHeaderConfig.ExtraHeaderPrefixes,
 		)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		dynamicReloadHooks["kube-apiserver-requestheader-reload"] = func(context genericapiserver.PostStartHookContext) error {
-			go dynamicReloadFn(context.StopCh)
-			return nil
-		}
 		authenticators = append(authenticators, authenticator.WrapAudienceAgnosticRequest(config.APIAudiences, requestHeaderAuthenticator))
 	}
 
@@ -115,7 +109,7 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, ma
 	if len(config.BasicAuthFile) > 0 {
 		basicAuth, err := newAuthenticatorFromBasicAuthFile(config.BasicAuthFile)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		authenticators = append(authenticators, authenticator.WrapAudienceAgnosticRequest(config.APIAudiences, basicAuth))
 
@@ -128,37 +122,30 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, ma
 	}
 
 	// X509 methods
-	if len(config.ClientCAFile) > 0 {
-		dynamicVerifier := certs.NewDynamicCA(config.ClientCAFile)
-		if err := dynamicVerifier.CheckCerts(); err != nil {
-			return nil, nil, nil, fmt.Errorf("unable to load client CA file %s: %v", config.ClientCAFile, err)
-		}
-		dynamicReloadHooks["kube-apiserver-clientCA-reload"] = func(context genericapiserver.PostStartHookContext) error {
-			go dynamicVerifier.Run(context.StopCh)
-			return nil
-		}
-		authenticators = append(authenticators, x509.NewDynamic(dynamicVerifier.GetVerifier, x509.CommonNameUserConversion))
+	if config.ClientCAContentProvider != nil {
+		certAuth := x509.NewDynamic(config.ClientCAContentProvider.VerifyOptions, x509.CommonNameUserConversion)
+		authenticators = append(authenticators, certAuth)
 	}
 
 	// Bearer token methods, local first, then remote
 	if len(config.TokenAuthFile) > 0 {
 		tokenAuth, err := newAuthenticatorFromTokenFile(config.TokenAuthFile)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		tokenAuthenticators = append(tokenAuthenticators, authenticator.WrapAudienceAgnosticToken(config.APIAudiences, tokenAuth))
 	}
 	if len(config.ServiceAccountKeyFiles) > 0 {
 		serviceAccountAuth, err := newLegacyServiceAccountAuthenticator(config.ServiceAccountKeyFiles, config.ServiceAccountLookup, config.APIAudiences, config.ServiceAccountTokenGetter)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		tokenAuthenticators = append(tokenAuthenticators, serviceAccountAuth)
 	}
 	if utilfeature.DefaultFeatureGate.Enabled(features.TokenRequest) && config.ServiceAccountIssuer != "" {
 		serviceAccountAuth, err := newServiceAccountAuthenticator(config.ServiceAccountIssuer, config.ServiceAccountKeyFiles, config.APIAudiences, config.ServiceAccountTokenGetter)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		tokenAuthenticators = append(tokenAuthenticators, serviceAccountAuth)
 	}
@@ -188,14 +175,14 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, ma
 			RequiredClaims:       config.OIDCRequiredClaims,
 		})
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		tokenAuthenticators = append(tokenAuthenticators, oidcAuth)
 	}
 	if len(config.WebhookTokenAuthnConfigFile) > 0 {
-		webhookTokenAuth, err := newWebhookTokenAuthenticator(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnCacheTTL, config.APIAudiences)
+		webhookTokenAuth, err := newWebhookTokenAuthenticator(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnVersion, config.WebhookTokenAuthnCacheTTL, config.APIAudiences)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		tokenAuthenticators = append(tokenAuthenticators, webhookTokenAuth)
 	}
@@ -220,9 +207,9 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, ma
 
 	if len(authenticators) == 0 {
 		if config.Anonymous {
-			return anonymous.NewAuthenticator(), &securityDefinitions, dynamicReloadHooks, nil
+			return anonymous.NewAuthenticator(), &securityDefinitions, nil
 		}
-		return nil, &securityDefinitions, dynamicReloadHooks, nil
+		return nil, &securityDefinitions, nil
 	}
 
 	authenticator := union.New(authenticators...)
@@ -235,7 +222,7 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, ma
 		authenticator = union.NewFailOnError(authenticator, anonymous.NewAuthenticator())
 	}
 
-	return authenticator, &securityDefinitions, dynamicReloadHooks, nil
+	return authenticator, &securityDefinitions, nil
 }
 
 // IsValidServiceAccountKeyFile returns true if a valid public RSA key can be read from the given file
@@ -319,20 +306,7 @@ func newServiceAccountAuthenticator(iss string, keyfiles []string, apiAudiences 
 	return tokenAuthenticator, nil
 }
 
-// newAuthenticatorFromClientCAFile returns an authenticator.Request or an error
-func newAuthenticatorFromClientCAFile(clientCAFile string) (authenticator.Request, error) {
-	roots, err := certutil.NewPool(clientCAFile)
-	if err != nil {
-		return nil, err
-	}
-
-	opts := x509.DefaultVerifyOptions()
-	opts.Roots = roots
-
-	return x509.New(opts, x509.CommonNameUserConversion), nil
-}
-
-func newWebhookTokenAuthenticator(webhookConfigFile string, ttl time.Duration, implicitAuds authenticator.Audiences) (authenticator.Token, error) {
+func newWebhookTokenAuthenticator(webhookConfigFile string, version string, ttl time.Duration, implicitAuds authenticator.Audiences) (authenticator.Token, error) {
 	webhookTokenAuthenticator, err := webhook.New(webhookConfigFile, implicitAuds)
 	if err != nil {
 		return nil, err
