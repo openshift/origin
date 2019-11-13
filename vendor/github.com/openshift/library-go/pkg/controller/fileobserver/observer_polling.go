@@ -17,9 +17,19 @@ import (
 type pollingObserver struct {
 	interval time.Duration
 	reactors map[string][]ReactorFn
-	files    map[string]string
+	files    map[string]fileHashAndState
 
 	reactorsMutex sync.RWMutex
+
+	syncedMutex sync.RWMutex
+	hasSynced   bool
+}
+
+// HasSynced indicates that the observer synced all observed files at least once.
+func (o *pollingObserver) HasSynced() bool {
+	o.syncedMutex.RLock()
+	defer o.syncedMutex.RUnlock()
+	return o.hasSynced
 }
 
 // AddReactor will add new reactor to this observer.
@@ -45,17 +55,19 @@ func (o *pollingObserver) AddReactor(reaction ReactorFn, startingFileContent map
 			// in case the file does not exists but empty string is specified as initial content, without this
 			// the content will be hashed and reaction will trigger as if the content changed.
 			if len(startingContent) == 0 {
-				o.files[f] = ""
+				o.files[f] = fileHashAndState{exists: true}
+				o.reactors[f] = append(o.reactors[f], reaction)
 				continue
 			}
-			o.files[f], err = calculateHash(bytes.NewBuffer(startingContent))
+			currentHash, emptyFile, err := calculateHash(bytes.NewBuffer(startingContent))
 			if err != nil {
 				panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
 			}
+			o.files[f] = fileHashAndState{exists: true, hash: currentHash, isEmpty: emptyFile}
 		} else {
 			klog.V(3).Infof("Adding reactor for file %q", f)
 			o.files[f], err = calculateFileHash(f)
-			if err != nil {
+			if err != nil && !os.IsNotExist(err) {
 				panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
 			}
 		}
@@ -74,35 +86,43 @@ func (o *pollingObserver) processReactors(stopCh <-chan struct{}) {
 		o.reactorsMutex.RLock()
 		defer o.reactorsMutex.RUnlock()
 		for filename, reactors := range o.reactors {
-			currentHash, err := calculateFileHash(filename)
-			if err != nil {
+			currentFileState, err := calculateFileHash(filename)
+			if err != nil && !os.IsNotExist(err) {
 				return false, err
 			}
-			lastKnownHash := o.files[filename]
 
-			// No file change detected
-			if lastKnownHash == currentHash {
-				continue
-			}
+			lastKnownFileState := o.files[filename]
+			o.files[filename] = currentFileState
 
-			klog.Infof("Observed change: file:%s (current: %q, lastKnown: %q)", filename, currentHash, lastKnownHash)
-			o.files[filename] = currentHash
+			klog.Infof("Observed change: file:%s (current: %q, lastKnown: %q)", filename, currentFileState.hash, lastKnownFileState.hash)
 
 			for i := range reactors {
-				action := FileModified
+				var action ActionType
 				switch {
-				case len(lastKnownHash) == 0:
+				case !lastKnownFileState.exists && !currentFileState.exists:
+					// skip non-existing file
+					continue
+				case !lastKnownFileState.exists && currentFileState.exists && (len(currentFileState.hash) > 0 || currentFileState.isEmpty):
+					// if we see a new file created that has content or its empty, trigger FileCreate action
 					action = FileCreated
-				case len(currentHash) == 0:
+				case lastKnownFileState.exists && !currentFileState.exists:
 					action = FileDeleted
-				case len(lastKnownHash) > 0:
+				case lastKnownFileState.hash == currentFileState.hash:
+					// skip if the hashes are the same
+					continue
+				case lastKnownFileState.hash != currentFileState.hash:
 					action = FileModified
 				}
-
 				if err := reactors[i](filename, action); err != nil {
 					klog.Errorf("Reactor for %q failed: %v", filename, err)
 				}
 			}
+		}
+		if !o.HasSynced() {
+			o.syncedMutex.Lock()
+			o.hasSynced = true
+			o.syncedMutex.Unlock()
+			klog.V(3).Info("File observer successfully synced")
 		}
 		return false, nil
 	})
@@ -118,33 +138,53 @@ func (o *pollingObserver) Run(stopChan <-chan struct{}) {
 	o.processReactors(stopChan)
 }
 
-func calculateFileHash(path string) (string, error) {
-	stat, statErr := os.Stat(path)
-	if statErr != nil {
-		if os.IsNotExist(statErr) {
-			return "", nil
-		}
-		return "", statErr
+type fileHashAndState struct {
+	hash    string
+	exists  bool
+	isEmpty bool
+}
+
+func calculateFileHash(path string) (fileHashAndState, error) {
+	result := fileHashAndState{}
+	stat, err := os.Stat(path)
+	if err != nil {
+		return result, err
 	}
+
+	// this is fatal
 	if stat.IsDir() {
-		return "", fmt.Errorf("you can watch only files, %s is a directory", path)
+		return result, fmt.Errorf("you can watch only files, %s is a directory", path)
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", err
+		return result, err
 	}
 	defer f.Close()
-	return calculateHash(f)
+
+	// at this point we know for sure the file exists and we can read its content even if that content is empty
+	result.exists = true
+
+	hash, empty, err := calculateHash(f)
+	if err != nil {
+		return result, err
+	}
+
+	result.hash = hash
+	result.isEmpty = empty
+
+	return result, nil
 }
 
-func calculateHash(content io.Reader) (string, error) {
+func calculateHash(content io.Reader) (string, bool, error) {
 	hasher := sha256.New()
-	if _, err := io.Copy(hasher, content); err != nil {
-		return "", err
+	written, err := io.Copy(hasher, content)
+	if err != nil {
+		return "", false, err
 	}
-	return hex.EncodeToString(hasher.Sum(nil)), nil
+	// written == 0 means the content is empty
+	if written == 0 {
+		return "", true, nil
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), false, nil
 }

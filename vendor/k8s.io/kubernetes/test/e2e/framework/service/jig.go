@@ -271,19 +271,6 @@ func (j *TestJig) CreateLoadBalancerService(namespace, serviceName string, timeo
 // endpoints of the given Service are running.
 func (j *TestJig) GetEndpointNodes(svc *v1.Service) map[string][]string {
 	nodes := j.GetNodes(MaxNodesForEndpointsTests)
-	epNodes := j.GetEndpointNodeNames(svc)
-	nodeMap := map[string][]string{}
-	for _, n := range nodes.Items {
-		if epNodes.Has(n.Name) {
-			nodeMap[n.Name] = e2enode.GetAddresses(&n, v1.NodeExternalIP)
-		}
-	}
-	return nodeMap
-}
-
-// GetEndpointNodeNames returns a string set of node names on which the
-// endpoints of the given Service are running.
-func (j *TestJig) GetEndpointNodeNames(svc *v1.Service) sets.String {
 	endpoints, err := j.Client.CoreV1().Endpoints(svc.Namespace).Get(svc.Name, metav1.GetOptions{})
 	if err != nil {
 		framework.Failf("Get endpoints for service %s/%s failed (%s)", svc.Namespace, svc.Name, err)
@@ -299,7 +286,13 @@ func (j *TestJig) GetEndpointNodeNames(svc *v1.Service) sets.String {
 			}
 		}
 	}
-	return epNodes
+	nodeMap := map[string][]string{}
+	for _, n := range nodes.Items {
+		if epNodes.Has(n.Name) {
+			nodeMap[n.Name] = e2enode.GetAddresses(&n, v1.NodeExternalIP)
+		}
+	}
+	return nodeMap
 }
 
 // GetNodes returns the first maxNodesForTest nodes. Useful in large clusters

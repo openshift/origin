@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"crypto/tls"
 	"fmt"
 	"regexp"
 	"strings"
@@ -167,7 +168,7 @@ func validateTLSSecurityProfile(fieldPath *field.Path, profile *configv1.TLSSecu
 
 	if profile.Type == configv1.TLSProfileCustomType && profile.Custom != nil {
 		errs = append(errs, validateCipherSuites(fieldPath.Child("custom", "ciphers"), profile.Custom.Ciphers)...)
-		errs = append(errs, validateMinTLSVersion(fieldPath.Child("custom", "minTLSVersion"), profile.Custom.MinTLSVersion)...)
+		errs = append(errs, validateMinTLSVersion(fieldPath.Child("custom", "ciphers"), profile.Custom.MinTLSVersion)...)
 	}
 
 	return errs
@@ -179,16 +180,10 @@ func validateTLSSecurityProfileType(fieldPath *field.Path, profile *configv1.TLS
 
 	errs := field.ErrorList{}
 
-	availableTypes := []string{
-		string(configv1.TLSProfileOldType),
-		string(configv1.TLSProfileIntermediateType),
-		string(configv1.TLSProfileCustomType),
-	}
-
 	switch profile.Type {
 	case "":
 		if profile.Old != nil || profile.Intermediate != nil || profile.Modern != nil || profile.Custom != nil {
-			errs = append(errs, field.Required(typePath, "one of the profiles is set but 'type' field is empty"))
+			errs = append(errs, field.Required(typePath, "one of the profiles if set but 'type' field is empty"))
 		}
 	case configv1.TLSProfileOldType:
 		if profile.Old == nil {
@@ -199,12 +194,20 @@ func validateTLSSecurityProfileType(fieldPath *field.Path, profile *configv1.TLS
 			errs = append(errs, field.Required(fieldPath.Child("intermediate"), fmt.Sprintf(typeProfileMismatchFmt, profile.Type)))
 		}
 	case configv1.TLSProfileModernType:
-		errs = append(errs, field.NotSupported(fieldPath.Child("type"), profile.Type, availableTypes))
+		if profile.Modern == nil {
+			errs = append(errs, field.Required(fieldPath.Child("modern"), fmt.Sprintf(typeProfileMismatchFmt, profile.Type)))
+		}
 	case configv1.TLSProfileCustomType:
 		if profile.Custom == nil {
 			errs = append(errs, field.Required(fieldPath.Child("custom"), fmt.Sprintf(typeProfileMismatchFmt, profile.Type)))
 		}
 	default:
+		availableTypes := []string{
+			string(configv1.TLSProfileOldType),
+			string(configv1.TLSProfileIntermediateType),
+			string(configv1.TLSProfileModernType),
+			string(configv1.TLSProfileCustomType),
+		}
 		errs = append(errs, field.Invalid(typePath, profile.Type, fmt.Sprintf("unknown type, valid values are: %v", availableTypes)))
 	}
 
@@ -214,8 +217,13 @@ func validateTLSSecurityProfileType(fieldPath *field.Path, profile *configv1.TLS
 func validateCipherSuites(fieldPath *field.Path, suites []string) field.ErrorList {
 	errs := field.ErrorList{}
 
-	if ianaSuites := libgocrypto.OpenSSLToIANACipherSuites(suites); len(ianaSuites) == 0 {
-		errs = append(errs, field.Invalid(fieldPath, suites, "no supported cipher suite found"))
+	if len(suites) > 0 { // something was configured
+		if ianaSuites := libgocrypto.OpenSSLToIANACipherSuites(suites); len(ianaSuites) == 0 {
+			// TLS1.3 cipher suites are filtered out from IANA names as they are always present in golang 1.13
+			if !suitesContainTLS13Suite(suites) {
+				errs = append(errs, field.Invalid(fieldPath, suites, "no supported cipher suite found"))
+			}
+		}
 	}
 
 	return errs
@@ -224,13 +232,25 @@ func validateCipherSuites(fieldPath *field.Path, suites []string) field.ErrorLis
 func validateMinTLSVersion(fieldPath *field.Path, version configv1.TLSProtocolVersion) field.ErrorList {
 	errs := field.ErrorList{}
 
-	if version == configv1.VersionTLS13 {
-		return append(errs, field.NotSupported(fieldPath, version, []string{string(configv1.VersionTLS10), string(configv1.VersionTLS11), string(configv1.VersionTLS12)}))
-	}
-
 	if _, err := libgocrypto.TLSVersion(string(version)); err != nil {
 		errs = append(errs, field.Invalid(fieldPath, version, err.Error()))
 	}
 
 	return errs
+}
+
+func suitesContainTLS13Suite(suites []string) bool {
+	var ciphersTLS13 = map[string]uint16{
+		"TLS_AES_128_GCM_SHA256":       tls.TLS_AES_128_GCM_SHA256,
+		"TLS_AES_256_GCM_SHA384":       tls.TLS_AES_256_GCM_SHA384,
+		"TLS_CHACHA20_POLY1305_SHA256": tls.TLS_CHACHA20_POLY1305_SHA256,
+	}
+
+	for _, s := range suites {
+		if _, found := ciphersTLS13[s]; found {
+			return true
+		}
+	}
+
+	return false
 }

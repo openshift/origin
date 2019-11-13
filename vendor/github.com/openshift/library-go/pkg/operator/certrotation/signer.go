@@ -19,10 +19,11 @@ import (
 // SigningRotation rotates a self-signed signing CA stored in a secret. It creates a new one when <RefreshPercentage>
 // of the lifetime of the old CA has passed.
 type SigningRotation struct {
-	Namespace string
-	Name      string
-	Validity  time.Duration
-	Refresh   time.Duration
+	Namespace              string
+	Name                   string
+	Validity               time.Duration
+	Refresh                time.Duration
+	RefreshOnlyWhenExpired bool
 
 	Informer      corev1informers.SecretInformer
 	Lister        corev1listers.SecretLister
@@ -42,7 +43,7 @@ func (c SigningRotation) ensureSigningCertKeyPair() (*crypto.CA, error) {
 	}
 	signingCertKeyPairSecret.Type = corev1.SecretTypeTLS
 
-	if reason := needNewSigningCertKeyPair(signingCertKeyPairSecret.Annotations, c.Refresh); len(reason) > 0 {
+	if reason := needNewSigningCertKeyPair(signingCertKeyPairSecret.Annotations, c.Refresh, c.RefreshOnlyWhenExpired); len(reason) > 0 {
 		c.EventRecorder.Eventf("SignerUpdateRequired", "%q in %q requires a new signing cert/key pair: %v", c.Name, c.Namespace, reason)
 		if err := setSigningCertKeyPairSecret(signingCertKeyPairSecret, c.Validity); err != nil {
 			return nil, err
@@ -65,10 +66,18 @@ func (c SigningRotation) ensureSigningCertKeyPair() (*crypto.CA, error) {
 	return signingCertKeyPair, nil
 }
 
-func needNewSigningCertKeyPair(annotations map[string]string, refresh time.Duration) string {
+func needNewSigningCertKeyPair(annotations map[string]string, refresh time.Duration, refreshOnlyWhenExpired bool) string {
 	notBefore, notAfter, reason := getValidityFromAnnotations(annotations)
 	if len(reason) > 0 {
 		return reason
+	}
+
+	if time.Now().After(notAfter) {
+		return "already expired"
+	}
+
+	if refreshOnlyWhenExpired {
+		return ""
 	}
 
 	maxWait := notAfter.Sub(notBefore) / 5

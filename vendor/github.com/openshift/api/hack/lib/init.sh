@@ -26,6 +26,7 @@ operator/v1alpha1 \
 project/v1 \
 quota/v1 \
 route/v1 \
+samples/v1 \
 security/v1 \
 servicecertsigner/v1alpha1 \
 template/v1 \
@@ -41,6 +42,7 @@ github.com/openshift/api/oauth/v1,\
 github.com/openshift/api/project/v1,\
 github.com/openshift/api/quota/v1,\
 github.com/openshift/api/route/v1,\
+github.com/openshift/api/samples/v1,\
 github.com/openshift/api/security/v1,\
 github.com/openshift/api/template/v1,\
 github.com/openshift/api/user/v1\
