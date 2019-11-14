@@ -19,17 +19,16 @@
 package test
 
 import (
+	"context"
 	"fmt"
-	"io"
 	"net"
 	"sync"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/internal/leakcheck"
-
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	testpb "google.golang.org/grpc/test/grpc_testing"
 )
 
@@ -38,7 +37,6 @@ type delayListener struct {
 	closeCalled  chan struct{}
 	acceptCalled chan struct{}
 	allowCloseCh chan struct{}
-	cc           *delayConn
 	dialed       bool
 }
 
@@ -52,11 +50,14 @@ func (d *delayListener) Accept() (net.Conn, error) {
 	default:
 		close(d.acceptCalled)
 		conn, err := d.Listener.Accept()
+		if err != nil {
+			return nil, err
+		}
 		// Allow closing of listener only after accept.
 		// Note: Dial can return successfully, yet Accept
 		// might now have finished.
 		d.allowClose()
-		return conn, err
+		return conn, nil
 	}
 }
 
@@ -72,11 +73,7 @@ func (d *delayListener) Close() error {
 	return nil
 }
 
-func (d *delayListener) allowClientRead() {
-	d.cc.allowRead()
-}
-
-func (d *delayListener) Dial(to time.Duration) (net.Conn, error) {
+func (d *delayListener) Dial(ctx context.Context) (net.Conn, error) {
 	if d.dialed {
 		// Only hand out one connection (net.Dial can return more even after the
 		// listener is closed).  This is not thread-safe, but Dial should never be
@@ -84,45 +81,20 @@ func (d *delayListener) Dial(to time.Duration) (net.Conn, error) {
 		return nil, fmt.Errorf("no more conns")
 	}
 	d.dialed = true
-	c, err := net.DialTimeout("tcp", d.Listener.Addr().String(), to)
-	if err != nil {
-		return nil, err
-	}
-	d.cc = &delayConn{Conn: c, blockRead: make(chan struct{})}
-	return d.cc, nil
+	return (&net.Dialer{}).DialContext(ctx, "tcp", d.Listener.Addr().String())
 }
 
-type delayConn struct {
-	net.Conn
-	blockRead chan struct{}
-}
-
-func (d *delayConn) allowRead() {
-	close(d.blockRead)
-}
-
-func (d *delayConn) Read(b []byte) (n int, err error) {
-	<-d.blockRead
-	return d.Conn.Read(b)
-}
-
-func TestGracefulStop(t *testing.T) {
-	defer leakcheck.Check(t)
-	// This test ensures GracefulStop cannot race and break RPCs on new
-	// connections created after GracefulStop was called but before
-	// listener.Accept() returns a "closing" error.
+func (s) TestGracefulStop(t *testing.T) {
+	// This test ensures GracefulStop causes new connections to fail.
 	//
 	// Steps of this test:
 	// 1. Start Server
 	// 2. GracefulStop() Server after listener's Accept is called, but don't
 	//    allow Accept() to exit when Close() is called on it.
 	// 3. Create a new connection to the server after listener.Close() is called.
-	//    Server will want to send a GoAway on the new conn, but we delay client
-	//    reads until 5.
-	// 4. Send an RPC on the new connection.
-	// 5. Allow the client to read the GoAway.  The RPC should complete
-	//    successfully.
-
+	//    Server should close this connection immediately, before handshaking.
+	// 4. Send an RPC on the new connection.  Should see Unavailable error
+	//    because the ClientConn is in transient failure.
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("Error listenening: %v", err)
@@ -133,12 +105,10 @@ func TestGracefulStop(t *testing.T) {
 		closeCalled:  make(chan struct{}),
 		allowCloseCh: make(chan struct{}),
 	}
-	d := func(_ string, to time.Duration) (net.Conn, error) { return dlis.Dial(to) }
-	serverGotReq := make(chan struct{})
+	d := func(ctx context.Context, _ string) (net.Conn, error) { return dlis.Dial(ctx) }
 
 	ss := &stubServer{
 		fullDuplexCall: func(stream testpb.TestService_FullDuplexCallServer) error {
-			close(serverGotReq)
 			_, err := stream.Recv()
 			if err != nil {
 				return err
@@ -167,8 +137,7 @@ func TestGracefulStop(t *testing.T) {
 	}()
 
 	// 3. Create a new connection to the server after listener.Close() is called.
-	//    Server will want to send a GoAway on the new conn, but we delay it
-	//    until 5.
+	//    Server should close this connection immediately, before handshaking.
 
 	<-dlis.closeCalled // Block until GracefulStop calls dlis.Close()
 
@@ -176,9 +145,9 @@ func TestGracefulStop(t *testing.T) {
 	// even though GracefulStop has closed the listener.
 	ctx, dialCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer dialCancel()
-	cc, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(d))
+	cc, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithContextDialer(d))
 	if err != nil {
-		t.Fatalf("grpc.Dial(%q) = %v", lis.Addr().String(), err)
+		t.Fatalf("grpc.DialContext(_, %q, _) = %v", lis.Addr().String(), err)
 	}
 	client := testpb.NewTestServiceClient(cc)
 	defer cc.Close()
@@ -187,26 +156,9 @@ func TestGracefulStop(t *testing.T) {
 	// The server would send a GOAWAY first, but we are delaying the server's
 	// writes for now until the client writes more than the preface.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	stream, err := client.FullDuplexCall(ctx)
-	if err != nil {
-		t.Fatalf("FullDuplexCall= _, %v; want _, <nil>", err)
+	if _, err = client.FullDuplexCall(ctx); err == nil || status.Code(err) != codes.Unavailable {
+		t.Fatalf("FullDuplexCall= _, %v; want _, <status code Unavailable>", err)
 	}
-	go func() {
-		// 5. Allow the client to read the GoAway.  The RPC should complete
-		//    successfully.
-		<-serverGotReq
-		dlis.allowClientRead()
-	}()
-	if err := stream.Send(&testpb.StreamingOutputCallRequest{}); err != nil {
-		t.Fatalf("stream.Send(_) = %v, want <nil>", err)
-	}
-	if _, err := stream.Recv(); err != nil {
-		t.Fatalf("stream.Recv() = _, %v, want _, <nil>", err)
-	}
-	if _, err := stream.Recv(); err != io.EOF {
-		t.Fatalf("stream.Recv() = _, %v, want _, io.EOF", err)
-	}
-	// 5. happens above, then we finish the call.
 	cancel()
 	wg.Wait()
 }

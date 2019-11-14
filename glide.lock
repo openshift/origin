@@ -1350,14 +1350,16 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 168a6198bcb0ef175f7dacec0b8691fc141dc9b8
+  version: 6eaf6f47437a6b4e2153a190160ef39a92c7eceb
   subpackages:
   - balancer
   - balancer/base
   - balancer/roundrobin
+  - binarylog/grpc_binarylog_v1
   - codes
   - connectivity
   - credentials
+  - credentials/internal
   - encoding
   - encoding/proto
   - grpclog
@@ -1365,8 +1367,14 @@ imports:
   - health/grpc_health_v1
   - internal
   - internal/backoff
+  - internal/balancerload
+  - internal/binarylog
   - internal/channelz
+  - internal/envconfig
   - internal/grpcrand
+  - internal/grpcsync
+  - internal/syscall
+  - internal/transport
   - keepalive
   - metadata
   - naming
@@ -1374,10 +1382,10 @@ imports:
   - resolver
   - resolver/dns
   - resolver/passthrough
+  - serviceconfig
   - stats
   - status
   - tap
-  - transport
 - name: gopkg.in/asn1-ber.v1
   version: 158c9f99fc9c29a5ca9203be28f0fdf31cfb9701
 - name: gopkg.in/fsnotify.v1
