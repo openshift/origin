@@ -24,6 +24,7 @@ $(call add-crd-gen,console,./console/v1,./console/v1,./console/v1)
 $(call add-crd-gen,operator,./operator/v1,./operator/v1,./operator/v1)
 $(call add-crd-gen,operator-alpha,./operator/v1alpha1,./operator/v1alpha1,./operator/v1alpha1)
 $(call add-crd-gen,quota,./quota/v1,./quota/v1,./quota/v1)
+$(call add-crd-gen,samples,./samples/v1,./samples/v1,./samples/v1)
 $(call add-crd-gen,security,./security/v1,./security/v1,./security/v1)
 
 RUNTIME ?= podman
@@ -35,14 +36,14 @@ verify-scripts:
 	bash -x hack/verify-swagger-docs.sh
 	bash -x hack/verify-crds.sh
 .PHONY: verify-scripts
-verify: verify-scripts
+verify: verify-scripts verify-codegen-crds
 
 update-scripts:
 	hack/update-deepcopy.sh
 	hack/update-protobuf.sh
 	hack/update-swagger-docs.sh
 .PHONY: update-scripts
-update: update-scripts
+update: update-scripts update-codegen-crds
 
 generate-with-container: Dockerfile.build
 	$(RUNTIME) build -t $(RUNTIME_IMAGE_NAME) -f Dockerfile.build .

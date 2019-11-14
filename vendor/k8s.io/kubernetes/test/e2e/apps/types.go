@@ -25,7 +25,6 @@ import (
 const (
 	WebserverImageName = "httpd"
 	RedisImageName     = "redis"
-	AgnhostImageName   = "agnhost"
 )
 
 var (
@@ -49,7 +48,4 @@ var (
 
 	// RedisImage is the fully qualified URI to the Redis image
 	RedisImage = imageutils.GetE2EImage(imageutils.Redis)
-
-	// AgnhostImage is the fully qualified URI to the agnhost image.
-	AgnhostImage = imageutils.GetE2EImage(imageutils.Agnhost)
 )

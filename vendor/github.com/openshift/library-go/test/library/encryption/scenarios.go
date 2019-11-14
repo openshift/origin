@@ -13,28 +13,32 @@ import (
 )
 
 type BasicScenario struct {
-	Namespace     string
-	LabelSelector string
-	TargetGRs     []schema.GroupResource
-	AssertFunc    func(t testing.TB, clientSet ClientSet, expectedMode configv1.EncryptionType, namespace, labelSelector string)
+	Namespace                       string
+	LabelSelector                   string
+	EncryptionConfigSecretName      string
+	EncryptionConfigSecretNamespace string
+	OperatorNamespace               string
+	TargetGRs                       []schema.GroupResource
+	AssertFunc                      func(t testing.TB, clientSet ClientSet, expectedMode configv1.EncryptionType, namespace, labelSelector string)
 }
 
 func TestEncryptionTypeIdentity(t *testing.T, scenario BasicScenario) {
-	e := NewE(t)
+	e := NewE(t, PrintEventsOnFailure(scenario.OperatorNamespace))
 	clientSet := SetAndWaitForEncryptionType(e, configv1.EncryptionTypeIdentity, scenario.TargetGRs, scenario.Namespace, scenario.LabelSelector)
 	scenario.AssertFunc(e, clientSet, configv1.EncryptionTypeIdentity, scenario.Namespace, scenario.LabelSelector)
 }
 
 func TestEncryptionTypeUnset(t *testing.T, scenario BasicScenario) {
-	e := NewE(t)
+	e := NewE(t, PrintEventsOnFailure(scenario.OperatorNamespace))
 	clientSet := SetAndWaitForEncryptionType(e, "", scenario.TargetGRs, scenario.Namespace, scenario.LabelSelector)
 	scenario.AssertFunc(e, clientSet, configv1.EncryptionTypeIdentity, scenario.Namespace, scenario.LabelSelector)
 }
 
 func TestEncryptionTypeAESCBC(t *testing.T, scenario BasicScenario) {
-	e := NewE(t)
+	e := NewE(t, PrintEventsOnFailure(scenario.OperatorNamespace))
 	clientSet := SetAndWaitForEncryptionType(e, configv1.EncryptionTypeAESCBC, scenario.TargetGRs, scenario.Namespace, scenario.LabelSelector)
 	scenario.AssertFunc(e, clientSet, configv1.EncryptionTypeAESCBC, scenario.Namespace, scenario.LabelSelector)
+	AssertEncryptionConfig(e, clientSet, scenario.EncryptionConfigSecretName, scenario.EncryptionConfigSecretNamespace, scenario.TargetGRs)
 }
 
 type OnOffScenario struct {
@@ -97,8 +101,6 @@ type RotationScenario struct {
 // TestEncryptionRotation first encrypts data with aescbc key
 // then it forces a key rotation by setting the "encyrption.Reason" in the operator's configuration file
 func TestEncryptionRotation(t *testing.T, scenario RotationScenario) {
-	// TODO: dump events, conditions in case of an failure for all scenarios
-
 	// test data
 	ns := scenario.Namespace
 	labelSelector := scenario.LabelSelector
@@ -128,5 +130,4 @@ func TestEncryptionRotation(t *testing.T, scenario RotationScenario) {
 	}
 
 	// TODO: assert conditions - operator and encryption migration controller must report status as active not progressing, and not failing for all scenarios
-	// TODO: assert encryption config (resources) for all scenarios
 }

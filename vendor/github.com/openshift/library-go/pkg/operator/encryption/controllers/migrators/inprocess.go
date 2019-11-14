@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -124,22 +125,44 @@ func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeK
 	d := m.dynamicClient.Resource(gvr)
 	var errs []error
 	listPager := pager.New(pager.SimplePageFunc(func(opts metav1.ListOptions) (runtime.Object, error) {
-		allResource, err := d.List(opts)
-		if err != nil {
-			return nil, err // TODO this can wedge on resource expired errors with large overall list
+		for {
+			allResource, err := d.List(opts)
+			if err != nil && !canRetry(err) {
+				return nil, err
+			} else if err != nil {
+				if seconds, delay := errors.SuggestsClientDelay(err); delay {
+					time.Sleep(time.Duration(seconds) * time.Second)
+				}
+				continue
+			}
+
+		nextItem:
+			for _, obj := range allResource.Items { // TODO parallelize for-loop
+				for {
+					_, updateErr := d.Namespace(obj.GetNamespace()).Update(&obj, metav1.UpdateOptions{})
+					if updateErr == nil || errors.IsNotFound(updateErr) || errors.IsConflict(err) {
+						continue nextItem
+					}
+					if !canRetry(updateErr) {
+						errs = append(errs, updateErr)
+						break
+					}
+
+					if seconds, delay := errors.SuggestsClientDelay(updateErr); delay {
+						time.Sleep(time.Duration(seconds) * time.Second)
+					}
+				}
+			}
+
+			allResource.Items = nil // do not accumulate items, this fakes the visitor pattern
+			return allResource, nil // leave the rest of the list intact to preserve continue token
 		}
-		for _, obj := range allResource.Items { // TODO parallelize for-loop
-			_, updateErr := d.Namespace(obj.GetNamespace()).Update(&obj, metav1.UpdateOptions{})
-			errs = append(errs, updateErr)
-		}
-		allResource.Items = nil // do not accumulate items, this fakes the visitor pattern
-		return allResource, nil // leave the rest of the list intact to preserve continue token
 	}))
 
 	listPager.FullListIfExpired = false // prevent memory explosion from full list
 	_, listErr := listPager.List(ctx, metav1.ListOptions{})
 	errs = append(errs, listErr)
-	result = utilerrors.FilterOut(utilerrors.NewAggregate(errs), errors.IsNotFound, errors.IsConflict)
+	result = utilerrors.NewAggregate(errs)
 }
 
 func (m *InProcessMigrator) PruneMigration(gr schema.GroupResource) error {

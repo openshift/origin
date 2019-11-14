@@ -42,9 +42,7 @@ import (
 	e2edeploy "k8s.io/kubernetes/test/e2e/framework/deployment"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/framework/replicaset"
-	e2eservice "k8s.io/kubernetes/test/e2e/framework/service"
 	testutil "k8s.io/kubernetes/test/utils"
-	"k8s.io/utils/integer"
 	utilpointer "k8s.io/utils/pointer"
 )
 
@@ -120,11 +118,6 @@ var _ = SIGDescribe("Deployment", func() {
 	*/
 	framework.ConformanceIt("deployment should support proportional scaling", func() {
 		testProportionalScalingDeployment(f)
-	})
-	ginkgo.It("should not disrupt a cloud load-balancer's connectivity during rollout", func() {
-		framework.SkipUnlessNodeCountIsAtLeast(2)
-		framework.SkipUnlessProviderIs("aws", "azure", "gce", "gke")
-		testRollingUpdateDeploymentWithLocalTrafficLoadBalancer(f)
 	})
 	// TODO: add tests that cover deployment.Spec.MinReadySeconds once we solved clock-skew issues
 	// See https://github.com/kubernetes/kubernetes/issues/29229
@@ -862,158 +855,4 @@ func orphanDeploymentReplicaSets(c clientset.Interface, d *appsv1.Deployment) er
 	deleteOptions := &metav1.DeleteOptions{OrphanDependents: &trueVar}
 	deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(d.UID))
 	return c.AppsV1().Deployments(d.Namespace).Delete(d.Name, deleteOptions)
-}
-
-func testRollingUpdateDeploymentWithLocalTrafficLoadBalancer(f *framework.Framework) {
-	ns := f.Namespace.Name
-	c := f.ClientSet
-
-	name := "test-rolling-update-with-lb"
-	framework.Logf("Creating Deployment %q", name)
-	podLabels := map[string]string{"name": name}
-	replicas := int32(integer.IntMin(5, framework.TestContext.CloudConfig.NumNodes))
-	d := e2edeploy.NewDeployment(name, replicas, podLabels, AgnhostImageName, AgnhostImage, appsv1.RollingUpdateDeploymentStrategyType)
-	// NewDeployment assigned the same value to both d.Spec.Selector and
-	// d.Spec.Template.Labels, so mutating the one would mutate the other.
-	// Thus we need to set d.Spec.Template.Labels to a new value if we want
-	// to mutate it alone.
-	d.Spec.Template.Labels = map[string]string{
-		"iteration": "0",
-		"name":      name,
-	}
-	d.Spec.Template.Spec.Containers[0].Args = []string{"netexec", "--http-port=80", "--udp-port=80"}
-	// To ensure that a node that had a local endpoint prior to a rolling
-	// update continues to have a local endpoint throughout the rollout, we
-	// need an affinity policy that will cause pods to be scheduled on the
-	// same nodes as old pods, and we need the deployment to scale up a new
-	// pod before deleting an old pod.  This affinity policy will define
-	// inter-pod affinity for pods of different rollouts and anti-affinity
-	// for pods of the same rollout, so it will need to be updated when
-	// performing a rollout.
-	setAffinities(d, false)
-	d.Spec.Strategy.RollingUpdate = &appsv1.RollingUpdateDeployment{
-		MaxSurge:       intOrStrP(1),
-		MaxUnavailable: intOrStrP(0),
-	}
-	deployment, err := c.AppsV1().Deployments(ns).Create(d)
-	framework.ExpectNoError(err)
-	err = e2edeploy.WaitForDeploymentComplete(c, deployment)
-	framework.ExpectNoError(err)
-
-	framework.Logf("Creating a service %s with type=LoadBalancer and externalTrafficPolicy=Local in namespace %s", name, ns)
-	jig := e2eservice.NewTestJig(c, name)
-	jig.Labels = podLabels
-	service := jig.CreateLoadBalancerService(ns, name, e2eservice.LoadBalancerCreateTimeoutDefault, func(svc *v1.Service) {
-		svc.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeLocal
-	})
-
-	lbNameOrAddress := e2eservice.GetIngressPoint(&service.Status.LoadBalancer.Ingress[0])
-	svcPort := int(service.Spec.Ports[0].Port)
-
-	framework.Logf("Hitting the replica set's pods through the service's load balancer")
-	timeout := e2eservice.LoadBalancerLagTimeoutDefault
-	if framework.ProviderIs("aws") {
-		timeout = e2eservice.LoadBalancerLagTimeoutAWS
-	}
-	jig.TestReachableHTTP(lbNameOrAddress, svcPort, timeout)
-
-	framework.Logf("Starting a goroutine to watch the service's endpoints in the background")
-	done := make(chan struct{})
-	failed := make(chan struct{})
-	defer close(done)
-	go func() {
-		defer ginkgo.GinkgoRecover()
-		expectedNodes := jig.GetEndpointNodeNames(service)
-		// The affinity policy should ensure that before an old pod is
-		// deleted, a new pod will have been created on the same node.
-		// Thus the set of nodes with local endpoints for the service
-		// should remain unchanged.
-		wait.Until(func() {
-			actualNodes := jig.GetEndpointNodeNames(service)
-			if !actualNodes.Equal(expectedNodes) {
-				framework.Logf("The set of nodes with local endpoints changed; started with %v, now have %v", expectedNodes.List(), actualNodes.List())
-				failed <- struct{}{}
-			}
-		}, framework.Poll, done)
-	}()
-
-	framework.Logf("Triggering a rolling deployment several times")
-	for i := 1; i <= 3; i++ {
-		framework.Logf("Updating label deployment %q pod spec (iteration #%d)", name, i)
-		deployment, err = e2edeploy.UpdateDeploymentWithRetries(c, ns, d.Name, func(update *appsv1.Deployment) {
-			update.Spec.Template.Labels["iteration"] = fmt.Sprintf("%d", i)
-			setAffinities(update, true)
-		})
-		framework.ExpectNoError(err)
-
-		framework.Logf("Waiting for observed generation %d", deployment.Generation)
-		err = e2edeploy.WaitForObservedDeployment(c, ns, name, deployment.Generation)
-		framework.ExpectNoError(err)
-
-		framework.Logf("Make sure deployment %q is complete", name)
-		err = e2edeploy.WaitForDeploymentCompleteAndCheckRolling(c, deployment)
-		framework.ExpectNoError(err)
-	}
-
-	select {
-	case <-failed:
-		framework.Failf("Connectivity to the load balancer was interrupted")
-	case <-time.After(1 * time.Minute):
-	}
-}
-
-// setAffinities set PodAntiAffinity across pods from the same generation
-// of Deployment and if, explicitly requested, also affinity with pods
-// from other generations.
-// It is required to make those "Required" so that in large clusters where
-// scheduler may not score all nodes if a lot of them are feasible, the
-// test will also have a chance to pass.
-func setAffinities(d *appsv1.Deployment, setAffinity bool) {
-	affinity := &v1.Affinity{
-		PodAntiAffinity: &v1.PodAntiAffinity{
-			RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
-				{
-					TopologyKey: "kubernetes.io/hostname",
-					LabelSelector: &metav1.LabelSelector{
-						MatchExpressions: []metav1.LabelSelectorRequirement{
-							{
-								Key:      "name",
-								Operator: metav1.LabelSelectorOpIn,
-								Values:   []string{d.Spec.Template.Labels["name"]},
-							},
-							{
-								Key:      "iteration",
-								Operator: metav1.LabelSelectorOpIn,
-								Values:   []string{d.Spec.Template.Labels["iteration"]},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	if setAffinity {
-		affinity.PodAffinity = &v1.PodAffinity{
-			RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
-				{
-					TopologyKey: "kubernetes.io/hostname",
-					LabelSelector: &metav1.LabelSelector{
-						MatchExpressions: []metav1.LabelSelectorRequirement{
-							{
-								Key:      "name",
-								Operator: metav1.LabelSelectorOpIn,
-								Values:   []string{d.Spec.Template.Labels["name"]},
-							},
-							{
-								Key:      "iteration",
-								Operator: metav1.LabelSelectorOpNotIn,
-								Values:   []string{d.Spec.Template.Labels["iteration"]},
-							},
-						},
-					},
-				},
-			},
-		}
-	}
-	d.Spec.Template.Spec.Affinity = affinity
 }

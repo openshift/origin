@@ -1,5 +1,5 @@
 hash: 4e2aa6536866507323c2a6311dfc8b48e0f25d213dd6d8da203ce062bd50ddeb
-updated: 2019-11-06T09:44:07.130224209+01:00
+updated: 2019-11-13T12:19:32.306095+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -318,7 +318,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -363,7 +363,7 @@ imports:
 - name: github.com/go-openapi/jsonreference
   version: 2903bfd4bfbaf188694f1edf731f2725a8fa344f
 - name: github.com/go-openapi/loads
-  version: 8548893a17237be4a5b2f74773f23002f4179bbe
+  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
 - name: github.com/go-openapi/runtime
   version: 109737172424d8a656fd1199e28c9f5cc89b0cca
 - name: github.com/go-openapi/spec
@@ -804,7 +804,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 21e87c8db5692e119529c2a80c8997bee050f038
+  version: 86def77f6f909e31ffacf73fe63bf5ca830ede83
   subpackages:
   - annotations
   - apps
@@ -842,6 +842,8 @@ imports:
   - quota/v1
   - route
   - route/v1
+  - samples
+  - samples/v1
   - security
   - security/v1
   - servicecertsigner
@@ -973,7 +975,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 500a6f7314d3b246bacd94d66c32b35df37e2d8e
+  version: 0597a29991ca50513df1fdb76e7e2a267e3a3e3f
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1970,7 +1972,7 @@ imports:
   - metrics/prometheus/workqueue
   - version
 - name: k8s.io/cri-api
-  version: 446748cffddacb0275666009e4ec68f06d00da17
+  version: 03d130a7dc282f8068a2b986fbff68da165f890f
   subpackages:
   - pkg/apis
   - pkg/apis/runtime/v1alpha2
