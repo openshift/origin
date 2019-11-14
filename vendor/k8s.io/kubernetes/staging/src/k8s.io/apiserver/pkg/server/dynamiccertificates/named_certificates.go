@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/klog"
 )
@@ -65,6 +66,12 @@ func (c *DynamicServingCertificateController) BuildNamedCertificates(sniCerts []
 	// Explicitly set names must override
 	for k, v := range byNameExplicit {
 		nameToCertificate[k] = v
+	}
+
+	for _, key := range sets.StringKeySet(nameToCertificate).List() {
+		// error is not possible given above call to X509KeyPair
+		x509Cert, _ := x509.ParseCertificate(nameToCertificate[key].Certificate[0])
+		klog.V(2).Infof("snimap[%q]: %s", key, GetHumanCertDetail(x509Cert))
 	}
 
 	return nameToCertificate, nil
