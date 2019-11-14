@@ -204,7 +204,7 @@ test-integration:
 # Example:
 #   make test-cmd
 test-cmd: build
-	hack/test-util.sh
+	# hack/test-util.sh
 	hack/test-cmd.sh
 .PHONY: test-cmd
 
