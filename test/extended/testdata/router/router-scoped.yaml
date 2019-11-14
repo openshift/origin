@@ -30,7 +30,7 @@ objects:
       - "--name=${ROUTER_NAME}"
       - "--namespace=$(POD_NAMESPACE)"
       - "--update-status=${UPDATE_STATUS}"
-      - "--loglevel=4"
+      - "-v=4"
       - "--labels=select=first"
       - "--stats-port=1936"
       - "--metrics-type=haproxy"

@@ -26,7 +26,7 @@ objects:
       args:
       - "--name=test-override-domains"
       - "--namespace=$(POD_NAMESPACE)"
-      - "--loglevel=4"
+      - "-v=4"
       - "--override-domains=null.ptr,void.str"
       - "--hostname-template=${name}-${namespace}.apps.veto.test"
       - "--stats-port=1936"

@@ -1851,9 +1851,18 @@ func FindCLIImage(oc *CLI) (string, bool) {
 	return strings.Replace(format, "${component}", "cli", -1), ok
 }
 
-func FindRouterImage(oc *CLI) (string, bool) {
-	format, ok := FindImageFormatString(oc)
-	return strings.Replace(format, "${component}", "haproxy-router", -1), ok
+func FindRouterImage(oc *CLI) (string, error) {
+	configclient := oc.AdminConfigClient().ConfigV1()
+	o, err := configclient.ClusterOperators().Get("ingress", metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	for _, v := range o.Status.Versions {
+		if v.Name == "ingress-controller" {
+			return v.Version, nil
+		}
+	}
+	return "", fmt.Errorf("expected to find ingress-controller version on clusteroperators/ingress")
 }
 
 func IsClusterOperated(oc *CLI) bool {

@@ -48,11 +48,12 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		routerImage, _ = exutil.FindRouterImage(oc)
-		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
+		var err error
+		routerImage, err = exutil.FindRouterImage(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		configPath := exutil.FixturePath("testdata", "router", "router-common.yaml")
-		err := oc.AsAdmin().Run("new-app").Args("-f", configPath).Execute()
+		err = oc.AsAdmin().Run("new-app").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 

@@ -51,10 +51,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
 
-		routerImage, _ = exutil.FindRouterImage(oc)
-		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
+		var err error
+		routerImage, err = exutil.FindRouterImage(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err := oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(&rbacv1.RoleBinding{
+		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(&rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "router",
 			},
@@ -79,7 +80,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 				scaledRouter(
 					routerImage,
 					[]string{
-						"--loglevel=4",
+						"-v=4",
 						fmt.Sprintf("--namespace=%s", ns),
 						"--resync-interval=2m",
 						"--name=namespaced",
@@ -161,7 +162,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 				scaledRouter(
 					routerImage,
 					[]string{
-						"--loglevel=4",
+						"-v=4",
 						fmt.Sprintf("--namespace=%s", ns),
 						// the contention tracker is resync / 10, so this will give us 2 minutes of contention tracking
 						"--resync-interval=20m",
