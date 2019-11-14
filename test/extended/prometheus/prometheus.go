@@ -229,6 +229,20 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			}
 			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})
+		g.It("shouldn't experience cardinality explosion", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string]bool{
+				// scrape series added excluding apiserver, api, ksm and kubelet as the values are too high and random spikes
+				`sum(avg_over_time(scrape_series_added{job!="apiserver", job!="api", job!="kube-state-metrics", job!="kubelet"}[15m])) by (job,instance) > 100`: false,
+				// scrape samples over time
+				`sum(avg_over_time(scrape_samples_scraped[15m])) by (job) > 150000`: false,
+			}
+			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		})
 		networking.InOpenShiftSDNContext(func() {
 			g.It("should be able to get the sdn ovs flows", func() {
 				oc.SetupProject()
