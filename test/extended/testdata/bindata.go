@@ -19439,6 +19439,9 @@ var _testExtendedTestdataBuildsBuildQuotaS2iBinAssemble = []byte(`#!/bin/sh
 sleep 10
 echo -n MEMORY= && cat /sys/fs/cgroup/memory/memory.limit_in_bytes
 echo -n MEMORYSWAP= && cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes
+echo "----checking /proc/self/cgroup------"
+cat /proc/self/cgroup
+echo "------done------"
 
 if [ -e /sys/fs/cgroup/cpuacct,cpu ]; then
 	quota=$(</sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us)
