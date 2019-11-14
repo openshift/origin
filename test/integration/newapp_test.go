@@ -1569,7 +1569,7 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 			name: "successful build from dockerfile with identical input and output image references with warning(2)",
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
-					Dockerfile: "FROM openshift/ruby-25-centos7\nRUN yum install -y httpd",
+					Dockerfile: "FROM centos/ruby-25-centos7\nRUN yum install -y httpd",
 					To:         "ruby-25-centos7",
 				},
 			},
@@ -1582,7 +1582,7 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				want := "--> WARNING: output image of \"openshift/ruby-25-centos7:latest\" should be different than input\n"
+				want := "--> WARNING: output image of \"centos/ruby-25-centos7:latest\" should be different than input\n"
 				if string(got) != want {
 					return fmt.Errorf("stderr: got %q; want %q", got, want)
 				}
@@ -1607,12 +1607,12 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 			name: "unsuccessful build from dockerfile due to identical input and output image references(2)",
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
-					Dockerfile: "FROM openshift/ruby-25-centos7\nRUN yum install -y httpd",
+					Dockerfile: "FROM centos/ruby-25-centos7\nRUN yum install -y httpd",
 				},
 			},
 			expectedErr: func(err error) bool {
 				e := app.CircularOutputReferenceError{
-					Reference: "openshift/ruby-25-centos7:latest",
+					Reference: "centos/ruby-25-centos7:latest",
 				}
 				return err.Error() == fmt.Errorf("%v, set a different tag with --to", e).Error()
 			},
