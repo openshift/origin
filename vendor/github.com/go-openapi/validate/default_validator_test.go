@@ -23,6 +23,7 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDefault_ValidatePetStore(t *testing.T) {
@@ -33,6 +34,16 @@ func TestDefault_ValidatePetStore(t *testing.T) {
 	myDefaultValidator := &defaultValidator{SpecValidator: validator}
 	res := myDefaultValidator.Validate()
 	assert.Empty(t, res.Errors)
+}
+
+func makeSpecValidator(t *testing.T, fp string) *SpecValidator {
+	doc, err := loads.Spec(fp)
+	require.NoError(t, err)
+
+	validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
+	validator.spec = doc
+	validator.analyzer = analysis.New(doc.Spec())
+	return validator
 }
 
 func TestDefault_ValidateDefaults(t *testing.T) {
@@ -65,42 +76,32 @@ func TestDefault_ValidateDefaults(t *testing.T) {
 		if DebugTest {
 			t.Logf("Testing valid default values for: %s", path)
 		}
-		doc, err := loads.Spec(path)
-		if assert.NoError(t, err) {
-			validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-			validator.spec = doc
-			validator.analyzer = analysis.New(doc.Spec())
-			myDefaultValidator := &defaultValidator{SpecValidator: validator}
-			res := myDefaultValidator.Validate()
-			assert.Empty(t, res.Errors, tt+" should not have errors")
-			// Special case: warning only
-			if tt == "parameter-required" {
-				warns := []string{}
-				for _, w := range res.Warnings {
-					warns = append(warns, w.Error())
-				}
-				assert.Contains(t, warns, "limit in query has a default value and is required as parameter")
-			}
+		validator := makeSpecValidator(t, path)
+		myDefaultValidator := &defaultValidator{SpecValidator: validator}
+		res := myDefaultValidator.Validate()
+		assert.Empty(t, res.Errors, tt+" should not have errors")
+
+		// Special case: warning only
+		if tt == "parameter-required" {
+			warns := verifiedTestWarnings(res)
+			assert.Contains(t, warns, "limit in query has a default value and is required as parameter")
 		}
 
 		path = filepath.Join("fixtures", "validation", "default", "invalid-default-value-"+tt+".json")
 		if DebugTest {
 			t.Logf("Testing invalid default values for: %s", path)
 		}
-		doc, err = loads.Spec(path)
-		if assert.NoError(t, err) {
-			validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-			validator.spec = doc
-			validator.analyzer = analysis.New(doc.Spec())
-			myDefaultValidator := &defaultValidator{SpecValidator: validator}
-			res := myDefaultValidator.Validate()
-			assert.NotEmpty(t, res.Errors, tt+" should have errors")
-			// Update: now we have an additional message to explain it's all about a default value
-			// Example:
-			// - default value for limit in query does not validate its Schema
-			// - limit in query must be of type integer: "string"]
-			assert.True(t, len(res.Errors) >= 1, tt+" should have at least 1 error")
-		}
+
+		validator = makeSpecValidator(t, path)
+		myDefaultValidator = &defaultValidator{SpecValidator: validator}
+		res = myDefaultValidator.Validate()
+		assert.NotEmpty(t, res.Errors, tt+" should have errors")
+
+		// Update: now we have an additional message to explain it's all about a default value
+		// Example:
+		// - default value for limit in query does not validate its Schema
+		// - limit in query must be of type integer: "string"]
+		assert.True(t, len(res.Errors) >= 1, tt+" should have at least 1 error")
 	}
 }
 

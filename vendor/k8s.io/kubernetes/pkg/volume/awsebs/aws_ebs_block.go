@@ -51,27 +51,34 @@ func (plugin *awsElasticBlockStorePlugin) ConstructBlockVolumeSpec(podUID types.
 		return nil, fmt.Errorf("failed to get volume plugin information from globalMapPathUUID: %v", globalMapPathUUID)
 	}
 
-	return plugin.getVolumeSpecFromGlobalMapPath(volumeName, globalMapPath)
+	return getVolumeSpecFromGlobalMapPath(globalMapPath)
 }
 
-func (plugin *awsElasticBlockStorePlugin) getVolumeSpecFromGlobalMapPath(volumeName string, globalMapPath string) (*volume.Spec, error) {
+func getVolumeSpecFromGlobalMapPath(globalMapPath string) (*volume.Spec, error) {
 	// Get volume spec information from globalMapPath
 	// globalMapPath example:
 	//   plugins/kubernetes.io/{PluginName}/{DefaultKubeletVolumeDevicesDirName}/{volumeID}
 	//   plugins/kubernetes.io/aws-ebs/volumeDevices/vol-XXXXXX
-	pluginDir := plugin.host.GetVolumeDevicePluginDir(awsElasticBlockStorePluginName)
-	if !strings.HasPrefix(globalMapPath, pluginDir) {
-		return nil, fmt.Errorf("volume symlink %s is not in global plugin directory", globalMapPath)
+	vID := filepath.Base(globalMapPath)
+	if len(vID) <= 1 {
+		return nil, fmt.Errorf("failed to get volumeID from global path=%s", globalMapPath)
 	}
-	fullVolumeID := strings.TrimPrefix(globalMapPath, pluginDir) // /vol-XXXXXX
-	fullVolumeID = strings.TrimLeft(fullVolumeID, "/")           // vol-XXXXXX
-	vID, err := formatVolumeID(fullVolumeID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get AWS volume id from map path %q: %v", globalMapPath, err)
+	if !strings.Contains(vID, "vol-") {
+		return nil, fmt.Errorf("failed to get volumeID from global path=%s, invalid volumeID format = %s", globalMapPath, vID)
+	}
+	block := v1.PersistentVolumeBlock
+	awsVolume := &v1.PersistentVolume{
+		Spec: v1.PersistentVolumeSpec{
+			PersistentVolumeSource: v1.PersistentVolumeSource{
+				AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
+					VolumeID: vID,
+				},
+			},
+			VolumeMode: &block,
+		},
 	}
 
-	block := v1.PersistentVolumeBlock
-	return newAWSVolumeSpec(volumeName, vID, block), nil
+	return volume.NewSpecFromPersistentVolume(awsVolume, true), nil
 }
 
 // NewBlockVolumeMapper creates a new volume.BlockVolumeMapper from an API specification.

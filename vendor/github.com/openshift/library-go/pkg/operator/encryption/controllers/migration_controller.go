@@ -31,7 +31,12 @@ import (
 	operatorv1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
-const migrationWorkKey = "key"
+const (
+	migrationWorkKey = "key"
+
+	// how long to wait until we retry a migration when it failed with unknown errors.
+	migrationRetryDuration = time.Minute * 5
+)
 
 // The migrationController controller migrates resources to a new write key
 // and annotated the write key secret afterwards with the migrated GRs. It
@@ -103,17 +108,17 @@ func (c *migrationController) sync() error {
 		return err // we will get re-kicked when the operator status updates
 	}
 
-	migratingResources, configError := c.migrateKeysIfNeededAndRevisionStable()
+	migratingResources, migrationError := c.migrateKeysIfNeededAndRevisionStable()
 
 	// update failing condition
 	degraded := operatorv1.OperatorCondition{
 		Type:   "EncryptionMigrationControllerDegraded",
 		Status: operatorv1.ConditionFalse,
 	}
-	if configError != nil {
+	if migrationError != nil {
 		degraded.Status = operatorv1.ConditionTrue
 		degraded.Reason = "Error"
-		degraded.Message = configError.Error()
+		degraded.Message = migrationError.Error()
 	}
 
 	// update progressing condition
@@ -131,7 +136,7 @@ func (c *migrationController) sync() error {
 		return updateError
 	}
 
-	return configError
+	return migrationError
 }
 
 func (c *migrationController) setProgressing(migrating bool, reason, message string, args ...interface{}) error {
@@ -223,7 +228,16 @@ func (c *migrationController) migrateKeysIfNeededAndRevisionStable() (migratingR
 		}
 
 		// idem-potent migration start
-		finished, result, err := c.migrator.EnsureMigration(gr, ks.Key.Name)
+		finished, result, when, err := c.migrator.EnsureMigration(gr, ks.Key.Name)
+		if err == nil && finished && result != nil && time.Since(when) > migrationRetryDuration {
+			// last migration error is far enough ago. Prune and retry.
+			if err := c.migrator.PruneMigration(gr); err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			finished, result, when, err = c.migrator.EnsureMigration(gr, ks.Key.Name)
+
+		}
 		if err != nil {
 			errs = append(errs, err)
 			continue

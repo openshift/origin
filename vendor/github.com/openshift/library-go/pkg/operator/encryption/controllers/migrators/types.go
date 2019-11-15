@@ -1,6 +1,8 @@
 package migrators
 
 import (
+	"time"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
@@ -13,8 +15,8 @@ type Migrator interface {
 	// starting a new one. This function is idem-potent as long as a running or finished
 	// migration is not pruned.
 	// If finished is true, result is the result of the migration, with nil meaning that it
-	// finished successfully.
-	EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, err error)
+	// finished successfully. The timestamp shows when it has been finished.
+	EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, ts time.Time, err error)
 	// PruneMigration removes a migration, independently whether it is running or finished,
 	// with error or not. If there is no migration, this must not return an error.
 	PruneMigration(gr schema.GroupResource) error

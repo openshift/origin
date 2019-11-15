@@ -6,7 +6,10 @@ package proxy
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strings"
@@ -108,6 +111,37 @@ func TestSOCKS5(t *testing.T) {
 		t.Fatal(err)
 	}
 	c.Close()
+}
+
+type funcFailDialer func(context.Context) error
+
+func (f funcFailDialer) Dial(net, addr string) (net.Conn, error) {
+	panic("shouldn't see a call to Dial")
+}
+
+func (f funcFailDialer) DialContext(ctx context.Context, net, addr string) (net.Conn, error) {
+	return nil, f(ctx)
+}
+
+// Check that FromEnvironmentUsing uses our dialer.
+func TestFromEnvironmentUsing(t *testing.T) {
+	ResetProxyEnv()
+	errFoo := errors.New("some error to check our dialer was used)")
+	type key string
+	ctx := context.WithValue(context.Background(), key("foo"), "bar")
+	dialer := FromEnvironmentUsing(funcFailDialer(func(ctx context.Context) error {
+		if got := ctx.Value(key("foo")); got != "bar" {
+			t.Errorf("Resolver context = %T %v, want %q", got, got, "bar")
+		}
+		return errFoo
+	}))
+	_, err := dialer.(ContextDialer).DialContext(ctx, "tcp", "foo.tld:123")
+	if err == nil {
+		t.Fatalf("unexpected success")
+	}
+	if !strings.Contains(err.Error(), errFoo.Error()) {
+		t.Errorf("got unexpected error %q; want substr %q", err, errFoo)
+	}
 }
 
 func ResetProxyEnv() {

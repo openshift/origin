@@ -2,6 +2,7 @@ package units
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"testing"
 )
@@ -49,6 +50,52 @@ func TestParseUlimitBadFormat(t *testing.T) {
 func TestParseUlimitHardLessThanSoft(t *testing.T) {
 	if _, err := ParseUlimit("nofile=1024:1"); err == nil {
 		t.Fatal("expected error on hard limit less than soft limit")
+	}
+	if _, err := ParseUlimit("nofile=-1:1024"); err == nil {
+		t.Fatal("expected error on hard limit less than soft limit")
+	}
+}
+
+func TestParseUlimitUnlimited(t *testing.T) {
+	tt := []struct {
+		in       string
+		expected Ulimit
+	}{
+		{
+			in:       "nofile=-1",
+			expected: Ulimit{Name: "nofile", Soft: -1, Hard: -1},
+		},
+		{
+			in:       "nofile=1024",
+			expected: Ulimit{Name: "nofile", Soft: 1024, Hard: 1024},
+		},
+		{
+			in:       "nofile=1024:-1",
+			expected: Ulimit{Name: "nofile", Soft: 1024, Hard: -1},
+		},
+		{
+			in:       "nofile=-1:-1",
+			expected: Ulimit{Name: "nofile", Soft: -1, Hard: -1},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.in, func(t *testing.T) {
+			u, err := ParseUlimit(tc.in)
+			if err != nil {
+				t.Fatalf("unexpected error when setting unlimited hard limit: %v", err)
+			}
+			if u.Name != tc.expected.Name {
+				t.Fatalf("unexpected name. expected %s, got %s", tc.expected.Name, u.Name)
+			}
+			if u.Soft != tc.expected.Soft {
+				t.Fatalf("unexpected soft limit. expected %d, got %d", tc.expected.Soft, u.Soft)
+			}
+			if u.Hard != tc.expected.Hard {
+				t.Fatalf("unexpected hard limit. expected %d, got %d", tc.expected.Hard, u.Hard)
+			}
+
+		})
 	}
 }
 
@@ -99,6 +146,7 @@ func TestGetRlimit(t *testing.T) {
 		{Ulimit{"rttime", 55, 102}, Rlimit{rlimitRttime, 55, 102}},
 		{Ulimit{"sigpending", 14, 20}, Rlimit{rlimitSigpending, 14, 20}},
 		{Ulimit{"stack", 1, 1}, Rlimit{rlimitStack, 1, 1}},
+		{Ulimit{"stack", -1, -1}, Rlimit{rlimitStack, math.MaxUint64, math.MaxUint64}},
 	}
 
 	for _, te := range tt {

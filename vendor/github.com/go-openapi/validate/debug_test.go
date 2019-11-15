@@ -57,7 +57,7 @@ func TestDebug(t *testing.T) {
 
 	flushed, _ := os.Open(tmpName)
 	buf := make([]byte, 500)
-	flushed.Read(buf)
+	_, _ = flushed.Read(buf)
 	validateLogger.SetOutput(os.Stdout)
 	assert.Contains(t, string(buf), "A debug")
 }

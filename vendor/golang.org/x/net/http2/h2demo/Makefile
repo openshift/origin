@@ -6,10 +6,6 @@ MUTABLE_VERSION ?= latest
 VERSION ?= $(shell git rev-parse --short HEAD)
 IMAGE_NAME=h2demo
 
-update-deps:
-	go install golang.org/x/build/cmd/gitlock
-	gitlock --update=Dockerfile --ignore=golang.org/x/net --tags=h2demo golang.org/x/net/http2/h2demo
-
 docker: Dockerfile
 	go install golang.org/x/build/cmd/xb
 	xb docker build -t golang/$(IMAGE_NAME) -f Dockerfile ../..

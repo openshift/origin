@@ -45,9 +45,11 @@ type inProcessMigration struct {
 
 	// non-nil when finished. *result==nil means "no error"
 	result *error
+	// when did it finish
+	timestamp time.Time
 }
 
-func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, err error) {
+func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, ts time.Time, err error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -55,9 +57,9 @@ func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey st
 	migration := m.running[gr]
 	if migration != nil && migration.writeKey == writeKey {
 		if migration.result == nil {
-			return false, nil, nil
+			return false, nil, time.Time{}, nil
 		}
-		return true, *migration.result, nil
+		return true, *migration.result, migration.timestamp, nil
 	}
 
 	// different key?
@@ -73,7 +75,7 @@ func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey st
 
 	v, err := preferredResourceVersion(m.discoveryClient, gr)
 	if err != nil {
-		return false, nil, err
+		return false, nil, time.Time{}, err
 	}
 
 	stopCh := make(chan struct{})
@@ -86,7 +88,7 @@ func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey st
 
 	go m.runMigration(gr.WithVersion(v), writeKey, stopCh, doneCh)
 
-	return false, nil, nil
+	return false, nil, time.Time{}, nil
 }
 
 func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeKey string, stopCh <-chan struct{}, doneCh chan<- struct{}) {
@@ -111,6 +113,7 @@ func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeK
 		}
 
 		migration.result = &result
+		migration.timestamp = time.Now()
 
 		m.handler.OnAdd(&corev1.Secret{}) // fake secret to trigger event loop of controller
 	}()
@@ -127,32 +130,43 @@ func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeK
 	listPager := pager.New(pager.SimplePageFunc(func(opts metav1.ListOptions) (runtime.Object, error) {
 		for {
 			allResource, err := d.List(opts)
-			if err != nil && !canRetry(err) {
-				return nil, err
-			} else if err != nil {
-				if seconds, delay := errors.SuggestsClientDelay(err); delay {
-					time.Sleep(time.Duration(seconds) * time.Second)
+			if err != nil {
+				klog.Warningf("List of %v failed: %v", gvr, err)
+				if errors.IsResourceExpired(err) {
+					return nil, err // the pager will handle that
+				} else if retryable := canRetry(err); retryable == nil || *retryable == false {
+					return nil, err // not retryable or we don't know. Return error and controller will restart migration.
+				} else {
+					if seconds, delay := errors.SuggestsClientDelay(err); delay {
+						time.Sleep(time.Duration(seconds) * time.Second)
+					}
+					klog.V(4).Infof("Relisting %v after retryable error: %v", gvr, err)
+					continue
 				}
-				continue
 			}
+
+			klog.V(4).Infof("Migrating %d objects of %v", len(allResource.Items), gvr)
 
 		nextItem:
 			for _, obj := range allResource.Items { // TODO parallelize for-loop
 				for {
 					_, updateErr := d.Namespace(obj.GetNamespace()).Update(&obj, metav1.UpdateOptions{})
-					if updateErr == nil || errors.IsNotFound(updateErr) || errors.IsConflict(err) {
+					if updateErr == nil || errors.IsNotFound(updateErr) || errors.IsConflict(updateErr) {
 						continue nextItem
 					}
-					if !canRetry(updateErr) {
-						errs = append(errs, updateErr)
+					if retryable := canRetry(updateErr); retryable == nil || *retryable == false {
+						klog.Warningf("Update of %s/%s failed: %v", obj.GetNamespace(), obj.GetName(), updateErr)
+						errs = append(errs, updateErr) // not retryable or we don't know. Return error and controller will restart migration.
 						break
 					}
-
 					if seconds, delay := errors.SuggestsClientDelay(updateErr); delay {
+						klog.V(4).Infof("Sleeping %ds while updating %s/%s of type %v after retryable error: %v", seconds, obj.GetNamespace(), obj.GetName(), gvr, updateErr)
 						time.Sleep(time.Duration(seconds) * time.Second)
 					}
 				}
 			}
+
+			klog.V(4).Infof("Migration of %d objects of %v finished", len(allResource.Items), gvr)
 
 			allResource.Items = nil // do not accumulate items, this fakes the visitor pattern
 			return allResource, nil // leave the rest of the list intact to preserve continue token
