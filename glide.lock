@@ -152,16 +152,21 @@ imports:
   - pkg/types/current
   - pkg/version
 - name: github.com/coreos/bbolt
-  version: 48ea1b39c25fc1bab3506fbc712ecbaa842c4d2d
+  version: a0458a2b35708eef59eb5f620ceb3cd1c01a824d
 - name: github.com/coreos/etcd
-  version: 27fc7e2296f506182f58ce846e48f36b34fe6842
+  version: 6d8052314b9e01447d1bb2030bd762e0baf2d433
   subpackages:
   - alarm
   - auth
   - auth/authpb
   - client
   - clientv3
+  - clientv3/balancer
+  - clientv3/balancer/connectivity
+  - clientv3/balancer/picker
+  - clientv3/balancer/resolver/endpoint
   - clientv3/concurrency
+  - clientv3/credentials
   - clientv3/namespace
   - clientv3/naming
   - compactor
@@ -212,6 +217,7 @@ imports:
   - pkg/runtime
   - pkg/schedule
   - pkg/srv
+  - pkg/systemd
   - pkg/testutil
   - pkg/tlsutil
   - pkg/transport
@@ -1346,14 +1352,16 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 168a6198bcb0ef175f7dacec0b8691fc141dc9b8
+  version: 6eaf6f47437a6b4e2153a190160ef39a92c7eceb
   subpackages:
   - balancer
   - balancer/base
   - balancer/roundrobin
+  - binarylog/grpc_binarylog_v1
   - codes
   - connectivity
   - credentials
+  - credentials/internal
   - encoding
   - encoding/proto
   - grpclog
@@ -1361,8 +1369,14 @@ imports:
   - health/grpc_health_v1
   - internal
   - internal/backoff
+  - internal/balancerload
+  - internal/binarylog
   - internal/channelz
+  - internal/envconfig
   - internal/grpcrand
+  - internal/grpcsync
+  - internal/syscall
+  - internal/transport
   - keepalive
   - metadata
   - naming
@@ -1370,10 +1384,10 @@ imports:
   - resolver
   - resolver/dns
   - resolver/passthrough
+  - serviceconfig
   - stats
   - status
   - tap
-  - transport
 - name: gopkg.in/asn1-ber.v1
   version: 158c9f99fc9c29a5ca9203be28f0fdf31cfb9701
 - name: gopkg.in/fsnotify.v1

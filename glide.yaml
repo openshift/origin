@@ -93,13 +93,15 @@ import:
 - package: golang.org/x/tools/imports
   version: 6e04913cbbac05c5c0c9d8f237717e292f700e76
 
-# see if old grpc can let kubelet/crio communicate
+# pin for etcd
 - package: google.golang.org/grpc
-  version: 168a6198bcb0ef175f7dacec0b8691fc141dc9b8
+  version: v1.23.0
 
-# force old etcd3
+# etcd v3.3.17 carry until 4.4
 - package: github.com/coreos/etcd
-  version: 27fc7e2296f506182f58ce846e48f36b34fe6842
+  version: v3.3.17
+- package: github.com/coreos/bbolt
+  version: v1.3.3
 - package: github.com/ugorji/go
   version: bdcc60b419d136a85cdf2e7cbcac34b3f1cd6e57
 

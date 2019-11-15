@@ -16,9 +16,30 @@
  *
  */
 
+/*
+Package main provides a client used for benchmarking.  Before running the
+client, the user would need to launch the grpc server.
+
+To start the server before running the client, you can run look for the command
+under the following file:
+
+	benchmark/server/main.go
+
+After starting the server, the client can be run.  An example of how to run this
+command is:
+
+go run benchmark/client/main.go -test_name=grpc_test
+
+If the server is running on a different port than 50051, then use the port flag
+for the client to hit the server on the correct port.
+An example for how to run this command on a different port can be found here:
+
+go run benchmark/client/main.go -test_name=grpc_test -port=8080
+*/
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -27,13 +48,12 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/context"
-	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/benchmark"
 	testpb "google.golang.org/grpc/benchmark/grpc_testing"
 	"google.golang.org/grpc/benchmark/stats"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/internal/syscall"
 )
 
 var (
@@ -82,12 +102,12 @@ func main() {
 	}
 	defer cf.Close()
 	pprof.StartCPUProfile(cf)
-	cpuBeg := getCPUTime()
+	cpuBeg := syscall.GetCPUTime()
 	for _, cc := range ccs {
 		runWithConn(cc, req, warmDeadline, endDeadline)
 	}
 	wg.Wait()
-	cpu := time.Duration(getCPUTime() - cpuBeg)
+	cpu := time.Duration(syscall.GetCPUTime() - cpuBeg)
 	pprof.StopCPUProfile()
 	mf, err := os.Create("/tmp/" + *testName + ".mem")
 	if err != nil {
@@ -184,12 +204,4 @@ func median(percentile float64, h *stats.Histogram) int64 {
 		have += bucket.Count
 	}
 	panic("should have found a bound")
-}
-
-func getCPUTime() int64 {
-	var ts unix.Timespec
-	if err := unix.ClockGettime(unix.CLOCK_PROCESS_CPUTIME_ID, &ts); err != nil {
-		grpclog.Fatal(err)
-	}
-	return ts.Nano()
 }

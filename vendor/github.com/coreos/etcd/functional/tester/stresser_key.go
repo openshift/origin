@@ -31,7 +31,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/transport"
 )
 
 type keyStresser struct {
@@ -145,8 +144,8 @@ func (s *keyStresser) run() {
 			// to the new leader.
 		case etcdserver.ErrStopped.Error():
 			// one of the etcd nodes stopped from failure injection
-		case transport.ErrConnClosing.Desc:
-			// server closed the transport (failure injected node)
+		// case transport.ErrConnClosing.Desc:
+		// 	// server closed the transport (failure injected node)
 		case rpctypes.ErrNotCapable.Error():
 			// capability check has not been done (in the beginning)
 		case rpctypes.ErrTooManyRequests.Error():

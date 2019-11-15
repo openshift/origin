@@ -1,4 +1,4 @@
-package bolt_test
+package bbolt_test
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 // TestTx_Check_ReadOnly tests consistency checking on a ReadOnly database.
@@ -57,6 +57,8 @@ func TestTx_Check_ReadOnly(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// Close the view transaction
+	tx.Rollback()
 }
 
 // Ensure that committing a closed transaction returns an error.
@@ -110,6 +112,8 @@ func TestTx_Commit_ErrTxNotWritable(t *testing.T) {
 	if err := tx.Commit(); err != bolt.ErrTxNotWritable {
 		t.Fatal(err)
 	}
+	// Close the view transaction
+	tx.Rollback()
 }
 
 // Ensure that a transaction can retrieve a cursor on the root bucket.
@@ -647,6 +651,57 @@ func TestTx_CopyFile_Error_Normal(t *testing.T) {
 		return tx.Copy(&failWriter{3 * db.Info().PageSize})
 	}); err == nil || err.Error() != "error injected for tests" {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// TestTx_Rollback ensures there is no error when tx rollback whether we sync freelist or not.
+func TestTx_Rollback(t *testing.T) {
+	for _, isSyncFreelist := range []bool{false, true} {
+		// Open the database.
+		db, err := bolt.Open(tempfile(), 0666, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.Remove(db.Path())
+		db.NoFreelistSync = isSyncFreelist
+
+		tx, err := db.Begin(true)
+		if err != nil {
+			t.Fatalf("Error starting tx: %v", err)
+		}
+		bucket := []byte("mybucket")
+		if _, err := tx.CreateBucket(bucket); err != nil {
+			t.Fatalf("Error creating bucket: %v", err)
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatalf("Error on commit: %v", err)
+		}
+
+		tx, err = db.Begin(true)
+		if err != nil {
+			t.Fatalf("Error starting tx: %v", err)
+		}
+		b := tx.Bucket(bucket)
+		if err := b.Put([]byte("k"), []byte("v")); err != nil {
+			t.Fatalf("Error on put: %v", err)
+		}
+		// Imagine there is an error and tx needs to be rolled-back
+		if err := tx.Rollback(); err != nil {
+			t.Fatalf("Error on rollback: %v", err)
+		}
+
+		tx, err = db.Begin(false)
+		if err != nil {
+			t.Fatalf("Error starting tx: %v", err)
+		}
+		b = tx.Bucket(bucket)
+		if v := b.Get([]byte("k")); v != nil {
+			t.Fatalf("Value for k should not have been stored")
+		}
+		if err := tx.Rollback(); err != nil {
+			t.Fatalf("Error on rollback: %v", err)
+		}
+
 	}
 }
 

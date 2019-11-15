@@ -1,4 +1,4 @@
-package bolt_test
+package bbolt_test
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 var statsFlag = flag.Bool("stats", false, "show performance stats")
@@ -60,6 +60,34 @@ func TestOpen(t *testing.T) {
 
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Regression validation for https://github.com/etcd-io/bbolt/pull/122.
+// Tests multiple goroutines simultaneously opening a database.
+func TestOpen_MultipleGoroutines(t *testing.T) {
+	const (
+		instances  = 30
+		iterations = 30
+	)
+	path := tempfile()
+	defer os.RemoveAll(path)
+	var wg sync.WaitGroup
+	for iteration := 0; iteration < iterations; iteration++ {
+		for instance := 0; instance < instances; instance++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				db, err := bolt.Open(path, 0600, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := db.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}()
+		}
+		wg.Wait()
 	}
 }
 
@@ -662,10 +690,9 @@ func TestDB_Close_PendingTx_RO(t *testing.T) { testDB_Close_PendingTx(t, false) 
 // Ensure that a database cannot close while transactions are open.
 func testDB_Close_PendingTx(t *testing.T, writable bool) {
 	db := MustOpenDB()
-	defer db.MustClose()
 
 	// Start transaction.
-	tx, err := db.Begin(true)
+	tx, err := db.Begin(writable)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -687,8 +714,13 @@ func testDB_Close_PendingTx(t *testing.T, writable bool) {
 	default:
 	}
 
-	// Commit transaction.
-	if err := tx.Commit(); err != nil {
+	// Commit/close transaction.
+	if writable {
+		err = tx.Commit()
+	} else {
+		err = tx.Rollback()
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -1573,6 +1605,16 @@ func MustOpenDB() *DB {
 // MustOpenDBWithOption returns a new, open DB at a temporary location with given options.
 func MustOpenWithOption(o *bolt.Options) *DB {
 	f := tempfile()
+	if o == nil {
+		o = bolt.DefaultOptions
+	}
+
+	freelistType := bolt.FreelistArrayType
+	if env := os.Getenv(bolt.TestFreelistType); env == string(bolt.FreelistMapType) {
+		freelistType = bolt.FreelistMapType
+	}
+	o.FreelistType = freelistType
+
 	db, err := bolt.Open(f, 0666, o)
 	if err != nil {
 		panic(err)

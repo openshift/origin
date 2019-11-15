@@ -1,12 +1,13 @@
-package bolt
+package bbolt
 
 import (
 	"testing"
 )
 
 func TestTx_allocatePageStats(t *testing.T) {
-	f := newFreelist()
-	f.ids = []pgid{2, 3}
+	f := newTestFreelist()
+	ids := []pgid{2, 3}
+	f.readIDs(ids)
 
 	tx := &Tx{
 		db: &DB{
