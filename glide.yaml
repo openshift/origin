@@ -168,7 +168,29 @@ import:
   repo:    https://github.com/lestrrat/go-structinfo.git
   version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
 
-# runc for delegation fix BZ#1755991 
+# runc for delegation fix BZ#1755991
 - package: github.com/opencontainers/runc
   repo:    https://github.com/openshift/opencontainers-runc
   version: release-4.3
+
+# DROP: go-openapi for k/k #85223
+- package: github.com/docker/go-units
+  version: v0.4.0
+- package: github.com/go-openapi/loads
+  version: v0.19.4
+- package: github.com/go-openapi/spec
+  version: v0.19.3
+- package: github.com/go-openapi/strfmt
+  version: v0.19.3
+- package: github.com/go-openapi/validate
+  version: v0.19.5
+- package: github.com/stretchr/testify
+  version: v1.4.0
+- package: golang.org/x/crypto
+  version: 57b3e21c3d56
+- package: golang.org/x/net
+  version: ba9fcec4b297
+- package: github.com/agnivade/levenshtein
+  version: v1.0.1
+- package: github.com/andreyvit/diff
+  version: c7f18ee00883
