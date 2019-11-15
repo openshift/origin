@@ -49,7 +49,7 @@ require (
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
 	github.com/docker/go-connections v0.3.0
-	github.com/docker/go-units v0.3.3
+	github.com/docker/go-units v0.4.0
 	github.com/docker/libnetwork v0.0.0-20180830151422-a9cd636e3789
 	github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e
 	github.com/emicklei/go-restful v2.9.5+incompatible
@@ -57,10 +57,10 @@ require (
 	github.com/evanphx/json-patch v4.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
-	github.com/go-openapi/loads v0.19.2
-	github.com/go-openapi/spec v0.19.2
-	github.com/go-openapi/strfmt v0.19.0
-	github.com/go-openapi/validate v0.19.2
+	github.com/go-openapi/loads v0.19.4
+	github.com/go-openapi/spec v0.19.3
+	github.com/go-openapi/strfmt v0.19.3
+	github.com/go-openapi/validate v0.19.5
 	github.com/go-ozzo/ozzo-validation v3.5.0+incompatible // indirect
 	github.com/godbus/dbus v4.1.0+incompatible
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
@@ -125,7 +125,7 @@ require (
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.3.2
 	github.com/storageos/go-api v0.0.0-20180912212459-343b3eff91fc
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/gocapability v0.0.0-20160928074757-e7cb7fa329f4 // indirect
 	github.com/thecodeteam/goscaleio v0.1.0
 	github.com/urfave/negroni v1.0.0 // indirect
@@ -133,9 +133,9 @@ require (
 	github.com/vishvananda/netns v0.0.0-20171111001504-be1fbeda1936 // indirect
 	github.com/vmware/govmomi v0.20.1
 	github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1 // indirect
-	golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8
+	golang.org/x/crypto v0.0.0-20190617133340-57b3e21c3d56
 	golang.org/x/lint v0.0.0-20190409202823-959b441ac422
-	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
+	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
@@ -208,6 +208,8 @@ replace (
 	github.com/PuerkitoBio/purell => github.com/PuerkitoBio/purell v1.1.1
 	github.com/PuerkitoBio/urlesc => github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 	github.com/Rican7/retry => github.com/Rican7/retry v0.1.0
+	github.com/agnivade/levenshtein => github.com/agnivade/levenshtein v1.0.1
+	github.com/andreyvit/diff => github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/armon/circbuf => github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/consul-api => github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6
 	github.com/asaskevich/govalidator => github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
@@ -252,7 +254,7 @@ replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker => github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
 	github.com/docker/go-connections => github.com/docker/go-connections v0.3.0
-	github.com/docker/go-units => github.com/docker/go-units v0.3.3
+	github.com/docker/go-units => github.com/docker/go-units v0.4.0
 	github.com/docker/libnetwork => github.com/docker/libnetwork v0.0.0-20180830151422-a9cd636e3789
 	github.com/docker/spdystream => github.com/docker/spdystream v0.0.0-20160310174837-449fdfce4d96
 	github.com/dustin/go-humanize => github.com/dustin/go-humanize v1.0.0
@@ -270,17 +272,18 @@ replace (
 	github.com/go-acme/lego => github.com/go-acme/lego v2.5.0+incompatible
 	github.com/go-bindata/go-bindata => github.com/go-bindata/go-bindata v3.1.1+incompatible
 	github.com/go-logr/logr => github.com/go-logr/logr v0.1.0
-	github.com/go-openapi/analysis => github.com/go-openapi/analysis v0.19.2
+	github.com/go-openapi/analysis => github.com/go-openapi/analysis v0.19.5
 	github.com/go-openapi/errors => github.com/go-openapi/errors v0.19.2
-	github.com/go-openapi/jsonpointer => github.com/go-openapi/jsonpointer v0.19.2
-	github.com/go-openapi/jsonreference => github.com/go-openapi/jsonreference v0.19.2
-	github.com/go-openapi/loads => github.com/go-openapi/loads v0.19.2
-	github.com/go-openapi/runtime => github.com/go-openapi/runtime v0.19.0
-	github.com/go-openapi/spec => github.com/go-openapi/spec v0.19.2
-	github.com/go-openapi/strfmt => github.com/go-openapi/strfmt v0.19.0
-	github.com/go-openapi/swag => github.com/go-openapi/swag v0.19.2
-	github.com/go-openapi/validate => github.com/go-openapi/validate v0.19.2
+	github.com/go-openapi/jsonpointer => github.com/go-openapi/jsonpointer v0.19.3
+	github.com/go-openapi/jsonreference => github.com/go-openapi/jsonreference v0.19.3
+	github.com/go-openapi/loads => github.com/go-openapi/loads v0.19.4
+	github.com/go-openapi/runtime => github.com/go-openapi/runtime v0.19.4
+	github.com/go-openapi/spec => github.com/go-openapi/spec v0.19.3
+	github.com/go-openapi/strfmt => github.com/go-openapi/strfmt v0.19.3
+	github.com/go-openapi/swag => github.com/go-openapi/swag v0.19.5
+	github.com/go-openapi/validate => github.com/go-openapi/validate v0.19.5
 	github.com/go-ozzo/ozzo-validation => github.com/go-ozzo/ozzo-validation v3.5.0+incompatible
+	github.com/go-stack/stack => github.com/go-stack/stack v1.8.0
 	github.com/godbus/dbus => github.com/godbus/dbus v4.1.0+incompatible
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/glog => github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
@@ -344,7 +347,7 @@ replace (
 	github.com/lucas-clemente/quic-go => github.com/lucas-clemente/quic-go v0.10.2
 	github.com/lucas-clemente/quic-go-certificates => github.com/lucas-clemente/quic-go-certificates v0.0.0-20160823095156-d2f86524cced
 	github.com/magiconair/properties => github.com/magiconair/properties v1.8.1
-	github.com/mailru/easyjson => github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63
+	github.com/mailru/easyjson => github.com/mailru/easyjson v0.7.0
 	github.com/marten-seemann/qtls => github.com/marten-seemann/qtls v0.2.3
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-isatty => github.com/mattn/go-isatty v0.0.3
@@ -398,6 +401,7 @@ replace (
 	github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2
 	github.com/satori/go.uuid => github.com/satori/go.uuid v1.2.0
 	github.com/seccomp/libseccomp-golang => github.com/seccomp/libseccomp-golang v0.9.1
+	github.com/sergi/go-diff => github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2
 	github.com/smartystreets/assertions => github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 	github.com/smartystreets/goconvey => github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
@@ -410,18 +414,21 @@ replace (
 	github.com/spf13/viper => github.com/spf13/viper v1.3.2
 	github.com/storageos/go-api => github.com/storageos/go-api v0.0.0-20180912212459-343b3eff91fc
 	github.com/stretchr/objx => github.com/stretchr/objx v0.2.0
-	github.com/stretchr/testify => github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify => github.com/stretchr/testify v1.4.0
 	github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20160928074757-e7cb7fa329f4
 	github.com/thecodeteam/goscaleio => github.com/thecodeteam/goscaleio v0.1.0
+	github.com/tidwall/pretty => github.com/tidwall/pretty v1.0.0
 	github.com/tmc/grpc-websocket-proxy => github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8
 	github.com/ugorji/go/codec => github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8
 	github.com/urfave/negroni => github.com/urfave/negroni v1.0.0
+	github.com/vektah/gqlparser => github.com/vektah/gqlparser v1.1.2
 	github.com/vishvananda/netlink => github.com/vishvananda/netlink v0.0.0-20171020171820-b2de5d10e38e
 	github.com/vishvananda/netns => github.com/vishvananda/netns v0.0.0-20171111001504-be1fbeda1936
 	github.com/vmware/govmomi => github.com/vmware/govmomi v0.20.1
 	github.com/xiang90/probing => github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18
 	github.com/xlab/handysort => github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1
 	github.com/xordataexchange/crypt => github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77
+	go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.1.2
 	go.opencensus.io => go.opencensus.io v0.21.0
 	go.uber.org/atomic => go.uber.org/atomic v0.0.0-20181018215023-8dc6146f7569
 	go.uber.org/multierr => go.uber.org/multierr v0.0.0-20180122172545-ddea229ff1df
