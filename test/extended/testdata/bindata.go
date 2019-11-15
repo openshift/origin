@@ -21285,9 +21285,8 @@ items:
       type: Docker
       dockerStrategy:
         from:
-          # TODO: use ruby 2.5 image
           kind: DockerImage
-          name: docker.io/centos/ruby-22-centos7
+          name: docker.io/centos/ruby-25-centos7
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -30006,7 +30005,7 @@ os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuil
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
 # not created but due to a buildConfig pointing to it, we get back its graph of deps.
 os::cmd::expect_success_and_text 'oc adm build-chain istag/origin-ruby-sample' 'istag/origin-ruby-sample:latest'
-os::cmd::expect_success_and_text 'oc adm build-chain ruby-22-centos7 -o dot' 'digraph "ruby-22-centos7:latest"'
+os::cmd::expect_success_and_text 'oc adm build-chain ruby-25-centos7 -o dot' 'digraph "ruby-25-centos7:latest"'
 os::cmd::expect_success 'oc delete all -l build=sti'
 echo "ex build-chain: ok"
 os::test::junit::declare_suite_end
@@ -30731,10 +30730,10 @@ project="$(oc project -q)"
 
 os::test::junit::declare_suite_start "cmd/builds"
 # This test validates builds and build related commands
-
-#os::cmd::expect_success 'oc new-build centos/ruby-22-centos7 https://github.com/openshift/ruby-hello-world.git'
+# Disabled because git is required in the container running the test
+#os::cmd::expect_success 'oc new-build centos/ruby-25-centos7 https://github.com/openshift/ruby-hello-world.git'
 #os::cmd::expect_success 'oc get bc/ruby-hello-world'
-#
+
 #os::cmd::expect_success "cat '${OS_ROOT}/examples/hello-openshift/Dockerfile' | oc new-build -D - --name=test"
 #os::cmd::expect_success 'oc get bc/test'
 
@@ -30775,8 +30774,8 @@ os::cmd::expect_success 'oc delete is/origin'
 os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to origin-name-test --name origin-test2"
 os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
 
-#os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
-#os::cmd::expect_failure_and_text 'oc new-build ruby-22-centos7~https://github.com/sclorg/ruby-ex ruby-22-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
+#os::cmd::try_until_text 'oc get is ruby-25-centos7' 'latest'
+#os::cmd::expect_failure_and_text 'oc new-build ruby-25-centos7~https://github.com/sclorg/ruby-ex ruby-25-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
 
 os::cmd::expect_success 'oc delete all --all'
 
@@ -30793,7 +30792,7 @@ os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
 
 # make sure the imagestream has the latest tag before trying to test it or start a build with it
-os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
+os::cmd::try_until_text 'oc get is ruby-25-centos7' 'latest'
 
 os::test::junit::declare_suite_start "cmd/builds/patch-anon-fields"
 REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
@@ -30840,9 +30839,9 @@ os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-buildcli.json'
 # the build should use the image field as defined in the buildconfig
 # Use basename to transform "build/build-name" into "build-name"
 started="$(basename $(oc start-build -o=name ruby-sample-build-invalidtag))"
-os::cmd::expect_success_and_text "oc describe build ${started}" 'centos/ruby-22-centos7$'
+os::cmd::expect_success_and_text "oc describe build ${started}" 'centos/ruby-25-centos7$'
 frombuild="$(basename $(oc start-build -o=name --from-build="${started}"))"
-os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-22-centos7$'
+os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-25-centos7$'
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-dir=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-repo=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
@@ -32695,7 +32694,7 @@ os::cmd::expect_success 'oc new-app --docker-image=library/perl https://github.c
 os::cmd::try_until_success 'oc get istag perl:latest -n test-imagestreams'
 
 # remove redundant imagestream tag before creating objects
-os::cmd::expect_success_and_text 'oc new-app  openshift/ruby-22-centos7 https://github.com/openshift/ruby-hello-world  --strategy=docker --loglevel=5' 'Removing duplicate tag from object list'
+os::cmd::expect_success_and_text 'oc new-app  openshift/ruby-25-centos7 https://github.com/openshift/ruby-hello-world  --strategy=docker --loglevel=5' 'Removing duplicate tag from object list'
 
 # create imagestream in the correct namespace
 os::cmd::expect_success 'oc new-app --name=mytest --image-stream=mysql --env=MYSQL_USER=test --env=MYSQL_PASSWORD=redhat --env=MYSQL_DATABASE=testdb -l app=mytest'
@@ -33160,7 +33159,7 @@ os::cmd::expect_success_and_text 'oc new-build mysql https://github.com/openshif
 os::cmd::expect_failure_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --binary' 'specifying binary builds and source repositories at the same time is not allowed'
 # binary builds cannot be created unless a builder image is specified.
 os::cmd::expect_failure_and_text 'oc new-build --name mybuild --binary --strategy=source -o yaml' 'you must provide a builder image when using the source strategy with a binary build'
-os::cmd::expect_success_and_text 'oc new-build --name mybuild centos/ruby-22-centos7 --binary --strategy=source -o yaml' 'name: ruby-22-centos7:latest'
+os::cmd::expect_success_and_text 'oc new-build --name mybuild centos/ruby-25-centos7 --binary --strategy=source -o yaml' 'name: ruby-25-centos7:latest'
 # binary builds can be created with no builder image if no strategy or docker strategy is specified
 os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary -o yaml' 'type: Binary'
 os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary --strategy=docker -o yaml' 'type: Binary'
@@ -33241,7 +33240,7 @@ os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest --code https://git
 os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest --code ./test/testdata/testapp --dry-run'
 
 os::cmd::expect_success 'oc new-app --code ./test/testdata/testapp --name test'
-os::cmd::expect_success_and_text 'oc get bc test --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-22-centos7:latest'
+os::cmd::expect_success_and_text 'oc get bc test --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-25-centos7:latest'
 
 os::cmd::expect_success 'oc new-app -i php-55-centos7:latest --code ./test/testdata/testapp --name test2'
 os::cmd::expect_success_and_text 'oc get bc test2 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
@@ -33259,7 +33258,7 @@ os::cmd::expect_success 'oc new-app php-55-centos7:latest --code https://github.
 os::cmd::expect_success_and_text 'oc get bc test6 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
 
 os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world.git --name test7'
-os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-22-centos7:latest'
+os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-25-centos7:latest'
 
 os::cmd::expect_success 'oc new-app php-55-centos7:latest https://github.com/openshift/ruby-hello-world.git --name test8'
 os::cmd::expect_success_and_text 'oc get bc test8 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
@@ -34831,10 +34830,10 @@ os::cmd::expect_success 'oc process ruby-helloworld-sample -o go-template-file=/
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath --template "{.kind}"' "List"
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath={.kind}'              "List"
 os::cmd::expect_success 'oc process ruby-helloworld-sample -o jsonpath-file=/dev/null'
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o describe' "ruby-22-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o json'     "ruby-22-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o yaml'     "ruby-22-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o name'     "ruby-22-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o describe' "ruby-25-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o json'     "ruby-25-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o yaml'     "ruby-25-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o name'     "ruby-25-centos7"
 os::cmd::expect_success_and_text 'oc describe templates ruby-helloworld-sample' "BuildConfig.*ruby-sample-build"
 os::cmd::expect_success 'oc delete templates ruby-helloworld-sample'
 os::cmd::expect_success 'oc get templates'
@@ -36480,7 +36479,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
         incremental: true
       type: Source
     triggers:
@@ -36491,7 +36490,7 @@ items:
         secret: secret101
       type: generic
     - imageChange:
-        lastTriggeredImageID: centos/ruby-22-centos7:latest
+        lastTriggeredImageID: centos/ruby-25-centos7:latest
       type: imageChange
   status:
     lastVersion: 1
@@ -36519,7 +36518,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7:latest
+          name: centos/ruby-25-centos7:latest
         incremental: true
       type: Source
   status:
@@ -37043,7 +37042,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
       type: Source
     triggers:
     - github:
@@ -37167,7 +37166,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
       type: Source
     triggers:
     - github:
@@ -37209,7 +37208,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
       type: Source
   status:
     phase: Running
@@ -37319,7 +37318,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
       type: Source
     triggers:
     - github:
@@ -37368,7 +37367,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
       type: Source
   status:
     phase: Running
@@ -38606,10 +38605,10 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7"
+        "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -38661,7 +38660,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
           "dockerStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-22-centos7:latest"
+              "name": "ruby-25-centos7:latest"
             },
             "env": [
               {
@@ -39063,10 +39062,10 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7"
+        "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -39118,7 +39117,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-22-centos7:latest"
+              "name": "ruby-25-centos7:latest"
             },
             "env": [
               {
@@ -41976,7 +41975,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson() (*
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile = []byte(`FROM centos/ruby-25-centos7
 ARG foo
 RUN echo $foo
 `)
@@ -42355,11 +42354,11 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7",
+        "name": "ruby-25-centos7",
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -42409,7 +42408,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-22-centos7:latest"
+              "name": "ruby-25-centos7:latest"
             },
             "env": [
               {
@@ -43018,11 +43017,11 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7",
+        "name": "ruby-25-centos7",
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -43071,7 +43070,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-22-centos7:latest"
+              "name": "ruby-25-centos7:latest"
             },
             "env": [
               {
@@ -44620,7 +44619,7 @@ spec:
     spec:
       containers:
       - name: testapp
-        image: centos/ruby-22-centos7:latest
+        image: centos/ruby-25-centos7:latest
         command:
         - /bin/sleep
         args:
@@ -45576,7 +45575,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-22-centos7
+        name: centos/ruby-25-centos7
     type: Source
   triggers: []
 status:
@@ -45611,7 +45610,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson = []byte(`{
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7",
+        "dockerImageRepository": "centos/ruby-25-centos7",
         "tags": [
           {
             "name": "valid"
@@ -45647,7 +45646,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             },
             "incremental": true
           }
@@ -45689,7 +45688,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             },
             "incremental": true
           }
@@ -46246,7 +46245,7 @@ project="$(oc project -q)"
 os::test::junit::declare_suite_start "cmd/triggers"
 # This test validates triggers
 
-os::cmd::expect_success 'oc new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git'
+os::cmd::expect_success 'oc new-app centos/ruby-25-centos7~https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
 os::cmd::expect_success 'oc get dc/ruby-hello-world'
 
@@ -46260,7 +46259,7 @@ os::cmd::expect_failure_and_text 'oc set triggers bc/ruby-hello-world --remove -
 os::cmd::expect_failure_and_text 'oc set triggers bc/ruby-hello-world --auto --manual' 'at most one of --auto or --manual'
 # print
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:latest.*true'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:latest.*true'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'webhook'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'github'
 # note, oc new-app currently does not set up gitlab or bitbucket webhooks by default
@@ -46277,7 +46276,7 @@ os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove-a
 
 os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'webhook|github'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'config.*false'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:latest.*false'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:latest.*false'
 # set github hook
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-github' 'updated'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'github'
@@ -46304,18 +46303,18 @@ os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'bitbucke
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove --from-bitbucket' 'updated'
 os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'bitbucket'
 # set from-image
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-22-centos7:other' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:other.*true'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-25-centos7:other' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:other.*true'
 # manual and remove both clear build configs
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-22-centos7:other --manual' 'updated'
-os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:other.*false'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-22-centos7:other' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-22-centos7:other --remove' 'updated'
-os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:other'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-25-centos7:other --manual' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:other.*false'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-25-centos7:other' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-25-centos7:other --remove' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:other'
 # test --all
-os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-22-centos7:latest.*false'
+os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-25-centos7:latest.*false'
 os::cmd::expect_success_and_text 'oc set triggers bc --all --auto' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-22-centos7:latest.*true'
+os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-25-centos7:latest.*true'
 # set a trigger on a build that doesn't have an imagestream strategy.from-image
 os::cmd::expect_success_and_text 'oc set triggers bc/scratch --from-image=test:latest' 'updated'
 
