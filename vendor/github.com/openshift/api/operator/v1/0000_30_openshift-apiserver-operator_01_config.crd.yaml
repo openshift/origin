@@ -36,6 +36,8 @@ spec:
         metadata:
           type: object
         spec:
+          description: spec is the specification of the desired behavior of the OpenShift
+            API Server.
           type: object
           properties:
             logLevel:
@@ -71,6 +73,7 @@ spec:
               nullable: true
               x-kubernetes-preserve-unknown-fields: true
         status:
+          description: status defines the observed status of the OpenShift API Server.
           type: object
           properties:
             conditions:

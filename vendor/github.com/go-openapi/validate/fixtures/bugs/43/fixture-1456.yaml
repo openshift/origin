@@ -1,0 +1,49 @@
+swagger: '2.0'
+info:
+  title: fixture
+  description: reproduce fixture go-swagger/go-swagger#1456
+  version: "1.0.0"
+paths:
+  /v1/collection:
+    post:
+      summary: Collection
+      tags:
+        - Collection
+      parameters:
+        - name: collection
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/collection'
+      responses:
+        200:
+          description: success
+          schema:
+            type: string
+definitions:
+  collection:
+    type: object
+    required:
+      - id
+      - title
+      - items
+    properties:
+      id:
+        type: string
+        description: The unique ID
+      title:
+        type: string
+        description: Title
+        minLength: 1
+        maxLength: 50
+      items:
+        type: array
+        description: Items
+        items:
+          type: string
+    example:
+      id: item1
+      title: Home
+      items:
+      - item2
+      - item3

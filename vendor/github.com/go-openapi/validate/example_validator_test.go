@@ -65,73 +65,44 @@ func TestExample_ValidateExamples(t *testing.T) {
 		if DebugTest {
 			t.Logf("Testing valid example values for: %s", path)
 		}
-		doc, err := loads.Spec(path)
-		if assert.NoError(t, err) {
-			validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-			validator.spec = doc
-			validator.analyzer = analysis.New(doc.Spec())
-			myExampleValidator := &exampleValidator{SpecValidator: validator}
-			res := myExampleValidator.Validate()
-			assert.Empty(t, res.Errors, tt+" should not have errors")
+
+		validator := makeSpecValidator(t, path)
+		myExampleValidator := &exampleValidator{SpecValidator: validator}
+		res := myExampleValidator.Validate()
+		assert.Empty(t, res.Errors, tt+" should not have errors")
+		/*
 			// Special case: warning only
-			/*
-				if tt == "parameter-required" {
-					warns := []string{}
-					for _, w := range res.Warnings {
-						warns = append(warns, w.Error())
-					}
-					assert.Contains(t, warns, "limit in query has an example value and is required as parameter")
-				}
-			*/
-			if DebugTest && t.Failed() {
-				t.Logf("DEVMODE: Returned errors for %s:", tt)
-				for _, e := range res.Errors {
-					t.Logf("%v", e)
-				}
-				t.Logf("DEVMODE: Returned warnings for %s:", tt)
-				for _, e := range res.Warnings {
-					t.Logf("%v", e)
-				}
+			if tt == "parameter-required" {
+				assert.Contains(t, verifiedTestWarnings(res), "limit in query has an example value and is required as parameter")
 			}
-		}
+		*/
+		debugTest(t, path, res)
 
 		path = filepath.Join("fixtures", "validation", "example", "invalid-example-"+tt+".json")
+
 		if DebugTest {
 			t.Logf("Testing invalid example values for: %s", path)
 		}
-		doc, err = loads.Spec(path)
-		if assert.NoError(t, err) {
-			validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-			validator.spec = doc
-			validator.analyzer = analysis.New(doc.Spec())
-			myExampleValidator := &exampleValidator{SpecValidator: validator}
-			res := myExampleValidator.Validate()
-			switch tt {
-			case "header-badpattern":
-				// This fixture exhibits real errors besides example values
-				assert.NotEmpty(t, res.Errors, tt+" should have errors")
-				assert.NotEmpty(t, res.Warnings, tt+" should have warnings")
-			default:
-				assert.Empty(t, res.Errors, tt+" should not have errors")
-				assert.NotEmpty(t, res.Warnings, tt+" should have warnings")
-			}
-			// Update: now we have an additional message to explain it's all about a default value
-			// Example:
-			// - default value for limit in query does not validate its Schema
-			// - limit in query must be of type integer: "string"]
-			assert.True(t, len(res.Warnings) >= 1, tt+" should have at least 1 warning")
 
-			if DebugTest && t.Failed() {
-				t.Logf("DEVMODE: Returned errors for %s:", tt)
-				for _, e := range res.Errors {
-					t.Logf("%v", e)
-				}
-				t.Logf("DEVMODE: Returned warnings for %s:", tt)
-				for _, e := range res.Warnings {
-					t.Logf("%v", e)
-				}
-			}
+		validator = makeSpecValidator(t, path)
+		myExampleValidator = &exampleValidator{SpecValidator: validator}
+		res = myExampleValidator.Validate()
+		switch tt {
+		case "header-badpattern":
+			// This fixture exhibits real errors besides example values
+			assert.NotEmpty(t, res.Errors, tt+" should have errors")
+			assert.NotEmpty(t, res.Warnings, tt+" should have warnings")
+		default:
+			assert.Empty(t, res.Errors, tt+" should not have errors")
+			assert.NotEmpty(t, res.Warnings, tt+" should have warnings")
 		}
+		// Update: now we have an additional message to explain it's all about a default value
+		// Example:
+		// - default value for limit in query does not validate its Schema
+		// - limit in query must be of type integer: "string"]
+		assert.True(t, len(res.Warnings) >= 1, tt+" should have at least 1 warning")
+
+		debugTest(t, path, res)
 		if DebugTest && t.Failed() {
 			t.FailNow()
 		}

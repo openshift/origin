@@ -34,17 +34,17 @@ func TestType_schemaInfoForType(t *testing.T) {
 	testTypes := []expectedJSONType{
 		{
 			value:                 []byte("abc"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "byte",
 		},
 		{
 			value:                 strfmt.Date(time.Date(2014, 10, 10, 0, 0, 0, 0, time.UTC)),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "date",
 		},
 		{
 			value:                 strfmt.NewDateTime(),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "date-time",
 		},
 		{
@@ -55,92 +55,92 @@ func TestType_schemaInfoForType(t *testing.T) {
 		},
 		{
 			value:                 strfmt.URI("http://thisisleadingusnowhere.com"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "uri",
 		},
 		{
 			value:                 strfmt.Email("fred@esasymoney.com"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "email",
 		},
 		{
 			value:                 strfmt.Hostname("www.github.com"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "hostname",
 		},
 		{
 			value:                 strfmt.Password("secret"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "password",
 		},
 		{
 			value:                 strfmt.IPv4("192.168.224.1"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "ipv4",
 		},
 		{
 			value:                 strfmt.IPv6("::1"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "ipv6",
 		},
 		{
 			value:                 strfmt.MAC("01:02:03:04:05:06"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "mac",
 		},
 		{
 			value:                 strfmt.UUID("a8098c1a-f86e-11da-bd1a-00112444be1e"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "uuid",
 		},
 		{
 			value:                 strfmt.UUID3("bcd02e22-68f0-3046-a512-327cca9def8f"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "uuid3",
 		},
 		{
 			value:                 strfmt.UUID4("025b0d74-00a2-4048-bf57-227c5111bb34"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "uuid4",
 		},
 		{
 			value:                 strfmt.UUID5("886313e1-3b8a-5372-9b90-0c9aee199e5d"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "uuid5",
 		},
 		{
 			value:                 strfmt.ISBN("0321751043"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "isbn",
 		},
 		{
 			value:                 strfmt.ISBN10("0321751043"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "isbn10",
 		},
 		{
 			value:                 strfmt.ISBN13("978-0321751041"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "isbn13",
 		},
 		{
 			value:                 strfmt.CreditCard("4111-1111-1111-1111"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "creditcard",
 		},
 		{
 			value:                 strfmt.SSN("111-11-1111"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "ssn",
 		},
 		{
 			value:                 strfmt.HexColor("#FFFFFF"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "hexcolor",
 		},
 		{
 			value:                 strfmt.RGBColor("rgb(255,255,255)"),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "rgbcolor",
 		},
 		// Numerical values
@@ -232,7 +232,7 @@ func TestType_schemaInfoForType(t *testing.T) {
 		},
 		{
 			value:                 "simply a string",
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "",
 		},
 		{
@@ -243,17 +243,17 @@ func TestType_schemaInfoForType(t *testing.T) {
 		},
 		{
 			value:                 strfmt.Base64("ZWxpemFiZXRocG9zZXk="),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "byte",
 		},
 		{
 			value:                 strfmt.Duration(0),
-			expectedJSONType:      "string",
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "duration",
 		},
 		{
-			value:                 strfmt.ObjectId("507f1f77bcf86cd799439011"),
-			expectedJSONType:      "string",
+			value:                 strfmt.NewObjectId("507f1f77bcf86cd799439011"),
+			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "bsonobjectid",
 		},
 		/*
@@ -276,8 +276,7 @@ func TestType_schemaInfoForType(t *testing.T) {
 
 	// Check file declarations as io.ReadCloser are properly detected
 	myFile := runtime.File{}
-	var myReader io.ReadCloser
-	myReader = &myFile
+	var myReader io.ReadCloser = &myFile
 	jsonType, swaggerFormat := v.schemaInfoForType(myReader)
 	assert.Equal(t, "file", jsonType)
 	assert.Equal(t, "", swaggerFormat)

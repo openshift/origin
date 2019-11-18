@@ -1,0 +1,27 @@
+swagger: '2.0'
+info:
+  title: Object
+  version: 0.1.0
+
+paths:
+  "/":
+    get:
+      operationId: getBody
+      parameters:
+        - name: yet_other_server_id
+          in: body
+          schema:
+            # Invalid array definition
+            type: array
+            properties:
+              other:
+                type: string
+      responses:
+        '200':
+          description: ko
+            # Invalid array definition
+          schema:
+            type: array
+            properties:
+              another:
+                type: string

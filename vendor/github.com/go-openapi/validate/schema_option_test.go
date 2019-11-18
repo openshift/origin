@@ -18,11 +18,11 @@ import (
 	"testing"
 )
 
-func TestDisableObjectArrayTypeCheck(t *testing.T) {
+func TestEnableObjectArrayTypeCheck(t *testing.T) {
 	opts := &SchemaValidatorOptions{}
-	setter := DisableObjectArrayTypeCheck(true)
+	setter := EnableObjectArrayTypeCheck(true)
 	setter(opts)
-	if !opts.DisableObjectArrayTypeCheck {
-		t.Errorf("Expect 'DisableObjectArrayTypeCheck' is true, got false")
+	if !opts.EnableObjectArrayTypeCheck {
+		t.Errorf("Expect 'EnableObjectArrayTypeCheck' is true, got false")
 	}
 }

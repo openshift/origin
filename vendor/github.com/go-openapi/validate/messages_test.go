@@ -28,6 +28,7 @@ import (
 	"github.com/go-openapi/loads/fmts"
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 )
 
@@ -84,7 +85,24 @@ func Test_MessageQualityStopOnErrors_Issue44(t *testing.T) {
 	assert.Zero(t, errs, "Message testing didn't match expectations")
 }
 
-func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) (errs int) {
+func loadTestConfig(t *testing.T, fp string) ExpectedMap {
+	expectedConfig, err := ioutil.ReadFile(fp)
+	require.NoErrorf(t, err, "cannot read expected messages config file: %v", err)
+
+	tested := make(ExpectedMap, 200)
+
+	err = yaml.Unmarshal(expectedConfig, &tested)
+	require.NoErrorf(t, err, "cannot unmarshall expected messages from config file : %v", err)
+
+	// Check config
+	for fixture, expected := range tested {
+		require.Nil(t, UniqueItems("", "", expected.ExpectedMessages), "duplicate error messages configured for %s", fixture)
+		require.Nil(t, UniqueItems("", "", expected.ExpectedWarnings), "duplicate warning messages configured for %s", fixture)
+	}
+	return tested
+}
+
+func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) int {
 	// Verifies the production of validation error messages in multiple
 	// spec scenarios.
 	//
@@ -99,160 +117,127 @@ func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) 
 	//
 	// expected messages and warnings are configured in ./fixtures/validation/expected_messages.yaml
 	//
-	expectedConfig, ferr := ioutil.ReadFile("./fixtures/validation/expected_messages.yaml")
-	if ferr != nil {
-		t.Logf("Cannot read expected messages config file: %v", ferr)
-		errs++
-		return
-	}
+	var errs int // error count
 
-	tested := ExpectedMap{}
-	yerr := yaml.Unmarshal(expectedConfig, &tested)
-	if yerr != nil {
-		t.Logf("Cannot unmarshall expected messages from config file : %v", yerr)
-		errs++
-		return
-	}
+	tested := loadTestConfig(t, filepath.Join("fixtures", "validation", "expected_messages.yaml"))
 
-	// Check config
-	for fixture, expected := range tested {
-		if err := UniqueItems("", "", expected.ExpectedMessages); err != nil {
-			t.Logf("Duplicate messages configured for %s", fixture)
-			errs++
-		}
-		if err := UniqueItems("", "", expected.ExpectedWarnings); err != nil {
-			t.Logf("Duplicate messages configured for %s", fixture)
-			errs++
-		}
-	}
-	if errs > 0 {
-		// bad config
-		t.Fail()
-		return
-	}
-	err := filepath.Walk(filepath.Join("fixtures", "validation"),
-		func(path string, info os.FileInfo, err error) error {
-			basename := info.Name()
-			thisTest, found := tested[basename]
-
-			if info.IsDir() || !found {
-				// skip
-				return nil
-			}
-			defer func() {
-				thisTest.Tested = true
-				thisTest.Failed = (errs != 0)
-			}()
-
-			t.Run(path, func(t *testing.T) {
-				if !DebugTest {
-					// when running in dev mode, run serially...
-					t.Parallel()
-				}
-				errs := 0
-
-				if !thisTest.ExpectedValid {
-					// Checking invalid specs
-					t.Logf("Testing messages for invalid spec: %s", path)
-					if DebugTest {
-						if thisTest.Comment != "" {
-							t.Logf("\tDEVMODE: Comment: %s", thisTest.Comment)
-						}
-						if thisTest.Todo != "" {
-							t.Logf("\tDEVMODE: Todo: %s", thisTest.Todo)
-						}
-					}
-					doc, err := loads.Spec(path)
-
-					// Check specs with load errors (error is located in pkg loads or spec)
-					if thisTest.ExpectedLoadError {
-						// Expect a load error: no further validation may possibly be conducted.
-						if assert.Error(t, err, "Expected this spec to return a load error") {
-							errs += verifyLoadErrors(t, err, thisTest.ExpectedMessages)
-							if errs == 0 {
-								// spec does not load as expected
-								return
-							}
-						} else {
-							errs++
-						}
-					}
-					if errs > 0 {
-						if haltOnErrors {
-							assert.FailNow(t, "Test halted: stop testing on message checking error mode")
-							return
-						}
-						return
-					}
-
-					if assert.NoError(t, err, "Expected this spec to load properly") {
-						// Validate the spec document
-						validator := NewSpecValidator(doc.Schema(), strfmt.Default)
-						validator.SetContinueOnErrors(continueOnErrors)
-						res, warn := validator.Validate(doc)
-
-						// Check specs with load errors (error is located in pkg loads or spec)
-						if !assert.False(t, res.IsValid(), "Expected this spec to be invalid") {
-							errs++
-						}
-
-						errs += verifyErrorsVsWarnings(t, res, warn)
-						errs += verifyErrors(t, res, thisTest.ExpectedMessages, "error", continueOnErrors)
-						errs += verifyErrors(t, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
-
-						// DEVMODE allows developers to experiment and tune expected results
-						if DebugTest && errs > 0 {
-							reportTest(t, path, res, thisTest.ExpectedMessages, "error", continueOnErrors)
-							reportTest(t, path, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
-						}
-					} else {
-						errs++
-					}
-
-					if errs > 0 {
-						t.Logf("Message qualification on Spec validation failed for %s", path)
-					}
-				} else {
-					// Expecting no message (e.g.valid spec): 0 message expected
-					t.Logf("Testing valid spec: %s", path)
-					if DebugTest {
-						if thisTest.Comment != "" {
-							t.Logf("\tDEVMODE: Comment: %s", thisTest.Comment)
-						}
-						if thisTest.Todo != "" {
-							t.Logf("\tDEVMODE: Todo: %s", thisTest.Todo)
-						}
-					}
-					doc, err := loads.Spec(path)
-					if assert.NoError(t, err, "Expected this spec to load without error") {
-						validator := NewSpecValidator(doc.Schema(), strfmt.Default)
-						validator.SetContinueOnErrors(continueOnErrors)
-						res, warn := validator.Validate(doc)
-						if !assert.True(t, res.IsValid(), "Expected this spec to be valid") {
-							errs++
-						}
-						errs += verifyErrors(t, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
-						if DebugTest && errs > 0 {
-							reportTest(t, path, res, thisTest.ExpectedMessages, "error", continueOnErrors)
-							reportTest(t, path, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
-						}
-					} else {
-						errs++
-					}
-				}
-				if haltOnErrors && errs > 0 {
-					assert.FailNow(t, "Test halted: stop testing on message checking error mode")
-					return
-				}
-			})
-			return nil
-		})
-	recapTest(t, tested)
-	if err != nil {
+	if err := filepath.Walk(filepath.Join("fixtures", "validation"), testWalkSpecs(t, tested, haltOnErrors, continueOnErrors)); err != nil {
 		t.Logf("%v", err)
 		errs++
 	}
-	return
+	recapTest(t, tested)
+	return errs
+}
+
+func testDebugLog(t *testing.T, thisTest *ExpectedFixture) {
+	if DebugTest {
+		if thisTest.Comment != "" {
+			t.Logf("\tDEVMODE: Comment: %s", thisTest.Comment)
+		}
+		if thisTest.Todo != "" {
+			t.Logf("\tDEVMODE: Todo: %s", thisTest.Todo)
+		}
+	}
+}
+
+func expectInvalid(t *testing.T, path string, thisTest *ExpectedFixture, continueOnErrors bool) {
+	// Checking invalid specs
+	t.Logf("Testing messages for invalid spec: %s", path)
+	testDebugLog(t, thisTest)
+
+	doc, err := loads.Spec(path)
+
+	// Check specs with load errors (error is located in pkg loads or spec)
+	if thisTest.ExpectedLoadError {
+		// Expect a load error: no further validation may possibly be conducted.
+		require.Error(t, err, "expected this spec to return a load error")
+		assert.Equal(t, 0, verifyLoadErrors(t, err, thisTest.ExpectedMessages))
+		return
+	}
+
+	require.NoError(t, err, "expected this spec to load properly")
+
+	// Validate the spec document
+	validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+	validator.SetContinueOnErrors(continueOnErrors)
+	res, warn := validator.Validate(doc)
+
+	// Check specs with load errors (error is located in pkg loads or spec)
+	require.False(t, res.IsValid(), "expected this spec to be invalid")
+
+	errs := verifyErrorsVsWarnings(t, res, warn)
+	errs += verifyErrors(t, res, thisTest.ExpectedMessages, "error", continueOnErrors)
+	errs += verifyErrors(t, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
+	assert.Equal(t, 0, errs)
+
+	if errs > 0 {
+		t.Logf("Message qualification on spec validation failed for %s", path)
+		// DEVMODE allows developers to experiment and tune expected results
+		if DebugTest {
+			reportTest(t, path, res, thisTest.ExpectedMessages, "error", continueOnErrors)
+			reportTest(t, path, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
+		}
+	}
+}
+
+func expectValid(t *testing.T, path string, thisTest *ExpectedFixture, continueOnErrors bool) {
+	// Expecting no message (e.g.valid spec): 0 message expected
+	t.Logf("Testing valid spec: %s", path)
+	testDebugLog(t, thisTest)
+
+	doc, err := loads.Spec(path)
+	require.NoError(t, err, "expected this spec to load without error")
+
+	validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+	validator.SetContinueOnErrors(continueOnErrors)
+	res, warn := validator.Validate(doc)
+	assert.True(t, res.IsValid(), "expected this spec to be valid")
+	assert.Lenf(t, res.Errors, 0, "expected no returned errors")
+
+	// check warnings
+	errs := verifyErrors(t, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
+	assert.Equal(t, 0, errs)
+
+	if DebugTest && errs > 0 {
+		reportTest(t, path, res, thisTest.ExpectedMessages, "error", continueOnErrors)
+		reportTest(t, path, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
+	}
+}
+
+func checkMustHalt(t *testing.T, haltOnErrors bool) {
+	if t.Failed() && haltOnErrors {
+		assert.FailNow(t, "test halted: stop testing on message checking error mode")
+		return
+	}
+}
+
+func testWalkSpecs(t *testing.T, tested ExpectedMap, haltOnErrors, continueOnErrors bool) filepath.WalkFunc {
+	return func(path string, info os.FileInfo, err error) error {
+		thisTest, found := tested[info.Name()]
+
+		if info.IsDir() || !found { // skip
+			return nil
+		}
+
+		t.Run(path, func(t *testing.T) {
+			if !DebugTest { // when running in dev mode, run serially
+				t.Parallel()
+			}
+			defer func() {
+				thisTest.Tested = true
+				thisTest.Failed = t.Failed()
+			}()
+
+			if !thisTest.ExpectedValid {
+				expectInvalid(t, path, thisTest, continueOnErrors)
+				checkMustHalt(t, haltOnErrors)
+			} else {
+				expectValid(t, path, thisTest, continueOnErrors)
+				checkMustHalt(t, haltOnErrors)
+			}
+		})
+		return nil
+	}
 }
 
 func recapTest(t *testing.T, config ExpectedMap) {
@@ -272,7 +257,8 @@ func recapTest(t *testing.T, config ExpectedMap) {
 }
 func reportTest(t *testing.T, path string, res *Result, expectedMessages []ExpectedMessage, msgtype string, continueOnErrors bool) {
 	// Prints out a recap of error messages. To be enabled during development / test iterations
-	var verifiedErrors, lines []string
+	verifiedErrors := make([]string, 0, 50)
+	lines := make([]string, 0, 50)
 	for _, e := range res.Errors {
 		verifiedErrors = append(verifiedErrors, e.Error())
 	}
@@ -280,7 +266,7 @@ func reportTest(t *testing.T, path string, res *Result, expectedMessages []Expec
 	for _, v := range verifiedErrors {
 		status := fmt.Sprintf("Unexpected %s", msgtype)
 		for _, s := range expectedMessages {
-			if (s.WithContinueOnErrors == true && continueOnErrors == true) || s.WithContinueOnErrors == false {
+			if (s.WithContinueOnErrors && continueOnErrors) || !s.WithContinueOnErrors {
 				if s.IsRegexp {
 					if matched, _ := regexp.MatchString(s.Message, v); matched {
 						status = fmt.Sprintf("Expected %s", msgtype)
@@ -298,7 +284,7 @@ func reportTest(t *testing.T, path string, res *Result, expectedMessages []Expec
 	}
 
 	for _, s := range expectedMessages {
-		if (s.WithContinueOnErrors == true && continueOnErrors == true) || s.WithContinueOnErrors == false {
+		if (s.WithContinueOnErrors && continueOnErrors) || !s.WithContinueOnErrors {
 			status := fmt.Sprintf("Missing %s", msgtype)
 			for _, v := range verifiedErrors {
 				if s.IsRegexp {
@@ -326,30 +312,22 @@ func reportTest(t *testing.T, path string, res *Result, expectedMessages []Expec
 	}
 }
 
-func verifyErrorsVsWarnings(t *testing.T, res, warn *Result) (errs int) {
+func verifyErrorsVsWarnings(t *testing.T, res, warn *Result) int {
 	// First verification of result conventions: results are redundant, just a matter of presentation
 	w := len(warn.Errors)
-	if !assert.Len(t, res.Warnings, w) {
-		errs++
-	}
-	if !assert.Len(t, warn.Warnings, 0) {
-		errs++
-	}
-	if !assert.Subset(t, res.Warnings, warn.Errors) {
-		errs++
-	}
-	if !assert.Subset(t, warn.Errors, res.Warnings) {
-		errs++
-	}
-	if errs > 0 {
+	if !assert.Len(t, res.Warnings, w) ||
+		!assert.Len(t, warn.Warnings, 0) ||
+		!assert.Subset(t, res.Warnings, warn.Errors) ||
+		!assert.Subset(t, warn.Errors, res.Warnings) {
 		t.Log("Result equivalence errors vs warnings not verified")
+		return 1
 	}
-	return
+	return 0
 }
 
-func verifyErrors(t *testing.T, res *Result, expectedMessages []ExpectedMessage, msgtype string, continueOnErrors bool) (errs int) {
-	var verifiedErrors []string
-	var numExpected int
+func verifyErrors(t *testing.T, res *Result, expectedMessages []ExpectedMessage, msgtype string, continueOnErrors bool) int {
+	var numExpected, errs int
+	verifiedErrors := make([]string, 0, 50)
 
 	for _, e := range res.Errors {
 		verifiedErrors = append(verifiedErrors, e.Error())
@@ -361,7 +339,7 @@ func verifyErrors(t *testing.T, res *Result, expectedMessages []ExpectedMessage,
 	}
 
 	// We got the expected number of messages (e.g. no duplicates, no uncontrolled side-effect, ...)
-	if !assert.Len(t, verifiedErrors, numExpected, "Unexpected number of %s messages returned. Wanted %d, got %d", msgtype, numExpected, len(verifiedErrors)) {
+	if !assert.Len(t, verifiedErrors, numExpected, "unexpected number of %s messages returned. Wanted %d, got %d", msgtype, numExpected, len(verifiedErrors)) {
 		errs++
 	}
 
@@ -406,32 +384,32 @@ func verifyErrors(t *testing.T, res *Result, expectedMessages []ExpectedMessage,
 				}
 			}
 		}
-		if !assert.True(t, found, "Unexpected %s message: %s", msgtype, v) {
+		if !assert.True(t, found, "unexpected %s message: %s", msgtype, v) {
 			errs++
 		}
 	}
-	return
+	return errs
 }
 
-func verifyLoadErrors(t *testing.T, err error, expectedMessages []ExpectedMessage) (errs int) {
-	// Perform several matchedes on single error message
+func verifyLoadErrors(t *testing.T, err error, expectedMessages []ExpectedMessage) int {
+	var errs int
+
+	// Perform several matches on single error message
 	// Process here error messages from loads (normally unit tested in the load package:
 	// we just want to figure out how all this is captured at the validate package level.
 	v := err.Error()
 	for _, s := range expectedMessages {
 		var found bool
 		if s.IsRegexp {
-			if matched, _ := regexp.MatchString(s.Message, v); matched {
-				found = true
+			if found, _ = regexp.MatchString(s.Message, v); found {
 				break
 			}
 		} else {
-			if strings.Contains(v, s.Message) {
-				found = true
+			if found = strings.Contains(v, s.Message); found {
 				break
 			}
 		}
-		if !assert.True(t, found, "Unexpected load error: %s", v) {
+		if !assert.True(t, found, "unexpected load error: %s", v) {
 			t.Logf("Expecting one of the following:")
 			for _, s := range expectedMessages {
 				smode := "Contains"
@@ -443,54 +421,28 @@ func verifyLoadErrors(t *testing.T, err error, expectedMessages []ExpectedMessag
 			errs++
 		}
 	}
-	return
+	return errs
 }
 
 func testIssue(t *testing.T, path string, expectedNumErrors, expectedNumWarnings int) {
-	doc, err := loads.Spec(path)
-	if assert.NoError(t, err) {
-		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
-		validator.SetContinueOnErrors(true)
-		res, _ := validator.Validate(doc)
-		if !assert.Len(t, res.Errors, expectedNumErrors) {
-			t.Log("Returned errors:")
-			for _, e := range res.Errors {
-				t.Logf("%v", e)
-			}
+	res, _ := loadAndValidate(t, path)
+	if expectedNumErrors > -1 && !assert.Len(t, res.Errors, expectedNumErrors) {
+		t.Log("Returned errors:")
+		for _, e := range res.Errors {
+			t.Logf("%v", e)
 		}
-		if !assert.Len(t, res.Warnings, expectedNumWarnings) {
-			t.Log("Returned warnings:")
-			for _, e := range res.Warnings {
-				t.Logf("%v", e)
-			}
-		}
-
-	} else {
-		t.Logf("Load error: %v", err)
 	}
-}
-
-// test go-swagger/go-swagger#1614 (circular refs)
-func Test_Issue1614(t *testing.T) {
-	path := filepath.Join("fixtures", "bugs", "1614", "gitea.json")
-	testIssue(t, path, 0, 3)
-}
-
-// Test go-swagger/go-swagger#1621 (remote $ref)
-func Test_Issue1621(t *testing.T) {
-	path := filepath.Join("fixtures", "bugs", "1621", "fixture-1621.yaml")
-	testIssue(t, path, 0, 0)
-}
-
-// Test go-swagger/go-swagger#1429 (remote $ref)
-func Test_Issue1429(t *testing.T) {
-	path := filepath.Join("fixtures", "bugs", "1429", "swagger.yaml")
-	testIssue(t, path, 0, 0)
+	if expectedNumWarnings > -1 && !assert.Len(t, res.Warnings, expectedNumWarnings) {
+		t.Log("Returned warnings:")
+		for _, e := range res.Warnings {
+			t.Logf("%v", e)
+		}
+	}
 }
 
 // Test unitary fixture for dev and bug fixing
 func Test_SingleFixture(t *testing.T) {
 	t.SkipNow()
-	path := filepath.Join("fixtures", "validation", "fixture-1171.yaml")
+	path := filepath.Join("fixtures", "validation", "fixture-1231.yaml")
 	testIssue(t, path, -1, -1)
 }

@@ -33,6 +33,7 @@ import (
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions"
 
 	"github.com/openshift/library-go/pkg/operator/encryption"
+	"github.com/openshift/library-go/pkg/operator/encryption/controllers/migrators"
 	"github.com/openshift/library-go/pkg/operator/encryption/secrets"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/genericoperatorclient"
@@ -109,18 +110,18 @@ func TestEncryptionIntegration(tt *testing.T) {
 	// create controllers
 	eventRecorder := events.NewLoggingEventRecorder(component)
 	deployer := NewInstantDeployer(t, stopCh, kubeInformers, kubeClient.CoreV1(), fmt.Sprintf("encryption-config-%s", component))
+	migrator := migrators.NewInProcessMigrator(dynamicClient, kubeClient.DiscoveryClient)
 
 	controllers, err := encryption.NewControllers(
 		component,
 		deployer,
+		migrator,
 		operatorClient,
 		fakeApiServerClient,
 		fakeConfigInformer.Config().V1().APIServers(),
 		kubeInformers,
 		deployer, // secret client wrapping kubeClient with encryption-config revision counting
-		kubeClient.Discovery(),
 		eventRecorder,
-		dynamicClient,
 		// some random low-cardinality GVRs:
 		schema.GroupResource{Group: "operator.openshift.io", Resource: "kubeapiservers"},
 		schema.GroupResource{Group: "operator.openshift.io", Resource: "kubeschedulers"},

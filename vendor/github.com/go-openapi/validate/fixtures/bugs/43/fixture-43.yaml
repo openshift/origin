@@ -1,0 +1,20 @@
+swagger: '2.0'
+info:
+  title: Object
+  version: 0.1.0
+
+paths:
+  /:
+    get:
+      responses:
+        '200':
+          description: Ok
+          schema:
+            type: object
+            properties:
+              a:
+                type: string
+              items:
+                type: string
+                default: "xyz"
+                example: "123"

@@ -139,9 +139,12 @@ func NewBaseController(rsInformer appsinformers.ReplicaSetInformer, podInformer 
 	}
 
 	rsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    rsc.addRS,
+		AddFunc:    rsc.enqueueReplicaSet,
 		UpdateFunc: rsc.updateRS,
-		DeleteFunc: rsc.deleteRS,
+		// This will enter the sync loop and no-op, because the replica set has been deleted from the store.
+		// Note that deleting a replica set immediately after scaling it to 0 will not work. The recommended
+		// way of achieving this is by performing a `stop` operation on the replica set.
+		DeleteFunc: rsc.enqueueReplicaSet,
 	})
 	rsc.rsLister = rsInformer.Lister()
 	rsc.rsListerSynced = rsInformer.Informer().HasSynced
@@ -225,49 +228,10 @@ func (rsc *ReplicaSetController) resolveControllerRef(namespace string, controll
 	return rs
 }
 
-func (rsc *ReplicaSetController) enqueueRS(rs *apps.ReplicaSet) {
-	key, err := controller.KeyFunc(rs)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", rs, err))
-		return
-	}
-
-	rsc.queue.Add(key)
-}
-
-func (rsc *ReplicaSetController) enqueueRSAfter(rs *apps.ReplicaSet, duration time.Duration) {
-	key, err := controller.KeyFunc(rs)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", rs, err))
-		return
-	}
-
-	rsc.queue.AddAfter(key, duration)
-}
-
-func (rsc *ReplicaSetController) addRS(obj interface{}) {
-	rs := obj.(*apps.ReplicaSet)
-	klog.V(4).Infof("Adding %s %s/%s", rsc.Kind, rs.Namespace, rs.Name)
-	rsc.enqueueRS(rs)
-}
-
 // callback when RS is updated
 func (rsc *ReplicaSetController) updateRS(old, cur interface{}) {
 	oldRS := old.(*apps.ReplicaSet)
 	curRS := cur.(*apps.ReplicaSet)
-
-	// TODO: make a KEP and fix informers to always call the delete event handler on re-create
-	if curRS.UID != oldRS.UID {
-		key, err := controller.KeyFunc(oldRS)
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", oldRS, err))
-			return
-		}
-		rsc.deleteRS(cache.DeletedFinalStateUnknown{
-			Key: key,
-			Obj: oldRS,
-		})
-	}
 
 	// You might imagine that we only really need to enqueue the
 	// replica set when Spec changes, but it is safer to sync any
@@ -284,36 +248,7 @@ func (rsc *ReplicaSetController) updateRS(old, cur interface{}) {
 	if *(oldRS.Spec.Replicas) != *(curRS.Spec.Replicas) {
 		klog.V(4).Infof("%v %v updated. Desired pod count change: %d->%d", rsc.Kind, curRS.Name, *(oldRS.Spec.Replicas), *(curRS.Spec.Replicas))
 	}
-	rsc.enqueueRS(curRS)
-}
-
-func (rsc *ReplicaSetController) deleteRS(obj interface{}) {
-	rs, ok := obj.(*apps.ReplicaSet)
-	if !ok {
-		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %#v", obj))
-			return
-		}
-		rs, ok = tombstone.Obj.(*apps.ReplicaSet)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a ReplicaSet %#v", obj))
-			return
-		}
-	}
-
-	key, err := controller.KeyFunc(rs)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", rs, err))
-		return
-	}
-
-	klog.V(4).Infof("Deleting %s %q", rsc.Kind, key)
-
-	// Delete expectations for the ReplicaSet so if we create a new one with the same name it starts clean
-	rsc.expectations.DeleteExpectations(key)
-
-	rsc.queue.Add(key)
+	rsc.enqueueReplicaSet(cur)
 }
 
 // When a pod is created, enqueue the replica set that manages it and update its expectations.
@@ -339,7 +274,7 @@ func (rsc *ReplicaSetController) addPod(obj interface{}) {
 		}
 		klog.V(4).Infof("Pod %s created: %#v.", pod.Name, pod)
 		rsc.expectations.CreationObserved(rsKey)
-		rsc.queue.Add(rsKey)
+		rsc.enqueueReplicaSet(rs)
 		return
 	}
 
@@ -353,7 +288,7 @@ func (rsc *ReplicaSetController) addPod(obj interface{}) {
 	}
 	klog.V(4).Infof("Orphan Pod %s created: %#v.", pod.Name, pod)
 	for _, rs := range rss {
-		rsc.enqueueRS(rs)
+		rsc.enqueueReplicaSet(rs)
 	}
 }
 
@@ -390,7 +325,7 @@ func (rsc *ReplicaSetController) updatePod(old, cur interface{}) {
 	if controllerRefChanged && oldControllerRef != nil {
 		// The ControllerRef was changed. Sync the old controller, if any.
 		if rs := rsc.resolveControllerRef(oldPod.Namespace, oldControllerRef); rs != nil {
-			rsc.enqueueRS(rs)
+			rsc.enqueueReplicaSet(rs)
 		}
 	}
 
@@ -401,7 +336,7 @@ func (rsc *ReplicaSetController) updatePod(old, cur interface{}) {
 			return
 		}
 		klog.V(4).Infof("Pod %s updated, objectMeta %+v -> %+v.", curPod.Name, oldPod.ObjectMeta, curPod.ObjectMeta)
-		rsc.enqueueRS(rs)
+		rsc.enqueueReplicaSet(rs)
 		// TODO: MinReadySeconds in the Pod will generate an Available condition to be added in
 		// the Pod status which in turn will trigger a requeue of the owning replica set thus
 		// having its status updated with the newly available replica. For now, we can fake the
@@ -413,7 +348,7 @@ func (rsc *ReplicaSetController) updatePod(old, cur interface{}) {
 			klog.V(2).Infof("%v %q will be enqueued after %ds for availability check", rsc.Kind, rs.Name, rs.Spec.MinReadySeconds)
 			// Add a second to avoid milliseconds skew in AddAfter.
 			// See https://github.com/kubernetes/kubernetes/issues/39785#issuecomment-279959133 for more info.
-			rsc.enqueueRSAfter(rs, (time.Duration(rs.Spec.MinReadySeconds)*time.Second)+time.Second)
+			rsc.enqueueReplicaSetAfter(rs, (time.Duration(rs.Spec.MinReadySeconds)*time.Second)+time.Second)
 		}
 		return
 	}
@@ -427,7 +362,7 @@ func (rsc *ReplicaSetController) updatePod(old, cur interface{}) {
 		}
 		klog.V(4).Infof("Orphan Pod %s updated, objectMeta %+v -> %+v.", curPod.Name, oldPod.ObjectMeta, curPod.ObjectMeta)
 		for _, rs := range rss {
-			rsc.enqueueRS(rs)
+			rsc.enqueueReplicaSet(rs)
 		}
 	}
 }
@@ -465,12 +400,31 @@ func (rsc *ReplicaSetController) deletePod(obj interface{}) {
 	}
 	rsKey, err := controller.KeyFunc(rs)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", rs, err))
 		return
 	}
 	klog.V(4).Infof("Pod %s/%s deleted through %v, timestamp %+v: %#v.", pod.Namespace, pod.Name, utilruntime.GetCaller(), pod.DeletionTimestamp, pod)
 	rsc.expectations.DeletionObserved(rsKey, controller.PodKey(pod))
-	rsc.queue.Add(rsKey)
+	rsc.enqueueReplicaSet(rs)
+}
+
+// obj could be an *apps.ReplicaSet, or a DeletionFinalStateUnknown marker item.
+func (rsc *ReplicaSetController) enqueueReplicaSet(obj interface{}) {
+	key, err := controller.KeyFunc(obj)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %+v: %v", obj, err))
+		return
+	}
+	rsc.queue.Add(key)
+}
+
+// obj could be an *apps.ReplicaSet, or a DeletionFinalStateUnknown marker item.
+func (rsc *ReplicaSetController) enqueueReplicaSetAfter(obj interface{}, after time.Duration) {
+	key, err := controller.KeyFunc(obj)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %+v: %v", obj, err))
+		return
+	}
+	rsc.queue.AddAfter(key, after)
 }
 
 // worker runs a worker thread that just dequeues items, processes them, and marks them done.
@@ -493,7 +447,7 @@ func (rsc *ReplicaSetController) processNextWorkItem() bool {
 		return true
 	}
 
-	utilruntime.HandleError(fmt.Errorf("sync %q failed with %v", key, err))
+	utilruntime.HandleError(fmt.Errorf("Sync %q failed with %v", key, err))
 	rsc.queue.AddRateLimited(key)
 
 	return true
@@ -506,7 +460,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *apps
 	diff := len(filteredPods) - int(*(rs.Spec.Replicas))
 	rsKey, err := controller.KeyFunc(rs)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("couldn't get key for %v %#v: %v", rsc.Kind, rs, err))
+		utilruntime.HandleError(fmt.Errorf("Couldn't get key for %v %#v: %v", rsc.Kind, rs, err))
 		return nil
 	}
 	if diff < 0 {
@@ -606,6 +560,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *apps
 // meaning it did not expect to see any more of its pods created or deleted. This function is not meant to be
 // invoked concurrently with the same key.
 func (rsc *ReplicaSetController) syncReplicaSet(key string) error {
+
 	startTime := time.Now()
 	defer func() {
 		klog.V(4).Infof("Finished syncing %v %q (%v)", rsc.Kind, key, time.Since(startTime))
@@ -628,7 +583,7 @@ func (rsc *ReplicaSetController) syncReplicaSet(key string) error {
 	rsNeedsSync := rsc.expectations.SatisfiedExpectations(key)
 	selector, err := metav1.LabelSelectorAsSelector(rs.Spec.Selector)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("error converting pod selector to selector: %v", err))
+		utilruntime.HandleError(fmt.Errorf("Error converting pod selector to selector: %v", err))
 		return nil
 	}
 
@@ -667,7 +622,7 @@ func (rsc *ReplicaSetController) syncReplicaSet(key string) error {
 	if manageReplicasErr == nil && updatedRS.Spec.MinReadySeconds > 0 &&
 		updatedRS.Status.ReadyReplicas == *(updatedRS.Spec.Replicas) &&
 		updatedRS.Status.AvailableReplicas != *(updatedRS.Spec.Replicas) {
-		rsc.queue.AddAfter(key, time.Duration(updatedRS.Spec.MinReadySeconds)*time.Second)
+		rsc.enqueueReplicaSetAfter(updatedRS, time.Duration(updatedRS.Spec.MinReadySeconds)*time.Second)
 	}
 	return manageReplicasErr
 }

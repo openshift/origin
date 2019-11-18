@@ -226,6 +226,16 @@ func waitErrCondition(waitFor, checkEvery time.Duration, fn func() error) error 
 	return err
 }
 
+func equalError(a, b error) bool {
+	if a == nil {
+		return b == nil
+	}
+	if b == nil {
+		return a == nil
+	}
+	return a.Error() == b.Error()
+}
+
 // Tests that http2.Server.IdleTimeout is initialized from
 // http.Server.{Idle,Read}Timeout. http.Server.IdleTimeout was
 // added in Go 1.8.

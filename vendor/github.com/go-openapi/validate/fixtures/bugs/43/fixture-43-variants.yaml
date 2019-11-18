@@ -1,0 +1,71 @@
+swagger: '2.0'
+info:
+  title: Object
+  version: 0.1.0
+
+paths:
+  /:
+    get:
+      parameters:
+        - name: itemsparam
+          in: body
+          schema:
+            type: array
+            items:
+              type: object
+              required: [ items ]
+              properties:
+                items:
+                  type: number
+            example:
+              - items: 123
+              - items: 456
+      responses:
+        '200':
+          description: Ok
+          schema:
+            type: object
+            properties:
+              a:
+                type: string
+              items:
+                type: string
+                default: "xyz"
+                example: "123"
+          examples:
+            application/json:
+              a: abc
+              items: xyz
+  # we verify that it is legal to name a property "type" or "properties"
+  /type:
+    get:
+      parameters:
+        - name: typeparam
+          in: body
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+                example: z
+              properties:
+                type: number
+                example: 1
+            default: { "type": "abc", "properties": 123 }
+            example: { "type": "abc", "properties": 123 }
+      responses:
+        '200':
+          description: Ok
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+              properties:
+                type: number
+                default: 123
+                example: 123
+          examples:
+            application/json:
+              type: abc
+              properties: 123

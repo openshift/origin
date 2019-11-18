@@ -30,6 +30,7 @@ import (
 	"github.com/go-openapi/jsonpointer"
 	"github.com/go-openapi/swag"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var specs = filepath.Join("fixtures", "specs")
@@ -635,6 +636,7 @@ func Test_ExpandSwaggerSchema(t *testing.T) {
 	m := rex.FindAllStringSubmatch(jazon, -1)
 	if assert.NotNil(t, m) {
 		for _, matched := range m {
+			// matched := m[0]
 			subMatch := matched[1]
 			assert.True(t, strings.HasPrefix(subMatch, "#/definitions/"),
 				"expected $ref to be inlined, got: %s", matched[0])
@@ -644,10 +646,7 @@ func Test_ExpandSwaggerSchema(t *testing.T) {
 
 func expandThisSchemaOrDieTrying(t *testing.T, fixturePath string) string {
 	doc, err := jsonDoc(fixturePath)
-	if !assert.NoError(t, err) {
-		t.FailNow()
-		return ""
-	}
+	require.NoError(t, err)
 
 	specPath, _ := absPath(fixturePath)
 
@@ -657,12 +656,9 @@ func expandThisSchemaOrDieTrying(t *testing.T, fixturePath string) string {
 
 	sch := new(Schema)
 	err = json.Unmarshal(doc, sch)
-	if !assert.NoError(t, err) {
-		t.FailNow()
-		return ""
-	}
+	require.NoError(t, err)
 
-	assert.NotPanics(t, func() {
+	require.NotPanics(t, func() {
 		err = ExpandSchemaWithBasePath(sch, nil, opts)
 		assert.NoError(t, err)
 	}, "Calling expand schema circular refs, should not panic!")

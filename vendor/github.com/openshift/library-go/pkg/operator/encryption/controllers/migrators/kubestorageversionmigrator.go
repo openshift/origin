@@ -2,6 +2,7 @@ package migrators
 
 import (
 	"fmt"
+	"time"
 
 	migrationv1alpha1 "github.com/kubernetes-sigs/kube-storage-version-migrator/pkg/apis/migration/v1alpha1"
 	kubemigratorclient "github.com/kubernetes-sigs/kube-storage-version-migrator/pkg/clients/clientset"
@@ -32,35 +33,35 @@ type KubeStorageVersionMigrator struct {
 	informer        migrationv1alpha1informer.Interface
 }
 
-func (m *KubeStorageVersionMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, err error) {
+func (m *KubeStorageVersionMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, ts time.Time, err error) {
 	name := migrationResourceName(gr)
 	if migration, err := m.informer.StorageVersionMigrations().Lister().Get(name); err != nil && !errors.IsNotFound(err) {
-		return false, nil, err
+		return false, nil, time.Time{}, err
 	} else if err == nil && migration.Annotations[writeKeyAnnotationKey] == writeKey {
 		for _, c := range migration.Status.Conditions {
 			switch c.Type {
 			case migrationv1alpha1.MigrationSucceeded:
 				if c.Status == corev1.ConditionTrue {
-					return true, nil, nil
+					return true, nil, c.LastUpdateTime.Time, nil
 				}
 			case migrationv1alpha1.MigrationFailed:
 				if c.Status == corev1.ConditionTrue {
-					return true, fmt.Errorf("migration of %s for key %q failed: %s", gr, writeKey, c.Message), nil
+					return true, fmt.Errorf("migration of %s for key %q failed: %s", gr, writeKey, c.Message), c.LastUpdateTime.Time, nil
 				}
 			}
 		}
-		return false, nil, nil
+		return false, nil, time.Time{}, nil
 	} else if err == nil {
 		if err := m.client.MigrationV1alpha1().StorageVersionMigrations().Delete(name, &metav1.DeleteOptions{
 			Preconditions: &metav1.Preconditions{ResourceVersion: &migration.ResourceVersion},
 		}); err != nil && !errors.IsNotFound(err) {
-			return false, nil, err
+			return false, nil, time.Time{}, err
 		}
 	}
 
 	v, err := preferredResourceVersion(m.discoveryClient, gr)
 	if err != nil {
-		return false, nil, err
+		return false, nil, time.Time{}, err
 	}
 
 	_, err = m.client.MigrationV1alpha1().StorageVersionMigrations().Create(&migrationv1alpha1.StorageVersionMigration{
@@ -79,7 +80,7 @@ func (m *KubeStorageVersionMigrator) EnsureMigration(gr schema.GroupResource, wr
 		},
 	})
 
-	return false, nil, err
+	return false, nil, time.Time{}, err
 }
 
 func (m *KubeStorageVersionMigrator) PruneMigration(gr schema.GroupResource) error {

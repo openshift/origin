@@ -489,6 +489,14 @@ var eTLDPlusOneTestCases = []struct {
 	{"www.xn--85x722f.xn--fiqs8s", "xn--85x722f.xn--fiqs8s"},
 	{"shishi.xn--fiqs8s", "shishi.xn--fiqs8s"},
 	{"xn--fiqs8s", ""},
+
+	// Invalid input
+	{".", ""},
+	{"de.", ""},
+	{".de", ""},
+	{".com.au", ""},
+	{"com.au.", ""},
+	{"com..au", ""},
 }
 
 func TestEffectiveTLDPlusOne(t *testing.T) {

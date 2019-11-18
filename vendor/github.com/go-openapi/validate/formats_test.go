@@ -19,11 +19,11 @@ func TestFormatValidator_EdgeCases(t *testing.T) {
 	// formatValidator applies to: Items, Parameter,Schema
 
 	p := spec.Parameter{}
-	p.Typed("string", "email")
+	p.Typed(stringType, "email")
 	s := spec.Schema{}
-	s.Typed("string", "uuid")
+	s.Typed(stringType, "uuid")
 	i := spec.Items{}
-	i.Typed("string", "datetime")
+	i.Typed(stringType, "datetime")
 
 	sources := []interface{}{&p, &s, &i}
 
@@ -36,5 +36,4 @@ func TestFormatValidator_EdgeCases(t *testing.T) {
 
 	assert.False(t, v.Applies("A string", reflect.String))
 	assert.False(t, v.Applies(nil, reflect.String))
-
 }

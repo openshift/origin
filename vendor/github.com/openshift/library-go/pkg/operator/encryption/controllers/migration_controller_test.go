@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -748,10 +749,10 @@ type fakeMigrator struct {
 	pruneReplies  map[schema.GroupResource]error
 }
 
-func (m *fakeMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, err error) {
+func (m *fakeMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, ts time.Time, err error) {
 	m.calls = append(m.calls, fmt.Sprintf("ensure:%s:%s", gr, writeKey))
 	r := m.ensureReplies[gr][writeKey]
-	return r.finished, r.result, r.err
+	return r.finished, r.result, time.Now(), r.err
 }
 
 func (m *fakeMigrator) PruneMigration(gr schema.GroupResource) error {
