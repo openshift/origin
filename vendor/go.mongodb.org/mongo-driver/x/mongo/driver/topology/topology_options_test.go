@@ -17,12 +17,14 @@ import (
 func TestOptionsSetting(t *testing.T) {
 	conf := &config{}
 	ssts := time.Minute
+	name := "test"
 	assert.Zero(t, conf.cs)
 
 	opt := WithConnString(func(connstring.ConnString) connstring.ConnString {
 		return connstring.ConnString{
 			ServerSelectionTimeout:    ssts,
 			ServerSelectionTimeoutSet: true,
+			AppName:                   name,
 		}
 
 	})
@@ -30,4 +32,8 @@ func TestOptionsSetting(t *testing.T) {
 	assert.NoError(t, opt(conf))
 
 	assert.Equal(t, ssts, conf.serverSelectionTimeout)
+
+	serverConf, err := newServerConfig(conf.serverOpts...)
+	assert.Nil(t, err, "error from newServerConfig: %v", err)
+	assert.Equal(t, name, serverConf.appname, "expected appname to be: %v, got: %v", name, serverConf.appname)
 }

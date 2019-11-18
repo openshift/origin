@@ -20,9 +20,6 @@ package options
 //
 // Enabling Client Side Encryption reduces the maximum document and message size (using a maxBsonObjectSize of 2MiB and
 // maxMessageSizeBytes of 6MB) and may have a negative performance impact.
-//
-// This type is in beta. The API does not have any stability guarantees and backwards-breaking changes may be made
-// before the final release.
 type AutoEncryptionOptions struct {
 	KeyVaultClientOptions *ClientOptions
 	KeyVaultNamespace     string

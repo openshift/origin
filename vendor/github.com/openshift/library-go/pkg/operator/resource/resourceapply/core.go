@@ -39,7 +39,7 @@ func ApplyNamespace(client coreclientv1.NamespacesGetter, recorder events.Record
 	}
 
 	if klog.V(4) {
-		klog.Infof("Namespace %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
+		klog.Infof("Namespace %q changes: %v", required.Name, JSONPatchNoError(existing, existingCopy))
 	}
 
 	actual, err := client.Namespaces().Update(existingCopy)
@@ -82,7 +82,7 @@ func ApplyService(client coreclientv1.ServicesGetter, recorder events.Recorder, 
 	existingCopy.Spec.Type = required.Spec.Type // if this is different, the update will fail.  Status will indicate it.
 
 	if klog.V(4) {
-		klog.Infof("Service %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
+		klog.Infof("Service %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, required))
 	}
 
 	actual, err := client.Services(required.Namespace).Update(existingCopy)
@@ -111,7 +111,7 @@ func ApplyPod(client coreclientv1.PodsGetter, recorder events.Recorder, required
 	}
 
 	if klog.V(4) {
-		klog.Infof("Pod %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
+		klog.Infof("Pod %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, required))
 	}
 
 	actual, err := client.Pods(required.Namespace).Update(existingCopy)
@@ -139,7 +139,7 @@ func ApplyServiceAccount(client coreclientv1.ServiceAccountsGetter, recorder eve
 		return existingCopy, false, nil
 	}
 	if klog.V(4) {
-		klog.Infof("ServiceAccount %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
+		klog.Infof("ServiceAccount %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, required))
 	}
 	actual, err := client.ServiceAccounts(required.Namespace).Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
@@ -200,7 +200,7 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Record
 		details = fmt.Sprintf("cause by changes in %v", strings.Join(modifiedKeys, ","))
 	}
 	if klog.V(4) {
-		klog.Infof("ConfigMap %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
+		klog.Infof("ConfigMap %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, required))
 	}
 	reportUpdateEvent(recorder, required, err, details)
 	return actual, true, err
@@ -234,7 +234,7 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 	existingCopy.Data = required.Data
 
 	if klog.V(4) {
-		klog.Infof("Secret %s/%s changes: %v", required.Namespace, required.Name, JSONPatchSecret(existing, required))
+		klog.Infof("Secret %s/%s changes: %v", required.Namespace, required.Name, JSONPatchSecretNoError(existing, required))
 	}
 	actual, err := client.Secrets(required.Namespace).Update(existingCopy)
 

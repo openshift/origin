@@ -20,8 +20,6 @@ import (
 )
 
 // ClientEncryption is used to create data keys and explicitly encrypt and decrypt BSON values.
-// This type is in beta. The API does not have any stability guarantees and backwards-breaking changes may be made
-// before the final release.
 type ClientEncryption struct {
 	crypt          *driver.Crypt
 	keyVaultClient *Client

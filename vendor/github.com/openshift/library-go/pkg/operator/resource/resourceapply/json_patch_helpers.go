@@ -11,9 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// JSONPatch generates a JSON patch between original and modified objects and return the JSON as a string.
+// JSONPatchNoError generates a JSON patch between original and modified objects and return the JSON as a string.
+// Note:
+//
 // In case of error, the returned string will contain the error messages.
-func JSONPatch(original, modified runtime.Object) string {
+func JSONPatchNoError(original, modified runtime.Object) string {
 	if original == nil {
 		return "original object is nil"
 	}
@@ -35,9 +37,19 @@ func JSONPatch(original, modified runtime.Object) string {
 	return string(patchBytes)
 }
 
-// JSONPatchSecret generates a JSON patch between original and modified secrets, hiding its data,
-// and return the JSON as a string. In case of error, the returned string will contain the error messages.
-func JSONPatchSecret(original, modified *corev1.Secret) string {
+// JSONPatchSecretNoError generates a JSON patch between original and modified secrets, hiding its data,
+// and return the JSON as a string.
+//
+// Note:
+// In case of error, the returned string will contain the error messages.
+func JSONPatchSecretNoError(original, modified *corev1.Secret) string {
+	if original == nil {
+		return "original object is nil"
+	}
+	if modified == nil {
+		return "modified object is nil"
+	}
+
 	safeModified := modified.DeepCopy()
 	safeOriginal := original.DeepCopy()
 
@@ -54,5 +66,5 @@ func JSONPatchSecret(original, modified *corev1.Secret) string {
 		}
 	}
 
-	return JSONPatch(safeOriginal, safeModified)
+	return JSONPatchNoError(safeOriginal, safeModified)
 }

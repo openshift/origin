@@ -88,7 +88,7 @@ func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, ser
 	}
 
 	if klog.V(4) {
-		klog.Infof("ServiceMonitor %q changes: %v", namespace+"/"+required.GetName(), JSONPatch(existing, existingCopy))
+		klog.Infof("ServiceMonitor %q changes: %v", namespace+"/"+required.GetName(), JSONPatchNoError(existing, existingCopy))
 	}
 
 	if _, err = client.Resource(serviceMonitorGVR).Namespace(namespace).Update(updated, metav1.UpdateOptions{}); err != nil {

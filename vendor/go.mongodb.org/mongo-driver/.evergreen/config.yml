@@ -76,7 +76,7 @@ functions:
            if [ "Windows_NT" = "$OS" ]; then
               mkdir -p c:/libmongocrypt/include
               mkdir -p c:/libmongocrypt/bin
-              curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows-test/master/latest/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
+              curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
               tar -xvzf libmongocrypt.tar.gz
               cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
               cp ./include/mongocrypt/*.h c:/libmongocrypt/include

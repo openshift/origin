@@ -162,7 +162,7 @@ func (c StatusSyncer) sync() error {
 	if equality.Semantic.DeepEqual(clusterOperatorObj, originalClusterOperatorObj) {
 		return nil
 	}
-	klog.V(2).Infof("clusteroperator/%s diff %v", c.clusterOperatorName, resourceapply.JSONPatch(originalClusterOperatorObj, clusterOperatorObj))
+	klog.V(2).Infof("clusteroperator/%s diff %v", c.clusterOperatorName, resourceapply.JSONPatchNoError(originalClusterOperatorObj, clusterOperatorObj))
 
 	if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(clusterOperatorObj); err != nil {
 		return updateErr
