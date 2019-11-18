@@ -1,4 +1,4 @@
-package configdefault
+package admissionenablement
 
 import (
 	"time"

@@ -1,4 +1,4 @@
-package enablement
+package admissionenablement
 
 import (
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
