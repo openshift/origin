@@ -219,6 +219,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.RetryWrites = &cs.RetryWrites
 	}
 
+	if cs.RetryReadsSet {
+		c.RetryReads = &cs.RetryReads
+	}
+
 	if cs.ReplicaSet != "" {
 		c.ReplicaSet = &cs.ReplicaSet
 	}

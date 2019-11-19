@@ -7,6 +7,8 @@ metadata:
     description: Extension for configuring openshif samples operator.
 spec:
   scope: Cluster
+  subresources:
+    status: {}
   preserveUnknownFields: false
   group: samples.operator.openshift.io
   versions:

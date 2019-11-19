@@ -179,18 +179,59 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, rc, client.readConcern, "expected read concern %v, got %v", rc, client.readConcern)
 	})
 	t.Run("retry writes", func(t *testing.T) {
+		retryWritesURI := "mongodb://localhost:27017/?retryWrites=false"
+		retryWritesErrorURI := "mongodb://localhost:27017/?retryWrites=foobar"
+
 		testCases := []struct {
 			name          string
 			opts          *options.ClientOptions
+			expectErr     bool
 			expectedRetry bool
 		}{
-			{"default", options.Client(), true},
-			{"custom", options.Client().SetRetryWrites(false), false},
+			{"default", options.Client(), false, true},
+			{"custom options", options.Client().SetRetryWrites(false), false, false},
+			{"custom URI", options.Client().ApplyURI(retryWritesURI), false, false},
+			{"custom URI error", options.Client().ApplyURI(retryWritesErrorURI), true, false},
 		}
 		for _, tc := range testCases {
-			client := setupClient(tc.opts)
-			assert.Equal(t, tc.expectedRetry, client.retryWrites,
-				"expected retryWrites %v, got %v", tc.expectedRetry, client.retryWrites)
+			t.Run(tc.name, func(t *testing.T) {
+				client, err := NewClient(tc.opts)
+				if tc.expectErr {
+					assert.NotNil(t, err, "expected error, got nil")
+					return
+				}
+				assert.Nil(t, err, "configuration error: %v", err)
+				assert.Equal(t, tc.expectedRetry, client.retryWrites, "expected retryWrites %v, got %v",
+					tc.expectedRetry, client.retryWrites)
+			})
+		}
+	})
+	t.Run("retry reads", func(t *testing.T) {
+		retryReadsURI := "mongodb://localhost:27017/?retryReads=false"
+		retryReadsErrorURI := "mongodb://localhost:27017/?retryReads=foobar"
+
+		testCases := []struct {
+			name          string
+			opts          *options.ClientOptions
+			expectErr     bool
+			expectedRetry bool
+		}{
+			{"default", options.Client(), false, true},
+			{"custom options", options.Client().SetRetryReads(false), false, false},
+			{"custom URI", options.Client().ApplyURI(retryReadsURI), false, false},
+			{"custom URI error", options.Client().ApplyURI(retryReadsErrorURI), true, false},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				client, err := NewClient(tc.opts)
+				if tc.expectErr {
+					assert.NotNil(t, err, "expected error, got nil")
+					return
+				}
+				assert.Nil(t, err, "configuration error: %v", err)
+				assert.Equal(t, tc.expectedRetry, client.retryReads, "expected retryReads %v, got %v",
+					tc.expectedRetry, client.retryReads)
+			})
 		}
 	})
 	t.Run("write concern", func(t *testing.T) {

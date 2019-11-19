@@ -68,6 +68,14 @@ func WithCompressionOptions(fn func(...string) []string) ServerOption {
 	}
 }
 
+// WithServerAppName configures the server's application name.
+func WithServerAppName(fn func(string) string) ServerOption {
+	return func(cfg *serverConfig) error {
+		cfg.appname = fn(cfg.appname)
+		return nil
+	}
+}
+
 // WithHeartbeatInterval configures a server's heartbeat interval.
 func WithHeartbeatInterval(fn func(time.Duration) time.Duration) ServerOption {
 	return func(cfg *serverConfig) error {

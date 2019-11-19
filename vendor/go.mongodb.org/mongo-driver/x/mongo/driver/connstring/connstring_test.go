@@ -389,6 +389,7 @@ func TestRetryWrites(t *testing.T) {
 	}{
 		{s: "retryWrites=true", expected: true},
 		{s: "retryWrites=false", expected: false},
+		{s: "retryWrites=foobar", expected: false, err: true},
 	}
 
 	for _, test := range tests {
@@ -397,11 +398,37 @@ func TestRetryWrites(t *testing.T) {
 			cs, err := connstring.Parse(s)
 			if test.err {
 				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, test.expected, cs.RetryWrites)
-				require.Equal(t, true, cs.RetryWritesSet)
+				return
 			}
+			require.NoError(t, err)
+			require.Equal(t, test.expected, cs.RetryWrites)
+			require.True(t, cs.RetryWritesSet)
+		})
+	}
+}
+
+func TestRetryReads(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected bool
+		err      bool
+	}{
+		{s: "retryReads=true", expected: true},
+		{s: "retryReads=false", expected: false},
+		{s: "retryReads=foobar", expected: false, err: true},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, test.expected, cs.RetryReads)
+			require.True(t, cs.RetryReadsSet)
 		})
 	}
 }

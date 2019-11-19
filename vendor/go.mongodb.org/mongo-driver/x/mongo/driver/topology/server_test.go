@@ -290,6 +290,14 @@ func TestServer(t *testing.T) {
 			t.Fatal("client metadata not expected in heartbeat but found")
 		}
 	})
+	t.Run("WithServerAppName", func(t *testing.T) {
+		name := "test"
+
+		s, err := NewServer(address.Address("localhost"),
+			WithServerAppName(func(string) string { return name }))
+		require.Nil(t, err, "error from NewServer: %v", err)
+		require.Equal(t, name, s.cfg.appname, "expected appname to be: %v, got: %v", name, s.cfg.appname)
+	})
 }
 
 func includesMetadata(t *testing.T, wm []byte) bool {

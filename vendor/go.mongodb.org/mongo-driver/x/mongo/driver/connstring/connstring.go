@@ -64,6 +64,8 @@ type ConnString struct {
 	ReadPreferenceTagSets              []map[string]string
 	RetryWrites                        bool
 	RetryWritesSet                     bool
+	RetryReads                         bool
+	RetryReadsSet                      bool
 	MaxStaleness                       time.Duration
 	MaxStalenessSet                    bool
 	ReplicaSet                         string
@@ -553,6 +555,17 @@ func (p *parser) addOption(pair string) error {
 		}
 
 		p.RetryWritesSet = true
+	case "retryreads":
+		switch value {
+		case "true":
+			p.RetryReads = true
+		case "false":
+			p.RetryReads = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+
+		p.RetryReadsSet = true
 	case "serverselectiontimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {

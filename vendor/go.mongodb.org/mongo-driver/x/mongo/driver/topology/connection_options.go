@@ -84,9 +84,9 @@ func withServerDescriptionCallback(callback func(description.Server), opts ...Co
 // ConnectionOption is used to configure a connection.
 type ConnectionOption func(*connectionConfig) error
 
-// WithAppName sets the application name which gets sent to MongoDB when it
+// WithConnectionAppName sets the application name which gets sent to MongoDB when it
 // first connects.
-func WithAppName(fn func(string) string) ConnectionOption {
+func WithConnectionAppName(fn func(string) string) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.appName = fn(c.appName)
 		return nil

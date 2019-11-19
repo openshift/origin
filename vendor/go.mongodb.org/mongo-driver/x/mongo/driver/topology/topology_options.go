@@ -64,7 +64,8 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		var connOpts []ConnectionOption
 
 		if cs.AppName != "" {
-			connOpts = append(connOpts, WithAppName(func(string) string { return cs.AppName }))
+			connOpts = append(connOpts, WithConnectionAppName(func(string) string { return cs.AppName }))
+			c.serverOpts = append(c.serverOpts, WithServerAppName(func(string) string { return cs.AppName }))
 		}
 
 		switch cs.Connect {
