@@ -37,6 +37,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	memory "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/kubernetes"
+	policyv1beta1client "k8s.io/client-go/kubernetes/typed/policy/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/cache"
@@ -389,6 +390,10 @@ func (c *CLI) AdminProjectClient() projectv1client.Interface {
 
 func (c *CLI) AdminQuotaClient() quotav1client.Interface {
 	return quotav1client.NewForConfigOrDie(c.AdminConfig())
+}
+
+func (c *CLI) AdminPolicyClient() policyv1beta1client.PolicyV1beta1Interface {
+	return policyv1beta1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminOAuthClient() oauthv1client.Interface {

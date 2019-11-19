@@ -2,13 +2,11 @@ package prometheus
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -23,17 +21,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	clientset "k8s.io/client-go/kubernetes"
-	watchtools "k8s.io/client-go/tools/watch"
 
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/conditions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
-
-const waitForPrometheusStartSeconds = 240
 
 var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	defer g.GinkgoRecover()
@@ -403,15 +397,6 @@ func expectBearerTokenURLStatusCodeExec(ns, execPodName, url, bearer string, sta
 	return nil
 }
 
-func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
-	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
-	if err != nil {
-		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
-	}
-	return output, nil
-}
-
 func getAuthenticatedURLViaPod(ns, execPodName, url, user, pass string) (string, error) {
 	cmd := fmt.Sprintf("curl -s -u %s:%s %q", user, pass, url)
 	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
@@ -428,48 +413,6 @@ func getInsecureURLViaPod(ns, execPodName, url string) (string, error) {
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
 	return output, nil
-}
-
-func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountName string, timeout time.Duration) error {
-	w, err := c.CoreV1().ServiceAccounts(ns).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: serviceAccountName}))
-	if err != nil {
-		return err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	_, err = watchtools.UntilWithoutRetry(ctx, w, conditions.ServiceAccountHasSecrets)
-	return err
-}
-
-func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
-	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get("prometheus-k8s", metav1.GetOptions{})
-	if kapierrs.IsNotFound(err) {
-		return "", "", false
-	}
-
-	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
-	for i := 0; i < 30; i++ {
-		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, secret := range secrets.Items {
-			if secret.Type != v1.SecretTypeServiceAccountToken {
-				continue
-			}
-			if !strings.HasPrefix(secret.Name, "prometheus-") {
-				continue
-			}
-			bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
-			break
-		}
-		if len(bearerToken) == 0 {
-			e2e.Logf("Waiting for prometheus service account secret to show up")
-			time.Sleep(time.Second)
-			continue
-		}
-	}
-	o.Expect(bearerToken).ToNot(o.BeEmpty())
-
-	return "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
 
 func hasPullSecret(client clientset.Interface, name string) bool {

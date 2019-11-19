@@ -1,14 +1,11 @@
 package prometheus
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/prometheus/common/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -87,52 +84,6 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 		})
 	})
 })
-
-type prometheusResponse struct {
-	Status string                 `json:"status"`
-	Data   prometheusResponseData `json:"data"`
-}
-
-type prometheusResponseData struct {
-	ResultType string       `json:"resultType"`
-	Result     model.Vector `json:"result"`
-}
-
-func runQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
-	// expect all correct metrics within a reasonable time period
-	errsMap := map[string]error{}
-	for i := 0; i < waitForPrometheusStartSeconds; i++ {
-		for query, expected := range promQueries {
-			//TODO when the http/query apis discussed at https://github.com/prometheus/client_golang#client-for-the-prometheus-http-api
-			// and introduced at https://github.com/prometheus/client_golang/blob/master/api/prometheus/v1/api.go are vendored into
-			// openshift/origin, look to replace this homegrown http request / query param with that API
-			g.By("perform prometheus metric query " + query)
-			contents, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode()), bearerToken)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			result := prometheusResponse{}
-			json.Unmarshal([]byte(contents), &result)
-			metrics := result.Data.Result
-
-			delete(errsMap, query) // clear out any prior failures
-			if (len(metrics) > 0 && !expected) || (len(metrics) == 0 && expected) {
-				dbg := fmt.Sprintf("promQL query: %s had reported incorrect results: %v", query, metrics)
-				fmt.Fprintf(g.GinkgoWriter, dbg)
-				errsMap[query] = fmt.Errorf(dbg)
-			}
-
-		}
-
-		if len(errsMap) == 0 {
-			break
-		}
-		time.Sleep(time.Second)
-	}
-
-	if len(errsMap) != 0 {
-		exutil.DumpPodLogsStartingWith("prometheus-0", oc)
-	}
-	o.Expect(errsMap).To(o.BeEmpty())
-}
 
 func startOpenShiftBuild(oc *exutil.CLI, appTemplate string) *exutil.BuildResult {
 	g.By(fmt.Sprintf("calling oc create -f %s ", appTemplate))
