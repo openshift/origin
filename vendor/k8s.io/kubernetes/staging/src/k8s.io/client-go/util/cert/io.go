@@ -83,6 +83,20 @@ func NewPool(filename string) (*x509.CertPool, error) {
 	return pool, nil
 }
 
+// NewPoolFromBytes returns an x509.CertPool containing the certificates in the given PEM-encoded bytes.
+// Returns an error if the file could not be read, a certificate could not be parsed, or if the file does not contain any certificates
+func NewPoolFromBytes(pemBlock []byte) (*x509.CertPool, error) {
+	certs, err := ParseCertsPEM(pemBlock)
+	if err != nil {
+		return nil, err
+	}
+	pool := x509.NewCertPool()
+	for _, cert := range certs {
+		pool.AddCert(cert)
+	}
+	return pool, nil
+}
+
 // CertsFromFile returns the x509.Certificates contained in the given PEM-encoded file.
 // Returns an error if the file could not be read, a certificate could not be parsed, or if the file does not contain any certificates
 func CertsFromFile(file string) ([]*x509.Certificate, error) {
