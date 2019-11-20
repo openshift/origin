@@ -12,10 +12,23 @@ import (
 )
 
 // TODO switch back to taking a kubeapiserver config.  For now make it obviously safe for 3.11
-func BuildHandlerChain(consolePublicURL string) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, error) {
+func BuildHandlerChain(consolePublicURL string, oauthMetadataFile string) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, error) {
+	// load the oauthmetadata when we can return an error
+	oAuthMetadata := []byte{}
+	if len(oauthMetadataFile) > 0 {
+		var err error
+		oAuthMetadata, err = loadOAuthMetadataFile(oauthMetadataFile)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return func(apiHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
+			// well-known comes after the normal handling chain. This shows where to connect for oauth information
+			handler := withOAuthInfo(apiHandler, oAuthMetadata)
+
 			// this is the normal kube handler chain
-			handler := genericapiserver.DefaultBuildHandlerChain(apiHandler, genericConfig)
+			handler = genericapiserver.DefaultBuildHandlerChain(handler, genericConfig)
 
 			// these handlers are all before the normal kube chain
 			handler = translateLegacyScopeImpersonation(handler)
@@ -26,6 +39,26 @@ func BuildHandlerChain(consolePublicURL string) (func(apiHandler http.Handler, k
 			return handler
 		},
 		nil
+}
+
+// If we know the location of the asset server, redirect to it when / is requested
+// and the Accept header supports text/html
+func withOAuthInfo(handler http.Handler, oAuthMetadata []byte) http.Handler {
+	if len(oAuthMetadata) == 0 {
+		return handler
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path != oauthMetadataEndpoint {
+			// Dispatch to the next handler
+			handler.ServeHTTP(w, req)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(oAuthMetadata)
+	})
 }
 
 // If we know the location of the asset server, redirect to it when / is requested
