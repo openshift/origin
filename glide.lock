@@ -1,5 +1,5 @@
 hash: 0987b19a9e23a24de15a51da338d7cf412da0ff02ab26fd4ccb1076618de8cce
-updated: 2019-11-19T12:22:52.922958+01:00
+updated: 2019-11-20T10:39:55.614383444-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -328,7 +328,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
+  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -811,7 +811,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 1271508fbe8fc691bd59c5dca8ad939ad7c9fded
+  version: 082f8e2a947ea8b4ed15c9c0f7b190d1fd35e6bc
   subpackages:
   - annotations
   - apps
@@ -861,7 +861,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: d679cd370bf7ac46712c470d22be4e2268089c86
+  version: 280f2360b2dfffded10bf12ce692082f3ad64cc6
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -1019,7 +1019,7 @@ imports:
   - pkg/serviceability
   - pkg/template/templateprocessingclient
 - name: github.com/pborman/uuid
-  version: 8b1b92947f46224e3b97bb1a3a5b0382be00d31e
+  version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/pelletier/go-toml
   version: c01d1270ff3e442a8a57cddc1c92dc1138598194
 - name: github.com/peterbourgon/diskv
@@ -1027,7 +1027,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: f6fe06335df110bcf1ed6d4e852b760bfc15beee
+  version: e6812cd8b6726b9ddb25bd23b39e6f711ff5840b
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
@@ -1162,7 +1162,7 @@ imports:
 - name: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: go.mongodb.org/mongo-driver
-  version: 754c5d38979d6a3c4883f9ae4d01bdf6c46769c5
+  version: 439cf684e8d89b22f0d859399148d9c2f3b853d7
   subpackages:
   - bson
   - bson/bsoncodec
@@ -1593,7 +1593,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: c03a212443319fc4c612d44cf7e4f2908cf8afe2
+  version: 54cbfd8602694dc98fd05c3facbf6bdffe2c38fa
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1665,6 +1665,7 @@ imports:
   - pkg/registry/rest
   - pkg/server
   - pkg/server/certs
+  - pkg/server/dynamiccertificates
   - pkg/server/egressselector
   - pkg/server/filters
   - pkg/server/healthz
@@ -1728,7 +1729,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: 22749a00288c7dc4ea9c7ccc1fadae195417ee5d
+  version: ce30d70a2ee07d85862ede1d0d47e409ae2f44bf
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -2161,7 +2162,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 30a71bf7629e96f087fe356ae999f82086c744ec
+  version: 6649eb0544ffbcf4839be24c115bc49987308934
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app

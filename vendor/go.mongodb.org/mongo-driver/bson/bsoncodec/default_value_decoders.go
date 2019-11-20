@@ -329,7 +329,7 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.
 // JavaScriptDecodeValue is the ValueDecoderFunc for the primitive.JavaScript type.
 func (DefaultValueDecoders) JavaScriptDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tJavaScript {
-		return ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
+		return ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
 	}
 
 	if vr.Type() != bsontype.JavaScript {
@@ -348,7 +348,7 @@ func (DefaultValueDecoders) JavaScriptDecodeValue(dctx DecodeContext, vr bsonrw.
 // SymbolDecodeValue is the ValueDecoderFunc for the primitive.Symbol type.
 func (DefaultValueDecoders) SymbolDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tSymbol {
-		return ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tSymbol}, Received: val}
+		return ValueDecoderError{Name: "SymbolDecodeValue", Types: []reflect.Type{tSymbol}, Received: val}
 	}
 
 	if vr.Type() != bsontype.Symbol {
