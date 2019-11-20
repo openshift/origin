@@ -90,3 +90,17 @@ func TestTOKEN_ALL_ACCESS(t *testing.T) {
 		t.Errorf("TOKEN_ALL_ACCESS = %x, want 0xF01FF", windows.TOKEN_ALL_ACCESS)
 	}
 }
+
+func TestCreateWellKnownSid(t *testing.T) {
+	sid, err := windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid)
+	if err != nil {
+		t.Fatalf("Unable to create well known sid for administrators: %v", err)
+	}
+	sidStr, err := sid.String()
+	if err != nil {
+		t.Fatalf("Unable to convert sid into string: %v", err)
+	}
+	if sidStr != "S-1-5-32-544" {
+		t.Fatalf("Expecting administrators to be S-1-5-32-544, but found %s instead", sidStr)
+	}
+}
