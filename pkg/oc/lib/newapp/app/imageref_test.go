@@ -352,7 +352,7 @@ func TestFromDockerfile(t *testing.T) {
 	}
 }
 
-const dockerFile = `FROM centos/ruby-22-centos7
+const dockerFile = `FROM centos/ruby-25-centos7
 USER default
 EXPOSE 443
 ENV RACK_ENV production
