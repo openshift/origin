@@ -761,7 +761,7 @@ func TestParseModelsMap(t *testing.T) {
 				OAuthRedirectModelAnnotationURIPrefix + "two":        "justapath",
 				OAuthRedirectModelAnnotationURIPrefix + "three":      "http://redhat.com",
 				OAuthRedirectModelAnnotationURIPrefix + "four":       "http://hello:90/world",
-				OAuthRedirectModelAnnotationURIPrefix + "five":       "scheme0://host0:port0/path0",
+				OAuthRedirectModelAnnotationURIPrefix + "five":       "scheme0://host0:12345/path0",
 				OAuthRedirectModelAnnotationReferencePrefix + "five": buildRedirectObjectReferenceString("kind0", "name0", "group0"),
 			},
 			expected: map[string]model{
@@ -802,7 +802,7 @@ func TestParseModelsMap(t *testing.T) {
 				},
 				"five": {
 					scheme: "scheme0",
-					port:   "port0",
+					port:   "12345",
 					path:   "/path0",
 					group:  "group0",
 					kind:   "kind0",
