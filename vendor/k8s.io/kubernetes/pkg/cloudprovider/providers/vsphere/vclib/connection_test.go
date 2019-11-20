@@ -159,7 +159,7 @@ func TestWithValidThumbprint(t *testing.T) {
 func TestWithInvalidCaCertPath(t *testing.T) {
 	connection := &vclib.VSphereConnection{
 		Hostname: "should-not-matter",
-		Port:     "should-not-matter",
+		Port:     "12345",
 		CACert:   "invalid-path",
 	}
 
@@ -172,7 +172,7 @@ func TestWithInvalidCaCertPath(t *testing.T) {
 func TestInvalidCaCert(t *testing.T) {
 	connection := &vclib.VSphereConnection{
 		Hostname: "should-not-matter",
-		Port:     "should-not-matter",
+		Port:     "12345",
 		CACert:   fixtures.InvalidCertPath,
 	}
 
