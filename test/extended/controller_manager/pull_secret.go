@@ -1,6 +1,7 @@
 package controller_manager
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -140,12 +142,14 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "sa1", Namespace: saNamespace},
 		}
 
+		g.By("creating service account")
 		sa, err := clusterAdminKubeClient.CoreV1().ServiceAccounts(sa.Namespace).Create(sa)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		// Get the service account dockercfg secret's name
+		g.By("waiting for service account's pull secret")
 		dockercfgSecretName, _, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, sa.Namespace, sa.Name, 20, time.Second)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -161,21 +165,36 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 		}
 		secretName := dockercfgSecret.Annotations["openshift.io/token-secret.name"]
 		if len(secretName) == 0 {
-			t.Fatal("secret was not created")
+			t.Fatal("token secret was not created")
+		}
+
+		// Ensure that the token secret actually exists
+		_, err = clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Get(secretName, metav1.GetOptions{})
+		if err != nil {
+			t.Fatalf("could not obtain token secret %s/%s: %v", sa.Namespace, secretName, err)
 		}
 
 		// Delete the service account's secret
+		g.By(fmt.Sprintf("deleting service account's token secret %s/%s", sa.Namespace, secretName))
 		if err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Delete(secretName, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		// Expect the matching dockercfg secret to also be deleted
+		g.By("waiting for service account's dockercfg secret to be deleted")
 		if err := wait.Poll(5*time.Second, 5*time.Minute, func() (bool, error) {
 			_, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Get(
 				dockercfgSecretName,
 				metav1.GetOptions{},
 			)
-			return errors.IsNotFound(err), nil
+			if err != nil {
+				e2e.Logf("dockercfg secret %s/%s exists", sa.Namespace, dockercfgSecretName)
+				return false, nil
+			}
+			if !errors.IsNotFound(err) {
+				return false, err
+			}
+			return true, nil
 		}); err != nil {
 			t.Fatalf("waiting for secret deletion: %v", err)
 		}
