@@ -159,6 +159,12 @@ import:
 - package: github.com/Azure/go-autorest
   version: autorest/v0.9.0
 
+# these move often and make noise in bumps
+- package: github.com/pborman/uuid
+  version: v1.2.0
+- package: go.mongodb.org/mongo-driver
+  version: v1.1.2
+
   # needed to get the
 - package: github.com/lestrrat/go-jspointer
   repo:    https://github.com/lestrrat/go-jspointer.git

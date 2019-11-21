@@ -9,9 +9,9 @@ package connstring_test
 import (
 	"fmt"
 	"testing"
+
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
@@ -389,7 +389,6 @@ func TestRetryWrites(t *testing.T) {
 	}{
 		{s: "retryWrites=true", expected: true},
 		{s: "retryWrites=false", expected: false},
-		{s: "retryWrites=foobar", expected: false, err: true},
 	}
 
 	for _, test := range tests {
@@ -398,37 +397,11 @@ func TestRetryWrites(t *testing.T) {
 			cs, err := connstring.Parse(s)
 			if test.err {
 				require.Error(t, err)
-				return
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.RetryWrites)
+				require.Equal(t, true, cs.RetryWritesSet)
 			}
-			require.NoError(t, err)
-			require.Equal(t, test.expected, cs.RetryWrites)
-			require.True(t, cs.RetryWritesSet)
-		})
-	}
-}
-
-func TestRetryReads(t *testing.T) {
-	tests := []struct {
-		s        string
-		expected bool
-		err      bool
-	}{
-		{s: "retryReads=true", expected: true},
-		{s: "retryReads=false", expected: false},
-		{s: "retryReads=foobar", expected: false, err: true},
-	}
-
-	for _, test := range tests {
-		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
-		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
-			if test.err {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			require.Equal(t, test.expected, cs.RetryReads)
-			require.True(t, cs.RetryReadsSet)
 		})
 	}
 }
@@ -529,17 +502,13 @@ func TestCompressionOptions(t *testing.T) {
 		uriOptions  string
 		compressors []string
 		zlibLevel   int
-		zstdLevel   int
 		err         bool
 	}{
 		{name: "SingleCompressor", uriOptions: "compressors=zlib", compressors: []string{"zlib"}},
-		{name: "MultiCompressors", uriOptions: "compressors=snappy,zlib", compressors: []string{"snappy", "zlib"}},
+		{name: "BothCompressors", uriOptions: "compressors=snappy,zlib", compressors: []string{"snappy", "zlib"}},
 		{name: "ZlibWithLevel", uriOptions: "compressors=zlib&zlibCompressionLevel=7", compressors: []string{"zlib"}, zlibLevel: 7},
 		{name: "DefaultZlibLevel", uriOptions: "compressors=zlib&zlibCompressionLevel=-1", compressors: []string{"zlib"}, zlibLevel: 6},
 		{name: "InvalidZlibLevel", uriOptions: "compressors=zlib&zlibCompressionLevel=-2", compressors: []string{"zlib"}, err: true},
-		{name: "ZstdWithLevel", uriOptions: "compressors=zstd&zstdCompressionLevel=20", compressors: []string{"zstd"}, zstdLevel: 20},
-		{name: "DefaultZstdLevel", uriOptions: "compressors=zstd&zstdCompressionLevel=-1", compressors: []string{"zstd"}, zstdLevel: 6},
-		{name: "InvalidZstdLevel", uriOptions: "compressors=zstd&zstdCompressionLevel=30", compressors: []string{"zstd"}, err: true},
 	}
 
 	for _, tc := range tests {
@@ -547,16 +516,11 @@ func TestCompressionOptions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cs, err := connstring.Parse(uri)
 			if tc.err {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.compressors, cs.Compressors)
-				if tc.zlibLevel != 0 {
-					assert.Equal(t, tc.zlibLevel, cs.ZlibLevel)
-				}
-				if tc.zstdLevel != 0 {
-					assert.Equal(t, tc.zstdLevel, cs.ZstdLevel)
-				}
+				require.Equal(t, tc.compressors, cs.Compressors)
+				require.Equal(t, tc.zlibLevel, cs.ZlibLevel)
 			}
 		})
 	}

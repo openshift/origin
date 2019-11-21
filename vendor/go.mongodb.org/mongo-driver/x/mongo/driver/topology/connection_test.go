@@ -259,7 +259,7 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("Read (size)", func(t *testing.T) {
 				err := errors.New("Read error")
-				want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "incomplete read of message header"}
+				want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "unable to decode message length"}
 				tnc := &testNetConn{readerr: err}
 				conn := &connection{id: "foobar", nc: tnc, connected: connected}
 				_, got := conn.readWireMessage(context.Background(), []byte{})
@@ -272,7 +272,7 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("Read (wire message)", func(t *testing.T) {
 				err := errors.New("Read error")
-				want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "incomplete read of full message"}
+				want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: "unable to read full message"}
 				tnc := &testNetConn{readerr: err, buf: []byte{0x11, 0x00, 0x00, 0x00}}
 				conn := &connection{id: "foobar", nc: tnc, connected: connected}
 				_, got := conn.readWireMessage(context.Background(), []byte{})

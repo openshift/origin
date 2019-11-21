@@ -14,12 +14,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 // ErrWrongClient is returned when a user attempts to pass in a session created by a different client than
@@ -61,32 +61,12 @@ type Session interface {
 	session()
 }
 
-// XSession is an unstable interface for internal use only. This interface is deprecated and is not part of the
-// stability guarantee. It may be removed at any time.
-type XSession interface {
-	ClientSession() *session.Client
-	ID() bsonx.Doc
-}
-
 // sessionImpl represents a set of sequential operations executed by an application that are related in some way.
 type sessionImpl struct {
 	clientSession       *session.Client
 	client              *Client
-	deployment          driver.Deployment
+	topo                *topology.Topology
 	didCommitAfterStart bool // true if commit was called after start with no other operations
-}
-
-var _ Session = &sessionImpl{}
-var _ XSession = &sessionImpl{}
-
-// ClientSession implements the XSession interface.
-func (s *sessionImpl) ClientSession() *session.Client {
-	return s.clientSession
-}
-
-// ID implements the XSession interface.
-func (s *sessionImpl) ID() bsonx.Doc {
-	return s.clientSession.SessionID
 }
 
 // EndSession ends the session.
@@ -206,7 +186,7 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 
 	s.clientSession.Aborting = true
 	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
-		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
+		Deployment(s.topo).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
 		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).Execute(ctx)
 
 	s.clientSession.Aborting = false
@@ -236,7 +216,7 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 
 	s.clientSession.Committing = true
 	op := operation.NewCommitTransaction().
-		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
+		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.topo).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
 		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken))
 	if s.clientSession.CurrentMct != nil {

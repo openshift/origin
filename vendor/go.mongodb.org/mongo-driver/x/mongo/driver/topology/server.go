@@ -89,10 +89,9 @@ type Server struct {
 	sem  *semaphore.Weighted
 
 	// goroutine management fields
-	done          chan struct{}
-	checkNow      chan struct{}
-	disconnecting chan struct{}
-	closewg       sync.WaitGroup
+	done     chan struct{}
+	checkNow chan struct{}
+	closewg  sync.WaitGroup
 
 	// description related fields
 	desc                   atomic.Value // holds a description.Server
@@ -140,9 +139,8 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 
 		sem: semaphore.NewWeighted(int64(maxConns)),
 
-		done:          make(chan struct{}),
-		checkNow:      make(chan struct{}, 1),
-		disconnecting: make(chan struct{}),
+		done:     make(chan struct{}),
+		checkNow: make(chan struct{}, 1),
 
 		subscribers: make(map[uint64]chan description.Server),
 	}
@@ -195,14 +193,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 
 	// For every call to Connect there must be at least 1 goroutine that is
 	// waiting on the done channel.
-	select {
-	case <-ctx.Done():
-		// signal a disconnect and still wait for receiver of done
-		// to finish.
-		close(s.disconnecting)
-		s.done <- struct{}{}
-	case s.done <- struct{}{}:
-	}
+	s.done <- struct{}{}
 	err := s.pool.disconnect(ctx)
 	if err != nil {
 		return err
@@ -408,13 +399,6 @@ func (s *Server) update() {
 	}
 	for {
 		select {
-		case <-done:
-			closeServer()
-			return
-		default:
-		}
-
-		select {
 		case <-heartbeatTicker.C:
 		case <-checkNow:
 		case <-done:
@@ -479,15 +463,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 	var desc description.Server
 	var set bool
 	var err error
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-s.disconnecting:
-			cancel()
-		}
-	}()
+	ctx := context.Background()
 
 	for i := 1; i <= maxRetry; i++ {
 		var now time.Time
@@ -523,7 +499,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 
 			conn.connect(ctx)
 
-			err = conn.wait()
+			err := conn.wait()
 			if err == nil {
 				descPtr = &conn.desc
 			}
