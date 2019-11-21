@@ -66,19 +66,27 @@ type ConfigStatus struct {
 	// managementState reflects the current operational status of the on/off switch for
 	// the operator.  This operator compares the ManagementState as part of determining that we are turning
 	// the operator back on (i.e. "Managed") when it was previously "Unmanaged".
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	ManagementState operatorv1.ManagementState `json:"managementState,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=managementState"`
 	// conditions represents the available maintenance status of the sample
 	// imagestreams and templates.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	Conditions []ConfigCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,2,rep,name=conditions"`
 
 	// samplesRegistry allows for the specification of which registry is accessed
 	// by the ImageStreams for their image content.  Defaults on the content in https://github.com/openshift/library
 	// that are pulled into this github repository, but based on our pulling only ocp content it typically
 	// defaults to registry.redhat.io.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	SamplesRegistry string `json:"samplesRegistry,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,3,rep,name=samplesRegistry"`
 
 	// architectures determine which hardware architecture(s) to install, where x86_64 and ppc64le are the
 	// supported choices.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	Architectures []string `json:"architectures,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,5,rep,name=architectures"`
 
 	// skippedImagestreams specifies names of image streams that should NOT be
@@ -86,6 +94,8 @@ type ConfigStatus struct {
 	// they don’t want.  They will still have to manually delete the
 	// content but the operator will not recreate(or update) anything
 	// listed here.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	SkippedImagestreams []string `json:"skippedImagestreams,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,6,rep,name=skippedImagestreams"`
 
 	// skippedTemplates specifies names of templates that should NOT be
@@ -93,9 +103,13 @@ type ConfigStatus struct {
 	// they don’t want.  They will still have to manually delete the
 	// content but the operator will not recreate(or update) anything
 	// listed here.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	SkippedTemplates []string `json:"skippedTemplates,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,7,rep,name=skippedTemplates"`
 
 	// version is the value of the operator's payload based version indicator when it was last successfully processed
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	Version string `json:"version,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,8,rep,name=version"`
 }
 

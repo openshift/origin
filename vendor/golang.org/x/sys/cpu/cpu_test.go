@@ -13,6 +13,9 @@ import (
 
 func TestAMD64minimalFeatures(t *testing.T) {
 	if runtime.GOARCH == "amd64" {
+		if !cpu.Initialized {
+			t.Fatal("Initialized expected true, got false")
+		}
 		if !cpu.X86.HasSSE2 {
 			t.Fatal("HasSSE2 expected true, got false")
 		}
@@ -50,5 +53,22 @@ func TestPPC64minimalFeatures(t *testing.T) {
 		if !cpu.PPC64.IsPOWER8 {
 			t.Fatal("IsPOWER8 expected true, got false")
 		}
+	}
+}
+
+func TestS390X(t *testing.T) {
+	if runtime.GOARCH != "s390x" {
+		return
+	}
+	if testing.Verbose() {
+		t.Logf("%+v\n", cpu.S390X)
+	}
+	// z/Architecture is mandatory
+	if !cpu.S390X.HasZARCH {
+		t.Error("HasZARCH expected true, got false")
+	}
+	// vector-enhancements require vector facility to be enabled
+	if cpu.S390X.HasVXE && !cpu.S390X.HasVX {
+		t.Error("HasVX expected true, got false (VXE is true)")
 	}
 }

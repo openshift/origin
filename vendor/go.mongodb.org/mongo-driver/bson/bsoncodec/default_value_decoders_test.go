@@ -1717,7 +1717,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.JavaScript, Return: ""},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tJavaScript}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []reflect.Type{tJavaScript}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"type not Javascript",
@@ -1755,7 +1755,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: ""},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tSymbol}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{Name: "SymbolDecodeValue", Types: []reflect.Type{tSymbol}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"type not Symbol",
