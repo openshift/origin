@@ -174,6 +174,9 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 				dockercfgSecretName,
 				metav1.GetOptions{},
 			)
+			if err != nil {
+				t.Logf("getting docker secret returned: %v", err)
+			}
 			return errors.IsNotFound(err), nil
 		}); err != nil {
 			t.Fatalf("waiting for secret deletion: %v", err)
