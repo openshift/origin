@@ -58,7 +58,7 @@ func AddPostStartHookOrDie(name string, hook genericapiserver.PostStartHookFunc)
 
 	if postStartHook, exists := postStartHooks[name]; exists {
 		// this is programmer error, but it can be hard to debug
-		panic(fmt.Errorf("unable to add %q because it was already registered by: %s", name, postStartHook.OriginatingStack))
+		panic(fmt.Errorf("unable to add %q because it was already registered by: %s; \n\nmy stack: %s", name, postStartHook.OriginatingStack, string(debug.Stack())))
 	}
 	postStartHooks[name] = PostStartHookConfigEntry{Hook: hook, OriginatingStack: string(debug.Stack())}
 }

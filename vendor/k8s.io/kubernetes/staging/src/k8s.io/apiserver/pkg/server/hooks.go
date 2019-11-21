@@ -98,7 +98,7 @@ func (s *GenericAPIServer) AddPostStartHook(name string, hook PostStartHookFunc)
 	}
 	if postStartHook, exists := s.postStartHooks[name]; exists {
 		// this is programmer error, but it can be hard to debug
-		return fmt.Errorf("unable to add %q because it was already registered by: %s", name, postStartHook.originatingStack)
+		return fmt.Errorf("unable to add %q because it was already registered by: %s; \n\nmy stack: %s", name, postStartHook.originatingStack, string(debug.Stack()))
 	}
 
 	// done is closed when the poststarthook is finished.  This is used by the health check to be able to indicate

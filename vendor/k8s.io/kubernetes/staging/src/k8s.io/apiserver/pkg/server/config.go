@@ -418,7 +418,7 @@ func (c *Config) AddPostStartHook(name string, hook PostStartHookFunc) error {
 
 	if postStartHook, exists := c.PostStartHooks[name]; exists {
 		// this is programmer error, but it can be hard to debug
-		return fmt.Errorf("unable to add %q because it was already registered by: %s", name, postStartHook.originatingStack)
+		return fmt.Errorf("unable to add %q because it was already registered by: %s; \n\nmy stack: %s", name, postStartHook.originatingStack, string(debug.Stack()))
 	}
 	c.PostStartHooks[name] = PostStartHookConfigEntry{hook: hook, originatingStack: string(debug.Stack())}
 
