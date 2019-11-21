@@ -13,7 +13,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -55,43 +54,8 @@ func replaceErrors(err error) error {
 
 		return ce
 	}
-	if me, ok := err.(mongocrypt.Error); ok {
-		return MongocryptError{Code: me.Code, Message: me.Message}
-	}
 
 	return err
-}
-
-// MongocryptError is an error that occurs when executing an operation in mongocrypt.
-type MongocryptError struct {
-	Code    int32
-	Message string
-}
-
-// Error implements the error interface.
-func (m MongocryptError) Error() string {
-	return fmt.Sprintf("mongocrypt error %d: %v", m.Code, m.Message)
-}
-
-// EncryptionKeyVaultError represents an error while communicating with the key vault collection during client side
-// encryption.
-type EncryptionKeyVaultError struct {
-	Wrapped error
-}
-
-// Error implements the error interface.
-func (ekve EncryptionKeyVaultError) Error() string {
-	return fmt.Sprintf("key vault communication error: %v", ekve.Wrapped)
-}
-
-// MongocryptdError represents an error while communicating with mongocryptd.
-type MongocryptdError struct {
-	Wrapped error
-}
-
-// Error implements the error interface.
-func (e MongocryptdError) Error() string {
-	return fmt.Sprintf("mongocryptd communication error: %v", e.Wrapped)
 }
 
 // CommandError represents an error in execution of a command against the database.

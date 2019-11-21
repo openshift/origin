@@ -28,7 +28,6 @@ type CreateIndexes struct {
 	clock      *session.ClusterClock
 	collection string
 	monitor    *event.CommandMonitor
-	crypt      *driver.Crypt
 	database   string
 	deployment driver.Deployment
 	selector   description.ServerSelector
@@ -103,7 +102,6 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Client:            ci.session,
 		Clock:             ci.clock,
 		CommandMonitor:    ci.monitor,
-		Crypt:             ci.crypt,
 		Database:          ci.database,
 		Deployment:        ci.deployment,
 		Selector:          ci.selector,
@@ -179,16 +177,6 @@ func (ci *CreateIndexes) CommandMonitor(monitor *event.CommandMonitor) *CreateIn
 	}
 
 	ci.monitor = monitor
-	return ci
-}
-
-// Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (ci *CreateIndexes) Crypt(crypt *driver.Crypt) *CreateIndexes {
-	if ci == nil {
-		ci = new(CreateIndexes)
-	}
-
-	ci.crypt = crypt
 	return ci
 }
 

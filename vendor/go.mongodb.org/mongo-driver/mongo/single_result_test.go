@@ -7,45 +7,63 @@
 package mongo
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 func TestSingleResult(t *testing.T) {
-	t.Run("Decode", func(t *testing.T) {
-		t.Run("decode twice", func(t *testing.T) {
+	t.Run("TestDecode", func(t *testing.T) {
+		t.Run("DecodeTwice", func(t *testing.T) {
 			// Test that Decode and DecodeBytes can be called more than once
 			c, err := newCursor(newTestBatchCursor(1, 1), bson.DefaultRegistry)
-			assert.Nil(t, err, "newCursor error: %v", err)
+			if err != nil {
+				t.Fatalf("error creating cursor: %v", err)
+			}
 
 			sr := &SingleResult{cur: c, reg: bson.DefaultRegistry}
 			var firstDecode, secondDecode bson.Raw
-			err = sr.Decode(&firstDecode)
-			assert.Nil(t, err, "Decode error: %v", err)
-			err = sr.Decode(&secondDecode)
-			assert.Nil(t, err, "Decode error: %v", err)
-
+			if err = sr.Decode(&firstDecode); err != nil {
+				t.Fatalf("error on first Decode call: %v", err)
+			}
+			if err = sr.Decode(&secondDecode); err != nil {
+				t.Fatalf("error on second Decode call: %v", err)
+			}
 			decodeBytes, err := sr.DecodeBytes()
-			assert.Nil(t, err, "DecodeBytes error: %v", err)
+			if err != nil {
+				t.Fatalf("error on DecodeBytes call: %v", err)
+			}
 
-			assert.Equal(t, firstDecode, secondDecode, "expected contents %v, got %v", firstDecode, secondDecode)
-			assert.Equal(t, firstDecode, decodeBytes, "expected contents %v, got %v", firstDecode, decodeBytes)
-		})
-		t.Run("decode with error", func(t *testing.T) {
-			r := []byte("foo")
-			sr := &SingleResult{rdr: r, err: errors.New("DecodeBytes error")}
-			res, err := sr.DecodeBytes()
-			resBytes := []byte(res)
-			assert.Equal(t, r, resBytes, "expected contents %v, got %v", r, resBytes)
-			assert.Equal(t, sr.err, err, "expected error %v, got %v", sr.err, err)
+			if !bytes.Equal(firstDecode, secondDecode) {
+				t.Fatalf("Decode contents do not match; first returned %v, second returned %v",
+					firstDecode, secondDecode)
+			}
+			if !bytes.Equal(firstDecode, decodeBytes) {
+				t.Fatalf("Decode and DecodeBytes contents do not match; Decode returned %v, DecodeBytes "+
+					"returned %v", firstDecode, decodeBytes)
+			}
 		})
 	})
 
-	t.Run("Err", func(t *testing.T) {
+	t.Run("TestErr", func(t *testing.T) {
 		sr := &SingleResult{}
-		assert.Equal(t, ErrNoDocuments, sr.Err(), "expected error %v, got %v", ErrNoDocuments, sr.Err())
+		err := sr.Err()
+		if err != ErrNoDocuments {
+			t.Fatalf("Error returned by SingleResult.Err() was %v when ErrNoDocuments was expected", err)
+		}
+	})
+
+	t.Run("TestDecodeWithErr", func(t *testing.T) {
+		r := []byte("foo")
+		sr := &SingleResult{rdr: r, err: errors.New("DecodeBytes error")}
+		res, err := sr.DecodeBytes()
+		if !bytes.Equal(res, r) {
+			t.Fatalf("DecodeBytes contents do not match; expected %v, returned %v", res, r)
+		}
+		if err != sr.err {
+			t.Fatalf("Error returned by DecodeBytes was %v when %v was expected", err, sr.err)
+		}
 	})
 }

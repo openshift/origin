@@ -1241,20 +1241,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 			},
 		},
 		{
-			"StringDecodeValue",
-			defaultStringCodec,
-			[]subtest{
-				{
-					"symbol",
-					"var hello = 'world';",
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: "var hello = 'world';"},
-					bsonrwtest.ReadSymbol,
-					nil,
-				},
-			},
-		},
-		{
 			"ValueUnmarshalerDecodeValue",
 			ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue),
 			[]subtest{
@@ -1717,7 +1703,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.JavaScript, Return: ""},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []reflect.Type{tJavaScript}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tJavaScript}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"type not Javascript",
@@ -1755,7 +1741,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: ""},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "SymbolDecodeValue", Types: []reflect.Type{tSymbol}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tSymbol}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"type not Symbol",
@@ -2209,62 +2195,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 					},
 				},
 				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
-				nil,
-			},
-			{
-				"inline struct pointer",
-				struct {
-					Foo *struct {
-						A int64 `bson:",minsize"`
-					} `bson:",inline"`
-					Bar *struct {
-						B int64
-					} `bson:",inline"`
-				}{
-					Foo: &struct {
-						A int64 `bson:",minsize"`
-					}{
-						A: 12345,
-					},
-					Bar: nil,
-				},
-				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
-				nil,
-			},
-			{
-				"nested inline struct pointer",
-				struct {
-					Foo *struct {
-						Bar *struct {
-							A int64 `bson:",minsize"`
-						} `bson:",inline"`
-					} `bson:",inline"`
-				}{
-					Foo: &struct {
-						Bar *struct {
-							A int64 `bson:",minsize"`
-						} `bson:",inline"`
-					}{
-						Bar: &struct {
-							A int64 `bson:",minsize"`
-						}{
-							A: 12345,
-						},
-					},
-				},
-				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
-				nil,
-			},
-			{
-				"inline nil struct pointer",
-				struct {
-					Foo *struct {
-						A int64 `bson:",minsize"`
-					} `bson:",inline"`
-				}{
-					Foo: nil,
-				},
-				buildDocument([]byte{}),
 				nil,
 			},
 			{

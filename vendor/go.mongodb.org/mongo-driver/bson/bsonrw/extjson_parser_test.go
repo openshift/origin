@@ -733,15 +733,4 @@ func TestExtJSONValue(t *testing.T) {
 			t.Fatalf("expected value above 0, got %v", intVal)
 		}
 	})
-	t.Run("fallback time format", func(t *testing.T) {
-		val := &extJSONValue{
-			t: bsontype.String,
-			v: "2019-06-04T14:54:31.416+0000",
-		}
-
-		_, err := val.parseDateTime()
-		if err != nil {
-			t.Fatalf("error parsing date time: %v", err)
-		}
-	})
 }

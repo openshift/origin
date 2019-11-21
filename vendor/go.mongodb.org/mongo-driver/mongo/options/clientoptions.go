@@ -25,9 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // ContextDialer makes new network connections
@@ -92,15 +90,12 @@ type ClientOptions struct {
 	TLSConfig              *tls.Config
 	WriteConcern           *writeconcern.WriteConcern
 	ZlibLevel              *int
-	ZstdLevel              *int
-	AutoEncryptionOptions  *AutoEncryptionOptions
 
 	err error
 
-	// These options are for internal use only and should not be set. They are deprecated and are
-	// not part of the stability guarantee. They may be removed in the future.
+	// Adds an option for internal use only and should not be set. This option is deprecated and is
+	// not part of the stability guarantee. It may be removed in the future.
 	AuthenticateToAnything *bool
-	Deployment             driver.Deployment
 }
 
 // Client creates a new ClientOptions instance.
@@ -155,14 +150,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if len(cs.Compressors) > 0 {
 		c.Compressors = cs.Compressors
-		if stringSliceContains(c.Compressors, "zlib") {
-			defaultLevel := wiremessage.DefaultZlibLevel
-			c.ZlibLevel = &defaultLevel
-		}
-		if stringSliceContains(c.Compressors, "zstd") {
-			defaultLevel := wiremessage.DefaultZstdLevel
-			c.ZstdLevel = &defaultLevel
-		}
 	}
 
 	if cs.HeartbeatIntervalSet {
@@ -217,10 +204,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if cs.RetryWritesSet {
 		c.RetryWrites = &cs.RetryWrites
-	}
-
-	if cs.RetryReadsSet {
-		c.RetryReads = &cs.RetryReads
 	}
 
 	if cs.ReplicaSet != "" {
@@ -296,9 +279,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if cs.ZlibLevelSet {
 		c.ZlibLevel = &cs.ZlibLevel
-	}
-	if cs.ZstdLevelSet {
-		c.ZstdLevel = &cs.ZstdLevel
 	}
 
 	return c
@@ -431,12 +411,6 @@ func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
 	return c
 }
 
-// SetRetryReads specifies whether the client has retryable reads enabled.
-func (c *ClientOptions) SetRetryReads(b bool) *ClientOptions {
-	c.RetryReads = &b
-	return c
-}
-
 // SetServerSelectionTimeout specifies a timeout in milliseconds to block for server selection.
 func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOptions {
 	c.ServerSelectionTimeout = &d
@@ -467,18 +441,6 @@ func (c *ClientOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientOp
 func (c *ClientOptions) SetZlibLevel(level int) *ClientOptions {
 	c.ZlibLevel = &level
 
-	return c
-}
-
-// SetZstdLevel sets the level for the zstd compressor.
-func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
-	c.ZstdLevel = &level
-	return c
-}
-
-// SetAutoEncryptionOptions specifies options used to configure automatic encryption.
-func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *ClientOptions {
-	c.AutoEncryptionOptions = opts
 	return c
 }
 
@@ -570,15 +532,6 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.ZlibLevel != nil {
 			c.ZlibLevel = opt.ZlibLevel
-		}
-		if opt.ZstdLevel != nil {
-			c.ZstdLevel = opt.ZstdLevel
-		}
-		if opt.AutoEncryptionOptions != nil {
-			c.AutoEncryptionOptions = opt.AutoEncryptionOptions
-		}
-		if opt.Deployment != nil {
-			c.Deployment = opt.Deployment
 		}
 		if opt.err != nil {
 			c.err = opt.err
@@ -706,13 +659,4 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (strin
 	}
 
 	return x509CertSubject(crt), nil
-}
-
-func stringSliceContains(source []string, target string) bool {
-	for _, str := range source {
-		if str == target {
-			return true
-		}
-	}
-	return false
 }

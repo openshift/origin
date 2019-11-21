@@ -9,251 +9,203 @@ package mongo
 import (
 	"context"
 	"errors"
-	"math"
-	"strconv"
-	"strings"
+	"os"
+	"path"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-var (
-	connsCheckedOut int
-)
+const convenientTransactionTestsDir = "../data/convenient-transactions"
 
-func TestConvenientTransactions(t *testing.T) {
-	client := setupConvenientTransactions(t)
-	db := client.Database("TestConvenientTransactions")
-	dbAdmin := client.Database("admin")
+type withTransactionArgs struct {
+	Callback *struct {
+		Operations []*transOperation `json:"operations"`
+	} `json:"callback"`
+	Options map[string]interface{} `json:"options"`
+}
 
-	defer func() {
-		sessions := client.NumberSessionsInProgress()
-		conns := connsCheckedOut
+// test case for all TransactionSpec tests
+func TestConvTransactionSpec(t *testing.T) {
+	for _, file := range testhelpers.FindJSONFilesInDir(t, convenientTransactionTestsDir) {
+		runTransactionTestFile(t, path.Join(convenientTransactionTestsDir, file))
+	}
+}
 
-		err := dbAdmin.RunCommand(bgCtx, bson.D{
-			{"killAllSessions", bson.A{}},
-		}).Err()
-		if err != nil {
-			if ce, ok := err.(CommandError); !ok || ce.Code != errorInterrupted {
-				t.Fatalf("killAllSessions error: %v", err)
-			}
+func runWithTransactionOperations(t *testing.T, operations []*transOperation, sess *sessionImpl, collName string, db *Database) error {
+	for _, op := range operations {
+		if op.Name == "count" {
+			t.Skip("count has been deprecated")
 		}
 
-		_ = db.Drop(bgCtx)
-		_ = client.Disconnect(bgCtx)
+		// Arguments aren't marshaled directly into a map because runcommand
+		// needs to convert them into BSON docs.  We convert them to a map here
+		// for getting the session and for all other collection operations
+		op.ArgMap = getArgMap(t, op.Arguments)
 
-		assert.Equal(t, 0, sessions, "%v sessions checked out", sessions)
-		assert.Equal(t, 0, conns, "%v connections checked out", conns)
-	}()
+		// create collection with default read preference Primary (needed to prevent server selection fail)
+		coll := db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local()))
+		addCollectionOptions(coll, op.CollectionOptions)
 
-	t.Run("callback raises custom error", func(t *testing.T) {
-		coll := db.Collection(t.Name())
-		_, err := coll.InsertOne(bgCtx, bson.D{{"x", 1}})
-		assert.Nil(t, err, "InsertOne error: %v", err)
+		// execute the command on given object
+		var err error
+		switch op.Object {
+		case "session0":
+			err = executeSessionOperation(t, op, sess, collName, db)
+		case "collection":
+			err = executeCollectionOperation(t, op, sess, coll)
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func TestConvenientTransactions(t *testing.T) {
+	cs := testutil.ConnString(t)
+	opts := options.Client().ApplyURI(cs.String())
+	if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+		opts.SetHosts([]string{opts.Hosts[0]})
+	}
+	client, err := Connect(context.Background(), opts)
+	require.NoError(t, err)
+	defer func() { _ = client.Disconnect(context.Background()) }()
+	dbName := "TestConvenientTransactions"
+	db := client.Database(dbName)
+
+	dbAdmin := client.Database("admin")
+	version, err := getServerVersion(dbAdmin)
+	require.NoError(t, err)
+
+	if compareVersions(t, version, "4.1") < 0 || os.Getenv("TOPOLOGY") == "server" {
+		t.Skip()
+	}
+
+	t.Run("CallbackRaisesCustomError", func(t *testing.T) {
+		collName := "unpinForNextTransaction"
+		db.RunCommand(
+			context.Background(),
+			bson.D{{"drop", collName}},
+		)
+
+		coll := db.Collection(collName)
+		_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
+		testErr := errors.New("Test Error")
 
 		sess, err := client.StartSession()
-		assert.Nil(t, err, "StartSession error: %v", err)
+		require.NoError(t, err)
 		defer sess.EndSession(context.Background())
-
-		testErr := errors.New("test error")
 		_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
 			return nil, testErr
 		})
-		assert.Equal(t, testErr, err, "expected error %v, got %v", testErr, err)
+		require.Error(t, err)
+		require.Equal(t, err, testErr)
 	})
-	t.Run("callback returns value", func(t *testing.T) {
-		coll := db.Collection(t.Name())
-		_, err := coll.InsertOne(bgCtx, bson.D{{"x", 1}})
-		assert.Nil(t, err, "InsertOne error: %v", err)
+	t.Run("CallbackReturnsAValue", func(t *testing.T) {
+		collName := "CallbackReturnsAValue"
+		db.RunCommand(
+			context.Background(),
+			bson.D{{"drop", collName}},
+		)
+
+		coll := db.Collection(collName)
+		_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
 
 		sess, err := client.StartSession()
-		assert.Nil(t, err, "StartSession error: %v", err)
+		require.NoError(t, err)
 		defer sess.EndSession(context.Background())
-
 		res, err := sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
 			return false, nil
 		})
-		assert.Nil(t, err, "WithTransaction error: %v", err)
+		require.NoError(t, err)
 		resBool, ok := res.(bool)
-		assert.True(t, ok, "expected result type %T, got %T", false, res)
-		assert.False(t, resBool, "expected result false, got %v", resBool)
+		require.True(t, ok)
+		require.False(t, resBool)
 	})
-	t.Run("retry timeout enforced", func(t *testing.T) {
+	t.Run("RetryTimeoutEnforced", func(t *testing.T) {
 		withTransactionTimeout = time.Second
 
-		coll := db.Collection(t.Name())
-		_, err := coll.InsertOne(bgCtx, bson.D{{"x", 1}})
-		assert.Nil(t, err, "InsertOne error: %v", err)
+		collName := "RetryTimeoutEnforced"
+		db.RunCommand(
+			context.Background(),
+			bson.D{{"drop", collName}},
+		)
 
-		t.Run("transient transaction error", func(t *testing.T) {
+		coll := db.Collection(collName)
+		_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
+
+		t.Run("CallbackWithTransientTransactionError", func(t *testing.T) {
 			sess, err := client.StartSession()
-			assert.Nil(t, err, "StartSession error: %v", err)
+			require.NoError(t, err)
 			defer sess.EndSession(context.Background())
-
 			_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
 				return nil, CommandError{Name: "test Error", Labels: []string{driver.TransientTransactionError}}
 			})
-			assert.NotNil(t, err, "expected WithTransaction error, got nil")
+			require.Error(t, err)
 			cmdErr, ok := err.(CommandError)
-			assert.True(t, ok, "expected error type %T, got %T", CommandError{}, err)
-			assert.True(t, cmdErr.HasErrorLabel(driver.TransientTransactionError),
-				"expected error with label %v, got %v", driver.TransientTransactionError, cmdErr)
+			require.True(t, ok)
+			require.True(t, cmdErr.HasErrorLabel(driver.TransientTransactionError))
 		})
-		t.Run("unknown transaction commit result", func(t *testing.T) {
+		t.Run("UnknownTransactionCommitResult", func(t *testing.T) {
 			//set failpoint
 			failpoint := bson.D{{"configureFailPoint", "failCommand"},
 				{"mode", "alwaysOn"},
-				{"data", bson.D{
-					{"failCommands", bson.A{"commitTransaction"}},
-					{"closeConnection", true},
-				}},
-			}
-			err = dbAdmin.RunCommand(bgCtx, failpoint).Err()
-			assert.Nil(t, err, "error setting failpoint: %v", err)
+				{"data", bson.D{{"failCommands", bson.A{"commitTransaction"}}, {"closeConnection", true}}}}
+			require.NoError(t, dbAdmin.RunCommand(ctx, failpoint).Err())
 			defer func() {
-				err = dbAdmin.RunCommand(bgCtx, bson.D{
+				require.NoError(t, dbAdmin.RunCommand(ctx, bson.D{
 					{"configureFailPoint", "failCommand"},
 					{"mode", "off"},
-				}).Err()
-				assert.Nil(t, err, "error turning off failpoint: %v", err)
+				}).Err())
 			}()
 
 			sess, err := client.StartSession()
-			assert.Nil(t, err, "StartSession error: %v", err)
+			require.NoError(t, err)
 			defer sess.EndSession(context.Background())
-
 			_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
-				_, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+				_, err := sessCtx.Client().Database(dbName).Collection(collName).InsertOne(sessCtx, bson.D{{"x", 1}})
 				return nil, err
 			})
-			assert.NotNil(t, err, "expected WithTransaction error, got nil")
+			require.Error(t, err)
 			cmdErr, ok := err.(CommandError)
-			assert.True(t, ok, "expected error type %T, got %T", CommandError{}, err)
-			assert.True(t, cmdErr.HasErrorLabel(driver.UnknownTransactionCommitResult),
-				"expected error with label %v, got %v", driver.UnknownTransactionCommitResult, cmdErr)
+			require.True(t, ok)
+			require.True(t, cmdErr.HasErrorLabel(driver.UnknownTransactionCommitResult))
 		})
-		t.Run("commit transient transaction error", func(t *testing.T) {
+		t.Run("CommitWithTransientTransactionError", func(t *testing.T) {
 			//set failpoint
 			failpoint := bson.D{{"configureFailPoint", "failCommand"},
 				{"mode", "alwaysOn"},
-				{"data", bson.D{
-					{"failCommands", bson.A{"commitTransaction"}},
-					{"errorCode", 251},
-				}},
-			}
-			err = dbAdmin.RunCommand(bgCtx, failpoint).Err()
-			assert.Nil(t, err, "error setting failpoint: %v", err)
+				{"data", bson.D{{"failCommands", bson.A{"commitTransaction"}}, {"errorCode", 251}}}}
+			err = dbAdmin.RunCommand(ctx, failpoint).Err()
+			require.NoError(t, err)
 			defer func() {
-				err = dbAdmin.RunCommand(bgCtx, bson.D{
+				require.NoError(t, dbAdmin.RunCommand(ctx, bson.D{
 					{"configureFailPoint", "failCommand"},
 					{"mode", "off"},
-				}).Err()
-				assert.Nil(t, err, "error turning off failpoint: %v", err)
+				}).Err())
 			}()
 
 			sess, err := client.StartSession()
-			assert.Nil(t, err, "StartSession error: %v", err)
+			require.NoError(t, err)
 			defer sess.EndSession(context.Background())
-
 			_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
-				_, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+				_, err := sessCtx.Client().Database(dbName).Collection(collName).InsertOne(sessCtx, bson.D{{"x", 1}})
 				return nil, err
 			})
-			assert.NotNil(t, err, "expected WithTransaction error, got nil")
+			require.Error(t, err)
 			cmdErr, ok := err.(CommandError)
-			assert.True(t, ok, "expected error type %T, got %T", CommandError{}, err)
-			assert.True(t, cmdErr.HasErrorLabel(driver.TransientTransactionError),
-				"expected error with label %v, got %v", driver.TransientTransactionError, cmdErr)
+			require.True(t, ok)
+			require.True(t, cmdErr.HasErrorLabel(driver.TransientTransactionError))
 		})
 	})
-}
-
-func setupConvenientTransactions(t *testing.T) *Client {
-	cs := testutil.ConnString(t)
-	poolMonitor := &event.PoolMonitor{
-		Event: func(evt *event.PoolEvent) {
-			switch evt.Type {
-			case event.GetSucceeded:
-				connsCheckedOut++
-			case event.ConnectionReturned:
-				connsCheckedOut--
-			}
-		},
-	}
-	clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
-		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetPoolMonitor(poolMonitor)
-	client, err := Connect(bgCtx, clientOpts)
-	assert.Nil(t, err, "Connect error: %v", err)
-
-	version, err := getServerVersion(client.Database("admin"))
-	assert.Nil(t, err, "getServerVersion error: %v", err)
-	topoKind := client.deployment.(*topology.Topology).Kind()
-	if compareVersions(t, version, "4.1") < 0 || topoKind == description.Single {
-		t.Skip("skipping standalones and versions < 4.1")
-	}
-
-	// pin to a single mongos if necessary
-	if topoKind != description.Sharded {
-		return client
-	}
-	client, err = Connect(bgCtx, clientOpts.SetHosts([]string{cs.Hosts[0]}))
-	assert.Nil(t, err, "Connect error: %v", err)
-	return client
-}
-
-func getServerVersion(db *Database) (string, error) {
-	serverStatus, err := db.RunCommand(
-		context.Background(),
-		bson.D{{"serverStatus", 1}},
-	).DecodeBytes()
-	if err != nil {
-		return "", err
-	}
-
-	version, err := serverStatus.LookupErr("version")
-	if err != nil {
-		return "", err
-	}
-
-	return version.StringValue(), nil
-}
-
-// compareVersions compares two version number strings (i.e. positive integers separated by
-// periods). Comparisons are done to the lesser precision of the two versions. For example, 3.2 is
-// considered equal to 3.2.11, whereas 3.2.0 is considered less than 3.2.11.
-//
-// Returns a positive int if version1 is greater than version2, a negative int if version1 is less
-// than version2, and 0 if version1 is equal to version2.
-func compareVersions(t *testing.T, v1 string, v2 string) int {
-	n1 := strings.Split(v1, ".")
-	n2 := strings.Split(v2, ".")
-
-	for i := 0; i < int(math.Min(float64(len(n1)), float64(len(n2)))); i++ {
-		i1, err := strconv.Atoi(n1[i])
-		if err != nil {
-			return 1
-		}
-
-		i2, err := strconv.Atoi(n2[i])
-		if err != nil {
-			return -1
-		}
-
-		difference := i1 - i2
-		if difference != 0 {
-			return difference
-		}
-	}
-
-	return 0
 }

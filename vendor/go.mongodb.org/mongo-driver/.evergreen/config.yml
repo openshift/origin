@@ -73,19 +73,6 @@ functions:
            go version
            go env
 
-           if [ "Windows_NT" = "$OS" ]; then
-              mkdir -p c:/libmongocrypt/include
-              mkdir -p c:/libmongocrypt/bin
-              curl https://s3.amazonaws.com/mciuploads/libmongocrypt/windows/latest_release/libmongocrypt.tar.gz --output libmongocrypt.tar.gz
-              tar -xvzf libmongocrypt.tar.gz
-              cp ./bin/mongocrypt.dll c:/libmongocrypt/bin
-              cp ./include/mongocrypt/*.h c:/libmongocrypt/include
-              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-           else
-              git clone https://github.com/mongodb/libmongocrypt
-              ./libmongocrypt/.evergreen/compile.sh
-           fi
-
            cat <<EOT > expansion.yml
            CURRENT_VERSION: "$CURRENT_VERSION"
            DRIVERS_TOOLS: "$DRIVERS_TOOLS"
@@ -107,8 +94,6 @@ functions:
               export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
               export PATH="$PATH"
               export PROJECT="$PROJECT"
-              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
-              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
            EOT
            # See what we've done
            cat expansion.yml
@@ -176,7 +161,7 @@ functions:
           cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem
           cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem
 
-          MONGODB_VERSION=${VERSION} AUTH=${AUTH} SSL=${SSL} sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+          MONGODB_VERSION=${VERSION} TOPOLOGY=${TOPOLOGY} AUTH=${AUTH} SSL=${SSL} sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
         file: mo-expansion.yml
@@ -256,17 +241,8 @@ functions:
               fi
           fi
 
-          set +o xtrace
-          AUTH=${AUTH} \
-          SSL=${SSL} \
-          MONGODB_URI="${MONGODB_URI}" \
-          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags cse" \
-          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
-          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
-          make evg-test \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+          AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} make evg-test
+
 
   send-perf-data:
    - command: json.send
@@ -432,6 +408,7 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-make
@@ -451,10 +428,12 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
+            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
 
@@ -463,10 +442,12 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
+            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -476,36 +457,27 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
+            TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
-
-    - name: test-standalone-noauth-nossl-zstd-compression
-      tags: ["test", "standalone", "compression", "zstd"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            AUTH: "noauth"
-            SSL: "nossl"
-        - func: run-tests
-          vars:
-            AUTH: "noauth"
-            SSL: "nossl"
-            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
 
     - name: test-standalone-auth-ssl
       tags: ["test", "standalone", "authssl"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
+            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
 
@@ -514,10 +486,12 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
+            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -527,36 +501,27 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
+            TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
-
-    - name: test-standalone-auth-ssl-zstd-compression
-      tags: ["test", "standalone", "authssl", "compression", "zstd"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            AUTH: "auth"
-            SSL: "ssl"
-        - func: run-tests
-          vars:
-            AUTH: "auth"
-            SSL: "ssl"
-            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
 
     - name: test-replicaset-noauth-nossl
       tags: ["test", "replicaset"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "replica_set"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
+            TOPOLOGY: "replica_set"
             AUTH: "noauth"
             SSL: "nossl"
 
@@ -565,10 +530,12 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "replica_set"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
+            TOPOLOGY: "replica_set"
             AUTH: "auth"
             SSL: "ssl"
 
@@ -577,10 +544,12 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
 
@@ -589,10 +558,12 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -602,36 +573,27 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
         - func: run-tests
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
-
-    - name: test-sharded-noauth-nossl-zstd-compression
-      tags: ["test", "sharded", "compression", "zstd"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            AUTH: "noauth"
-            SSL: "nossl"
-        - func: run-tests
-          vars:
-            AUTH: "noauth"
-            SSL: "nossl"
-            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
 
     - name: test-sharded-auth-ssl
       tags: ["test", "sharded", "authssl"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
 
@@ -640,10 +602,12 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -653,26 +617,15 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
         - func: run-tests
           vars:
+            TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "zlib"
-
-    - name: test-sharded-auth-ssl-zstd-compression
-      tags: ["test", "sharded", "authssl", "compression", "zstd"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            AUTH: "auth"
-            SSL: "ssl"
-        - func: run-tests
-          vars:
-            AUTH: "auth"
-            SSL: "ssl"
-            MONGO_GO_DRIVER_COMPRESSOR: "zstd"
 
     - name: test-enterprise-auth-plain
       tags: ["test", "enterprise-auth"]
@@ -693,21 +646,13 @@ tasks:
           vars:
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
-    - name: go1.9-build
+    - name: go1.8-build
       tags: ["compile-check"]
       commands:
         - func: run-make
           vars:
             targets: "build"
-            BUILD_ENV: "PATH=/opt/golang/go1.9/bin:$PATH GOROOT=/opt/golang/go1.9"
-
-    - name: go1.9-build-nocgo
-      tags: ["compile-check"]
-      commands:
-        - func: run-make
-          vars:
-            targets: "build"
-            BUILD_ENV: "CGO_ENABLED=0 PATH=/opt/golang/go1.9/bin:$PATH GOROOT=/opt/golang/go1.9"
+            BUILD_ENV: "PATH=/opt/golang/go1.8/bin:$PATH GOROOT=/opt/golang/go1.8"
 
     - name: go1.10-build
       tags: ["compile-check"]
@@ -716,14 +661,6 @@ tasks:
           vars:
             targets: "build"
             BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
-
-    - name: go1.10-build-nocgo
-      tags: ["compile-check"]
-      commands:
-        - func: run-make
-          vars:
-            targets: "build"
-            BUILD_ENV: "CGO_ENABLED=0 PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
 
     - name: linux-32-bit
       tags: ["compile-check"]
@@ -752,14 +689,6 @@ tasks:
     - name: "atlas-test"
       commands:
         - func: "run-atlas-test"
-
-    - name: go1.10-build-cse
-      tags: ["compile-check"]
-      commands:
-        - func: run-make
-          vars:
-            targets: "build-cse"
-            BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
 
 axes:
   - id: version
@@ -890,19 +819,13 @@ buildvariants:
   matrix_spec: { version: "3.4", os-ssl-32: "*" }
   display_name: "${version} ${os-ssl-32}"
   tasks:
-    - name: ".test !.enterprise-auth !.zlib !.zstd"
+    - name: ".test !.enterprise-auth !.zlib"
 
-- matrix_name: "tests-36-40-with-zlib-support"
-  matrix_spec: { version: ["3.6", "4.0"], os-ssl-32: "*" }
+- matrix_name: "tests-nonlegacy-servers-with-zlib-support"
+  matrix_spec: { version: ["3.6", "4.0", "4.2", "latest"], os-ssl-32: "*" }
   display_name: "${version} ${os-ssl-32}"
   tasks:
-    - name: ".test !.enterprise-auth !.snappy !.zstd"
-
-- matrix_name: "tests-42-lts-zlib-zstd-support"
-  matrix_spec: { version: ["4.2", "latest"], os-ssl-32: "*" }
-  display_name: "${version} ${os-ssl-32}"
-  tasks:
-    - name: ".test !.enterprise-auth !.snappy"
+    - name: ".test !.enterprise-auth"
 
 - matrix_name: "enterprise-auth-tests"
   matrix_spec: { os-ssl-32: "*" }

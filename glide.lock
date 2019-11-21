@@ -1,5 +1,5 @@
-hash: 4b3134c817865597d45d8c39d8a996fef1eab1a8c2fc512d36da9a5b0ef1a330
-updated: 2019-11-20T11:15:05.495007825-05:00
+hash: c5c0968c6ce3980aaeaff39af4090511a6ef3e094c8edbe546ba00a7db14dd2f
+updated: 2019-11-21T14:41:08.677846+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -328,7 +328,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -861,7 +861,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 280f2360b2dfffded10bf12ce692082f3ad64cc6
+  version: 7c5911e93780807f2082f34b259dfaf97a108222
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -982,7 +982,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 4e2c7112d2520e84fea5934365aee8bf2e00ca55
+  version: 7c776f7cc17a282b6e5a2ec51f808728b70fcbad
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1019,7 +1019,7 @@ imports:
   - pkg/serviceability
   - pkg/template/templateprocessingclient
 - name: github.com/pborman/uuid
-  version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
+  version: 8b1b92947f46224e3b97bb1a3a5b0382be00d31e
 - name: github.com/pelletier/go-toml
   version: c01d1270ff3e442a8a57cddc1c92dc1138598194
 - name: github.com/peterbourgon/diskv
@@ -1027,7 +1027,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: e6812cd8b6726b9ddb25bd23b39e6f711ff5840b
+  version: acd64d450fd45fb2afa41f833f3788c8a7797219
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
@@ -1162,11 +1162,10 @@ imports:
 - name: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - name: go.mongodb.org/mongo-driver
-  version: 439cf684e8d89b22f0d859399148d9c2f3b853d7
+  version: 1261197350f3ad46a907489aee7ecc49b39efb82
   subpackages:
   - bson
   - bson/bsoncodec
-  - bson/bsonoptions
   - bson/bsonrw
   - bson/bsontype
   - bson/primitive
@@ -1998,7 +1997,7 @@ imports:
   - metrics/prometheus/workqueue
   - version
 - name: k8s.io/cri-api
-  version: 381f557272b49404b3c5ae3d31cd5675bc045b33
+  version: 665073aeb40ce405faa63a5c147d9e4f444e20b8
   subpackages:
   - pkg/apis
   - pkg/apis/runtime/v1alpha2
@@ -2162,7 +2161,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 6649eb0544ffbcf4839be24c115bc49987308934
+  version: 835ab0c72e4d6ffbe2ceec1ce55d2abdf856b913
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -2615,6 +2614,7 @@ imports:
   - pkg/kubelet/winstats
   - pkg/kubemark
   - pkg/master
+  - pkg/master/controller/clusterauthenticationtrust
   - pkg/master/controller/crdregistration
   - pkg/master/ports
   - pkg/master/reconcilers

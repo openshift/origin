@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	corev1interface "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/listers/core/v1"
+	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
@@ -197,12 +197,19 @@ func (c *CertSyncController) sync() error {
 				continue
 			}
 
-			// remove missing content
-			if err := os.RemoveAll(getSecretDir(c.destinationDir, s.Name)); err != nil {
-				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed removing file for secret: %s/%s: %v", secret.Namespace, secret.Name, err)
-				errors = append(errors, err)
+			// check if the secret file exists, skip firing events if it does not
+			secretFile := getSecretDir(c.destinationDir, s.Name)
+			if _, err := os.Stat(secretFile); os.IsNotExist(err) {
+				continue
 			}
-			c.eventRecorder.Warningf("CertificateRemoved", "Removed file for secret: %s/%s", secret.Namespace, secret.Name, err)
+
+			// remove missing content
+			if err := os.RemoveAll(secretFile); err != nil {
+				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed removing file for missing secret: %s/%s: %v", secret.Namespace, secret.Name, err)
+				errors = append(errors, err)
+				continue
+			}
+			c.eventRecorder.Warningf("CertificateRemoved", "Removed file for missing secret: %s/%s", secret.Namespace, secret.Name)
 			continue
 
 		case err != nil:

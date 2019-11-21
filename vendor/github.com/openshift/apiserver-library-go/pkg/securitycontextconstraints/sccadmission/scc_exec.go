@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
@@ -51,9 +52,13 @@ func (d *sccExecRestrictions) Validate(ctx context.Context, a admission.Attribut
 	}
 
 	pod, err := d.client.CoreV1().Pods(a.GetNamespace()).Get(a.GetName(), metav1.GetOptions{})
-	if err != nil {
-		return admission.NewForbidden(a, err)
+	switch {
+	case errors.IsNotFound(err):
+		return admission.NewNotFound(a)
+	case err != nil:
+		return admission.NewForbidden(a, fmt.Errorf("failed to get pod: %v", err))
 	}
+
 	// we have to convert to the internal pod because admission uses internal types for now
 	internalPod := &coreapi.Pod{}
 	if err := coreapiv1conversions.Convert_v1_Pod_To_core_Pod(pod, internalPod, nil); err != nil {

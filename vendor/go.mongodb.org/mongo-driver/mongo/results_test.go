@@ -9,71 +9,66 @@ package mongo
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
-func TestResults(t *testing.T) {
-	t.Run("delete result", func(t *testing.T) {
-		t.Run("unmarshal into", func(t *testing.T) {
-			doc := bson.D{
-				{"n", int64(2)},
-				{"ok", int64(1)},
-			}
+func TestDeleteResult_unmarshalInto(t *testing.T) {
+	t.Parallel()
 
-			b, err := bson.Marshal(doc)
-			assert.Nil(t, err, "Marshal error: %v", err)
+	doc := bsonx.Doc{
+		{"n", bsonx.Int64(2)},
+		{"ok", bsonx.Int64(1)},
+	}
 
-			var result DeleteResult
-			err = bson.Unmarshal(b, &result)
-			assert.Nil(t, err, "Unmarshal error: %v", err)
-			assert.Equal(t, int64(2), result.DeletedCount, "expected DeletedCount 2, got %v", result.DeletedCount)
-		})
-		t.Run("marshal from", func(t *testing.T) {
-			result := DeleteResult{DeletedCount: 1}
-			buf, err := bson.Marshal(result)
-			assert.Nil(t, err, "Marshal error: %v", err)
+	b, err := doc.MarshalBSON()
+	require.Nil(t, err)
 
-			var doc bson.D
-			err = bson.Unmarshal(buf, &doc)
-			assert.Nil(t, err, "Unmarshal error: %v", err)
+	var result DeleteResult
+	err = bson.Unmarshal(b, &result)
+	require.Nil(t, err)
+	require.Equal(t, result.DeletedCount, int64(2))
+}
 
-			assert.Equal(t, 1, len(doc), "expected document length 1, got %v", len(doc))
-			for _, elem := range doc {
-				if elem.Key != "n" {
-					continue
-				}
+func TestDeleteResult_marshalFrom(t *testing.T) {
+	t.Parallel()
 
-				n, ok := elem.Value.(int64)
-				assert.True(t, ok, "expected n type %T, got %T", int64(0), elem.Value)
-				assert.Equal(t, int64(1), n, "expected n 1, got %v", n)
-				return
-			}
-			t.Fatal("key n not found in document")
-		})
-	})
-	t.Run("update result", func(t *testing.T) {
-		t.Run("unmarshal into", func(t *testing.T) {
-			doc := bson.D{
-				{"n", 1},
-				{"nModified", 2},
-				{"upserted", bson.A{
-					bson.D{
-						{"index", 0},
-						{"_id", 3},
-					},
-				}},
-			}
-			b, err := bson.Marshal(doc)
-			assert.Nil(t, err, "Marshal error: %v", err)
+	result := DeleteResult{DeletedCount: 1}
+	buf, err := bson.Marshal(result)
+	require.Nil(t, err)
 
-			var result UpdateResult
-			err = bson.Unmarshal(b, &result)
-			assert.Nil(t, err, "Unmarshal error: %v", err)
-			assert.Equal(t, int64(1), result.MatchedCount, "expected MatchedCount 1, got %v", result.MatchedCount)
-			assert.Equal(t, int64(2), result.ModifiedCount, "expected ModifiedCount 2, got %v", result.ModifiedCount)
-			upsertedID := result.UpsertedID.(int32)
-			assert.Equal(t, int32(3), upsertedID, "expected upsertedID 3, got %v", upsertedID)
-		})
-	})
+	doc, err := bsonx.ReadDoc(buf)
+	require.Nil(t, err)
+
+	require.Equal(t, len(doc), 1)
+	e, err := doc.LookupErr("n")
+	require.NoError(t, err)
+	require.Equal(t, e.Type(), bson.TypeInt64)
+	require.Equal(t, e.Int64(), int64(1))
+}
+
+func TestUpdateOneResult_unmarshalInto(t *testing.T) {
+	t.Parallel()
+
+	doc := bsonx.Doc{
+		{"n", bsonx.Int32(1)},
+		{"nModified", bsonx.Int32(2)},
+		{"upserted", bsonx.Array(bsonx.Arr{
+			bsonx.Document(bsonx.Doc{
+				{"index", bsonx.Int32(0)},
+				{"_id", bsonx.Int32(3)},
+			}),
+		}),
+		}}
+
+	b, err := doc.MarshalBSON()
+	require.Nil(t, err)
+
+	var result UpdateResult
+	err = bson.Unmarshal(b, &result)
+	require.Nil(t, err)
+	require.Equal(t, result.MatchedCount, int64(1))
+	require.Equal(t, result.ModifiedCount, int64(2))
+	require.Equal(t, int(result.UpsertedID.(int32)), 3)
 }

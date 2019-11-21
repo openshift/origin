@@ -24,18 +24,6 @@ import (
 	"math"
 )
 
-type myInterface interface {
-	Foo() int
-}
-
-type myStruct struct {
-	Val int
-}
-
-func (ms myStruct) Foo() int {
-	return ms.Val
-}
-
 func TestDefaultValueEncoders(t *testing.T) {
 	var dve DefaultValueEncoders
 	var wrong = func(string, string) string { return "wrong" }
@@ -249,11 +237,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"Lookup Error",
-					map[string]interface{}{"foo": nil},
+					map[string]interface{}{},
 					&EncodeContext{Registry: NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteDocument,
-					fmt.Errorf("cannot encode invalid element"),
+					ErrNoEncoder{Type: reflect.TypeOf((*interface{})(nil)).Elem()},
 				},
 				{
 					"WriteDocumentElement Error",
@@ -270,22 +258,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&bsonrwtest.ValueReaderWriter{Err: errors.New("ev error"), ErrAfter: bsonrwtest.WriteString},
 					bsonrwtest.WriteString,
 					errors.New("ev error"),
-				},
-				{
-					"empty map/success",
-					map[string]interface{}{},
-					&EncodeContext{Registry: NewRegistryBuilder().Build()},
-					&bsonrwtest.ValueReaderWriter{},
-					bsonrwtest.WriteDocumentEnd,
-					nil,
-				},
-				{
-					"with interface/success",
-					map[string]myInterface{"foo": myStruct{1}},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					bsonrwtest.WriteDocumentEnd,
-					nil,
 				},
 			},
 		},
@@ -315,7 +287,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&EncodeContext{Registry: NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteArray,
-					fmt.Errorf("cannot encode invalid element"),
+					ErrNoEncoder{Type: reflect.TypeOf((*interface{})(nil)).Elem()},
 				},
 				{
 					"WriteArrayElement Error",
@@ -349,14 +321,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.WriteDocumentEnd,
 					nil,
 				},
-				{
-					"[1]interface/success",
-					[1]myInterface{myStruct{1}},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					bsonrwtest.WriteArrayEnd,
-					nil,
-				},
 			},
 		},
 		{
@@ -381,11 +345,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"Lookup Error",
-					[]interface{}{nil},
+					[]interface{}{},
 					&EncodeContext{Registry: NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteArray,
-					fmt.Errorf("cannot encode invalid element"),
+					ErrNoEncoder{Type: reflect.TypeOf((*interface{})(nil)).Elem()},
 				},
 				{
 					"WriteArrayElement Error",
@@ -417,22 +381,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					bsonrwtest.WriteDocumentEnd,
-					nil,
-				},
-				{
-					"empty slice/success",
-					[]interface{}{},
-					&EncodeContext{Registry: NewRegistryBuilder().Build()},
-					&bsonrwtest.ValueReaderWriter{},
-					bsonrwtest.WriteArrayEnd,
-					nil,
-				},
-				{
-					"interface/success",
-					[]myInterface{myStruct{1}},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					bsonrwtest.WriteArrayEnd,
 					nil,
 				},
 			},
@@ -924,20 +872,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
-			"StructEncodeValue",
-			defaultStructCodec,
-			[]subtest{
-				{
-					"interface value",
-					struct{ Foo myInterface }{Foo: myStruct{1}},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					bsonrwtest.WriteDocumentEnd,
-					nil,
-				},
-			},
-		},
-		{
 			"CodeWithScopeEncodeValue",
 			ValueEncoderFunc(dve.CodeWithScopeEncodeValue),
 			[]subtest{
@@ -1154,62 +1088,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					},
 				},
 				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
-				nil,
-			},
-			{
-				"inline struct pointer",
-				struct {
-					Foo *struct {
-						A int64 `bson:",minsize"`
-					} `bson:",inline"`
-					Bar *struct {
-						B int64
-					} `bson:",inline"`
-				}{
-					Foo: &struct {
-						A int64 `bson:",minsize"`
-					}{
-						A: 12345,
-					},
-					Bar: nil,
-				},
-				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
-				nil,
-			},
-			{
-				"nested inline struct pointer",
-				struct {
-					Foo *struct {
-						Bar *struct {
-							A int64 `bson:",minsize"`
-						} `bson:",inline"`
-					} `bson:",inline"`
-				}{
-					Foo: &struct {
-						Bar *struct {
-							A int64 `bson:",minsize"`
-						} `bson:",inline"`
-					}{
-						Bar: &struct {
-							A int64 `bson:",minsize"`
-						}{
-							A: 12345,
-						},
-					},
-				},
-				buildDocument(bsoncore.AppendInt32Element(nil, "a", 12345)),
-				nil,
-			},
-			{
-				"inline nil struct pointer",
-				struct {
-					Foo *struct {
-						A int64 `bson:",minsize"`
-					} `bson:",inline"`
-				}{
-					Foo: nil,
-				},
-				buildDocument([]byte{}),
 				nil,
 			},
 			{

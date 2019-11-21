@@ -52,7 +52,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDecoder(tJavaScript, ValueDecoderFunc(dvd.JavaScriptDecodeValue)).
 		RegisterDecoder(tSymbol, ValueDecoderFunc(dvd.SymbolDecodeValue)).
 		RegisterDecoder(tByteSlice, ValueDecoderFunc(dvd.ByteSliceDecodeValue)).
-		RegisterDecoder(tTime, defaultTimeCodec).
+		RegisterDecoder(tTime, ValueDecoderFunc(dvd.TimeDecodeValue)).
 		RegisterDecoder(tEmpty, ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue)).
 		RegisterDecoder(tOID, ValueDecoderFunc(dvd.ObjectIDDecodeValue)).
 		RegisterDecoder(tDecimal, ValueDecoderFunc(dvd.Decimal128DecodeValue)).
@@ -78,8 +78,8 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDefaultDecoder(reflect.Array, ValueDecoderFunc(dvd.ArrayDecodeValue)).
 		RegisterDefaultDecoder(reflect.Map, ValueDecoderFunc(dvd.MapDecodeValue)).
 		RegisterDefaultDecoder(reflect.Slice, ValueDecoderFunc(dvd.SliceDecodeValue)).
-		RegisterDefaultDecoder(reflect.String, defaultStringCodec).
-		RegisterDefaultDecoder(reflect.Struct, defaultStructCodec).
+		RegisterDefaultDecoder(reflect.String, ValueDecoderFunc(dvd.StringDecodeValue)).
+		RegisterDefaultDecoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser}).
 		RegisterDefaultDecoder(reflect.Ptr, NewPointerCodec()).
 		RegisterTypeMapEntry(bsontype.Double, tFloat64).
 		RegisterTypeMapEntry(bsontype.String, tString).
@@ -329,7 +329,7 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.
 // JavaScriptDecodeValue is the ValueDecoderFunc for the primitive.JavaScript type.
 func (DefaultValueDecoders) JavaScriptDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tJavaScript {
-		return ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
+		return ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
 	}
 
 	if vr.Type() != bsontype.JavaScript {
@@ -348,7 +348,7 @@ func (DefaultValueDecoders) JavaScriptDecodeValue(dctx DecodeContext, vr bsonrw.
 // SymbolDecodeValue is the ValueDecoderFunc for the primitive.Symbol type.
 func (DefaultValueDecoders) SymbolDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tSymbol {
-		return ValueDecoderError{Name: "SymbolDecodeValue", Types: []reflect.Type{tSymbol}, Received: val}
+		return ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tSymbol}, Received: val}
 	}
 
 	if vr.Type() != bsontype.Symbol {

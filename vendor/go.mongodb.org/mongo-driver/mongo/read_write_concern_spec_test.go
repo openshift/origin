@@ -7,276 +7,378 @@
 package mongo
 
 import (
-	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"path"
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
-const (
-	readWriteConcernTestsDir = "../data/read-write-concern"
-	connstringTestsDir       = "connection-string"
-	documentTestsDir         = "document"
-)
-
-var (
-	serverDefaultConcern = []byte{5, 0, 0, 0, 0} // server default read concern and write concern is empty document
-	specTestRegistry     = bson.NewRegistryBuilder().
-				RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{})).Build()
-)
-
-type connectionStringTestFile struct {
-	Tests []connectionStringTest `bson:"tests"`
-}
-
 type connectionStringTest struct {
-	Description  string   `bson:"description"`
-	URI          string   `bson:"uri"`
-	Valid        bool     `bson:"valid"`
-	ReadConcern  bson.Raw `bson:"readConcern"`
-	WriteConcern bson.Raw `bson:"writeConcern"`
-}
-
-type documentTestFile struct {
-	Tests []documentTest `bson:"tests"`
+	Description  string
+	URI          string
+	Valid        bool
+	ReadConcern  map[string]interface{}
+	WriteConcern map[string]interface{}
 }
 
 type documentTest struct {
-	Description          string    `bson:"description"`
-	Valid                bool      `bson:"valid"`
-	ReadConcern          bson.Raw  `bson:"readConcern"`
-	ReadConcernDocument  *bson.Raw `bson:"readConcernDocument"`
-	WriteConcern         bson.Raw  `bson:"writeConcern"`
-	WriteConcernDocument *bson.Raw `bson:"writeConcernDocument"`
-	IsServerDefault      *bool     `bson:"isServerDefault"`
-	IsAcknowledged       *bool     `bson:"isAcknowledged"`
+	Description          string
+	URI                  string
+	Valid                bool
+	ReadConcern          *readConcern
+	ReadConcernDocument  map[string]interface{}
+	WriteConcern         *writeConcern
+	WriteConcernDocument map[string]interface{}
+	IsServerDefault      bool
+	IsAcknowledged       *bool
 }
 
-func TestReadWriteConcernSpec(t *testing.T) {
-	t.Run("connstring", func(t *testing.T) {
-		for _, file := range jsonFilesInDir(t, path.Join(readWriteConcernTestsDir, connstringTestsDir)) {
-			t.Run(file, func(t *testing.T) {
-				runConnectionStringTestFile(t, path.Join(readWriteConcernTestsDir, connstringTestsDir, file))
-			})
-		}
-	})
-	t.Run("document", func(t *testing.T) {
-		for _, file := range jsonFilesInDir(t, path.Join(readWriteConcernTestsDir, documentTestsDir)) {
-			t.Run(file, func(t *testing.T) {
-				runDocumentTestFile(t, path.Join(readWriteConcernTestsDir, documentTestsDir, file))
-			})
-		}
-	})
-}
-
-func runConnectionStringTestFile(t *testing.T, filePath string) {
-	content, err := ioutil.ReadFile(filePath)
-	assert.Nil(t, err, "ReadFile error for %v: %v", filePath, err)
-
-	var testFile connectionStringTestFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
-
-	for _, test := range testFile.Tests {
-		t.Run(test.Description, func(t *testing.T) {
-			runConnectionStringTest(t, test)
-		})
-	}
-}
-
-func runConnectionStringTest(t *testing.T, test connectionStringTest) {
-	cs, err := connstring.Parse(test.URI)
-	if !test.Valid {
-		assert.NotNil(t, err, "expected Parse error, got nil")
-		return
-	}
-	assert.Nil(t, err, "Parse error: %v", err)
-
-	if test.ReadConcern != nil {
-		expected := readConcernFromRaw(t, test.ReadConcern)
-		assert.Equal(t, expected.GetLevel(), cs.ReadConcernLevel,
-			"expected level %v, got %v", expected.GetLevel(), cs.ReadConcernLevel)
-	}
-	if test.WriteConcern != nil {
-		expectedWc := writeConcernFromRaw(t, test.WriteConcern)
-		if expectedWc.wSet {
-			expected := expectedWc.GetW()
-			if _, ok := expected.(int); ok {
-				assert.True(t, cs.WNumberSet, "expected WNumberSet, got false")
-				assert.Equal(t, expected, cs.WNumber, "expected w value %v, got %v", expected, cs.WNumber)
-			} else {
-				assert.False(t, cs.WNumberSet, "expected WNumberSet to be false, got true")
-				assert.Equal(t, expected, cs.WString, "expected w value %v, got %v", expected, cs.WString)
-			}
-		}
-		if expectedWc.timeoutSet {
-			assert.True(t, cs.WTimeoutSet, "expected WTimeoutSet, got false")
-			assert.Equal(t, expectedWc.GetWTimeout(), cs.WTimeout,
-				"expected timeout value %v, got %v", expectedWc.GetWTimeout(), cs.WTimeout)
-		}
-		if expectedWc.jSet {
-			assert.True(t, cs.JSet, "expected JSet, got false")
-			assert.Equal(t, expectedWc.GetJ(), cs.J, "expected j value %v, got %v", expectedWc.GetJ(), cs.J)
-		}
-	}
-}
-
-func runDocumentTestFile(t *testing.T, filePath string) {
-	content, err := ioutil.ReadFile(filePath)
-	assert.Nil(t, err, "ReadFile error: %v", err)
-
-	var testFile documentTestFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
-
-	for _, test := range testFile.Tests {
-		t.Run(test.Description, func(t *testing.T) {
-			runDocumentTest(t, test)
-		})
-	}
-}
-
-func runDocumentTest(t *testing.T, test documentTest) {
-	if test.ReadConcern != nil {
-		_, actual, err := readConcernFromRaw(t, test.ReadConcern).MarshalBSONValue()
-		if !test.Valid {
-			assert.NotNil(t, err, "expected MarshalBSONValue error, got nil")
-		} else {
-			assert.Nil(t, err, "MarshalBSONValue error: %v", err)
-			compareDocuments(t, *test.ReadConcernDocument, actual)
-		}
-
-		if test.IsServerDefault != nil {
-			gotServerDefault := bytes.Equal(actual, serverDefaultConcern)
-			assert.Equal(t, *test.IsServerDefault, gotServerDefault, "expected server default read concern, got %s", actual)
-		}
-	}
-	if test.WriteConcern != nil {
-		actualWc := writeConcernFromRaw(t, test.WriteConcern)
-		_, actual, err := actualWc.MarshalBSONValue()
-		if !test.Valid {
-			assert.NotNil(t, err, "expected MarshalBSONValue error, got nil")
-			return
-		}
-		if test.IsAcknowledged != nil {
-			actualAck := actualWc.Acknowledged()
-			assert.Equal(t, *test.IsAcknowledged, actualAck,
-				"expected acknowledged %v, got %v", *test.IsAcknowledged, actualAck)
-		}
-
-		expected := *test.WriteConcernDocument
-		if err == writeconcern.ErrEmptyWriteConcern {
-			elems, _ := expected.Elements()
-			if len(elems) == 0 {
-				assert.NotNil(t, test.IsServerDefault, "expected write concern %s, got empty", expected)
-				assert.True(t, *test.IsServerDefault, "expected write concern %s, got empty", expected)
-				return
-			}
-			if _, jErr := expected.LookupErr("j"); jErr == nil && len(elems) == 1 {
-				return
-			}
-		}
-
-		assert.Nil(t, err, "MarshalBSONValue error: %v", err)
-		if jVal, err := expected.LookupErr("j"); err == nil && !jVal.Boolean() {
-			actual = actual[:len(actual)-1]
-			actual = bsoncore.AppendBooleanElement(actual, "j", false)
-			actual, _ = bsoncore.AppendDocumentEnd(actual, 0)
-		}
-		compareDocuments(t, expected, actual)
-	}
-}
-
-func readConcernFromRaw(t *testing.T, rc bson.Raw) *readconcern.ReadConcern {
-	t.Helper()
-
-	var opts []readconcern.Option
-	elems, _ := rc.Elements()
-	for _, elem := range elems {
-		key := elem.Key()
-		val := elem.Value()
-
-		switch key {
-		case "level":
-			opts = append(opts, readconcern.Level(val.StringValue()))
-		default:
-			t.Fatalf("unrecognized read concern field %v", key)
-		}
-	}
-	return readconcern.New(opts...)
+type readConcern struct {
+	Level *string
 }
 
 type writeConcern struct {
-	*writeconcern.WriteConcern
-	jSet       bool
-	wSet       bool
-	timeoutSet bool
+	W          interface{}
+	Journal    *bool
+	WtimeoutMS *int64
 }
 
-func writeConcernFromRaw(t *testing.T, wcRaw bson.Raw) writeConcern {
-	var wc writeConcern
-	var opts []writeconcern.Option
+type connectionStringTests struct {
+	Tests []connectionStringTest
+}
 
-	elems, _ := wcRaw.Elements()
-	for _, elem := range elems {
-		key := elem.Key()
-		val := elem.Value()
+type documentTestContainer struct {
+	Tests []documentTest
+}
 
-		switch key {
-		case "w":
-			wc.wSet = true
-			switch val.Type {
-			case bsontype.Int32:
-				w := int(val.Int32())
-				opts = append(opts, writeconcern.W(w))
-			case bsontype.String:
-				opts = append(opts, writeconcern.WTagSet(val.StringValue()))
-			default:
-				t.Fatalf("unexpected type for w: %v", val.Type)
-			}
-		case "wtimeoutMS":
-			wc.timeoutSet = true
-			timeout := time.Duration(val.Int32()) * time.Millisecond
-			opts = append(opts, writeconcern.WTimeout(timeout))
-		case "journal":
-			wc.jSet = true
-			j := val.Boolean()
-			opts = append(opts, writeconcern.J(j))
-		default:
-			t.Fatalf("unrecognized write concern field: %v", key)
-		}
+const testsDir = "../data/read-write-concern/"
+const connStringTestsDir = "connection-string"
+const documentTestsDir = "document"
+
+// Test case for all connection string spec tests.
+func TestReadWriteConcernSpec(t *testing.T) {
+	for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(testsDir, connStringTestsDir)) {
+		runConnectionStringTestsInFile(t, file)
 	}
 
-	wc.WriteConcern = writeconcern.New(opts...)
-	return wc
+	for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(testsDir, documentTestsDir)) {
+		runDocumentTestsInFile(t, file)
+	}
 }
 
-// generate a slice of all JSON file names in a directory
-func jsonFilesInDir(t *testing.T, dir string) []string {
-	t.Helper()
+func runConnectionStringTestsInFile(t *testing.T, filename string) {
+	filepath := path.Join(testsDir, connStringTestsDir, filename)
+	content, err := ioutil.ReadFile(filepath)
+	require.NoError(t, err)
 
-	files := make([]string, 0)
+	var container connectionStringTests
+	require.NoError(t, json.Unmarshal(content, &container))
 
-	entries, err := ioutil.ReadDir(dir)
-	assert.Nil(t, err, "unable to read json file: %v", err)
+	// Remove ".json" from filename.
+	filename = filename[:len(filename)-5]
 
-	for _, entry := range entries {
-		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
+	for _, testCase := range container.Tests {
+		runConnectionStringTest(t, fmt.Sprintf("%s/%s/%s", connStringTestsDir, filename, testCase.Description), &testCase)
+	}
+}
+
+func runDocumentTestsInFile(t *testing.T, filename string) {
+	filepath := path.Join(testsDir, documentTestsDir, filename)
+	content, err := ioutil.ReadFile(filepath)
+	require.NoError(t, err)
+
+	var container documentTestContainer
+	require.NoError(t, json.Unmarshal(content, &container))
+
+	// Remove ".json" from filename.
+	filename = filename[:len(filename)-5]
+
+	for _, testCase := range container.Tests {
+		runDocumentTest(t, fmt.Sprintf("%s/%s/%s", documentTestsDir, filename, testCase.Description), &testCase)
+	}
+}
+
+func runConnectionStringTest(t *testing.T, testName string, testCase *connectionStringTest) {
+	t.Run(testName, func(t *testing.T) {
+		cs, err := connstring.Parse(testCase.URI)
+		if !testCase.Valid {
+			require.Error(t, err)
+			return
+		}
+
+		require.NoError(t, err)
+
+		if testCase.ReadConcern != nil {
+			rc := readConcernFromConnString(&cs)
+			if rc == nil {
+				rc = readconcern.New()
+			}
+
+			typ, data, err := rc.MarshalBSONValue()
+			require.NoError(t, err)
+
+			rcDoc := bson.RawValue{Type: typ, Value: data}.Document()
+			expectedLevel, expectedFound := testCase.ReadConcern["level"]
+			actualLevel, actualErr := rcDoc.LookupErr("level")
+			require.Equal(t, expectedFound, actualErr == nil)
+
+			if expectedFound {
+				require.Equal(t, expectedLevel, actualLevel.StringValue())
+			}
+		}
+
+		if testCase.WriteConcern != nil {
+			wc := writeConcernFromConnString(&cs)
+			if wc == nil {
+				wc = writeconcern.New()
+			}
+
+			typ, data, err := wc.MarshalBSONValue()
+			if err == writeconcern.ErrEmptyWriteConcern {
+				if len(testCase.WriteConcern) == 0 {
+					return
+				}
+				if _, exists := testCase.WriteConcern["journal"]; exists && len(testCase.WriteConcern) == 1 {
+					return
+				}
+			}
+			require.NoError(t, err)
+
+			wcDoc := bson.RawValue{Type: typ, Value: data}.Document()
+
+			// Don't count journal=false since our write concern type doesn't encode it.
+			expectedLength := len(testCase.WriteConcern)
+			if j, found := testCase.WriteConcern["journal"]; found && !j.(bool) {
+				expectedLength--
+			}
+
+			elems, err := wcDoc.Elements()
+			require.NoError(t, err)
+
+			require.Equal(t, len(elems), expectedLength)
+
+			for _, e := range elems {
+
+				switch e.Key() {
+				case "w":
+					v, found := testCase.WriteConcern["w"]
+					require.True(t, found)
+
+					vInt := testhelpers.GetIntFromInterface(v)
+
+					if vInt == nil {
+						require.Equal(t, e.Value().Type, bson.TypeString)
+
+						vString, ok := v.(string)
+						require.True(t, ok)
+						require.Equal(t, vString, e.Value().StringValue())
+
+						break
+					}
+
+					require.Equal(t, e.Value().Type, bson.TypeInt32)
+					require.Equal(t, *vInt, int64(e.Value().Int32()))
+				case "wtimeout":
+					v, found := testCase.WriteConcern["wtimeoutMS"]
+					require.True(t, found)
+
+					i := testhelpers.GetIntFromInterface(v)
+					require.NotNil(t, i)
+					require.Equal(t, *i, e.Value().Int64())
+				case "j":
+					v, found := testCase.WriteConcern["journal"]
+					require.True(t, found)
+
+					vBool, ok := v.(bool)
+					require.True(t, ok)
+
+					require.Equal(t, vBool, e.Value().Boolean())
+				}
+			}
+		}
+	})
+}
+
+func runDocumentTest(t *testing.T, testName string, testCase *documentTest) {
+	t.Run(testName, func(t *testing.T) {
+		if testCase.ReadConcern != nil {
+			rc := readConcernFromStruct(*testCase.ReadConcern)
+			typ, data, err := rc.MarshalBSONValue()
+			require.NoError(t, err)
+
+			rcBytes := bson.RawValue{Type: typ, Value: data}.Document()
+
+			actual := make(map[string]interface{})
+			err = bson.Unmarshal(rcBytes, &actual)
+
+			requireMapEqual(t, testCase.ReadConcernDocument, actual)
+		}
+
+		if testCase.WriteConcern != nil {
+			wc, err := writeConcernFromStruct(*testCase.WriteConcern)
+			require.NoError(t, err)
+
+			if testCase.IsAcknowledged != nil {
+				require.Equal(t, *testCase.IsAcknowledged, wc.Acknowledged())
+			}
+
+			typ, data, err := wc.MarshalBSONValue()
+			if !testCase.Valid {
+				require.Error(t, err)
+				return
+			}
+
+			if err == writeconcern.ErrEmptyWriteConcern {
+				if len(testCase.WriteConcernDocument) == 0 {
+					return
+				}
+				if _, exists := testCase.WriteConcernDocument["j"]; exists && len(testCase.WriteConcernDocument) == 1 {
+					return
+				}
+			}
+			require.NoError(t, err)
+
+			wcBytes := bson.RawValue{Type: typ, Value: data}.Document()
+
+			actual := make(map[string]interface{})
+			err = bson.Unmarshal(wcBytes, &actual)
+			require.NoError(t, err)
+
+			requireMapEqual(t, testCase.WriteConcernDocument, actual)
+		}
+	})
+}
+
+func requireMapEqual(t *testing.T, expected, actual map[string]interface{}) {
+	// Since `actual` won't contain j=false, we just check that actual isn't bigger than `expected`.
+	// Later, we check that all other keys in `expected` are in `actual`.
+	require.True(t, len(expected) >= len(actual))
+
+	for key, expectedVal := range expected {
+		actualVal, ok := actual[key]
+		// Since write concern's MarshalBSON doesn't marshal j=false, we treat j=false as the
+		// same as j not being present.
+		//
+		// We know that MarshalBSON will only populate j with a bool, so the coercion is safe.
+		if key == "j" {
+			require.Equal(t, expectedVal, ok && actualVal.(bool))
 			continue
 		}
 
-		files = append(files, entry.Name())
+		// Assert that the key from `expected` is in `actual`.
+		require.True(t, ok)
+
+		// Coerce both to integers if possible (to ensure that things like `float(3)` and `int32(3)` are true)/
+		expectedInt := testhelpers.GetIntFromInterface(expectedVal)
+		actualInt := testhelpers.GetIntFromInterface(actualVal)
+		require.Equal(t, expectedInt == nil, actualInt == nil)
+
+		if expectedInt != nil {
+			require.Equal(t, expectedInt, actualInt)
+			continue
+		}
+
+		// Otherwise, check equality regularly.
+		require.Equal(t, expectedVal, actualVal)
+	}
+}
+
+func readConcernFromStruct(rc readConcern) *readconcern.ReadConcern {
+	opts := make([]readconcern.Option, 0)
+
+	if rc.Level != nil {
+		opts = append(opts, readconcern.Level(*rc.Level))
 	}
 
-	return files
+	return readconcern.New(opts...)
+}
+
+func writeConcernFromStruct(wc writeConcern) (*writeconcern.WriteConcern, error) {
+	opts := make([]writeconcern.Option, 0)
+
+	if wc.W != nil {
+		if i := testhelpers.GetIntFromInterface(wc.W); i != nil {
+			if !int64FitsInInt(*i) {
+				return nil, errors.New("write concern `w` value is too large for int")
+			}
+
+			opts = append(opts, writeconcern.W(int(*i)))
+		} else if s, ok := wc.W.(string); ok {
+			opts = append(opts, writeconcern.WTagSet(s))
+		} else {
+			return nil, errors.New("write concern `w` must be int or string")
+		}
+	}
+
+	if wc.Journal != nil {
+		opts = append(opts, writeconcern.J(*wc.Journal))
+	}
+
+	if wc.WtimeoutMS != nil {
+		opts = append(opts, writeconcern.WTimeout(time.Duration(*wc.WtimeoutMS)*time.Millisecond))
+	}
+
+	return writeconcern.New(opts...), nil
+}
+
+func int64FitsInInt(i int64) bool {
+	// If casting an int64 to an int changes the value, then it doesn't fit in an int.
+	return int64(int(i)) == i
+}
+
+func readConcernFromConnString(cs *connstring.ConnString) *readconcern.ReadConcern {
+	if len(cs.ReadConcernLevel) == 0 {
+		return nil
+	}
+
+	rc := &readconcern.ReadConcern{}
+	readconcern.Level(cs.ReadConcernLevel)(rc)
+
+	return rc
+}
+
+func writeConcernFromConnString(cs *connstring.ConnString) *writeconcern.WriteConcern {
+	var wc *writeconcern.WriteConcern
+
+	if len(cs.WString) > 0 {
+		if wc == nil {
+			wc = writeconcern.New()
+		}
+
+		writeconcern.WTagSet(cs.WString)(wc)
+	} else if cs.WNumberSet {
+		if wc == nil {
+			wc = writeconcern.New()
+		}
+
+		writeconcern.W(cs.WNumber)(wc)
+	}
+
+	if cs.JSet {
+		if wc == nil {
+			wc = writeconcern.New()
+		}
+
+		writeconcern.J(cs.J)(wc)
+	}
+
+	if cs.WTimeoutSet {
+		if wc == nil {
+			wc = writeconcern.New()
+		}
+
+		writeconcern.WTimeout(cs.WTimeout)(wc)
+	}
+
+	return wc
 }
