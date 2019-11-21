@@ -14,6 +14,7 @@ for pkg in "$GOPATH/src/k8s.io/kubernetes/staging/src/k8s.io/"*; do
   dir=$(basename $pkg)
   if [ -d "$GOPATH/src/k8s.io/$dir" ]; then
     echo "Conflicting $GOPATH/src/k8s.io/$dir found. Please remove from GOPATH." 1>&2
+    [[ ! -z "${SKIP_STAGING_CHECK}" ]] && continue
     exit 1
   fi
 done
