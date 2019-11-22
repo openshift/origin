@@ -22,7 +22,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 		c, err := e2e.LoadClientset()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		var lastPodsWithProblems []*corev1.Pod
+		podsWithProblems := make(map[string]*corev1.Pod)
 		var lastPending map[string]*corev1.Pod
 		wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
 			allPods, err := c.CoreV1().Pods("").List(metav1.ListOptions{})
@@ -54,7 +54,6 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 			}
 			lastPending = pending
 
-			var podsWithProblems []*corev1.Pod
 			var names []string
 			for _, pod := range pods {
 				if pod.Status.Phase == corev1.PodSucceeded {
@@ -69,18 +68,18 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 				default:
 					continue
 				}
-				names = append(names, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
-				podsWithProblems = append(podsWithProblems, pod)
+				key := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
+				names = append(names, key)
+				podsWithProblems[key] = pod
 			}
 			if len(names) > 0 {
 				e2e.Logf("Some pods in error: %s", strings.Join(names, ", "))
 			}
-			lastPodsWithProblems = podsWithProblems
 			return false, nil
 		})
 		var msg []string
 		ns := make(map[string]struct{})
-		for _, pod := range lastPodsWithProblems {
+		for _, pod := range podsWithProblems {
 			delete(lastPending, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 			if _, ok := ns[pod.Namespace]; !ok {
 				e2e.DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
