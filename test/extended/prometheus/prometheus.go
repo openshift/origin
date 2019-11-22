@@ -33,7 +33,9 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const waitForPrometheusStartSeconds = 240
+const (
+	maxPrometheusQueryRetries = 5
+)
 
 var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	defer g.GinkgoRecover()
@@ -81,7 +83,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			g.By("checking the unsecured metrics path")
 			var metrics map[string]*dto.MetricFamily
-			o.Expect(wait.PollImmediate(10*time.Second, waitForPrometheusStartSeconds*time.Second, func() (bool, error) {
+			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
 				results, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", url))
 				if err != nil {
 					e2e.Logf("unable to get unsecured metrics: %v", err)
@@ -172,6 +174,29 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 
 			e2e.Logf("Watchdog alert is firing")
+		})
+		g.It("should have important platform topology metrics", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string]bool{
+				// track infrastructure type
+				`cluster_infrastructure_provider{type!=""}`: true,
+				`cluster_feature_set`:                       true,
+
+				// track installer type
+				`cluster_installer{type!="",invoker!=""}`: true,
+
+				// track sum of etcd
+				`instance:etcd_object_counts:sum > 0`: true,
+
+				// track cores and sockets across node types
+				`sum(node_role_os_version_machine:cpu_capacity_cores:sum{label_kubernetes_io_arch!="",label_node_role_kubernetes_io_master!=""}) > 0`:                                      true,
+				`sum(node_role_os_version_machine:cpu_capacity_sockets:sum{label_kubernetes_io_arch!="",label_node_hyperthread_enabled!="",label_node_role_kubernetes_io_master!=""}) > 0`: true,
+			}
+			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})
 		g.It("should have non-Pod host cAdvisor metrics", func() {
 			oc.SetupProject()
