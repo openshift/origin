@@ -65,7 +65,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 
 		// ADMISSION
 		clusterQuotaMappingController := newClusterQuotaMappingController(kubeAPIServerInformers.KubernetesInformers.Core().V1().Namespaces(), kubeAPIServerInformers.OpenshiftQuotaInformers.Quota().V1().ClusterResourceQuotas())
-		genericConfig.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", func(context genericapiserver.PostStartHookContext) error {
+		enablement.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", func(context genericapiserver.PostStartHookContext) error {
 			go clusterQuotaMappingController.Run(5, context.StopCh)
 			return nil
 		})
