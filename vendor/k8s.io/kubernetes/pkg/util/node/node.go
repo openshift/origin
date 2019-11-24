@@ -241,6 +241,8 @@ func fixupPatchForNodeStatusAddresses(patchBytes []byte, addresses []v1.NodeAddr
 	//     }
 	//   }
 
+	klog.Infof("XXX fixing node status patch with addresses %#v", addresses)
+
 	var patchMap map[string]interface{}
 	if err := json.Unmarshal(patchBytes, &patchMap); err != nil {
 		return nil, err

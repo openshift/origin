@@ -1310,6 +1310,8 @@ func (c *Cloud) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.No
 	if c.selfAWSInstance.nodeName == name || len(name) == 0 {
 		addresses := []v1.NodeAddress{}
 
+		klog.Infof("XXX fetching local NodeAddresses")
+
 		macs, err := c.metadata.GetMetadata("network/interfaces/macs/")
 		if err != nil {
 			return nil, fmt.Errorf("error querying AWS metadata for %q: %q", "network/interfaces/macs", err)
@@ -1338,6 +1340,7 @@ func (c *Cloud) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.No
 			if err != nil {
 				return nil, fmt.Errorf("error querying AWS metadata for %q: %q", ipPath, err)
 			}
+			klog.Infof("XXX MAC %s has device-number %d and IP %s", macID, num, macIPs[num])
 		}
 
 		for i := 0; i < len(macIPs); i++ {
@@ -1349,6 +1352,7 @@ func (c *Cloud) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.No
 				if internalIP == "" {
 					continue
 				}
+				klog.Infof("XXX appending %s", internalIP)
 				addresses = append(addresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: internalIP})
 			}
 		}

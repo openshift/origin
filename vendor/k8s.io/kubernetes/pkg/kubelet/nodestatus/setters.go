@@ -84,6 +84,7 @@ func NodeAddress(nodeIP net.IP, // typically Kubelet.nodeIP
 		}
 		if cloud != nil {
 			nodeAddresses, err := nodeAddressesFunc()
+			klog.Infof("XXX cloud returned: %#v", nodeAddresses)
 			if err != nil {
 				return err
 			}
@@ -144,6 +145,7 @@ func NodeAddress(nodeIP net.IP, // typically Kubelet.nodeIP
 					existingHostnameAddress.Address = hostname
 				}
 			}
+			klog.Infof("XXX setting node.Status.Addresses = %#v", nodeAddresses)
 			node.Status.Addresses = nodeAddresses
 		} else {
 			var ipAddr net.IP
