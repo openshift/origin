@@ -1,5 +1,5 @@
-hash: c5c0968c6ce3980aaeaff39af4090511a6ef3e094c8edbe546ba00a7db14dd2f
-updated: 2019-11-21T14:41:08.677846+01:00
+hash: 69faccb9f16ed8a443d6c836606ace9dd19aed9fc09dc33db946dcb806d99faa
+updated: 2019-11-25T13:36:40.004607+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -811,7 +811,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 082f8e2a947ea8b4ed15c9c0f7b190d1fd35e6bc
+  version: 2ea89d203c53704f1fcfeb55c13ededab14fd020
   subpackages:
   - annotations
   - apps
@@ -828,6 +828,8 @@ imports:
   - image/docker10
   - image/dockerpre012
   - image/v1
+  - imageregistry
+  - imageregistry/v1
   - kubecontrolplane
   - kubecontrolplane/v1
   - legacyconfig/v1
@@ -1592,7 +1594,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 54cbfd8602694dc98fd05c3facbf6bdffe2c38fa
+  version: 9b2b98156862eda07899ce63df8241746b108d4b
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2161,7 +2163,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 835ab0c72e4d6ffbe2ceec1ce55d2abdf856b913
+  version: 9f901f906b579e08c38c42e836566e572c27189f
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -3034,7 +3036,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/legacy-cloud-providers
-  version: d70051cc537c098e706802b125098cefd8cfef6f
+  version: b4ed922135c0cdd82f576737103794c56c6a1622
   repo: https://github.com/openshift/kubernetes-legacy-cloud-providers.git
   subpackages:
   - aws
