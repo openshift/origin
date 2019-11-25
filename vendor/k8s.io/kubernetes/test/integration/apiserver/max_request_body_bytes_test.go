@@ -27,13 +27,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/test/integration/framework"
+	clientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 )
 
 // Tests that the apiserver limits the resource size in write operations.
 func TestMaxResourceSize(t *testing.T) {
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	clientSet, _ := framework.StartTestServer(t, stopCh, framework.TestServerSetup{})
+	masterConfig := framework.NewIntegrationTestMasterConfig()
+	masterConfig.ExtraConfig.EnableCoreControllers = false
+	_, s, closeFn := framework.RunAMaster(masterConfig)
+	defer closeFn()
+
+	clientSet, err := clientset.NewForConfig(&restclient.Config{Host: s.URL})
+	if err != nil {
+		t.Fatalf("Error in create clientset: %v", err)
+	}
 
 	hugeData := []byte(strings.Repeat("x", 3*1024*1024+1))
 
@@ -58,7 +66,7 @@ func TestMaxResourceSize(t *testing.T) {
 			Name: "test",
 		},
 	}
-	_, err := clientSet.CoreV1().Secrets("default").Create(secret)
+	_, err = clientSet.CoreV1().Secrets("default").Create(secret)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,12 +101,28 @@ func TestMaxResourceSize(t *testing.T) {
 			t.Errorf("expected success or bad request err, got %v", err)
 		}
 	})
+	t.Run("JSONPatchType should handle a valid patch just under the max limit", func(t *testing.T) {
+		patchBody := []byte(`[{"op":"add","path":"/foo","value":0` + strings.Repeat(" ", 3*1024*1024-100) + `}]`)
+		err = rest.Patch(types.JSONPatchType).AbsPath(fmt.Sprintf("/api/v1/namespaces/default/secrets/test")).
+			Body(patchBody).Do().Error()
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
 	t.Run("MergePatchType should handle a patch just under the max limit", func(t *testing.T) {
 		patchBody := []byte(`{"value":` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + `}`)
 		err = rest.Patch(types.MergePatchType).AbsPath(fmt.Sprintf("/api/v1/namespaces/default/secrets/test")).
 			Body(patchBody).Do().Error()
 		if err != nil && !errors.IsBadRequest(err) {
 			t.Errorf("expected success or bad request err, got %v", err)
+		}
+	})
+	t.Run("MergePatchType should handle a valid patch just under the max limit", func(t *testing.T) {
+		patchBody := []byte(`{"value":0` + strings.Repeat(" ", 3*1024*1024-100) + `}`)
+		err = rest.Patch(types.MergePatchType).AbsPath(fmt.Sprintf("/api/v1/namespaces/default/secrets/test")).
+			Body(patchBody).Do().Error()
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
 		}
 	})
 	t.Run("StrategicMergePatchType should handle a patch just under the max limit", func(t *testing.T) {
@@ -109,12 +133,12 @@ func TestMaxResourceSize(t *testing.T) {
 			t.Errorf("expected success or bad request err, got %v", err)
 		}
 	})
-	t.Run("ApplyPatchType should handle a patch just under the max limit", func(t *testing.T) {
-		patchBody := []byte(`{"value":` + strings.Repeat("[", 3*1024*1024/2-100) + strings.Repeat("]", 3*1024*1024/2-100) + `}`)
-		err = rest.Patch(types.ApplyPatchType).Param("fieldManager", "test").AbsPath(fmt.Sprintf("/api/v1/namespaces/default/secrets/test")).
+	t.Run("StrategicMergePatchType should handle a valid patch just under the max limit", func(t *testing.T) {
+		patchBody := []byte(`{"value":0` + strings.Repeat(" ", 3*1024*1024-100) + `}`)
+		err = rest.Patch(types.StrategicMergePatchType).AbsPath(fmt.Sprintf("/api/v1/namespaces/default/secrets/test")).
 			Body(patchBody).Do().Error()
-		if err != nil && !errors.IsBadRequest(err) {
-			t.Errorf("expected success or bad request err, got %#v", err)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
 		}
 	})
 	t.Run("Delete should limit the request body size", func(t *testing.T) {
