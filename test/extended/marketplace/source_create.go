@@ -3,6 +3,7 @@ package marketplace
 import (
 	"fmt"
 	"time"
+	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -20,7 +21,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		oc            = exutil.NewCLI("marketplace", exutil.KubeConfigPath())
 		allNs         = "openshift-operators"
 		marketplaceNs = "openshift-marketplace"
-		resourceWait  = 100 * time.Second
+		ResourceWait  = 100 * time.Second
 
 		opsrcYamltem = exutil.FixturePath("testdata", "marketplace", "opsrc", "01-opsrc.yaml")
 		cscYamltem   = exutil.FixturePath("testdata", "marketplace", "csc", "01-csc.yaml")

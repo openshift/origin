@@ -50,3 +50,15 @@ func existResources(oc *exutil.CLI, resourcetype string, name string, ns string)
 	}
 	return true, nil
 }
+func getResourceByPath(oc *exutil.CLI, resourcetype string, name string, path string, ns string) (msg string, e error) {
+	msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ns, resourcetype, name, path).Output()
+	if err != nil {
+		errstring := fmt.Sprintf("%v", msg)
+		if strings.Contains(errstring, "NotFound") {
+			return msg, nil
+		}
+		e2e.Failf("Can't get resource:%s", name)
+		return msg, err
+	}
+	return msg, nil
+}
