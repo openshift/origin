@@ -183,10 +183,13 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 		// Expect the matching dockercfg secret to also be deleted
 		g.By("waiting for service account's dockercfg secret to be deleted")
 		if err := wait.Poll(5*time.Second, 5*time.Minute, func() (bool, error) {
-			_, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Get(
+			cfgSecret, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Get(
 				dockercfgSecretName,
 				metav1.GetOptions{},
 			)
+			if cfgSecret != nil {
+				e2e.Logf("returned secret %s/%s is not nil", sa.Namespace, dockercfgSecretName)
+			}
 			if err != nil {
 				e2e.Logf("dockercfg secret %s/%s exists", sa.Namespace, dockercfgSecretName)
 				return false, nil
