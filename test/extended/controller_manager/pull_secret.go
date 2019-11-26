@@ -193,6 +193,10 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 					e2e.Logf("dockercfg secret %s/%s was recreated", sa.Namespace, dockercfgSecretName)
 					return true, nil
 				}
+				if cfgSecret.DeletionTimestamp != nil {
+					e2e.Logf("dockercfg secret %s/%s exists, but is marked for deletion", sa.Namespace, dockercfgSecretName)
+					return true, nil
+				}
 				e2e.Logf("dockercfg secret %s/%s exists", sa.Namespace, dockercfgSecretName)
 				return false, nil
 			}
