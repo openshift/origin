@@ -163,6 +163,7 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+		dockercfgCreationTs := dockercfgSecret.CreationTimestamp
 		secretName := dockercfgSecret.Annotations["openshift.io/token-secret.name"]
 		if len(secretName) == 0 {
 			t.Fatal("token secret was not created")
@@ -180,17 +181,19 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		// Expect the matching dockercfg secret to also be deleted
-		g.By("waiting for service account's dockercfg secret to be deleted")
+		// Expect the matching dockercfg secret to also be deleted.
+		// The service account controller may re-create the pull secret and token
+		g.By("waiting for service account's dockercfg secret to be deleted and/or recreated")
 		if err := wait.Poll(5*time.Second, 5*time.Minute, func() (bool, error) {
 			cfgSecret, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Get(
 				dockercfgSecretName,
 				metav1.GetOptions{},
 			)
-			if cfgSecret != nil {
-				e2e.Logf("returned secret %s/%s is not nil", sa.Namespace, dockercfgSecretName)
-			}
 			if err != nil {
+				if cfgSecret.CreationTimestamp.After(dockercfgCreationTs.Time) {
+					e2e.Logf("dockercfg secret %s/%s was recreated", sa.Namespace, dockercfgSecretName)
+					return true, nil
+				}
 				e2e.Logf("dockercfg secret %s/%s exists", sa.Namespace, dockercfgSecretName)
 				return false, nil
 			}
