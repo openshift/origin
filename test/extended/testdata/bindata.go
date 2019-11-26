@@ -406,6 +406,8 @@
 // test/extended/testdata/ldap/ldapserver-service.yaml
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/marketplace/csc/02-csc.yaml
+// test/extended/testdata/marketplace/opsrc/02-opsrc.yaml
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
@@ -53092,6 +53094,88 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataMarketplaceCsc02CscYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: csc-template
+objects:
+- apiVersion: operators.coreos.com/v1
+  kind: CatalogSourceConfig
+  metadata:
+    name: "${NAME}"
+    namespace: "${MARKETPLACE}"
+  spec:
+    targetNamespace: "${NAMESPACE}"
+    source: ""
+    packages: "${PACKAGES}"
+    csDisplayName: "${DISPLAYNAME}"
+    csPublisher: "${PUBLISHER}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: MARKETPLACE
+- name: PACKAGES
+- name: DISPLAYNAME
+- name: PUBLISHER`)
+
+func testExtendedTestdataMarketplaceCsc02CscYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMarketplaceCsc02CscYaml, nil
+}
+
+func testExtendedTestdataMarketplaceCsc02CscYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMarketplaceCsc02CscYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/marketplace/csc/02-csc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMarketplaceOpsrc02OpsrcYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: opsrc-template
+objects:
+- apiVersion: operators.coreos.com/v1
+  kind: OperatorSource
+  metadata:
+    name: "${NAME}"
+    namespace: "${MARKETPLACE}"
+    labels:
+      opsrc-provider: "${LABEL}"
+  spec:
+    type: appregistry
+    endpoint: "https://quay.io/cnr"
+    registryNamespace: "${NAMESPACE}"
+    displayName: "${DISPLAYNAME}"
+    publisher: "${PUBLISHER}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: MARKETPLACE
+- name: LABEL
+- name: DISPLAYNAME
+- name: PUBLISHER`)
+
+func testExtendedTestdataMarketplaceOpsrc02OpsrcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMarketplaceOpsrc02OpsrcYaml, nil
+}
+
+func testExtendedTestdataMarketplaceOpsrc02OpsrcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMarketplaceOpsrc02OpsrcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/marketplace/opsrc/02-opsrc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMultiNamespacePipelineYaml = []byte(`apiVersion: v1
 kind: Template
 labels:
@@ -58427,6 +58511,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.yaml": testExtendedTestdataLdapLdapserverServiceYaml,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/marketplace/csc/02-csc.yaml": testExtendedTestdataMarketplaceCsc02CscYaml,
+	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml": testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml": testExtendedTestdataOauthserverCabundleCmYaml,
@@ -59141,6 +59227,14 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"long_names": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
 					"fixture.json": &bintree{testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
+				}},
+				"marketplace": &bintree{nil, map[string]*bintree{
+					"csc": &bintree{nil, map[string]*bintree{
+						"02-csc.yaml": &bintree{testExtendedTestdataMarketplaceCsc02CscYaml, map[string]*bintree{}},
+					}},
+					"opsrc": &bintree{nil, map[string]*bintree{
+						"02-opsrc.yaml": &bintree{testExtendedTestdataMarketplaceOpsrc02OpsrcYaml, map[string]*bintree{}},
+					}},
 				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
