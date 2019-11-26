@@ -6,11 +6,14 @@ import (
 	"io/ioutil"
 	"net/url"
 
-	"k8s.io/klog"
-
-	osinv1 "github.com/openshift/api/osin/v1"
-	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
+)
+
+const (
+	// Discovery endpoint for OAuth 2.0 Authorization Server Metadata
+	// See IETF Draft:
+	// https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2
+	oauthMetadataEndpoint = "/.well-known/oauth-authorization-server"
 )
 
 // PKCE [RFC7636] code challenge methods supported
@@ -24,19 +27,6 @@ var codeChallengeMethodsSupported = []string{codeChallengeMethodPlain, codeChall
 
 // TODO: promote this struct as it is not effectively part of our API, since we
 // validate configuration using LoadOAuthMetadataFile
-
-func getOauthMetadata(masterPublicURL string) oauthdiscovery.OauthAuthorizationServerMetadata {
-	return oauthdiscovery.OauthAuthorizationServerMetadata{
-		Issuer:                masterPublicURL,
-		AuthorizationEndpoint: oauthdiscovery.OpenShiftOAuthAuthorizeURL(masterPublicURL),
-		TokenEndpoint:         oauthdiscovery.OpenShiftOAuthTokenURL(masterPublicURL),
-		// Note: this list is incomplete, which is allowed per the draft spec
-		ScopesSupported:               scope.DefaultSupportedScopes(),
-		ResponseTypesSupported:        []string{"code", "token"},
-		GrantTypesSupported:           []string{"authorization_code", "implicit"},
-		CodeChallengeMethodsSupported: codeChallengeMethodsSupported,
-	}
-}
 
 func validateURL(urlString string) error {
 	urlObj, err := url.Parse(urlString)
@@ -52,44 +42,28 @@ func validateURL(urlString string) error {
 	return nil
 }
 
-func loadOAuthMetadataFile(metadataFile string) ([]byte, *oauthdiscovery.OauthAuthorizationServerMetadata, error) {
+func loadOAuthMetadataFile(metadataFile string) ([]byte, error) {
 	data, err := ioutil.ReadFile(metadataFile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("unable to read External OAuth Metadata file: %v", err)
+		return nil, fmt.Errorf("unable to read External OAuth Metadata file: %v", err)
 	}
 
 	oauthMetadata := &oauthdiscovery.OauthAuthorizationServerMetadata{}
 	if err := json.Unmarshal(data, oauthMetadata); err != nil {
-		return nil, nil, fmt.Errorf("unable to decode External OAuth Metadata file: %v", err)
+		return nil, fmt.Errorf("unable to decode External OAuth Metadata file: %v", err)
 	}
 
 	if err := validateURL(oauthMetadata.Issuer); err != nil {
-		return nil, nil, fmt.Errorf("error validating External OAuth Metadata Issuer field: %v", err)
+		return nil, fmt.Errorf("error validating External OAuth Metadata Issuer field: %v", err)
 	}
 
 	if err := validateURL(oauthMetadata.AuthorizationEndpoint); err != nil {
-		return nil, nil, fmt.Errorf("error validating External OAuth Metadata AuthorizationEndpoint field: %v", err)
+		return nil, fmt.Errorf("error validating External OAuth Metadata AuthorizationEndpoint field: %v", err)
 	}
 
 	if err := validateURL(oauthMetadata.TokenEndpoint); err != nil {
-		return nil, nil, fmt.Errorf("error validating External OAuth Metadata TokenEndpoint field: %v", err)
+		return nil, fmt.Errorf("error validating External OAuth Metadata TokenEndpoint field: %v", err)
 	}
 
-	return data, oauthMetadata, nil
-}
-
-func prepOauthMetadata(oauthConfig *osinv1.OAuthConfig, oauthMetadataFile string) ([]byte, *oauthdiscovery.OauthAuthorizationServerMetadata, error) {
-	if len(oauthMetadataFile) > 0 {
-		return loadOAuthMetadataFile(oauthMetadataFile)
-	}
-	if oauthConfig != nil && len(oauthConfig.MasterPublicURL) != 0 {
-		metadataStruct := getOauthMetadata(oauthConfig.MasterPublicURL)
-		metadata, err := json.MarshalIndent(metadataStruct, "", "  ")
-		if err != nil {
-			klog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
-			return nil, nil, err
-		}
-		return metadata, &metadataStruct, nil
-	}
-	return nil, nil, nil
+	return data, nil
 }
