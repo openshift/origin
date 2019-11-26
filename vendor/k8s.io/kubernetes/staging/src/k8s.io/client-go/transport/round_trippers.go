@@ -376,6 +376,38 @@ func (rt *debuggingRoundTripper) CancelRequest(req *http.Request) {
 	}
 }
 
+var knownAuthTypes = map[string]bool{
+	"bearer":    true,
+	"basic":     true,
+	"negotiate": true,
+}
+
+// maskValue masks credential content from authorization headers
+// See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization
+func maskValue(key string, value string) string {
+	if !strings.EqualFold(key, "Authorization") {
+		return value
+	}
+	if len(value) == 0 {
+		return ""
+	}
+	var authType string
+	if i := strings.Index(value, " "); i > 0 {
+		authType = value[0:i]
+	} else {
+		authType = value
+	}
+	if !knownAuthTypes[strings.ToLower(authType)] {
+		return "<masked>"
+	}
+	if len(value) > len(authType)+1 {
+		value = authType + " <masked>"
+	} else {
+		value = authType
+	}
+	return value
+}
+
 func (rt *debuggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	reqInfo := newRequestInfo(req)
 
@@ -390,6 +422,7 @@ func (rt *debuggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, e
 		glog.Infof("Request Headers:")
 		for key, values := range reqInfo.RequestHeaders {
 			for _, value := range values {
+				value = maskValue(key, value)
 				glog.Infof("    %s: %s", key, value)
 			}
 		}
