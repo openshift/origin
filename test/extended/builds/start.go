@@ -215,6 +215,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 
 				// run one valid binary build so we can do --from-build later
 				g.It("should reject binary build requests without a --from-xxxx value", func() {
+					g.Skip("Bug 1775782: bundle install fails with Gemspec 'Could not read gem' error")
 					g.By("starting a valid build with a directory")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build-binary", "--follow", fmt.Sprintf("--from-dir=%s", exampleBuild))
 					br.AssertSuccess()
