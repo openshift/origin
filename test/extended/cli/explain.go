@@ -138,12 +138,11 @@ var (
 
 		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
 
-		// FIXME
-		// {Group: "network.openshift.io", Version: "v1", Resource: "clusternetworks"},
-		// {Group: "network.openshift.io", Version: "v1", Resource: "egressnetworkpolicies"},
-		// {Group: "network.openshift.io", Version: "v1", Resource: "hostsubnets"},
-		// {Group: "network.openshift.io", Version: "v1", Resource: "netnamespaces"},
-		// {Group: "network.operator.openshift.io", Version: "v1", Resource: "operatorpkis"},
+		{Group: "network.openshift.io", Version: "v1", Resource: "clusternetworks"},
+		{Group: "network.openshift.io", Version: "v1", Resource: "egressnetworkpolicies"},
+		{Group: "network.openshift.io", Version: "v1", Resource: "hostsubnets"},
+		{Group: "network.openshift.io", Version: "v1", Resource: "netnamespaces"},
+		{Group: "network.operator.openshift.io", Version: "v1", Resource: "operatorpkis"},
 	}
 
 	specialTypes = []explainExceptions{
