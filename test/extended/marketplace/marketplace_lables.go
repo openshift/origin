@@ -109,15 +109,5 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 			msg, _ := getResourceByPath(oc, source[0], source[1], source[2], source[3])
 			o.Expect(msg).Should(o.ContainSubstring("csctestlabel"))
 		}
-
-		//get the packagelist of opsrctestlabel
-		packageListOpsrc1, _ := getResourceByPath(oc, "operatorsource", "opsrctestlabel", "-o=jsonpath={.status.packages}", marketplaceNs)
-		packageList := strings.Split(packageListOpsrc1, ",")
-
-		//get the packagelist with label of opsrctestlabel
-		packageListOpsrc2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("packagemanifests", "-lopsrc-provider=optestlabel", "-o=name", "-n", marketplaceNs).Output()
-		for _, packages := range packageList {
-			o.Expect(packageListOpsrc2).Should(o.ContainSubstring(packages))
-		}
 	})
 })
