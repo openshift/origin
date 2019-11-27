@@ -2,8 +2,8 @@ package marketplace
 
 import (
 	"fmt"
-	"time"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -21,7 +21,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		oc            = exutil.NewCLI("marketplace", exutil.KubeConfigPath())
 		allNs         = "openshift-operators"
 		marketplaceNs = "openshift-marketplace"
-		ResourceWait  = 100 * time.Second
+		resourceWait  = 100 * time.Second
 
 		opsrcYamltem = exutil.FixturePath("testdata", "marketplace", "opsrc", "01-opsrc.yaml")
 		cscYamltem   = exutil.FixturePath("testdata", "marketplace", "csc", "01-csc.yaml")
@@ -52,7 +52,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		err = createResources(oc, opsrcYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		//wait for the opsrc is created finished
-		err = wait.Poll(5*time.Second, ResourceWait, func() (bool, error) {
+		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
 			if err != nil {
 				e2e.Failf("Failed to create opsrctest, error:%v", err)
@@ -87,7 +87,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args(podName, "-n", marketplaceNs).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		//wait for the marketplace recover
-		err = wait.Poll(5*time.Second, ResourceWait, func() (bool, error) {
+		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
 			if err != nil {
 				e2e.Failf("Failed to create opsrctest, error:%v", err)
@@ -113,7 +113,18 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctest", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=camel-k-marketplace-e2e-tests").OutputToFile("config.json")
 		err = createResources(oc, cscYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		time.Sleep(15 * time.Second)
+		//wait for the csc csctest is created
+		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
+			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "csctest", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
+			if err != nil {
+				e2e.Failf("Failed to create csctest, error:%v", err)
+				return false, err
+			}
+			if strings.Contains(output, "has been successfully reconciled") {
+				return true, nil
+			}
+			return false, nil
+		})
 
 		cscResourceList := [][]string{
 			{"catalogsourceconfig", "csctest", marketplaceNs},
@@ -127,12 +138,23 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		}
 
 		//OCP-21479 sub to openshift-operators
-		time.Sleep(30 * time.Second)
 		msgofpkg, _ := existResources(oc, "packagemanifest", "camel-k-marketplace-e2e-tests", "openshift-operators")
 		o.Expect(msgofpkg).Should(o.BeTrue())
 		subYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subYamltem, "-p", "NAME=camel-k-marketplace-e2e-tests", fmt.Sprintf("NAMESPACE=%s", allNs), "SOURCE=csctest", "CSV=camel-k-operator.v0.2.0").OutputToFile("config.json")
 		err = createResources(oc, subYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		//wait for the sub created success
+		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
+			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("subscription", "camel-k-marketplace-e2e-tests", "-o=jsonpath={.status.installedCSV}", "-n", allNs).Output()
+			if err != nil {
+				e2e.Failf("Failed to create subscription camel-k-marketplace-e2e-tests, error:%v", err)
+				return false, err
+			}
+			if strings.Contains(output, "camel-k-operator.v0.2.0") {
+				return true, nil
+			}
+			return false, nil
+		})
 
 		subResourceList := [][]string{
 			{"subscription", "camel-k-marketplace-e2e-tests", allNs},
@@ -157,8 +179,6 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		o.Expect(msgofsub).Should(o.BeFalse())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		time.Sleep(60 * time.Second)
-
 		//OCP-21667 delete the csc
 		err = clearResources(oc, "catalogsourceconfig", "csctest", "openshift-marketplace")
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -167,8 +187,6 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 			o.Expect(msg).Should(o.BeFalse())
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
-
-		time.Sleep(60 * time.Second)
 
 		//delete the opsrc
 		err = clearResources(oc, "operatorsource", "opsrctest", "openshift-marketplace")
