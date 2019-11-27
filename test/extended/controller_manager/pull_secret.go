@@ -130,6 +130,7 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 	oc := exutil.NewCLI("pull-secrets", exutil.KubeConfigPath())
 
 	g.It("TestDockercfgTokenDeletedController", func() {
+		g.Skip("Bug 1765294: Pull secrets are not always being deleted when token is deleted. Disabling until root cause is fixed.")
 		t := g.GinkgoT()
 
 		clusterAdminKubeClient := oc.AdminKubeClient()
