@@ -138,8 +138,6 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		}
 
 		//OCP-21479 sub to openshift-operators
-		msgofpkg, _ := existResources(oc, "packagemanifest", "camel-k-marketplace-e2e-tests", "openshift-operators")
-		o.Expect(msgofpkg).Should(o.BeTrue())
 		subYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subYamltem, "-p", "NAME=camel-k-marketplace-e2e-tests", fmt.Sprintf("NAMESPACE=%s", allNs), "SOURCE=csctest", "CSV=camel-k-operator.v0.2.0").OutputToFile("config.json")
 		err = createResources(oc, subYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
