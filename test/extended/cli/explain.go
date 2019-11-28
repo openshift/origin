@@ -112,17 +112,17 @@ var (
 		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"},
 
 		// FIXME
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
 		// {Group: "operator.openshift.io", Version: "v1", Resource: "credentialsrequestses"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "ingresscontrollers"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"},
 		// {Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "ingresscontrollers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogapiservers"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogcontrollermanagers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogapiservers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogcontrollermanagers"},
 
 		{Group: "quota.openshift.io", Version: "v1", Resource: "appliedclusterresourcequotas"},
 
@@ -134,11 +134,9 @@ var (
 		// FIXME
 		// {Group: "ingress.operator.openshift.io", Version: "v1", Resource: "dnsrecords"},
 
-		// FIXME
-		// {Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
+		{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
 
-		// FIXME
-		// {Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
+		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
 
 		// FIXME
 		// {Group: "network.openshift.io", Version: "v1", Resource: "clusternetworks"},
