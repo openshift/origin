@@ -690,6 +690,10 @@ func (c *OAuthServerConfig) getAuthenticationRequestHandler() (authenticator.Req
 						return nil, fmt.Errorf("Error loading certs from %s: %v", provider.ClientCA, err)
 					}
 
+					// we need to add our CA data to secure serving as well to have the OAuth server
+					// advertise them for client auth during TLS handshake
+					c.GenericConfig.SecureServing.ClientCA.CABundles = append(c.GenericConfig.SecureServing.ClientCA.CABundles, provider.ClientCA)
+
 					authRequestHandler = x509request.NewVerifier(opts, authRequestHandler, sets.NewString(provider.ClientCommonNames...))
 				}
 				authRequestHandlers = append(authRequestHandlers, authRequestHandler)
