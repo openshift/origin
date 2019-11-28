@@ -7,6 +7,10 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apiextensionsscheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -327,45 +331,56 @@ var _ = g.Describe("[cli] oc explain", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
+	crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 
 	g.It("should contain spec+status for builtinTypes", func() {
 		for _, bt := range builtinTypes {
 			e2e.Logf("Checking %s...", bt)
-			o.Expect(verifySpecStatusExplain(oc, bt)).NotTo(o.HaveOccurred())
+			o.Expect(verifySpecStatusExplain(oc, nil, bt)).NotTo(o.HaveOccurred())
 		}
 	})
 
 	g.It("should contain proper spec+status for CRDs", func() {
 		for _, ct := range crdTypes {
 			e2e.Logf("Checking %s...", ct)
-			o.Expect(verifyCRDSpecStatusExplain(oc, ct)).NotTo(o.HaveOccurred())
+			o.Expect(verifyCRDSpecStatusExplain(oc, crdClient, ct)).NotTo(o.HaveOccurred())
 		}
 	})
 
 	g.It("should contain proper fields description for special types", func() {
 		for _, st := range specialTypes {
 			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
-			o.Expect(verifyExplain(oc, st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
+			o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
+				st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
 		}
 	})
 })
 
-func verifySpecStatusExplain(oc *exutil.CLI, gvr schema.GroupVersionResource) error {
-	return verifyExplain(oc, `(?s)DESCRIPTION:.*FIELDS:.*spec.*<Object>.*[Ss]pec(ification)?.*status.*<Object>.*[Ss]tatus.*`, gvr.Resource, fmt.Sprintf("--api-version=%s", gvr.GroupVersion()))
+func verifySpecStatusExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource) error {
+	return verifyExplain(oc, crdClient, gvr,
+		`(?s)DESCRIPTION:.*FIELDS:.*spec.*<Object>.*[Ss]pec(ification)?.*status.*<Object>.*[Ss]tatus.*`,
+		gvr.Resource, fmt.Sprintf("--api-version=%s", gvr.GroupVersion()))
 }
 
-func verifyCRDSpecStatusExplain(oc *exutil.CLI, gvr schema.GroupVersionResource) error {
+func verifyCRDSpecStatusExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource) error {
 	// TODO ideally we'd want to check for reasonable description in both spec and status
-	return verifyExplain(oc, `(?s)DESCRIPTION:.*FIELDS:.*spec.*<.*>.*(status.*<.*>.*)?`, gvr.Resource, fmt.Sprintf("--api-version=%s", gvr.GroupVersion()))
+	return verifyExplain(oc, crdClient, gvr,
+		`(?s)DESCRIPTION:.*FIELDS:.*spec.*<.*>.*(status.*<.*>.*)?`,
+		gvr.Resource, fmt.Sprintf("--api-version=%s", gvr.GroupVersion()))
 }
 
-func verifyExplain(oc *exutil.CLI, pattern string, args ...string) error {
+func verifyExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource, pattern string, args ...string) error {
 	result, err := oc.Run("explain").Args(args...).Output()
 	if err != nil {
 		return fmt.Errorf("failed to explain %q: %v", args, err)
 	}
 	r := regexp.MustCompile(pattern)
 	if !r.Match([]byte(result)) {
+		if crdClient != nil {
+			if crd, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(gvr.GroupResource().String(), metav1.GetOptions{}); err == nil {
+				e2e.Logf("CRD yaml is:\n%s\n", runtime.EncodeOrDie(apiextensionsscheme.Codecs.LegacyCodec(apiextensionsscheme.Scheme.PrioritizedVersionsAllGroups()...), crd))
+			}
+		}
 		return fmt.Errorf("oc explain %q result {%s} doesn't match pattern {%s}", args, result, pattern)
 	}
 	return nil
