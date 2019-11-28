@@ -114,6 +114,43 @@ var _ = g.Describe("[Suite:openshift/test-cmd][Serial][Disruptive] test-cmd:", f
 				5*time.Minute,
 			)
 			e2e.Logf("Logs from the container: %s", log)
+			if strings.Contains(log, "Unable to connect to the server: dial tcp ") && len(errs) > 0 {
+				// retry
+				log, errs = exutil.RunOneShotCommandPod(oc, "test-cmd", cliImageRef, "/var/tests/test/cmd/"+currFilename,
+					[]corev1.VolumeMount{
+						*hacklibVolumeMount,
+						*testsVolumeMount,
+						{
+							Name:      "kubeconfig",
+							MountPath: "/var/tests/kubeconfig",
+						},
+					},
+					[]corev1.Volume{
+						*hacklibVolume,
+						*testsVolume,
+						{
+							Name: "kubeconfig",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "kubeconfig",
+									},
+								},
+							},
+						},
+					},
+					[]corev1.EnvVar{
+						{Name: "KUBECONFIG_TESTS", Value: "/var/tests/kubeconfig/kubeconfig"},
+						{Name: "KUBERNETES_MASTER", Value: infra.Status.APIServerURL},
+						{Name: "USER_TOKEN", Value: oc.UserConfig().BearerToken},
+						{Name: "TESTS_DIR", Value: "/var/tests/test/cmd"},
+						{Name: "TEST_NAME", Value: currFilename[0 : len(currFilename)-3]},
+						{Name: "TEST_DATA", Value: "/var/tests/test/cmd/testdata"},
+					},
+					5*time.Minute,
+				)
+				e2e.Logf("Logs from the container 2nd time: %s", log)
+			}
 			o.Expect(errs).To(o.HaveLen(0))
 		})
 	}
