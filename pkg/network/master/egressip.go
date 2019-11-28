@@ -190,6 +190,9 @@ func (eim *egressIPManager) check(retrying bool) bool {
 	return needRetry
 }
 
+func (eim *egressIPManager) Synced() {
+}
+
 func (eim *egressIPManager) ClaimEgressIP(vnid uint32, egressIP, nodeIP string) {
 }
 
