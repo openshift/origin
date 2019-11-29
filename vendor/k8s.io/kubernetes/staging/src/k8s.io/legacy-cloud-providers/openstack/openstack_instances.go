@@ -115,11 +115,6 @@ func (i *Instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v
 	}
 	localName := types.NodeName(md.Name)
 	if localName == name {
-		localAddress, publicAddress, err := getNodeAddresses()
-		if err != nil {
-			return nil, err
-		}
-
 		addrs := []v1.NodeAddress{
 			{
 				Type:    v1.NodeHostName,
@@ -127,17 +122,17 @@ func (i *Instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v
 			},
 		}
 
-		if localAddress != "" {
+		if md.LocalIP != "" {
 			addrs = append(addrs, v1.NodeAddress{
 				Type:    v1.NodeInternalIP,
-				Address: localAddress,
+				Address: md.LocalIP,
 			})
 		}
 
-		if publicAddress != "" {
+		if md.PublicIP != "" {
 			addrs = append(addrs, v1.NodeAddress{
 				Type:    v1.NodeExternalIP,
-				Address: publicAddress,
+				Address: md.PublicIP,
 			})
 		}
 
@@ -282,7 +277,7 @@ func (i *Instances) InstanceType(ctx context.Context, name types.NodeName) (stri
 	}
 	localName := types.NodeName(md.Name)
 	if localName == name {
-		return getIntanceType()
+		return md.InstanceType, nil
 	}
 
 	srv, err := getServerByName(i.compute, name)
