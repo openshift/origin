@@ -530,7 +530,7 @@ import:
 - package: github.com/satori/go.uuid
   version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - package: github.com/seccomp/libseccomp-golang
-  version: 1b506fc7c24eec5a3693cdcbed40d9c226cfc6a1
+  version: v0.9.1
 - package: github.com/shurcooL/sanitized_anchor_name
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - package: github.com/sigma/go-inotify
