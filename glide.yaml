@@ -188,6 +188,7 @@ import:
 - package: github.com/apcera/gssapi
   repo:    https://github.com/openshift/gssapi.git
   version: release-2.6.3
+  repo: https://github.com/openshift/gssapi.git
 # auth (for oc kerberos on windows)
 - package: github.com/alexbrainman/sspi
   version: e580b900e9f5657daa5473021296289be6da2661
