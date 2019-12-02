@@ -200,12 +200,14 @@ import:
 # dev-ex (template service broker)
 - package: github.com/lestrrat/go-jspointer
   version: f4881e611bdbe9fb413a7780721ef8400a1f2341
+  repo: https://github.com/lestrrat-go/jspointer
 # dev-ex (template service broker)
-- package: github.com/lestrrat/go-jsref
+- package: github.com/lestrrat-go/jsref
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
 # dev-ex (template service broker)
-- package: github.com/lestrrat/go-jsschema
+- package: github.com/lestrrat-go/jsschema
   version: a6a42341b50d8d7e2a733db922eefaa756321021
+  repo: https://github.com/lestrrat-go/jsschema.git
 # master? for bindata
 - package: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
@@ -422,9 +424,11 @@ import:
 - package: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - package: github.com/lestrrat/go-pdebug
-  version: 569c97477ae8837e053e5a50bc739e15172b8ebe
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
+  repo: https://github.com/lestrrat-go/pdebug
 - package: github.com/lestrrat/go-structinfo
-  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
+  version: acd51874663bf3297433cb1f1015075c3cbe6130
+  repo: https://github.com/lestrrat-go/structinfo
 - package: github.com/libopenstorage/openstorage
   version: 093a0c3888753c2056e7373183693d670c6bba01
 - package: github.com/magiconair/properties
