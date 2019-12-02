@@ -205,7 +205,7 @@ func waitForOAuthServerReady(oc *exutil.CLI) error {
 
 func waitForOAuthServerPodReady(oc *exutil.CLI) error {
 	e2e.Logf("Waiting for the OAuth server pod to be ready")
-	return wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
+	return wait.PollImmediateInfinite(1*time.Second, func() (bool, error) {
 		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get("test-oauth-server", metav1.GetOptions{})
 		if err != nil {
 			return false, err
