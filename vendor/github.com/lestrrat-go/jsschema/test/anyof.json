@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "payload": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "number" }
+      ]
+    }
+  }
+}

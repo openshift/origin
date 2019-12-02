@@ -4,6 +4,9 @@ import (
 	"fmt"
 
 	patch "github.com/evanphx/json-patch"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -30,4 +33,26 @@ func JSONPatch(original, modified runtime.Object) string {
 		return fmt.Sprintf("unable to create JSON patch: %v", err)
 	}
 	return string(patchBytes)
+}
+
+// JSONPatchSecret generates a JSON patch between original and modified secrets, hiding its data,
+// and return the JSON as a string. In case of error, the returned string will contain the error messages.
+func JSONPatchSecret(original, modified *corev1.Secret) string {
+	safeModified := modified.DeepCopy()
+	safeOriginal := original.DeepCopy()
+
+	for s := range safeOriginal.Data {
+		safeOriginal.Data[s] = []byte("OLD")
+	}
+	for s := range safeModified.Data {
+		if _, preoriginal := original.Data[s]; !preoriginal {
+			safeModified.Data[s] = []byte("NEW")
+		} else if !equality.Semantic.DeepEqual(original.Data[s], safeModified.Data[s]) {
+			safeModified.Data[s] = []byte("MODIFIED")
+		} else {
+			safeModified.Data[s] = []byte("OLD")
+		}
+	}
+
+	return JSONPatch(safeOriginal, safeModified)
 }
