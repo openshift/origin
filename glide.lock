@@ -1,5 +1,5 @@
-hash: e5a7eaf642dabf677e480e93652f6f995525881aea1f46d7af7c6a088ab50440
-updated: 2019-10-10T11:34:05.494261018-04:00
+hash: 0a4a7c3e76a83a61fde874046e5e9f3cff8cbd6c650ceb8318b2d0ad96cd84ef
+updated: 2019-12-02T13:54:11.106188+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -520,7 +520,7 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: be84af90a1f71c9eeac820a4cdacb863122396d6
+  version: 479b5e81b0a93ec038d201b0b33d17db599531d3
 - name: github.com/google/cadvisor
   version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
   repo: https://github.com/openshift/google-cadvisor.git
@@ -681,18 +681,26 @@ imports:
   version: 2de2192f9e35ce981c152a873ed943b93b79ced4
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
-- name: github.com/lestrrat/go-jspointer
-  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
-- name: github.com/lestrrat/go-jsref
+- name: github.com/lestrrat-go/jsref
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
   subpackages:
   - provider
-- name: github.com/lestrrat/go-jsschema
+- name: github.com/lestrrat-go/jsschema
   version: a6a42341b50d8d7e2a733db922eefaa756321021
+  repo: https://github.com/lestrrat-go/jsschema.git
+- name: github.com/lestrrat-go/pdebug
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
+- name: github.com/lestrrat/go-jspointer
+  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
+  repo: https://github.com/lestrrat-go/jspointer
+- name: github.com/lestrrat/go-jsschema
+  version: 5c81c58ffcc359c4390d440b45f5462edb0107cb
 - name: github.com/lestrrat/go-pdebug
-  version: 569c97477ae8837e053e5a50bc739e15172b8ebe
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
+  repo: https://github.com/lestrrat-go/pdebug
 - name: github.com/lestrrat/go-structinfo
-  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
+  version: acd51874663bf3297433cb1f1015075c3cbe6130
+  repo: https://github.com/lestrrat-go/structinfo
 - name: github.com/libopenstorage/openstorage
   version: 093a0c3888753c2056e7373183693d670c6bba01
   subpackages:
@@ -1026,7 +1034,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 7e7e7455fe760f855b2f960923381ebc2f9a1ed1
+  version: 4fc6d252e11cb5118ecf10d1b5d19b9085217bdc
   subpackages:
   - pkg/assets
   - pkg/assets/create
@@ -1140,7 +1148,7 @@ imports:
 - name: github.com/satori/go.uuid
   version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - name: github.com/seccomp/libseccomp-golang
-  version: 1b506fc7c24eec5a3693cdcbed40d9c226cfc6a1
+  version: 689e3c1541a84461afc49c1c87352a6cedf72e9c
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - name: github.com/sigma/go-inotify
@@ -1498,7 +1506,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: f221ef6dc2779b4f80d2821997dfacaf927b73ee
+  version: 1495f70252dcec3e2289bcabc488290dc1cf1258
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1539,7 +1547,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: f9b69888dcd7c45ba7b718862a9d21684a991aac
+  version: 65406164345bdb2b7dd33b63bcec210d5014c737
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1610,7 +1618,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 3dd83bc370868b345dd1f561c46d643ae093f95c
+  version: fe15bf286c53aaa49faf43550a57807f93ca9488
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1745,7 +1753,7 @@ imports:
   - pkg/genericclioptions/printers
   - pkg/genericclioptions/resource
 - name: k8s.io/client-go
-  version: e7e9d19af44cca1c3aacd92448ed662ce65d5312
+  version: 3400f357f61d7b507504d8de711baab9e89301a3
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -2044,7 +2052,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: d04e86faec148bd2762e204335f2252d7ee260c5
+  version: 3aa0223fd351eb114ca756ed33c2aa5af6be0c20
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

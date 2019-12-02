@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/lestrrat/go-structinfo"
+	"github.com/lestrrat-go/structinfo"
 	"github.com/stretchr/testify/assert"
 )
 

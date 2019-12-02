@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "payload": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 3
+    }
+  }
+}

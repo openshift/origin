@@ -222,23 +222,7 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 	existingCopy.Data = required.Data
 
 	if klog.V(4) {
-		safeRequired := required.DeepCopy()
-		safeExisting := existing.DeepCopy()
-
-		for s := range safeExisting.Data {
-			safeExisting.Data[s] = []byte("OLD")
-		}
-		for s := range safeRequired.Data {
-			if _, preexisting := existing.Data[s]; !preexisting {
-				safeRequired.Data[s] = []byte("NEW")
-			} else if !equality.Semantic.DeepEqual(existing.Data[s], safeRequired.Data[s]) {
-				safeRequired.Data[s] = []byte("MODIFIED")
-			} else {
-				safeRequired.Data[s] = []byte("OLD")
-			}
-		}
-
-		klog.Infof("Secret %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(safeExisting, safeRequired))
+		klog.Infof("Secret %s/%s changes: %v", required.Namespace, required.Name, JSONPatchSecret(existing, required))
 	}
 	actual, err := client.Secrets(required.Namespace).Update(existingCopy)
 
