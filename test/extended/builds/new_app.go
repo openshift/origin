@@ -28,8 +28,13 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 		})
 
 		g.JustBeforeEach(func() {
+			g.By("waiting on the local namespace builder/default SAs")
+			err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "builder")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
+			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("waiting for openshift namespace imagestreams")
-			err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
+			err = exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -52,6 +57,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 			err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), a58+"-1", nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs(a58, oc)
+				exutil.DumpPodStates(oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
