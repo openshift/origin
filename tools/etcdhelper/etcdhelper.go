@@ -13,7 +13,7 @@ import (
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/kubectl/pkg/scheme"
 
-	"github.com/coreos/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 
 	"github.com/openshift/api"
@@ -53,9 +53,9 @@ func main() {
 	var tlsConfig *tls.Config
 	if len(certFile) != 0 || len(keyFile) != 0 || len(caFile) != 0 {
 		tlsInfo := transport.TLSInfo{
-			CertFile: certFile,
-			KeyFile:  keyFile,
-			CAFile:   caFile,
+			CertFile:      certFile,
+			KeyFile:       keyFile,
+			TrustedCAFile: caFile,
 		}
 		var err error
 		tlsConfig, err = tlsInfo.ClientConfig()
