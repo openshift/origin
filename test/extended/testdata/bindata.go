@@ -32224,7 +32224,7 @@ os::cmd::expect_success_and_not_text 'oc policy --help' 'Other Commands'
 os::cmd::expect_success_and_not_text 'oc -h' 'Options'
 os::cmd::expect_success_and_not_text 'oc -h' 'Global Options'
 os::cmd::expect_failure_and_text 'oc adm ca' 'Manage certificates'
-os::cmd::expect_success_and_text 'oc exec --help' '\[\-c CONTAINER\] \-\- COMMAND \[args\.\.\.\]$'
+os::cmd::expect_success_and_text 'oc exec --help' '\-\- COMMAND \[args\.\.\.\]$'
 os::cmd::expect_success_and_text 'oc rsh --help' '\[flags\] POD \[COMMAND\]$'
 
 # help for root commands with --help flag must be consistent
@@ -53117,7 +53117,8 @@ parameters:
 - name: MARKETPLACE
 - name: PACKAGES
 - name: DISPLAYNAME
-- name: PUBLISHER`)
+- name: PUBLISHER
+`)
 
 func testExtendedTestdataMarketplaceCsc02CscYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataMarketplaceCsc02CscYaml, nil
@@ -53159,7 +53160,8 @@ parameters:
 - name: MARKETPLACE
 - name: LABEL
 - name: DISPLAYNAME
-- name: PUBLISHER`)
+- name: PUBLISHER
+`)
 
 func testExtendedTestdataMarketplaceOpsrc02OpsrcYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataMarketplaceOpsrc02OpsrcYaml, nil
