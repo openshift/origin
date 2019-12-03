@@ -1,20 +1,30 @@
-reviewers:
-  - bparees
-  - deads2k
-  - sjenning
-  - smarterclayton
-  - soltysh
-  - tbielawa
-approvers:
-  - bparees
-  - deads2k
-  - derekwaynecarr
-  - eparis
-  - knobunc  # Network, Multi-cluster, Storage
-  - mfojtik
-  - pweil-
-  - sjenning
-  - soltysh
-  - sttts
-  - smarterclayton
-  - tbielawa # also for build and automated release tooling changes
+# See the OWNERS docs at https://go.k8s.io/owners
+
+filters:
+  ".*":
+    reviewers:
+    - bparees
+    - deads2k
+    - sjenning
+    - smarterclayton
+    - soltysh
+    - tbielawa
+    approvers:
+    - bparees
+    - deads2k
+    - derekwaynecarr
+    - eparis
+    - knobunc  # Network, Multi-cluster, Storage
+    - mfojtik
+    - pweil-
+    - sjenning
+    - soltysh
+    - sttts
+    - smarterclayton
+    - tbielawa # also for build and automated release tooling changes
+  "^\\.glide.(lock|yaml)$":
+    labels:
+    - "vendor-update"
+  "^vendor/.*":
+    labels:
+    - "vendor-update"
