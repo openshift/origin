@@ -28,7 +28,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 	)
 
 	g.AfterEach(func() {
-		//clear the sub,csv resource
+		// Clear the sub,csv resource
 		allresourcelist := [][]string{
 			{"operatorsource", "opsrctestlabel", marketplaceNs},
 			{"catalogsourceconfig", "csctestlabel", marketplaceNs},
@@ -40,17 +40,17 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 		}
 	})
 
-	//OCP-21728 check the publisher,display,labels of opsrc&csc
+	// OCP-21728 check the publisher,display,labels of opsrc&csc
 	g.It("[ocp-21728]create opsrc with labels", func() {
 
-		//create one opsrc with label
+		// Create one opsrc with label
 		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctestlabel", "NAMESPACE=marketplace_e2e", "LABEL=optestlabel", "DISPLAYNAME=optestlabel", "PUBLISHER=optestlabel", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = createResources(oc, opsrcYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		//wait for the opsrc is created finished
+		// Wait for the opsrc is created finished
 		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("operatorsource", "opsrctestlabel", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
 			if err != nil {
@@ -73,17 +73,17 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 			{"catalogsource", "opsrctestlabel", "-o=jsonpath={.spec.displayName}", marketplaceNs},
 			{"catalogsource", "opsrctestlabel", "-o=jsonpath={.spec.publisher}", marketplaceNs},
 		}
-		//check the displayname,provider,labels of opsrc & catalogsource
+		// Check the displayname,provider,labels of opsrc & catalogsource
 		for _, source := range opsrcResourceList {
 			msg, _ := getResourceByPath(oc, source[0], source[1], source[2], source[3])
 			o.Expect(msg).Should(o.ContainSubstring("optestlabel"))
 		}
-		//create one csc with provider&display&labels
+		// Create one csc with provider&display&labels
 		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctestlabel", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=camel-k-marketplace-e2e-tests", "DISPLAYNAME=csctestlabel", "PUBLISHER=csctestlabel").OutputToFile("config.json")
 		err = createResources(oc, cscYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		//wait for the csc is created finished
+		// Wait for the csc is created finished
 		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("catalogsourceconfig", "csctestlabel", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
 			if err != nil {
@@ -104,20 +104,31 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 			{"catalogsource", "csctestlabel", "-o=jsonpath={.spec.displayName}", allNs},
 			{"catalogsource", "csctestlabel", "-o=jsonpath={.spec.publisher}", allNs},
 		}
-		//check the displayname,provider oc csc & catalogsource
+
+		// Check the displayname,provider oc csc & catalogsource
 		for _, source := range cscResourceList {
 			msg, _ := getResourceByPath(oc, source[0], source[1], source[2], source[3])
 			o.Expect(msg).Should(o.ContainSubstring("csctestlabel"))
 		}
 
-		//get the packagelist of opsrctestlabel
+		// Get the packagelist of opsrctestlabel
 		packageListOpsrc1, _ := getResourceByPath(oc, "operatorsource", "opsrctestlabel", "-o=jsonpath={.status.packages}", marketplaceNs)
 		packageList := strings.Split(packageListOpsrc1, ",")
 
-		//get the packagelist with label of opsrctestlabel
-		packageListOpsrc2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("packagemanifests", "-lopsrc-provider=optestlabel", "-o=name", "-n", marketplaceNs).Output()
-		for _, packages := range packageList {
-			o.Expect(packageListOpsrc2).Should(o.ContainSubstring(packages))
-		}
+		// Get the packagelist with label of opsrctestlabel
+		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
+			packageListOpsrc2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("packagemanifests", "-lopsrc-provider=optestlabel", "-o=name", "-n", marketplaceNs).Output()
+			if err != nil {
+				return false, err
+			}
+			for _, pkg := range packageList {
+				if !strings.Contains(packageListOpsrc2, pkg) {
+					return false, nil
+				}
+			}
+			return true, nil
+		})
+
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
