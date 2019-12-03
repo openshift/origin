@@ -14,6 +14,10 @@ type testEIPWatcher struct {
 	changes []string
 }
 
+func (w *testEIPWatcher) Synced() {
+	panic("should not be reached in unit test")
+}
+
 func (w *testEIPWatcher) ClaimEgressIP(vnid uint32, egressIP, nodeIP string) {
 	w.changes = append(w.changes, fmt.Sprintf("claim %s on %s for namespace %d", egressIP, nodeIP, vnid))
 }
