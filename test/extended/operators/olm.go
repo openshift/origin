@@ -149,6 +149,71 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 			}
 		}
 	})
+
+	// OCP-22070 author: jiazha@redhat.com
+	g.It("[Serial] support grpc sourcetype", func() {
+		buildPruningBaseDir := exutil.FixturePath("testdata", "olm")
+		catalogsourceYAML := filepath.Join(buildPruningBaseDir, "image-catalogsource.yaml")
+		subscriptionYAML := filepath.Join(buildPruningBaseDir, "image-sub.yaml")
+
+		// Check packagemanifest: Test Operators
+		_, err := oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", catalogsourceYAML).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = wait.Poll(5*time.Second, 180*time.Second, func() (bool, error) {
+			_, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-marketplace", "packagemanifest", "etcd-test").Output()
+			if err != nil {
+				e2e.Logf("Fail to get packagemanifest, error:%v", err)
+				return false, err
+			}
+			e2e.Logf("Get packagemanifest etcd-test successfully")
+			return true, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Check the Subscription, InstallPlan, CSV
+		_, err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", subscriptionYAML).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		getCmds := []struct {
+			kind   string
+			expect string
+		}{
+			{"subscription", "test-operator"},
+			{"clusterserviceversion", "etcdoperator.v0.9.4-clusterwide"},
+			{"pods", "etcd-operator"},
+		}
+
+		for _, cmd := range getCmds {
+			err := wait.Poll(5*time.Second, 180*time.Second, func() (bool, error) {
+				output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(cmd.kind, "-n", "openshift-operators").Output()
+				if err != nil {
+					e2e.Logf("Fail to get %v, error:%v", cmd.kind, err)
+					return false, nil
+				}
+				if strings.Contains(output, cmd.expect) {
+					e2e.Logf("Get %v successfully", cmd.kind)
+					return true, nil
+				}
+				return false, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		// Clean up
+		removeCmds := []struct {
+			kind      string
+			namespace string
+			name      string
+		}{
+			{"catalogsource", "openshift-marketplace", "test-operator"},
+			{"subscription", "openshift-operators", "--all"},
+			{"clusterserviceversion", "openshift-operators", "etcdoperator.v0.9.4-clusterwide"},
+		}
+		for _, v := range removeCmds {
+			e2e.Logf("Start to remove: %v", v)
+			_, err := oc.AsAdmin().WithoutNamespace().Run("delete").Args(v.kind, "-n", v.namespace, v.name).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+	})
 })
 
 // This context will cover test case: OCP-23440, author: jiazha@redhat.com
