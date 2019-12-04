@@ -287,11 +287,6 @@ func initProvider(provider string, dryRun bool) error {
 		return err
 	}
 
-	// set defaults so these tests don't log
-	// these appear to be defaults now
-	//exutil.TestContext.LoggingSoak.Scale = 1
-	//exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
-
 	exutil.AnnotateTestSuite()
 	err := exutil.InitTest(dryRun)
 	gomega.RegisterFailHandler(ginkgo.Fail)
