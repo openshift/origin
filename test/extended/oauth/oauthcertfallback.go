@@ -94,7 +94,7 @@ var _ = g.Describe("[Feature:OAuthServer] OAuth server", func() {
 			"valid token, valid cert": {
 				token:        validToken,
 				cert:         validCert,
-				expectedUser: tokenUser,
+				expectedUser: certUser,
 			},
 			"valid token, invalid cert": {
 				token:        validToken,
@@ -107,10 +107,9 @@ var _ = g.Describe("[Feature:OAuthServer] OAuth server", func() {
 				expectedUser: tokenUser,
 			},
 			"invalid token, valid cert": {
-				token:         invalidToken,
-				cert:          validCert,
-				errorExpected: true,
-				errorString:   unauthorizedError,
+				token:        invalidToken,
+				cert:         validCert,
+				expectedUser: certUser,
 			},
 			"invalid token, invalid cert": {
 				token:         invalidToken,
