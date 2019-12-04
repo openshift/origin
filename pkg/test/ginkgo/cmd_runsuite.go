@@ -314,5 +314,5 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	fmt.Fprintf(opt.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
-	return nil
+	return ctx.Err()
 }
