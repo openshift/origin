@@ -6,7 +6,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,7 +50,7 @@ func (r *nsRouteLister) Get(name string) (*routev1.Route, error) {
 			return s, nil
 		}
 	}
-	return nil, errors.NewNotFound(schema.GroupResource{}, name)
+	return nil, kerrors.NewNotFound(schema.GroupResource{}, name)
 }
 
 type ingressLister struct {
@@ -79,7 +79,7 @@ func (r *nsIngressLister) Get(name string) (*extensionsv1beta1.Ingress, error) {
 			return s, nil
 		}
 	}
-	return nil, errors.NewNotFound(schema.GroupResource{}, name)
+	return nil, kerrors.NewNotFound(schema.GroupResource{}, name)
 }
 
 type serviceLister struct {
@@ -112,7 +112,7 @@ func (r *nsServiceLister) Get(name string) (*v1.Service, error) {
 			return s, nil
 		}
 	}
-	return nil, errors.NewNotFound(schema.GroupResource{}, name)
+	return nil, kerrors.NewNotFound(schema.GroupResource{}, name)
 }
 
 type secretLister struct {
@@ -141,7 +141,7 @@ func (r *nsSecretLister) Get(name string) (*v1.Secret, error) {
 			return s, nil
 		}
 	}
-	return nil, errors.NewNotFound(schema.GroupResource{}, name)
+	return nil, kerrors.NewNotFound(schema.GroupResource{}, name)
 }
 
 const complexIngress = `

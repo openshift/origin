@@ -9,7 +9,7 @@ import (
 
 	"k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -357,7 +357,7 @@ func (c *Controller) sync(key queueKey) error {
 	}
 
 	ingress, err := c.ingressLister.Ingresses(key.namespace).Get(key.name)
-	if errors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		return nil
 	}
 	if err != nil {
@@ -441,7 +441,7 @@ func (c *Controller) sync(key queueKey) error {
 
 	// purge any previously managed routes
 	for _, route := range old {
-		if err := c.client.Routes(route.Namespace).Delete(route.Name, nil); err != nil && !errors.IsNotFound(err) {
+		if err := c.client.Routes(route.Namespace).Delete(route.Name, nil); err != nil && !kerrors.IsNotFound(err) {
 			errs = append(errs, err)
 		}
 	}
@@ -671,7 +671,7 @@ func createRouteWithName(client routeclient.RoutesGetter, ingress *extensionsv1b
 
 		// if we aren't generating names (or if we got any other type of error)
 		// return right away
-		if len(base) == 0 || !errors.IsAlreadyExists(err) {
+		if len(base) == 0 || !kerrors.IsAlreadyExists(err) {
 			return err
 		}
 		lastErr = err
