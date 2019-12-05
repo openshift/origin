@@ -276,7 +276,7 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 
 func initProvider(provider string, dryRun bool) error {
 	// record the exit error to the output file
-	if err := decodeProviderTo(provider, exutil.TestContext); err != nil {
+	if err := decodeProviderTo(provider, exutil.TestContext, dryRun); err != nil {
 		return err
 	}
 	exutil.TestContext.AllowedNotReadyNodes = 100
@@ -300,15 +300,21 @@ func initProvider(provider string, dryRun bool) error {
 	return err
 }
 
-func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
+func decodeProviderTo(provider string, testContext *e2e.TestContextType, dryRun bool) error {
 	switch provider {
-	case "", "azure", "aws", "gce":
+	case "":
 		if _, ok := os.LookupEnv("KUBE_SSH_USER"); ok {
 			if _, ok := os.LookupEnv("LOCAL_SSH_KEY"); ok {
 				testContext.Provider = "local"
+				break
 			}
 		}
+		if dryRun {
+			break
+		}
+		fallthrough
 
+	case "azure", "aws", "gce", "vsphere":
 		provider, cfg, err := exutilcloud.LoadConfig()
 		if err != nil {
 			return err
