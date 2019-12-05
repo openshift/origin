@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"fmt"
 	"math/rand"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -46,6 +48,13 @@ var _ = g.Describe("[cli] oc adm", func() {
 
 	g.It("oc adm node-logs --since=-2m --until=-1m", func() {
 		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc), "--since=-2m", "--until=-1m").Execute()).To(o.Succeed())
+	})
+
+	g.It("oc adm node-logs --since=<explicit-date> --until=-1m", func() {
+		since := time.Now().Add(-2 * time.Minute).Format("2006-01-02 15:04:05")
+		out, err := oc.Run("adm", "node-logs").Args(randomNode(oc), fmt.Sprintf("--since=%s", since)).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).NotTo(o.ContainSubstring("Failed to parse timestamp: "))
 	})
 
 	g.It("oc adm node-logs --unit=kubelet --since=-1m", func() {
