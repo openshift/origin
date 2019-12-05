@@ -23,6 +23,7 @@ import (
 // as a call to a child worker (the run-tests command).
 type Options struct {
 	Parallelism int
+	Count       int
 	Timeout     time.Duration
 	JUnitDir    string
 	TestFile    string
@@ -90,7 +91,7 @@ func (opt *Options) Run(args []string) error {
 
 	if len(opt.Regex) > 0 {
 		if err := filterWithRegex(suite, opt.Regex); err != nil {
-			return fmt.Errorf("regular expression passed to -run is invalid: %v", err)
+			return fmt.Errorf("regular expression for filtering tests is invalid: %v", err)
 		}
 	}
 
@@ -118,6 +119,18 @@ func (opt *Options) Run(args []string) error {
 	tests = suite.Filter(tests)
 	if len(tests) == 0 {
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
+	}
+
+	count := opt.Count
+	if count == 0 {
+		count = suite.Count
+	}
+	if count > 1 {
+		var newTests []*testCase
+		for i := 0; i < count; i++ {
+			newTests = append(newTests, tests...)
+		}
+		tests = newTests
 	}
 
 	if opt.PrintCommands {
@@ -314,5 +327,5 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	fmt.Fprintf(opt.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
-	return nil
+	return ctx.Err()
 }

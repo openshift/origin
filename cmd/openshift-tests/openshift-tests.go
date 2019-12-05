@@ -270,6 +270,7 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.StringVarP(&opt.TestFile, "file", "f", opt.TestFile, "Create a suite from the newline-delimited test names in this file.")
 	flags.StringVar(&opt.Regex, "run", opt.Regex, "Regular expression of tests to run.")
 	flags.StringVarP(&opt.OutFile, "output-file", "o", opt.OutFile, "Write all test output to this file.")
+	flags.IntVar(&opt.Count, "count", opt.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value.")
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
 }
@@ -286,11 +287,6 @@ func initProvider(provider string, dryRun bool) error {
 	if err := initCSITests(dryRun); err != nil {
 		return err
 	}
-
-	// set defaults so these tests don't log
-	// these appear to be defaults now
-	//exutil.TestContext.LoggingSoak.Scale = 1
-	//exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
 
 	exutil.AnnotateTestSuite()
 	err := exutil.InitTest(dryRun)
