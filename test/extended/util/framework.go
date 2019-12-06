@@ -210,11 +210,6 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 				e2e.Logf("SamplesOperator degraded!!!")
 				return false
 			case condition.Type == configv1.OperatorProgressing:
-				if condition.Status == configv1.ConditionTrue {
-					// updates still in progress ... not "ready"
-					e2e.Logf("SamplesOperator still in progress")
-					return false
-				}
 				// if the imagestreams for one of our langs above failed, we abort,
 				// but if it is for say only EAP streams, we allow
 				if condition.Reason == "FailedImageImports" {
@@ -222,9 +217,40 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 					for _, lang := range langs {
 						if strings.Contains(msg, " "+lang+" ") || strings.HasSuffix(msg, " "+lang) {
 							e2e.Logf("SamplesOperator detected error during imagestream import: %s with details %s", condition.Reason, condition.Message)
+							stream, err := oc.AsAdmin().ImageClient().ImageV1().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
+							if err != nil {
+								e2e.Logf("after seeing FailedImageImports for %s retrieval failed with %s", lang, err.Error())
+								return false
+							}
+							isi := &imagev1.ImageStreamImport{}
+							isi.Name = lang
+							isi.Namespace = "openshift"
+							isi.ResourceVersion = stream.ResourceVersion
+							isi.Spec = imagev1.ImageStreamImportSpec{
+								Import: true,
+								Images: []imagev1.ImageImportSpec{},
+							}
+							for _, tag := range stream.Spec.Tags {
+								if tag.From != nil && tag.From.Kind == "DockerImage" {
+									iis := imagev1.ImageImportSpec{}
+									iis.From = *tag.From
+									iis.To = &corev1.LocalObjectReference{Name: tag.Name}
+									isi.Spec.Images = append(isi.Spec.Images, iis)
+								}
+							}
+							_, err = oc.AsAdmin().ImageClient().ImageV1().ImageStreamImports("openshift").Create(isi)
+							if err != nil {
+								e2e.Logf("after seeing FailedImageImports for %s the manual image import failed with %s", lang, err.Error())
+							}
+							e2e.Logf("after seeing FailedImageImports for %s a manual image-import was submitted", lang)
 							return false
 						}
 					}
+				}
+				if condition.Status == configv1.ConditionTrue {
+					// updates still in progress ... not "ready"
+					e2e.Logf("SamplesOperator still in progress")
+					return false
 				}
 			case condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse:
 				e2e.Logf("SamplesOperator not available")
