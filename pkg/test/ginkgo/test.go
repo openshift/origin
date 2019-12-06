@@ -66,6 +66,9 @@ type TestSuite struct {
 	// methods in this package.
 	Init func(map[string]string) error
 
+	// The number of times to execute each test in this suite.
+	Count int
+	// The maximum parallelism of this suite.
 	Parallelism int
 	// The number of flakes that may occur before this test is marked as a failure.
 	MaximumAllowedFlakes int

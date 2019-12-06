@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -129,12 +130,20 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("pull-secrets", exutil.KubeConfigPath())
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			g.By("dumping openshift-controller-manager logs")
+			exutil.DumpPodLogsStartingWithInNamespace("controller-manager", "openshift-controller-manager", oc.AsAdmin())
+		}
+	})
+
 	g.It("TestDockercfgTokenDeletedController", func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClient := oc.AdminKubeClient()
 		saNamespace := oc.Namespace()
 
+		g.By("creating test service account")
 		sa := &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{Name: "sa1", Namespace: saNamespace},
 		}
@@ -144,7 +153,7 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		// Get the service account dockercfg secret's name
+		g.By("waiting for service account's pull secret to be created")
 		dockercfgSecretName, _, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, sa.Namespace, sa.Name, 20, time.Second)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -163,7 +172,7 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 			t.Fatal("secret was not created")
 		}
 
-		// Delete the service account's secret
+		g.By("deleting the token used to generate the pull secret")
 		if err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Delete(secretName, nil); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -174,9 +183,16 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 				dockercfgSecretName,
 				metav1.GetOptions{},
 			)
-			return errors.IsNotFound(err), nil
+			if err == nil {
+				e2e.Logf("secret %s/%s exists", sa.Namespace, dockercfgSecretName)
+				return false, nil
+			}
+			if errors.IsNotFound(err) {
+				return true, nil
+			}
+			return false, err
 		}); err != nil {
-			t.Fatalf("waiting for secret deletion: %v", err)
+			t.Fatalf("error waiting for pull secret deletion: %v", err)
 		}
 	})
 })

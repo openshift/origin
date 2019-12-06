@@ -17,6 +17,11 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+const (
+	maxPrometheusQueryAttempts = 5
+	prometheusQueryRetrySleep  = 10 * time.Second
+)
+
 var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
@@ -52,12 +57,12 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			// allow for some retry, a la prometheus.go and its initial hitting of the metrics endpoint after
 			// instantiating prometheus tempalte
 			var err error
-			for i := 0; i < maxPrometheusQueryRetries; i++ {
+			for i := 0; i < maxPrometheusQueryAttempts; i++ {
 				err = expectURLStatusCodeExec(ns, execPod.Name, url, 403)
 				if err == nil {
 					break
 				}
-				time.Sleep(time.Second)
+				time.Sleep(prometheusQueryRetrySleep)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -102,7 +107,7 @@ func runQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 	// expect all correct metrics within a reasonable time period
 	queryErrors := make(map[string]error)
 	passed := make(map[string]struct{})
-	for i := 0; i < maxPrometheusQueryRetries; i++ {
+	for i := 0; i < maxPrometheusQueryAttempts; i++ {
 		for query, expected := range promQueries {
 			if _, ok := passed[query]; ok {
 				continue
@@ -147,7 +152,7 @@ func runQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 		if len(queryErrors) == 0 {
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(prometheusQueryRetrySleep)
 	}
 
 	if len(queryErrors) != 0 {

@@ -310,7 +310,8 @@ echo "delete all: ok"
 os::test::junit::declare_suite_end
 
 # service accounts should not be allowed to request new projects
-os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server \(Forbidden\): You may not request a new project via this API.'
+# TODO re-enable once we can use tokens instead of certs
+#os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server \(Forbidden\): You may not request a new project via this API.'
 
 os::test::junit::declare_suite_start "cmd/basicresources/patch"
 # Validate patching works correctly

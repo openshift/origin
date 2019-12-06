@@ -1,4 +1,4 @@
-package kubeadmission
+package admissionenablement
 
 import (
 	"k8s.io/apimachinery/pkg/util/sets"

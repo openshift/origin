@@ -144,12 +144,27 @@ func Test_validateTLSSecurityProfile(t *testing.T) {
 			},
 		},
 		{
+			name: "modern type - currently unsupported",
+			profile: &configv1.TLSSecurityProfile{
+				Type:   configv1.TLSProfileModernType,
+				Modern: &configv1.ModernTLSProfile{},
+			},
+			want: field.ErrorList{
+				field.NotSupported(rootFieldPath.Child("type"), configv1.TLSProfileModernType,
+					[]string{
+						string(configv1.TLSProfileOldType),
+						string(configv1.TLSProfileIntermediateType),
+						string(configv1.TLSProfileCustomType),
+					}),
+			},
+		},
+		{
 			name: "unknown type",
 			profile: &configv1.TLSSecurityProfile{
 				Type: "something",
 			},
 			want: field.ErrorList{
-				field.Invalid(rootFieldPath.Child("type"), "something", "unknown type, valid values are: [Old Intermediate Modern Custom]"),
+				field.Invalid(rootFieldPath.Child("type"), "something", "unknown type, valid values are: [Old Intermediate Custom]"),
 			},
 		},
 		{
@@ -167,20 +182,6 @@ func Test_validateTLSSecurityProfile(t *testing.T) {
 			want: field.ErrorList{
 				field.Invalid(rootFieldPath.Child("custom", "ciphers"), []string{"UNKNOWN_CIPHER"}, "no supported cipher suite found"),
 			},
-		},
-		{
-			name: "unknown cipher but a tls1.3 cipher",
-			profile: &configv1.TLSSecurityProfile{
-				Type: "Custom",
-				Custom: &configv1.CustomTLSProfile{
-					TLSProfileSpec: configv1.TLSProfileSpec{
-						Ciphers: []string{
-							"UNKNOWN_CIPHER", "TLS_CHACHA20_POLY1305_SHA256",
-						},
-					},
-				},
-			},
-			want: field.ErrorList{},
 		},
 		{
 			name: "unknown cipher but a normal cipher",
@@ -204,7 +205,24 @@ func Test_validateTLSSecurityProfile(t *testing.T) {
 					TLSProfileSpec: configv1.TLSProfileSpec{},
 				},
 			},
-			want: field.ErrorList{},
+			want: field.ErrorList{
+				field.Invalid(rootFieldPath.Child("custom", "ciphers"), []string(nil), "no supported cipher suite found"),
+			},
+		},
+		{
+			name: "min tls 1.3 - currently unsupported",
+			profile: &configv1.TLSSecurityProfile{
+				Type: "Custom",
+				Custom: &configv1.CustomTLSProfile{
+					TLSProfileSpec: configv1.TLSProfileSpec{
+						Ciphers:       []string{"ECDHE-ECDSA-CHACHA20-POLY1305"},
+						MinTLSVersion: configv1.VersionTLS13,
+					},
+				},
+			},
+			want: field.ErrorList{
+				field.NotSupported(rootFieldPath.Child("custom", "minTLSVersion"), configv1.VersionTLS13, []string{string(configv1.VersionTLS10), string(configv1.VersionTLS11), string(configv1.VersionTLS12)}),
+			},
 		},
 	}
 	for _, tt := range tests {

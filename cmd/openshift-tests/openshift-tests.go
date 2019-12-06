@@ -270,13 +270,14 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.StringVarP(&opt.TestFile, "file", "f", opt.TestFile, "Create a suite from the newline-delimited test names in this file.")
 	flags.StringVar(&opt.Regex, "run", opt.Regex, "Regular expression of tests to run.")
 	flags.StringVarP(&opt.OutFile, "output-file", "o", opt.OutFile, "Write all test output to this file.")
+	flags.IntVar(&opt.Count, "count", opt.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value.")
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
 }
 
 func initProvider(provider string, dryRun bool) error {
 	// record the exit error to the output file
-	if err := decodeProviderTo(provider, exutil.TestContext); err != nil {
+	if err := decodeProviderTo(provider, exutil.TestContext, dryRun); err != nil {
 		return err
 	}
 	exutil.TestContext.AllowedNotReadyNodes = 100
@@ -287,11 +288,6 @@ func initProvider(provider string, dryRun bool) error {
 		return err
 	}
 
-	// set defaults so these tests don't log
-	// these appear to be defaults now
-	//exutil.TestContext.LoggingSoak.Scale = 1
-	//exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
-
 	exutil.AnnotateTestSuite()
 	err := exutil.InitTest(dryRun)
 	gomega.RegisterFailHandler(ginkgo.Fail)
@@ -300,15 +296,21 @@ func initProvider(provider string, dryRun bool) error {
 	return err
 }
 
-func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
+func decodeProviderTo(provider string, testContext *e2e.TestContextType, dryRun bool) error {
 	switch provider {
-	case "", "azure", "aws", "gce":
+	case "":
 		if _, ok := os.LookupEnv("KUBE_SSH_USER"); ok {
 			if _, ok := os.LookupEnv("LOCAL_SSH_KEY"); ok {
 				testContext.Provider = "local"
+				break
 			}
 		}
+		if dryRun {
+			break
+		}
+		fallthrough
 
+	case "azure", "aws", "gce", "vsphere":
 		provider, cfg, err := exutilcloud.LoadConfig()
 		if err != nil {
 			return err
