@@ -33,10 +33,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const (
-	maxPrometheusQueryRetries = 5
-)
-
 var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (

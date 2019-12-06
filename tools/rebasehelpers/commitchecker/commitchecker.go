@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/openshift/origin/tools/rebasehelpers/util"
 )
@@ -18,38 +17,25 @@ func main() {
 	commits, err := util.CommitsBetween(start, end)
 	if err != nil {
 		if err == util.ErrNotCommit {
-			fmt.Fprintf(os.Stderr, "WARNING: one of the provided commits does not exist, not a true branch\n")
+			_, _ = fmt.Fprintf(os.Stderr, "WARNING: one of the provided commits does not exist, not a true branch\n")
 			os.Exit(0)
 		}
-		fmt.Fprintf(os.Stderr, "ERROR: couldn't find commits from %s..%s: %v\n", start, end, err)
+		_, _ = fmt.Fprintf(os.Stderr, "ERROR: couldn't find commits from %s..%s: %v\n", start, end, err)
 		os.Exit(1)
 	}
 
-	// TODO: Filter out bump commits for now until we decide how to deal with
-	// them correctly.
-	// TODO: ...along with subtree merges.
-	nonbumpCommits := []util.Commit{}
-	for _, commit := range commits {
-		if !strings.HasPrefix(commit.Summary, "bump") {
-			nonbumpCommits = append(nonbumpCommits, commit)
-		}
-	}
-
-	errs := []string{}
-	for _, validate := range AllValidators {
-		if err := validate(nonbumpCommits); err != nil {
-			errs = append(errs, err.Error())
-		}
-	}
-	if len(os.Getenv("RESTORE_AND_VERIFY_GODEPS")) > 0 {
-		// Godeps verifies all commits, including bumps and UPSTREAM
-		if err := ValidateGodeps(commits); err != nil {
-			errs = append(errs, err.Error())
+	var errs []string
+	for _, validate := range AllCommitValidators {
+		for _, commit := range commits {
+			errs = append(errs, validate(commit)...)
 		}
 	}
 
 	if len(errs) > 0 {
-		fmt.Fprintf(os.Stderr, "%s\n", strings.Join(errs, "\n\n"))
+		for _, e := range errs {
+			_, _ = fmt.Fprintf(os.Stderr, "%s\n\n", e)
+		}
+
 		os.Exit(2)
 	}
 }

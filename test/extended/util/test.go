@@ -75,12 +75,12 @@ func InitTest(dryRun bool) error {
 	TestContext.MasterOSDistro = "custom"
 
 	// load and set the host variable for kubectl
-	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: TestContext.KubeConfig}, &clientcmd.ConfigOverrides{})
-	cfg, err := clientConfig.ClientConfig()
-	if err != nil && !dryRun { // we don't need the host when doing a dryrun
-		return err
-	}
-	if cfg != nil {
+	if !dryRun {
+		clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: TestContext.KubeConfig}, &clientcmd.ConfigOverrides{})
+		cfg, err := clientConfig.ClientConfig()
+		if err != nil {
+			return err
+		}
 		TestContext.Host = cfg.Host
 	}
 

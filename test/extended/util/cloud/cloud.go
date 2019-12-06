@@ -37,24 +37,36 @@ func LoadConfig() (string, *e2e.CloudConfig, error) {
 		return "", nil, nil
 	}
 
-	nodes, err := coreClient.CoreV1().Nodes().List(metav1.ListOptions{
+	masters, err := coreClient.CoreV1().Nodes().List(metav1.ListOptions{
 		LabelSelector: "node-role.kubernetes.io/master=",
 	})
 	if err != nil {
 		return "", nil, err
 	}
 	zones := sets.NewString()
-	for _, node := range nodes.Items {
+	for _, node := range masters.Items {
 		zones.Insert(node.Labels["failure-domain.beta.kubernetes.io/zone"])
 	}
 	zones.Delete("")
 
+	nonMasters, err := coreClient.CoreV1().Nodes().List(metav1.ListOptions{
+		LabelSelector: "!node-role.kubernetes.io/master",
+	})
+	if err != nil {
+		return "", nil, err
+	}
+
 	cloudConfig := &e2e.CloudConfig{
-		MultiMaster: len(nodes.Items) > 1,
+		MultiMaster: len(masters.Items) > 1,
 		MultiZone:   zones.Len() > 1,
 	}
 	if zones.Len() > 0 {
 		cloudConfig.Zone = zones.List()[0]
+	}
+	if len(nonMasters.Items) == 0 {
+		cloudConfig.NumNodes = len(nonMasters.Items)
+	} else {
+		cloudConfig.NumNodes = len(masters.Items)
 	}
 
 	var provider string
