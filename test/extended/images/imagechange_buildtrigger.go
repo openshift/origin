@@ -19,7 +19,7 @@ import (
 
 var _ = g.Describe("[Feature:Image][triggers] Image change build triggers", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("image-change-build-triggger", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("image-change-build-trigger", exutil.KubeConfigPath())
 
 	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI", func() {
 		TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(g.GinkgoT(), oc)

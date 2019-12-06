@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/openshift-kube-apiserver/configdefault"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 
@@ -112,17 +112,16 @@ cluster's shared state through which all other components interact.`,
 			verflag.PrintAndExitIfRequested()
 
 			if len(s.OpenShiftConfig) > 0 {
-				enablement.ForceOpenShift()
 				openshiftConfig, err := enablement.GetOpenshiftConfig(s.OpenShiftConfig)
 				if err != nil {
 					klog.Fatal(err)
 				}
+				enablement.ForceOpenShift(openshiftConfig)
 
 				// this forces a patch to be called
 				// TODO we're going to try to remove bits of the patching.
-				configPatchFn, serverPatchContext := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(openshiftConfig)
+				configPatchFn := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(openshiftConfig)
 				OpenShiftKubeAPIServerConfigPatch = configPatchFn
-				OpenShiftKubeAPIServerServerPatch = serverPatchContext.PatchServer
 
 				args, err := openshiftkubeapiserver.ConfigToFlags(openshiftConfig)
 				if err != nil {
@@ -137,8 +136,8 @@ cluster's shared state through which all other components interact.`,
 				// print merged flags (merged from OpenshiftConfig)
 				utilflag.PrintFlags(cmd.Flags())
 
-				enablement.ForceGlobalInitializationForOpenShift(s)
-				enablement.InstallOpenShiftAdmissionPlugins(s)
+				enablement.ForceGlobalInitializationForOpenShift()
+				admissionenablement.InstallOpenShiftAdmissionPlugins(s)
 
 			} else {
 				// print default flags
@@ -227,10 +226,6 @@ func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan
 
 	kubeAPIServer, err := CreateKubeAPIServer(kubeAPIServerConfig, apiExtensionsServer.GenericAPIServer, admissionPostStartHook)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := PatchKubeAPIServerServer(kubeAPIServer); err != nil {
 		return nil, err
 	}
 
@@ -513,6 +508,8 @@ func buildGenericConfig(
 	// on a fast local network
 	genericConfig.LoopbackClientConfig.DisableCompression = true
 
+	enablement.SetLoopbackClientConfig(genericConfig.LoopbackClientConfig)
+
 	kubeClientConfig := genericConfig.LoopbackClientConfig
 	clientgoExternalClient, err := clientgoclientset.NewForConfig(kubeClientConfig)
 	if err != nil {
@@ -571,7 +568,7 @@ func buildGenericConfig(
 	}
 
 	if enablement.IsOpenShift() {
-		configdefault.SetAdmissionDefaults(s, versionedInformers, clientgoExternalClient)
+		admissionenablement.SetAdmissionDefaults(s, versionedInformers, clientgoExternalClient)
 	}
 	err = s.Admission.ApplyTo(
 		genericConfig,

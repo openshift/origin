@@ -144,6 +144,18 @@ var staticSuites = []*ginkgo.TestSuite{
 		},
 	},
 	{
+		Name: "openshift/network/stress",
+		Description: templates.LongDesc(`
+		This test suite repeatedly verifies the networking function of the cluster in parallel to find flakes.
+		`),
+		Matches: func(name string) bool {
+			return strings.Contains(name, "[Suite:openshift/conformance/") && strings.Contains(name, "[sig-network]")
+		},
+		Parallelism: 30,
+		Count:       15,
+		TestTimeout: 20 * time.Minute,
+	},
+	{
 		Name: "all",
 		Description: templates.LongDesc(`
 		Run all tests.

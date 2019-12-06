@@ -10,7 +10,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/clientcmd/api"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
-	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/openshift-kube-apiserver/configdefault"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -46,7 +45,7 @@ func GetOpenshiftConfig(openshiftConfigFile string) (*kubecontrolplanev1.KubeAPI
 	configFileLocation := path.Dir(absoluteConfigFile)
 
 	config := obj.(*kubecontrolplanev1.KubeAPIServerConfig)
-	if err := helpers.ResolvePaths(GetKubeAPIServerConfigFileReferences(config), configFileLocation); err != nil {
+	if err := helpers.ResolvePaths(configdefault.GetKubeAPIServerConfigFileReferences(config), configFileLocation); err != nil {
 		return nil, err
 	}
 	configdefault.SetRecommendedKubeAPIServerConfigDefaults(config)
@@ -55,7 +54,7 @@ func GetOpenshiftConfig(openshiftConfigFile string) (*kubecontrolplanev1.KubeAPI
 	return config, nil
 }
 
-func ForceGlobalInitializationForOpenShift(o *options.ServerRunOptions) {
+func ForceGlobalInitializationForOpenShift() {
 	// This allows to move crqs, sccs, and rbrs to CRD
 	aggregatorapiserver.AddAlwaysLocalDelegateForPrefix("/apis/quota.openshift.io/v1/clusterresourcequotas")
 	aggregatorapiserver.AddAlwaysLocalDelegateForPrefix("/apis/security.openshift.io/v1/securitycontextconstraints")

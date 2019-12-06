@@ -1,4 +1,4 @@
-package enablement
+package configdefault
 
 import (
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
