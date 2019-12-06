@@ -1321,7 +1321,7 @@ func (kl *Kubelet) initializeModules() error {
 	metrics.Register(
 		kl.runtimeCache,
 		collectors.NewVolumeStatsCollector(kl),
-		collectors.NewLogMetricsCollector(kl.StatsProvider.ListPodStats),
+		//BZ1748073 collectors.NewLogMetricsCollector(kl.StatsProvider.ListPodStats),
 	)
 	metrics.SetNodeName(kl.nodeName)
 	servermetrics.Register()
