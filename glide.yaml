@@ -107,7 +107,8 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: master
+  repo:    https://github.com/dmage/api.git
+  version: gomod
 - package: github.com/openshift/client-go
   version: master
 - package: github.com/openshift/library-go
