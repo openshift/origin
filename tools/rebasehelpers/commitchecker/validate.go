@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"os/exec"
 	"regexp"
 	"strings"
 	"text/template"
@@ -11,11 +10,46 @@ import (
 	"github.com/openshift/origin/tools/rebasehelpers/util"
 )
 
-var CommitSummaryErrorTemplate = `
-The following UPSTREAM commits have invalid summaries:
+var (
+	// AllCommitValidators holds all registered checks.
+	AllCommitValidators = []func(util.Commit) []string{
+		ValidateCommitAuthor,
 
-{{ range .Commits }}  [{{ .Sha }}] {{ .Summary }}
-{{ end }}
+		// vendor/* -> commit meesgae
+		ValidatePatchHasUpstreamCommitMessage,
+		ValidateBumpHasBumpCommitMessage,
+		ValidateNoBumpAndPatchesTogether,
+
+		// commit message -> vendor/*
+		ValidateUpstreamCommit,
+		ValidateBumpCommit,
+	}
+)
+
+func ValidateCommitAuthor(commit util.Commit) []string {
+	var allErrors []string
+
+	if strings.HasPrefix(commit.Email, "root@") {
+		allErrors = append(allErrors, fmt.Sprintf("Commit %s has invalid email %q", commit.Sha, commit.Email))
+	}
+
+	return allErrors
+}
+
+func ValidatePatchHasUpstreamCommitMessage(commit util.Commit) []string {
+	if !commit.HasPatches() {
+		return nil
+	}
+
+	var allErrors []string
+
+	if !commit.MatchesUpstreamSummaryPattern() {
+		tmpl, _ := template.New("problems").Parse(`
+UPSTREAM commit {{ .Commit.Sha }} has invalid summary {{ .Commit.Summary }}.
+
+UPSTREAM commits are validated against the following regular expression:
+  {{ .Pattern }}
+
 UPSTREAM commit summaries should look like:
 
   UPSTREAM: <PR number|carry|drop>: description
@@ -24,225 +58,118 @@ UPSTREAM commits which revert previous UPSTREAM commits should look like:
 
   UPSTREAM: revert: <normal upstream format>
 
-UPSTREAM commits are validated against the following regular expression:
-
-  {{ .Pattern }}
-
 Examples of valid summaries:
 
   UPSTREAM: 12345: A kube fix
   UPSTREAM: <carry>: A carried kube change
   UPSTREAM: <drop>: A dropped kube change
   UPSTREAM: revert: 12345: A kube revert
-
-`
-
-var AllValidators = []func([]util.Commit) error{
-	ValidateUpstreamCommitSummaries,
-	ValidateUpstreamCommitsWithoutGodepsChanges,
-	ValidateUpstreamCommitModifiesOnlyGodeps,
-	ValidateUpstreamCommitModifiesOnlyKubernetes,
-	ValidateCommitAuthorEmail,
-}
-
-func ValidateCommitAuthorEmail(commits []util.Commit) error {
-	problemCommits := []util.Commit{}
-	for _, commit := range commits {
-		if strings.HasPrefix(commit.Email, "root@") {
-			fmt.Printf("Invalid email in commit %s: %q\n", commit.Sha, commit.Email)
-			problemCommits = append(problemCommits, commit)
-		}
-	}
-	if len(problemCommits) > 0 {
-		label := "Found commits with invalid commit author"
-		return fmt.Errorf(label)
-	}
-	return nil
-}
-
-// ValidateUpstreamCommitsWithoutGodepsChanges returns an error if any
-// upstream commits have no Godeps changes.
-func ValidateUpstreamCommitsWithoutGodepsChanges(commits []util.Commit) error {
-	problemCommits := []util.Commit{}
-	for _, commit := range commits {
-		if commit.HasVendoredCodeChanges() && !commit.DeclaresUpstreamChange() {
-			problemCommits = append(problemCommits, commit)
-		}
-	}
-	if len(problemCommits) > 0 {
-		label := "The following commits contain vendor changes but aren't declared as UPSTREAM or bump(*) commits"
-		msg := renderGodepFilesError(label, problemCommits, RenderOnlyGodepsFiles)
-		return fmt.Errorf(msg)
-	}
-	return nil
-}
-
-// ValidateUpstreamCommitModifiesSingleGodepsRepo returns an error if any
-// upstream commits have changes that span more than one Godeps repo.
-func ValidateUpstreamCommitModifiesSingleGodepsRepo(commits []util.Commit) error {
-	problemCommits := []util.Commit{}
-	for _, commit := range commits {
-		godepsChanges, err := commit.GodepsReposChanged()
-		if err != nil {
-			return err
-		}
-		if len(godepsChanges) > 1 {
-			problemCommits = append(problemCommits, commit)
-		}
-	}
-	if len(problemCommits) > 0 {
-		label := "The following UPSTREAM commits modify more than one repo in their changelist"
-		msg := renderGodepFilesError(label, problemCommits, RenderOnlyGodepsFiles)
-		return fmt.Errorf(msg)
-	}
-	return nil
-}
-
-// ValidateUpstreamCommitSummaries ensures that any commits which declare to
-// be upstream match the regular expressions for UPSTREAM summaries.
-func ValidateUpstreamCommitSummaries(commits []util.Commit) error {
-	problemCommits := []util.Commit{}
-	for _, commit := range commits {
-		if commit.DeclaresUpstreamChange() && !commit.MatchesUpstreamSummaryPattern() {
-			problemCommits = append(problemCommits, commit)
-		}
-	}
-	if len(problemCommits) > 0 {
-		tmpl, _ := template.New("problems").Parse(CommitSummaryErrorTemplate)
+`)
 		data := struct {
 			Pattern *regexp.Regexp
-			Commits []util.Commit
+			Commit  util.Commit
 		}{
 			Pattern: util.UpstreamSummaryPattern,
-			Commits: problemCommits,
+			Commit:  commit,
 		}
 		buffer := &bytes.Buffer{}
-		tmpl.Execute(buffer, data)
-		return fmt.Errorf(buffer.String())
-	}
-	return nil
-}
-
-// ValidateUpstreamCommitModifiesOnlyGodeps ensures that any Godeps commits
-// modify ONLY Godeps files.
-func ValidateUpstreamCommitModifiesOnlyGodeps(commits []util.Commit) error {
-	problemCommits := []util.Commit{}
-	for _, commit := range commits {
-		if commit.HasVendoredCodeChanges() && commit.HasNonVendoredCodeChanges() {
-			problemCommits = append(problemCommits, commit)
+		err := tmpl.Execute(buffer, data)
+		if err != nil {
+			allErrors = append(allErrors, err.Error())
+			return allErrors
 		}
+
+		allErrors = append(allErrors, buffer.String())
+
+		return allErrors
 	}
-	if len(problemCommits) > 0 {
-		label := "The following UPSTREAM commits modify files outside vendor"
-		msg := renderGodepFilesError(label, problemCommits, RenderAllFiles)
-		return fmt.Errorf(msg)
-	}
-	return nil
+
+	return allErrors
 }
 
-// ValidateUpstreamCommitModifiesOnlyKubernetes ensures that an
-// upstream commit doesn't modify any code outside of kube/kube.
-func ValidateUpstreamCommitModifiesOnlyKubernetes(commits []util.Commit) error {
-	problemCommits := []util.Commit{}
-	for _, commit := range commits {
-		if commit.DeclaresUpstreamChange() {
-			reposChanged, err := commit.GodepsReposChanged()
+func ValidateBumpHasBumpCommitMessage(commit util.Commit) []string {
+	if !commit.HasBumpedFiles() {
+		return nil
+	}
+
+	var allErrors []string
+
+	if !commit.MatchesBumpSummaryPattern() {
+		allErrors = append(allErrors, fmt.Sprintf("Commit %s bumps dependencies but summary %q doesn't match the bump summary pattern %q", commit.Sha, commit.Summary, util.BumpSummaryPattern))
+	}
+
+	return allErrors
+}
+
+// ValidateNoBumpAndPatchesTogether is also covered by requiring non-intersecting commit messages for bumps and patches but it gives nicer error message
+func ValidateNoBumpAndPatchesTogether(commit util.Commit) []string {
+	var allErrors []string
+
+	if commit.HasBumpedFiles() && commit.HasPatches() {
+		allErrors = append(allErrors, fmt.Sprintf("Commit %s (%q) bumps dependencies and also modifies patched paths. This is not allowed! Your dependency manager cache might be stale or the publisher bot is broken. Try cleaning the cache and bumping again. If it doesn't work and you are convinced the bot is broken, contact the master team. Inside vendor/ directories for patches are identified by matching any of the following patterns: %q", commit.Sha, commit.Summary, strings.Join(util.RegexpsToStrings(util.PatchRegexps), ", ")))
+	}
+
+	return allErrors
+}
+
+func ValidateUpstreamCommit(commit util.Commit) []string {
+	if !commit.MatchesUpstreamSummaryPattern() {
+		return nil
+	}
+
+	var allErrors []string
+
+	if commit.HasPatches() {
+		patchedRepos, err := commit.PatchedRepos()
+		if err != nil {
+			allErrors = append(allErrors, err.Error())
+		} else if len(patchedRepos) == 0 {
+			allErrors = append(allErrors, fmt.Errorf("commit %s (%q): failed to detect patched repositories", commit.Sha, commit.Summary).Error())
+		} else if len(patchedRepos) > 1 {
+			allErrors = append(allErrors, fmt.Sprintf("Commit %s (%q) modifies more then 1 repository: %q", commit.Sha, commit.Summary, strings.Join(patchedRepos, ", ")))
+		} else {
+			commitRepo, err := commit.DeclaredUpstreamRepo()
 			if err != nil {
-				return err
+				allErrors = append(allErrors, err.Error())
 			}
-			for _, changedRepo := range reposChanged {
-				if !strings.Contains(changedRepo, "k8s.io/kubernetes") {
-					problemCommits = append(problemCommits, commit)
-				}
+
+			if commitRepo != patchedRepos[0] {
+				allErrors = append(allErrors, fmt.Sprintf("Commit %s (%q) declares to modify repository %q but modifies repository %q", commit.Sha, commit.Summary, commitRepo, patchedRepos[0]))
 			}
 		}
+	} else {
+		allErrors = append(allErrors, fmt.Sprintf("Upstream commit %s (%q) is missing changes to patch paths. Inside vendor/ directories for patches are identified by matching any of the following patterns: %q", commit.Sha, commit.Summary, strings.Join(util.RegexpsToStrings(util.PatchRegexps), ", ")))
 	}
-	if len(problemCommits) > 0 {
-		label := "The following UPSTREAM commits modify vendored repos other than k8s.io/kubernetes"
-		msg := renderGodepFilesError(label, problemCommits, RenderAllFiles)
-		return fmt.Errorf(msg)
+
+	if commit.HasBumpedFiles() {
+		allErrors = append(allErrors, fmt.Sprintf("Upstream commit %s (%q) is not allowed to bump dependencies.", commit.Sha, commit.Summary))
 	}
-	return nil
+
+	if commit.HasNonVendoredCodeChanges() {
+		allErrors = append(allErrors, fmt.Sprintf("Upstream commit %s (%q) is not allowed to have non-vendor code changes.", commit.Sha, commit.Summary))
+	}
+
+	return allErrors
 }
 
-// ValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo ensures that an
-// upstream commit only modifies the Godep repo the summary declares.
-func ValidateUpstreamCommitModifiesOnlyDeclaredGodepRepo(commits []util.Commit) error {
-	problemCommits := []util.Commit{}
-	for _, commit := range commits {
-		if commit.DeclaresUpstreamChange() {
-			declaredRepo, err := commit.DeclaredUpstreamRepo()
-			if err != nil {
-				return err
-			}
-			reposChanged, err := commit.GodepsReposChanged()
-			if err != nil {
-				return err
-			}
-			for _, changedRepo := range reposChanged {
-				if !strings.Contains(changedRepo, declaredRepo) {
-					problemCommits = append(problemCommits, commit)
-				}
-			}
-		}
+func ValidateBumpCommit(commit util.Commit) []string {
+	if !commit.MatchesBumpSummaryPattern() {
+		return nil
 	}
-	if len(problemCommits) > 0 {
-		label := "The following UPSTREAM commits modify Godeps repos other than the repo the commit declares"
-		msg := renderGodepFilesError(label, problemCommits, RenderAllFiles)
-		return fmt.Errorf(msg)
-	}
-	return nil
-}
 
-// ValidateGodeps invokes hack/godep-restore.sh whenever it finds at least one commit
-// modifying Godeps/Godeps.json file or vendor/ directory.
-func ValidateGodeps(commits []util.Commit) error {
-	runGodepsRestore := false
-	for _, commit := range commits {
-		if commit.HasVendoredCodeChanges() || commit.HasGodepsChanges() {
-			runGodepsRestore = true
-			break
-		}
-	}
-	if runGodepsRestore {
-		fmt.Println("Running godep-restore")
-		cmd := exec.Command("hack/godep-restore.sh")
-		var stdout bytes.Buffer
-		var stderr bytes.Buffer
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("Error running hack/godep-restore.sh: %v\n%s\n%s", err, stderr.String(), stdout.String())
-		}
-	}
-	return nil
-}
+	var allErrors []string
 
-type CommitFilesRenderOption int
-
-const (
-	RenderNoFiles CommitFilesRenderOption = iota
-	RenderOnlyGodepsFiles
-	RenderOnlyNonGodepsFiles
-	RenderAllFiles
-)
-
-// renderGodepFilesError formats commits and their file lists into readable
-// output prefixed with label.
-func renderGodepFilesError(label string, commits []util.Commit, opt CommitFilesRenderOption) string {
-	msg := fmt.Sprintf("%s:\n\n", label)
-	for _, commit := range commits {
-		msg += fmt.Sprintf("[%s] %s\n", commit.Sha, commit.Summary)
-		if opt == RenderNoFiles {
-			continue
-		}
-		for _, file := range commit.Files {
-			if opt == RenderAllFiles ||
-				(opt == RenderOnlyGodepsFiles && file.HasVendoredCodeChanges()) ||
-				(opt == RenderOnlyNonGodepsFiles && !file.HasVendoredCodeChanges()) {
-				msg += fmt.Sprintf("  - %s\n", file)
-			}
-		}
+	if !commit.HasBumpedFiles() {
+		allErrors = append(allErrors, fmt.Sprintf("Bump commit %s (%q) is missing changes to dependencies.", commit.Sha, commit.Summary))
 	}
-	return msg
+
+	if commit.HasPatches() {
+		allErrors = append(allErrors, fmt.Sprintf("Bump commit %s (%q) is not allowed to change patched paths. Inside vendor/ directories for patches are identified by matching any of the following patterns: %q", commit.Sha, commit.Summary, strings.Join(util.RegexpsToStrings(util.PatchRegexps), ", ")))
+	}
+
+	if commit.HasNonVendoredCodeChanges() {
+		allErrors = append(allErrors, fmt.Sprintf("Bump commit %s (%q) is not allowed to have non-vendor code changes. If you are modifying vendoring files like glide.yaml, glide.lock, go.mod, go.sum, ... these belong into a separate commit. It allows for easily checking what's beeing bumped and automation verifying the content of vendor folder matches that description.", commit.Sha, commit.Summary))
+	}
+
+	return allErrors
 }

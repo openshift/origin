@@ -25,9 +25,11 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/framework/volume"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
@@ -37,6 +39,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 )
 
 var (
@@ -85,6 +88,7 @@ func (s *subPathTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 		config      *PerTestConfig
 		testCleanup func()
 
+		hostExec          utils.HostExec
 		resource          *genericVolumeTestResource
 		roVolSource       *v1.VolumeSource
 		pod               *v1.Pod
@@ -113,6 +117,7 @@ func (s *subPathTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 		l.config, l.testCleanup = driver.PrepareTest(f)
 		l.intreeOps, l.migratedOps = getMigrationVolumeOpCounts(f.ClientSet, driver.GetDriverInfo().InTreePluginName)
 		l.resource = createGenericVolumeTestResource(driver, l.config, pattern)
+		l.hostExec = utils.NewHostExec(f)
 
 		// Setup subPath test dependent resource
 		volType := pattern.VolType
@@ -169,6 +174,10 @@ func (s *subPathTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 		if l.testCleanup != nil {
 			l.testCleanup()
 			l.testCleanup = nil
+		}
+
+		if l.hostExec != nil {
+			l.hostExec.Cleanup()
 		}
 
 		validateMigrationVolumeOpCounts(f.ClientSet, driver.GetDriverInfo().InTreePluginName, l.intreeOps, l.migratedOps)
@@ -329,7 +338,7 @@ func (s *subPathTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 		init()
 		defer cleanup()
 
-		testSubpathReconstruction(f, l.pod, false)
+		testSubpathReconstruction(f, l.hostExec, l.pod, false)
 	})
 
 	ginkgo.It("should unmount if pod is force deleted while kubelet is down [Disruptive][Slow][LinuxOnly]", func() {
@@ -341,7 +350,7 @@ func (s *subPathTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 			framework.Skipf("%s volume type does not support reconstruction, skipping", l.resource.volType)
 		}
 
-		testSubpathReconstruction(f, l.pod, true)
+		testSubpathReconstruction(f, l.hostExec, l.pod, true)
 	})
 
 	ginkgo.It("should support readOnly directory specified in the volumeMount", func() {
@@ -874,8 +883,17 @@ func testPodContainerRestart(f *framework.Framework, pod *v1.Pod) {
 	framework.ExpectNoError(err, "while waiting for container to stabilize")
 }
 
-func testSubpathReconstruction(f *framework.Framework, pod *v1.Pod, forceDelete bool) {
+func testSubpathReconstruction(f *framework.Framework, hostExec utils.HostExec, pod *v1.Pod, forceDelete bool) {
 	// This is mostly copied from TestVolumeUnmountsFromDeletedPodWithForceOption()
+
+	// Disruptive test run serially, we can cache all voluem global mount
+	// points and verify after the test that we do not leak any global mount point.
+	nodeList, err := e2enode.GetReadySchedulableNodesOrDie(f.ClientSet)
+	framework.ExpectNoError(err, "while listing scheduable nodes")
+	globalMountPointsByNode := make(map[string]sets.String, len(nodeList.Items))
+	for _, node := range nodeList.Items {
+		globalMountPointsByNode[node.Name] = utils.FindVolumeGlobalMountPoints(hostExec, &node)
+	}
 
 	// Change to busybox
 	pod.Spec.Containers[0].Image = volume.GetTestImage(imageutils.GetE2EImage(imageutils.BusyBox))
@@ -890,7 +908,7 @@ func testSubpathReconstruction(f *framework.Framework, pod *v1.Pod, forceDelete 
 
 	ginkgo.By(fmt.Sprintf("Creating pod %s", pod.Name))
 	removeUnusedContainers(pod)
-	pod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+	pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
 	framework.ExpectNoError(err, "while creating pod")
 
 	err = e2epod.WaitForPodRunningInNamespace(f.ClientSet, pod)
@@ -899,7 +917,24 @@ func testSubpathReconstruction(f *framework.Framework, pod *v1.Pod, forceDelete 
 	pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(pod.Name, metav1.GetOptions{})
 	framework.ExpectNoError(err, "while getting pod")
 
+	var podNode *v1.Node
+	for i := range nodeList.Items {
+		if nodeList.Items[i].Name == pod.Spec.NodeName {
+			podNode = &nodeList.Items[i]
+		}
+	}
+	framework.ExpectNotEqual(podNode, nil, "pod node should exist in scheduable nodes")
+
 	utils.TestVolumeUnmountsFromDeletedPodWithForceOption(f.ClientSet, f, pod, forceDelete, true)
+
+	if podNode != nil {
+		mountPoints := globalMountPointsByNode[podNode.Name]
+		mountPointsAfter := utils.FindVolumeGlobalMountPoints(hostExec, podNode)
+		s1 := mountPointsAfter.Difference(mountPoints)
+		s2 := mountPoints.Difference(mountPointsAfter)
+		gomega.Expect(s1).To(gomega.BeEmpty(), "global mount points leaked: %v", s1)
+		gomega.Expect(s2).To(gomega.BeEmpty(), "global mount points not found: %v", s2)
+	}
 }
 
 func formatVolume(f *framework.Framework, pod *v1.Pod) {

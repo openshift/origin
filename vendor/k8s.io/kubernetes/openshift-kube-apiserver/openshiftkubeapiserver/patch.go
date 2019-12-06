@@ -1,8 +1,9 @@
 package openshiftkubeapiserver
 
 import (
-	"fmt"
 	"time"
+
+	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 
 	"k8s.io/apiserver/pkg/admission"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -10,7 +11,6 @@ import (
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/quota/v1/generic"
 	"k8s.io/kubernetes/pkg/quota/v1/install"
 
@@ -19,8 +19,6 @@ import (
 	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/apiserver-library-go/pkg/admission/quota/clusterresourcequota"
 	"github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/sccadmission"
-	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
-	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
 	quotav1informer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
@@ -36,44 +34,14 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
 )
 
-type KubeAPIServerServerPatchContext struct {
-	initialized bool
-
-	postStartHooks     map[string]genericapiserver.PostStartHookFunc
-	informerStartFuncs []func(stopCh <-chan struct{})
-}
-
 type KubeAPIServerConfigFunc func(config *genericapiserver.Config, versionedInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) error
 
-func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) (KubeAPIServerConfigFunc, *KubeAPIServerServerPatchContext) {
-	patchContext := &KubeAPIServerServerPatchContext{
-		postStartHooks: map[string]genericapiserver.PostStartHookFunc{},
-	}
+func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) KubeAPIServerConfigFunc {
 	return func(genericConfig *genericapiserver.Config, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) error {
-		kubeAPIServerInformers, err := newInformers(genericConfig.LoopbackClientConfig)
-
+		openshiftInformers, err := newInformers(genericConfig.LoopbackClientConfig)
 		if err != nil {
 			return err
 		}
-
-		// AUTHENTICATOR
-		authenticator, postStartHooks, err := NewAuthenticator(
-			kubeAPIServerConfig.ServingInfo.ServingInfo,
-			kubeAPIServerConfig.ServiceAccountPublicKeyFiles, kubeAPIServerConfig.OAuthConfig, kubeAPIServerConfig.AuthConfig,
-			genericConfig.LoopbackClientConfig,
-			kubeInformers.Core().V1().Pods().Lister(),
-			kubeInformers.Core().V1().Secrets().Lister(),
-			kubeInformers.Core().V1().ServiceAccounts().Lister(),
-			kubeAPIServerInformers.OpenshiftOAuthInformers.Oauth().V1().OAuthClients().Lister(),
-			kubeAPIServerInformers.OpenshiftUserInformers.User().V1().Groups())
-		if err != nil {
-			return err
-		}
-		genericConfig.Authentication.Authenticator = authenticator
-		for key, fn := range postStartHooks {
-			patchContext.postStartHooks[key] = fn
-		}
-		// END AUTHENTICATOR
 
 		// AUTHORIZER
 		genericConfig.RequestInfoResolver = apiserverconfig.OpenshiftRequestInfoResolver()
@@ -86,18 +54,18 @@ func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev
 		genericConfig.LongRunningFunc = apiserverconfig.IsLongRunningRequest
 
 		// ADMISSION
-		clusterQuotaMappingController := newClusterQuotaMappingController(kubeInformers.Core().V1().Namespaces(), kubeAPIServerInformers.OpenshiftQuotaInformers.Quota().V1().ClusterResourceQuotas())
-		patchContext.postStartHooks["quota.openshift.io-clusterquotamapping"] = func(context genericapiserver.PostStartHookContext) error {
+		clusterQuotaMappingController := newClusterQuotaMappingController(kubeInformers.Core().V1().Namespaces(), openshiftInformers.OpenshiftQuotaInformers.Quota().V1().ClusterResourceQuotas())
+		genericConfig.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", func(context genericapiserver.PostStartHookContext) error {
 			go clusterQuotaMappingController.Run(5, context.StopCh)
 			return nil
-		}
+		})
 
 		*pluginInitializers = append(*pluginInitializers,
 			imagepolicy.NewInitializer(imagereferencemutators.KubeImageMutators{}, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname),
-			restrictusers.NewInitializer(kubeAPIServerInformers.getOpenshiftUserInformers()),
-			sccadmission.NewInitializer(kubeAPIServerInformers.getOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints()),
+			restrictusers.NewInitializer(openshiftInformers.getOpenshiftUserInformers()),
+			sccadmission.NewInitializer(openshiftInformers.getOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints()),
 			clusterresourcequota.NewInitializer(
-				kubeAPIServerInformers.getOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
+				openshiftInformers.getOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
 				clusterQuotaMappingController.GetClusterQuotaMapper(),
 				generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators()),
 			),
@@ -111,39 +79,17 @@ func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev
 		if err != nil {
 			return err
 		}
-		for key, fn := range postStartHooks {
-			patchContext.postStartHooks[key] = fn
-		}
 		// END HANDLER CHAIN
 
-		patchContext.informerStartFuncs = append(patchContext.informerStartFuncs, kubeAPIServerInformers.Start)
-		patchContext.postStartHooks["openshift.io-kubernetes-informers-synched"] = func(context genericapiserver.PostStartHookContext) error {
-
-			kubeInformers.WaitForCacheSync(context.StopCh)
+		genericConfig.AddPostStartHookOrDie("openshift.io-startkubeinformers", func(context genericapiserver.PostStartHookContext) error {
+			go kubeInformers.Start(context.StopCh)
+			go openshiftInformers.Start(context.StopCh)
 			return nil
-		}
-		patchContext.initialized = true
+		})
+		enablement.AppendPostStartHooksOrDie(genericConfig)
 
 		return nil
-	}, patchContext
-}
-
-func (c *KubeAPIServerServerPatchContext) PatchServer(server *master.Master) error {
-	if !c.initialized {
-		return fmt.Errorf("not initialized with config")
 	}
-
-	for name, fn := range c.postStartHooks {
-		server.GenericAPIServer.AddPostStartHookOrDie(name, fn)
-	}
-	server.GenericAPIServer.AddPostStartHookOrDie("openshift.io-startkubeinformers", func(context genericapiserver.PostStartHookContext) error {
-		for _, fn := range c.informerStartFuncs {
-			fn(context.StopCh)
-		}
-		return nil
-	})
-
-	return nil
 }
 
 // newInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
@@ -153,10 +99,6 @@ func newInformers(loopbackClientConfig *rest.Config) (*kubeAPIServerInformers, e
 	jsonLoopbackClientConfig.ContentConfig.AcceptContentTypes = "application/json"
 	jsonLoopbackClientConfig.ContentConfig.ContentType = "application/json"
 
-	oauthClient, err := oauthclient.NewForConfig(loopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	quotaClient, err := quotaclient.NewForConfig(jsonLoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -175,7 +117,6 @@ func newInformers(loopbackClientConfig *rest.Config) (*kubeAPIServerInformers, e
 	const defaultInformerResyncPeriod = 10 * time.Minute
 
 	ret := &kubeAPIServerInformers{
-		OpenshiftOAuthInformers:    oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
 		OpenshiftQuotaInformers:    quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		OpenshiftSecurityInformers: securityv1informer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
 		OpenshiftUserInformers:     userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
@@ -190,7 +131,6 @@ func newInformers(loopbackClientConfig *rest.Config) (*kubeAPIServerInformers, e
 }
 
 type kubeAPIServerInformers struct {
-	OpenshiftOAuthInformers    oauthinformer.SharedInformerFactory
 	OpenshiftQuotaInformers    quotainformer.SharedInformerFactory
 	OpenshiftSecurityInformers securityv1informer.SharedInformerFactory
 	OpenshiftUserInformers     userinformer.SharedInformerFactory
@@ -207,7 +147,6 @@ func (i *kubeAPIServerInformers) getOpenshiftUserInformers() userinformer.Shared
 }
 
 func (i *kubeAPIServerInformers) Start(stopCh <-chan struct{}) {
-	i.OpenshiftOAuthInformers.Start(stopCh)
 	i.OpenshiftQuotaInformers.Start(stopCh)
 	i.OpenshiftSecurityInformers.Start(stopCh)
 	i.OpenshiftUserInformers.Start(stopCh)

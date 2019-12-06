@@ -44,7 +44,6 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	// oidc-signing-algs
 	// oidc-username-claim
 	// oidc-username-prefix
-	// service-account-lookup
 	// token-auth-file
 
 	// alsologtostderr - don't know whether to change it
@@ -83,7 +82,6 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	// service-account-issuer
 	// service-account-key-file
 	// service-account-max-token-expiration
-	// service-account-signing-key-file
 	// stderrthreshold
 	// storage-versions
 	// target-ram-mb
@@ -103,7 +101,7 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 		configflags.SetIfUnset(args, flag, value...)
 	}
 	configflags.SetIfUnset(args, "allow-privileged", "true")
-	configflags.SetIfUnset(args, "anonymous-auth", "false")
+	configflags.SetIfUnset(args, "anonymous-auth", "true")
 	configflags.SetIfUnset(args, "authorization-mode", "RBAC", "Node") // overridden later, but this runs the poststarthook for bootstrapping RBAC
 	for flag, value := range configflags.AuditFlags(&kubeAPIServerConfig.AuditConfig, configflags.ArgsWithPrefix(args, "audit-")) {
 		configflags.SetIfUnset(args, flag, value...)
@@ -139,6 +137,9 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	configflags.SetIfUnset(args, "requestheader-group-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.GroupHeaders...)
 	configflags.SetIfUnset(args, "requestheader-username-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.UsernameHeaders...)
 	configflags.SetIfUnset(args, "secure-port", portString)
+	// TODO uncomment this once we list each file individually.  This requires updating the kube-apiserver-operator to separate the files I think
+	//configflags.SetIfUnset(args, "service-account-key-file", kubeAPIServerConfig.ServiceAccountPublicKeyFiles...)
+	configflags.SetIfUnset(args, "service-account-lookup", "true")
 	configflags.SetIfUnset(args, "service-cluster-ip-range", kubeAPIServerConfig.ServicesSubnet)
 	configflags.SetIfUnset(args, "service-node-port-range", kubeAPIServerConfig.ServicesNodePortRange)
 	configflags.SetIfUnset(args, "storage-backend", "etcd3")
