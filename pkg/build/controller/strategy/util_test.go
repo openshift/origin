@@ -250,6 +250,27 @@ func TestMountConfigsAndSecrets(t *testing.T) {
 	}
 }
 
+func checkContainersMounts(containers []corev1.Container, t *testing.T) {
+	for _, c := range containers {
+		foundCA := false
+		for _, v := range c.VolumeMounts {
+			if v.Name == "build-ca-bundles" {
+				foundCA = true
+				if v.MountPath != ConfigMapCertsMountPath {
+					t.Errorf("ca bundle %s was not mounted to %s", v.Name, ConfigMapCertsMountPath)
+				}
+				if v.ReadOnly {
+					t.Errorf("ca bundle volume %s should be writeable, but was mounted read-only.", v.Name)
+				}
+				break
+			}
+		}
+		if !foundCA {
+			t.Errorf("build CA bundle was not mounted into container %s", c.Name)
+		}
+	}
+}
+
 func TestSetupBuildCAs(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -280,6 +301,16 @@ func TestSetupBuildCAs(t *testing.T) {
 			build := mockDockerBuild()
 			podSpec := &corev1.Pod{
 				Spec: corev1.PodSpec{
+					InitContainers: []corev1.Container{
+						{
+							Name:  "initfirst",
+							Image: "busybox",
+						},
+						{
+							Name:  "initsecond",
+							Image: "busybox",
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:  "first",
@@ -337,24 +368,8 @@ func TestSetupBuildCAs(t *testing.T) {
 				t.Errorf("expected %s to be mounted at %s, got %s", util.ServiceCAKey, expectedPath, foundItem.Path)
 			}
 
-			for _, c := range podSpec.Spec.Containers {
-				foundCA := false
-				for _, v := range c.VolumeMounts {
-					if v.Name == "build-ca-bundles" {
-						foundCA = true
-						if v.MountPath != ConfigMapCertsMountPath {
-							t.Errorf("ca bundle %s was not mounted to %s", v.Name, ConfigMapCertsMountPath)
-						}
-						if v.ReadOnly {
-							t.Errorf("ca bundle volume %s should be writeable, but was mounted read-only.", v.Name)
-						}
-						break
-					}
-				}
-				if !foundCA {
-					t.Errorf("build CA bundle was not mounted into container %s", c.Name)
-				}
-			}
+			checkContainersMounts(podSpec.Spec.Containers, t)
+			checkContainersMounts(podSpec.Spec.InitContainers, t)
 		})
 	}
 }
