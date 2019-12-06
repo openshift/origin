@@ -32,35 +32,31 @@ func GetEncryptionConfigAndState(
 	secretClient corev1client.SecretsGetter,
 	encryptionSecretSelector metav1.ListOptions,
 	encryptedGRs []schema.GroupResource,
-) (current *apiserverconfigv1.EncryptionConfiguration, desired map[schema.GroupResource]state.GroupResourceState, secretsFound bool, transitioningReason string, err error) {
+) (current *apiserverconfigv1.EncryptionConfiguration, desired map[schema.GroupResource]state.GroupResourceState, encryptionSecrets []*corev1.Secret, transitioningReason string, err error) {
 	// get current config
 	encryptionConfigSecret, converged, err := deployer.DeployedEncryptionConfigSecret()
 	if err != nil {
-		return nil, nil, false, "", err
+		return nil, nil, nil, "", err
 	}
 	if !converged {
-		return nil, nil, false, "APIServerRevisionNotConverged", nil
+		return nil, nil, nil, "APIServerRevisionNotConverged", nil
 	}
 	var encryptionConfig *apiserverconfigv1.EncryptionConfiguration
 	if encryptionConfigSecret != nil {
 		encryptionConfig, err = encryptionconfig.FromSecret(encryptionConfigSecret)
 		if err != nil {
-			return nil, nil, false, "", fmt.Errorf("invalid encryption config %s/%s: %v", encryptionConfigSecret.Namespace, encryptionConfigSecret.Name, err)
+			return nil, nil, nil, "", fmt.Errorf("invalid encryption config %s/%s: %v", encryptionConfigSecret.Namespace, encryptionConfigSecret.Name, err)
 		}
 	}
 
 	// compute desired config
-	encryptionSecretList, err := secretClient.Secrets("openshift-config-managed").List(encryptionSecretSelector)
+	encryptionSecrets, err = secrets.ListKeySecrets(secretClient, encryptionSecretSelector)
 	if err != nil {
-		return nil, nil, false, "", err
-	}
-	var encryptionSecrets []*corev1.Secret
-	for i := range encryptionSecretList.Items {
-		encryptionSecrets = append(encryptionSecrets, &encryptionSecretList.Items[i])
+		return nil, nil, nil, "", err
 	}
 	desiredEncryptionState := getDesiredEncryptionState(encryptionConfig, encryptionSecrets, encryptedGRs)
 
-	return encryptionConfig, desiredEncryptionState, len(encryptionSecrets) > 0, "", nil
+	return encryptionConfig, desiredEncryptionState, encryptionSecrets, "", nil
 }
 
 // getDesiredEncryptionState returns the desired state of encryption for all resources.
@@ -76,21 +72,10 @@ func GetEncryptionConfigAndState(
 // 3. if (2) is the case, the write-key must be the most recent key.
 // 4. if (2) and (3) are the case, all non-write keys should be removed.
 func getDesiredEncryptionState(oldEncryptionConfig *apiserverconfigv1.EncryptionConfiguration, encryptionSecrets []*corev1.Secret, toBeEncryptedGRs []schema.GroupResource) map[schema.GroupResource]state.GroupResourceState {
-	backedKeys := make([]state.KeyState, 0, len(encryptionSecrets))
-	for _, s := range encryptionSecrets {
-		km, err := secrets.ToKeyState(s)
-		if err != nil {
-			klog.Warningf("skipping invalid secret: %v", err)
-			continue
-		}
-		backedKeys = append(backedKeys, km)
-	}
-	backedKeys = state.SortRecentFirst(backedKeys)
-
 	//
 	// STEP 0: start with old encryption config, and alter it towards the desired state in the following STEPs.
 	//
-	desiredEncryptionState := encryptionconfig.ToEncryptionState(oldEncryptionConfig)
+	desiredEncryptionState, backedKeys := encryptionconfig.ToEncryptionState(oldEncryptionConfig, encryptionSecrets)
 	if desiredEncryptionState == nil {
 		desiredEncryptionState = make(map[schema.GroupResource]state.GroupResourceState, len(toBeEncryptedGRs))
 	}
@@ -114,27 +99,6 @@ func getDesiredEncryptionState(oldEncryptionConfig *apiserverconfigv1.Encryption
 		return desiredEncryptionState
 	}
 
-	// enrich KeyState with values from secrets
-	for gr, grState := range desiredEncryptionState {
-		for i, rk := range grState.ReadKeys {
-			for _, k := range backedKeys {
-				if state.EqualKeyAndEqualID(&rk, &k) {
-					grState.ReadKeys[i] = k
-					break
-				}
-			}
-		}
-		if grState.HasWriteKey() {
-			for _, s := range backedKeys {
-				if state.EqualKeyAndEqualID(&grState.WriteKey, &s) {
-					grState.WriteKey = s
-					break
-				}
-			}
-		}
-		desiredEncryptionState[gr] = grState
-	}
-
 	//
 	// STEP 2: verify to have all necessary read-keys. If not, add them, deploy and wait for stability.
 	//
@@ -149,7 +113,7 @@ func getDesiredEncryptionState(oldEncryptionConfig *apiserverconfigv1.Encryption
 		// potentially persisted data keys.
 		currentlyEncryptedGRs = toBeEncryptedGRs
 	}
-	expectedReadSecrets := state.KeysWithPotentiallyPersistedData(currentlyEncryptedGRs, backedKeys)
+	expectedReadSecrets := state.KeysWithPotentiallyPersistedDataAndNextReadKey(currentlyEncryptedGRs, backedKeys)
 	for gr, grState := range desiredEncryptionState {
 		changed := false
 		for _, expected := range expectedReadSecrets {
@@ -162,7 +126,7 @@ func getDesiredEncryptionState(oldEncryptionConfig *apiserverconfigv1.Encryption
 			}
 			if !found {
 				// Just adding raw key without trusting any metadata on it
-				grState.ReadKeys = append(grState.ReadKeys, expected)
+				grState.ReadKeys = state.SortRecentFirst(append(grState.ReadKeys, expected)) // sort into right position
 				changed = true
 				allReadSecretsAsExpected = false
 				klog.V(4).Infof("encrypted resource %s misses read key %s", gr, expected.Key.Name)
@@ -206,7 +170,7 @@ func getDesiredEncryptionState(oldEncryptionConfig *apiserverconfigv1.Encryption
 	}
 
 	//
-	// STEP 4: with consistent read-keys and write-keys, remove every read-key other than the write-key.
+	// STEP 4: with consistent read-keys and write-keys, remove every read-key other than the write-key and one last read key.
 	//
 	// Note: because read-keys are consistent, currentlyEncryptedGRs equals toBeEncryptedGRs
 	allMigrated, _, reason := state.MigratedFor(currentlyEncryptedGRs, writeKey)
@@ -216,7 +180,20 @@ func getDesiredEncryptionState(oldEncryptionConfig *apiserverconfigv1.Encryption
 	}
 	for gr := range desiredEncryptionState {
 		grState := desiredEncryptionState[gr]
-		grState.ReadKeys = []state.KeyState{writeKey}
+
+		// cut down read keys to all expected read keys, and everything in between
+		if len(expectedReadSecrets) == 0 {
+			grState.ReadKeys = []state.KeyState{}
+		} else {
+			lastExpected := expectedReadSecrets[len(expectedReadSecrets)-1]
+			for i, rk := range grState.ReadKeys {
+				if state.EqualKeyAndEqualID(&rk, &lastExpected) {
+					grState.ReadKeys = grState.ReadKeys[:i+1]
+					break
+				}
+			}
+		}
+
 		desiredEncryptionState[gr] = grState
 	}
 	klog.V(4).Infof("write key %s set as sole write key", writeKey.Key.Name)

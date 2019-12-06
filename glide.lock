@@ -1,5 +1,5 @@
-hash: c5c0968c6ce3980aaeaff39af4090511a6ef3e094c8edbe546ba00a7db14dd2f
-updated: 2019-11-21T14:41:08.677846+01:00
+hash: 06d57ef6d4264f7778b685c8af1e0f1785a910f0a94dfd0845282eb45e74894a
+updated: 2019-12-06T18:43:55.627531252+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -143,7 +143,7 @@ imports:
   - errdefs
   - namespaces
 - name: github.com/containerd/continuity
-  version: 75bee3e2ccb6402e3a986ab8bd3b17003fc0fdec
+  version: f65d91d395ebd5507b567968624a4bbdbb9e8819
   subpackages:
   - pathdriver
 - name: github.com/containernetworking/cni
@@ -328,7 +328,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
+  version: fa567046d9b14f6aa788882a950d69651d230b21
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -811,7 +811,8 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 082f8e2a947ea8b4ed15c9c0f7b190d1fd35e6bc
+  version: 0093a8f00563f6c320394531167aac5ccf807bc4
+  repo: https://github.com/dmage/api.git
   subpackages:
   - annotations
   - apps
@@ -828,6 +829,8 @@ imports:
   - image/docker10
   - image/dockerpre012
   - image/v1
+  - imageregistry
+  - imageregistry/v1
   - kubecontrolplane
   - kubecontrolplane/v1
   - legacyconfig/v1
@@ -881,7 +884,7 @@ imports:
   - pkg/securitycontextconstraints/util
   - pkg/securitycontextconstraints/util/sort
 - name: github.com/openshift/client-go
-  version: 2823239d2298214509c3536714f684101799e81b
+  version: 9faca5198b4f9018e9f63feb516a620a1b5c24b5
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -982,7 +985,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 7c776f7cc17a282b6e5a2ec51f808728b70fcbad
+  version: 73e1fb871a9bf69c622e48daddc8b90f20466b39
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1027,7 +1030,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: acd64d450fd45fb2afa41f833f3788c8a7797219
+  version: 057bc52a47ec3c79498dda63f4a6f8298725e976
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
@@ -1399,7 +1402,7 @@ imports:
   - status
   - tap
 - name: gopkg.in/asn1-ber.v1
-  version: 158c9f99fc9c29a5ca9203be28f0fdf31cfb9701
+  version: 29be175fc3a3b1787c008093b829fbfee40decd6
 - name: gopkg.in/fsnotify.v1
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: gopkg.in/gcfg.v1
@@ -1427,7 +1430,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
 - name: k8s.io/api
-  version: a9f0da5a5acdf8d1cf06c95ab52e0e3152e4793c
+  version: 68cd7e75043b233779fadbe637e0a72ec0fb4b82
   repo: https://github.com/openshift/kubernetes-api.git
   subpackages:
   - admission/v1
@@ -1472,7 +1475,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 87debe511d3922d4cd69eea16b65e3bacd9e30f1
+  version: a1d2467584a6189fc4fabd60ebc5654137044347
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -1526,7 +1529,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: 9d6682b0f7a114f9b68f36a8adc391ee3f9add15
+  version: fcb08e9eefd278b7354a4fb7e11237b5e5c11921
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1592,7 +1595,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 54cbfd8602694dc98fd05c3facbf6bdffe2c38fa
+  version: ae3aa2dee07ffa930f4d1bcd5c69f47628f4e648
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1997,7 +2000,7 @@ imports:
   - metrics/prometheus/workqueue
   - version
 - name: k8s.io/cri-api
-  version: 665073aeb40ce405faa63a5c147d9e4f444e20b8
+  version: a6f63f369f6d50e9d0886f2eda63d585fbd1ab6a
   subpackages:
   - pkg/apis
   - pkg/apis/runtime/v1alpha2
@@ -2161,7 +2164,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 835ab0c72e4d6ffbe2ceec1ce55d2abdf856b913
+  version: 5d3c5e39204f9c76b40dbb09e61706ff9679ffb7
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -2183,6 +2186,7 @@ imports:
   - cmd/kube-scheduler/app/options
   - cmd/kubelet/app
   - cmd/kubelet/app/options
+  - openshift-kube-apiserver/admission/admissionenablement
   - openshift-kube-apiserver/admission/authorization/restrictusers
   - openshift-kube-apiserver/admission/authorization/restrictusers/usercache
   - openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride
@@ -2231,9 +2235,7 @@ imports:
   - openshift-kube-apiserver/authorization/scopeauthorizer
   - openshift-kube-apiserver/configdefault
   - openshift-kube-apiserver/enablement
-  - openshift-kube-apiserver/kubeadmission
   - openshift-kube-apiserver/openshiftkubeapiserver
-  - openshift-kube-apiserver/openshiftkubeapiserver/paramtoken
   - pkg/api/endpoints
   - pkg/api/legacyscheme
   - pkg/api/persistentvolume
@@ -2823,7 +2825,6 @@ imports:
   - pkg/util/config
   - pkg/util/configz
   - pkg/util/conntrack
-  - pkg/util/dbus
   - pkg/util/ebtables
   - pkg/util/env
   - pkg/util/filesystem
@@ -3034,7 +3035,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/legacy-cloud-providers
-  version: d70051cc537c098e706802b125098cefd8cfef6f
+  version: 7bdc2170521d2afed68799f19b6f1f0a6a8f7163
   repo: https://github.com/openshift/kubernetes-legacy-cloud-providers.git
   subpackages:
   - aws

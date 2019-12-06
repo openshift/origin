@@ -74,8 +74,18 @@ func NewControllers(
 				encryptedGRs,
 			),
 			controllers.NewMigrationController(
+				component,
 				deployer,
 				migrator,
+				operatorClient,
+				kubeInformersForNamespaces,
+				secretsClient,
+				encryptionSecretSelector,
+				eventRecorder,
+				encryptedGRs,
+			),
+			controllers.NewConditionController(
+				deployer,
 				operatorClient,
 				kubeInformersForNamespaces,
 				secretsClient,

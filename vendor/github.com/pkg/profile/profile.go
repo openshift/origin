@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
-	"runtime/trace"
 	"sync/atomic"
 )
 
@@ -20,8 +19,6 @@ const (
 	mutexMode
 	blockMode
 	traceMode
-	threadCreateMode
-	goroutineMode
 )
 
 // Profile represents an active profiling session.
@@ -86,23 +83,16 @@ func MemProfileRate(rate int) func(*Profile) {
 
 // MutexProfile enables mutex profiling.
 // It disables any previous profiling settings.
+//
+// Mutex profiling is a no-op before go1.8.
 func MutexProfile(p *Profile) { p.mode = mutexMode }
 
 // BlockProfile enables block (contention) profiling.
 // It disables any previous profiling settings.
 func BlockProfile(p *Profile) { p.mode = blockMode }
 
-// Trace profile enables execution tracing.
-// It disables any previous profiling settings.
+// Trace profile controls if execution tracing will be enabled. It disables any previous profiling settings.
 func TraceProfile(p *Profile) { p.mode = traceMode }
-
-// ThreadcreationProfile enables thread creation profiling..
-// It disables any previous profiling settings.
-func ThreadcreationProfile(p *Profile) { p.mode = threadCreateMode }
-
-// GoroutineProfile enables goroutine profiling.
-// It disables any previous profiling settings.
-func GoroutineProfile(p *Profile) { p.mode = goroutineMode }
 
 // ProfilePath controls the base path where various profiling
 // files are written. If blank, the base path will be generated
@@ -195,14 +185,14 @@ func Start(options ...func(*Profile)) interface {
 		if err != nil {
 			log.Fatalf("profile: could not create mutex profile %q: %v", fn, err)
 		}
-		runtime.SetMutexProfileFraction(1)
+		enableMutexProfile()
 		logf("profile: mutex profiling enabled, %s", fn)
 		prof.closer = func() {
 			if mp := pprof.Lookup("mutex"); mp != nil {
 				mp.WriteTo(f, 0)
 			}
 			f.Close()
-			runtime.SetMutexProfileFraction(0)
+			disableMutexProfile()
 			logf("profile: mutex profiling disabled, %s", fn)
 		}
 
@@ -221,49 +211,19 @@ func Start(options ...func(*Profile)) interface {
 			logf("profile: block profiling disabled, %s", fn)
 		}
 
-	case threadCreateMode:
-		fn := filepath.Join(path, "threadcreation.pprof")
-		f, err := os.Create(fn)
-		if err != nil {
-			log.Fatalf("profile: could not create thread creation profile %q: %v", fn, err)
-		}
-		logf("profile: thread creation profiling enabled, %s", fn)
-		prof.closer = func() {
-			if mp := pprof.Lookup("threadcreate"); mp != nil {
-				mp.WriteTo(f, 0)
-			}
-			f.Close()
-			logf("profile: thread creation profiling disabled, %s", fn)
-		}
-
 	case traceMode:
 		fn := filepath.Join(path, "trace.out")
 		f, err := os.Create(fn)
 		if err != nil {
 			log.Fatalf("profile: could not create trace output file %q: %v", fn, err)
 		}
-		if err := trace.Start(f); err != nil {
+		if err := startTrace(f); err != nil {
 			log.Fatalf("profile: could not start trace: %v", err)
 		}
 		logf("profile: trace enabled, %s", fn)
 		prof.closer = func() {
-			trace.Stop()
+			stopTrace()
 			logf("profile: trace disabled, %s", fn)
-		}
-
-	case goroutineMode:
-		fn := filepath.Join(path, "goroutine.pprof")
-		f, err := os.Create(fn)
-		if err != nil {
-			log.Fatalf("profile: could not create goroutine profile %q: %v", fn, err)
-		}
-		logf("profile: goroutine profiling enabled, %s", fn)
-		prof.closer = func() {
-			if mp := pprof.Lookup("goroutine"); mp != nil {
-				mp.WriteTo(f, 0)
-			}
-			f.Close()
-			logf("profile: goroutine profiling disabled, %s", fn)
 		}
 	}
 

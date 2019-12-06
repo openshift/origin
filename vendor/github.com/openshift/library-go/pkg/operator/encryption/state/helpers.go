@@ -34,11 +34,15 @@ func MigratedFor(grs []schema.GroupResource, km KeyState) (ok bool, missing []sc
 	return true, nil, ""
 }
 
-// KeysWithPotentiallyPersistedData returns the minimal, recent secrets which have migrated all given GRs.
-func KeysWithPotentiallyPersistedData(grs []schema.GroupResource, recentFirstSortedKeys []KeyState) []KeyState {
+// KeysWithPotentiallyPersistedDataAndNextReadKey returns the minimal, recent secrets which have migrated all given GRs.
+func KeysWithPotentiallyPersistedDataAndNextReadKey(grs []schema.GroupResource, recentFirstSortedKeys []KeyState) []KeyState {
 	for i, k := range recentFirstSortedKeys {
 		if allMigrated, missing, _ := MigratedFor(grs, k); allMigrated {
-			return recentFirstSortedKeys[:i+1]
+			if i+1 < len(recentFirstSortedKeys) {
+				return recentFirstSortedKeys[:i+2]
+			} else {
+				return recentFirstSortedKeys[:i+1]
+			}
 		} else {
 			// continue with keys we haven't found a migration key for yet
 			grs = missing

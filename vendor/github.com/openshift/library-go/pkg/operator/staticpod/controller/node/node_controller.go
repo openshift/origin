@@ -1,6 +1,7 @@
 package node
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -155,23 +156,23 @@ func (c NodeController) sync() error {
 }
 
 // Run starts the kube-apiserver and blocks until stopCh is closed.
-func (c *NodeController) Run(workers int, stopCh <-chan struct{}) {
+func (c *NodeController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting NodeController")
 	defer klog.Infof("Shutting down NodeController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *NodeController) runWorker() {
+func (c *NodeController) runWorker(ctx context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

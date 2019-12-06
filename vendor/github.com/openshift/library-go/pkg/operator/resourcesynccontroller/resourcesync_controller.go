@@ -1,6 +1,7 @@
 package resourcesynccontroller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -210,23 +211,23 @@ func (c *ResourceSyncController) sync() error {
 	return nil
 }
 
-func (c *ResourceSyncController) Run(workers int, stopCh <-chan struct{}) {
+func (c *ResourceSyncController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting ResourceSyncController")
 	defer klog.Infof("Shutting down ResourceSyncController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *ResourceSyncController) runWorker() {
+func (c *ResourceSyncController) runWorker(_ context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

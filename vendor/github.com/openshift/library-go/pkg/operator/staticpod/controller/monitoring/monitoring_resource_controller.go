@@ -1,6 +1,7 @@
 package monitoring
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -155,23 +156,23 @@ func (c MonitoringResourceController) sync() error {
 	return err
 }
 
-func (c *MonitoringResourceController) Run(workers int, stopCh <-chan struct{}) {
+func (c *MonitoringResourceController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting MonitoringResourceController")
 	defer klog.Infof("Shutting down MonitoringResourceController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *MonitoringResourceController) runWorker() {
+func (c *MonitoringResourceController) runWorker(ctx context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

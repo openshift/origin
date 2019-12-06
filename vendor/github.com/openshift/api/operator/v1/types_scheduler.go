@@ -13,9 +13,12 @@ type KubeScheduler struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
+	// spec is the specification of the desired behavior of the Kubernetes Scheduler
 	// +kubebuilder:validation:Required
 	// +required
 	Spec KubeSchedulerSpec `json:"spec"`
+
+	// status is the most recently observed status of the Kubernetes Scheduler
 	// +optional
 	Status KubeSchedulerStatus `json:"status"`
 }

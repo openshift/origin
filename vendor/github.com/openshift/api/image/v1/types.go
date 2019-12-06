@@ -22,6 +22,13 @@ type ImageList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Image is an immutable representation of a container image and metadata at a point in time.
+// Images are named by taking a hash of their contents (metadata and content) and any change
+// in format, content, or metadata results in a new name. The images resource is primarily
+// for use by cluster administrators and integrations like the cluster image registry - end
+// users instead access images via the imagestreamtags or imagestreamimages resources. While
+// image metadata is stored in the API, any integration that implements the container image
+// registry API must provide its own storage for the raw manifest data, image config, and
+// layer contents.
 type Image struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -159,9 +166,20 @@ type ImageStreamList struct {
 // +genclient:method=Layers,verb=get,subresource=layers,result=github.com/openshift/api/image/v1.ImageStreamLayers
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ImageStream stores a mapping of tags to images, metadata overrides that are applied
+// An ImageStream stores a mapping of tags to images, metadata overrides that are applied
 // when images are tagged in a stream, and an optional reference to a container image
-// repository on a registry.
+// repository on a registry. Users typically update the spec.tags field to point to external
+// images which are imported from container registries using credentials in your namespace
+// with the pull secret type, or to existing image stream tags and images which are
+// immediately accessible for tagging or pulling. The history of images applied to a tag
+// is visible in the status.tags field and any user who can view an image stream is allowed
+// to tag that image into their own image streams. Access to pull images from the integrated
+// registry is granted by having the "get imagestreams/layers" permission on a given image
+// stream. Users may remove a tag by deleting the imagestreamtag resource, which causes both
+// spec and status for that tag to be removed. Image stream history is retained until an
+// administrator runs the prune operation, which removes references that are no longer in
+// use. To preserve a historical image, ensure there is a tag in spec pointing to that image
+// by its digest.
 type ImageStream struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -330,8 +348,14 @@ type TagEventCondition struct {
 // +genclient:method=Create,verb=create,result=k8s.io/apimachinery/pkg/apis/meta/v1.Status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ImageStreamMapping represents a mapping from a single tag to a container image as
-// well as the reference to the container image stream the image came from.
+// ImageStreamMapping represents a mapping from a single image stream tag to a container
+// image as well as the reference to the container image stream the image came from. This
+// resource is used by privileged integrators to create an image resource and to associate
+// it with an image stream in the status tags field. Creating an ImageStreamMapping will
+// allow any user who can view the image stream to tag or pull that image, so only create
+// mappings where the user has proven they have access to the image contents directly.
+// The only operation supported for this resource is create and the metadata name and
+// namespace should be set to the image stream containing the tag that should be updated.
 type ImageStreamMapping struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -347,6 +371,13 @@ type ImageStreamMapping struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.
+// Use this resource to interact with the tags and images in an image stream by tag, or
+// to see the image details for a particular tag. The image associated with this resource
+// is the most recently successfully tagged, imported, or pushed image (as described in the
+// image stream status.tags.items list for this tag). If an import is in progress or has
+// failed the previous image will be shown. Deleting an image stream tag clears both the
+// status and spec fields of an image stream. If no image can be retrieved for a given tag,
+// a not found error will be returned.
 type ImageStreamTag struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -388,6 +419,17 @@ type ImageStreamTagList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
+// User interfaces and regular users can use this resource to access the metadata details of
+// a tagged image in the image stream history for viewing, since Image resources are not
+// directly accessible to end users. A not found error will be returned if no such image is
+// referenced by a tag within the ImageStream. Images are created when spec tags are set on
+// an image stream that represent an image in an external registry, when pushing to the
+// integrated registry, or when tagging an existing image from one image stream to another.
+// The name of an image stream image is in the form "<STREAM>@<DIGEST>", where the digest is
+// the content addressible identifier for the image (sha256:xxxxx...). You can use
+// ImageStreamImages as the from.kind of an image stream spec tag to reference an image
+// exactly. The only operations supported on the imagestreamimage endpoint are retrieving
+// the image.
 type ImageStreamImage struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`

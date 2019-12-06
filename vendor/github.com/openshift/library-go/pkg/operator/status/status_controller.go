@@ -1,6 +1,7 @@
 package status
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -181,23 +182,23 @@ func OperatorConditionToClusterOperatorCondition(condition operatorv1.OperatorCo
 	}
 }
 
-func (c *StatusSyncer) Run(workers int, stopCh <-chan struct{}) {
+func (c *StatusSyncer) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting StatusSyncer-" + c.clusterOperatorName)
 	defer klog.Infof("Shutting down StatusSyncer-" + c.clusterOperatorName)
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// start watching for version changes
-	go c.watchVersionGetter(stopCh)
+	go c.watchVersionGetter(ctx.Done())
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
 func (c *StatusSyncer) watchVersionGetter(stopCh <-chan struct{}) {
@@ -217,7 +218,7 @@ func (c *StatusSyncer) watchVersionGetter(stopCh <-chan struct{}) {
 	}
 }
 
-func (c *StatusSyncer) runWorker() {
+func (c *StatusSyncer) runWorker(_ context.Context) {
 	for c.processNextWorkItem() {
 	}
 }
