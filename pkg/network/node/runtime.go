@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
+
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -64,7 +66,7 @@ func (node *OsdnNode) getPodSandboxID(filter *kruntimeapi.PodSandboxFilter) (str
 	return podSandboxList[0].Id, nil
 }
 
-func (node *OsdnNode) getPodSandboxes() (map[string]*kruntimeapi.PodSandbox, error) {
+func (node *OsdnNode) getSDNPodSandboxes() (map[string]*kruntimeapi.PodSandbox, error) {
 	runtimeService, err := node.getRuntimeService()
 	if err != nil {
 		return nil, err
@@ -79,6 +81,16 @@ func (node *OsdnNode) getPodSandboxes() (map[string]*kruntimeapi.PodSandbox, err
 
 	podSandboxMap := make(map[string]*kruntimeapi.PodSandbox)
 	for _, sandbox := range podSandboxList {
+		status, err := runtimeService.PodSandboxStatus(getPodKey(sandbox.Metadata.Namespace, sandbox.Metadata.Name))
+		if err != nil {
+			glog.Warningf("Could not get status of pod %s/%s: %v", sandbox.Metadata.Namespace, sandbox.Metadata.Name, err)
+			continue
+		}
+		if status.Linux.Namespaces.Options.Network == kruntimeapi.NamespaceMode_NODE {
+			glog.V(4).Infof("Ignoring pod %s/%s which is hostNetwork", sandbox.Metadata.Namespace, sandbox.Metadata.Name)
+			continue
+		}
+		glog.V(4).Infof("Found existing pod %s/%s", sandbox.Metadata.Namespace, sandbox.Metadata.Name)
 		podSandboxMap[getPodKey(sandbox.Metadata.Namespace, sandbox.Metadata.Name)] = sandbox
 	}
 	return podSandboxMap, nil
