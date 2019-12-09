@@ -44,7 +44,8 @@ all build:
 # Example:
 #   make build-all
 build-all:
-	hack/build-go.sh vendor/k8s.io/kubernetes/cmd/hyperkube cmd/openshift-tests
+	hack/build-go.sh
+	hack/build-go.sh cmd/openshift-tests
 .PHONY: build-all
 
 # Build the test binaries.
