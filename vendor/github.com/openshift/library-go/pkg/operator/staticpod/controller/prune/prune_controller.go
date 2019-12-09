@@ -1,6 +1,7 @@
 package prune
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -278,23 +279,23 @@ func getPrunerPodImageFromEnv() string {
 	return os.Getenv("OPERATOR_IMAGE")
 }
 
-func (c *PruneController) Run(workers int, stopCh <-chan struct{}) {
+func (c *PruneController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting PruneController")
 	defer klog.Infof("Shutting down PruneController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *PruneController) runWorker() {
+func (c *PruneController) runWorker(ctx context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

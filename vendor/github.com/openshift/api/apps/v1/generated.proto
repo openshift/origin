@@ -79,6 +79,7 @@ message DeploymentConfig {
   optional DeploymentConfigSpec spec = 2;
 
   // Status represents the current deployment state.
+  // +optional
   optional DeploymentConfigStatus status = 3;
 }
 

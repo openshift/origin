@@ -1,6 +1,7 @@
 package management
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -94,23 +95,23 @@ func (c ManagementStateController) sync() error {
 	return nil
 }
 
-func (c *ManagementStateController) Run(workers int, stopCh <-chan struct{}) {
+func (c *ManagementStateController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting management-state-controller-" + c.operatorName)
 	defer klog.Infof("Shutting down management-state-controller-" + c.operatorName)
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *ManagementStateController) runWorker() {
+func (c *ManagementStateController) runWorker(_ context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

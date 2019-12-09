@@ -1,6 +1,7 @@
 package installer
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"os"
@@ -843,23 +844,23 @@ func (c InstallerController) sync() error {
 }
 
 // Run starts the kube-apiserver and blocks until stopCh is closed.
-func (c *InstallerController) Run(workers int, stopCh <-chan struct{}) {
+func (c *InstallerController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting InstallerController")
 	defer klog.Infof("Shutting down InstallerController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *InstallerController) runWorker() {
+func (c *InstallerController) runWorker(ctx context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

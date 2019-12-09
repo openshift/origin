@@ -1,11 +1,10 @@
 package staticpodstate
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
-
-	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,8 +14,10 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
@@ -169,23 +170,23 @@ func mirrorPodNameForNode(staticPodName, nodeName string) string {
 }
 
 // Run starts the kube-apiserver and blocks until stopCh is closed.
-func (c *StaticPodStateController) Run(workers int, stopCh <-chan struct{}) {
+func (c *StaticPodStateController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting StaticPodStateController")
 	defer klog.Infof("Shutting down StaticPodStateController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *StaticPodStateController) runWorker() {
+func (c *StaticPodStateController) runWorker(ctx context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

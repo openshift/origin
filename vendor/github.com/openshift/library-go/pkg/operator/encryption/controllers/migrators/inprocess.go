@@ -9,13 +9,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/pager"
 	"k8s.io/klog"
 )
 
@@ -64,7 +62,7 @@ func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey st
 
 	// different key?
 	if migration != nil && migration.result == nil {
-		klog.V(4).Infof("interrupting running migration for resource %v and write key %q", gr, migration.writeKey)
+		klog.V(2).Infof("Interrupting running migration for resource %v and write key %q", gr, migration.writeKey)
 		close(migration.stopCh)
 
 		// give go routine time to update the result
@@ -126,57 +124,24 @@ func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeK
 	}()
 
 	d := m.dynamicClient.Resource(gvr)
-	var errs []error
-	listPager := pager.New(pager.SimplePageFunc(func(opts metav1.ListOptions) (runtime.Object, error) {
+
+	listProcessor := newListProcessor(ctx, m.dynamicClient, func(obj *unstructured.Unstructured) error {
 		for {
-			allResource, err := d.List(opts)
-			if err != nil {
-				klog.Warningf("List of %v failed: %v", gvr, err)
-				if errors.IsResourceExpired(err) {
-					return nil, err // the pager will handle that
-				} else if retryable := canRetry(err); retryable == nil || *retryable == false {
-					return nil, err // not retryable or we don't know. Return error and controller will restart migration.
-				} else {
-					if seconds, delay := errors.SuggestsClientDelay(err); delay {
-						time.Sleep(time.Duration(seconds) * time.Second)
-					}
-					klog.V(4).Infof("Relisting %v after retryable error: %v", gvr, err)
-					continue
-				}
+			_, updateErr := d.Namespace(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
+			if updateErr == nil || errors.IsNotFound(updateErr) || errors.IsConflict(updateErr) {
+				return nil
 			}
-
-			klog.V(4).Infof("Migrating %d objects of %v", len(allResource.Items), gvr)
-
-		nextItem:
-			for _, obj := range allResource.Items { // TODO parallelize for-loop
-				for {
-					_, updateErr := d.Namespace(obj.GetNamespace()).Update(&obj, metav1.UpdateOptions{})
-					if updateErr == nil || errors.IsNotFound(updateErr) || errors.IsConflict(updateErr) {
-						continue nextItem
-					}
-					if retryable := canRetry(updateErr); retryable == nil || *retryable == false {
-						klog.Warningf("Update of %s/%s failed: %v", obj.GetNamespace(), obj.GetName(), updateErr)
-						errs = append(errs, updateErr) // not retryable or we don't know. Return error and controller will restart migration.
-						break
-					}
-					if seconds, delay := errors.SuggestsClientDelay(updateErr); delay {
-						klog.V(4).Infof("Sleeping %ds while updating %s/%s of type %v after retryable error: %v", seconds, obj.GetNamespace(), obj.GetName(), gvr, updateErr)
-						time.Sleep(time.Duration(seconds) * time.Second)
-					}
-				}
+			if retryable := canRetry(updateErr); retryable == nil || *retryable == false {
+				klog.Warningf("Update of %s/%s failed: %v", obj.GetNamespace(), obj.GetName(), updateErr)
+				return updateErr // not retryable or we don't know. Return error and controller will restart migration.
 			}
-
-			klog.V(4).Infof("Migration of %d objects of %v finished", len(allResource.Items), gvr)
-
-			allResource.Items = nil // do not accumulate items, this fakes the visitor pattern
-			return allResource, nil // leave the rest of the list intact to preserve continue token
+			if seconds, delay := errors.SuggestsClientDelay(updateErr); delay && seconds > 0 {
+				klog.V(2).Infof("Sleeping %ds while updating %s/%s of type %v after retryable error: %v", seconds, obj.GetNamespace(), obj.GetName(), gvr, updateErr)
+				time.Sleep(time.Duration(seconds) * time.Second)
+			}
 		}
-	}))
-
-	listPager.FullListIfExpired = false // prevent memory explosion from full list
-	_, listErr := listPager.List(ctx, metav1.ListOptions{})
-	errs = append(errs, listErr)
-	result = utilerrors.NewAggregate(errs)
+	})
+	result = listProcessor.run(gvr)
 }
 
 func (m *InProcessMigrator) PruneMigration(gr schema.GroupResource) error {

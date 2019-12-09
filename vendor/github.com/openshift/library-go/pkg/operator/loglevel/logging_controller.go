@@ -1,6 +1,7 @@
 package loglevel
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -75,23 +76,23 @@ func (c LogLevelController) sync() error {
 	return nil
 }
 
-func (c *LogLevelController) Run(workers int, stopCh <-chan struct{}) {
+func (c *LogLevelController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting LogLevelController")
 	defer klog.Infof("Shutting down LogLevelController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *LogLevelController) runWorker() {
+func (c *LogLevelController) runWorker(ctx context.Context) {
 	for c.processNextWorkItem() {
 	}
 }
