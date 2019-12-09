@@ -345,7 +345,9 @@ func (PrivateStrategy) SwaggerDoc() map[string]string {
 }
 
 var map_KubeAPIServer = map[string]string{
-	"": "KubeAPIServer provides information to configure an operator to manage kube-apiserver.",
+	"":       "KubeAPIServer provides information to configure an operator to manage kube-apiserver.",
+	"spec":   "spec is the specification of the desired behavior of the Kubernetes API Server",
+	"status": "status is the most recently observed status of the Kubernetes API Server",
 }
 
 func (KubeAPIServer) SwaggerDoc() map[string]string {
@@ -362,7 +364,9 @@ func (KubeAPIServerList) SwaggerDoc() map[string]string {
 }
 
 var map_KubeControllerManager = map[string]string{
-	"": "KubeControllerManager provides information to configure an operator to manage kube-controller-manager.",
+	"":       "KubeControllerManager provides information to configure an operator to manage kube-controller-manager.",
+	"spec":   "spec is the specification of the desired behavior of the Kubernetes Controller Manager",
+	"status": "status is the most recently observed status of the Kubernetes Controller Manager",
 }
 
 func (KubeControllerManager) SwaggerDoc() map[string]string {
@@ -635,7 +639,9 @@ func (OpenShiftControllerManagerList) SwaggerDoc() map[string]string {
 }
 
 var map_KubeScheduler = map[string]string{
-	"": "KubeScheduler provides information to configure an operator to manage scheduler.",
+	"":       "KubeScheduler provides information to configure an operator to manage scheduler.",
+	"spec":   "spec is the specification of the desired behavior of the Kubernetes Scheduler",
+	"status": "status is the most recently observed status of the Kubernetes Scheduler",
 }
 
 func (KubeScheduler) SwaggerDoc() map[string]string {

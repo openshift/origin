@@ -1,6 +1,7 @@
 package certrotation
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -132,16 +133,16 @@ func (c *CertRotationController) RunOnce() error {
 	return c.syncWorker()
 }
 
-func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
+func (c *CertRotationController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting CertRotationController - %q", c.name)
 	defer klog.Infof("Shutting down CertRotationController - %q", c.name)
-	c.WaitForReady(stopCh)
+	c.WaitForReady(ctx.Done())
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
 	// start a time based thread to ensure we stay up to date
 	go wait.Until(func() {
@@ -152,12 +153,12 @@ func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 			c.queue.Add(workQueueKey)
 			select {
 			case <-ticker.C:
-			case <-stopCh:
+			case <-ctx.Done():
 				return
 			}
 		}
 
-	}, time.Minute, stopCh)
+	}, time.Minute, ctx.Done())
 
 	// if we have a need to force rechecking the cert, use this channel to do it.
 	if refresher, ok := c.TargetRotation.CertCreator.(TargetCertRechecker); ok {
@@ -167,18 +168,18 @@ func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 				select {
 				case <-targetRefresh:
 					c.queue.Add(workQueueKey)
-				case <-stopCh:
+				case <-ctx.Done():
 					return
 				}
 			}
 
-		}, time.Minute, stopCh)
+		}, time.Minute, ctx.Done())
 	}
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *CertRotationController) runWorker() {
+func (c *CertRotationController) runWorker(_ context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

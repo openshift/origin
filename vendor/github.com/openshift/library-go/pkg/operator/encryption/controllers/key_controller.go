@@ -20,10 +20,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	"k8s.io/utils/pointer"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions/config/v1"
+
 	"github.com/openshift/library-go/pkg/operator/encryption/crypto"
 	"github.com/openshift/library-go/pkg/operator/encryption/secrets"
 	"github.com/openshift/library-go/pkg/operator/encryption/state"
@@ -141,7 +143,7 @@ func (c *keyController) checkAndCreateKeys() error {
 		return err
 	}
 
-	currentConfig, desiredEncryptionState, secretsFound, isProgressingReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, c.encryptedGRs)
+	currentConfig, desiredEncryptionState, secrets, isProgressingReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, c.encryptedGRs)
 	if err != nil {
 		return err
 	}
@@ -151,7 +153,7 @@ func (c *keyController) checkAndCreateKeys() error {
 	}
 
 	// avoid intended start of encryption
-	hasBeenOnBefore := currentConfig != nil || secretsFound
+	hasBeenOnBefore := currentConfig != nil || len(secrets) > 0
 	if currentMode == state.Identity && !hasBeenOnBefore {
 		return nil
 	}
@@ -166,22 +168,31 @@ func (c *keyController) checkAndCreateKeys() error {
 	// fills up the state with all resources and set identity write key if write key secrets
 	// are missing.
 
-	for _, grKeys := range desiredEncryptionState {
-		keyID, internalReason, ok := needsNewKey(grKeys, currentMode, externalReason, c.encryptedGRs)
-		if !ok {
+	var commonReason *string
+	for gr, grKeys := range desiredEncryptionState {
+		latestKeyID, internalReason, needed := needsNewKey(grKeys, currentMode, externalReason, c.encryptedGRs)
+		if !needed {
 			continue
 		}
 
+		if commonReason == nil {
+			commonReason = &internalReason
+		} else if *commonReason != internalReason {
+			commonReason = pointer.StringPtr("") // this means we have no common reason
+		}
+
 		newKeyRequired = true
-		nextKeyID := keyID + 1
+		nextKeyID := latestKeyID + 1
 		if newKeyID < nextKeyID {
 			newKeyID = nextKeyID
 		}
-		reasons = append(reasons, internalReason)
+		reasons = append(reasons, fmt.Sprintf("%s-%s", gr.Resource, internalReason))
 	}
-
 	if !newKeyRequired {
 		return nil
+	}
+	if commonReason != nil && len(*commonReason) > 0 && len(reasons) > 1 {
+		reasons = []string{*commonReason} // don't repeat reasons
 	}
 
 	sort.Sort(sort.StringSlice(reasons))
@@ -279,27 +290,33 @@ func (c *keyController) getCurrentModeAndExternalReason() (state.Mode, string, e
 	}
 }
 
-// TODO unit tests
+// needsNewKey checks whether a new key must be created for the given resource. If true, it also returns the latest
+// used key ID and a reason string.
 func needsNewKey(grKeys state.GroupResourceState, currentMode state.Mode, externalReason string, encryptedGRs []schema.GroupResource) (uint64, string, bool) {
 	// we always need to have some encryption keys unless we are turned off
 	if len(grKeys.ReadKeys) == 0 {
-		return 0, "no-secrets", currentMode != state.Identity
+		return 0, "key-does-not-exist", currentMode != state.Identity
 	}
 
 	latestKey := grKeys.ReadKeys[0]
 	latestKeyID, ok := state.NameToKeyID(latestKey.Key.Name)
 	if !ok {
-		return latestKeyID, "invalid-secret", true
+		return latestKeyID, fmt.Sprintf("key-secret-%d-is-invalid", latestKeyID), true
 	}
 
 	// if latest secret has been deleted, we will never be able to migrate to that key.
 	if !latestKey.Backed {
-		return latestKeyID, "missing-secret", true
+		return latestKeyID, fmt.Sprintf("encryption-config-key-%d-not-backed-by-secret", latestKeyID), true
 	}
 
-	// if the length of read secrets is more than one (i.e. we have more than just the write key),
-	// then we haven't successfully migrated and removed old keys so you should wait before generating more keys.
-	if len(grKeys.ReadKeys) > 1 {
+	// check that we have pruned read-keys: the write-keys, plus at most one more backed read-key (potentially some unbacked once before)
+	backedKeys := 0
+	for _, rk := range grKeys.ReadKeys {
+		if rk.Backed {
+			backedKeys++
+		}
+	}
+	if backedKeys > 2 {
 		return 0, "", false
 	}
 
@@ -310,7 +327,7 @@ func needsNewKey(grKeys state.GroupResourceState, currentMode state.Mode, extern
 
 	// if the most recent secret was encrypted in a mode different than the current mode, we need to generate a new key
 	if latestKey.Mode != currentMode {
-		return latestKeyID, "new-mode", true
+		return latestKeyID, "encryption-mode-changed", true
 	}
 
 	// if the most recent secret turned off encryption and we want to keep it that way, do nothing
@@ -320,12 +337,12 @@ func needsNewKey(grKeys state.GroupResourceState, currentMode state.Mode, extern
 
 	// if the most recent secret has a different external reason than the current reason, we need to generate a new key
 	if latestKey.ExternalReason != externalReason && len(externalReason) != 0 {
-		return latestKeyID, "new-external-reason", true
+		return latestKeyID, "external-reason-changed", true
 	}
 
 	// we check for encryptionSecretMigratedTimestamp set by migration controller to determine when migration completed
 	// this also generates back pressure for key rotation when migration takes a long time or was recently completed
-	return latestKeyID, "timestamp-too-old", time.Since(latestKey.Migrated.Timestamp) > encryptionSecretMigrationInterval
+	return latestKeyID, "rotation-interval-has-passed", time.Since(latestKey.Migrated.Timestamp) > encryptionSecretMigrationInterval
 }
 
 func (c *keyController) Run(stopCh <-chan struct{}) {

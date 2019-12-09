@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"k8s.io/klog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -91,12 +92,7 @@ type BootstrapUserData struct {
 
 type BootstrapUserDataGetter interface {
 	Get() (data *BootstrapUserData, ok bool, err error)
-	// TODO add a method like:
-	// IsPermanentlyDisabled() bool
-	// and use it to gate the wiring of components related to the bootstrap user.
-	// when the oauth server is running embedded in the kube api server, this method would always
-	// return false because the control plane would not be functional at the time of the check.
-	// when running as an external process, we can assume a functional control plane to perform the check.
+	IsEnabled() (bool, error)
 }
 
 func NewBootstrapUserDataGetter(secrets v1.SecretsGetter, namespaces v1.NamespacesGetter) BootstrapUserDataGetter {
@@ -112,24 +108,9 @@ type bootstrapUserDataGetter struct {
 }
 
 func (b *bootstrapUserDataGetter) Get() (*BootstrapUserData, bool, error) {
-	secret, err := b.secrets.Get(bootstrapUserBasicAuth, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		klog.V(4).Infof("%s secret does not exist", bootstrapUserBasicAuth)
-		return nil, false, nil
-	}
-	if err != nil {
+	secret, err := b.getBootstrapUserSecret()
+	if err != nil || secret == nil {
 		return nil, false, err
-	}
-	if secret.DeletionTimestamp != nil {
-		klog.V(4).Infof("%s secret is being deleted", bootstrapUserBasicAuth)
-		return nil, false, nil
-	}
-	namespace, err := b.namespaces.Get(metav1.NamespaceSystem, metav1.GetOptions{})
-	if err != nil {
-		return nil, false, err
-	}
-	if secret.CreationTimestamp.After(namespace.CreationTimestamp.Add(time.Hour)) {
-		return nil, false, errSecretRecreated
 	}
 
 	hashedPassword := secret.Data[bootstrapUserBasicAuth]
@@ -150,4 +131,38 @@ func (b *bootstrapUserDataGetter) Get() (*BootstrapUserData, bool, error) {
 		PasswordHash: hashedPassword,
 		UID:          base64.RawURLEncoding.EncodeToString(uidBytes[:]),
 	}, true, nil
+}
+
+func (b *bootstrapUserDataGetter) IsEnabled() (bool, error) {
+	secret, err := b.getBootstrapUserSecret()
+	if err == errSecretRecreated {
+		return false, nil
+	}
+	if err != nil || secret == nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (b *bootstrapUserDataGetter) getBootstrapUserSecret() (*corev1.Secret, error) {
+	secret, err := b.secrets.Get(bootstrapUserBasicAuth, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		klog.V(4).Infof("%s secret does not exist", bootstrapUserBasicAuth)
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if secret.DeletionTimestamp != nil {
+		klog.V(4).Infof("%s secret is being deleted", bootstrapUserBasicAuth)
+		return nil, nil
+	}
+	namespace, err := b.namespaces.Get(metav1.NamespaceSystem, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	if secret.CreationTimestamp.After(namespace.CreationTimestamp.Add(time.Hour)) {
+		return nil, errSecretRecreated
+	}
+	return secret, nil
 }

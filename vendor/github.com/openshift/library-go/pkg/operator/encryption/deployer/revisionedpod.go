@@ -94,7 +94,13 @@ func (d *RevisionLabelPodDeployer) DeployedEncryptionConfigSecret() (secret *cor
 		return nil, false, nil
 	}
 
-	revision, err := getAPIServerRevisionOfAllInstances(d.revisionLabel, nodes, d.podClient)
+	// do a live list so we never get confused about what revision we are on
+	apiServerPods, err := d.podClient.List(metav1.ListOptions{LabelSelector: "apiserver=true"})
+	if err != nil {
+		return nil, false, err
+	}
+
+	revision, err := getAPIServerRevisionOfAllInstances(d.revisionLabel, nodes, apiServerPods.Items)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to get converged static pod revision: %v", err)
 	}
@@ -139,14 +145,8 @@ func (d *RevisionLabelPodDeployer) AddEventHandler(handler cache.ResourceEventHa
 // Once a converged revision has been determined, it can be used to determine
 // what encryption config state has been successfully observed by the API servers.
 // It assumes that podClient is doing live lookups against the cluster state.
-func getAPIServerRevisionOfAllInstances(revisionLabel string, nodes []string, podClient corev1client.PodInterface) (string, error) {
-	// do a live list so we never get confused about what revision we are on
-	apiServerPods, err := podClient.List(metav1.ListOptions{LabelSelector: "apiserver=true"})
-	if err != nil {
-		return "", err
-	}
-
-	good, bad, progressing, err := categorizePods(apiServerPods.Items)
+func getAPIServerRevisionOfAllInstances(revisionLabel string, nodes []string, apiServerPods []corev1.Pod) (string, error) {
+	good, bad, progressing, err := categorizePods(apiServerPods)
 	if err != nil {
 		return "", err
 	}
@@ -162,6 +162,9 @@ func getAPIServerRevisionOfAllInstances(revisionLabel string, nodes []string, po
 		return "", nil // api servers have not converged onto a single revision
 	}
 	revision, _ := goodRevisions.PopAny()
+	if len(revision) == 0 {
+		revision = "0"
+	}
 
 	if failingRevisions.Has(revision) {
 		return "", fmt.Errorf("api server revision %s has both running and failed pods", revision)
@@ -178,12 +181,19 @@ func getAPIServerRevisionOfAllInstances(revisionLabel string, nodes []string, po
 		return "", nil // we are still progressing
 	}
 
+	if len(revision) == 0 {
+		return "", nil
+	}
 	revisionNum, err := strconv.Atoi(revision)
 	if err != nil {
 		return "", fmt.Errorf("api server has invalid revision: %v", err)
 	}
 
 	for _, failedRevision := range failingRevisions.List() { // iterate in defined order
+		if len(failedRevision) == 0 {
+			// these will never be bigger than revisionNum
+			continue
+		}
 		failedRevisionNum, err := strconv.Atoi(failedRevision)
 		if err != nil {
 			return "", fmt.Errorf("api server has invalid failed revision: %v", err)
