@@ -80,7 +80,9 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace diff name test", func() {
 		err = createResources(oc, cscYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		//check the csc status
-		output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "samename", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
-		o.Expect(output).Should(o.ContainSubstring("Deployment samename exists"))
+		outMesg, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "samename", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
+		o.Expect(outMesg).Should(o.ContainSubstring("Deployment samename exists"))
+		outStatus, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "samename", "-o=jsonpath={.status.currentPhase.phase.name}", "-n", marketplaceNs).Output()
+		o.Expect(outStatus).Should(o.ContainSubstring("Configuring"))
 	})
 })
