@@ -36,9 +36,6 @@ import:
 - package: k8s.io/component-base
   repo:    https://github.com/openshift/kubernetes-component-base.git
   version: origin-4.4-kubernetes-1.16.2
-- package: k8s.io/csi-api
-  repo:    https://github.com/openshift/kubernetes-cri-api.git
-  version: origin-4.4-kubernetes-1.16.2
 - package: k8s.io/csi-translation-lib
   repo:    https://github.com/openshift/kubernetes-csi-translation-lib.git
   version: origin-4.4-kubernetes-1.16.2
