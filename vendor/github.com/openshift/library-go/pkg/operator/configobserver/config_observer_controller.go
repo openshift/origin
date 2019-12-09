@@ -2,6 +2,7 @@ package configobserver
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -141,24 +142,24 @@ func (c ConfigObserver) sync() error {
 	return configError
 }
 
-func (c *ConfigObserver) Run(workers int, stopCh <-chan struct{}) {
+func (c *ConfigObserver) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting ConfigObserver")
 	defer klog.Infof("Shutting down ConfigObserver")
-	if !cache.WaitForCacheSync(stopCh, c.listers.PreRunHasSynced()...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.listers.PreRunHasSynced()...) {
 		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *ConfigObserver) runWorker() {
+func (c *ConfigObserver) runWorker(_ context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

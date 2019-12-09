@@ -2,12 +2,11 @@ package unsupportedconfigoverridescontroller
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
-
-	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -15,8 +14,10 @@ import (
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
@@ -144,23 +145,23 @@ func keysSetInUnsupportedConfigSlice(pathSoFar []string, config []interface{}) s
 	return ret
 }
 
-func (c *UnsupportedConfigOverridesController) Run(workers int, stopCh <-chan struct{}) {
+func (c *UnsupportedConfigOverridesController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting UnsupportedConfigOverridesController")
 	defer klog.Infof("Shutting down UnsupportedConfigOverridesController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *UnsupportedConfigOverridesController) runWorker() {
+func (c *UnsupportedConfigOverridesController) runWorker(ctx context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

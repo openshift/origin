@@ -1,6 +1,7 @@
 package installerstate
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -210,26 +211,26 @@ func (c *InstallerStateController) handlePendingInstallerPods(pods []*v1.Pod) []
 }
 
 // Run starts the kube-apiserver and blocks until stopCh is closed.
-func (c *InstallerStateController) Run(workers int, stopCh <-chan struct{}) {
+func (c *InstallerStateController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting InstallerStateController")
 	defer klog.Infof("Shutting down InstallerStateController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
 	// add time based trigger
-	go wait.Until(func() { c.queue.Add(installerStateControllerWorkQueueKey) }, time.Minute, stopCh)
+	go wait.UntilWithContext(ctx, func(context.Context) { c.queue.Add(installerStateControllerWorkQueueKey) }, time.Minute)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *InstallerStateController) runWorker() {
+func (c *InstallerStateController) runWorker(ctx context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

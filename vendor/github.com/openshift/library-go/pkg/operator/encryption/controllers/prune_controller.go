@@ -177,7 +177,7 @@ NextEncryptionSecret:
 			deleteErrs = append(deleteErrs, err)
 		} else {
 			deletedKeys++
-			klog.V(4).Infof("Successfully pruned secret %s/%s", secret.Namespace, secret.Name)
+			klog.V(2).Infof("Successfully pruned secret %s/%s", secret.Namespace, secret.Name)
 		}
 	}
 	if deletedKeys > 0 {

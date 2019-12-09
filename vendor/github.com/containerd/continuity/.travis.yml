@@ -30,4 +30,5 @@ script:
   - ../project/script/validate/vendor
   - make build binaries
   - if [ "$GOOS" = "linux" ]; then make vet test; fi
+  - if [ "$GOOS" = "linux" ]; then sudo PATH=$PATH GOPATH=$GOPATH make root-test; fi
   - if [ "$GOOS" != "linux" ]; then make test-compile; fi

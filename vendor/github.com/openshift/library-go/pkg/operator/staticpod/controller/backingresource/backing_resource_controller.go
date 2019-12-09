@@ -1,13 +1,10 @@
 package backingresource
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"time"
-
-	"github.com/openshift/library-go/pkg/operator/condition"
-	"github.com/openshift/library-go/pkg/operator/management"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
 	"k8s.io/klog"
 
@@ -21,10 +18,14 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	"github.com/openshift/library-go/pkg/assets"
+	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/backingresource/bindata"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const (
@@ -131,23 +132,23 @@ func (c BackingResourceController) sync() error {
 }
 
 // Run starts the kube-apiserver and blocks until stopCh is closed.
-func (c *BackingResourceController) Run(workers int, stopCh <-chan struct{}) {
+func (c *BackingResourceController) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting BackingResourceController")
 	defer klog.Infof("Shutting down BackingResourceController")
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 
-	<-stopCh
+	<-ctx.Done()
 }
 
-func (c *BackingResourceController) runWorker() {
+func (c *BackingResourceController) runWorker(ctx context.Context) {
 	for c.processNextWorkItem() {
 	}
 }

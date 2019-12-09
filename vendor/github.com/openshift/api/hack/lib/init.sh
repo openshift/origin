@@ -16,6 +16,7 @@ build/v1 \
 console/v1 \
 config/v1 \
 image/v1 \
+imageregistry/v1 \
 kubecontrolplane/v1 \
 legacyconfig/v1 \
 network/v1 \

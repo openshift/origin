@@ -4,11 +4,13 @@ import (
 	"encoding/base64"
 	"sort"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apiserverconfigv1 "k8s.io/apiserver/pkg/apis/config/v1"
 	"k8s.io/klog"
 
 	"github.com/openshift/library-go/pkg/operator/encryption/crypto"
+	"github.com/openshift/library-go/pkg/operator/encryption/secrets"
 	"github.com/openshift/library-go/pkg/operator/encryption/state"
 )
 
@@ -46,9 +48,21 @@ func FromEncryptionState(encryptionState map[schema.GroupResource]state.GroupRes
 // - each resource has a distinct configuration with zero or more key based providers and the identity provider.
 // - the last providers might be of type aesgcm. Then it carries the names of identity keys, recent first.
 //   We never use aesgcm as a real key because it is unsafe.
-func ToEncryptionState(encryptionConfig *apiserverconfigv1.EncryptionConfiguration) map[schema.GroupResource]state.GroupResourceState {
+func ToEncryptionState(encryptionConfig *apiserverconfigv1.EncryptionConfiguration, keySecrets []*corev1.Secret) (map[schema.GroupResource]state.GroupResourceState, []state.KeyState) {
+	backedKeys := make([]state.KeyState, 0, len(keySecrets))
+	for _, s := range keySecrets {
+		km, err := secrets.ToKeyState(s)
+		if err != nil {
+			klog.Warningf("skipping invalid secret: %v", err)
+			continue
+		}
+		km.Backed = true
+		backedKeys = append(backedKeys, km)
+	}
+	backedKeys = state.SortRecentFirst(backedKeys)
+
 	if encryptionConfig == nil {
-		return nil
+		return nil, backedKeys
 	}
 
 	out := map[schema.GroupResource]state.GroupResourceState{}
@@ -92,6 +106,14 @@ func ToEncryptionState(encryptionConfig *apiserverconfigv1.EncryptionConfigurati
 				continue // should never happen
 			}
 
+			// enrich KeyState with values from secrets
+			for _, k := range backedKeys {
+				if state.EqualKeyAndEqualID(&ks, &k) {
+					ks = k
+					break
+				}
+			}
+
 			if i == 0 || (ks.Mode == state.Identity && !grState.HasWriteKey()) {
 				grState.WriteKey = ks
 			}
@@ -104,7 +126,8 @@ func ToEncryptionState(encryptionConfig *apiserverconfigv1.EncryptionConfigurati
 
 		out[schema.ParseGroupResource(resourceConfig.Resources[0])] = grState
 	}
-	return out
+
+	return out, backedKeys
 }
 
 // stateToProviders maps the write and read secrets to the equivalent read and write keys.

@@ -20,7 +20,18 @@ VERSION=$(shell git describe --match 'v[0-9]*' --dirty='.m' --always)
 
 GO_LDFLAGS=-ldflags "-X `go list ./version`.Version=$(VERSION)"
 
+PKG=github.com/containerd/continuity
+
 PACKAGES=$(shell go list ./... | grep -v /vendor/)
+TEST_REQUIRES_ROOT_PACKAGES=$(filter \
+    ${PACKAGES}, \
+    $(shell \
+    for f in $$(git grep -l testutil.RequiresRoot | grep -v Makefile); do \
+        d="$$(dirname $$f)"; \
+        [ "$$d" = "." ] && echo "${PKG}" && continue; \
+        echo "${PKG}/$$d"; \
+    done | sort -u) \
+    )
 
 .PHONY: clean all fmt vet lint build test binaries setup
 .DEFAULT: default
@@ -67,6 +78,10 @@ build:
 test:
 	@echo "+ $@"
 	@go test $(PACKAGES)
+
+root-test:
+	@echo "+ $@"
+	@go test ${TEST_REQUIRES_ROOT_PACKAGES} -test.root
 
 test-compile:
 	@echo "+ $@"

@@ -1,11 +1,11 @@
 package: github.com/openshift/api
 import:
   - package: k8s.io/apimachinery
-    version: kubernetes-1.16.0
+    version: kubernetes-1.17.0-rc.2
   - package: k8s.io/api
-    version: kubernetes-1.16.0
+    version: kubernetes-1.17.0-rc.2
   - package: k8s.io/code-generator
-    version: kubernetes-1.16.0
+    version: kubernetes-1.17.0-rc.2
   # this matches the code-generator version
   - package: k8s.io/gengo
     version: 26a664648505d962332bda642b27306bc10d1082
