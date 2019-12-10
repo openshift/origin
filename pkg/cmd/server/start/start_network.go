@@ -200,6 +200,7 @@ func StartNetwork(nodeConfig configapi.NodeConfig, components *utilflags.Compone
 	glog.Infof("Starting node networking %s (%s)", nodeConfig.NodeName, version.Get().String())
 
 	proxyConfig, err := networkoptions.Build(nodeConfig)
+	proxyInitChan := make(chan bool)
 	if err != nil {
 		glog.V(4).Infof("Unable to build network options: %v", err)
 		return err
@@ -218,7 +219,7 @@ func StartNetwork(nodeConfig configapi.NodeConfig, components *utilflags.Compone
 		networkConfig.RunSDN()
 	}
 	if components.Enabled(ComponentProxy) {
-		networkConfig.RunProxy()
+		networkConfig.RunProxy(proxyInitChan)
 	}
 	if components.Enabled(ComponentDNS) && networkConfig.DNSServer != nil {
 		networkConfig.RunDNS(stopCh)
@@ -228,6 +229,10 @@ func StartNetwork(nodeConfig configapi.NodeConfig, components *utilflags.Compone
 	if networkConfig.NetworkInformers != nil {
 		networkConfig.NetworkInformers.Start(stopCh)
 	}
+	glog.Infof("Waiting for the SDN proxy startup to complete...")
+	<-proxyInitChan
+	glog.Infof("Node networking is ready for %s (%s).", nodeConfig.NodeName,
+		version.Get().String())
 
 	return nil
 }

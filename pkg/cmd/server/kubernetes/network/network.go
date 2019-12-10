@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/kubernetes/pkg/apis/core"
 	proxy "k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
@@ -56,8 +58,9 @@ func (c *NetworkConfig) RunDNS(stopCh <-chan struct{}) {
 	}()
 }
 
-// RunProxy starts the proxy
-func (c *NetworkConfig) RunProxy() {
+// RunProxy starts the proxy and closes the provided channel when the proxy
+// has initialized
+func (c *NetworkConfig) RunProxy(waitChan chan<- bool) {
 	protocol := utiliptables.ProtocolIpv4
 	bindAddr := net.ParseIP(c.ProxyConfig.BindAddress)
 	if bindAddr.To4() == nil {
@@ -181,10 +184,6 @@ func (c *NetworkConfig) RunProxy() {
 		}
 	}
 
-	iptInterface.AddReloadFunc(proxier.Sync)
-	serviceConfig.RegisterEventHandler(proxier)
-	go serviceConfig.Run(utilwait.NeverStop)
-
 	endpointsConfig := pconfig.NewEndpointsConfig(
 		c.InternalKubeInformers.Core().InternalVersion().Endpoints(),
 		c.ProxyConfig.ConfigSyncPeriod.Duration,
@@ -196,7 +195,15 @@ func (c *NetworkConfig) RunProxy() {
 		}
 		proxier = c.SDNProxy
 	}
-	endpointsConfig.RegisterEventHandler(proxier)
+
+	waitingProxy := newWaitingProxyHandler(proxier, proxier, waitChan)
+
+	iptInterface.AddReloadFunc(proxier.Sync)
+	//register serviceconfig event handler
+	serviceConfig.RegisterEventHandler(waitingProxy)
+	go serviceConfig.Run(utilwait.NeverStop)
+	//register endpointsconfig event handler
+	endpointsConfig.RegisterEventHandler(waitingProxy)
 	go endpointsConfig.Run(utilwait.NeverStop)
 
 	// Start up healthz server
@@ -258,4 +265,74 @@ func getNodeIP(client kv1core.CoreV1Interface, hostname string) (net.IP, error) 
 	}
 
 	return nodeIP, nil
+}
+
+type waitingProxyHandler struct {
+	sync.Mutex
+
+	// waitChan will be closed when both services and endpoints have
+	// been synced in the proxy
+	waitChan    chan<- bool
+	initialized bool
+
+	serviceChild    pconfig.ServiceHandler
+	serviceSynced   bool
+	endpointsChild  pconfig.EndpointsHandler
+	endpointsSynced bool
+}
+
+func newWaitingProxyHandler(serviceChild pconfig.ServiceHandler, endpointsChild pconfig.EndpointsHandler, waitChan chan<- bool) *waitingProxyHandler {
+	return &waitingProxyHandler{
+		serviceChild:   serviceChild,
+		endpointsChild: endpointsChild,
+		waitChan:       waitChan,
+	}
+}
+
+func (wph *waitingProxyHandler) checkInitialized() {
+	if !wph.initialized && wph.serviceSynced && wph.endpointsSynced {
+		glog.Info("openshift-sdn proxy services and endpoints initialized")
+		wph.initialized = true
+		close(wph.waitChan)
+	}
+}
+
+func (wph *waitingProxyHandler) OnServiceAdd(service *core.Service) {
+	wph.serviceChild.OnServiceAdd(service)
+}
+
+func (wph *waitingProxyHandler) OnServiceUpdate(oldService, service *core.Service) {
+	wph.serviceChild.OnServiceUpdate(oldService, service)
+}
+
+func (wph *waitingProxyHandler) OnServiceDelete(service *core.Service) {
+	wph.serviceChild.OnServiceDelete(service)
+}
+
+func (wph *waitingProxyHandler) OnServiceSynced() {
+	wph.serviceChild.OnServiceSynced()
+	wph.Lock()
+	defer wph.Unlock()
+	wph.serviceSynced = true
+	wph.checkInitialized()
+}
+
+func (wph *waitingProxyHandler) OnEndpointsAdd(endpoints *core.Endpoints) {
+	wph.endpointsChild.OnEndpointsAdd(endpoints)
+}
+
+func (wph *waitingProxyHandler) OnEndpointsUpdate(oldEndpoints, endpoints *core.Endpoints) {
+	wph.endpointsChild.OnEndpointsUpdate(oldEndpoints, endpoints)
+}
+
+func (wph *waitingProxyHandler) OnEndpointsDelete(endpoints *core.Endpoints) {
+	wph.endpointsChild.OnEndpointsDelete(endpoints)
+}
+
+func (wph *waitingProxyHandler) OnEndpointsSynced() {
+	wph.endpointsChild.OnEndpointsSynced()
+	wph.Lock()
+	defer wph.Unlock()
+	wph.endpointsSynced = true
+	wph.checkInitialized()
 }
