@@ -199,7 +199,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				runQueries(tests, oc, ns, execPodName, url, bearerToken)
 			})
 		})
-		g.It("should report less than two alerts in firing or pending state", func() {
+		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured", func() {
 			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 				e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 			}
@@ -210,7 +210,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			tests := map[string]bool{
 				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
-				`ALERTS{alertname!="Watchdog",alertstate="firing"} >= 1`: false,
+				`ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured",alertstate="firing"} >= 1`: false,
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
