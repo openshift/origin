@@ -178,7 +178,7 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 		}
 
 		// Expect the matching dockercfg secret to also be deleted
-		if err := wait.Poll(5*time.Second, 5*time.Minute, func() (bool, error) {
+		if err := wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
 			_, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Get(
 				dockercfgSecretName,
 				metav1.GetOptions{},
