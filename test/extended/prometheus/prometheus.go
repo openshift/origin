@@ -175,6 +175,20 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			e2e.Logf("Watchdog alert is firing")
 		})
+		g.It("should have a AlertmanagerReceiversNotConfigured alert in firing state", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string]bool{
+				// should have constantly firing a watchdog alert
+				`ALERTS{alertstate="firing",alertname="AlertmanagerReceiversNotConfigured"} == 1`: true,
+			}
+			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+
+			e2e.Logf("AlertmanagerReceiversNotConfigured alert is firing")
+		})
 		g.It("should have important platform topology metrics", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
