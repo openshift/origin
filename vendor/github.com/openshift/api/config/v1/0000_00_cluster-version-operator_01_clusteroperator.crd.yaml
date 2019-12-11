@@ -63,7 +63,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: spec holds configuration that could apply to any operator.
+          description: spec hold the intent of how this operator should behave.
           type: object
         status:
           description: status holds the information about the state of an operator.  It

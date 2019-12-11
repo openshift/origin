@@ -1,5 +1,5 @@
-hash: 3095b969974ba27081bfe48993b336f7defa680c29541c553144eb955cfe43da
-updated: 2019-11-01T10:28:41.529138+01:00
+hash: 91584f0baddd4298ec2658d88517bf49d382310423e5365bf4075dcdf116a8fb
+updated: 2019-11-25T14:26:07.949552+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -273,7 +273,7 @@ imports:
   - libcontainer/system
   - libcontainer/user
 - name: github.com/openshift/api
-  version: bac53ab1eb76f33fe58ad587f6894bd84cc6c5ef
+  version: 371e06d3a8a73b95b67bf6d0b7fb6259c67a5e62
   subpackages:
   - apps
   - apps/v1
@@ -287,6 +287,8 @@ imports:
   - image/docker10
   - image/dockerpre012
   - image/v1
+  - imageregistry
+  - imageregistry/v1
   - kubecontrolplane
   - kubecontrolplane/v1
   - legacyconfig/v1
@@ -308,6 +310,8 @@ imports:
   - quota/v1
   - route
   - route/v1
+  - samples
+  - samples/v1
   - security
   - security/v1
   - servicecertsigner
@@ -318,7 +322,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/client-go
-  version: 2823239d2298214509c3536714f684101799e81b
+  version: f6563a70e19a12b2f240eaf4e716ef75baf7003e
   subpackages:
   - apps/clientset/versioned/scheme
   - apps/clientset/versioned/typed/apps/v1

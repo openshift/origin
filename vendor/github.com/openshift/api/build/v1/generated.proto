@@ -65,6 +65,7 @@ message Build {
   optional BuildSpec spec = 2;
 
   // status is the current status of the build.
+  // +optional
   optional BuildStatus status = 3;
 }
 
@@ -79,6 +80,7 @@ message BuildConfig {
   optional BuildConfigSpec spec = 2;
 
   // status holds any relevant information about a build config
+  // +optional
   optional BuildConfigStatus status = 3;
 }
 
@@ -561,6 +563,7 @@ message CommonSpec {
   // If nil, it can be overridden by default build nodeselector values for the cluster.
   // If set to an empty map or a map with any values, default build nodeselector values
   // are ignored.
+  // +optional
   optional OptionalNodeSelector nodeSelector = 9;
 }
 
