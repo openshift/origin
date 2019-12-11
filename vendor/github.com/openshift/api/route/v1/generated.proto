@@ -37,6 +37,7 @@ message Route {
   optional RouteSpec spec = 2;
 
   // status is the current state of the route
+  // +optional
   optional RouteStatus status = 3;
 }
 
@@ -117,6 +118,7 @@ message RouteSpec {
   // If not specified a route name will typically be automatically
   // chosen.
   // Must follow DNS952 subdomain conventions.
+  // +optional
   optional string host = 1;
 
   // subdomain is a DNS subdomain that is requested within the ingress controller's
@@ -181,6 +183,7 @@ message RouteTargetReference {
 
   // weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
   // against other target reference objects. 0 suppresses requests to this backend.
+  // +optional
   optional int32 weight = 3;
 }
 

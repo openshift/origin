@@ -1,5 +1,5 @@
-hash: 0cc412c8ccbe6bfefac4bc281cef4d2836b1845b7e1fd9b17497229851380eaa
-updated: 2019-09-23T13:26:23.372446954-04:00
+hash: ba9354578265becd0b242a700db33b3f9c3c880945d9b84fcfa03cfae559bf4d
+updated: 2019-11-25T13:52:59.916723+01:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
@@ -30,6 +30,16 @@ imports:
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
   version: 94122c33edd36123c84d5368cfb2b69df93a0ec8
+- name: github.com/openshift/library-go
+  version: 7c776f7cc17a282b6e5a2ec51f808728b70fcbad
+  subpackages:
+  - alpha-build-machinery/make
+  - alpha-build-machinery/make/lib
+  - alpha-build-machinery/make/targets
+  - alpha-build-machinery/make/targets/golang
+  - alpha-build-machinery/make/targets/openshift
+  - alpha-build-machinery/make/targets/openshift/operator
+  - alpha-build-machinery/scripts
 - name: github.com/spf13/pflag
   version: 298182f68c66c05229eb03ac171abe6e309ee79a
 - name: golang.org/x/net

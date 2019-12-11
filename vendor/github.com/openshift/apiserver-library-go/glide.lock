@@ -1,5 +1,5 @@
-hash: 3955f6eb82943724ddaabe366bddffced997c8ef7cac0be3a2413a1d555d6a20
-updated: 2019-09-24T11:53:30.438767+02:00
+hash: be8d952fc08d973af7f91a2daa94432ba842a6e18601419d5f910cde948a6544
+updated: 2019-11-25T15:58:56.912162+01:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
@@ -124,7 +124,7 @@ imports:
 - name: github.com/opencontainers/go-digest
   version: a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb
 - name: github.com/openshift/api
-  version: ecbc01928def629f4422dcbcc3362efddfc513ee
+  version: 371e06d3a8a73b95b67bf6d0b7fb6259c67a5e62
   subpackages:
   - config/v1
   - image
@@ -136,7 +136,7 @@ imports:
   - security
   - security/v1
 - name: github.com/openshift/client-go
-  version: 3b6373338c9bb11fbcf329c25e81ae7e9a1ed8c6
+  version: f6563a70e19a12b2f240eaf4e716ef75baf7003e
   subpackages:
   - image/clientset/versioned
   - image/clientset/versioned/fake
@@ -158,7 +158,7 @@ imports:
   - security/informers/externalversions/security/v1
   - security/listers/security/v1
 - name: github.com/openshift/library-go
-  version: a8c1174d4ee7b750c9f4653505bc20d47e5a861e
+  version: 16b203efccad62f997df3394c2928addb49c4e5e
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/authorization/scopemetadata

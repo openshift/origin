@@ -32,6 +32,8 @@ spec:
         metadata:
           type: object
         spec:
+          description: spec is the specification of the desired behavior of the Kubernetes
+            Controller Manager
           properties:
             failedRevisionLimit:
               description: failedRevisionLimit is the number of failed static pod
@@ -86,6 +88,8 @@ spec:
               x-kubernetes-preserve-unknown-fields: true
           type: object
         status:
+          description: status is the most recently observed status of the Kubernetes
+            Controller Manager
           properties:
             conditions:
               description: conditions is a list of conditions and their status

@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/loglevel"
@@ -53,6 +54,9 @@ type staticPodOperatorControllerBuilder struct {
 	pruneCommand []string
 	// TODO de-dupe this.  I think it's actually a directory name
 	staticPodPrefix string
+
+	// TODO: remove this after all operators get rid of service monitor controller
+	enableServiceMonitorController bool
 }
 
 func NewBuilder(
@@ -84,7 +88,10 @@ func (b *staticPodOperatorControllerBuilder) WithEvents(eventRecorder events.Rec
 	return b
 }
 
+// DEPRECATED: We have moved all our operators now to have this manifest with customized content.
 func (b *staticPodOperatorControllerBuilder) WithServiceMonitor(dynamicClient dynamic.Interface) Builder {
+	klog.Warning("DEPRECATED: MonitoringResourceController is no longer needed")
+	b.enableServiceMonitorController = true
 	b.dynamicClient = dynamicClient
 	return b
 }
@@ -224,7 +231,7 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (*staticPodOperator
 		eventRecorder,
 	)
 
-	if b.dynamicClient != nil {
+	if b.dynamicClient != nil && b.enableServiceMonitorController {
 		controllers.monitoringResourceController = monitoring.NewMonitoringResourceController(
 			b.operandNamespace,
 			b.operandNamespace,
@@ -288,9 +295,12 @@ func (o *staticPodOperatorControllers) Run(stopCh <-chan struct{}) {
 	go o.pruneController.Run(1, stopCh)
 	go o.nodeController.Run(1, stopCh)
 	go o.backingResourceController.Run(1, stopCh)
-	go o.monitoringResourceController.Run(1, stopCh)
 	go o.unsupportedConfigOverridesController.Run(1, stopCh)
 	go o.logLevelController.Run(1, stopCh)
+
+	if o.monitoringResourceController != nil {
+		go o.monitoringResourceController.Run(1, stopCh)
+	}
 
 	<-stopCh
 }

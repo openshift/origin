@@ -147,7 +147,6 @@ func TestMigrationController(t *testing.T) {
 				"get:secrets:kms",
 				"list:secrets:openshift-config-managed",
 				"list:secrets:openshift-config-managed",
-				"list:secrets:openshift-config-managed",
 			},
 			expectedMigratorCalls: []string{
 				"ensure:configmaps:1",
@@ -245,7 +244,6 @@ func TestMigrationController(t *testing.T) {
 				"get:secrets:openshift-config-managed",
 				"update:secrets:openshift-config-managed",
 				"create:events:operator",
-				"list:secrets:openshift-config-managed",
 			},
 			expectedMigratorCalls: []string{
 				"ensure:configmaps:1",
@@ -343,7 +341,6 @@ func TestMigrationController(t *testing.T) {
 				"get:secrets:openshift-config-managed",
 				"update:secrets:openshift-config-managed",
 				"create:events:operator",
-				"list:secrets:openshift-config-managed",
 				"get:secrets:openshift-config-managed",
 				"get:secrets:openshift-config-managed",
 				"update:secrets:openshift-config-managed",
@@ -440,7 +437,6 @@ func TestMigrationController(t *testing.T) {
 				"get:secrets:kms",
 				"list:secrets:openshift-config-managed",
 				"list:secrets:openshift-config-managed",
-				"list:secrets:openshift-config-managed",
 			},
 			expectedMigratorCalls: []string{
 				"ensure:configmaps:1",
@@ -535,7 +531,6 @@ func TestMigrationController(t *testing.T) {
 			expectedActions: []string{
 				"list:pods:kms",
 				"get:secrets:kms",
-				"list:secrets:openshift-config-managed",
 				"list:secrets:openshift-config-managed",
 				"list:secrets:openshift-config-managed",
 			},
@@ -646,6 +641,7 @@ func TestMigrationController(t *testing.T) {
 
 			// act
 			target := NewMigrationController(
+				"kms",
 				deployer,
 				migrator,
 				fakeOperatorClient,

@@ -23,6 +23,7 @@ type Build struct {
 	Spec BuildSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// status is the current status of the build.
+	// +optional
 	Status BuildStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
@@ -83,6 +84,7 @@ type CommonSpec struct {
 	// If nil, it can be overridden by default build nodeselector values for the cluster.
 	// If set to an empty map or a map with any values, default build nodeselector values
 	// are ignored.
+	// +optional
 	NodeSelector OptionalNodeSelector `json:"nodeSelector" protobuf:"bytes,9,name=nodeSelector"`
 }
 
@@ -880,6 +882,7 @@ type BuildConfig struct {
 	// to trigger them.
 	Spec BuildConfigSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 	// status holds any relevant information about a build config
+	// +optional
 	Status BuildConfigStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
 }
 

@@ -89,11 +89,13 @@ type RoleBinding struct {
 	// This field should only be specified when supporting legacy clients and servers.
 	// See Subjects for further details.
 	// +k8s:conversion-gen=false
+	// +optional
 	UserNames OptionalNames `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
 	// GroupNames holds all the groups directly bound to the role.
 	// This field should only be specified when supporting legacy clients and servers.
 	// See Subjects for further details.
 	// +k8s:conversion-gen=false
+	// +optional
 	GroupNames OptionalNames `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
 	// Subjects hold object references to authorize with this rule.
 	// This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers.
@@ -322,7 +324,7 @@ type Action struct {
 	ResourceName string `json:"resourceName" protobuf:"bytes,6,opt,name=resourceName"`
 	// Path is the path of a non resource URL
 	Path string `json:"path" protobuf:"bytes,8,opt,name=path"`
-	// IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)
+	// IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)
 	IsNonResourceURL bool `json:"isNonResourceURL" protobuf:"varint,9,opt,name=isNonResourceURL"`
 	// Content is the actual content of the request for create and update
 	// +kubebuilder:pruning:PreserveUnknownFields
@@ -384,11 +386,13 @@ type ClusterRoleBinding struct {
 	// This field should only be specified when supporting legacy clients and servers.
 	// See Subjects for further details.
 	// +k8s:conversion-gen=false
+	// +optional
 	UserNames OptionalNames `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
 	// GroupNames holds all the groups directly bound to the role.
 	// This field should only be specified when supporting legacy clients and servers.
 	// See Subjects for further details.
 	// +k8s:conversion-gen=false
+	// +optional
 	GroupNames OptionalNames `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
 	// Subjects hold object references to authorize with this rule.
 	// This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers.

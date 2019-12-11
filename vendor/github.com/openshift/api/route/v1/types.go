@@ -33,6 +33,7 @@ type Route struct {
 	// spec is the desired state of the route
 	Spec RouteSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 	// status is the current state of the route
+	// +optional
 	Status RouteStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
 }
 
@@ -67,6 +68,7 @@ type RouteSpec struct {
 	// If not specified a route name will typically be automatically
 	// chosen.
 	// Must follow DNS952 subdomain conventions.
+	// +optional
 	Host string `json:"host" protobuf:"bytes,1,opt,name=host"`
 	// subdomain is a DNS subdomain that is requested within the ingress controller's
 	// domain (as a subdomain). If host is set this field is ignored. An ingress
@@ -121,6 +123,7 @@ type RouteTargetReference struct {
 
 	// weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
 	// against other target reference objects. 0 suppresses requests to this backend.
+	// +optional
 	Weight *int32 `json:"weight" protobuf:"varint,3,opt,name=weight"`
 }
 
