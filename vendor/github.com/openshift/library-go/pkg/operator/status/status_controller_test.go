@@ -2,6 +2,7 @@ package status
 
 import (
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -149,7 +150,24 @@ func TestDegraded(t *testing.T) {
 			},
 		},
 		{
-			name: "many present/some failing some/within threshold",
+			name: "many present/some failing/all within custom threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type b\nanother message from type b"},
+				{Type: "TypeCDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type c"},
+				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type d"},
+			},
+			expectedStatus: configv1.ConditionFalse,
+			expectedReason: "AsExpected",
+			expectedMessages: []string{
+				"TypeBDegraded: a message from type b",
+				"TypeBDegraded: another message from type b",
+				"TypeCDegraded: a message from type c",
+				"TypeDDegraded: a message from type d",
+			},
+		},
+		{
+			name: "many present/some failing/some within threshold",
 			conditions: []operatorv1.OperatorCondition{
 				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
 				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type b\nanother message from type b"},
@@ -161,6 +179,23 @@ func TestDegraded(t *testing.T) {
 			expectedMessages: []string{
 				"TypeBDegraded: a message from type b",
 				"TypeBDegraded: another message from type b",
+				"TypeDDegraded: a message from type d",
+			},
+		},
+		{
+			name: "many present/some failing/some beyond custom threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type b\nanother message from type b"},
+				{Type: "TypeCDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type c"},
+				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type d"},
+			},
+			expectedStatus: configv1.ConditionTrue,
+			expectedReason: "MultipleConditionsMatching",
+			expectedMessages: []string{
+				"TypeBDegraded: a message from type b",
+				"TypeBDegraded: another message from type b",
+				"TypeCDegraded: a message from type c",
 				"TypeDDegraded: a message from type d",
 			},
 		},
@@ -264,6 +299,17 @@ func TestDegraded(t *testing.T) {
 				eventRecorder:         events.NewInMemoryRecorder("status"),
 				versionGetter:         NewVersionGetter(),
 			}
+			controller = controller.WithDegradedInertia(MustNewInertia(
+				2*time.Minute,
+				InertiaCondition{
+					ConditionTypeMatcher: regexp.MustCompile("^TypeCDegraded$"),
+					Duration:             5 * time.Minute,
+				},
+				InertiaCondition{
+					ConditionTypeMatcher: regexp.MustCompile("^TypeDDegraded$"),
+					Duration:             time.Minute,
+				},
+			).Inertia)
 			if err := controller.sync(); err != nil {
 				t.Errorf("unexpected sync error: %v", err)
 				return

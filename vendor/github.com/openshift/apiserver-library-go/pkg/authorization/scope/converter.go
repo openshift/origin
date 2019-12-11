@@ -268,7 +268,7 @@ var escalatingScopeResources = []schema.GroupResource{
 	{Group: openshiftAuthorizationGroupName, Resource: "clusterroles"},
 	{Group: openshiftAuthorizationGroupName, Resource: "clusterrolebindings"},
 	// used in Service admission to create a service with external IP outside the allowed range
-	{Group: networkGroupName, Resource: "service"},
+	{Group: networkGroupName, Resource: "service/externalips"},
 
 	{Group: legacyGroupName, Resource: "imagestreams/secrets"},
 	{Group: legacyGroupName, Resource: "oauthauthorizetokens"},

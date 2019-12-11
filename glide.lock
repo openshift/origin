@@ -1,5 +1,5 @@
 hash: d54a27c7a0e5d1d0b98dd5eeb372934e9edcaf72b418167f72ba24162200d90c
-updated: 2019-12-09T12:36:23.000073+01:00
+updated: 2019-12-11T09:22:34.171697603+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -811,7 +811,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 377b5e2dedcb20d3c71c19236162d9e44c1ed8d4
+  version: 992bc3a41fe6c4e5bcf27dc8080f9e5c114c33fc
   subpackages:
   - annotations
   - apps
@@ -863,7 +863,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 7c5911e93780807f2082f34b259dfaf97a108222
+  version: 744a0ce1236d9074773c187f496d6281afd490cb
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -984,7 +984,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: acc37612b9f9bd6d637b870661082489eb575aa5
+  version: f3be2ac7a6e4469f2bc0ace4beb758fadd59ba5c
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -2160,7 +2160,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 5d3c5e39204f9c76b40dbb09e61706ff9679ffb7
+  version: 795bc2d7965deb9c7aa7faa29b7787ce617b048b
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
