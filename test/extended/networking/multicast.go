@@ -103,10 +103,14 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 	// We launch 3 pods total; pod[0] and pod[1] will end up on node[0], and pod[2]
 	// will end up on node[1], ensuring we test both intra- and inter-node multicast
 	var nodes [2]*kapiv1.Node
-	nodes[0], nodes[1] = findAppropriateNodes(f, DIFFERENT_NODE)
+	var err error
+	nodes[0], nodes[1], err = findAppropriateNodes(f, DIFFERENT_NODE)
+	if err != nil {
+		return err
+	}
 
 	var pod, ip, out [3]string
-	var err [3]error
+	var errs [3]error
 	var ch [3]chan struct{}
 	var failMatch [3]*regexp.Regexp
 
@@ -119,8 +123,8 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 	}
 
 	for i := range pod {
-		ip[i], err[i] = waitForTestMulticastPod(f, pod[i])
-		expectNoError(err[i])
+		ip[i], errs[i] = waitForTestMulticastPod(f, pod[i])
+		expectNoError(errs[i])
 		failMatch[i] = regexp.MustCompile(ip[i] + ".*multicast.*/100%")
 		ch[i] = make(chan struct{})
 	}
@@ -128,14 +132,14 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 	for i := range pod {
 		i := i
 		go func() {
-			out[i], err[i] = oc.Run("exec").Args(pod[i], "--", "omping", "-c", "5", "-T", "60", "-q", "-q", ip[0], ip[1], ip[2]).Output()
+			out[i], errs[i] = oc.Run("exec").Args(pod[i], "--", "omping", "-c", "5", "-T", "60", "-q", "-q", ip[0], ip[1], ip[2]).Output()
 			close(ch[i])
 		}()
 	}
 	for i := range pod {
 		<-ch[i]
-		if err[i] != nil {
-			return err[i]
+		if errs[i] != nil {
+			return errs[i]
 		}
 		for j := range pod {
 			if i != j {

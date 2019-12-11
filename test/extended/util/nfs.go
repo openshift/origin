@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 )
 
 // SetupK8SNFSServerAndVolume sets up an nfs server pod with count number of persistent volumes
@@ -46,10 +47,10 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 	})
 
 	pvs := []*kapiv1.PersistentVolume{}
-	volLabel := labels.Set{e2e.VolumeSelectorKey: oc.Namespace()}
+	volLabel := labels.Set{e2epv.VolumeSelectorKey: oc.Namespace()}
 	for i := 0; i < count; i++ {
 		e2e.Logf(fmt.Sprintf("Creating persistent volume %d", i))
-		pvConfig := e2e.PersistentVolumeConfig{
+		pvConfig := e2epv.PersistentVolumeConfig{
 			NamePrefix: "nfs-",
 			Labels:     volLabel,
 			PVSource: kapiv1.PersistentVolumeSource{
@@ -60,7 +61,7 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 				},
 			},
 		}
-		pvTemplate := e2e.MakePersistentVolume(pvConfig)
+		pvTemplate := e2epv.MakePersistentVolume(pvConfig)
 		pv, err := oc.AdminKubeClient().CoreV1().PersistentVolumes().Create(pvTemplate)
 		if err != nil {
 			e2e.Logf("error creating persistent volume %#v", err)

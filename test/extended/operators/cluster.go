@@ -82,9 +82,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 		for _, pod := range podsWithProblems {
 			delete(lastPending, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 			if _, ok := ns[pod.Namespace]; !ok {
-				e2e.DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
-					return c.CoreV1().Events(ns).List(opts)
-				}, pod.Namespace)
+				e2e.DumpAllNamespaceInfo(c, pod.Namespace)
 				ns[pod.Namespace] = struct{}{}
 			}
 			status, _ := json.MarshalIndent(pod.Status, "", "  ")
@@ -98,9 +96,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 				continue
 			}
 			if _, ok := ns[pod.Namespace]; !ok {
-				e2e.DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
-					return c.CoreV1().Events(ns).List(opts)
-				}, pod.Namespace)
+				e2e.DumpAllNamespaceInfo(c, pod.Namespace)
 				ns[pod.Namespace] = struct{}{}
 			}
 			status, _ := json.MarshalIndent(pod.Status, "", "  ")

@@ -17,8 +17,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/kubernetes/test/e2e/cloud/gcp"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/lifecycle"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
 
@@ -115,8 +115,8 @@ var _ = g.Describe("[Disruptive]", func() {
 			client := configv1client.NewForConfigOrDie(config)
 			dynamicClient := dynamic.NewForConfigOrDie(config)
 
-			upgCtx, err := getUpgradeContext(client, lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
-			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
+			upgCtx, err := getUpgradeContext(client, gcp.GetUpgradeTarget(), gcp.GetUpgradeImage())
+			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", gcp.GetUpgradeTarget(), gcp.GetUpgradeImage())
 
 			disruption.Run(
 				"Cluster upgrade",
