@@ -29,7 +29,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
-	etcdv3 "github.com/coreos/etcd/clientv3"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 // Etcd data for all persisted OpenShift objects.

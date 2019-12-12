@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"go.etcd.io/etcd/clientv3"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
