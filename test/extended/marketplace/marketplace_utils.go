@@ -3,10 +3,11 @@ package marketplace
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
-
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -62,4 +63,20 @@ func getResourceByPath(oc *exutil.CLI, resourcetype string, name string, path st
 		return msg, err
 	}
 	return msg, nil
+}
+
+func waitForSource(oc *exutil.CLI, resourcetype string, name string, timeWait int, ns string) error {
+	resourceWaitTime := time.Duration(timeWait) * time.Second
+	err := wait.Poll(5*time.Second, resourceWaitTime, func() (bool, error) {
+		output, err := oc.AsAdmin().Run("get").Args(resourcetype, name, "-o=jsonpath={.status.currentPhase.phase.message}", "-n", ns).Output()
+		if err != nil {
+			e2e.Failf("Failed to create %s", name)
+			return false, err
+		}
+		if strings.Contains(output, "has been successfully reconciled") {
+			return true, nil
+		}
+		return false, nil
+	})
+	return err
 }
