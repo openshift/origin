@@ -125,6 +125,18 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 					firstLog := false
 					for scanner.Scan() {
 						line := scanner.Text()
+						// Bug 1781302: Skew tests against 4.3 clusters fail because the build
+						// controller can start before the registry controller.
+						// In 4.3 control planes this was fixed by logging the internal registry
+						// hostname directly after the build controller starts.
+						//
+						// The build controller will not log the internal registry hostname in 4.2
+						// control planes.
+						if strings.Contains(line, "build_controller.go") && strings.Contains(line, registryHostname) {
+							foundOCMLogs = true
+							break
+						}
+
 						if strings.Contains(line, "docker_registry_service.go") && strings.Contains(line, registryHostname) {
 							firstLog = true
 							continue
