@@ -139,15 +139,21 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in hyperkube
+for bin in kube-apiserver kube-controller-manager kube-scheduler kubelet
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
 
+install -p -m 755 images/hyperkube/hyperkube %{buildroot}%{_bindir}/hyperkube
+
 %files hyperkube
 %license LICENSE
 %{_bindir}/hyperkube
+%{_bindir}/kube-apiserver
+%{_bindir}/kube-controller-manager
+%{_bindir}/kube-scheduler
+%{_bindir}/kubelet
 %defattr(-,root,root,0700)
 
 %changelog

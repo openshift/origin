@@ -67,9 +67,12 @@ image_config = {
         "tag": "latest",
         "directory": "hyperkube",
         "binaries": {
-            "hyperkube": "/usr/bin/hyperkube",
+            "kube-apiserver": "/usr/bin/kube-apiserver",
+            "kube-controller-manager": "/usr/bin/kube-controller-manager",
+            "kube-scheduler": "/usr/bin/kube-scheduler",
+            "kubelet": "/usr/bin/kubelet",
         },
-        "files": {}
+        "files": {"hyperkube" : "/usr/bin/hyperkube"}
     }
 }
 
