@@ -1,5 +1,5 @@
 hash: bd7f3626cf55d8e0d9623e29ba2b13ab601411fbc582497a8e990a246eb6f636
-updated: 2019-12-11T10:53:57.12759502+01:00
+updated: 2019-12-12T09:58:44.020907548+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -863,7 +863,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 266806a28e1c5c2de9b903cf642816b4fe028779
+  version: fd2d074a871f3e8f4588d32a33e4c5d69b9ebbce
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -2163,7 +2163,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: d2a65714f9670bf1c62808f70bdbddebd3da9824
+  version: a49679c4e3351b82c865952e04cbbd036409e828
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
