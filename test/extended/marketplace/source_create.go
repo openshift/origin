@@ -29,7 +29,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 	)
 
 	g.AfterEach(func() {
-		//clear the sub,csv resource
+		// Clear the created resource
 		allresourcelist := [][]string{
 			{"operatorsource", "opsrctest", marketplaceNs},
 			{"catalogsourceconfig", "csctest", marketplaceNs},
@@ -42,16 +42,16 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		}
 	})
 
-	//OCP-21405 create one opsrc,OCP-21419 create one csc,OCP-21479 sub to openshift-operators,OCP-21667 delete the csc
+	// OCP-21405 create one opsrc,OCP-21419 create one csc,OCP-21479 sub to openshift-operators,OCP-21667 delete the csc
 	g.It("[ocp-21405 21419 21479 21667]create and delete the basic source,sub one operator", func() {
 
-		//create one opsrc
+		// Create one opsrc
 		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctest", "NAMESPACE=marketplace_e2e", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = createResources(oc, opsrcYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		//wait for the opsrc is created finished
+		// Wait for the opsrc is created finished
 		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
 			if err != nil {
@@ -77,16 +77,16 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 			o.Expect(msg).Should(o.BeTrue())
 		}
 
-		//OCP-21627 datastore cache is in sync with the OperatorSources present
-		//get the packagelist with label opsrctest
+		// OCP-21627 datastore cache is in sync with the OperatorSources present
+		// Get the packagelist with label opsrctest
 		packageListOpsrc1, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.packages}").Output()
-		//oc get pods -l name=marketplace-operator -o name
+		// Get the podname of marketplace-operator
 		podName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("pods", "-n", marketplaceNs, "-l name=marketplace-operator", "-oname").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		//oc delete pod/marketplace-operator-758c7d869b-hmkcj
+		// Dlete pod/marketplace-operator-758c7d869b-hmkcj
 		_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args(podName, "-n", marketplaceNs).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		//wait for the marketplace recover
+		// Wait for the marketplace recover
 		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
 			if err != nil {
@@ -99,7 +99,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 			return false, nil
 		})
 
-		//get the packagelist with label opsrctest
+		// Get the packagelist with label opsrctest
 		packageListOpsrc2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("operatorsource", "opsrctest", "-o=jsonpath={.status.packages}").Output()
 		var packageEqual bool
 		if packageListOpsrc1 == packageListOpsrc2 {
@@ -109,11 +109,11 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		}
 		o.Expect(packageEqual).Should(o.BeTrue())
 
-		//OCP-21419 create one csc
+		// OCP-21419 create one csc
 		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctest", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=camel-k-marketplace-e2e-tests").OutputToFile("config.json")
 		err = createResources(oc, cscYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		//wait for the csc csctest is created
+		// Wait for the csc csctest is created
 		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "csctest", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
 			if err != nil {
@@ -137,11 +137,11 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 			o.Expect(msg).Should(o.BeTrue())
 		}
 
-		//OCP-21479 sub to openshift-operators
+		// OCP-21479 sub to openshift-operators
 		subYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subYamltem, "-p", "NAME=camel-k-marketplace-e2e-tests", fmt.Sprintf("NAMESPACE=%s", allNs), "SOURCE=csctest", "CSV=camel-k-operator.v0.2.0").OutputToFile("config.json")
 		err = createResources(oc, subYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		//wait for the sub created success
+		// Wait for the sub created success
 		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
 			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("subscription", "camel-k-marketplace-e2e-tests", "-o=jsonpath={.status.installedCSV}", "-n", allNs).Output()
 			if err != nil {
@@ -163,21 +163,21 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 			o.Expect(msg).Should(o.BeTrue())
 		}
 
-		//clear the csv resource
+		// Clear the csv resource
 		err = clearResources(oc, "csv", "camel-k-operator.v0.2.0", "openshift-operators")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		msgofcsv, err := existResources(oc, "csv", "camel-k-operator.v0.2.0", "openshift-operators")
 		o.Expect(msgofcsv).Should(o.BeFalse())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		//clear the sub resource
+		// Clear the sub resource
 		err = clearResources(oc, "subscription", "camel-k-marketplace-e2e-tests", "openshift-operators")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		msgofsub, err := existResources(oc, "subscription", "camel-k-marketplace-e2e-tests", "openshift-operators")
 		o.Expect(msgofsub).Should(o.BeFalse())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		//OCP-21667 delete the csc
+		// OCP-21667 delete the csc
 		err = clearResources(oc, "catalogsourceconfig", "csctest", "openshift-marketplace")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for _, source := range cscResourceList {
@@ -186,7 +186,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		//delete the opsrc
+		// Delete the opsrc
 		err = clearResources(oc, "operatorsource", "opsrctest", "openshift-marketplace")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for _, source := range opsrcResourceList {
