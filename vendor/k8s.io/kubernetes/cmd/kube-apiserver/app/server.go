@@ -120,8 +120,9 @@ cluster's shared state through which all other components interact.`,
 
 				// this forces a patch to be called
 				// TODO we're going to try to remove bits of the patching.
-				configPatchFn := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(openshiftConfig)
+				configPatchFn, serverPatchContext := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(openshiftConfig)
 				OpenShiftKubeAPIServerConfigPatch = configPatchFn
+				OpenShiftKubeAPIServerServerPatch = serverPatchContext.PatchServer
 
 				args, err := openshiftkubeapiserver.ConfigToFlags(openshiftConfig)
 				if err != nil {
@@ -226,6 +227,10 @@ func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan
 
 	kubeAPIServer, err := CreateKubeAPIServer(kubeAPIServerConfig, apiExtensionsServer.GenericAPIServer, admissionPostStartHook)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := PatchKubeAPIServerServer(kubeAPIServer); err != nil {
 		return nil, err
 	}
 

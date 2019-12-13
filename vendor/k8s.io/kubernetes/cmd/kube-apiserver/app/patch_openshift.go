@@ -19,3 +19,13 @@ func PatchKubeAPIServerConfig(config *genericapiserver.Config, versionedInformer
 
 	return OpenShiftKubeAPIServerConfigPatch(config, versionedInformers, pluginInitializers)
 }
+
+var OpenShiftKubeAPIServerServerPatch KubeAPIServerServerFunc = nil
+
+func PatchKubeAPIServerServer(server *master.Master) error {
+	if OpenShiftKubeAPIServerServerPatch == nil {
+		return nil
+	}
+
+	return OpenShiftKubeAPIServerServerPatch(server)
+}
