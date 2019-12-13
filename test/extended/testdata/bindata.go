@@ -93,8 +93,6 @@
 // test/extended/testdata/builds/custom-build/build.sh
 // test/extended/testdata/builds/docker-add/Dockerfile
 // test/extended/testdata/builds/incremental-auth-build.json
-// test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml
-// test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml
 // test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment
 // test/extended/testdata/builds/s2i-environment-build-app/Gemfile
 // test/extended/testdata/builds/s2i-environment-build-app/config.ru
@@ -20508,70 +20506,6 @@ func testExtendedTestdataBuildsIncrementalAuthBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/incremental-auth-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: linked-nodejs
-spec:
-  source:
-    git:
-      uri: "https://github.com/sclorg/nodejs-ex.git"
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: registry.redhat.io/rhscl/nodejs-10-rhel7:latest
-`)
-
-func testExtendedTestdataBuildsPullsecretLinkedNodejsBcYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml, nil
-}
-
-func testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsPullsecretLinkedNodejsBcYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: pullsecret-nodejs
-spec:
-  source:
-    git:
-      uri: "https://github.com/sclorg/nodejs-ex.git"
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: registry.redhat.io/rhscl/nodejs-10-rhel7:latest
-      pullSecret:
-        name: local-ps
-`)
-
-func testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml, nil
-}
-
-func testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -58203,8 +58137,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/custom-build/build.sh": testExtendedTestdataBuildsCustomBuildBuildSh,
 	"test/extended/testdata/builds/docker-add/Dockerfile": testExtendedTestdataBuildsDockerAddDockerfile,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
-	"test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml": testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml,
-	"test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml": testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml,
 	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment": testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
 	"test/extended/testdata/builds/s2i-environment-build-app/Gemfile": testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile,
 	"test/extended/testdata/builds/s2i-environment-build-app/config.ru": testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu,
@@ -58767,10 +58699,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"Dockerfile": &bintree{testExtendedTestdataBuildsDockerAddDockerfile, map[string]*bintree{}},
 					}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
-					"pullsecret": &bintree{nil, map[string]*bintree{
-						"linked-nodejs-bc.yaml": &bintree{testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml, map[string]*bintree{}},
-						"pullsecret-nodejs-bc.yaml": &bintree{testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml, map[string]*bintree{}},
-					}},
 					"s2i-environment-build-app": &bintree{nil, map[string]*bintree{
 						".s2i": &bintree{nil, map[string]*bintree{
 							"environment": &bintree{testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment, map[string]*bintree{}},
