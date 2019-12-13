@@ -1,0 +1,67 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: ups-deployment-template
+objects:
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    labels:
+      app: ups-broker
+      chart: ups-broker-0.0.1
+      heritage: Tiller
+      release: ups-broker
+    name: ups-broker
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: ups-broker
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: ups-broker
+          chart: ups-broker-0.0.1
+          heritage: Tiller
+          release: ups-broker
+      spec:
+        containers:
+        - args:
+          - -alsologtostderr
+          - --port
+          - "8080"
+          image: quay.io/kubernetes-service-catalog/user-broker:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 2
+          name: ups-broker
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 1
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 2
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+parameters:
+- name: NAMESPACE
