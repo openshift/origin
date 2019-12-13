@@ -174,6 +174,8 @@ func (r DockerImageReference) NameString() string {
 	switch {
 	case len(r.Name) == 0:
 		return ""
+	case len(r.Tag) > 0:
+		return r.Name + ":" + r.Tag
 	case len(r.ID) > 0:
 		var ref string
 		if _, err := digest.ParseDigest(r.ID); err == nil {
@@ -184,8 +186,6 @@ func (r DockerImageReference) NameString() string {
 			ref = ":" + r.ID
 		}
 		return r.Name + ref
-	case len(r.Tag) > 0:
-		return r.Name + ":" + r.Tag
 	default:
 		return r.Name
 	}

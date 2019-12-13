@@ -40,7 +40,7 @@ func ApplyStorageClass(client storageclientv1.StorageClassesGetter, recorder eve
 	existingCopy.ObjectMeta = *objectMeta
 
 	if klog.V(4) {
-		klog.Infof("StorageClass %q changes: %v", required.Name, JSONPatchNoError(existing, existingCopy))
+		klog.Infof("StorageClass %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
 	}
 
 	// TODO if provisioner, parameters, reclaimpolicy, or volumebindingmode are different, update will fail so delete and recreate

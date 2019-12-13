@@ -94,6 +94,8 @@ func (o *pollingObserver) processReactors(stopCh <-chan struct{}) {
 			lastKnownFileState := o.files[filename]
 			o.files[filename] = currentFileState
 
+			klog.Infof("Observed change: file:%s (current: %q, lastKnown: %q)", filename, currentFileState.hash, lastKnownFileState.hash)
+
 			for i := range reactors {
 				var action ActionType
 				switch {
@@ -102,16 +104,13 @@ func (o *pollingObserver) processReactors(stopCh <-chan struct{}) {
 					continue
 				case !lastKnownFileState.exists && currentFileState.exists && (len(currentFileState.hash) > 0 || currentFileState.isEmpty):
 					// if we see a new file created that has content or its empty, trigger FileCreate action
-					klog.Infof("Observed file %q has been created (hash=%q)", filename, currentFileState.hash)
 					action = FileCreated
 				case lastKnownFileState.exists && !currentFileState.exists:
-					klog.Infof("Observed file %q has been deleted", filename)
 					action = FileDeleted
 				case lastKnownFileState.hash == currentFileState.hash:
 					// skip if the hashes are the same
 					continue
 				case lastKnownFileState.hash != currentFileState.hash:
-					klog.Infof("Observed file %q has been modified (old=%q, new=%q)", filename, lastKnownFileState.hash, currentFileState.hash)
 					action = FileModified
 				}
 				if err := reactors[i](filename, action); err != nil {

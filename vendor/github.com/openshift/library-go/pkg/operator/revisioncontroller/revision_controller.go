@@ -167,7 +167,7 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 		}
 		if !equality.Semantic.DeepEqual(existingData, requiredData) {
 			if klog.V(4) {
-				klog.Infof("configmap %q changes for revision %d: %s", cm.Name, revision, resourceapply.JSONPatchNoError(existing, required))
+				klog.Infof("configmap %q changes for revision %d: %s", cm.Name, revision, resourceapply.JSONPatch(existing, required))
 			}
 			configChanges = append(configChanges, fmt.Sprintf("configmap/%s has changed", cm.Name))
 		}
@@ -194,7 +194,7 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 		}
 		if !equality.Semantic.DeepEqual(existingData, requiredData) {
 			if klog.V(4) {
-				klog.Infof("Secret %q changes for revision %d: %s", s.Name, revision, resourceapply.JSONPatchSecretNoError(existing, required))
+				klog.Infof("Secret %q changes for revision %d: %s", s.Name, revision, resourceapply.JSONPatchSecret(existing, required))
 			}
 			secretChanges = append(secretChanges, fmt.Sprintf("secret/%s has changed", s.Name))
 		}

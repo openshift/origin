@@ -138,9 +138,6 @@ import:
 - package: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
 
-- package: github.com/ghodss/yaml
-  version: v1.0.0
-
 # due to https://github.com/Masterminds/glide/issues/881 manually show where
 # to get gonum.org/v1/gonum from
 - package: gonum.org/v1/gonum

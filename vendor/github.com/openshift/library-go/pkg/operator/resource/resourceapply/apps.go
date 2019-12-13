@@ -56,7 +56,7 @@ func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Reco
 	}
 
 	if klog.V(4) {
-		klog.Infof("Deployment %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, toWrite))
+		klog.Infof("Deployment %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, toWrite))
 	}
 
 	actual, err := client.Deployments(required.Namespace).Update(toWrite)
@@ -106,7 +106,7 @@ func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, recorder events.Record
 	}
 
 	if klog.V(4) {
-		klog.Infof("DaemonSet %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, toWrite))
+		klog.Infof("DaemonSet %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, toWrite))
 	}
 	actual, err := client.DaemonSets(required.Namespace).Update(toWrite)
 	reportUpdateEvent(recorder, required, err)

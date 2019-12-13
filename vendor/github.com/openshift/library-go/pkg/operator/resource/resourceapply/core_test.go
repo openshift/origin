@@ -46,7 +46,7 @@ func TestApplyConfigMap(t *testing.T) {
 				}
 				actual := actions[1].(clienttesting.CreateAction).GetObject().(*corev1.ConfigMap)
 				if !equality.Semantic.DeepEqual(expected, actual) {
-					t.Error(JSONPatchNoError(expected, actual))
+					t.Error(JSONPatch(expected, actual))
 				}
 			},
 		},
@@ -98,7 +98,7 @@ func TestApplyConfigMap(t *testing.T) {
 				}
 				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
 				if !equality.Semantic.DeepEqual(expected, actual) {
-					t.Error(JSONPatchNoError(expected, actual))
+					t.Error(JSONPatch(expected, actual))
 				}
 			},
 		},
@@ -135,7 +135,7 @@ func TestApplyConfigMap(t *testing.T) {
 				}
 				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
 				if !equality.Semantic.DeepEqual(expected, actual) {
-					t.Error(JSONPatchNoError(expected, actual))
+					t.Error(JSONPatch(expected, actual))
 				}
 			},
 		},
@@ -181,7 +181,7 @@ func TestApplyConfigMap(t *testing.T) {
 				}
 				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
 				if !equality.Semantic.DeepEqual(expected, actual) {
-					t.Error(JSONPatchNoError(expected, actual))
+					t.Error(JSONPatch(expected, actual))
 				}
 			},
 		},

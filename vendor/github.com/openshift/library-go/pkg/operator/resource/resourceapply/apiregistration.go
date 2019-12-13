@@ -39,7 +39,7 @@ func ApplyAPIService(client apiregistrationv1client.APIServicesGetter, recorder 
 	existingCopy.Spec = required.Spec
 
 	if klog.V(4) {
-		klog.Infof("APIService %q changes: %s", existing.Name, JSONPatchNoError(existing, existingCopy))
+		klog.Infof("APIService %q changes: %s", existing.Name, JSONPatch(existing, existingCopy))
 	}
 	actual, err := client.APIServices().Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)

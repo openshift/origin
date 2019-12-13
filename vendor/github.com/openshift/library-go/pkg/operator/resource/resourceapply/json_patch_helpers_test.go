@@ -81,7 +81,7 @@ func TestJSONPatch(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if output := JSONPatchNoError(test.original, test.modified); output != test.expected {
+			if output := JSONPatch(test.original, test.modified); output != test.expected {
 				t.Errorf("returned string:\n%s\n\n does not match expected string:\n%s\n", output, test.expected)
 			}
 		})

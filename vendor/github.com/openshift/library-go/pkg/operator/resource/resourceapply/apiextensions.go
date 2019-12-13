@@ -32,7 +32,7 @@ func ApplyCustomResourceDefinition(client apiextclientv1beta1.CustomResourceDefi
 	}
 
 	if klog.V(4) {
-		klog.Infof("CustomResourceDefinition %q changes: %s", existing.Name, JSONPatchNoError(existing, existingCopy))
+		klog.Infof("CustomResourceDefinition %q changes: %s", existing.Name, JSONPatch(existing, existingCopy))
 	}
 
 	actual, err := client.CustomResourceDefinitions().Update(existingCopy)
