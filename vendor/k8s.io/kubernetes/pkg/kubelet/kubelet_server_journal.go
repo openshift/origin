@@ -241,7 +241,7 @@ var (
 )
 
 const (
-	dateFormat         = `2006-01-02T15:04:05.999999Z`
+	dateFormat         = `2006-01-02 15:04:05.999999`
 	maxParameterLength = 100
 	maxTotalLength     = 1000
 )
@@ -256,7 +256,7 @@ func validJournalDateRange(s string) (string, error) {
 	if _, err := time.Parse(dateFormat, s); err == nil {
 		return s, nil
 	}
-	return "", fmt.Errorf("date must be a relative time of the form '(+|-)[0-9]+(s|m|h|d)' or a date in 'YYYY-MM-DDTHH:MM:SSZ' form")
+	return "", fmt.Errorf("date must be a relative time of the form '(+|-)[0-9]+(s|m|h|d)' or a date in 'YYYY-MM-DD HH:MM:SS' form")
 }
 
 func safeString(s string) (string, error) {
