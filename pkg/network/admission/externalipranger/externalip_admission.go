@@ -7,11 +7,11 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/klog"
-
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	admission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -66,11 +66,13 @@ type externalIPRanger struct {
 	*admission.Handler
 	reject         []*net.IPNet
 	admit          []*net.IPNet
+	authorizer     authorizer.Authorizer
 	allowIngressIP bool
 }
 
 var _ admission.Interface = &externalIPRanger{}
 var _ admission.ValidationInterface = &externalIPRanger{}
+var _ = initializer.WantsAuthorizer(&externalIPRanger{})
 
 // ParseRejectAdmitCIDRRules calculates a blacklist and whitelist from a list of string CIDR rules (treating
 // a leading ! as a negation). Returns an error if any rule is invalid.
@@ -102,6 +104,17 @@ func NewExternalIPRanger(reject, admit []*net.IPNet, allowIngressIP bool) *exter
 		admit:          admit,
 		allowIngressIP: allowIngressIP,
 	}
+}
+
+func (r *externalIPRanger) SetAuthorizer(a authorizer.Authorizer) {
+	r.authorizer = a
+}
+
+func (r *externalIPRanger) ValidateInitialization() error {
+	if r.authorizer == nil {
+		return fmt.Errorf("missing authorizer")
+	}
+	return nil
 }
 
 // NetworkSlice is a helper for checking whether an IP is contained in a range
@@ -169,7 +182,28 @@ func (r *externalIPRanger) Validate(a admission.Attributes) error {
 		}
 	}
 	if len(errs) > 0 {
-		return apierrs.NewInvalid(a.GetKind().GroupKind(), a.GetName(), errs)
+		//if there are errors reported, resort to RBAC check to see
+		//if this is an admin user who can over-ride the check
+		allow, err := r.checkAccess(a)
+		if err != nil {
+			return err
+		}
+		if !allow {
+			return admission.NewForbidden(a, errs.ToAggregate())
+		}
 	}
 	return nil
+}
+
+func (r *externalIPRanger) checkAccess(attr admission.Attributes) (bool, error) {
+	authzAttr := authorizer.AttributesRecord{
+		User:            attr.GetUserInfo(),
+		Verb:            "create",
+		Resource:        "service",
+		Subresource:     "externalips",
+		APIGroup:        "network.openshift.io",
+		ResourceRequest: true,
+	}
+	authorized, _, err := r.authorizer.Authorize(authzAttr)
+	return authorized == authorizer.DecisionAllow, err
 }
