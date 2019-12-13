@@ -70,6 +70,14 @@ var (
 		&metav1.APIGroup{},
 		&metav1.APIResourceList{},
 	}
+
+	// a list of CRDs served by Openshift API Server, which we can't wait for
+	// otherwise bootstrap fails, so we'll always ignore them.
+	skipOpenshiftAPIServerCRDs = sets.NewString(
+		"clusterresourcequotas.quota.openshift.io",
+		"rolebindingrestrictions.authorization.openshift.io",
+		"securitycontextconstraints.security.openshift.io",
+	)
 )
 
 func init() {
@@ -271,6 +279,9 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 			for _, crd := range serverCRDs {
 				// Skip not active CRD
 				if !apiextensions.IsCRDConditionTrue(crd, apiextensions.Established) {
+					continue
+				}
+				if skipOpenshiftAPIServerCRDs.Has(fmt.Sprintf("%s.%s", crd.Spec.Names.Plural, crd.Spec.Group)) {
 					continue
 				}
 				for _, version := range crd.Spec.Versions {
