@@ -436,6 +436,11 @@
 // test/extended/testdata/sample-image-stream.json
 // test/extended/testdata/samplepipeline-withenvs.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
+// test/extended/testdata/service_catalog/ups-binding.yaml
+// test/extended/testdata/service_catalog/ups-broker.yaml
+// test/extended/testdata/service_catalog/ups-deployment.yaml
+// test/extended/testdata/service_catalog/ups-instance.yaml
+// test/extended/testdata/service_catalog/ups-service.yaml
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/templates/crunchydata-pod.json
 // test/extended/testdata/templates/guestbook.json
@@ -54867,6 +54872,232 @@ func testExtendedTestdataServiceServingCertNginxServingCertConf() (*asset, error
 	return a, nil
 }
 
+var _testExtendedTestdataService_catalogUpsBindingYaml = []byte(`---
+apiVersion: v1
+kind: Template
+metadata:
+  name: upsBinding-template
+objects:
+- apiVersion: servicecatalog.k8s.io/v1beta1
+  kind: ServiceBinding
+  metadata:
+    name: ups-binding
+    namespace: "${NAMESPACE}"
+  spec:
+    instanceRef:
+      name: ups-instance
+    secretName: my-secret
+parameters:
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataService_catalogUpsBindingYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataService_catalogUpsBindingYaml, nil
+}
+
+func testExtendedTestdataService_catalogUpsBindingYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataService_catalogUpsBindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/service_catalog/ups-binding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataService_catalogUpsBrokerYaml = []byte(`---
+apiVersion: v1
+kind: Template
+metadata:
+  name: ups-broker-template
+objects:
+- apiVersion: servicecatalog.k8s.io/v1beta1
+  kind: ClusterServiceBroker
+  metadata:
+    name: ups-broker
+  spec:
+    url: http://ups-broker.${NAMESPACE}.svc.cluster.local
+parameters:
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataService_catalogUpsBrokerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataService_catalogUpsBrokerYaml, nil
+}
+
+func testExtendedTestdataService_catalogUpsBrokerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataService_catalogUpsBrokerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/service_catalog/ups-broker.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataService_catalogUpsDeploymentYaml = []byte(`---
+apiVersion: v1
+kind: Template
+metadata:
+  name: ups-deployment-template
+objects:
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    labels:
+      app: ups-broker
+      chart: ups-broker-0.0.1
+      heritage: Tiller
+      release: ups-broker
+    name: ups-broker
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: ups-broker
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: ups-broker
+          chart: ups-broker-0.0.1
+          heritage: Tiller
+          release: ups-broker
+      spec:
+        containers:
+        - args:
+          - -alsologtostderr
+          - --port
+          - "8080"
+          image: quay.io/kubernetes-service-catalog/user-broker:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 2
+          name: ups-broker
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 1
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 2
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+parameters:
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataService_catalogUpsDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataService_catalogUpsDeploymentYaml, nil
+}
+
+func testExtendedTestdataService_catalogUpsDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataService_catalogUpsDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/service_catalog/ups-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataService_catalogUpsInstanceYaml = []byte(`---
+apiVersion: v1
+kind: Template
+metadata:
+  name: upsInstance-template
+objects:
+- apiVersion: servicecatalog.k8s.io/v1beta1
+  kind: ServiceInstance
+  metadata:
+    name: ups-instance
+    namespace: "${NAMESPACE}"
+  spec:
+    clusterServiceClassExternalName: user-provided-service
+    clusterServicePlanExternalName: default
+parameters:
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataService_catalogUpsInstanceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataService_catalogUpsInstanceYaml, nil
+}
+
+func testExtendedTestdataService_catalogUpsInstanceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataService_catalogUpsInstanceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/service_catalog/ups-instance.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataService_catalogUpsServiceYaml = []byte(`---
+apiVersion: v1
+kind: Template
+metadata:
+  name: ups-service-template
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ups-broker
+      chart: ups-broker-0.0.1
+      heritage: Tiller
+      release: ups-broker
+    name: ups-broker
+    namespace: "${NAMESPACE}"
+  spec:
+    ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: ups-broker
+    sessionAffinity: None
+    type: ClusterIP
+parameters:
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataService_catalogUpsServiceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataService_catalogUpsServiceYaml, nil
+}
+
+func testExtendedTestdataService_catalogUpsServiceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataService_catalogUpsServiceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/service_catalog/ups-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataSignerBuildconfigYaml = []byte(`kind: List
 apiVersion: v1
 items:
@@ -57731,6 +57962,11 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/sample-image-stream.json": testExtendedTestdataSampleImageStreamJson,
 	"test/extended/testdata/samplepipeline-withenvs.yaml": testExtendedTestdataSamplepipelineWithenvsYaml,
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
+	"test/extended/testdata/service_catalog/ups-binding.yaml": testExtendedTestdataService_catalogUpsBindingYaml,
+	"test/extended/testdata/service_catalog/ups-broker.yaml": testExtendedTestdataService_catalogUpsBrokerYaml,
+	"test/extended/testdata/service_catalog/ups-deployment.yaml": testExtendedTestdataService_catalogUpsDeploymentYaml,
+	"test/extended/testdata/service_catalog/ups-instance.yaml": testExtendedTestdataService_catalogUpsInstanceYaml,
+	"test/extended/testdata/service_catalog/ups-service.yaml": testExtendedTestdataService_catalogUpsServiceYaml,
 	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/templates/crunchydata-pod.json": testExtendedTestdataTemplatesCrunchydataPodJson,
 	"test/extended/testdata/templates/guestbook.json": testExtendedTestdataTemplatesGuestbookJson,
@@ -58454,6 +58690,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"samplepipeline-withenvs.yaml": &bintree{testExtendedTestdataSamplepipelineWithenvsYaml, map[string]*bintree{}},
 				"service-serving-cert": &bintree{nil, map[string]*bintree{
 					"nginx-serving-cert.conf": &bintree{testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},
+				}},
+				"service_catalog": &bintree{nil, map[string]*bintree{
+					"ups-binding.yaml": &bintree{testExtendedTestdataService_catalogUpsBindingYaml, map[string]*bintree{}},
+					"ups-broker.yaml": &bintree{testExtendedTestdataService_catalogUpsBrokerYaml, map[string]*bintree{}},
+					"ups-deployment.yaml": &bintree{testExtendedTestdataService_catalogUpsDeploymentYaml, map[string]*bintree{}},
+					"ups-instance.yaml": &bintree{testExtendedTestdataService_catalogUpsInstanceYaml, map[string]*bintree{}},
+					"ups-service.yaml": &bintree{testExtendedTestdataService_catalogUpsServiceYaml, map[string]*bintree{}},
 				}},
 				"signer-buildconfig.yaml": &bintree{testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"templates": &bintree{nil, map[string]*bintree{
