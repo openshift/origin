@@ -3,8 +3,6 @@ package openshiftkubeapiserver
 import (
 	"time"
 
-	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
-
 	"k8s.io/apiserver/pkg/admission"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	clientgoinformers "k8s.io/client-go/informers"
@@ -19,6 +17,8 @@ import (
 	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/apiserver-library-go/pkg/admission/quota/clusterresourcequota"
 	"github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/sccadmission"
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
+	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
 	quotav1informer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
@@ -38,10 +38,29 @@ type KubeAPIServerConfigFunc func(config *genericapiserver.Config, versionedInfo
 
 func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) KubeAPIServerConfigFunc {
 	return func(genericConfig *genericapiserver.Config, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) error {
-		openshiftInformers, err := newInformers(genericConfig.LoopbackClientConfig)
+		kubeAPIServerInformers, err := newInformers(genericConfig.LoopbackClientConfig)
 		if err != nil {
 			return err
 		}
+
+		// AUTHENTICATOR
+		authenticator, postStartHooks, err := NewAuthenticator(
+			kubeAPIServerConfig.ServingInfo.ServingInfo,
+			kubeAPIServerConfig.ServiceAccountPublicKeyFiles, kubeAPIServerConfig.OAuthConfig, kubeAPIServerConfig.AuthConfig,
+			genericConfig.LoopbackClientConfig,
+			kubeInformers.Core().V1().Pods().Lister(),
+			kubeInformers.Core().V1().Secrets().Lister(),
+			kubeInformers.Core().V1().ServiceAccounts().Lister(),
+			kubeAPIServerInformers.OpenshiftOAuthInformers.Oauth().V1().OAuthClients().Lister(),
+			kubeAPIServerInformers.OpenshiftUserInformers.User().V1().Groups())
+		if err != nil {
+			return err
+		}
+		genericConfig.Authentication.Authenticator = authenticator
+		for key, fn := range postStartHooks {
+			genericConfig.AddPostStartHookOrDie(key, fn)
+		}
+		// END AUTHENTICATOR
 
 		// AUTHORIZER
 		genericConfig.RequestInfoResolver = apiserverconfig.OpenshiftRequestInfoResolver()
@@ -54,7 +73,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev
 		genericConfig.LongRunningFunc = apiserverconfig.IsLongRunningRequest
 
 		// ADMISSION
-		clusterQuotaMappingController := newClusterQuotaMappingController(kubeInformers.Core().V1().Namespaces(), openshiftInformers.OpenshiftQuotaInformers.Quota().V1().ClusterResourceQuotas())
+		clusterQuotaMappingController := newClusterQuotaMappingController(kubeInformers.Core().V1().Namespaces(), kubeAPIServerInformers.OpenshiftQuotaInformers.Quota().V1().ClusterResourceQuotas())
 		genericConfig.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", func(context genericapiserver.PostStartHookContext) error {
 			go clusterQuotaMappingController.Run(5, context.StopCh)
 			return nil
@@ -62,10 +81,10 @@ func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev
 
 		*pluginInitializers = append(*pluginInitializers,
 			imagepolicy.NewInitializer(imagereferencemutators.KubeImageMutators{}, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname),
-			restrictusers.NewInitializer(openshiftInformers.getOpenshiftUserInformers()),
-			sccadmission.NewInitializer(openshiftInformers.getOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints()),
+			restrictusers.NewInitializer(kubeAPIServerInformers.getOpenshiftUserInformers()),
+			sccadmission.NewInitializer(kubeAPIServerInformers.getOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints()),
 			clusterresourcequota.NewInitializer(
-				openshiftInformers.getOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
+				kubeAPIServerInformers.getOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
 				clusterQuotaMappingController.GetClusterQuotaMapper(),
 				generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators()),
 			),
@@ -81,12 +100,15 @@ func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev
 		}
 		// END HANDLER CHAIN
 
-		genericConfig.AddPostStartHookOrDie("openshift.io-startkubeinformers", func(context genericapiserver.PostStartHookContext) error {
-			go kubeInformers.Start(context.StopCh)
-			go openshiftInformers.Start(context.StopCh)
+		genericConfig.AddPostStartHookOrDie("openshift.io-kubernetes-informers-synched", func(context genericapiserver.PostStartHookContext) error {
+			kubeInformers.WaitForCacheSync(context.StopCh)
 			return nil
 		})
-		enablement.AppendPostStartHooksOrDie(genericConfig)
+		genericConfig.AddPostStartHookOrDie("openshift.io-startkubeinformers", func(context genericapiserver.PostStartHookContext) error {
+			go kubeInformers.Start(context.StopCh)
+			go kubeAPIServerInformers.Start(context.StopCh)
+			return nil
+		})
 
 		return nil
 	}
@@ -99,6 +121,10 @@ func newInformers(loopbackClientConfig *rest.Config) (*kubeAPIServerInformers, e
 	jsonLoopbackClientConfig.ContentConfig.AcceptContentTypes = "application/json"
 	jsonLoopbackClientConfig.ContentConfig.ContentType = "application/json"
 
+	oauthClient, err := oauthclient.NewForConfig(loopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	quotaClient, err := quotaclient.NewForConfig(jsonLoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -117,6 +143,7 @@ func newInformers(loopbackClientConfig *rest.Config) (*kubeAPIServerInformers, e
 	const defaultInformerResyncPeriod = 10 * time.Minute
 
 	ret := &kubeAPIServerInformers{
+		OpenshiftOAuthInformers:    oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
 		OpenshiftQuotaInformers:    quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		OpenshiftSecurityInformers: securityv1informer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
 		OpenshiftUserInformers:     userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
@@ -131,6 +158,7 @@ func newInformers(loopbackClientConfig *rest.Config) (*kubeAPIServerInformers, e
 }
 
 type kubeAPIServerInformers struct {
+	OpenshiftOAuthInformers    oauthinformer.SharedInformerFactory
 	OpenshiftQuotaInformers    quotainformer.SharedInformerFactory
 	OpenshiftSecurityInformers securityv1informer.SharedInformerFactory
 	OpenshiftUserInformers     userinformer.SharedInformerFactory
@@ -147,6 +175,7 @@ func (i *kubeAPIServerInformers) getOpenshiftUserInformers() userinformer.Shared
 }
 
 func (i *kubeAPIServerInformers) Start(stopCh <-chan struct{}) {
+	i.OpenshiftOAuthInformers.Start(stopCh)
 	i.OpenshiftQuotaInformers.Start(stopCh)
 	i.OpenshiftSecurityInformers.Start(stopCh)
 	i.OpenshiftUserInformers.Start(stopCh)

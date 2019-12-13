@@ -1,4 +1,4 @@
-package admissionenablement
+package kubeadmission
 
 import (
 	"reflect"

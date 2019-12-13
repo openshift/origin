@@ -30510,12 +30510,10 @@ os::cmd::expect_success 'oc get sa my-sa-name'
 
 # extract token and ensure it links us back to the service account
 os::cmd::try_until_success 'oc sa get-token my-sa-name'
-# TODO re-enable once we can use tokens instead of certs
-#os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa get-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
+os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa get-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
 
 # add a new token and ensure it links us back to the service account
-# TODO re-enable once we can use tokens instead of certs
-#os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa new-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
+os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa new-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
 
 # add a new labeled token and ensure the label stuck
 os::cmd::expect_success 'oc sa new-token my-sa-name --labels="mykey=myvalue,myotherkey=myothervalue"'
@@ -31086,8 +31084,7 @@ echo "delete all: ok"
 os::test::junit::declare_suite_end
 
 # service accounts should not be allowed to request new projects
-# TODO re-enable once we can use tokens instead of certs
-#os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server \(Forbidden\): You may not request a new project via this API.'
+os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server \(Forbidden\): You may not request a new project via this API.'
 
 os::test::junit::declare_suite_start "cmd/basicresources/patch"
 # Validate patching works correctly
@@ -32227,7 +32224,7 @@ os::cmd::expect_success_and_not_text 'oc policy --help' 'Other Commands'
 os::cmd::expect_success_and_not_text 'oc -h' 'Options'
 os::cmd::expect_success_and_not_text 'oc -h' 'Global Options'
 os::cmd::expect_failure_and_text 'oc adm ca' 'Manage certificates'
-os::cmd::expect_success_and_text 'oc exec --help' '\-\- COMMAND \[args\.\.\.\]$'
+os::cmd::expect_success_and_text 'oc exec --help' '\[\-c CONTAINER\] \-\- COMMAND \[args\.\.\.\]$'
 os::cmd::expect_success_and_text 'oc rsh --help' '\[flags\] POD \[COMMAND\]$'
 
 # help for root commands with --help flag must be consistent
@@ -53120,8 +53117,7 @@ parameters:
 - name: MARKETPLACE
 - name: PACKAGES
 - name: DISPLAYNAME
-- name: PUBLISHER
-`)
+- name: PUBLISHER`)
 
 func testExtendedTestdataMarketplaceCsc02CscYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataMarketplaceCsc02CscYaml, nil
@@ -53163,8 +53159,7 @@ parameters:
 - name: MARKETPLACE
 - name: LABEL
 - name: DISPLAYNAME
-- name: PUBLISHER
-`)
+- name: PUBLISHER`)
 
 func testExtendedTestdataMarketplaceOpsrc02OpsrcYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataMarketplaceOpsrc02OpsrcYaml, nil

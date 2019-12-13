@@ -1,14 +1,16 @@
-package admissionenablement
+package configdefault
 
 import (
 	"time"
 
-	"github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/namespaceconditions"
+	"k8s.io/kubernetes/openshift-kube-apiserver/kubeadmission"
+
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout"
 )
 
 func SetAdmissionDefaults(o *options.ServerRunOptions, informers informers.SharedInformerFactory, kubeClient kubernetes.Interface) {
@@ -18,8 +20,8 @@ func SetAdmissionDefaults(o *options.ServerRunOptions, informers informers.Share
 		NamespaceClient: kubeClient.CoreV1(),
 		NamespaceLister: informers.Core().V1().Namespaces().Lister(),
 
-		SkipLevelZeroNames: SkipRunLevelZeroPlugins,
-		SkipLevelOneNames:  SkipRunLevelOnePlugins,
+		SkipLevelZeroNames: kubeadmission.SkipRunLevelZeroPlugins,
+		SkipLevelOneNames:  kubeadmission.SkipRunLevelOnePlugins,
 	}
 	o.Admission.GenericAdmission.Decorators = append(o.Admission.GenericAdmission.Decorators,
 		admission.Decorators{
