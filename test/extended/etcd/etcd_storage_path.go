@@ -275,7 +275,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"),
 		gvr("settings.k8s.io", "v1alpha1", "podpresets"),
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
-		gvr("discovery.k8s.io", "v1alpha1", "endpointslices"),
 	)
 
 	// we use a different default path prefix for kube resources
