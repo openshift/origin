@@ -117,15 +117,15 @@ func schemaValidatorPanicker() {
 }`
 
 	schema := new(spec.Schema)
-	_ = json.Unmarshal([]byte(schemaJSON), schema)
+	json.Unmarshal([]byte(schemaJSON), schema)
 
 	var input map[string]interface{}
 
 	// ok
 	var inputJSON = `{"name": "Ivan","address-1": "sesame street"}`
-	_ = json.Unmarshal([]byte(inputJSON), &input)
+	json.Unmarshal([]byte(inputJSON), &input)
 	// panics
-	_ = AgainstSchema(schema, input, strfmt.Default)
+	AgainstSchema(schema, input, strfmt.Default)
 }
 
 // Test edge cases in schemaValidator which are difficult
@@ -206,32 +206,13 @@ func TestSchemaValidator_SchemaOptions(t *testing.T) {
 	assert.NoError(t, json.Unmarshal([]byte(inputJSON), &input))
 
 	// ok
-	s := NewSchemaValidator(schema, nil, "", strfmt.Default, EnableObjectArrayTypeCheck(false))
+	s := NewSchemaValidator(schema, nil, "", strfmt.Default, DisableObjectArrayTypeCheck(true))
 	result := s.Validate(input)
 	assert.True(t, result.IsValid())
 
 	// fail
-	s = NewSchemaValidator(schema, nil, "", strfmt.Default, EnableObjectArrayTypeCheck(true))
+	s = NewSchemaValidator(schema, nil, "", strfmt.Default)
 	result = s.Validate(input)
 	assert.False(t, result.IsValid())
-}
 
-func TestSchemaValidator_TypeArray_Issue83(t *testing.T) {
-	var schemaJSON = `
-{
-	"type": "object"
-}`
-
-	schema := new(spec.Schema)
-	require.NoError(t, json.Unmarshal([]byte(schemaJSON), schema))
-
-	var input map[string]interface{}
-	var inputJSON = `{"type": "array"}`
-
-	require.NoError(t, json.Unmarshal([]byte(inputJSON), &input))
-	// default behavior: jsonschema
-	assert.NoError(t, AgainstSchema(schema, input, strfmt.Default))
-
-	// swagger behavior
-	assert.Error(t, AgainstSchema(schema, input, strfmt.Default, SwaggerSchema(true)))
 }

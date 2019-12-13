@@ -13,61 +13,55 @@ import (
 )
 
 func TestVMLoadAbsoluteOffsetOutOfBounds(t *testing.T) {
-	pkt := []byte{
-		0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff,
-		0, 1, 2, 3,
-	}
-
 	vm, done, err := testVM(t, []bpf.Instruction{
 		bpf.LoadAbsolute{
-			Off:  uint32(len(pkt)),
-			Size: 1,
+			Off:  100,
+			Size: 2,
 		},
-		// Out of bounds should return 0, return 1 to tell if execution continued
-		bpf.RetConstant{Val: 1},
+		bpf.RetA{},
 	})
 	if err != nil {
 		t.Fatalf("failed to load BPF program: %v", err)
 	}
 	defer done()
 
-	out, err := vm.Run(pkt)
+	out, err := vm.Run([]byte{
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		0, 1, 2, 3,
+	})
 	if err != nil {
 		t.Fatalf("unexpected error while running program: %v", err)
 	}
 	if want, got := 0, out; want != got {
-		t.Fatalf("unexpected result:\n- want: %d\n-  got: %d",
+		t.Fatalf("unexpected number of output bytes:\n- want: %d\n-  got: %d",
 			want, got)
 	}
 }
 
 func TestVMLoadAbsoluteOffsetPlusSizeOutOfBounds(t *testing.T) {
-	pkt := []byte{
-		0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff,
-		0,
-	}
-
 	vm, done, err := testVM(t, []bpf.Instruction{
 		bpf.LoadAbsolute{
-			Off:  uint32(len(pkt) - 1),
+			Off:  8,
 			Size: 2,
 		},
-		// Out of bounds should return 0, return 1 to tell if execution continued
-		bpf.RetConstant{Val: 1},
+		bpf.RetA{},
 	})
 	if err != nil {
 		t.Fatalf("failed to load BPF program: %v", err)
 	}
 	defer done()
 
-	out, err := vm.Run(pkt)
+	out, err := vm.Run([]byte{
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		0,
+	})
 	if err != nil {
 		t.Fatalf("unexpected error while running program: %v", err)
 	}
 	if want, got := 0, out; want != got {
-		t.Fatalf("unexpected result:\n- want: %d\n-  got: %d",
+		t.Fatalf("unexpected number of output bytes:\n- want: %d\n-  got: %d",
 			want, got)
 	}
 }
@@ -113,60 +107,54 @@ func TestVMLoadConstantOK(t *testing.T) {
 }
 
 func TestVMLoadIndirectOutOfBounds(t *testing.T) {
-	pkt := []byte{
-		0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff,
-		0,
-	}
-
 	vm, done, err := testVM(t, []bpf.Instruction{
 		bpf.LoadIndirect{
-			Off:  uint32(len(pkt)),
+			Off:  100,
 			Size: 1,
 		},
-		// Out of bounds should return 0, return 1 to tell if execution continued
-		bpf.RetConstant{Val: 1},
+		bpf.RetA{},
 	})
 	if err != nil {
 		t.Fatalf("failed to load BPF program: %v", err)
 	}
 	defer done()
 
-	out, err := vm.Run(pkt)
+	out, err := vm.Run([]byte{
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		0,
+	})
 	if err != nil {
 		t.Fatalf("unexpected error while running program: %v", err)
 	}
 	if want, got := 0, out; want != got {
-		t.Fatalf("unexpected result:\n- want: %d\n-  got: %d",
+		t.Fatalf("unexpected number of output bytes:\n- want: %d\n-  got: %d",
 			want, got)
 	}
 }
 
 func TestVMLoadMemShiftOutOfBounds(t *testing.T) {
-	pkt := []byte{
-		0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff,
-		0,
-	}
-
 	vm, done, err := testVM(t, []bpf.Instruction{
 		bpf.LoadMemShift{
-			Off: uint32(len(pkt)),
+			Off: 100,
 		},
-		// Out of bounds should return 0, return 1 to tell if execution continued
-		bpf.RetConstant{Val: 1},
+		bpf.RetA{},
 	})
 	if err != nil {
 		t.Fatalf("failed to load BPF program: %v", err)
 	}
 	defer done()
 
-	out, err := vm.Run(pkt)
+	out, err := vm.Run([]byte{
+		0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+		0,
+	})
 	if err != nil {
 		t.Fatalf("unexpected error while running program: %v", err)
 	}
 	if want, got := 0, out; want != got {
-		t.Fatalf("unexpected result:\n- want: %d\n-  got: %d",
+		t.Fatalf("unexpected number of output bytes:\n- want: %d\n-  got: %d",
 			want, got)
 	}
 }

@@ -8,10 +8,6 @@ imports:
   version: 8c41231e01b2085512d98153bcffb847ff9b4b9f
   subpackages:
   - compute/metadata
-- name: github.com/agnivade/levenshtein
-  version: 834b435c3df04fba060c8d74a40d849ab2c4a090
-- name: github.com/andreyvit/diff
-  version: c7f18ee00883bfd3b00e0a2bf7607827e0148ad4
 - name: github.com/apparentlymart/go-cidr
   version: c0fb5fbe0acb592411e2db59add389a43260ad44
   subpackages:
@@ -321,14 +317,14 @@ imports:
   - sockets
   - tlsconfig
 - name: github.com/docker/go-units
-  version: 519db1ee28dcc9fd2474ae59fca29a810482bfb1
+  version: 47565b4f722fb6ceae66b95f853feed578a4a51c
 - name: github.com/docker/libnetwork
   version: a9cd636e37898226332c439363e2ed0ea185ae92
   subpackages:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -368,23 +364,21 @@ imports:
 - name: github.com/go-openapi/jsonreference
   version: 2903bfd4bfbaf188694f1edf731f2725a8fa344f
 - name: github.com/go-openapi/loads
-  version: bda4742c39071f7804171d847fb6e9bca84f9f57
+  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
 - name: github.com/go-openapi/runtime
   version: 109737172424d8a656fd1199e28c9f5cc89b0cca
 - name: github.com/go-openapi/spec
-  version: 2223ab324566e4ace63ab69b9c8fff1b81a40eeb
+  version: bdfd7e07daecc404d77868a88b2364d0aed0ee5a
 - name: github.com/go-openapi/strfmt
-  version: 6faa644e1cdafc07f7b38eb06c1af5f92128f289
+  version: 29177d4b5db488583bb97ebc05d3842ebeda91a8
 - name: github.com/go-openapi/swag
   version: 7e8dd5ceab83c86d17bc967d09e195414fe2b47e
 - name: github.com/go-openapi/validate
-  version: 08232b6614a50c4f62d1efa77e966421d327d3d3
+  version: 6405b9095e4c96aabb45856da08a9323d50d9336
 - name: github.com/go-ozzo/ozzo-validation
   version: 106681dbb37bfa3e7683c4c8129cb7f5925ea3e9
   subpackages:
   - is
-- name: github.com/go-stack/stack
-  version: 2fee6af1a9795aafbe0253a0cfbdf668e1fb8a9a
 - name: github.com/godbus/dbus
   version: a389bdde4dd695d414e47b755e95e72b7826432c
 - name: github.com/gogo/protobuf
@@ -1107,7 +1101,7 @@ imports:
 - name: github.com/stretchr/objx
   version: ea4fe68685ee0d3cee7032121851b57e7494e8ea
 - name: github.com/stretchr/testify
-  version: 221dbe5ed46703ee255b1da0dec05086f5035f62
+  version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
   subpackages:
   - assert
   - mock
@@ -1126,6 +1120,8 @@ imports:
   - wsproxy
 - name: github.com/ugorji/go
   version: bdcc60b419d136a85cdf2e7cbcac34b3f1cd6e57
+  subpackages:
+  - codec
 - name: github.com/vishvananda/netlink
   version: b2de5d10e38ecce8607e6b438b6d174f389a004e
   subpackages:
@@ -1203,7 +1199,7 @@ imports:
   - internal/exit
   - zapcore
 - name: golang.org/x/crypto
-  version: 57b3e21c3d5606066a87e63cfe07ec6b9f0db000
+  version: e84da0312774c21d64ee2317962ef669b27ffb41
   subpackages:
   - bcrypt
   - blowfish
@@ -1224,7 +1220,7 @@ imports:
   - ssh
   - ssh/terminal
 - name: golang.org/x/net
-  version: ba9fcec4b297b415637633c5a6e8fa592e4a16c3
+  version: cdfb69ac37fc6fa907650654115ebebb3aae2087
   subpackages:
   - bpf
   - context
@@ -1255,7 +1251,6 @@ imports:
 - name: golang.org/x/sys
   version: 97732733099d6a942a73b889770774366de963ed
   subpackages:
-  - cpu
   - unix
   - windows
   - windows/registry
@@ -1361,7 +1356,6 @@ imports:
 - name: google.golang.org/genproto
   version: 54afdca5d873f7b529e2ce3def1a99df16feda90
   subpackages:
-  - googleapis/api/annotations
   - googleapis/rpc/status
 - name: google.golang.org/grpc
   version: 6eaf6f47437a6b4e2153a190160ef39a92c7eceb

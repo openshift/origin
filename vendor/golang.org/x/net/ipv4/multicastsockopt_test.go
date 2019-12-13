@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"testing"
 
+	"golang.org/x/net/internal/nettest"
 	"golang.org/x/net/ipv4"
-	"golang.org/x/net/nettest"
 )
 
 var packetConnMulticastSocketOptionTests = []struct {
@@ -26,18 +26,18 @@ var packetConnMulticastSocketOptionTests = []struct {
 
 func TestPacketConnMulticastSocketOptions(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9":
+	case "js", "nacl", "plan9":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
-	ifi, err := nettest.RoutedInterface("ip4", net.FlagUp|net.FlagMulticast|net.FlagLoopback)
-	if err != nil {
+	ifi := nettest.RoutedInterface("ip4", net.FlagUp|net.FlagMulticast|net.FlagLoopback)
+	if ifi == nil {
 		t.Skipf("not available on %s", runtime.GOOS)
 	}
 
-	ok := nettest.SupportsRawSocket()
+	m, ok := nettest.SupportsRawIPSocket()
 	for _, tt := range packetConnMulticastSocketOptionTests {
 		if tt.net == "ip4" && !ok {
-			t.Logf("not supported on %s/%s", runtime.GOOS, runtime.GOARCH)
+			t.Log(m)
 			continue
 		}
 		c, err := net.ListenPacket(tt.net+tt.proto, tt.addr)
@@ -66,14 +66,14 @@ var rawConnMulticastSocketOptionTests = []struct {
 
 func TestRawConnMulticastSocketOptions(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9":
+	case "js", "nacl", "plan9":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
-	if !nettest.SupportsRawSocket() {
-		t.Skipf("not supported on %s/%s", runtime.GOOS, runtime.GOARCH)
+	if m, ok := nettest.SupportsRawIPSocket(); !ok {
+		t.Skip(m)
 	}
-	ifi, err := nettest.RoutedInterface("ip4", net.FlagUp|net.FlagMulticast|net.FlagLoopback)
-	if err != nil {
+	ifi := nettest.RoutedInterface("ip4", net.FlagUp|net.FlagMulticast|net.FlagLoopback)
+	if ifi == nil {
 		t.Skipf("not available on %s", runtime.GOOS)
 	}
 
@@ -111,8 +111,6 @@ type testIPv4MulticastConn interface {
 }
 
 func testMulticastSocketOptions(t *testing.T, c testIPv4MulticastConn, ifi *net.Interface, grp net.Addr) {
-	t.Helper()
-
 	const ttl = 255
 	if err := c.SetMulticastTTL(ttl); err != nil {
 		t.Error(err)
@@ -151,8 +149,6 @@ func testMulticastSocketOptions(t *testing.T, c testIPv4MulticastConn, ifi *net.
 }
 
 func testSourceSpecificMulticastSocketOptions(t *testing.T, c testIPv4MulticastConn, ifi *net.Interface, grp, src net.Addr) {
-	t.Helper()
-
 	// MCAST_JOIN_GROUP -> MCAST_BLOCK_SOURCE -> MCAST_UNBLOCK_SOURCE -> MCAST_LEAVE_GROUP
 	if err := c.JoinGroup(ifi, grp); err != nil {
 		t.Error(err)

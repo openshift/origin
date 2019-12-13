@@ -140,7 +140,7 @@ func ExampleNewServerConn() {
 	}
 }
 
-func ExampleClientConfig_HostKeyCallback() {
+func ExampleHostKeyCheck() {
 	// Every client must provide a host key check.  Here is a
 	// simple-minded parse of OpenSSH's known_hosts file
 	host := "hostname"

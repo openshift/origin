@@ -25,8 +25,8 @@ import (
 
 func TestNumberValidator_EdgeCases(t *testing.T) {
 	// Apply
-	var min = float64(math.MinInt32 - 1)
-	var max = float64(math.MaxInt32 + 1)
+	var min float64 = float64(math.MinInt32 - 1)
+	var max float64 = float64(math.MaxInt32 + 1)
 
 	v := numberValidator{
 		Path: "path",
@@ -58,7 +58,9 @@ func TestNumberValidator_EdgeCases(t *testing.T) {
 	// Now for different scenarios on Minimum, Maximum
 	// - The Maximum value does not respect the Type|Format specification
 	// - Value is checked as float64 with Maximum as float64 and fails
-	res := v.Validate(int64(math.MaxInt32 + 2))
+	res := new(Result)
+
+	res = v.Validate(int64(math.MaxInt32 + 2))
 	assert.True(t, res.HasErrors())
 	// - The Minimum value does not respect the Type|Format specification
 	// - Value is checked as float64 with Maximum as float64 and fails
@@ -168,7 +170,6 @@ func testSliceApply(t *testing.T, v *basicSliceValidator, sources []interface{})
 	}
 }
 
-/* unused
 type anything struct {
 	anyProperty int
 }
@@ -191,6 +192,7 @@ func TestBasicSliceValidator_HasDuplicates(t *testing.T) {
 		{anyProperty: 3},
 	}
 	assert.False(t, s.hasDuplicates(reflect.ValueOf(vi), len(vi)))
+	// how UniqueItems() is superior? Look:   err := uniqueItems("path","body", vi)
 	assert.False(t, s.hasDuplicates(reflect.ValueOf(vs), len(vs)))
 	assert.False(t, s.hasDuplicates(reflect.ValueOf(vt), len(vt)))
 
@@ -205,4 +207,3 @@ func TestBasicSliceValidator_HasDuplicates(t *testing.T) {
 	assert.True(t, s.hasDuplicates(reflect.ValueOf(ds), len(ds)))
 	assert.True(t, s.hasDuplicates(reflect.ValueOf(dt), len(dt)))
 }
-*/

@@ -21,8 +21,30 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/net"
-	"k8s.io/utils/pointer"
 )
+
+// ErrRetriable is a wrapper for an error that a migrator may use to indicate the
+// specific error can be retried.
+type ErrRetriable struct {
+	error
+}
+
+func (ErrRetriable) Temporary() bool { return true }
+
+// ErrNotRetriable is a wrapper for an error that a migrator may use to indicate the
+// specific error cannot be retried.
+type ErrNotRetriable struct {
+	error
+}
+
+func (ErrNotRetriable) Temporary() bool { return false }
+
+// TemporaryError is a wrapper interface that is used to determine if an error can be retried.
+type TemporaryError interface {
+	error
+	// Temporary should return true if this is a temporary error
+	Temporary() bool
+}
 
 // isConnectionRefusedError checks if the error string include "connection refused"
 // TODO: find a "go-way" to detect this error, probably using *os.SyscallError
@@ -30,18 +52,42 @@ func isConnectionRefusedError(err error) bool {
 	return strings.Contains(err.Error(), "connection refused")
 }
 
-// canRetry returns false if the provided error indicates a retry is
-// impossible. It returns true if the error is possibly temporary. It returns
-// nil for all other error where it is unclear.
-func canRetry(err error) *bool {
+// interpret adds retry information to the provided error. And it might change
+// the error to nil.
+func interpret(err error) error {
 	switch {
 	case err == nil:
 		return nil
-	case errors.IsNotFound(err), errors.IsMethodNotSupported(err):
-		return pointer.BoolPtr(false)
-	case errors.IsConflict(err), errors.IsServerTimeout(err), errors.IsTooManyRequests(err), net.IsProbableEOF(err), net.IsConnectionReset(err), net.IsNoRoutesError(err), isConnectionRefusedError(err):
-		return pointer.BoolPtr(true)
-	default:
+	case errors.IsNotFound(err):
+		// if the object is deleted, there is no need to migrate
 		return nil
+	case errors.IsMethodNotSupported(err):
+		return ErrNotRetriable{err}
+	case errors.IsConflict(err):
+		return ErrRetriable{err}
+	case errors.IsServerTimeout(err):
+		return ErrRetriable{err}
+	case errors.IsTooManyRequests(err):
+		return ErrRetriable{err}
+	case net.IsProbableEOF(err):
+		return ErrRetriable{err}
+	case net.IsConnectionReset(err):
+		return ErrRetriable{err}
+	case net.IsNoRoutesError(err):
+		return ErrRetriable{err}
+	case isConnectionRefusedError(err):
+		return ErrRetriable{err}
+	default:
+		return err
 	}
+}
+
+// canRetry returns false if the provided error indicates a retry is
+// impossible. Otherwise it returns true.
+func canRetry(err error) bool {
+	err = interpret(err)
+	if temp, ok := err.(TemporaryError); ok && !temp.Temporary() {
+		return false
+	}
+	return true
 }

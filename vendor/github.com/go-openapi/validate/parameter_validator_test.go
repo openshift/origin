@@ -141,7 +141,7 @@ func enumFail(param *spec.Parameter, data interface{}) *errors.Validation {
 }
 
 func TestStringParameterValidation(t *testing.T) {
-	nameParam := spec.QueryParam("name").AsRequired().WithMinLength(3).WithMaxLength(5).WithPattern(`^[a-z]+$`).Typed(stringType, "")
+	nameParam := spec.QueryParam("name").AsRequired().WithMinLength(3).WithMaxLength(5).WithPattern(`^[a-z]+$`).Typed("string", "")
 	nameParam.WithEnum("aaa", "bbb", "ccc")
 	validator := NewParamValidator(nameParam, strfmt.Default)
 
@@ -190,7 +190,7 @@ func duplicatesError(param *spec.Parameter) *errors.Validation {
 }
 
 func TestArrayParameterValidation(t *testing.T) {
-	tagsParam := spec.QueryParam("tags").CollectionOf(stringItems(), "").WithMinItems(1).WithMaxItems(5).UniqueValues()
+	tagsParam := spec.QueryParam("tags").CollectionOf(stringItems, "").WithMinItems(1).WithMaxItems(5).UniqueValues()
 	tagsParam.WithEnum([]string{"a", "a", "a"}, []string{"b", "b", "b"}, []string{"c", "c", "c"})
 	validator := NewParamValidator(tagsParam, strfmt.Default)
 
@@ -213,7 +213,7 @@ func TestArrayParameterValidation(t *testing.T) {
 	assert.EqualError(t, enumFail(tagsParam, []string{"a", "b", "c"}), err.Errors[0].Error())
 
 	// Items
-	strItems := spec.NewItems().WithMinLength(3).WithMaxLength(5).WithPattern(`^[a-z]+$`).Typed(stringType, "")
+	strItems := spec.NewItems().WithMinLength(3).WithMaxLength(5).WithPattern(`^[a-z]+$`).Typed("string", "")
 	tagsParam = spec.QueryParam("tags").CollectionOf(strItems, "").WithMinItems(1).WithMaxItems(5).UniqueValues()
 	validator = NewParamValidator(tagsParam, strfmt.Default)
 	err = validator.Validate([]string{"aa", "bbb", "ccc"})

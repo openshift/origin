@@ -28,30 +28,39 @@ func TestHelpers_addPointerError(t *testing.T) {
 	assert.Contains(t, msg, "could not resolve reference in path to $ref my ref: my error")
 }
 
-func integerFactory(base int) []interface{} {
-	return []interface{}{
-		base,
-		int8(base),
-		int16(base),
-		int32(base),
-		int64(base),
-		uint(base),
-		uint8(base),
-		uint16(base),
-		uint32(base),
-		uint64(base),
-		float32(base),
-		float64(base),
-	}
-}
-
 // Test cases in private method asInt64()
+// including expected panic() cases
 func TestHelpers_asInt64(t *testing.T) {
-	for _, v := range integerFactory(3) {
-		assert.Equal(t, int64(3), valueHelp.asInt64(v))
-	}
+	var r int64
+	r = valueHelp.asInt64(int(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(uint(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(int8(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(uint8(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(int16(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(uint16(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(int32(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(uint32(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(int64(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(uint64(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(float32(3))
+	assert.Equal(t, int64(3), r)
+	r = valueHelp.asInt64(float64(3))
+	assert.Equal(t, int64(3), r)
 
 	// Non numeric
+	//assert.PanicsWithValue(t, "Non numeric value in asInt64()", func() {
+	//	valueHelp.asInt64("123")
+	//})
 	if assert.NotPanics(t, func() {
 		valueHelp.asInt64("123")
 	}) {
@@ -60,12 +69,38 @@ func TestHelpers_asInt64(t *testing.T) {
 }
 
 // Test cases in private method asUint64()
+// including expected panic() cases
 func TestHelpers_asUint64(t *testing.T) {
-	for _, v := range integerFactory(3) {
-		assert.Equal(t, uint64(3), valueHelp.asUint64(v))
-	}
+	var r uint64
+	r = valueHelp.asUint64(int(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(uint(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(int8(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(uint8(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(int16(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(uint16(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(int32(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(uint32(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(int64(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(uint64(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(float32(3))
+	assert.Equal(t, uint64(3), r)
+	r = valueHelp.asUint64(float64(3))
+	assert.Equal(t, uint64(3), r)
 
 	// Non numeric
+	//assert.PanicsWithValue(t, "Non numeric value in asUint64()", func() {
+	//	valueHelp.asUint64("123")
+	//})
 	if assert.NotPanics(t, func() {
 		valueHelp.asUint64("123")
 	}) {
@@ -74,15 +109,58 @@ func TestHelpers_asUint64(t *testing.T) {
 }
 
 // Test cases in private method asFloat64()
+// including expected panic() cases
 func TestHelpers_asFloat64(t *testing.T) {
-	for _, v := range integerFactory(3) {
-		assert.Equal(t, float64(3), valueHelp.asFloat64(v))
-	}
+	var r float64
+	r = valueHelp.asFloat64(int(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(uint(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(int8(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(uint8(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(int16(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(uint16(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(int32(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(uint32(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(int64(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(uint64(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(float32(3))
+	assert.Equal(t, float64(3), r)
+	r = valueHelp.asFloat64(float64(3))
+	assert.Equal(t, float64(3), r)
 
 	// Non numeric
+	//assert.PanicsWithValue(t, "Non numeric value in asFloat64()", func() {
+	//	valueHelp.asFloat64("123")
+	//})
 	if assert.NotPanics(t, func() {
 		valueHelp.asFloat64("123")
 	}) {
 		assert.Equal(t, valueHelp.asFloat64("123"), (float64)(0))
 	}
 }
+
+/* Deprecated helper method:
+func TestHelpers_ConvertToFloatEdgeCases(t *testing.T) {
+	v := numberValidator{}
+	// convert
+	assert.Equal(t, float64(12.5), v.convertToFloat(float32(12.5)))
+	assert.Equal(t, float64(12.5), v.convertToFloat(float64(12.5)))
+	assert.Equal(t, float64(12), v.convertToFloat(int(12)))
+	assert.Equal(t, float64(12), v.convertToFloat(int32(12)))
+	assert.Equal(t, float64(12), v.convertToFloat(int64(12)))
+
+	// does not convert
+	assert.Equal(t, float64(0), v.convertToFloat("12"))
+	// overflow : silent loss of info - ok (9.223372036854776e+18)
+	assert.NotEqual(t, float64(0), v.convertToFloat(int64(math.MaxInt64)))
+}
+*/

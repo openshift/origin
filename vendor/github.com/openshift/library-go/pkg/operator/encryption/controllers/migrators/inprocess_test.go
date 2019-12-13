@@ -100,7 +100,7 @@ func TestInProcessMigrator(t *testing.T) {
 			err := wait.PollImmediate(100*time.Millisecond, wait.ForeverTestTimeout, func() (bool, error) {
 				allFinished := true
 				for _, gr := range grs {
-					finished, result, _, err := m.EnsureMigration(gr, "1")
+					finished, result, err := m.EnsureMigration(gr, "1")
 					if err != nil {
 						return false, err
 					}

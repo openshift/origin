@@ -115,67 +115,83 @@ func Test_GoSwaggerTestCases(t *testing.T) {
 		"fixtures/go-swagger/specs/resolution.json":                      true,
 	}
 
-	testGoSwaggerSpecs(t, filepath.Join(".", "fixtures", "go-swagger"), expectedFailures, expectedLoadFailures, true)
+	if testGoSwaggerSpecs(t, "./fixtures/go-swagger", expectedFailures, expectedLoadFailures, true) != 0 {
+		t.Fail()
+	}
 }
 
-func wantSwaggerTest(info os.FileInfo) bool {
-	f := info.Name()
-	return !info.IsDir() && (strings.HasSuffix(f, ".yaml") || strings.HasSuffix(f, ".yml") || strings.HasSuffix(f, ".json"))
-}
-
-// A non regression test re "swagger validate" expectations.
+// A non regression test re "swagger validate" expectations
 // Just validates all fixtures in ./fixtures/go-swagger (excluded codegen cases)
-func testGoSwaggerSpecs(t *testing.T, path string, expectToFail, expectToFailOnLoad map[string]bool, haltOnErrors bool) {
+func testGoSwaggerSpecs(t *testing.T, path string, expectToFail, expectToFailOnLoad map[string]bool, haltOnErrors bool) (errs int) {
+	// countSpec := 0
 	err := filepath.Walk(path,
 		func(path string, info os.FileInfo, err error) error {
 			t.Run(path, func(t *testing.T) {
 				t.Parallel()
+				shouldNotLoad := false
+				shouldFail := false
+				if _, ok := expectToFailOnLoad[path]; ok {
+					shouldNotLoad = expectToFailOnLoad[path]
+				}
+				if _, ok := expectToFail[path]; ok {
+					shouldFail = expectToFail[path]
+				}
+				if !info.IsDir() && (strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") || strings.HasSuffix(info.Name(), ".json")) {
+					if DebugTest {
+						t.Logf("Testing validation status for spec: %s", path)
+					}
+					doc, err := loads.Spec(path)
+					if shouldNotLoad {
+						if !assert.Errorf(t, err, "Expected this spec not to load: %s", path) {
+							errs++
+						}
+					} else {
+						if !assert.NoErrorf(t, err, "Expected this spec to load without error: %s", path) {
+							errs++
+						}
+					}
+					if errs > 0 {
+						if haltOnErrors {
+							assert.FailNow(t, "Test Halted: stop on error mode")
+							return
+						}
+					}
+					if shouldNotLoad {
+						return
+					}
 
-				npath := filepath.ToSlash(path)
-				shouldNotLoad := expectToFailOnLoad[npath]
-				shouldFail := expectToFail[npath]
-				if !wantSwaggerTest(info) {
-					return
-				}
-				if DebugTest {
-					t.Logf("Testing validation status for spec: %s", path)
-				}
+					// Validate the spec document
+					validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+					validator.SetContinueOnErrors(true)
+					res, _ := validator.Validate(doc)
+					if shouldFail {
+						if !assert.Falsef(t, res.IsValid(), "Expected this spec to be invalid: %s", path) {
+							errs++
+						}
+					} else {
+						if !assert.Truef(t, res.IsValid(), "Expected this spec to be valid: %s", path) {
+							t.Logf("Errors reported by validation on %s", path)
+							for _, e := range res.Errors {
+								t.Log(e)
+							}
+							errs++
+						}
 
-				doc, err := loads.Spec(path)
-				if shouldNotLoad {
-					assert.Errorf(t, err, "expected this spec not to load: %s", path)
-					return
+					}
 				}
-				assert.NoErrorf(t, err, "expected this spec to load without error: %s", path)
-
-				if haltOnErrors && t.Failed() {
-					assert.FailNow(t, "test Halted: stop on error mode")
-					return
-				}
-
-				// Validate the spec document
-				validator := NewSpecValidator(doc.Schema(), strfmt.Default)
-				validator.SetContinueOnErrors(true)
-				res, _ := validator.Validate(doc)
-				if shouldFail {
-					assert.Falsef(t, res.IsValid(), "expected this spec to be invalid: %s", path)
-				} else {
-					assert.Truef(t, res.IsValid(), "expected this spec to be valid: %s", path)
-				}
-				t.Logf("Errors reported by validation on %s", path)
-				for _, e := range res.Errors {
-					t.Log(e)
-				}
-
-				if haltOnErrors && t.Failed() {
+				if haltOnErrors && errs > 0 {
 					assert.FailNow(t, "Test halted: stop on error mode")
 					return
 				}
 			})
 			return nil
 		})
-	assert.NoErrorf(t, err, "walk: %v", err)
+	if err != nil {
+		t.Logf("%v", err)
+		errs++
+	}
 	if t.Failed() {
 		log.Printf("A change in expected validation status has been detected")
 	}
+	return
 }

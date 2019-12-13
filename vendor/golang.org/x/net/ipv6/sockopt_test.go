@@ -11,16 +11,18 @@ import (
 	"testing"
 
 	"golang.org/x/net/internal/iana"
+	"golang.org/x/net/internal/nettest"
 	"golang.org/x/net/ipv6"
-	"golang.org/x/net/nettest"
 )
+
+var supportsIPv6 bool = nettest.SupportsIPv6()
 
 func TestConnInitiatorPathMTU(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
-	if !nettest.SupportsIPv6() {
+	if !supportsIPv6 {
 		t.Skip("ipv6 is not supported")
 	}
 
@@ -55,10 +57,10 @@ func TestConnInitiatorPathMTU(t *testing.T) {
 
 func TestConnResponderPathMTU(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
-	if !nettest.SupportsIPv6() {
+	if !supportsIPv6 {
 		t.Skip("ipv6 is not supported")
 	}
 
@@ -93,14 +95,14 @@ func TestConnResponderPathMTU(t *testing.T) {
 
 func TestPacketConnChecksum(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
-	if !nettest.SupportsIPv6() {
+	if !supportsIPv6 {
 		t.Skip("ipv6 is not supported")
 	}
-	if !nettest.SupportsRawSocket() {
-		t.Skipf("not supported on %s/%s", runtime.GOOS, runtime.GOARCH)
+	if m, ok := nettest.SupportsRawIPSocket(); !ok {
+		t.Skip(m)
 	}
 
 	c, err := net.ListenPacket(fmt.Sprintf("ip6:%d", iana.ProtocolOSPFIGP), "::") // OSPF for IPv6

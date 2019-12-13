@@ -16,12 +16,13 @@ package strfmt
 
 import (
 	"database/sql/driver"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/globalsign/mgo/bson"
+	"github.com/mailru/easyjson/jlexer"
+	"github.com/mailru/easyjson/jwriter"
 )
 
 func init() {
@@ -95,7 +96,14 @@ func (d Date) Value() (driver.Value, error) {
 
 // MarshalJSON returns the Date as JSON
 func (d Date) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Time(d).Format(RFC3339FullDate))
+	var w jwriter.Writer
+	d.MarshalEasyJSON(&w)
+	return w.BuildBytes()
+}
+
+// MarshalEasyJSON writes the Date to a easyjson.Writer
+func (d Date) MarshalEasyJSON(w *jwriter.Writer) {
+	w.String(time.Time(d).Format(RFC3339FullDate))
 }
 
 // UnmarshalJSON sets the Date from JSON
@@ -103,38 +111,42 @@ func (d *Date) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
 	}
-	var strdate string
-	if err := json.Unmarshal(data, &strdate); err != nil {
-		return err
-	}
-	tt, err := time.Parse(RFC3339FullDate, strdate)
-	if err != nil {
-		return err
-	}
-	*d = Date(tt)
-	return nil
+	l := jlexer.Lexer{Data: data}
+	d.UnmarshalEasyJSON(&l)
+	return l.Error()
 }
 
-func (d Date) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(bson.M{"data": d.String()})
+// UnmarshalEasyJSON sets the Date from a easyjson.Lexer
+func (d *Date) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	if data := in.String(); in.Ok() {
+		tt, err := time.Parse(RFC3339FullDate, data)
+		if err != nil {
+			in.AddError(err)
+			return
+		}
+		*d = Date(tt)
+	}
 }
 
-func (d *Date) UnmarshalBSON(data []byte) error {
+// GetBSON returns the Date as a bson.M{} map.
+func (d *Date) GetBSON() (interface{}, error) {
+	return bson.M{"data": d.String()}, nil
+}
+
+// SetBSON sets the Date from raw bson data
+func (d *Date) SetBSON(raw bson.Raw) error {
 	var m bson.M
-	if err := bson.Unmarshal(data, &m); err != nil {
+	if err := raw.Unmarshal(&m); err != nil {
 		return err
 	}
 
 	if data, ok := m["data"].(string); ok {
 		rd, err := time.Parse(RFC3339FullDate, data)
-		if err != nil {
-			return err
-		}
 		*d = Date(rd)
-		return nil
+		return err
 	}
 
-	return errors.New("couldn't unmarshal bson bytes value as Date")
+	return errors.New("couldn't unmarshal bson raw value as Date")
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.

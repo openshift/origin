@@ -17,8 +17,8 @@ package strfmt
 import (
 	"testing"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestBSONObjectId_fullCycle(t *testing.T) {

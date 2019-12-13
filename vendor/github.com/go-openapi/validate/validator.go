@@ -452,7 +452,6 @@ func (s *basicSliceValidator) Validate(data interface{}) *Result {
 	return nil
 }
 
-/* unused
 func (s *basicSliceValidator) hasDuplicates(value reflect.Value, size int) bool {
 	dict := make(map[interface{}]struct{})
 	for i := 0; i < size; i++ {
@@ -464,7 +463,6 @@ func (s *basicSliceValidator) hasDuplicates(value reflect.Value, size int) bool 
 	}
 	return false
 }
-*/
 
 type numberValidator struct {
 	Path             string
@@ -532,7 +530,6 @@ func (n *numberValidator) Validate(val interface{}) *Result {
 	// Is the provided value within the range of the specified numeric type and format?
 	res.AddErrors(IsValueValidAgainstRange(val, n.Type, n.Format, "Checked", n.Path))
 
-	// nolint: dupl
 	if n.MultipleOf != nil {
 		// Is the constraint specifier within the range of the specific numeric type and format?
 		resMultiple.AddErrors(IsValueValidAgainstRange(*n.MultipleOf, n.Type, n.Format, "MultipleOf", n.Path))
@@ -549,7 +546,6 @@ func (n *numberValidator) Validate(val interface{}) *Result {
 		}
 	}
 
-	// nolint: dupl
 	if n.Maximum != nil {
 		// Is the constraint specifier within the range of the specific numeric type and format?
 		resMaximum.AddErrors(IsValueValidAgainstRange(*n.Maximum, n.Type, n.Format, "Maximum boundary", n.Path))
@@ -566,7 +562,6 @@ func (n *numberValidator) Validate(val interface{}) *Result {
 		}
 	}
 
-	// nolint: dupl
 	if n.Minimum != nil {
 		// Is the constraint specifier within the range of the specific numeric type and format?
 		resMinimum.AddErrors(IsValueValidAgainstRange(*n.Minimum, n.Type, n.Format, "Minimum boundary", n.Path))
@@ -616,7 +611,7 @@ func (s *stringValidator) Applies(source interface{}, kind reflect.Kind) bool {
 func (s *stringValidator) Validate(val interface{}) *Result {
 	data, ok := val.(string)
 	if !ok {
-		return errorHelp.sErr(errors.InvalidType(s.Path, s.In, stringType, val))
+		return errorHelp.sErr(errors.InvalidType(s.Path, s.In, "string", val))
 	}
 
 	if s.Required && !s.AllowEmptyValue && (s.Default == nil || s.Default == "") {

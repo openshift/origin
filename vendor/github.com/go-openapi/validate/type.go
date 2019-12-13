@@ -39,53 +39,53 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 	// TODO: this switch really is some sort of reverse lookup for formats. It should be provided by strfmt.
 	switch data.(type) {
 	case []byte, strfmt.Base64, *strfmt.Base64:
-		return stringType, stringFormatByte
+		return "string", "byte"
 	case strfmt.CreditCard, *strfmt.CreditCard:
-		return stringType, stringFormatCreditCard
+		return "string", "creditcard"
 	case strfmt.Date, *strfmt.Date:
-		return stringType, stringFormatDate
+		return "string", "date"
 	case strfmt.DateTime, *strfmt.DateTime:
-		return stringType, stringFormatDateTime
+		return "string", "date-time"
 	case strfmt.Duration, *strfmt.Duration:
-		return stringType, stringFormatDuration
+		return "string", "duration"
 	case runtime.File, *runtime.File:
-		return fileType, ""
+		return "file", ""
 	case strfmt.Email, *strfmt.Email:
-		return stringType, stringFormatEmail
+		return "string", "email"
 	case strfmt.HexColor, *strfmt.HexColor:
-		return stringType, stringFormatHexColor
+		return "string", "hexcolor"
 	case strfmt.Hostname, *strfmt.Hostname:
-		return stringType, stringFormatHostname
+		return "string", "hostname"
 	case strfmt.IPv4, *strfmt.IPv4:
-		return stringType, stringFormatIPv4
+		return "string", "ipv4"
 	case strfmt.IPv6, *strfmt.IPv6:
-		return stringType, stringFormatIPv6
+		return "string", "ipv6"
 	case strfmt.ISBN, *strfmt.ISBN:
-		return stringType, stringFormatISBN
+		return "string", "isbn"
 	case strfmt.ISBN10, *strfmt.ISBN10:
-		return stringType, stringFormatISBN10
+		return "string", "isbn10"
 	case strfmt.ISBN13, *strfmt.ISBN13:
-		return stringType, stringFormatISBN13
+		return "string", "isbn13"
 	case strfmt.MAC, *strfmt.MAC:
-		return stringType, stringFormatMAC
+		return "string", "mac"
 	case strfmt.ObjectId, *strfmt.ObjectId:
-		return stringType, stringFormatBSONObjectID
+		return "string", "bsonobjectid"
 	case strfmt.Password, *strfmt.Password:
-		return stringType, stringFormatPassword
+		return "string", "password"
 	case strfmt.RGBColor, *strfmt.RGBColor:
-		return stringType, stringFormatRGBColor
+		return "string", "rgbcolor"
 	case strfmt.SSN, *strfmt.SSN:
-		return stringType, stringFormatSSN
+		return "string", "ssn"
 	case strfmt.URI, *strfmt.URI:
-		return stringType, stringFormatURI
+		return "string", "uri"
 	case strfmt.UUID, *strfmt.UUID:
-		return stringType, stringFormatUUID
+		return "string", "uuid"
 	case strfmt.UUID3, *strfmt.UUID3:
-		return stringType, stringFormatUUID3
+		return "string", "uuid3"
 	case strfmt.UUID4, *strfmt.UUID4:
-		return stringType, stringFormatUUID4
+		return "string", "uuid4"
 	case strfmt.UUID5, *strfmt.UUID5:
-		return stringType, stringFormatUUID5
+		return "string", "uuid5"
 	// TODO: missing binary (io.ReadCloser)
 	// TODO: missing json.Number
 	default:
@@ -93,25 +93,25 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 		tpe := val.Type()
 		switch tpe.Kind() {
 		case reflect.Bool:
-			return booleanType, ""
+			return "boolean", ""
 		case reflect.String:
-			return stringType, ""
+			return "string", ""
 		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16, reflect.Uint32:
 			// NOTE: that is the spec. With go-openapi, is that not uint32 for unsigned integers?
-			return integerType, integerFormatInt32
+			return "integer", "int32"
 		case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-			return integerType, integerFormatInt64
+			return "integer", "int64"
 		case reflect.Float32:
-			// NOTE: is that not numberFormatFloat?
-			return numberType, numberFormatFloat32
+			// NOTE: is that not "float"?
+			return "number", "float32"
 		case reflect.Float64:
 			// NOTE: is that not "double"?
-			return numberType, numberFormatFloat64
+			return "number", "float64"
 		// NOTE: go arrays (reflect.Array) are not supported (fixed length)
 		case reflect.Slice:
-			return arrayType, ""
+			return "array", ""
 		case reflect.Map, reflect.Struct:
-			return objectType, ""
+			return "object", ""
 		case reflect.Interface:
 			// What to do here?
 			panic("dunno what to do here")
@@ -139,8 +139,8 @@ func (t *typeValidator) Validate(data interface{}) *Result {
 	result.Inc()
 	if data == nil || reflect.DeepEqual(reflect.Zero(reflect.TypeOf(data)), reflect.ValueOf(data)) {
 		// nil or zero value for the passed structure require Type: null
-		if len(t.Type) > 0 && !t.Type.Contains(nullType) && !t.Nullable { // TODO: if a property is not required it also passes this
-			return errorHelp.sErr(errors.InvalidType(t.Path, t.In, strings.Join(t.Type, ","), nullType))
+		if len(t.Type) > 0 && !t.Type.Contains("null") && !t.Nullable { // TODO: if a property is not required it also passes this
+			return errorHelp.sErr(errors.InvalidType(t.Path, t.In, strings.Join(t.Type, ","), "null"))
 		}
 		return result
 	}
@@ -157,17 +157,17 @@ func (t *typeValidator) Validate(data interface{}) *Result {
 	// check numerical types
 	// TODO: check unsigned ints
 	// TODO: check json.Number (see schema.go)
-	isLowerInt := t.Format == integerFormatInt64 && format == integerFormatInt32
-	isLowerFloat := t.Format == numberFormatFloat64 && format == numberFormatFloat32
-	isFloatInt := schType == numberType && swag.IsFloat64AJSONInteger(val.Float()) && t.Type.Contains(integerType)
-	isIntFloat := schType == integerType && t.Type.Contains(numberType)
+	isLowerInt := t.Format == "int64" && format == "int32"
+	isLowerFloat := t.Format == "float64" && format == "float32"
+	isFloatInt := schType == "number" && swag.IsFloat64AJSONInteger(val.Float()) && t.Type.Contains("integer")
+	isIntFloat := schType == "integer" && t.Type.Contains("number")
 
 	if kind != reflect.String && kind != reflect.Slice && t.Format != "" && !(t.Type.Contains(schType) || format == t.Format || isFloatInt || isIntFloat || isLowerInt || isLowerFloat) {
 		// TODO: test case
 		return errorHelp.sErr(errors.InvalidType(t.Path, t.In, t.Format, format))
 	}
 
-	if !(t.Type.Contains(numberType) || t.Type.Contains(integerType)) && t.Format != "" && (kind == reflect.String || kind == reflect.Slice) {
+	if !(t.Type.Contains("number") || t.Type.Contains("integer")) && t.Format != "" && (kind == reflect.String || kind == reflect.Slice) {
 		return result
 	}
 

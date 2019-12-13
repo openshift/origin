@@ -13,12 +13,9 @@ type OpenShiftAPIServer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
-	// spec is the specification of the desired behavior of the OpenShift API Server.
 	// +kubebuilder:validation:Required
 	// +required
 	Spec OpenShiftAPIServerSpec `json:"spec"`
-
-	// status defines the observed status of the OpenShift API Server.
 	// +optional
 	Status OpenShiftAPIServerStatus `json:"status"`
 }

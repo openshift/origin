@@ -9,11 +9,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/pager"
 	"k8s.io/klog"
 )
 
@@ -43,11 +45,9 @@ type inProcessMigration struct {
 
 	// non-nil when finished. *result==nil means "no error"
 	result *error
-	// when did it finish
-	timestamp time.Time
 }
 
-func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, ts time.Time, err error) {
+func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, err error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -55,14 +55,14 @@ func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey st
 	migration := m.running[gr]
 	if migration != nil && migration.writeKey == writeKey {
 		if migration.result == nil {
-			return false, nil, time.Time{}, nil
+			return false, nil, nil
 		}
-		return true, *migration.result, migration.timestamp, nil
+		return true, *migration.result, nil
 	}
 
 	// different key?
 	if migration != nil && migration.result == nil {
-		klog.V(2).Infof("Interrupting running migration for resource %v and write key %q", gr, migration.writeKey)
+		klog.V(4).Infof("interrupting running migration for resource %v and write key %q", gr, migration.writeKey)
 		close(migration.stopCh)
 
 		// give go routine time to update the result
@@ -73,7 +73,7 @@ func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey st
 
 	v, err := preferredResourceVersion(m.discoveryClient, gr)
 	if err != nil {
-		return false, nil, time.Time{}, err
+		return false, nil, err
 	}
 
 	stopCh := make(chan struct{})
@@ -86,7 +86,7 @@ func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey st
 
 	go m.runMigration(gr.WithVersion(v), writeKey, stopCh, doneCh)
 
-	return false, nil, time.Time{}, nil
+	return false, nil, nil
 }
 
 func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeKey string, stopCh <-chan struct{}, doneCh chan<- struct{}) {
@@ -111,7 +111,6 @@ func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeK
 		}
 
 		migration.result = &result
-		migration.timestamp = time.Now()
 
 		m.handler.OnAdd(&corev1.Secret{}) // fake secret to trigger event loop of controller
 	}()
@@ -124,24 +123,46 @@ func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeK
 	}()
 
 	d := m.dynamicClient.Resource(gvr)
-
-	listProcessor := newListProcessor(ctx, m.dynamicClient, func(obj *unstructured.Unstructured) error {
+	var errs []error
+	listPager := pager.New(pager.SimplePageFunc(func(opts metav1.ListOptions) (runtime.Object, error) {
 		for {
-			_, updateErr := d.Namespace(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
-			if updateErr == nil || errors.IsNotFound(updateErr) || errors.IsConflict(updateErr) {
-				return nil
+			allResource, err := d.List(opts)
+			if err != nil && !canRetry(err) {
+				return nil, err
+			} else if err != nil {
+				if seconds, delay := errors.SuggestsClientDelay(err); delay {
+					time.Sleep(time.Duration(seconds) * time.Second)
+				}
+				continue
 			}
-			if retryable := canRetry(updateErr); retryable == nil || *retryable == false {
-				klog.Warningf("Update of %s/%s failed: %v", obj.GetNamespace(), obj.GetName(), updateErr)
-				return updateErr // not retryable or we don't know. Return error and controller will restart migration.
+
+		nextItem:
+			for _, obj := range allResource.Items { // TODO parallelize for-loop
+				for {
+					_, updateErr := d.Namespace(obj.GetNamespace()).Update(&obj, metav1.UpdateOptions{})
+					if updateErr == nil || errors.IsNotFound(updateErr) || errors.IsConflict(err) {
+						continue nextItem
+					}
+					if !canRetry(updateErr) {
+						errs = append(errs, updateErr)
+						break
+					}
+
+					if seconds, delay := errors.SuggestsClientDelay(updateErr); delay {
+						time.Sleep(time.Duration(seconds) * time.Second)
+					}
+				}
 			}
-			if seconds, delay := errors.SuggestsClientDelay(updateErr); delay && seconds > 0 {
-				klog.V(2).Infof("Sleeping %ds while updating %s/%s of type %v after retryable error: %v", seconds, obj.GetNamespace(), obj.GetName(), gvr, updateErr)
-				time.Sleep(time.Duration(seconds) * time.Second)
-			}
+
+			allResource.Items = nil // do not accumulate items, this fakes the visitor pattern
+			return allResource, nil // leave the rest of the list intact to preserve continue token
 		}
-	})
-	result = listProcessor.run(gvr)
+	}))
+
+	listPager.FullListIfExpired = false // prevent memory explosion from full list
+	_, listErr := listPager.List(ctx, metav1.ListOptions{})
+	errs = append(errs, listErr)
+	result = utilerrors.NewAggregate(errs)
 }
 
 func (m *InProcessMigrator) PruneMigration(gr schema.GroupResource) error {

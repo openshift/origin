@@ -17,17 +17,13 @@ type MessageBody interface {
 	Marshal(proto int) ([]byte, error)
 }
 
-// A RawBody represents a raw message body.
-//
-// A raw message body is excluded from message processing and can be
-// used to construct applications such as protocol conformance
-// testing.
-type RawBody struct {
+// A DefaultMessageBody represents the default message body.
+type DefaultMessageBody struct {
 	Data []byte // data
 }
 
 // Len implements the Len method of MessageBody interface.
-func (p *RawBody) Len(proto int) int {
+func (p *DefaultMessageBody) Len(proto int) int {
 	if p == nil {
 		return 0
 	}
@@ -35,18 +31,13 @@ func (p *RawBody) Len(proto int) int {
 }
 
 // Marshal implements the Marshal method of MessageBody interface.
-func (p *RawBody) Marshal(proto int) ([]byte, error) {
+func (p *DefaultMessageBody) Marshal(proto int) ([]byte, error) {
 	return p.Data, nil
 }
 
-// parseRawBody parses b as an ICMP message body.
-func parseRawBody(proto int, b []byte) (MessageBody, error) {
-	p := &RawBody{Data: make([]byte, len(b))}
+// parseDefaultMessageBody parses b as an ICMP message body.
+func parseDefaultMessageBody(proto int, b []byte) (MessageBody, error) {
+	p := &DefaultMessageBody{Data: make([]byte, len(b))}
 	copy(p.Data, b)
 	return p, nil
 }
-
-// A DefaultMessageBody represents the default message body.
-//
-// Deprecated: Use RawBody instead.
-type DefaultMessageBody = RawBody

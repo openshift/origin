@@ -35,7 +35,7 @@ func dial(handler serverType, t *testing.T) *Client {
 		}
 		conf.AddHostKey(testSigners["rsa"])
 
-		conn, chans, reqs, err := NewServerConn(c1, &conf)
+		_, chans, reqs, err := NewServerConn(c1, &conf)
 		if err != nil {
 			t.Fatalf("Unable to handshake: %v", err)
 		}
@@ -55,9 +55,6 @@ func dial(handler serverType, t *testing.T) *Client {
 			go func() {
 				handler(ch, inReqs, t)
 			}()
-		}
-		if err := conn.Wait(); err != io.EOF {
-			t.Logf("server exit reason: %v", err)
 		}
 	}()
 
@@ -361,9 +358,10 @@ func TestServerWindow(t *testing.T) {
 	}
 	written, err := copyNRandomly("stdin", serverStdin, origBuf, windowTestBytes)
 	if err != nil {
-		t.Errorf("failed to copy origBuf to serverStdin: %v", err)
-	} else if written != windowTestBytes {
-		t.Errorf("Wrote only %d of %d bytes to server", written, windowTestBytes)
+		t.Fatalf("failed to copy origBuf to serverStdin: %v", err)
+	}
+	if written != windowTestBytes {
+		t.Fatalf("Wrote only %d of %d bytes to server", written, windowTestBytes)
 	}
 
 	echoedBytes := <-result

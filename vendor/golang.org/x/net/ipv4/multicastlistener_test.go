@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"testing"
 
+	"golang.org/x/net/internal/nettest"
 	"golang.org/x/net/ipv4"
-	"golang.org/x/net/nettest"
 )
 
 var udpMultipleGroupListenerTests = []net.Addr{
@@ -21,7 +21,7 @@ var udpMultipleGroupListenerTests = []net.Addr{
 
 func TestUDPSinglePacketConnWithMultipleGroupListeners(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
 	if testing.Short() {
@@ -43,7 +43,7 @@ func TestUDPSinglePacketConnWithMultipleGroupListeners(t *testing.T) {
 			t.Fatal(err)
 		}
 		for i, ifi := range ift {
-			if _, err := nettest.MulticastSource("ip4", &ifi); err != nil {
+			if _, ok := nettest.IsMulticastCapable("ip4", &ifi); !ok {
 				continue
 			}
 			if err := p.JoinGroup(&ifi, gaddr); err != nil {
@@ -61,7 +61,7 @@ func TestUDPSinglePacketConnWithMultipleGroupListeners(t *testing.T) {
 
 func TestUDPMultiplePacketConnWithMultipleGroupListeners(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
 	if testing.Short() {
@@ -94,7 +94,7 @@ func TestUDPMultiplePacketConnWithMultipleGroupListeners(t *testing.T) {
 			t.Fatal(err)
 		}
 		for i, ifi := range ift {
-			if _, err := nettest.MulticastSource("ip4", &ifi); err != nil {
+			if _, ok := nettest.IsMulticastCapable("ip4", &ifi); !ok {
 				continue
 			}
 			for _, p := range ps {
@@ -116,7 +116,7 @@ func TestUDPMultiplePacketConnWithMultipleGroupListeners(t *testing.T) {
 
 func TestUDPPerInterfaceSinglePacketConnWithSingleGroupListener(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
 	if testing.Short() {
@@ -136,8 +136,8 @@ func TestUDPPerInterfaceSinglePacketConnWithSingleGroupListener(t *testing.T) {
 	}
 	port := "0"
 	for i, ifi := range ift {
-		ip, err := nettest.MulticastSource("ip4", &ifi)
-		if err != nil {
+		ip, ok := nettest.IsMulticastCapable("ip4", &ifi)
+		if !ok {
 			continue
 		}
 		c, err := net.ListenPacket("udp4", net.JoinHostPort(ip.String(), port)) // unicast address with non-reusable port
@@ -172,14 +172,14 @@ func TestUDPPerInterfaceSinglePacketConnWithSingleGroupListener(t *testing.T) {
 
 func TestIPSingleRawConnWithSingleGroupListener(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
 	if testing.Short() {
 		t.Skip("to avoid external network")
 	}
-	if !nettest.SupportsRawSocket() {
-		t.Skipf("not supported on %s/%s", runtime.GOOS, runtime.GOARCH)
+	if m, ok := nettest.SupportsRawIPSocket(); !ok {
+		t.Skip(m)
 	}
 
 	c, err := net.ListenPacket("ip4:icmp", "0.0.0.0") // wildcard address
@@ -200,7 +200,7 @@ func TestIPSingleRawConnWithSingleGroupListener(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i, ifi := range ift {
-		if _, err := nettest.MulticastSource("ip4", &ifi); err != nil {
+		if _, ok := nettest.IsMulticastCapable("ip4", &ifi); !ok {
 			continue
 		}
 		if err := r.JoinGroup(&ifi, &gaddr); err != nil {
@@ -217,14 +217,14 @@ func TestIPSingleRawConnWithSingleGroupListener(t *testing.T) {
 
 func TestIPPerInterfaceSingleRawConnWithSingleGroupListener(t *testing.T) {
 	switch runtime.GOOS {
-	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
 	if testing.Short() {
 		t.Skip("to avoid external network")
 	}
-	if !nettest.SupportsRawSocket() {
-		t.Skipf("not supported on %s/%s", runtime.GOOS, runtime.GOARCH)
+	if m, ok := nettest.SupportsRawIPSocket(); !ok {
+		t.Skip(m)
 	}
 
 	gaddr := net.IPAddr{IP: net.IPv4(224, 0, 0, 254)} // see RFC 4727
@@ -239,8 +239,8 @@ func TestIPPerInterfaceSingleRawConnWithSingleGroupListener(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i, ifi := range ift {
-		ip, err := nettest.MulticastSource("ip4", &ifi)
-		if err != nil {
+		ip, ok := nettest.IsMulticastCapable("ip4", &ifi)
+		if !ok {
 			continue
 		}
 		c, err := net.ListenPacket("ip4:253", ip.String()) // unicast address

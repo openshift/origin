@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (
@@ -31,7 +31,6 @@ var (
 		time time.Time // its representation in time.Time
 		str  string    // its marshalled representation
 	}{
-		{[]byte("2014-12-15T08:00:00"), time.Date(2014, 12, 15, 8, 0, 0, 0, time.UTC), "2014-12-15T08:00:00.000Z"},
 		{[]byte("2014-12-15T08:00:00.000Z"), time.Date(2014, 12, 15, 8, 0, 0, 0, time.UTC), "2014-12-15T08:00:00.000Z"},
 		{[]byte("2011-08-18T19:03:37.000000000+01:00"), time.Date(2011, 8, 18, 19, 3, 37, 0, p.Location()), "2011-08-18T19:03:37.000+01:00"},
 		{[]byte("2014-12-15T19:30:20Z"), time.Date(2014, 12, 15, 19, 30, 20, 0, time.UTC), "2014-12-15T19:30:20.000Z"},
@@ -146,10 +145,6 @@ func TestDateTime_UnmarshalJSON(t *testing.T) {
 	// Check lexer failure
 	err = pp.UnmarshalJSON([]byte(`"zorg emperor"`))
 	assert.Error(t, err)
-
-	// Check null case
-	err = pp.UnmarshalJSON([]byte("null"))
-	assert.Nil(t, err)
 }
 
 func esc(v []byte) []byte {

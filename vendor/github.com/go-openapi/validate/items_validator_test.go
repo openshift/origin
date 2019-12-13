@@ -17,9 +17,6 @@ package validate
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"path/filepath"
 	"testing"
 
 	"github.com/go-openapi/errors"
@@ -28,26 +25,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	// PetStore20 json doc for swagger 2.0 pet store
-	PetStore20 string
-
-	// PetStoreJSONMessage json raw message for Petstore20
-	PetStoreJSONMessage json.RawMessage
-)
-
-func init() {
-	petstoreFixture := filepath.Join("fixtures", "petstore", "swagger.json")
-	petstore, err := ioutil.ReadFile(petstoreFixture)
-	if err != nil {
-		log.Fatalf("could not initialize fixture: %s: %v", petstoreFixture, err)
-	}
-	PetStoreJSONMessage = json.RawMessage(petstore)
-	PetStore20 = string(petstore)
+type email struct {
+	Address string
 }
 
-func stringItems() *spec.Items {
-	return spec.NewItems().Typed(stringType, "")
+type paramFactory func(string) *spec.Parameter
+
+var paramFactories = []paramFactory{
+	spec.QueryParam,
+	spec.HeaderParam,
+	spec.PathParam,
+	spec.FormDataParam,
+}
+
+var stringItems = new(spec.Items)
+
+func init() {
+	stringItems.Type = "string"
 }
 
 func requiredError(param *spec.Parameter) *errors.Validation {
@@ -66,11 +60,9 @@ func multipleOfErrorItems(path, in string, items *spec.Items) *errors.Validation
 	return errors.NotMultipleOf(path, in, *items.MultipleOf)
 }
 
-/*
 func requiredErrorItems(path, in string) *errors.Validation {
 	return errors.Required(path, in)
 }
-*/
 
 func maxLengthErrorItems(path, in string, items *spec.Items) *errors.Validation {
 	return errors.TooLong(path, in, *items.MaxLength)
@@ -167,7 +159,7 @@ func TestNumberItemsValidation(t *testing.T) {
 }
 
 func TestStringItemsValidation(t *testing.T) {
-	items := spec.NewItems().WithMinLength(3).WithMaxLength(5).WithPattern(`^[a-z]+$`).Typed(stringType, "")
+	items := spec.NewItems().WithMinLength(3).WithMaxLength(5).WithPattern(`^[a-z]+$`).Typed("string", "")
 	items.WithEnum("aaa", "bbb", "ccc")
 	parent := spec.QueryParam("tags").CollectionOf(items, "")
 	path := parent.Name + ".1"
@@ -204,7 +196,7 @@ func TestStringItemsValidation(t *testing.T) {
 }
 
 func TestArrayItemsValidation(t *testing.T) {
-	items := spec.NewItems().CollectionOf(stringItems(), "").WithMinItems(1).WithMaxItems(5).UniqueValues()
+	items := spec.NewItems().CollectionOf(stringItems, "").WithMinItems(1).WithMaxItems(5).UniqueValues()
 	items.WithEnum("aaa", "bbb", "ccc")
 	parent := spec.QueryParam("tags").CollectionOf(items, "")
 	path := parent.Name + ".1"
@@ -229,7 +221,7 @@ func TestArrayItemsValidation(t *testing.T) {
 	assert.EqualError(t, enumFailItems(path, validator.in, items, []string{"a", "b", "c"}), err.Errors[0].Error())
 
 	// Items
-	strItems := spec.NewItems().WithMinLength(3).WithMaxLength(5).WithPattern(`^[a-z]+$`).Typed(stringType, "")
+	strItems := spec.NewItems().WithMinLength(3).WithMaxLength(5).WithPattern(`^[a-z]+$`).Typed("string", "")
 	items = spec.NewItems().CollectionOf(strItems, "").WithMinItems(1).WithMaxItems(5).UniqueValues()
 	validator = newItemsValidator(parent.Name, parent.In, items, parent, strfmt.Default)
 
@@ -237,3 +229,289 @@ func TestArrayItemsValidation(t *testing.T) {
 	assert.True(t, err.HasErrors())
 	assert.EqualError(t, minLengthErrorItems(path+".0", parent.In, strItems), err.Errors[0].Error())
 }
+
+// PetStoreJSONMessage json raw message for Petstore20
+var PetStoreJSONMessage = json.RawMessage([]byte(PetStore20))
+
+// PetStore20 json doc for swagger 2.0 pet store
+const PetStore20 = `{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Swagger Petstore",
+    "contact": {
+      "name": "Wordnik API Team",
+      "url": "http://developer.wordnik.com"
+    },
+    "license": {
+      "name": "Creative Commons 4.0 International",
+      "url": "http://creativecommons.org/licenses/by/4.0/"
+    }
+  },
+  "host": "petstore.swagger.wordnik.com",
+  "basePath": "/api",
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/pets": {
+      "get": {
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "tags": [ "Pet Operations" ],
+        "operationId": "getAllPets",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "The status to filter by",
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of results to return",
+            "type": "integer",
+						"format": "int64"
+          }
+        ],
+        "summary": "Finds all pets in the system",
+        "responses": {
+          "200": {
+            "description": "Pet response",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "tags": [ "Pet Operations" ],
+        "operationId": "createPet",
+        "summary": "Creates a new pet",
+        "consumes": ["application/x-yaml"],
+        "produces": ["application/x-yaml"],
+        "parameters": [
+          {
+            "name": "pet",
+            "in": "body",
+            "description": "The Pet to create",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/newPet"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Created Pet response",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/pets/{id}": {
+      "delete": {
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "description": "Deletes the Pet by id",
+        "operationId": "deletePet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of pet to delete",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "pet deleted"
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [ "Pet Operations" ],
+        "operationId": "getPetById",
+        "summary": "Finds the pet by id",
+        "responses": {
+          "200": {
+            "description": "Pet response",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          },
+          "default": {
+            "description": "Unexpected error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "description": "ID of pet",
+          "required": true,
+          "type": "integer",
+          "format": "int64"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "Category": {
+      "id": "Category",
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "Pet": {
+      "id": "Pet",
+      "properties": {
+        "category": {
+          "$ref": "#/definitions/Category"
+        },
+        "id": {
+          "description": "unique identifier for the pet",
+          "format": "int64",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "photoUrls": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "description": "pet status in the store",
+          "enum": [
+            "available",
+            "pending",
+            "sold"
+          ],
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "$ref": "#/definitions/Tag"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "newPet": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Pet"
+        },
+        {
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "Tag": {
+      "id": "Tag",
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "Error": {
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "consumes": [
+    "application/json",
+    "application/xml"
+  ],
+  "produces": [
+    "application/json",
+    "application/xml",
+    "text/plain",
+    "text/html"
+  ],
+  "securityDefinitions": {
+    "basic": {
+      "type": "basic"
+    },
+    "apiKey": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "X-API-KEY"
+    }
+  }
+}
+`

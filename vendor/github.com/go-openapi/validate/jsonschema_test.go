@@ -22,12 +22,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // Data structure for jsonschema-suite fixtures
@@ -41,59 +41,103 @@ type schemaTestT struct {
 	}
 }
 
+type schemasTestT struct {
+	Schema  *spec.Schema `json:"schema"`
+	Valid   interface{}  `json:"valid"`
+	Invalid interface{}  `json:"invalid"`
+}
+
 var jsonSchemaFixturesPath = filepath.Join("fixtures", "jsonschema_suite")
 var schemaFixturesPath = filepath.Join("fixtures", "schemas")
 var formatFixturesPath = filepath.Join("fixtures", "formats")
 
-func enabled() []string {
+var ints = []interface{}{
+	1,
+	int8(1),
+	int16(1),
+	int(1),
+	int32(1),
+	int64(1),
+	uint8(1),
+	uint16(1),
+	uint(1),
+	uint32(1),
+	uint64(1),
+	5.0,
+	float32(5.0),
+	float64(5.0),
+}
+
+var notInts = []interface{}{
+	5.1,
+	float32(5.1),
+	float64(5.1),
+}
+
+var notNumbers = []interface{}{
+	map[string]string{},
+	struct{}{},
+	time.Time{},
+	"yada",
+}
+
+var enabled = []string{
 	// Standard fixtures from JSON schema suite
-	return []string{
-		"minLength",
-		"maxLength",
-		"pattern",
-		"type",
-		"minimum",
-		"maximum",
-		"multipleOf",
-		"enum",
-		"default",
-		"dependencies",
-		"items",
-		"maxItems",
-		"maxProperties",
-		"minItems",
-		"minProperties",
-		"patternProperties",
-		"required",
-		"additionalItems",
-		"uniqueItems",
-		"properties",
-		"additionalProperties",
-		"allOf",
-		"not",
-		"oneOf",
-		"anyOf",
-		"ref",
-		"definitions",
-		"refRemote",
-		"format",
-	}
+	"minLength",
+	"maxLength",
+	"pattern",
+	"type",
+	"minimum",
+	"maximum",
+	"multipleOf",
+	"enum",
+	"default",
+	"dependencies",
+	"items",
+	"maxItems",
+	"maxProperties",
+	"minItems",
+	"minProperties",
+	"patternProperties",
+	"required",
+	"additionalItems",
+	"uniqueItems",
+	"properties",
+	"additionalProperties",
+	"allOf",
+	"not",
+	"oneOf",
+	"anyOf",
+	"ref",
+	"definitions",
+	"refRemote",
+	"format",
 }
 
 var optionalFixtures = []string{
-	// Optional fixtures from JSON schema suite: at the moment, these are disabled
-	//"zeroTerminatedFloats",
-	//"format",	/* error on strict URI formatting */
-	//"bignum",
-	//"ecmascript-regex",
+// Optional fixtures from JSON schema suite
+//"zeroTerminatedFloats",
+//"format",	/* error on strict URI formatting */
+//"bignum",
+//"ecmascript-regex",
 }
 
 var extendedFixtures = []string{
 	"extended-format",
 }
 
+type noopResCache struct {
+}
+
+func (n *noopResCache) Get(key string) (interface{}, bool) {
+	return nil, false
+}
+func (n *noopResCache) Set(string, interface{}) {
+
+}
+
 func isEnabled(nm string) bool {
-	return swag.ContainsStringsCI(enabled(), nm)
+	return swag.ContainsStringsCI(enabled, nm)
 }
 
 func isOptionalEnabled(nm string) bool {
@@ -123,17 +167,46 @@ func TestJSONSchemaSuite(t *testing.T) {
 			continue
 		}
 		fileName := f.Name()
-		t.Run(fileName, func(t *testing.T) {
-			t.Parallel()
-			specName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-			if !isEnabled(specName) {
-				t.Logf("WARNING: fixture from jsonschema-test-suite not enabled: %s", specName)
-				return
-			}
+		specName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+		if isEnabled(specName) {
 			t.Log("Running " + specName)
 			b, _ := ioutil.ReadFile(filepath.Join(jsonSchemaFixturesPath, fileName))
-			doTestSchemaSuite(t, b)
-		})
+
+			var testDescriptions []schemaTestT
+			json.Unmarshal(b, &testDescriptions)
+
+			for _, testDescription := range testDescriptions {
+				var err error
+				b, _ := testDescription.Schema.MarshalJSON()
+				tmpFile, err := ioutil.TempFile(os.TempDir(), "validate-test")
+				assert.NoError(t, err)
+				tmpFile.Write(b)
+				tmpFile.Close()
+				opts := &spec.ExpandOptions{
+					RelativeBase:    tmpFile.Name(),
+					SkipSchemas:     false,
+					ContinueOnError: false,
+				}
+				err = spec.ExpandSchemaWithBasePath(testDescription.Schema, nil, opts)
+
+				if assert.NoError(t, err, testDescription.Description+" should expand cleanly") {
+					validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
+					for _, test := range testDescription.Tests {
+						result := validator.Validate(test.Data)
+						assert.NotNil(t, result, test.Description+" should validate")
+
+						if test.Valid {
+							assert.Empty(t, result.Errors, test.Description+" should not have errors")
+						} else {
+							assert.NotEmpty(t, result.Errors, test.Description+" should have errors")
+						}
+					}
+				}
+				os.Remove(tmpFile.Name())
+			}
+		} else {
+			t.Logf("WARNING: fixture from jsonschema-test-suite not enabled: %s", specName)
+		}
 	}
 }
 
@@ -148,21 +221,30 @@ func TestSchemaFixtures(t *testing.T) {
 			continue
 		}
 		fileName := f.Name()
-		t.Run(fileName, func(t *testing.T) {
-			t.Parallel()
-			specName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-			t.Log("Running " + specName)
-			b, _ := ioutil.ReadFile(filepath.Join(schemaFixturesPath, fileName))
-			doTestSchemaSuite(t, b)
-		})
-	}
-}
+		specName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 
-func expandOpts(base string) *spec.ExpandOptions {
-	return &spec.ExpandOptions{
-		RelativeBase:    base,
-		SkipSchemas:     false,
-		ContinueOnError: false,
+		t.Log("Running " + specName)
+		b, _ := ioutil.ReadFile(filepath.Join(schemaFixturesPath, fileName))
+
+		var testDescriptions []schemasTestT
+		json.Unmarshal(b, &testDescriptions)
+
+		for _, testDescription := range testDescriptions {
+
+			err := spec.ExpandSchema(testDescription.Schema, nil, nil /*new(noopResCache)*/)
+			if assert.NoError(t, err) {
+
+				validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
+				valid := validator.Validate(testDescription.Valid)
+				if assert.NotNil(t, valid, specName+" should validate") {
+					assert.Empty(t, valid.Errors, specName+".valid should not have errors")
+				}
+				invalid := validator.Validate(testDescription.Invalid)
+				if assert.NotNil(t, invalid, specName+" should validate") {
+					assert.NotEmpty(t, invalid.Errors, specName+".invalid should have errors")
+				}
+			}
+		}
 	}
 }
 
@@ -178,17 +260,46 @@ func TestOptionalJSONSchemaSuite(t *testing.T) {
 			continue
 		}
 		fileName := f.Name()
-		t.Run(fileName, func(t *testing.T) {
-			t.Parallel()
-			specName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-			if !isOptionalEnabled(specName) {
-				t.Logf("INFO: fixture from jsonschema-test-suite [optional] not enabled: %s", specName)
-				return
-			}
+		specName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+		if isOptionalEnabled(specName) {
 			t.Log("Running [optional] " + specName)
 			b, _ := ioutil.ReadFile(filepath.Join(jsonOptionalSchemaFixturesPath, fileName))
-			doTestSchemaSuite(t, b)
-		})
+
+			var testDescriptions []schemaTestT
+			json.Unmarshal(b, &testDescriptions)
+
+			for _, testDescription := range testDescriptions {
+				var err error
+				b, _ := testDescription.Schema.MarshalJSON()
+				tmpFile, err := ioutil.TempFile(os.TempDir(), "validate-test")
+				assert.NoError(t, err)
+				tmpFile.Write(b)
+				tmpFile.Close()
+				opts := &spec.ExpandOptions{
+					RelativeBase:    tmpFile.Name(),
+					SkipSchemas:     false,
+					ContinueOnError: false,
+				}
+				err = spec.ExpandSchemaWithBasePath(testDescription.Schema, nil, opts)
+
+				if assert.NoError(t, err, testDescription.Description+" should expand cleanly") {
+					validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
+					for _, test := range testDescription.Tests {
+						result := validator.Validate(test.Data)
+						assert.NotNil(t, result, test.Description+" should validate")
+
+						if test.Valid {
+							assert.Empty(t, result.Errors, test.Description+" should not have errors")
+						} else {
+							assert.NotEmpty(t, result.Errors, test.Description+" should have errors")
+						}
+					}
+				}
+				os.Remove(tmpFile.Name())
+			}
+		} else {
+			t.Logf("INFO: fixture from jsonschema-test-suite [optional] not enabled: %s", specName)
+		}
 	}
 }
 
@@ -205,46 +316,48 @@ func TestFormat_JSONSchemaExtended(t *testing.T) {
 			continue
 		}
 		fileName := f.Name()
-		t.Run(fileName, func(t *testing.T) {
-			t.Parallel()
-			specName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-			if !isExtendedEnabled(specName) {
-				t.Logf("INFO: fixture from extended tests suite [formats] not enabled: %s", specName)
-				return
-			}
+		specName := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+		if isExtendedEnabled(specName) {
 			t.Log("Running [extended formats] " + specName)
 			b, _ := ioutil.ReadFile(filepath.Join(jsonFormatSchemaFixturesPath, fileName))
-			doTestSchemaSuite(t, b)
-		})
-	}
-}
 
-func doTestSchemaSuite(t *testing.T, doc []byte) {
-	// run a test formatted as per jsonschema-test-suite
-	var testDescriptions []schemaTestT
-	eru := json.Unmarshal(doc, &testDescriptions)
-	require.NoError(t, eru)
+			var testDescriptions []schemaTestT
+			json.Unmarshal(b, &testDescriptions)
 
-	for _, testDescription := range testDescriptions {
-		b, _ := testDescription.Schema.MarshalJSON()
-		tmpFile, err := ioutil.TempFile(os.TempDir(), "validate-test")
-		assert.NoError(t, err)
-		_, _ = tmpFile.Write(b)
-		tmpFile.Close()
-		defer func() { _ = os.Remove(tmpFile.Name()) }()
-		err = spec.ExpandSchemaWithBasePath(testDescription.Schema, nil, expandOpts(tmpFile.Name()))
-		require.NoError(t, err, testDescription.Description+" should expand cleanly")
+			for _, testDescription := range testDescriptions {
+				var err error
 
-		validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
-		for _, test := range testDescription.Tests {
-			result := validator.Validate(test.Data)
-			assert.NotNil(t, result, test.Description+" should validate")
+				// 1. Compile schema
+				b, _ := testDescription.Schema.MarshalJSON()
+				tmpFile, err := ioutil.TempFile(os.TempDir(), "validate-test")
+				assert.NoError(t, err)
+				tmpFile.Write(b)
+				tmpFile.Close()
+				opts := &spec.ExpandOptions{
+					RelativeBase:    tmpFile.Name(),
+					SkipSchemas:     false,
+					ContinueOnError: false,
+				}
+				err = spec.ExpandSchemaWithBasePath(testDescription.Schema, nil, opts)
 
-			if test.Valid {
-				assert.Empty(t, result.Errors, test.Description+" should not have errors")
-			} else {
-				assert.NotEmpty(t, result.Errors, test.Description+" should have errors")
+				if assert.NoError(t, err, testDescription.Description+" should expand cleanly") {
+					validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
+					for _, test := range testDescription.Tests {
+						// 2. Validates raw JSON values against schema
+						result := validator.Validate(test.Data)
+						assert.NotNil(t, result, test.Description+" should validate")
+
+						if test.Valid {
+							assert.Emptyf(t, result.Errors, test.Description+" should not have errors but got: %v", result.Errors)
+						} else {
+							assert.NotEmpty(t, result.Errors, test.Description+" should have errors")
+						}
+					}
+				}
+				os.Remove(tmpFile.Name())
 			}
+		} else {
+			t.Logf("INFO: fixture from extended tests suite [formats] not enabled: %s", specName)
 		}
 	}
 }

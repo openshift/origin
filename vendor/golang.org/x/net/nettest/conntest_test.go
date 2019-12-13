@@ -11,6 +11,8 @@ import (
 	"os"
 	"runtime"
 	"testing"
+
+	"golang.org/x/net/internal/nettest"
 )
 
 func TestTestConn(t *testing.T) {
@@ -22,12 +24,12 @@ func TestTestConn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if !TestableNetwork(tt.network) {
-				t.Skipf("%s not supported on %s/%s", tt.network, runtime.GOOS, runtime.GOARCH)
+			if !nettest.TestableNetwork(tt.network) {
+				t.Skipf("not supported on %s", runtime.GOOS)
 			}
 
 			mp := func() (c1, c2 net.Conn, stop func(), err error) {
-				ln, err := NewLocalListener(tt.network)
+				ln, err := nettest.NewLocalListener(tt.network)
 				if err != nil {
 					return nil, nil, nil, err
 				}

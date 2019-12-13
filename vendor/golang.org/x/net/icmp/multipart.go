@@ -11,24 +11,18 @@ import "golang.org/x/net/internal/iana"
 // and a required length for a padded original datagram in wire
 // format.
 func multipartMessageBodyDataLen(proto int, withOrigDgram bool, b []byte, exts []Extension) (bodyLen, dataLen int) {
-	bodyLen = 4 // length of leading octets
-	var extLen int
-	var rawExt bool // raw extension may contain an empty object
 	for _, ext := range exts {
-		extLen += ext.Len(proto)
-		if _, ok := ext.(*RawExtension); ok {
-			rawExt = true
-		}
+		bodyLen += ext.Len(proto)
 	}
-	if extLen > 0 && withOrigDgram {
-		dataLen = multipartMessageOrigDatagramLen(proto, b)
+	if bodyLen > 0 {
+		if withOrigDgram {
+			dataLen = multipartMessageOrigDatagramLen(proto, b)
+		}
+		bodyLen += 4 // length of extension header
 	} else {
 		dataLen = len(b)
 	}
-	if extLen > 0 || rawExt {
-		bodyLen += 4 // length of extension header
-	}
-	bodyLen += dataLen + extLen
+	bodyLen += dataLen
 	return bodyLen, dataLen
 }
 
@@ -43,7 +37,7 @@ func multipartMessageOrigDatagramLen(proto int, b []byte) int {
 			return 128
 		}
 		r := len(b)
-		return (r + align - 1) &^ (align - 1)
+		return (r + align - 1) & ^(align - 1)
 	}
 	switch proto {
 	case iana.ProtocolICMP:
@@ -60,11 +54,12 @@ func multipartMessageOrigDatagramLen(proto int, b []byte) int {
 // It can be used for non-multipart message bodies when exts is nil.
 func marshalMultipartMessageBody(proto int, withOrigDgram bool, data []byte, exts []Extension) ([]byte, error) {
 	bodyLen, dataLen := multipartMessageBodyDataLen(proto, withOrigDgram, data, exts)
-	b := make([]byte, bodyLen)
+	b := make([]byte, 4+bodyLen)
 	copy(b[4:], data)
+	off := dataLen + 4
 	if len(exts) > 0 {
-		b[4+dataLen] = byte(extensionVersion << 4)
-		off := 4 + dataLen + 4 // leading octets, data, extension header
+		b[dataLen+4] = byte(extensionVersion << 4)
+		off += 4 // length of object header
 		for _, ext := range exts {
 			switch ext := ext.(type) {
 			case *MPLSLabelStack:
@@ -83,14 +78,11 @@ func marshalMultipartMessageBody(proto int, withOrigDgram bool, data []byte, ext
 					return nil, err
 				}
 				off += ext.Len(proto)
-			case *RawExtension:
-				copy(b[off:], ext.Data)
-				off += ext.Len(proto)
 			}
 		}
-		s := checksum(b[4+dataLen:])
-		b[4+dataLen+2] ^= byte(s)
-		b[4+dataLen+3] ^= byte(s >> 8)
+		s := checksum(b[dataLen+4:])
+		b[dataLen+4+2] ^= byte(s)
+		b[dataLen+4+3] ^= byte(s >> 8)
 		if withOrigDgram {
 			switch proto {
 			case iana.ProtocolICMP:

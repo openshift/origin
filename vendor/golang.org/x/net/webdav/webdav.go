@@ -556,11 +556,7 @@ func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request) (status
 		if err != nil {
 			return err
 		}
-		href := path.Join(h.Prefix, reqPath)
-		if href != "/" && info.IsDir() {
-			href += "/"
-		}
-		return mw.write(makePropstatResponse(href, pstats))
+		return mw.write(makePropstatResponse(path.Join(h.Prefix, reqPath), pstats))
 	}
 
 	walkErr := walkFS(ctx, h.FileSystem, depth, reqPath, fi, walkFn)

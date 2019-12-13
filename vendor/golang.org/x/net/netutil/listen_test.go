@@ -15,13 +15,13 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-)
 
-const defaultMaxOpenFiles = 256
+	"golang.org/x/net/internal/nettest"
+)
 
 func TestLimitListener(t *testing.T) {
 	const max = 5
-	attempts := (maxOpenFiles() - max) / 2
+	attempts := (nettest.MaxOpenFiles() - max) / 2
 	if attempts > 256 { // maximum length of accept queue is 128 by default
 		attempts = 256
 	}

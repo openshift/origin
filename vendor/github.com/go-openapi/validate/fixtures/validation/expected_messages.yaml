@@ -1,9 +1,9 @@
-#
+# 
 # This document specifies messages expecations on tested fixtures (errors and warnings)
 # Messages may be either a plain string (assert.Contains) or a simple regexp (assert.True(regexp.MatchString())
 fixture-items-items.yaml:
   comment: how to get through item.Items in simple schemas
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
@@ -12,18 +12,18 @@ fixture-items-items.yaml:
     withContinueOnErrors: false
     isRegexp: false
 valid-referenced.yml:
-  comment:
-  todo:
+  comment: 
+  todo: 
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
   expectedWarnings: []
 valid-referenced-variants.yaml:
   comment: additional scenarios with failures on additionalProperties and required properties
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: false
-  expectedMessages:
+  expectedMessages: 
   - message: 'definitions.lotOfErrors.patternProperties in body is a forbidden property'
     withContinueOnErrors: false
     isRegexp: false
@@ -56,14 +56,14 @@ valid-referenced-variants.yaml:
     withContinueOnErrors: true
     isRegexp: false
 fixture-additional-items.yaml:
-  comment:
+  comment: 
   todo:  unsupported keyword such as additionnalItems should be better reported
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
   expectedWarnings: []
 fixture-additional-items-2.yaml:
-  comment:
+  comment: 
   todo:  unsupported keyword such as additionnalItems should be better reported
   expectedLoadError: false
   expectedValid: false
@@ -76,7 +76,7 @@ fixture-additional-items-2.yaml:
     isRegexp: false
   expectedWarnings: []
 fixture-additional-items-3.yaml:
-  comment:
+  comment: 
   todo:  unsupported keyword such as additionnalItems should be better reported
   expectedLoadError: false
   expectedValid: false
@@ -133,7 +133,7 @@ fixture-no-json-example.yaml:
     isRegexp: false
 fixture-additional-items-invalid-values.yaml:
   comment: additional testing scenario for default and example values
-  todo:
+  todo:  
   expectedLoadError: false
   expectedValid: false
   expectedMessages:
@@ -201,10 +201,10 @@ fixture-additional-items-invalid-values.yaml:
   - message: 'in operation "getGoodOp", example value in response 200 does not validate its schema'
     withContinueOnErrors: true
     isRegexp: false
-  - message: '/servers/getBad1.examples.0.first in body must be of type string: "number"'
+  - message: '/servers/getBad1.0.first in body must be of type string: "number"'
     withContinueOnErrors: true
     isRegexp: false
-  - message: '/servers/getBad1.examples.3.z in body must be of type number: "boolean"'
+  - message: '/servers/getBad1.3.z in body must be of type number: "boolean"'
     withContinueOnErrors: true
     isRegexp: false
   - message: '200.example.0.first in body must be of type string: "number"'
@@ -232,8 +232,8 @@ fixture-additional-items-invalid-values.yaml:
     withContinueOnErrors: true
     isRegexp: false
 fixture-no-response.yaml:
-  comment:
-  todo:
+  comment: 
+  todo: 
   expectedLoadError: false
   expectedValid: false
   expectedMessages:
@@ -245,8 +245,8 @@ fixture-no-response.yaml:
     isRegexp: false
   expectedWarnings: []
 fixture-empty-paths.json:
-  comment:
-  todo:
+  comment: 
+  todo: 
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
@@ -256,7 +256,7 @@ fixture-empty-paths.json:
     isRegexp: false
 fixture-patternProperties.json:
   comment: Exercise pattern properties (for default values), with an invalid pattern
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: false
   expectedMessages:
@@ -307,7 +307,7 @@ fixture-161-2.json:
     Variant of Issue#161: this is a partially fixed spec. In this version, the
     name param type is fixed, but the default value remains wrongly typed'
 
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: false
   expectedMessages:
@@ -326,7 +326,7 @@ fixture-161-2.json:
     isRegexp: false
 fixture-161-good.json:
   comment: 'Issue#161: this is the corresponding corrected spec which should be valid. Ah! But now examples are invalid...'
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
@@ -339,7 +339,7 @@ fixture-161-good.json:
     isRegexp: false
 fixture-161.json:
   comment: 'Issue#161: default value as object'
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: false
   expectedMessages:
@@ -361,7 +361,7 @@ fixture-161.json:
     isRegexp: false
 fixture-342-2.yaml:
   comment: Botched correction attempt for fixture-342
-  todo:
+  todo: 
   expectedLoadError: true
   expectedValid: false
   expectedMessages:
@@ -456,8 +456,8 @@ fixture-342.yaml:
     withContinueOnErrors: true
     isRegexp: false
 fixture-581-good-numbers.yaml:
-  comment:
-  todo:
+  comment: 
+  todo: 
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
@@ -471,7 +471,7 @@ fixture-581-good.yaml:
   expectedWarnings: []
 fixture-581-inline-param-format.yaml:
   comment: a collection of error messages raised by format validation
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: false
   expectedMessages:
@@ -664,7 +664,7 @@ fixture-581.yaml:
     isRegexp: false
 fixture-859-2.yaml:
   comment: 'Issue#859: clear message on unresolved $ref. Additional scenario with items'
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: false
   expectedMessages:
@@ -809,18 +809,18 @@ fixture-1171.yaml:
     withContinueOnErrors: true
     isRegexp: false
   # TODO name missing in path
-  - message: 'items in paths./server/getBody.get.parameters.schema is required'
+  - message: 'items in paths./server/getBody.get.parameters.schema is required' 
     withContinueOnErrors: false
     isRegexp: false
   # TODO name missing in path
-  - message: 'items in paths./servers/{server_id}/zones.get.parameters.schema is required'
+  - message: 'items in paths./servers/{server_id}/zones.get.parameters.schema is required' 
     withContinueOnErrors: false
     isRegexp: false
   # TODO name missing in path
-  - message: 'paths./server/getBody.get.parameters.in in body should be one of [header]'
+  - message: 'paths./server/getBody.get.parameters.in in body should be one of [header]' 
     withContinueOnErrors: false
     isRegexp: false
-  - message: 'paths./server/getBody.get.parameters.name in body is required'
+  - message: 'paths./server/getBody.get.parameters.name in body is required' 
     withContinueOnErrors: false
     isRegexp: false
   - message: 'paths./server/getBody.get.parameters.thestreetwithnoname in body is a forbidden property'
@@ -865,10 +865,11 @@ fixture-1231.yaml:
   - message: 'example value for customer_id in path does not validate its schema'
     withContinueOnErrors: true
     isRegexp: false
-  - message: '/v1/broker/{customer_id}.examples.id in body must be of type uuid: "mycustomer"'
+  - message: '/v1/broker/{customer_id}.id in body must be of type uuid: "mycustomer"'
     withContinueOnErrors: true
     isRegexp: false
-  - message: '/v1/broker/{customer_id}.examples.create_date in body must be of type date-time: "bad-date"'
+  - message: '/v1/broker/{customer_id}.create_date in body must be of type date-time:
+      "bad-date"'
     withContinueOnErrors: true
     isRegexp: false
   - message: 'customer_id in path must be of type uuid: "xyz"'
@@ -1258,8 +1259,8 @@ fixture-constraints-on-numbers.yaml:
   #  withContinueOnErrors: false
   #  isRegexp: false
 fixture-invalid-example-property.yaml:
-  comment:
-  todo:
+  comment: 
+  todo: 
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
@@ -1271,15 +1272,15 @@ fixture-invalid-example-property.yaml:
     withContinueOnErrors: false
     isRegexp: false
 fixture-valid-example-property.yaml:
-  comment:
-  todo:
+  comment: 
+  todo: 
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
   expectedWarnings: []
 petstore-expanded.json:
   comment: Fail Ref expansion in ContinueOnErrors mode panics
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: false
   expectedMessages:
@@ -1297,7 +1298,7 @@ petstore-expanded.json:
   expectedWarnings: []
 gentest.yaml:
   comment: many parameters situations
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
@@ -1310,7 +1311,7 @@ gentest.yaml:
     isRegexp: false
 gentest2.yaml:
   comment: many parameters situations with default values
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: true
   expectedMessages: []
@@ -1323,7 +1324,7 @@ gentest2.yaml:
     isRegexp: false
 gentest3.yaml:
   comment: default format in headers
-  todo:
+  todo: 
   expectedLoadError: false
   expectedValid: false
   expectedMessages:

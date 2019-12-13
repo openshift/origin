@@ -18,16 +18,15 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestFormatURI(t *testing.T) {
@@ -275,60 +274,59 @@ func TestFormatPassword(t *testing.T) {
 }
 
 func TestFormatBase64(t *testing.T) {
-	const b64 string = "This is a byte array with unprintable chars, but it also isn"
-	str := base64.URLEncoding.EncodeToString([]byte(b64))
-	b := []byte(b64)
-	expected := Base64(b)
+	b64 := Base64("ZWxpemFiZXRocG9zZXk=")
+	str := string("ZWxpemFiZXRocG9zZXk=")
+	b := []byte(str)
 	bj := []byte("\"" + str + "\"")
 
-	var subj Base64
-	err := subj.UnmarshalText([]byte(str))
+	err := b64.UnmarshalText(b)
 	assert.NoError(t, err)
-	assert.EqualValues(t, expected, subj)
+	assert.EqualValues(t, Base64("ZWxpemFiZXRocG9zZXk="), string(b))
 
-	b, err = subj.MarshalText()
+	b, err = b64.MarshalText()
 	assert.NoError(t, err)
-	assert.Equal(t, []byte(str), b)
+	assert.Equal(t, []byte("ZWxpemFiZXRocG9zZXk="), b)
 
-	var subj2 Base64
-	err = subj2.UnmarshalJSON(bj)
+	err = b64.UnmarshalJSON(bj)
 	assert.NoError(t, err)
-	assert.EqualValues(t, expected, subj2)
+	assert.EqualValues(t, Base64(str), string(b))
 
-	b, err = subj2.MarshalJSON()
+	b, err = b64.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
-	bsonData, err := bson.Marshal(subj2)
+	bsonData, err := bson.Marshal(&b64)
 	assert.NoError(t, err)
 
 	var b64Copy Base64
 	err = bson.Unmarshal(bsonData, &b64Copy)
 	assert.NoError(t, err)
-	assert.Equal(t, subj2, b64Copy)
+	assert.Equal(t, b64, b64Copy)
 
 	testValid(t, "byte", str)
 	testInvalid(t, "byte", "ZWxpemFiZXRocG9zZXk") // missing pad char
 
 	// Valuer interface
-	sqlvalue, err := subj2.Value()
+	b64 = Base64("ZWxpemFiZXRocG9zZXk=")
+	sqlvalue, err := b64.Value()
 	assert.NoError(t, err)
 	sqlvalueAsString, ok := sqlvalue.(string)
 	if assert.Truef(t, ok, "[%s]Value: expected driver value to be a string", "byte") {
 		assert.EqualValuesf(t, str, sqlvalueAsString, "[%s]Value: expected %v and %v to be equal", "byte", sqlvalue, str)
 	}
 	// Scanner interface
-	var subj3 Base64
-	err = subj3.Scan([]byte(str))
+	b64 = Base64("")
+	err = b64.Scan(str)
 	assert.NoError(t, err)
-	assert.EqualValues(t, str, subj3.String())
+	b64AsStr := b64.String()
+	assert.EqualValues(t, str, b64AsStr)
 
-	var subj4 Base64
-	err = subj4.Scan(str)
+	err = b64.Scan([]byte(str))
 	assert.NoError(t, err)
-	assert.EqualValues(t, str, subj4.String())
+	b64AsStr = b64.String()
+	assert.EqualValues(t, str, b64AsStr)
 
-	err = subj4.Scan(123)
+	err = b64.Scan(123)
 	assert.Error(t, err)
 }
 
@@ -337,8 +335,8 @@ type testableFormat interface {
 	encoding.TextUnmarshaler
 	json.Marshaler
 	json.Unmarshaler
-	bson.Marshaler
-	bson.Unmarshaler
+	bson.Getter
+	bson.Setter
 	fmt.Stringer
 	sql.Scanner
 	driver.Valuer
@@ -375,7 +373,7 @@ func testStringFormat(t *testing.T, what testableFormat, format, with string, va
 	assert.Equalf(t, bj, b, "[%s]MarshalJSON: expected %v and %v to be value equal as []byte", format, string(b), with)
 
 	// bson encoding interface
-	bsonData, err := bson.Marshal(what)
+	bsonData, err := bson.Marshal(&what)
 	assert.NoError(t, err)
 
 	resetValue(t, format, what)
