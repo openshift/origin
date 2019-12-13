@@ -140,9 +140,7 @@ func startMasterOrDie(masterConfig *master.Config, incomingServer *httptest.Serv
 
 	stopCh := make(chan struct{})
 	closeFn := func() {
-		if m != nil {
-			m.GenericAPIServer.RunPreShutdownHooks()
-		}
+		m.GenericAPIServer.RunPreShutdownHooks()
 		close(stopCh)
 		s.Close()
 	}

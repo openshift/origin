@@ -24,10 +24,6 @@ import (
 	"strconv"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/kubernetes/pkg/master/controller/clusterauthenticationtrust"
-
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -68,11 +64,9 @@ import (
 	storageapiv1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
-	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/endpoints/discovery"
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/pkg/server/dynamiccertificates"
 	"k8s.io/apiserver/pkg/server/healthz"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
@@ -125,7 +119,7 @@ const (
 )
 
 type ExtraConfig struct {
-	ClusterAuthenticationInfo clusterauthenticationtrust.ClusterAuthenticationInfo
+	ClientCARegistrationHook ClientCARegistrationHook
 
 	APIResourceConfigSource  serverstorage.APIResourceConfigSource
 	StorageFactory           serverstorage.StorageFactory
@@ -221,7 +215,7 @@ type EndpointReconcilerConfig struct {
 type Master struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 
-	ClusterAuthenticationInfo clusterauthenticationtrust.ClusterAuthenticationInfo
+	ClientCARegistrationHook ClientCARegistrationHook
 }
 
 func (c *Config) createMasterCountReconciler() reconcilers.EndpointReconciler {
@@ -343,8 +337,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	}
 
 	m := &Master{
-		GenericAPIServer:          s,
-		ClusterAuthenticationInfo: c.ExtraConfig.ClusterAuthenticationInfo,
+		GenericAPIServer: s,
 	}
 
 	// install legacy rest storage
@@ -405,42 +398,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		m.installTunneler(c.ExtraConfig.Tunneler, corev1client.NewForConfigOrDie(c.GenericConfig.LoopbackClientConfig).Nodes())
 	}
 
-	m.GenericAPIServer.AddPostStartHookOrDie("start-cluster-authentication-info-controller", func(hookContext genericapiserver.PostStartHookContext) error {
-		kubeClient, err := kubernetes.NewForConfig(hookContext.LoopbackClientConfig)
-		if err != nil {
-			return err
-		}
-		controller := clusterauthenticationtrust.NewClusterAuthenticationTrustController(m.ClusterAuthenticationInfo, kubeClient)
-
-		// prime values and start listeners
-		if m.ClusterAuthenticationInfo.ClientCA != nil {
-			if notifier, ok := m.ClusterAuthenticationInfo.ClientCA.(dynamiccertificates.Notifier); ok {
-				notifier.AddListener(controller)
-			}
-			if controller, ok := m.ClusterAuthenticationInfo.ClientCA.(dynamiccertificates.ControllerRunner); ok {
-				// runonce to be sure that we have a value.
-				if err := controller.RunOnce(); err != nil {
-					runtime.HandleError(err)
-				}
-				go controller.Run(1, hookContext.StopCh)
-			}
-		}
-		if m.ClusterAuthenticationInfo.RequestHeaderCA != nil {
-			if notifier, ok := m.ClusterAuthenticationInfo.RequestHeaderCA.(dynamiccertificates.Notifier); ok {
-				notifier.AddListener(controller)
-			}
-			if controller, ok := m.ClusterAuthenticationInfo.RequestHeaderCA.(dynamiccertificates.ControllerRunner); ok {
-				// runonce to be sure that we have a value.
-				if err := controller.RunOnce(); err != nil {
-					runtime.HandleError(err)
-				}
-				go controller.Run(1, hookContext.StopCh)
-			}
-		}
-
-		go controller.Run(1, hookContext.StopCh)
-		return nil
-	})
+	m.GenericAPIServer.AddPostStartHookOrDie("ca-registration", c.ExtraConfig.ClientCARegistrationHook.PostStartHook)
 
 	return m, nil
 }

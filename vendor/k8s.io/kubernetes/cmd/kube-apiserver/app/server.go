@@ -22,6 +22,7 @@ package app
 import (
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -366,6 +367,15 @@ func CreateKubeAPIServerConfig(
 		}
 	}
 
+	clientCA, lastErr := readCAorNil(s.Authentication.ClientCert.ClientCA)
+	if lastErr != nil {
+		return
+	}
+	requestHeaderProxyCA, lastErr := readCAorNil(s.Authentication.RequestHeader.ClientCAFile)
+	if lastErr != nil {
+		return
+	}
+
 	var eventStorage *eventstorage.REST
 	eventStorage, lastErr = eventstorage.NewREST(genericConfig.RESTOptionsGetter, uint64(s.EventTTL.Seconds()))
 	if lastErr != nil {
@@ -376,6 +386,14 @@ func CreateKubeAPIServerConfig(
 	config = &master.Config{
 		GenericConfig: genericConfig,
 		ExtraConfig: master.ExtraConfig{
+			ClientCARegistrationHook: master.ClientCARegistrationHook{
+				ClientCA:                         clientCA,
+				RequestHeaderUsernameHeaders:     s.Authentication.RequestHeader.UsernameHeaders,
+				RequestHeaderGroupHeaders:        s.Authentication.RequestHeader.GroupHeaders,
+				RequestHeaderExtraHeaderPrefixes: s.Authentication.RequestHeader.ExtraHeaderPrefixes,
+				RequestHeaderCA:                  requestHeaderProxyCA,
+				RequestHeaderAllowedNames:        s.Authentication.RequestHeader.AllowedNames,
+			},
 
 			APIResourceConfigSource: storageFactory.APIResourceConfigSource,
 			StorageFactory:          storageFactory,
@@ -403,24 +421,6 @@ func CreateKubeAPIServerConfig(
 
 			VersionedInformers: versionedInformers,
 		},
-	}
-
-	clientCAProvider, lastErr := s.Authentication.ClientCert.GetClientCAContentProvider()
-	if lastErr != nil {
-		return
-	}
-	config.ExtraConfig.ClusterAuthenticationInfo.ClientCA = clientCAProvider
-
-	requestHeaderConfig, lastErr := s.Authentication.RequestHeader.ToAuthenticationRequestHeaderConfig()
-	if lastErr != nil {
-		return
-	}
-	if requestHeaderConfig != nil {
-		config.ExtraConfig.ClusterAuthenticationInfo.RequestHeaderCA = requestHeaderConfig.CAContentProvider
-		config.ExtraConfig.ClusterAuthenticationInfo.RequestHeaderAllowedNames = requestHeaderConfig.AllowedClientNames
-		config.ExtraConfig.ClusterAuthenticationInfo.RequestHeaderExtraHeaderPrefixes = requestHeaderConfig.ExtraHeaderPrefixes
-		config.ExtraConfig.ClusterAuthenticationInfo.RequestHeaderGroupHeaders = requestHeaderConfig.GroupHeaders
-		config.ExtraConfig.ClusterAuthenticationInfo.RequestHeaderUsernameHeaders = requestHeaderConfig.UsernameHeaders
 	}
 
 	if nodeTunneler != nil {
@@ -775,6 +775,13 @@ func buildServiceResolver(enabledAggregatorRouting bool, hostname string, inform
 		serviceResolver = aggregatorapiserver.NewLoopbackServiceResolver(serviceResolver, localHost)
 	}
 	return serviceResolver
+}
+
+func readCAorNil(file string) ([]byte, error) {
+	if len(file) == 0 {
+		return nil, nil
+	}
+	return ioutil.ReadFile(file)
 }
 
 // eventRegistrySink wraps an event registry in order to be used as direct event sync, without going through the API.
