@@ -40,15 +40,6 @@ func TestPpoll(t *testing.T) {
 	}
 }
 
-func TestSysctlClockinfo(t *testing.T) {
-	ci, err := unix.SysctlClockinfo("kern.clockrate")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("tick = %v, tickadj = %v, hz = %v, profhz = %v, stathz = %v",
-		ci.Tick, ci.Tickadj, ci.Hz, ci.Profhz, ci.Stathz)
-}
-
 func TestSysctlUvmexp(t *testing.T) {
 	uvm, err := unix.SysctlUvmexp("vm.uvmexp")
 	if err != nil {

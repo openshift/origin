@@ -125,10 +125,7 @@ func TestExample(t *testing.T) {
 	if err != nil {
 		t.Fatalf("wevtutil failed: %v\n%v", err, string(out))
 	}
-	want := strings.Join(append([]string{name}, args...), "-")
-	// Test context passing (see servicemain in sys_386.s and sys_amd64.s).
-	want += "-123456"
-	if !strings.Contains(string(out), want) {
+	if want := strings.Join(append([]string{name}, args...), "-"); !strings.Contains(string(out), want) {
 		t.Errorf("%q string does not contain %q", string(out), want)
 	}
 }

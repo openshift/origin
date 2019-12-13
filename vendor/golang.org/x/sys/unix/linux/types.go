@@ -48,7 +48,6 @@ package unix
 #include <sys/utsname.h>
 #include <sys/wait.h>
 #include <linux/errqueue.h>
-#include <linux/fanotify.h>
 #include <linux/filter.h>
 #include <linux/icmpv6.h>
 #include <linux/if_pppox.h>
@@ -331,8 +330,7 @@ struct perf_event_attr_go {
 	__s32 clockid;
 	__u64 sample_regs_intr;
 	__u32 aux_watermark;
-	__u16 sample_max_stack;
-	__u16 __reserved_2;
+	__u32 __reserved_2;
 };
 
 // ustat is deprecated and glibc 2.28 removed ustat.h. Provide the type here for
@@ -495,8 +493,6 @@ type Ucred C.struct_ucred
 
 type TCPInfo C.struct_tcp_info
 
-type CanFilter C.struct_can_filter
-
 const (
 	SizeofSockaddrInet4     = C.sizeof_struct_sockaddr_in
 	SizeofSockaddrInet6     = C.sizeof_struct_sockaddr_in6
@@ -526,187 +522,143 @@ const (
 	SizeofICMPv6Filter      = C.sizeof_struct_icmp6_filter
 	SizeofUcred             = C.sizeof_struct_ucred
 	SizeofTCPInfo           = C.sizeof_struct_tcp_info
-	SizeofCanFilter         = C.sizeof_struct_can_filter
 )
 
 // Netlink routing and interface messages
 
 const (
-	NDA_UNSPEC              = C.NDA_UNSPEC
-	NDA_DST                 = C.NDA_DST
-	NDA_LLADDR              = C.NDA_LLADDR
-	NDA_CACHEINFO           = C.NDA_CACHEINFO
-	NDA_PROBES              = C.NDA_PROBES
-	NDA_VLAN                = C.NDA_VLAN
-	NDA_PORT                = C.NDA_PORT
-	NDA_VNI                 = C.NDA_VNI
-	NDA_IFINDEX             = C.NDA_IFINDEX
-	NDA_MASTER              = C.NDA_MASTER
-	NDA_LINK_NETNSID        = C.NDA_LINK_NETNSID
-	NDA_SRC_VNI             = C.NDA_SRC_VNI
-	NTF_USE                 = C.NTF_USE
-	NTF_SELF                = C.NTF_SELF
-	NTF_MASTER              = C.NTF_MASTER
-	NTF_PROXY               = C.NTF_PROXY
-	NTF_EXT_LEARNED         = C.NTF_EXT_LEARNED
-	NTF_OFFLOADED           = C.NTF_OFFLOADED
-	NTF_ROUTER              = C.NTF_ROUTER
-	NUD_INCOMPLETE          = C.NUD_INCOMPLETE
-	NUD_REACHABLE           = C.NUD_REACHABLE
-	NUD_STALE               = C.NUD_STALE
-	NUD_DELAY               = C.NUD_DELAY
-	NUD_PROBE               = C.NUD_PROBE
-	NUD_FAILED              = C.NUD_FAILED
-	NUD_NOARP               = C.NUD_NOARP
-	NUD_PERMANENT           = C.NUD_PERMANENT
-	NUD_NONE                = C.NUD_NONE
-	IFA_UNSPEC              = C.IFA_UNSPEC
-	IFA_ADDRESS             = C.IFA_ADDRESS
-	IFA_LOCAL               = C.IFA_LOCAL
-	IFA_LABEL               = C.IFA_LABEL
-	IFA_BROADCAST           = C.IFA_BROADCAST
-	IFA_ANYCAST             = C.IFA_ANYCAST
-	IFA_CACHEINFO           = C.IFA_CACHEINFO
-	IFA_MULTICAST           = C.IFA_MULTICAST
-	IFA_FLAGS               = C.IFA_FLAGS
-	IFA_RT_PRIORITY         = C.IFA_RT_PRIORITY
-	IFA_TARGET_NETNSID      = C.IFA_TARGET_NETNSID
-	IFLA_UNSPEC             = C.IFLA_UNSPEC
-	IFLA_ADDRESS            = C.IFLA_ADDRESS
-	IFLA_BROADCAST          = C.IFLA_BROADCAST
-	IFLA_IFNAME             = C.IFLA_IFNAME
-	IFLA_MTU                = C.IFLA_MTU
-	IFLA_LINK               = C.IFLA_LINK
-	IFLA_QDISC              = C.IFLA_QDISC
-	IFLA_STATS              = C.IFLA_STATS
-	IFLA_COST               = C.IFLA_COST
-	IFLA_PRIORITY           = C.IFLA_PRIORITY
-	IFLA_MASTER             = C.IFLA_MASTER
-	IFLA_WIRELESS           = C.IFLA_WIRELESS
-	IFLA_PROTINFO           = C.IFLA_PROTINFO
-	IFLA_TXQLEN             = C.IFLA_TXQLEN
-	IFLA_MAP                = C.IFLA_MAP
-	IFLA_WEIGHT             = C.IFLA_WEIGHT
-	IFLA_OPERSTATE          = C.IFLA_OPERSTATE
-	IFLA_LINKMODE           = C.IFLA_LINKMODE
-	IFLA_LINKINFO           = C.IFLA_LINKINFO
-	IFLA_NET_NS_PID         = C.IFLA_NET_NS_PID
-	IFLA_IFALIAS            = C.IFLA_IFALIAS
-	IFLA_NUM_VF             = C.IFLA_NUM_VF
-	IFLA_VFINFO_LIST        = C.IFLA_VFINFO_LIST
-	IFLA_STATS64            = C.IFLA_STATS64
-	IFLA_VF_PORTS           = C.IFLA_VF_PORTS
-	IFLA_PORT_SELF          = C.IFLA_PORT_SELF
-	IFLA_AF_SPEC            = C.IFLA_AF_SPEC
-	IFLA_GROUP              = C.IFLA_GROUP
-	IFLA_NET_NS_FD          = C.IFLA_NET_NS_FD
-	IFLA_EXT_MASK           = C.IFLA_EXT_MASK
-	IFLA_PROMISCUITY        = C.IFLA_PROMISCUITY
-	IFLA_NUM_TX_QUEUES      = C.IFLA_NUM_TX_QUEUES
-	IFLA_NUM_RX_QUEUES      = C.IFLA_NUM_RX_QUEUES
-	IFLA_CARRIER            = C.IFLA_CARRIER
-	IFLA_PHYS_PORT_ID       = C.IFLA_PHYS_PORT_ID
-	IFLA_CARRIER_CHANGES    = C.IFLA_CARRIER_CHANGES
-	IFLA_PHYS_SWITCH_ID     = C.IFLA_PHYS_SWITCH_ID
-	IFLA_LINK_NETNSID       = C.IFLA_LINK_NETNSID
-	IFLA_PHYS_PORT_NAME     = C.IFLA_PHYS_PORT_NAME
-	IFLA_PROTO_DOWN         = C.IFLA_PROTO_DOWN
-	IFLA_GSO_MAX_SEGS       = C.IFLA_GSO_MAX_SEGS
-	IFLA_GSO_MAX_SIZE       = C.IFLA_GSO_MAX_SIZE
-	IFLA_PAD                = C.IFLA_PAD
-	IFLA_XDP                = C.IFLA_XDP
-	IFLA_EVENT              = C.IFLA_EVENT
-	IFLA_NEW_NETNSID        = C.IFLA_NEW_NETNSID
-	IFLA_IF_NETNSID         = C.IFLA_IF_NETNSID
-	IFLA_TARGET_NETNSID     = C.IFLA_TARGET_NETNSID
-	IFLA_CARRIER_UP_COUNT   = C.IFLA_CARRIER_UP_COUNT
-	IFLA_CARRIER_DOWN_COUNT = C.IFLA_CARRIER_DOWN_COUNT
-	IFLA_NEW_IFINDEX        = C.IFLA_NEW_IFINDEX
-	IFLA_MIN_MTU            = C.IFLA_MIN_MTU
-	IFLA_MAX_MTU            = C.IFLA_MAX_MTU
-	IFLA_MAX                = C.IFLA_MAX
-	IFLA_INFO_KIND          = C.IFLA_INFO_KIND
-	IFLA_INFO_DATA          = C.IFLA_INFO_DATA
-	IFLA_INFO_XSTATS        = C.IFLA_INFO_XSTATS
-	IFLA_INFO_SLAVE_KIND    = C.IFLA_INFO_SLAVE_KIND
-	IFLA_INFO_SLAVE_DATA    = C.IFLA_INFO_SLAVE_DATA
-	RT_SCOPE_UNIVERSE       = C.RT_SCOPE_UNIVERSE
-	RT_SCOPE_SITE           = C.RT_SCOPE_SITE
-	RT_SCOPE_LINK           = C.RT_SCOPE_LINK
-	RT_SCOPE_HOST           = C.RT_SCOPE_HOST
-	RT_SCOPE_NOWHERE        = C.RT_SCOPE_NOWHERE
-	RT_TABLE_UNSPEC         = C.RT_TABLE_UNSPEC
-	RT_TABLE_COMPAT         = C.RT_TABLE_COMPAT
-	RT_TABLE_DEFAULT        = C.RT_TABLE_DEFAULT
-	RT_TABLE_MAIN           = C.RT_TABLE_MAIN
-	RT_TABLE_LOCAL          = C.RT_TABLE_LOCAL
-	RT_TABLE_MAX            = C.RT_TABLE_MAX
-	RTA_UNSPEC              = C.RTA_UNSPEC
-	RTA_DST                 = C.RTA_DST
-	RTA_SRC                 = C.RTA_SRC
-	RTA_IIF                 = C.RTA_IIF
-	RTA_OIF                 = C.RTA_OIF
-	RTA_GATEWAY             = C.RTA_GATEWAY
-	RTA_PRIORITY            = C.RTA_PRIORITY
-	RTA_PREFSRC             = C.RTA_PREFSRC
-	RTA_METRICS             = C.RTA_METRICS
-	RTA_MULTIPATH           = C.RTA_MULTIPATH
-	RTA_FLOW                = C.RTA_FLOW
-	RTA_CACHEINFO           = C.RTA_CACHEINFO
-	RTA_TABLE               = C.RTA_TABLE
-	RTA_MARK                = C.RTA_MARK
-	RTA_MFC_STATS           = C.RTA_MFC_STATS
-	RTA_VIA                 = C.RTA_VIA
-	RTA_NEWDST              = C.RTA_NEWDST
-	RTA_PREF                = C.RTA_PREF
-	RTA_ENCAP_TYPE          = C.RTA_ENCAP_TYPE
-	RTA_ENCAP               = C.RTA_ENCAP
-	RTA_EXPIRES             = C.RTA_EXPIRES
-	RTA_PAD                 = C.RTA_PAD
-	RTA_UID                 = C.RTA_UID
-	RTA_TTL_PROPAGATE       = C.RTA_TTL_PROPAGATE
-	RTA_IP_PROTO            = C.RTA_IP_PROTO
-	RTA_SPORT               = C.RTA_SPORT
-	RTA_DPORT               = C.RTA_DPORT
-	RTN_UNSPEC              = C.RTN_UNSPEC
-	RTN_UNICAST             = C.RTN_UNICAST
-	RTN_LOCAL               = C.RTN_LOCAL
-	RTN_BROADCAST           = C.RTN_BROADCAST
-	RTN_ANYCAST             = C.RTN_ANYCAST
-	RTN_MULTICAST           = C.RTN_MULTICAST
-	RTN_BLACKHOLE           = C.RTN_BLACKHOLE
-	RTN_UNREACHABLE         = C.RTN_UNREACHABLE
-	RTN_PROHIBIT            = C.RTN_PROHIBIT
-	RTN_THROW               = C.RTN_THROW
-	RTN_NAT                 = C.RTN_NAT
-	RTN_XRESOLVE            = C.RTN_XRESOLVE
-	RTNLGRP_NONE            = C.RTNLGRP_NONE
-	RTNLGRP_LINK            = C.RTNLGRP_LINK
-	RTNLGRP_NOTIFY          = C.RTNLGRP_NOTIFY
-	RTNLGRP_NEIGH           = C.RTNLGRP_NEIGH
-	RTNLGRP_TC              = C.RTNLGRP_TC
-	RTNLGRP_IPV4_IFADDR     = C.RTNLGRP_IPV4_IFADDR
-	RTNLGRP_IPV4_MROUTE     = C.RTNLGRP_IPV4_MROUTE
-	RTNLGRP_IPV4_ROUTE      = C.RTNLGRP_IPV4_ROUTE
-	RTNLGRP_IPV4_RULE       = C.RTNLGRP_IPV4_RULE
-	RTNLGRP_IPV6_IFADDR     = C.RTNLGRP_IPV6_IFADDR
-	RTNLGRP_IPV6_MROUTE     = C.RTNLGRP_IPV6_MROUTE
-	RTNLGRP_IPV6_ROUTE      = C.RTNLGRP_IPV6_ROUTE
-	RTNLGRP_IPV6_IFINFO     = C.RTNLGRP_IPV6_IFINFO
-	RTNLGRP_IPV6_PREFIX     = C.RTNLGRP_IPV6_PREFIX
-	RTNLGRP_IPV6_RULE       = C.RTNLGRP_IPV6_RULE
-	RTNLGRP_ND_USEROPT      = C.RTNLGRP_ND_USEROPT
-	SizeofNlMsghdr          = C.sizeof_struct_nlmsghdr
-	SizeofNlMsgerr          = C.sizeof_struct_nlmsgerr
-	SizeofRtGenmsg          = C.sizeof_struct_rtgenmsg
-	SizeofNlAttr            = C.sizeof_struct_nlattr
-	SizeofRtAttr            = C.sizeof_struct_rtattr
-	SizeofIfInfomsg         = C.sizeof_struct_ifinfomsg
-	SizeofIfAddrmsg         = C.sizeof_struct_ifaddrmsg
-	SizeofRtMsg             = C.sizeof_struct_rtmsg
-	SizeofRtNexthop         = C.sizeof_struct_rtnexthop
-	SizeofNdUseroptmsg      = C.sizeof_struct_nduseroptmsg
-	SizeofNdMsg             = C.sizeof_struct_ndmsg
+	IFA_UNSPEC           = C.IFA_UNSPEC
+	IFA_ADDRESS          = C.IFA_ADDRESS
+	IFA_LOCAL            = C.IFA_LOCAL
+	IFA_LABEL            = C.IFA_LABEL
+	IFA_BROADCAST        = C.IFA_BROADCAST
+	IFA_ANYCAST          = C.IFA_ANYCAST
+	IFA_CACHEINFO        = C.IFA_CACHEINFO
+	IFA_MULTICAST        = C.IFA_MULTICAST
+	IFLA_UNSPEC          = C.IFLA_UNSPEC
+	IFLA_ADDRESS         = C.IFLA_ADDRESS
+	IFLA_BROADCAST       = C.IFLA_BROADCAST
+	IFLA_IFNAME          = C.IFLA_IFNAME
+	IFLA_INFO_KIND       = C.IFLA_INFO_KIND
+	IFLA_MTU             = C.IFLA_MTU
+	IFLA_LINK            = C.IFLA_LINK
+	IFLA_QDISC           = C.IFLA_QDISC
+	IFLA_STATS           = C.IFLA_STATS
+	IFLA_COST            = C.IFLA_COST
+	IFLA_PRIORITY        = C.IFLA_PRIORITY
+	IFLA_MASTER          = C.IFLA_MASTER
+	IFLA_WIRELESS        = C.IFLA_WIRELESS
+	IFLA_PROTINFO        = C.IFLA_PROTINFO
+	IFLA_TXQLEN          = C.IFLA_TXQLEN
+	IFLA_MAP             = C.IFLA_MAP
+	IFLA_WEIGHT          = C.IFLA_WEIGHT
+	IFLA_OPERSTATE       = C.IFLA_OPERSTATE
+	IFLA_LINKMODE        = C.IFLA_LINKMODE
+	IFLA_LINKINFO        = C.IFLA_LINKINFO
+	IFLA_NET_NS_PID      = C.IFLA_NET_NS_PID
+	IFLA_IFALIAS         = C.IFLA_IFALIAS
+	IFLA_NUM_VF          = C.IFLA_NUM_VF
+	IFLA_VFINFO_LIST     = C.IFLA_VFINFO_LIST
+	IFLA_STATS64         = C.IFLA_STATS64
+	IFLA_VF_PORTS        = C.IFLA_VF_PORTS
+	IFLA_PORT_SELF       = C.IFLA_PORT_SELF
+	IFLA_AF_SPEC         = C.IFLA_AF_SPEC
+	IFLA_GROUP           = C.IFLA_GROUP
+	IFLA_NET_NS_FD       = C.IFLA_NET_NS_FD
+	IFLA_EXT_MASK        = C.IFLA_EXT_MASK
+	IFLA_PROMISCUITY     = C.IFLA_PROMISCUITY
+	IFLA_NUM_TX_QUEUES   = C.IFLA_NUM_TX_QUEUES
+	IFLA_NUM_RX_QUEUES   = C.IFLA_NUM_RX_QUEUES
+	IFLA_CARRIER         = C.IFLA_CARRIER
+	IFLA_PHYS_PORT_ID    = C.IFLA_PHYS_PORT_ID
+	IFLA_CARRIER_CHANGES = C.IFLA_CARRIER_CHANGES
+	IFLA_PHYS_SWITCH_ID  = C.IFLA_PHYS_SWITCH_ID
+	IFLA_LINK_NETNSID    = C.IFLA_LINK_NETNSID
+	IFLA_PHYS_PORT_NAME  = C.IFLA_PHYS_PORT_NAME
+	IFLA_PROTO_DOWN      = C.IFLA_PROTO_DOWN
+	IFLA_GSO_MAX_SEGS    = C.IFLA_GSO_MAX_SEGS
+	IFLA_GSO_MAX_SIZE    = C.IFLA_GSO_MAX_SIZE
+	IFLA_PAD             = C.IFLA_PAD
+	IFLA_XDP             = C.IFLA_XDP
+	IFLA_EVENT           = C.IFLA_EVENT
+	IFLA_NEW_NETNSID     = C.IFLA_NEW_NETNSID
+	IFLA_IF_NETNSID      = C.IFLA_IF_NETNSID
+	IFLA_MAX             = C.IFLA_MAX
+	RT_SCOPE_UNIVERSE    = C.RT_SCOPE_UNIVERSE
+	RT_SCOPE_SITE        = C.RT_SCOPE_SITE
+	RT_SCOPE_LINK        = C.RT_SCOPE_LINK
+	RT_SCOPE_HOST        = C.RT_SCOPE_HOST
+	RT_SCOPE_NOWHERE     = C.RT_SCOPE_NOWHERE
+	RT_TABLE_UNSPEC      = C.RT_TABLE_UNSPEC
+	RT_TABLE_COMPAT      = C.RT_TABLE_COMPAT
+	RT_TABLE_DEFAULT     = C.RT_TABLE_DEFAULT
+	RT_TABLE_MAIN        = C.RT_TABLE_MAIN
+	RT_TABLE_LOCAL       = C.RT_TABLE_LOCAL
+	RT_TABLE_MAX         = C.RT_TABLE_MAX
+	RTA_UNSPEC           = C.RTA_UNSPEC
+	RTA_DST              = C.RTA_DST
+	RTA_SRC              = C.RTA_SRC
+	RTA_IIF              = C.RTA_IIF
+	RTA_OIF              = C.RTA_OIF
+	RTA_GATEWAY          = C.RTA_GATEWAY
+	RTA_PRIORITY         = C.RTA_PRIORITY
+	RTA_PREFSRC          = C.RTA_PREFSRC
+	RTA_METRICS          = C.RTA_METRICS
+	RTA_MULTIPATH        = C.RTA_MULTIPATH
+	RTA_FLOW             = C.RTA_FLOW
+	RTA_CACHEINFO        = C.RTA_CACHEINFO
+	RTA_TABLE            = C.RTA_TABLE
+	RTA_MARK             = C.RTA_MARK
+	RTA_MFC_STATS        = C.RTA_MFC_STATS
+	RTA_VIA              = C.RTA_VIA
+	RTA_NEWDST           = C.RTA_NEWDST
+	RTA_PREF             = C.RTA_PREF
+	RTA_ENCAP_TYPE       = C.RTA_ENCAP_TYPE
+	RTA_ENCAP            = C.RTA_ENCAP
+	RTA_EXPIRES          = C.RTA_EXPIRES
+	RTA_PAD              = C.RTA_PAD
+	RTA_UID              = C.RTA_UID
+	RTA_TTL_PROPAGATE    = C.RTA_TTL_PROPAGATE
+	RTA_IP_PROTO         = C.RTA_IP_PROTO
+	RTA_SPORT            = C.RTA_SPORT
+	RTA_DPORT            = C.RTA_DPORT
+	RTN_UNSPEC           = C.RTN_UNSPEC
+	RTN_UNICAST          = C.RTN_UNICAST
+	RTN_LOCAL            = C.RTN_LOCAL
+	RTN_BROADCAST        = C.RTN_BROADCAST
+	RTN_ANYCAST          = C.RTN_ANYCAST
+	RTN_MULTICAST        = C.RTN_MULTICAST
+	RTN_BLACKHOLE        = C.RTN_BLACKHOLE
+	RTN_UNREACHABLE      = C.RTN_UNREACHABLE
+	RTN_PROHIBIT         = C.RTN_PROHIBIT
+	RTN_THROW            = C.RTN_THROW
+	RTN_NAT              = C.RTN_NAT
+	RTN_XRESOLVE         = C.RTN_XRESOLVE
+	RTNLGRP_NONE         = C.RTNLGRP_NONE
+	RTNLGRP_LINK         = C.RTNLGRP_LINK
+	RTNLGRP_NOTIFY       = C.RTNLGRP_NOTIFY
+	RTNLGRP_NEIGH        = C.RTNLGRP_NEIGH
+	RTNLGRP_TC           = C.RTNLGRP_TC
+	RTNLGRP_IPV4_IFADDR  = C.RTNLGRP_IPV4_IFADDR
+	RTNLGRP_IPV4_MROUTE  = C.RTNLGRP_IPV4_MROUTE
+	RTNLGRP_IPV4_ROUTE   = C.RTNLGRP_IPV4_ROUTE
+	RTNLGRP_IPV4_RULE    = C.RTNLGRP_IPV4_RULE
+	RTNLGRP_IPV6_IFADDR  = C.RTNLGRP_IPV6_IFADDR
+	RTNLGRP_IPV6_MROUTE  = C.RTNLGRP_IPV6_MROUTE
+	RTNLGRP_IPV6_ROUTE   = C.RTNLGRP_IPV6_ROUTE
+	RTNLGRP_IPV6_IFINFO  = C.RTNLGRP_IPV6_IFINFO
+	RTNLGRP_IPV6_PREFIX  = C.RTNLGRP_IPV6_PREFIX
+	RTNLGRP_IPV6_RULE    = C.RTNLGRP_IPV6_RULE
+	RTNLGRP_ND_USEROPT   = C.RTNLGRP_ND_USEROPT
+	SizeofNlMsghdr       = C.sizeof_struct_nlmsghdr
+	SizeofNlMsgerr       = C.sizeof_struct_nlmsgerr
+	SizeofRtGenmsg       = C.sizeof_struct_rtgenmsg
+	SizeofNlAttr         = C.sizeof_struct_nlattr
+	SizeofRtAttr         = C.sizeof_struct_rtattr
+	SizeofIfInfomsg      = C.sizeof_struct_ifinfomsg
+	SizeofIfAddrmsg      = C.sizeof_struct_ifaddrmsg
+	SizeofRtMsg          = C.sizeof_struct_rtmsg
+	SizeofRtNexthop      = C.sizeof_struct_rtnexthop
 )
 
 type NlMsghdr C.struct_nlmsghdr
@@ -726,10 +678,6 @@ type IfAddrmsg C.struct_ifaddrmsg
 type RtMsg C.struct_rtmsg
 
 type RtNexthop C.struct_rtnexthop
-
-type NdUseroptmsg C.struct_nduseroptmsg
-
-type NdMsg C.struct_ndmsg
 
 // Linux socket filter
 
@@ -976,7 +924,6 @@ const (
 	PERF_COUNT_SW_ALIGNMENT_FAULTS = C.PERF_COUNT_SW_ALIGNMENT_FAULTS
 	PERF_COUNT_SW_EMULATION_FAULTS = C.PERF_COUNT_SW_EMULATION_FAULTS
 	PERF_COUNT_SW_DUMMY            = C.PERF_COUNT_SW_DUMMY
-	PERF_COUNT_SW_BPF_OUTPUT       = C.PERF_COUNT_SW_BPF_OUTPUT
 
 	PERF_SAMPLE_IP           = C.PERF_SAMPLE_IP
 	PERF_SAMPLE_TID          = C.PERF_SAMPLE_TID
@@ -998,38 +945,21 @@ const (
 	PERF_SAMPLE_BRANCH_ANY_CALL   = C.PERF_SAMPLE_BRANCH_ANY_CALL
 	PERF_SAMPLE_BRANCH_ANY_RETURN = C.PERF_SAMPLE_BRANCH_ANY_RETURN
 	PERF_SAMPLE_BRANCH_IND_CALL   = C.PERF_SAMPLE_BRANCH_IND_CALL
-	PERF_SAMPLE_BRANCH_ABORT_TX   = C.PERF_SAMPLE_BRANCH_ABORT_TX
-	PERF_SAMPLE_BRANCH_IN_TX      = C.PERF_SAMPLE_BRANCH_IN_TX
-	PERF_SAMPLE_BRANCH_NO_TX      = C.PERF_SAMPLE_BRANCH_NO_TX
-	PERF_SAMPLE_BRANCH_COND       = C.PERF_SAMPLE_BRANCH_COND
-	PERF_SAMPLE_BRANCH_CALL_STACK = C.PERF_SAMPLE_BRANCH_CALL_STACK
-	PERF_SAMPLE_BRANCH_IND_JUMP   = C.PERF_SAMPLE_BRANCH_IND_JUMP
-	PERF_SAMPLE_BRANCH_CALL       = C.PERF_SAMPLE_BRANCH_CALL
-	PERF_SAMPLE_BRANCH_NO_FLAGS   = C.PERF_SAMPLE_BRANCH_NO_FLAGS
-	PERF_SAMPLE_BRANCH_NO_CYCLES  = C.PERF_SAMPLE_BRANCH_NO_CYCLES
-	PERF_SAMPLE_BRANCH_TYPE_SAVE  = C.PERF_SAMPLE_BRANCH_TYPE_SAVE
 
 	PERF_FORMAT_TOTAL_TIME_ENABLED = C.PERF_FORMAT_TOTAL_TIME_ENABLED
 	PERF_FORMAT_TOTAL_TIME_RUNNING = C.PERF_FORMAT_TOTAL_TIME_RUNNING
 	PERF_FORMAT_ID                 = C.PERF_FORMAT_ID
 	PERF_FORMAT_GROUP              = C.PERF_FORMAT_GROUP
 
-	PERF_RECORD_MMAP            = C.PERF_RECORD_MMAP
-	PERF_RECORD_LOST            = C.PERF_RECORD_LOST
-	PERF_RECORD_COMM            = C.PERF_RECORD_COMM
-	PERF_RECORD_EXIT            = C.PERF_RECORD_EXIT
-	PERF_RECORD_THROTTLE        = C.PERF_RECORD_THROTTLE
-	PERF_RECORD_UNTHROTTLE      = C.PERF_RECORD_UNTHROTTLE
-	PERF_RECORD_FORK            = C.PERF_RECORD_FORK
-	PERF_RECORD_READ            = C.PERF_RECORD_READ
-	PERF_RECORD_SAMPLE          = C.PERF_RECORD_SAMPLE
-	PERF_RECORD_MMAP2           = C.PERF_RECORD_MMAP2
-	PERF_RECORD_AUX             = C.PERF_RECORD_AUX
-	PERF_RECORD_ITRACE_START    = C.PERF_RECORD_ITRACE_START
-	PERF_RECORD_LOST_SAMPLES    = C.PERF_RECORD_LOST_SAMPLES
-	PERF_RECORD_SWITCH          = C.PERF_RECORD_SWITCH
-	PERF_RECORD_SWITCH_CPU_WIDE = C.PERF_RECORD_SWITCH_CPU_WIDE
-	PERF_RECORD_NAMESPACES      = C.PERF_RECORD_NAMESPACES
+	PERF_RECORD_MMAP       = C.PERF_RECORD_MMAP
+	PERF_RECORD_LOST       = C.PERF_RECORD_LOST
+	PERF_RECORD_COMM       = C.PERF_RECORD_COMM
+	PERF_RECORD_EXIT       = C.PERF_RECORD_EXIT
+	PERF_RECORD_THROTTLE   = C.PERF_RECORD_THROTTLE
+	PERF_RECORD_UNTHROTTLE = C.PERF_RECORD_UNTHROTTLE
+	PERF_RECORD_FORK       = C.PERF_RECORD_FORK
+	PERF_RECORD_READ       = C.PERF_RECORD_READ
+	PERF_RECORD_SAMPLE     = C.PERF_RECORD_SAMPLE
 
 	PERF_CONTEXT_HV     = C.PERF_CONTEXT_HV
 	PERF_CONTEXT_KERNEL = C.PERF_CONTEXT_KERNEL
@@ -1042,7 +972,6 @@ const (
 	PERF_FLAG_FD_NO_GROUP = C.PERF_FLAG_FD_NO_GROUP
 	PERF_FLAG_FD_OUTPUT   = C.PERF_FLAG_FD_OUTPUT
 	PERF_FLAG_PID_CGROUP  = C.PERF_FLAG_PID_CGROUP
-	PERF_FLAG_FD_CLOEXEC  = C.PERF_FLAG_FD_CLOEXEC
 )
 
 // Platform ABI and calling convention
@@ -1179,9 +1108,6 @@ const (
 	SizeofTpacketHdr  = C.sizeof_struct_tpacket_hdr
 	SizeofTpacket2Hdr = C.sizeof_struct_tpacket2_hdr
 	SizeofTpacket3Hdr = C.sizeof_struct_tpacket3_hdr
-
-	SizeofTpacketStats   = C.sizeof_struct_tpacket_stats
-	SizeofTpacketStatsV3 = C.sizeof_struct_tpacket_stats_v3
 )
 
 // netfilter
@@ -1748,9 +1674,3 @@ const (
 // Socket error queue
 
 type SockExtendedErr C.struct_sock_extended_err
-
-// Fanotify
-
-type FanotifyEventMetadata C.struct_fanotify_event_metadata
-
-type FanotifyResponse C.struct_fanotify_response

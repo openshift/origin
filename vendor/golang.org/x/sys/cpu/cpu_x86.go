@@ -9,8 +9,6 @@ package cpu
 const cacheLineSize = 64
 
 func init() {
-	Initialized = true
-
 	maxID, _, _, _ := cpuid(0, 0)
 
 	if maxID < 1 {
