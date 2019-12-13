@@ -51,7 +51,7 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 			obj, err := cvc.Get("version", metav1.GetOptions{})
 			if err != nil {
 				lastErr = err
-				e2e.Logf("Unable to check for cluster version: %v", err)
+				e2e.Logf("Unable to check for cluster version 1: %v", err)
 				return false, nil
 			}
 			cv := objx.Map(obj.UnstructuredContent())
