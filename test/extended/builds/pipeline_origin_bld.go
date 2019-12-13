@@ -214,6 +214,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 	g.Context("jenkins-client-plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
+			g.Skip("disabling Jenkins until https://bugzilla.redhat.com/show_bug.cgi?id=1783530 sorted out")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
@@ -380,6 +381,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 	g.Context("Sync plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
+			g.Skip("disabling Jenkins until https://bugzilla.redhat.com/show_bug.cgi?id=1783530 sorted out")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
