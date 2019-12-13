@@ -90,7 +90,6 @@ type TokenFileAuthenticationOptions struct {
 
 type WebHookAuthenticationOptions struct {
 	ConfigFile string
-	Version    string
 	CacheTTL   time.Duration
 }
 
@@ -156,7 +155,6 @@ func (s *BuiltInAuthenticationOptions) WithTokenFile() *BuiltInAuthenticationOpt
 
 func (s *BuiltInAuthenticationOptions) WithWebHook() *BuiltInAuthenticationOptions {
 	s.WebHook = &WebHookAuthenticationOptions{
-		Version:  "v1beta1",
 		CacheTTL: 2 * time.Minute,
 	}
 	return s
@@ -305,15 +303,12 @@ func (s *BuiltInAuthenticationOptions) AddFlags(fs *pflag.FlagSet) {
 			"File with webhook configuration for token authentication in kubeconfig format. "+
 			"The API server will query the remote service to determine authentication for bearer tokens.")
 
-		fs.StringVar(&s.WebHook.Version, "authentication-token-webhook-version", s.WebHook.Version, ""+
-			"The API version of the authentication.k8s.io TokenReview to send to and expect from the webhook.")
-
 		fs.DurationVar(&s.WebHook.CacheTTL, "authentication-token-webhook-cache-ttl", s.WebHook.CacheTTL,
 			"The duration to cache responses from the webhook token authenticator.")
 	}
 }
 
-func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticator.Config, error) {
+func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() kubeauthenticator.Config {
 	ret := kubeauthenticator.Config{
 		TokenSuccessCacheTTL: s.TokenSuccessCacheTTL,
 		TokenFailureCacheTTL: s.TokenFailureCacheTTL,
@@ -328,11 +323,7 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 	}
 
 	if s.ClientCert != nil {
-		var err error
-		ret.ClientCAContentProvider, err = s.ClientCert.GetClientCAContentProvider()
-		if err != nil {
-			return kubeauthenticator.Config{}, err
-		}
+		ret.ClientCAFile = s.ClientCert.ClientCA
 	}
 
 	if s.OIDC != nil {
@@ -352,11 +343,7 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 	}
 
 	if s.RequestHeader != nil {
-		var err error
-		ret.RequestHeaderConfig, err = s.RequestHeader.ToAuthenticationRequestHeaderConfig()
-		if err != nil {
-			return kubeauthenticator.Config{}, err
-		}
+		ret.RequestHeaderConfig = s.RequestHeader.ToAuthenticationRequestHeaderConfig()
 	}
 
 	ret.APIAudiences = s.APIAudiences
@@ -375,7 +362,6 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 
 	if s.WebHook != nil {
 		ret.WebhookTokenAuthnConfigFile = s.WebHook.ConfigFile
-		ret.WebhookTokenAuthnVersion = s.WebHook.Version
 		ret.WebhookTokenAuthnCacheTTL = s.WebHook.CacheTTL
 
 		if len(s.WebHook.ConfigFile) > 0 && s.WebHook.CacheTTL > 0 {
@@ -388,7 +374,7 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 		}
 	}
 
-	return ret, nil
+	return ret
 }
 
 func (o *BuiltInAuthenticationOptions) ApplyTo(c *genericapiserver.Config) error {
@@ -396,24 +382,15 @@ func (o *BuiltInAuthenticationOptions) ApplyTo(c *genericapiserver.Config) error
 		return nil
 	}
 
+	var err error
 	if o.ClientCert != nil {
-		clientCertificateCAContentProvider, err := o.ClientCert.GetClientCAContentProvider()
-		if err != nil {
-			return fmt.Errorf("unable to load client CA file: %v", err)
-		}
-		if err = c.Authentication.ApplyClientCert(clientCertificateCAContentProvider, c.SecureServing); err != nil {
+		if err = c.Authentication.ApplyClientCert(o.ClientCert.ClientCA, c.SecureServing); err != nil {
 			return fmt.Errorf("unable to load client CA file: %v", err)
 		}
 	}
 	if o.RequestHeader != nil {
-		requestHeaderConfig, err := o.RequestHeader.ToAuthenticationRequestHeaderConfig()
-		if err != nil {
-			return fmt.Errorf("unable to create request header authentication config: %v", err)
-		}
-		if requestHeaderConfig != nil {
-			if err = c.Authentication.ApplyClientCert(requestHeaderConfig.CAContentProvider, c.SecureServing); err != nil {
-				return fmt.Errorf("unable to load client CA file: %v", err)
-			}
+		if err = c.Authentication.ApplyClientCert(o.RequestHeader.ClientCAFile, c.SecureServing); err != nil {
+			return fmt.Errorf("unable to load client CA file: %v", err)
 		}
 	}
 

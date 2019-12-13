@@ -19,113 +19,24 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/net/http2"
-	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apiserver/pkg/server/dynamiccertificates"
+	"k8s.io/apimachinery/pkg/util/validation"
+	servercerts "k8s.io/apiserver/pkg/server/certs"
+	"k8s.io/klog"
 )
 
 const (
 	defaultKeepAlivePeriod = 3 * time.Minute
 )
-
-// tlsConfig produces the tls.Config to serve with.
-func (s *SecureServingInfo) tlsConfig(stopCh <-chan struct{}) (*tls.Config, error) {
-	tlsConfig := &tls.Config{
-		// Can't use SSLv3 because of POODLE and BEAST
-		// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
-		// Can't use TLSv1.1 because of RC4 cipher usage
-		MinVersion: tls.VersionTLS12,
-		// enable HTTP2 for go's 1.7 HTTP Server
-		NextProtos: []string{"h2", "http/1.1"},
-	}
-
-	// these are static aspects of the tls.Config
-	if s.DisableHTTP2 {
-		klog.Info("Forcing use of http/1.1 only")
-		tlsConfig.NextProtos = []string{"http/1.1"}
-	}
-	if s.MinTLSVersion > 0 {
-		tlsConfig.MinVersion = s.MinTLSVersion
-	}
-	if len(s.CipherSuites) > 0 {
-		tlsConfig.CipherSuites = s.CipherSuites
-	}
-
-	if s.ClientCA != nil {
-		// Populate PeerCertificates in requests, but don't reject connections without certificates
-		// This allows certificates to be validated by authenticators, while still allowing other auth types
-		tlsConfig.ClientAuth = tls.RequestClientCert
-	}
-
-	if s.ClientCA != nil || s.Cert != nil || len(s.SNICerts) > 0 {
-		dynamicCertificateController := dynamiccertificates.NewDynamicServingCertificateController(
-			*tlsConfig,
-			s.ClientCA,
-			s.Cert,
-			s.SNICerts,
-			nil, // TODO see how to plumb an event recorder down in here. For now this results in simply klog messages.
-		)
-		// register if possible
-		if notifier, ok := s.ClientCA.(dynamiccertificates.Notifier); ok {
-			notifier.AddListener(dynamicCertificateController)
-		}
-		if notifier, ok := s.Cert.(dynamiccertificates.Notifier); ok {
-			notifier.AddListener(dynamicCertificateController)
-		}
-		// start controllers if possible
-		if controller, ok := s.ClientCA.(dynamiccertificates.ControllerRunner); ok {
-			// runonce to try to prime data.  If this fails, it's ok because we fail closed.
-			// Files are required to be populated already, so this is for convenience.
-			if err := controller.RunOnce(); err != nil {
-				klog.Warningf("Initial population of client CA failed: %v", err)
-			}
-
-			go controller.Run(1, stopCh)
-		}
-		if controller, ok := s.Cert.(dynamiccertificates.ControllerRunner); ok {
-			// runonce to try to prime data.  If this fails, it's ok because we fail closed.
-			// Files are required to be populated already, so this is for convenience.
-			if err := controller.RunOnce(); err != nil {
-				klog.Warningf("Initial population of default serving certificate failed: %v", err)
-			}
-
-			go controller.Run(1, stopCh)
-		}
-		for _, sniCert := range s.SNICerts {
-			if notifier, ok := sniCert.(dynamiccertificates.Notifier); ok {
-				notifier.AddListener(dynamicCertificateController)
-			}
-
-			if controller, ok := sniCert.(dynamiccertificates.ControllerRunner); ok {
-				// runonce to try to prime data.  If this fails, it's ok because we fail closed.
-				// Files are required to be populated already, so this is for convenience.
-				if err := controller.RunOnce(); err != nil {
-					klog.Warningf("Initial population of SNI serving certificate failed: %v", err)
-				}
-
-				go controller.Run(1, stopCh)
-			}
-		}
-
-		// runonce to try to prime data.  If this fails, it's ok because we fail closed.
-		// Files are required to be populated already, so this is for convenience.
-		if err := dynamicCertificateController.RunOnce(); err != nil {
-			klog.Warningf("Initial population of dynamic certificates failed: %v", err)
-		}
-		go dynamicCertificateController.Run(1, stopCh)
-
-		tlsConfig.GetConfigForClient = dynamicCertificateController.GetConfigForClient
-	}
-
-	return tlsConfig, nil
-}
 
 // Serve runs the secure http server. It fails only if certificates cannot be loaded or the initial listen call fails.
 // The actual server loop (stoppable by closing stopCh) runs in a go routine, i.e. Serve does not block.
@@ -135,16 +46,59 @@ func (s *SecureServingInfo) Serve(handler http.Handler, shutdownTimeout time.Dur
 		return nil, fmt.Errorf("listener must not be nil")
 	}
 
-	tlsConfig, err := s.tlsConfig(stopCh)
-	if err != nil {
-		return nil, err
-	}
-
 	secureServer := &http.Server{
 		Addr:           s.Listener.Addr().String(),
 		Handler:        handler,
 		MaxHeaderBytes: 1 << 20,
-		TLSConfig:      tlsConfig,
+	}
+
+	baseTLSConfig := tls.Config{
+		// Can't use SSLv3 because of POODLE and BEAST
+		// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
+		// Can't use TLSv1.1 because of RC4 cipher usage
+		MinVersion: tls.VersionTLS12,
+		// enable HTTP2 for go's 1.7 HTTP Server
+		NextProtos: []string{"h2", "http/1.1"},
+	}
+
+	if s.DisableHTTP2 {
+		klog.Info("Forcing use of http/1.1 only")
+		secureServer.TLSConfig.NextProtos = []string{"http/1.1"}
+	}
+
+	if s.MinTLSVersion > 0 {
+		baseTLSConfig.MinVersion = s.MinTLSVersion
+	}
+	if len(s.CipherSuites) > 0 {
+		baseTLSConfig.CipherSuites = s.CipherSuites
+	}
+	if len(s.ClientCA.CABundles) > 0 {
+		// Populate PeerCertificates in requests, but don't reject connections without certificates
+		// This allows certificates to be validated by authenticators, while still allowing other auth types
+		baseTLSConfig.ClientAuth = tls.RequestClientCert
+	}
+
+	// this option overrides the provided certs
+	// TODO this should be mutually exclusive, but I'm not sure what that will do today
+	if len(s.ClientCA.CABundles) > 0 || s.LoopbackCert != nil || s.NameToCertificate != nil || len(s.DefaultCertificate.Key) != 0 || len(s.DefaultCertificate.Cert) != 0 {
+		loader := servercerts.DynamicServingLoader{
+			ClientCA:           s.ClientCA,
+			DefaultCertificate: s.DefaultCertificate,
+			NameToCertificate:  s.NameToCertificate,
+			LoopbackCert:       s.LoopbackCert,
+		}
+		loader.BaseTLSConfig = baseTLSConfig // set a copy so that further changes don't get reflected
+
+		// need to load the certs at least once
+		if err := loader.CheckCerts(); err != nil {
+			return nil, err
+		}
+		go loader.Run(stopCh)
+
+		// now wire the server for certificates
+		secureServer.TLSConfig = &tls.Config{
+			GetConfigForClient: loader.GetConfigForClient,
+		}
 	}
 
 	// At least 99% of serialized resources in surveyed clusters were smaller than 256kb.
@@ -226,6 +180,65 @@ func RunServer(
 	}()
 
 	return stoppedCh, nil
+}
+
+type NamedTLSCert struct {
+	// OriginalFileName is an optional string that can be used to provide the original backing files in the GetNamedCertificateMap
+	// return value
+	OriginalFileName *servercerts.CertKeyFileReference
+
+	TLSCert tls.Certificate
+
+	// Names is a list of domain patterns: fully qualified domain names, possibly prefixed with
+	// wildcard segments.
+	Names []string
+}
+
+// GetNamedCertificateMap returns a map of *tls.Certificate by name. It's
+// suitable for use in tls.Config#NamedCertificates. Returns an error if any of the certs
+// cannot be loaded. Returns nil if len(certs) == 0
+func GetNamedCertificateMap(certs []NamedTLSCert) (map[string]*tls.Certificate, map[string]*servercerts.CertKeyFileReference, error) {
+	// register certs with implicit names first, reverse order such that earlier trump over the later
+	byName := map[string]*tls.Certificate{}
+	fileByName := map[string]*servercerts.CertKeyFileReference{}
+	for i := len(certs) - 1; i >= 0; i-- {
+		if len(certs[i].Names) > 0 {
+			continue
+		}
+		cert := &certs[i].TLSCert
+
+		// read names from certificate common names and DNS names
+		if len(cert.Certificate) == 0 {
+			return nil, nil, fmt.Errorf("empty SNI certificate, skipping")
+		}
+		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
+		if err != nil {
+			return nil, nil, fmt.Errorf("parse error for SNI certificate: %v", err)
+		}
+		cn := x509Cert.Subject.CommonName
+		if cn == "*" || len(validation.IsDNS1123Subdomain(strings.TrimPrefix(cn, "*."))) == 0 {
+			byName[cn] = cert
+			fileByName[cn] = certs[i].OriginalFileName
+		}
+		for _, san := range x509Cert.DNSNames {
+			byName[san] = cert
+			fileByName[san] = certs[i].OriginalFileName
+		}
+		// intentionally all IPs in the cert are ignored as SNI forbids passing IPs
+		// to select a cert. Before go 1.6 the tls happily passed IPs as SNI values.
+	}
+
+	// register certs with explicit names last, overwriting every of the implicit ones,
+	// again in reverse order.
+	for i := len(certs) - 1; i >= 0; i-- {
+		namedCert := &certs[i]
+		for _, name := range namedCert.Names {
+			byName[name] = &certs[i].TLSCert
+			fileByName[name] = certs[i].OriginalFileName
+		}
+	}
+
+	return byName, fileByName, nil
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted

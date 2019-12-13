@@ -17,6 +17,7 @@ limitations under the License.
 package options
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"path"
@@ -24,14 +25,14 @@ import (
 	"strings"
 
 	"github.com/spf13/pflag"
-	"k8s.io/klog"
 
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/pkg/server/dynamiccertificates"
+	"k8s.io/apiserver/pkg/server/certs"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog"
 )
 
 type SecureServingOptions struct {
@@ -88,7 +89,7 @@ type GeneratableKeyCert struct {
 	PairName string
 
 	// GeneratedCert holds an in-memory generated certificate if CertFile/KeyFile aren't explicitly set, and CertDirectory/PairName are not set.
-	GeneratedCert dynamiccertificates.CertKeyContentProvider
+	GeneratedCert *tls.Certificate
 
 	// FixtureDirectory is a directory that contains test fixture used to avoid regeneration of certs during tests.
 	// The format is:
@@ -222,16 +223,10 @@ func (s *SecureServingOptions) ApplyTo(config **server.SecureServingInfo) error 
 	}
 	c := *config
 
-	serverCertFile, serverKeyFile := s.ServerCert.CertKey.CertFile, s.ServerCert.CertKey.KeyFile
-	// load main cert
-	if len(serverCertFile) != 0 || len(serverKeyFile) != 0 {
-		var err error
-		c.Cert, err = dynamiccertificates.NewDynamicServingContentFromFiles("serving-cert", serverCertFile, serverKeyFile)
-		if err != nil {
-			return err
-		}
-	} else if s.ServerCert.GeneratedCert != nil {
-		c.Cert = s.ServerCert.GeneratedCert
+	c.NameToCertificate = map[string]*certs.CertKeyFileReference{}
+	c.DefaultCertificate = certs.CertKeyFileReference{
+		Cert: s.ServerCert.CertKey.CertFile,
+		Key:  s.ServerCert.CertKey.KeyFile,
 	}
 
 	if len(s.CipherSuites) != 0 {
@@ -249,15 +244,27 @@ func (s *SecureServingOptions) ApplyTo(config **server.SecureServingInfo) error 
 	}
 
 	// load SNI certs
-	namedTLSCerts := make([]dynamiccertificates.SNICertKeyContentProvider, 0, len(s.SNICertKeys))
+	// holds the original filenames of the certificates.  Because allow implicit specification of names, we have to read
+	// everything to get this to be able to drive the dynamicCertificateConfig
+	namedTLSCerts := make([]server.NamedTLSCert, 0, len(s.SNICertKeys))
 	for _, nck := range s.SNICertKeys {
-		tlsCert, err := dynamiccertificates.NewDynamicSNIContentFromFiles("sni-serving-cert", nck.CertFile, nck.KeyFile, nck.Names...)
-		namedTLSCerts = append(namedTLSCerts, tlsCert)
+		tlsCert, err := tls.LoadX509KeyPair(nck.CertFile, nck.KeyFile)
+		namedTLSCerts = append(namedTLSCerts, server.NamedTLSCert{
+			OriginalFileName: &certs.CertKeyFileReference{
+				Cert: nck.CertFile,
+				Key:  nck.KeyFile,
+			},
+			TLSCert: tlsCert,
+			Names:   nck.Names,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to load SNI cert and key: %v", err)
 		}
 	}
-	c.SNICerts = namedTLSCerts
+	_, c.NameToCertificate, err = server.GetNamedCertificateMap(namedTLSCerts)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -305,10 +312,11 @@ func (s *SecureServingOptions) MaybeDefaultWithSelfSignedCerts(publicAddress str
 			}
 			klog.Infof("Generated self-signed cert (%s, %s)", keyCert.CertFile, keyCert.KeyFile)
 		} else {
-			s.ServerCert.GeneratedCert, err = dynamiccertificates.NewStaticCertKeyContent("Generated self signed cert", cert, key)
+			tlsCert, err := tls.X509KeyPair(cert, key)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to generate self signed cert: %v", err)
 			}
+			s.ServerCert.GeneratedCert = &tlsCert
 			klog.Infof("Generated self-signed cert in-memory")
 		}
 	}

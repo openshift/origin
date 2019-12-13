@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
-	"k8s.io/apiserver/pkg/authentication/request/headerrequest"
 	"k8s.io/apiserver/pkg/server"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 )
@@ -38,44 +37,34 @@ func TestToAuthenticationRequestHeaderConfig(t *testing.T) {
 		{
 			name: "test when ClientCAFile is nil",
 			testOptions: &RequestHeaderAuthenticationOptions{
-				UsernameHeaders:     headerrequest.StaticStringSlice{"x-remote-user"},
-				GroupHeaders:        headerrequest.StaticStringSlice{"x-remote-group"},
-				ExtraHeaderPrefixes: headerrequest.StaticStringSlice{"x-remote-extra-"},
-				AllowedNames:        headerrequest.StaticStringSlice{"kube-aggregator"},
+				UsernameHeaders:     []string{"x-remote-user"},
+				GroupHeaders:        []string{"x-remote-group"},
+				ExtraHeaderPrefixes: []string{"x-remote-extra-"},
+				AllowedNames:        []string{"kube-aggregator"},
 			},
 		},
 		{
 			name: "test when ClientCAFile is not nil",
 			testOptions: &RequestHeaderAuthenticationOptions{
-				ClientCAFile:        "testdata/root.pem",
-				UsernameHeaders:     headerrequest.StaticStringSlice{"x-remote-user"},
-				GroupHeaders:        headerrequest.StaticStringSlice{"x-remote-group"},
-				ExtraHeaderPrefixes: headerrequest.StaticStringSlice{"x-remote-extra-"},
-				AllowedNames:        headerrequest.StaticStringSlice{"kube-aggregator"},
+				ClientCAFile:        "/testClientCAFile",
+				UsernameHeaders:     []string{"x-remote-user"},
+				GroupHeaders:        []string{"x-remote-group"},
+				ExtraHeaderPrefixes: []string{"x-remote-extra-"},
+				AllowedNames:        []string{"kube-aggregator"},
 			},
 			expectConfig: &authenticatorfactory.RequestHeaderConfig{
-				UsernameHeaders:     headerrequest.StaticStringSlice{"x-remote-user"},
-				GroupHeaders:        headerrequest.StaticStringSlice{"x-remote-group"},
-				ExtraHeaderPrefixes: headerrequest.StaticStringSlice{"x-remote-extra-"},
-				CAContentProvider:   nil, // this is nil because you can't compare functions
-				AllowedClientNames:  headerrequest.StaticStringSlice{"kube-aggregator"},
+				UsernameHeaders:     []string{"x-remote-user"},
+				GroupHeaders:        []string{"x-remote-group"},
+				ExtraHeaderPrefixes: []string{"x-remote-extra-"},
+				ClientCA:            "/testClientCAFile",
+				AllowedClientNames:  []string{"kube-aggregator"},
 			},
 		},
 	}
 
 	for _, testcase := range testCases {
 		t.Run(testcase.name, func(t *testing.T) {
-			resultConfig, err := testcase.testOptions.ToAuthenticationRequestHeaderConfig()
-			if err != nil {
-				t.Fatal(err)
-			}
-			if resultConfig != nil {
-				if resultConfig.CAContentProvider == nil {
-					t.Error("missing requestheader verify")
-				}
-				resultConfig.CAContentProvider = nil
-			}
-
+			resultConfig := testcase.testOptions.ToAuthenticationRequestHeaderConfig()
 			if !reflect.DeepEqual(resultConfig, testcase.expectConfig) {
 				t.Errorf("got RequestHeaderConfig: %#v, expected RequestHeaderConfig: %#v", resultConfig, testcase.expectConfig)
 			}

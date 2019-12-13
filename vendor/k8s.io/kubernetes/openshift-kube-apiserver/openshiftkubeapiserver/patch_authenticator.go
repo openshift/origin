@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apiserver/pkg/server/dynamiccertificates"
-
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
 	"k8s.io/apiserver/pkg/authentication/request/anonymous"
@@ -18,6 +16,7 @@ import (
 	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/certs"
 	webhooktoken "k8s.io/apiserver/plugin/pkg/authenticator/token/webhook"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -179,42 +178,34 @@ func newAuthenticator(
 	// build cert authenticator
 	// TODO: add "system:" prefix in authenticator, limit cert to username
 	// TODO: add "system:" prefix to groups in authenticator, limit cert to group name
-	clientCAContentProvider, err := dynamiccertificates.NewDynamicCAContentFromFile("client-ca-bundle", apiClientCABundle)
-	if err != nil {
+	dynamicCA := certs.NewDynamicCA(apiClientCABundle)
+	if err := dynamicCA.CheckCerts(); err != nil {
 		return nil, nil, err
 	}
-	if err := clientCAContentProvider.RunOnce(); err != nil {
-		return nil, nil, err
-	}
-	certAuth := x509request.NewDynamic(clientCAContentProvider.VerifyOptions, x509request.CommonNameUserConversion)
+	certauth := x509request.NewDynamic(dynamicCA.GetVerifier, x509request.CommonNameUserConversion)
 	postStartHooks["openshift.io-clientCA-reload"] = func(context genericapiserver.PostStartHookContext) error {
-		go clientCAContentProvider.Run(1, context.StopCh)
+		go dynamicCA.Run(context.StopCh)
 		return nil
 	}
-	authenticators = append(authenticators, certAuth)
+	authenticators = append(authenticators, certauth)
 
 	resultingAuthenticator := union.NewFailOnError(authenticators...)
 
 	topLevelAuthenticators := []authenticator.Request{}
 	// if we have a front proxy providing authentication configuration, wire it up and it should come first
 	if authConfig.RequestHeader != nil {
-		caBundleProvider, err := dynamiccertificates.NewDynamicCAContentFromFile("request-header", authConfig.RequestHeader.ClientCA)
-		if err != nil {
-			return nil, nil, err
-		}
-		if err := caBundleProvider.RunOnce(); err != nil {
-			return nil, nil, err
-		}
-
-		requestHeaderAuthenticator := headerrequest.NewDynamicVerifyOptionsSecure(
-			caBundleProvider.VerifyOptions,
-			headerrequest.StaticStringSlice(authConfig.RequestHeader.ClientCommonNames),
-			headerrequest.StaticStringSlice(authConfig.RequestHeader.UsernameHeaders),
-			headerrequest.StaticStringSlice(authConfig.RequestHeader.GroupHeaders),
-			headerrequest.StaticStringSlice(authConfig.RequestHeader.ExtraHeaderPrefixes),
+		requestHeaderAuthenticator, dynamicReloadFn, err := headerrequest.NewSecure(
+			authConfig.RequestHeader.ClientCA,
+			authConfig.RequestHeader.ClientCommonNames,
+			authConfig.RequestHeader.UsernameHeaders,
+			authConfig.RequestHeader.GroupHeaders,
+			authConfig.RequestHeader.ExtraHeaderPrefixes,
 		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Error building front proxy auth config: %v", err)
+		}
 		postStartHooks["openshift.io-requestheader-reload"] = func(context genericapiserver.PostStartHookContext) error {
-			go caBundleProvider.Run(1, context.StopCh)
+			go dynamicReloadFn(context.StopCh)
 			return nil
 		}
 		topLevelAuthenticators = append(topLevelAuthenticators, union.New(requestHeaderAuthenticator, resultingAuthenticator))

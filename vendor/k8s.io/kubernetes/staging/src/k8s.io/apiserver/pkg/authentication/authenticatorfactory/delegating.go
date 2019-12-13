@@ -18,6 +18,7 @@ package authenticatorfactory
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/spec"
@@ -31,6 +32,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/websocket"
 	"k8s.io/apiserver/pkg/authentication/request/x509"
 	"k8s.io/apiserver/pkg/authentication/token/cache"
+	"k8s.io/apiserver/pkg/server/certs"
 	webhooktoken "k8s.io/apiserver/plugin/pkg/authenticator/token/webhook"
 	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1beta1"
 )
@@ -46,42 +48,54 @@ type DelegatingAuthenticatorConfig struct {
 	// CacheTTL is the length of time that a token authentication answer will be cached.
 	CacheTTL time.Duration
 
-	// CAContentProvider are the options for verifying incoming connections using mTLS and directly assigning to users.
-	// Generally this is the CA bundle file used to authenticate client certificates
-	// If this is nil, then mTLS will not be used.
-	ClientCertificateCAContentProvider CAContentProvider
+	// ClientCAFile is the CA bundle file used to authenticate client certificates
+	ClientCAFile string
 
 	APIAudiences authenticator.Audiences
 
 	RequestHeaderConfig *RequestHeaderConfig
 }
 
-func (c DelegatingAuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDefinitions, error) {
+type DynamicReloadFunc func(stopCh <-chan struct{})
+
+// New returns the authentication, the openapi info, dynamic reloading poststarthooks, or an error
+func (c DelegatingAuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDefinitions, map[string]DynamicReloadFunc, error) {
 	authenticators := []authenticator.Request{}
 	securityDefinitions := spec.SecurityDefinitions{}
+	dynamicReloadHooks := map[string]DynamicReloadFunc{}
 
 	// front-proxy first, then remote
 	// Add the front proxy authenticator if requested
 	if c.RequestHeaderConfig != nil {
-		requestHeaderAuthenticator := headerrequest.NewDynamicVerifyOptionsSecure(
-			c.RequestHeaderConfig.CAContentProvider.VerifyOptions,
+		requestHeaderAuthenticator, dynamicReloadFn, err := headerrequest.NewSecure(
+			c.RequestHeaderConfig.ClientCA,
 			c.RequestHeaderConfig.AllowedClientNames,
 			c.RequestHeaderConfig.UsernameHeaders,
 			c.RequestHeaderConfig.GroupHeaders,
 			c.RequestHeaderConfig.ExtraHeaderPrefixes,
 		)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		dynamicReloadHooks["requestheader-reload"] = DynamicReloadFunc(dynamicReloadFn)
 		authenticators = append(authenticators, requestHeaderAuthenticator)
 	}
 
 	// x509 client cert auth
-	if c.ClientCertificateCAContentProvider != nil {
-		authenticators = append(authenticators, x509.NewDynamic(c.ClientCertificateCAContentProvider.VerifyOptions, x509.CommonNameUserConversion))
+	if len(c.ClientCAFile) > 0 {
+		dynamicVerifier := certs.NewDynamicCA(c.ClientCAFile)
+		if err := dynamicVerifier.CheckCerts(); err != nil {
+			return nil, nil, nil, fmt.Errorf("unable to load client CA file %s: %v", c.ClientCAFile, err)
+		}
+		dynamicReloadHooks["clientCA-reload"] = dynamicVerifier.Run
+
+		authenticators = append(authenticators, x509.NewDynamic(dynamicVerifier.GetVerifier, x509.CommonNameUserConversion))
 	}
 
 	if c.TokenAccessReviewClient != nil {
 		tokenAuth, err := webhooktoken.NewFromInterface(c.TokenAccessReviewClient, c.APIAudiences)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		cachingTokenAuth := cache.New(tokenAuth, false, c.CacheTTL, c.CacheTTL)
 		authenticators = append(authenticators, bearertoken.New(cachingTokenAuth), websocket.NewProtocolAuthenticator(cachingTokenAuth))
@@ -98,14 +112,14 @@ func (c DelegatingAuthenticatorConfig) New() (authenticator.Request, *spec.Secur
 
 	if len(authenticators) == 0 {
 		if c.Anonymous {
-			return anonymous.NewAuthenticator(), &securityDefinitions, nil
+			return anonymous.NewAuthenticator(), &securityDefinitions, dynamicReloadHooks, nil
 		}
-		return nil, nil, errors.New("No authentication method configured")
+		return nil, nil, nil, errors.New("No authentication method configured")
 	}
 
 	authenticator := group.NewAuthenticatedGroupAdder(unionauth.New(authenticators...))
 	if c.Anonymous {
 		authenticator = unionauth.NewFailOnError(authenticator, anonymous.NewAuthenticator())
 	}
-	return authenticator, &securityDefinitions, nil
+	return authenticator, &securityDefinitions, dynamicReloadHooks, nil
 }
