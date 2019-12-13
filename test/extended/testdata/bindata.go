@@ -31068,7 +31068,6 @@ os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --gen
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-controller/v1'   'replicationcontroller/foo'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run/v1'              'replicationcontroller/foo'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-pod/v1'          'pod/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=deployment/v1beta1'  'deployment.extensions/foo'
 
 os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l name=mytemplate | oc create -f -'
 os::cmd::expect_success 'oc delete all -l name=mytemplate'
