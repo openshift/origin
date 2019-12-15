@@ -64,7 +64,7 @@ var _ = SIGDescribe("client-go should negotiate", func() {
 				// this is allowed
 			case watch.Error:
 				err := errors.FromObject(evt.Object)
-				if errors.IsGone(err) {
+				if errors.IsGone(err) || errors.IsResourceExpired(err) {
 					// this is allowed, since the kubernetes object could be very old
 					break
 				}
