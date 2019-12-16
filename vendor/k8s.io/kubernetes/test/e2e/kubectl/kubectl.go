@@ -447,6 +447,11 @@ var _ = SIGDescribe("Kubectl client", func() {
 				"VolumeSnapshotClass":   true,
 				"VolumeSnapshotContent": true,
 				"VolumeSnapshot":        true,
+
+				// these Kinds are defined in https://github.com/openshift/cluster-kube-storage-version-migrator-operator/blob/e9a5038ee194a4d3d7dfce9e7533be5a362e1886/manifests/0000_40_kube-storage-version-migrator-operator_00_crd.yaml
+				// and don't define additional printer columns
+				"StorageState":            true,
+				"StorageVersionMigration": true,
 			}
 
 			apiGroups, err := c.Discovery().ServerPreferredResources()
