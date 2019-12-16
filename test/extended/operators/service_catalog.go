@@ -18,7 +18,7 @@ var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
 	var (
 		oc = exutil.NewCLI("service-catalog", exutil.KubeConfigPath())
 		// serviceCatalogWait is how long to wait for Service Catalog operations to be ready
-		serviceCatalogWait  = 120 * time.Second
+		serviceCatalogWait  = 180 * time.Second
 		err                 error
 		buildPruningBaseDir = exutil.FixturePath("testdata", "service_catalog")
 		upsBroker           = filepath.Join(buildPruningBaseDir, "ups-broker.yaml")
@@ -28,28 +28,31 @@ var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
 		upsBinding          = filepath.Join(buildPruningBaseDir, "ups-binding.yaml")
 	)
 
-	enableServiceCatalogResources := [][]string{
+	enableServiceCatalogResources := []struct {
+		object    string
+		namespace string
+		name      string
+	}{
 		{"servicecatalogapiserver", "openshift-service-catalog-apiserver", "apiserver"},
 		{"servicecatalogcontrollermanager", "openshift-service-catalog-controller-manager", "controller-manager"},
 	}
-
 	// Enable Service Catalog
 	g.BeforeEach(func() {
 		g.By("Enable Service Catalog")
 		for _, v := range enableServiceCatalogResources {
-			_, err := oc.AsAdmin().Run("patch").Args(v[0], "cluster", "-p", `{"spec":{"managementState":"Managed"}}`, "--type=merge").Output()
+			_, err := oc.AsAdmin().Run("patch").Args(v.object, "cluster", "-p", `{"spec":{"managementState":"Managed"}}`, "--type=merge").Output()
 			if err != nil {
-				e2e.Failf("Unable to create: %s, error:%v", v[0], err)
+				e2e.Failf("Unable to create: %s, error:%v", v.object, err)
 			}
 
 			err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
-				output, err := oc.AsAdmin().Run("get").Args("pods", "-n", v[1], "-o=jsonpath={.items[0].status.phase}").Output()
+				output, err := oc.AsAdmin().Run("get").Args("pods", "-n", v.namespace, "-o=jsonpath={.items[0].status.phase}").Output()
 				if err != nil && !strings.Contains(output, "out of bounds") {
 					e2e.Failf("output string: %s", output)
 					return false, err
 				}
 				if output == "Running" {
-					e2e.Logf("%s works well!", v[0])
+					e2e.Logf("%s works well!", v.object)
 					return true, nil
 				}
 				return false, nil
@@ -81,14 +84,14 @@ var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 		for _, v := range enableServiceCatalogResources {
-			g.By("disable " + v[0])
-			_, err := oc.AsAdmin().Run("patch").Args(v[0], "cluster", "-p", `{"spec":{"managementState":"Removed"}}`, "--type=merge").Output()
+			g.By("disable " + v.object)
+			_, err := oc.AsAdmin().Run("patch").Args(v.object, "cluster", "-p", `{"spec":{"managementState":"Removed"}}`, "--type=merge").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
-				output, err := oc.AsAdmin().Run("get").Args("ns", v[1]).Output()
+				output, err := oc.AsAdmin().Run("get").Args("ns", v.namespace).Output()
 				if err != nil {
 					if strings.Contains(output, "not found") {
-						e2e.Logf("Disable %s successfully.", v[0])
+						e2e.Logf("Disable %s successfully.", v.object)
 						return true, nil
 					}
 				}
@@ -106,6 +109,7 @@ var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
 				if strings.Contains(output, "not found") {
 					return false, nil
 				}
+				return false, err
 			}
 			if strings.Contains(output, "Passed") {
 				e2e.Logf("v1beta1.servicecatalog.k8s.io apiservice works well!")
@@ -123,7 +127,15 @@ var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
 		for _, v := range upsFiles {
 			configFile, err := oc.AsAdmin().Run("process").Args("-f", v, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = oc.AsAdmin().Run("create").Args("-f", configFile).Execute()
+			err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
+				err = oc.AsAdmin().Run("create").Args("-f", configFile).Execute()
+				if err != nil {
+					e2e.Failf("Failed to install:%v, error:%v", v, err)
+					return false, err
+				}
+				e2e.Logf("Install:%v successfully", v)
+				return true, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 		err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
@@ -139,39 +151,42 @@ var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("create a ups instance")
-		configFile, err := oc.AsAdmin().Run("process").Args("-f", upsInstance, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
-		err = oc.AsAdmin().Run("create").Args("-f", configFile).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
-			output, err := oc.AsAdmin().Run("get").Args("serviceinstance", "-n", oc.Namespace(), "ups-instance", "-o=jsonpath={.status.conditions[0].reason}").Output()
-			if err != nil && !strings.Contains(output, "executing jsonpath") {
-				e2e.Failf("Failed to install ups-instance, error:%v", err)
-				return false, err
-			}
-			if strings.Contains(output, "ProvisionedSuccessfully") {
+		upsBrokers := []struct {
+			file         string
+			object       string
+			resourceName string
+			expect       string
+		}{
+			{upsInstance, "serviceinstance", "ups-instance", "ProvisionedSuccessfully"},
+			{upsBinding, "servicebinding", "ups-binding", "InjectedBindResult"},
+		}
+		for _, item := range upsBrokers {
+			g.By(fmt.Sprintf("create %s", item))
+			configFile, err := oc.AsAdmin().Run("process").Args("-f", item.file, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
+			err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
+				err = oc.AsAdmin().Run("create").Args("-f", configFile).Execute()
+				if err != nil {
+					e2e.Failf("Failed to install:%v, error:%v", item.file, err)
+					return false, err
+				}
+				e2e.Logf("Install:%v successfully", item.file)
 				return true, nil
-			}
-			return false, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
+				output, err := oc.AsAdmin().Run("get").Args(item.object, "-n", oc.Namespace(), item.resourceName, "-o=jsonpath={.status.conditions[0].reason}").Output()
+				if err != nil && !strings.Contains(output, "executing jsonpath") {
+					e2e.Failf("Failed to install %s, error:%v", item.resourceName, err)
+					return false, err
+				}
+				if strings.Contains(output, item.expect) {
+					return true, nil
+				}
+				return false, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
 
-		g.By("bind to this instance")
-		configFile, err = oc.AsAdmin().Run("process").Args("-f", upsBinding, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
-		err = oc.AsAdmin().Run("create").Args("-f", configFile).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
-			output, err := oc.AsAdmin().Run("get").Args("servicebinding", "-n", oc.Namespace(), "ups-binding", "-o=jsonpath={.status.conditions[0].reason}").Output()
-			if err != nil && !strings.Contains(output, "executing jsonpath") {
-				e2e.Failf("Failed to create servicebinding, error:%v", err)
-				return false, err
-			}
-			if strings.Contains(output, "InjectedBindResult") {
-				return true, nil
-			}
-			return false, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
 		output, err := oc.AsAdmin().Run("get").Args("secret", "-n", oc.Namespace()).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(output).To(o.ContainSubstring("my-secret"))
@@ -216,10 +231,10 @@ var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
 		// Unmanage these servicecatalogoperator resource
 		g.By("set Service Catalog to Unmanaged")
 		for _, v := range enableServiceCatalogResources {
-			_, err := oc.AsAdmin().Run("patch").Args(v[0], "cluster", "-p", `{"spec":{"managementState":"Unmanaged"}}`, "--type=merge").Output()
+			_, err := oc.AsAdmin().Run("patch").Args(v.object, "cluster", "-p", `{"spec":{"managementState":"Unmanaged"}}`, "--type=merge").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
-				output, err = oc.AsAdmin().Run("get").Args(v[0], "-n", v[1], "cluster", "-o=jsonpath={.spec.managementState}").Output()
+				output, err = oc.AsAdmin().Run("get").Args(v.object, "-n", v.namespace, "cluster", "-o=jsonpath={.spec.managementState}").Output()
 				if err != nil && !strings.Contains(output, "executing jsonpath") {
 					e2e.Failf("Failed to set the Unmanaged for Service Catalog, error:%v", err)
 					return false, err
@@ -231,12 +246,12 @@ var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			output, err := oc.AsAdmin().Run("patch").Args("daemonset", v[2], "-n", v[1], "-p", `{"spec":{"template":{"spec":{"priorityClassName":"test"}}}}`).Output()
+			output, err := oc.AsAdmin().Run("patch").Args("daemonset", v.name, "-n", v.namespace, "-p", `{"spec":{"template":{"spec":{"priorityClassName":"test"}}}}`).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(output).To(o.ContainSubstring("patched"))
 
 			err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
-				output, err = oc.AsAdmin().Run("get").Args("daemonset", v[2], "-n", v[1], "-o=jsonpath={.spec.template.spec.priorityClassName}").Output()
+				output, err = oc.AsAdmin().Run("get").Args("daemonset", v.name, "-n", v.namespace, "-o=jsonpath={.spec.template.spec.priorityClassName}").Output()
 				if err != nil && !strings.Contains(output, "executing jsonpath") {
 					e2e.Failf("Failed to check the priority of the daemonset, error:%v", err)
 					return false, err
