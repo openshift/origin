@@ -457,6 +457,10 @@ var (
 		"[Flaky]": {
 			`Job should run a job to completion when tasks sometimes fail and are not locally restarted`, // seems flaky, also may require too many resources
 			`openshift mongodb replication creating from a template`,                                     // flaking on deployment
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1763936
+			`\[sig-network\] Networking Granular Checks: Services should function for node-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
 
 			// TODO(node): test works when run alone, but not in the suite in CI
 			`\[Feature:HPA\] Horizontal pod autoscaling \(scale resource: CPU\) \[sig-autoscaling\] ReplicationController light Should scale from 1 pod to 2 pods`,
