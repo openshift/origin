@@ -104,7 +104,6 @@ func BuildSwagger(crd *apiextensions.CustomResourceDefinition, version string, o
 					if opts.StripValueValidation {
 						schema = schema.StripValueValidations()
 					}
-
 					if opts.StripNullable {
 						schema = schema.StripNullable()
 					}

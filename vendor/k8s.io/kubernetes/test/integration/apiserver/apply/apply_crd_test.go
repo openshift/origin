@@ -191,7 +191,7 @@ func TestApplyCRDStructuralSchema(t *testing.T) {
 									},
 									"protocol": {
 										"type": "string",
-                    "nullable": true
+										"nullable": true
 									}
 								},
 								"required": [

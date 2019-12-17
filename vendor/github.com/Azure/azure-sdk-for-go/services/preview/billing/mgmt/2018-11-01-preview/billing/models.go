@@ -500,6 +500,143 @@ type AccountListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
+// AccountListResultIterator provides access to a complete listing of Account values.
+type AccountListResultIterator struct {
+	i    int
+	page AccountListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *AccountListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *AccountListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter AccountListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter AccountListResultIterator) Response() AccountListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter AccountListResultIterator) Value() Account {
+	if !iter.page.NotDone() {
+		return Account{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the AccountListResultIterator type.
+func NewAccountListResultIterator(page AccountListResultPage) AccountListResultIterator {
+	return AccountListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (alr AccountListResult) IsEmpty() bool {
+	return alr.Value == nil || len(*alr.Value) == 0
+}
+
+// accountListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (alr AccountListResult) accountListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if alr.NextLink == nil || len(to.String(alr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(alr.NextLink)))
+}
+
+// AccountListResultPage contains a page of Account values.
+type AccountListResultPage struct {
+	fn  func(context.Context, AccountListResult) (AccountListResult, error)
+	alr AccountListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *AccountListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AccountListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.alr)
+	if err != nil {
+		return err
+	}
+	page.alr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *AccountListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page AccountListResultPage) NotDone() bool {
+	return !page.alr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page AccountListResultPage) Response() AccountListResult {
+	return page.alr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page AccountListResultPage) Values() []Account {
+	if page.alr.IsEmpty() {
+		return nil
+	}
+	return *page.alr.Value
+}
+
+// Creates a new instance of the AccountListResultPage type.
+func NewAccountListResultPage(getNextPage func(context.Context, AccountListResult) (AccountListResult, error)) AccountListResultPage {
+	return AccountListResultPage{fn: getNextPage}
+}
+
 // AccountProperties the properties of the billing account.
 type AccountProperties struct {
 	// DisplayName - READ-ONLY; The billing account name.
@@ -700,6 +837,143 @@ type AgreementListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
+// AgreementListResultIterator provides access to a complete listing of Agreement values.
+type AgreementListResultIterator struct {
+	i    int
+	page AgreementListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *AgreementListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AgreementListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *AgreementListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter AgreementListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter AgreementListResultIterator) Response() AgreementListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter AgreementListResultIterator) Value() Agreement {
+	if !iter.page.NotDone() {
+		return Agreement{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the AgreementListResultIterator type.
+func NewAgreementListResultIterator(page AgreementListResultPage) AgreementListResultIterator {
+	return AgreementListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (alr AgreementListResult) IsEmpty() bool {
+	return alr.Value == nil || len(*alr.Value) == 0
+}
+
+// agreementListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (alr AgreementListResult) agreementListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if alr.NextLink == nil || len(to.String(alr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(alr.NextLink)))
+}
+
+// AgreementListResultPage contains a page of Agreement values.
+type AgreementListResultPage struct {
+	fn  func(context.Context, AgreementListResult) (AgreementListResult, error)
+	alr AgreementListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *AgreementListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AgreementListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.alr)
+	if err != nil {
+		return err
+	}
+	page.alr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *AgreementListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page AgreementListResultPage) NotDone() bool {
+	return !page.alr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page AgreementListResultPage) Response() AgreementListResult {
+	return page.alr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page AgreementListResultPage) Values() []Agreement {
+	if page.alr.IsEmpty() {
+		return nil
+	}
+	return *page.alr.Value
+}
+
+// Creates a new instance of the AgreementListResultPage type.
+func NewAgreementListResultPage(getNextPage func(context.Context, AgreementListResult) (AgreementListResult, error)) AgreementListResultPage {
+	return AgreementListResultPage{fn: getNextPage}
+}
+
 // AgreementProperties the properties of the agreement.
 type AgreementProperties struct {
 	// AgreementLink - READ-ONLY; The link to the agreement.
@@ -800,6 +1074,235 @@ type AvailableBalanceProperties struct {
 	Amount *Amount `json:"amount,omitempty"`
 }
 
+// Customer a partner's customer.
+type Customer struct {
+	autorest.Response `json:"-"`
+	// CustomerProperties - The customer.
+	*CustomerProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource Id.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for Customer.
+func (c Customer) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if c.CustomerProperties != nil {
+		objectMap["properties"] = c.CustomerProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for Customer struct.
+func (c *Customer) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var customerProperties CustomerProperties
+				err = json.Unmarshal(*v, &customerProperties)
+				if err != nil {
+					return err
+				}
+				c.CustomerProperties = &customerProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				c.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				c.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				c.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// CustomerListResult result of listing customers.
+type CustomerListResult struct {
+	autorest.Response `json:"-"`
+	// Value - READ-ONLY; The list of customers.
+	Value *[]Customer `json:"value,omitempty"`
+	// NextLink - READ-ONLY; The link (url) to the next page of results.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// CustomerListResultIterator provides access to a complete listing of Customer values.
+type CustomerListResultIterator struct {
+	i    int
+	page CustomerListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *CustomerListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/CustomerListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *CustomerListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter CustomerListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter CustomerListResultIterator) Response() CustomerListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter CustomerListResultIterator) Value() Customer {
+	if !iter.page.NotDone() {
+		return Customer{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the CustomerListResultIterator type.
+func NewCustomerListResultIterator(page CustomerListResultPage) CustomerListResultIterator {
+	return CustomerListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (clr CustomerListResult) IsEmpty() bool {
+	return clr.Value == nil || len(*clr.Value) == 0
+}
+
+// customerListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (clr CustomerListResult) customerListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if clr.NextLink == nil || len(to.String(clr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(clr.NextLink)))
+}
+
+// CustomerListResultPage contains a page of Customer values.
+type CustomerListResultPage struct {
+	fn  func(context.Context, CustomerListResult) (CustomerListResult, error)
+	clr CustomerListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *CustomerListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/CustomerListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.clr)
+	if err != nil {
+		return err
+	}
+	page.clr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *CustomerListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page CustomerListResultPage) NotDone() bool {
+	return !page.clr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page CustomerListResultPage) Response() CustomerListResult {
+	return page.clr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page CustomerListResultPage) Values() []Customer {
+	if page.clr.IsEmpty() {
+		return nil
+	}
+	return *page.clr.Value
+}
+
+// Creates a new instance of the CustomerListResultPage type.
+func NewCustomerListResultPage(getNextPage func(context.Context, CustomerListResult) (CustomerListResult, error)) CustomerListResultPage {
+	return CustomerListResultPage{fn: getNextPage}
+}
+
+// CustomerProperties the properties of a customer.
+type CustomerProperties struct {
+	// DisplayName - The name of the customer.
+	DisplayName *string `json:"displayName,omitempty"`
+	// EnabledAzureSKUs - Information about the product.
+	EnabledAzureSKUs *[]EnabledAzureSKUs `json:"enabledAzureSKUs,omitempty"`
+	// Resellers - The resellers which are allowed to provide service to this customer.
+	Resellers *[]Reseller `json:"resellers,omitempty"`
+}
+
 // Department a department resource.
 type Department struct {
 	autorest.Response `json:"-"`
@@ -880,6 +1383,143 @@ type DepartmentListResult struct {
 	Value *[]Department `json:"value,omitempty"`
 	// NextLink - READ-ONLY; The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// DepartmentListResultIterator provides access to a complete listing of Department values.
+type DepartmentListResultIterator struct {
+	i    int
+	page DepartmentListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *DepartmentListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DepartmentListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *DepartmentListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter DepartmentListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter DepartmentListResultIterator) Response() DepartmentListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter DepartmentListResultIterator) Value() Department {
+	if !iter.page.NotDone() {
+		return Department{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the DepartmentListResultIterator type.
+func NewDepartmentListResultIterator(page DepartmentListResultPage) DepartmentListResultIterator {
+	return DepartmentListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (dlr DepartmentListResult) IsEmpty() bool {
+	return dlr.Value == nil || len(*dlr.Value) == 0
+}
+
+// departmentListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (dlr DepartmentListResult) departmentListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if dlr.NextLink == nil || len(to.String(dlr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(dlr.NextLink)))
+}
+
+// DepartmentListResultPage contains a page of Department values.
+type DepartmentListResultPage struct {
+	fn  func(context.Context, DepartmentListResult) (DepartmentListResult, error)
+	dlr DepartmentListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *DepartmentListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DepartmentListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.dlr)
+	if err != nil {
+		return err
+	}
+	page.dlr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *DepartmentListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page DepartmentListResultPage) NotDone() bool {
+	return !page.dlr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page DepartmentListResultPage) Response() DepartmentListResult {
+	return page.dlr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page DepartmentListResultPage) Values() []Department {
+	if page.dlr.IsEmpty() {
+		return nil
+	}
+	return *page.dlr.Value
+}
+
+// Creates a new instance of the DepartmentListResultPage type.
+func NewDepartmentListResultPage(getNextPage func(context.Context, DepartmentListResult) (DepartmentListResult, error)) DepartmentListResultPage {
+	return DepartmentListResultPage{fn: getNextPage}
 }
 
 // DepartmentProperties the properties of the department.
@@ -1047,6 +1687,143 @@ type EnrollmentAccountListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
+// EnrollmentAccountListResultIterator provides access to a complete listing of EnrollmentAccount values.
+type EnrollmentAccountListResultIterator struct {
+	i    int
+	page EnrollmentAccountListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *EnrollmentAccountListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EnrollmentAccountListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *EnrollmentAccountListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter EnrollmentAccountListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter EnrollmentAccountListResultIterator) Response() EnrollmentAccountListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter EnrollmentAccountListResultIterator) Value() EnrollmentAccount {
+	if !iter.page.NotDone() {
+		return EnrollmentAccount{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the EnrollmentAccountListResultIterator type.
+func NewEnrollmentAccountListResultIterator(page EnrollmentAccountListResultPage) EnrollmentAccountListResultIterator {
+	return EnrollmentAccountListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (ealr EnrollmentAccountListResult) IsEmpty() bool {
+	return ealr.Value == nil || len(*ealr.Value) == 0
+}
+
+// enrollmentAccountListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (ealr EnrollmentAccountListResult) enrollmentAccountListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if ealr.NextLink == nil || len(to.String(ealr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(ealr.NextLink)))
+}
+
+// EnrollmentAccountListResultPage contains a page of EnrollmentAccount values.
+type EnrollmentAccountListResultPage struct {
+	fn   func(context.Context, EnrollmentAccountListResult) (EnrollmentAccountListResult, error)
+	ealr EnrollmentAccountListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *EnrollmentAccountListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EnrollmentAccountListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.ealr)
+	if err != nil {
+		return err
+	}
+	page.ealr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *EnrollmentAccountListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page EnrollmentAccountListResultPage) NotDone() bool {
+	return !page.ealr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page EnrollmentAccountListResultPage) Response() EnrollmentAccountListResult {
+	return page.ealr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page EnrollmentAccountListResultPage) Values() []EnrollmentAccount {
+	if page.ealr.IsEmpty() {
+		return nil
+	}
+	return *page.ealr.Value
+}
+
+// Creates a new instance of the EnrollmentAccountListResultPage type.
+func NewEnrollmentAccountListResultPage(getNextPage func(context.Context, EnrollmentAccountListResult) (EnrollmentAccountListResult, error)) EnrollmentAccountListResultPage {
+	return EnrollmentAccountListResultPage{fn: getNextPage}
+}
+
 // EnrollmentAccountProperties the properties of the account.
 type EnrollmentAccountProperties struct {
 	// AccountName - The account name.
@@ -1158,6 +1935,143 @@ type InvoiceListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
+// InvoiceListResultIterator provides access to a complete listing of InvoiceSummary values.
+type InvoiceListResultIterator struct {
+	i    int
+	page InvoiceListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *InvoiceListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InvoiceListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *InvoiceListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter InvoiceListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter InvoiceListResultIterator) Response() InvoiceListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter InvoiceListResultIterator) Value() InvoiceSummary {
+	if !iter.page.NotDone() {
+		return InvoiceSummary{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the InvoiceListResultIterator type.
+func NewInvoiceListResultIterator(page InvoiceListResultPage) InvoiceListResultIterator {
+	return InvoiceListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (ilr InvoiceListResult) IsEmpty() bool {
+	return ilr.Value == nil || len(*ilr.Value) == 0
+}
+
+// invoiceListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (ilr InvoiceListResult) invoiceListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if ilr.NextLink == nil || len(to.String(ilr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(ilr.NextLink)))
+}
+
+// InvoiceListResultPage contains a page of InvoiceSummary values.
+type InvoiceListResultPage struct {
+	fn  func(context.Context, InvoiceListResult) (InvoiceListResult, error)
+	ilr InvoiceListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *InvoiceListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InvoiceListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.ilr)
+	if err != nil {
+		return err
+	}
+	page.ilr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *InvoiceListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page InvoiceListResultPage) NotDone() bool {
+	return !page.ilr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page InvoiceListResultPage) Response() InvoiceListResult {
+	return page.ilr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page InvoiceListResultPage) Values() []InvoiceSummary {
+	if page.ilr.IsEmpty() {
+		return nil
+	}
+	return *page.ilr.Value
+}
+
+// Creates a new instance of the InvoiceListResultPage type.
+func NewInvoiceListResultPage(getNextPage func(context.Context, InvoiceListResult) (InvoiceListResult, error)) InvoiceListResultPage {
+	return InvoiceListResultPage{fn: getNextPage}
+}
+
 // InvoiceSection an InvoiceSection resource.
 type InvoiceSection struct {
 	autorest.Response `json:"-"`
@@ -1246,6 +2160,143 @@ type InvoiceSectionListResult struct {
 	Value *[]InvoiceSection `json:"value,omitempty"`
 	// NextLink - READ-ONLY; The link (url) to the next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// InvoiceSectionListResultIterator provides access to a complete listing of InvoiceSection values.
+type InvoiceSectionListResultIterator struct {
+	i    int
+	page InvoiceSectionListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *InvoiceSectionListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InvoiceSectionListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *InvoiceSectionListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter InvoiceSectionListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter InvoiceSectionListResultIterator) Response() InvoiceSectionListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter InvoiceSectionListResultIterator) Value() InvoiceSection {
+	if !iter.page.NotDone() {
+		return InvoiceSection{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the InvoiceSectionListResultIterator type.
+func NewInvoiceSectionListResultIterator(page InvoiceSectionListResultPage) InvoiceSectionListResultIterator {
+	return InvoiceSectionListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (islr InvoiceSectionListResult) IsEmpty() bool {
+	return islr.Value == nil || len(*islr.Value) == 0
+}
+
+// invoiceSectionListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (islr InvoiceSectionListResult) invoiceSectionListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if islr.NextLink == nil || len(to.String(islr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(islr.NextLink)))
+}
+
+// InvoiceSectionListResultPage contains a page of InvoiceSection values.
+type InvoiceSectionListResultPage struct {
+	fn   func(context.Context, InvoiceSectionListResult) (InvoiceSectionListResult, error)
+	islr InvoiceSectionListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *InvoiceSectionListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InvoiceSectionListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.islr)
+	if err != nil {
+		return err
+	}
+	page.islr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *InvoiceSectionListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page InvoiceSectionListResultPage) NotDone() bool {
+	return !page.islr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page InvoiceSectionListResultPage) Response() InvoiceSectionListResult {
+	return page.islr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page InvoiceSectionListResultPage) Values() []InvoiceSection {
+	if page.islr.IsEmpty() {
+		return nil
+	}
+	return *page.islr.Value
+}
+
+// Creates a new instance of the InvoiceSectionListResultPage type.
+func NewInvoiceSectionListResultPage(getNextPage func(context.Context, InvoiceSectionListResult) (InvoiceSectionListResult, error)) InvoiceSectionListResultPage {
+	return InvoiceSectionListResultPage{fn: getNextPage}
 }
 
 // InvoiceSectionProperties the properties of an InvoiceSection.
@@ -2443,6 +3494,143 @@ type ProfileListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
+// ProfileListResultIterator provides access to a complete listing of Profile values.
+type ProfileListResultIterator struct {
+	i    int
+	page ProfileListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *ProfileListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProfileListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *ProfileListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter ProfileListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter ProfileListResultIterator) Response() ProfileListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter ProfileListResultIterator) Value() Profile {
+	if !iter.page.NotDone() {
+		return Profile{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the ProfileListResultIterator type.
+func NewProfileListResultIterator(page ProfileListResultPage) ProfileListResultIterator {
+	return ProfileListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (plr ProfileListResult) IsEmpty() bool {
+	return plr.Value == nil || len(*plr.Value) == 0
+}
+
+// profileListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (plr ProfileListResult) profileListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if plr.NextLink == nil || len(to.String(plr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(plr.NextLink)))
+}
+
+// ProfileListResultPage contains a page of Profile values.
+type ProfileListResultPage struct {
+	fn  func(context.Context, ProfileListResult) (ProfileListResult, error)
+	plr ProfileListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *ProfileListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProfileListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.plr)
+	if err != nil {
+		return err
+	}
+	page.plr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *ProfileListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page ProfileListResultPage) NotDone() bool {
+	return !page.plr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page ProfileListResultPage) Response() ProfileListResult {
+	return page.plr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page ProfileListResultPage) Values() []Profile {
+	if page.plr.IsEmpty() {
+		return nil
+	}
+	return *page.plr.Value
+}
+
+// Creates a new instance of the ProfileListResultPage type.
+func NewProfileListResultPage(getNextPage func(context.Context, ProfileListResult) (ProfileListResult, error)) ProfileListResultPage {
+	return ProfileListResultPage{fn: getNextPage}
+}
+
 // ProfileProperties the properties of the billing profile.
 type ProfileProperties struct {
 	// DisplayName - The billing profile name.
@@ -2833,6 +4021,14 @@ type RecipientTransferProperties struct {
 	DetailedTransferStatus *[]DetailedTransferStatus `json:"detailedTransferStatus,omitempty"`
 }
 
+// Reseller details about a reseller.
+type Reseller struct {
+	// ResellerID - READ-ONLY; The reseller id.
+	ResellerID *string `json:"resellerId,omitempty"`
+	// Description - READ-ONLY; A description of the reseller.
+	Description *string `json:"description,omitempty"`
+}
+
 // Resource the Resource model definition.
 type Resource struct {
 	// ID - READ-ONLY; Resource Id.
@@ -3106,6 +4302,10 @@ type SubscriptionProperties struct {
 	BillingProfileID *string `json:"billingProfileId,omitempty"`
 	// BillingProfileName - READ-ONLY; Billing Profile name to which this product belongs.
 	BillingProfileName *string `json:"billingProfileName,omitempty"`
+	// CustomerID - READ-ONLY; Customer id to which this product belongs.
+	CustomerID *string `json:"customerId,omitempty"`
+	// CustomerDisplayName - READ-ONLY; Display name of customer to which this product belongs.
+	CustomerDisplayName *string `json:"customerDisplayName,omitempty"`
 	// InvoiceSectionID - READ-ONLY; Invoice section id to which this product belongs.
 	InvoiceSectionID *string `json:"invoiceSectionId,omitempty"`
 	// InvoiceSectionName - READ-ONLY; Invoice section name to which this product belongs.
@@ -3114,6 +4314,8 @@ type SubscriptionProperties struct {
 	SkuID *string `json:"skuId,omitempty"`
 	// SkuDescription - READ-ONLY; The sku description.
 	SkuDescription *string `json:"skuDescription,omitempty"`
+	// Reseller - READ-ONLY; Reseller for this subscription.
+	Reseller *Reseller `json:"reseller,omitempty"`
 }
 
 // SubscriptionsListResult result of listing billing subscriptions summary.
@@ -3606,6 +4808,10 @@ type TransactionsSummaryProperties struct {
 	TransactionAmount *Amount `json:"transactionAmount,omitempty"`
 	// Quantity - READ-ONLY; Purchase quantity.
 	Quantity *int32 `json:"quantity,omitempty"`
+	// CustomerID - READ-ONLY; Customer id to which this product belongs.
+	CustomerID *string `json:"customerId,omitempty"`
+	// CustomerDisplayName - READ-ONLY; Display name of customer to which this product belongs.
+	CustomerDisplayName *string `json:"customerDisplayName,omitempty"`
 	// InvoiceSectionID - READ-ONLY; Invoice section id to which this product belongs.
 	InvoiceSectionID *string `json:"invoiceSectionId,omitempty"`
 	// InvoiceSectionName - READ-ONLY; Invoice section name to which this product belongs.

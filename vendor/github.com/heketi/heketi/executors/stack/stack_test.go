@@ -176,28 +176,28 @@ func TestGetDeviceInfo(t *testing.T) {
 	tests.Assert(t, len(es.executors) == 2,
 		"expected len(es.executors) == 2, got:", len(es.executors))
 
-	_, err := es.GetDeviceInfo("foo", "bar", "v")
+	_, err := es.GetDeviceInfo("foo", executors.SimpleDeviceVgHandle("bar", "v"))
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
-	m2.MockGetDeviceInfo = func(h, d, v string) (*executors.DeviceInfo, error) {
+	m2.MockGetDeviceInfo = func(h string, dh *executors.DeviceVgHandle) (*executors.DeviceInfo, error) {
 		return nil, fmt.Errorf("E2")
 	}
 
-	_, err = es.GetDeviceInfo("foo", "bar", "v")
+	_, err = es.GetDeviceInfo("foo", executors.SimpleDeviceVgHandle("bar", "v"))
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
-	m1.MockGetDeviceInfo = func(h, d, v string) (*executors.DeviceInfo, error) {
+	m1.MockGetDeviceInfo = func(h string, dh *executors.DeviceVgHandle) (*executors.DeviceInfo, error) {
 		return nil, NotSupportedError
 	}
 
-	_, err = es.GetDeviceInfo("foo", "bar", "v")
+	_, err = es.GetDeviceInfo("foo", executors.SimpleDeviceVgHandle("bar", "v"))
 	tests.Assert(t, err != nil, "expected err != nil")
 	tests.Assert(t, err.Error() == "E2", "expected err == E2, got:", err)
 
-	m2.MockGetDeviceInfo = func(h, d, v string) (*executors.DeviceInfo, error) {
+	m2.MockGetDeviceInfo = func(h string, dh *executors.DeviceVgHandle) (*executors.DeviceInfo, error) {
 		return nil, NotSupportedError
 	}
-	_, err = es.GetDeviceInfo("foo", "bar", "v")
+	_, err = es.GetDeviceInfo("foo", executors.SimpleDeviceVgHandle("bar", "v"))
 	tests.Assert(t, err == NotSupportedError, "expected err == NotSupportedError, got:", err)
 }
 
@@ -208,27 +208,27 @@ func TestDeviceTeardown(t *testing.T) {
 	tests.Assert(t, len(es.executors) == 2,
 		"expected len(es.executors) == 2, got:", len(es.executors))
 
-	err := es.DeviceTeardown("foo", "bar", "v")
+	err := es.DeviceTeardown("foo", executors.SimpleDeviceVgHandle("bar", "v"))
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
-	m2.MockDeviceTeardown = func(h, n, v string) error {
+	m2.MockDeviceTeardown = func(h string, dh *executors.DeviceVgHandle) error {
 		return fmt.Errorf("E2")
 	}
 
-	err = es.DeviceTeardown("foo", "bar", "v")
+	err = es.DeviceTeardown("foo", executors.SimpleDeviceVgHandle("bar", "v"))
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
-	m1.MockDeviceTeardown = func(h, n, v string) error {
+	m1.MockDeviceTeardown = func(h string, dh *executors.DeviceVgHandle) error {
 		return NotSupportedError
 	}
 
-	err = es.DeviceTeardown("foo", "bar", "v")
+	err = es.DeviceTeardown("foo", executors.SimpleDeviceVgHandle("bar", "v"))
 	tests.Assert(t, err.Error() == "E2", "expected err == E2, got:", err)
 
-	m2.MockDeviceTeardown = func(h, n, v string) error {
+	m2.MockDeviceTeardown = func(h string, dh *executors.DeviceVgHandle) error {
 		return NotSupportedError
 	}
-	err = es.DeviceTeardown("foo", "bar", "v")
+	err = es.DeviceTeardown("foo", executors.SimpleDeviceVgHandle("bar", "v"))
 	tests.Assert(t, err == NotSupportedError, "expected err == NotSupportedError, got:", err)
 }
 

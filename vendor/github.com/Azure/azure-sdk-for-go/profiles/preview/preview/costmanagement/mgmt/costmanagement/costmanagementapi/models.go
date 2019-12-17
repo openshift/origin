@@ -19,14 +19,9 @@
 
 package costmanagementapi
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/costmanagement/mgmt/2019-03-01/costmanagement/costmanagementapi"
+import original "github.com/Azure/azure-sdk-for-go/services/preview/costmanagement/mgmt/2019-10-01/costmanagement/costmanagementapi"
 
-type CloudConnectorClientAPI = original.CloudConnectorClientAPI
 type DimensionsClientAPI = original.DimensionsClientAPI
-type ExternalBillingAccountClientAPI = original.ExternalBillingAccountClientAPI
-type ExternalSubscriptionClientAPI = original.ExternalSubscriptionClientAPI
-type ForecastClientAPI = original.ForecastClientAPI
+type ExportsClientAPI = original.ExportsClientAPI
 type OperationsClientAPI = original.OperationsClientAPI
 type QueryClientAPI = original.QueryClientAPI
-type ShowbackRuleClientAPI = original.ShowbackRuleClientAPI
-type ShowbackRulesClientAPI = original.ShowbackRulesClientAPI

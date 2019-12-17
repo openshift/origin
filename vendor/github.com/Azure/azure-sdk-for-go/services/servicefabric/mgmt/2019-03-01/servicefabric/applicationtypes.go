@@ -40,15 +40,15 @@ func NewApplicationTypesClientWithBaseURI(baseURI string, subscriptionID string)
 	return ApplicationTypesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// Create create or update a Service Fabric application type name resource with the specified name.
+// CreateOrUpdate create or update a Service Fabric application type name resource with the specified name.
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // clusterName - the name of the cluster resource.
 // applicationTypeName - the name of the application type name resource.
 // parameters - the application type name resource.
-func (client ApplicationTypesClient) Create(ctx context.Context, resourceGroupName string, clusterName string, applicationTypeName string, parameters ApplicationTypeResource) (result ApplicationTypeResource, err error) {
+func (client ApplicationTypesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, clusterName string, applicationTypeName string, parameters ApplicationTypeResource) (result ApplicationTypeResource, err error) {
 	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationTypesClient.Create")
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationTypesClient.CreateOrUpdate")
 		defer func() {
 			sc := -1
 			if result.Response.Response != nil {
@@ -57,29 +57,29 @@ func (client ApplicationTypesClient) Create(ctx context.Context, resourceGroupNa
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	req, err := client.CreatePreparer(ctx, resourceGroupName, clusterName, applicationTypeName, parameters)
+	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, clusterName, applicationTypeName, parameters)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypesClient", "Create", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypesClient", "CreateOrUpdate", nil, "Failure preparing request")
 		return
 	}
 
-	resp, err := client.CreateSender(req)
+	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypesClient", "Create", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypesClient", "CreateOrUpdate", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.CreateResponder(resp)
+	result, err = client.CreateOrUpdateResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypesClient", "Create", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypesClient", "CreateOrUpdate", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// CreatePreparer prepares the Create request.
-func (client ApplicationTypesClient) CreatePreparer(ctx context.Context, resourceGroupName string, clusterName string, applicationTypeName string, parameters ApplicationTypeResource) (*http.Request, error) {
+// CreateOrUpdatePreparer prepares the CreateOrUpdate request.
+func (client ApplicationTypesClient) CreateOrUpdatePreparer(ctx context.Context, resourceGroupName string, clusterName string, applicationTypeName string, parameters ApplicationTypeResource) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"applicationTypeName": autorest.Encode("path", applicationTypeName),
 		"clusterName":         autorest.Encode("path", clusterName),
@@ -87,7 +87,7 @@ func (client ApplicationTypesClient) CreatePreparer(ctx context.Context, resourc
 		"subscriptionId":      autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2019-03-01-preview"
+	const APIVersion = "2019-03-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -102,16 +102,16 @@ func (client ApplicationTypesClient) CreatePreparer(ctx context.Context, resourc
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
-// CreateSender sends the Create request. The method will close the
+// CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
-func (client ApplicationTypesClient) CreateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+func (client ApplicationTypesClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
-// CreateResponder handles the response to the Create request. The method always
+// CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client ApplicationTypesClient) CreateResponder(resp *http.Response) (result ApplicationTypeResource, err error) {
+func (client ApplicationTypesClient) CreateOrUpdateResponder(resp *http.Response) (result ApplicationTypeResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -162,7 +162,7 @@ func (client ApplicationTypesClient) DeletePreparer(ctx context.Context, resourc
 		"subscriptionId":      autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2019-03-01-preview"
+	const APIVersion = "2019-03-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -178,9 +178,9 @@ func (client ApplicationTypesClient) DeletePreparer(ctx context.Context, resourc
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationTypesClient) DeleteSender(req *http.Request) (future ApplicationTypesDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -247,7 +247,7 @@ func (client ApplicationTypesClient) GetPreparer(ctx context.Context, resourceGr
 		"subscriptionId":      autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2019-03-01-preview"
+	const APIVersion = "2019-03-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -263,8 +263,8 @@ func (client ApplicationTypesClient) GetPreparer(ctx context.Context, resourceGr
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationTypesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -325,7 +325,7 @@ func (client ApplicationTypesClient) ListPreparer(ctx context.Context, resourceG
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2019-03-01-preview"
+	const APIVersion = "2019-03-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -341,8 +341,8 @@ func (client ApplicationTypesClient) ListPreparer(ctx context.Context, resourceG
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationTypesClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always

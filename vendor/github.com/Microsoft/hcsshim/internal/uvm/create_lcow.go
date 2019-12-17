@@ -9,12 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Microsoft/hcsshim/internal/guid"
 	"github.com/Microsoft/hcsshim/internal/hcs"
+	"github.com/Microsoft/hcsshim/internal/logfields"
 	"github.com/Microsoft/hcsshim/internal/mergemaps"
-	"github.com/Microsoft/hcsshim/internal/schema2"
+	hcsschema "github.com/Microsoft/hcsshim/internal/schema2"
 	"github.com/Microsoft/hcsshim/internal/schemaversion"
-	"github.com/Microsoft/hcsshim/internal/wclayer"
 	"github.com/Microsoft/hcsshim/osversion"
 	"github.com/linuxkit/virtsock/pkg/hvsock"
 	"github.com/sirupsen/logrus"
@@ -64,6 +63,18 @@ type OptionsLCOW struct {
 	PreferredRootFSType   PreferredRootFSType // If `KernelFile` is `InitrdFile` use `PreferredRootFSTypeInitRd`. If `KernelFile` is `VhdFile` use `PreferredRootFSTypeVHD`
 }
 
+// defaultLCOWOSBootFilesPath returns the default path used to locate the LCOW
+// OS kernel and root FS files. This default is the subdirectory
+// `LinuxBootFiles` in the directory of the executable that started the current
+// process; or, if it does not exist, `%ProgramFiles%\Linux Containers`.
+func defaultLCOWOSBootFilesPath() string {
+	localDirPath := filepath.Join(filepath.Dir(os.Args[0]), "LinuxBootFiles")
+	if _, err := os.Stat(localDirPath); err == nil {
+		return localDirPath
+	}
+	return filepath.Join(os.Getenv("ProgramFiles"), "Linux Containers")
+}
+
 // NewDefaultOptionsLCOW creates the default options for a bootable version of
 // LCOW.
 //
@@ -75,15 +86,8 @@ func NewDefaultOptionsLCOW(id, owner string) *OptionsLCOW {
 	// Use KernelDirect boot by default on all builds that support it.
 	kernelDirectSupported := osversion.Get().Build >= 18286
 	opts := &OptionsLCOW{
-		Options: &Options{
-			ID:                   id,
-			Owner:                owner,
-			MemorySizeInMB:       1024,
-			AllowOvercommit:      true,
-			EnableDeferredCommit: false,
-			ProcessorCount:       defaultProcessorCount(),
-		},
-		BootFilesPath:         filepath.Join(os.Getenv("ProgramFiles"), "Linux Containers"),
+		Options:               newDefaultOptions(id, owner),
+		BootFilesPath:         defaultLCOWOSBootFilesPath(),
 		KernelFile:            KernelFile,
 		KernelDirect:          kernelDirectSupported,
 		RootFSFile:            InitrdFile,
@@ -95,17 +99,10 @@ func NewDefaultOptionsLCOW(id, owner string) *OptionsLCOW {
 		ExecCommandLine:       fmt.Sprintf("/bin/gcs -log-format json -loglevel %s", logrus.StandardLogger().Level.String()),
 		ForwardStdout:         false,
 		ForwardStderr:         true,
-		OutputHandler:         parseLogrus,
+		OutputHandler:         parseLogrus(id),
 		VPMemDeviceCount:      DefaultVPMEMCount,
 		VPMemSizeBytes:        DefaultVPMemSizeBytes,
 		PreferredRootFSType:   PreferredRootFSTypeInitRd,
-	}
-
-	if opts.ID == "" {
-		opts.ID = guid.New().String()
-	}
-	if opts.Owner == "" {
-		opts.Owner = filepath.Base(os.Args[0])
 	}
 
 	if _, err := os.Stat(filepath.Join(opts.BootFilesPath, VhdFile)); err == nil {
@@ -130,11 +127,23 @@ const linuxLogVsockPort = 109
 
 // CreateLCOW creates an HCS compute system representing a utility VM.
 func CreateLCOW(opts *OptionsLCOW) (_ *UtilityVM, err error) {
-	logrus.Debugf("uvm::CreateLCOW %+v", opts)
+	op := "uvm::CreateLCOW"
+	log := logrus.WithFields(logrus.Fields{
+		logfields.UVMID: opts.ID,
+	})
+	log.Debugf(op+" - Begin Operation: %+v", opts)
+	defer func() {
+		if err != nil {
+			log.Data[logrus.ErrorKey] = err
+			log.Error(op + " - End Operation - Error")
+		} else {
+			log.Debug(op + " - End Operation - Success")
+		}
+	}()
 
 	// We dont serialize OutputHandler so if it is missing we need to put it back to the default.
 	if opts.OutputHandler == nil {
-		opts.OutputHandler = parseLogrus
+		opts.OutputHandler = parseLogrus(opts.ID)
 	}
 
 	uvm := &UtilityVM{
@@ -145,6 +154,10 @@ func CreateLCOW(opts *OptionsLCOW) (_ *UtilityVM, err error) {
 		vpmemMaxCount:       opts.VPMemDeviceCount,
 		vpmemMaxSizeBytes:   opts.VPMemSizeBytes,
 	}
+
+	// To maintain compatability with Docker we need to automatically downgrade
+	// a user CPU count if the setting is not possible.
+	uvm.normalizeProcessorCount(opts.ProcessorCount)
 
 	kernelFullPath := filepath.Join(opts.BootFilesPath, opts.KernelFile)
 	if _, err := os.Stat(kernelFullPath); os.IsNotExist(err) {
@@ -188,7 +201,9 @@ func CreateLCOW(opts *OptionsLCOW) (_ *UtilityVM, err error) {
 					EnableDeferredCommit: opts.EnableDeferredCommit,
 				},
 				Processor: &hcsschema.Processor2{
-					Count: opts.ProcessorCount,
+					Count:  uvm.processorCount,
+					Limit:  opts.ProcessorLimit,
+					Weight: opts.ProcessorWeight,
 				},
 			},
 			Devices: &hcsschema.Devices{
@@ -199,8 +214,17 @@ func CreateLCOW(opts *OptionsLCOW) (_ *UtilityVM, err error) {
 						DefaultBindSecurityDescriptor: "D:P(A;;FA;;;SY)(A;;FA;;;BA)",
 					},
 				},
+				Plan9: &hcsschema.Plan9{},
 			},
 		},
+	}
+
+	// Handle StorageQoS if set
+	if opts.StorageQoSBandwidthMaximum > 0 || opts.StorageQoSIopsMaximum > 0 {
+		doc.VirtualMachine.StorageQoS = &hcsschema.StorageQoS{
+			IopsMaximum:      opts.StorageQoSIopsMaximum,
+			BandwidthMaximum: opts.StorageQoSBandwidthMaximum,
+		}
 	}
 
 	if opts.UseGuestConnection {
@@ -233,7 +257,7 @@ func CreateLCOW(opts *OptionsLCOW) (_ *UtilityVM, err error) {
 		}
 	case PreferredRootFSTypeVHD:
 		// Support for VPMem VHD(X) booting rather than initrd..
-		kernelArgs = "root=/dev/pmem0 ro init=/init"
+		kernelArgs = "root=/dev/pmem0 ro rootwait init=/init"
 		imageFormat := "Vhd1"
 		if strings.ToLower(filepath.Ext(opts.RootFSFile)) == "vhdx" {
 			imageFormat = "Vhdx"
@@ -244,9 +268,6 @@ func CreateLCOW(opts *OptionsLCOW) (_ *UtilityVM, err error) {
 				ReadOnly:    true,
 				ImageFormat: imageFormat,
 			},
-		}
-		if err := wclayer.GrantVmAccess(uvm.id, rootfsFullPath); err != nil {
-			return nil, fmt.Errorf("failed to grantvmaccess to %s: %s", rootfsFullPath, err)
 		}
 		// Add to our internal structure
 		uvm.vpmemDevices[0] = vpmemInfo{
@@ -333,7 +354,6 @@ func CreateLCOW(opts *OptionsLCOW) (_ *UtilityVM, err error) {
 
 	hcsSystem, err := hcs.CreateComputeSystem(uvm.id, fullDoc)
 	if err != nil {
-		logrus.Debugln("failed to create UVM: ", err)
 		return nil, err
 	}
 
@@ -370,9 +390,4 @@ func (uvm *UtilityVM) listenVsock(port uint32) (net.Listener, error) {
 	serviceID, _ := hvsock.GUIDFromString("00000000-facb-11e6-bd58-64006a7986d3")
 	binary.LittleEndian.PutUint32(serviceID[0:4], port)
 	return hvsock.Listen(hvsock.Addr{VMID: vmID, ServiceID: serviceID})
-}
-
-// PMemMaxSizeBytes returns the maximum size of a PMEM layer (LCOW)
-func (uvm *UtilityVM) PMemMaxSizeBytes() uint64 {
-	return uvm.vpmemMaxSizeBytes
 }

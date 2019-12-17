@@ -383,135 +383,135 @@ func panickerParamsAsMap3() {
 	}
 }
 
-func TestAnalyzer_paramsAsMap(Pt *testing.T) {
+func TestAnalyzer_paramsAsMap(pt *testing.T) {
 	s := prepareTestParamsValid()
-	if assert.NotNil(Pt, s) {
+	if assert.NotNil(pt, s) {
 		m := make(map[string]spec.Parameter)
 		pi, ok := s.spec.Paths.Paths["/items"]
-		if assert.True(Pt, ok) {
+		if assert.True(pt, ok) {
 			s.paramsAsMap(pi.Parameters, m, nil)
-			assert.Len(Pt, m, 1)
+			assert.Len(pt, m, 1)
 			p, ok := m["query#Limit"]
-			assert.True(Pt, ok)
-			assert.Equal(Pt, p.Name, "limit")
+			assert.True(pt, ok)
+			assert.Equal(pt, p.Name, "limit")
 		}
 	}
 
 	// An invalid spec, but passes this step (errors are figured out at a higher level)
 	s = prepareTestParamsInvalid("fixture-1289-param.yaml")
-	if assert.NotNil(Pt, s) {
+	if assert.NotNil(pt, s) {
 		m := make(map[string]spec.Parameter)
 		pi, ok := s.spec.Paths.Paths["/fixture"]
-		if assert.True(Pt, ok) {
+		if assert.True(pt, ok) {
 			pi.Parameters = pi.PathItemProps.Get.OperationProps.Parameters
 			s.paramsAsMap(pi.Parameters, m, nil)
-			assert.Len(Pt, m, 1)
+			assert.Len(pt, m, 1)
 			p, ok := m["body#DespicableMe"]
-			assert.True(Pt, ok)
-			assert.Equal(Pt, p.Name, "despicableMe")
+			assert.True(pt, ok)
+			assert.Equal(pt, p.Name, "despicableMe")
 		}
 	}
 }
 
-func TestAnalyzer_paramsAsMapWithCallback(Pt *testing.T) {
+func TestAnalyzer_paramsAsMapWithCallback(pt *testing.T) {
 	s := prepareTestParamsInvalid("fixture-342.yaml")
-	if assert.NotNil(Pt, s) {
+	if assert.NotNil(pt, s) {
 		// No bail out callback
 		m := make(map[string]spec.Parameter)
 		e := []string{}
 		pi, ok := s.spec.Paths.Paths["/fixture"]
-		if assert.True(Pt, ok) {
+		if assert.True(pt, ok) {
 			pi.Parameters = pi.PathItemProps.Get.OperationProps.Parameters
 			s.paramsAsMap(pi.Parameters, m, func(param spec.Parameter, err error) bool {
-				//Pt.Logf("ERROR on %+v : %v", param, err)
+				//pt.Logf("ERROR on %+v : %v", param, err)
 				e = append(e, err.Error())
 				return true // Continue
 			})
 		}
-		assert.Contains(Pt, e, `resolved reference is not a parameter: "#/definitions/sample_info/properties/sid"`)
-		assert.Contains(Pt, e, `invalid reference: "#/definitions/sample_info/properties/sids"`)
+		assert.Contains(pt, e, `resolved reference is not a parameter: "#/definitions/sample_info/properties/sid"`)
+		assert.Contains(pt, e, `invalid reference: "#/definitions/sample_info/properties/sids"`)
 
 		// bail out callback
 		m = make(map[string]spec.Parameter)
 		e = []string{}
 		pi, ok = s.spec.Paths.Paths["/fixture"]
-		if assert.True(Pt, ok) {
+		if assert.True(pt, ok) {
 			pi.Parameters = pi.PathItemProps.Get.OperationProps.Parameters
 			s.paramsAsMap(pi.Parameters, m, func(param spec.Parameter, err error) bool {
-				//Pt.Logf("ERROR on %+v : %v", param, err)
+				//pt.Logf("ERROR on %+v : %v", param, err)
 				e = append(e, err.Error())
 				return false // Bail out
 			})
 		}
 		// We got one then bail out
-		assert.Len(Pt, e, 1)
+		assert.Len(pt, e, 1)
 	}
 
 	// Bail out after ref failure: exercising another path
 	s = prepareTestParamsInvalid("fixture-342-2.yaml")
-	if assert.NotNil(Pt, s) {
+	if assert.NotNil(pt, s) {
 		// bail out callback
 		m := make(map[string]spec.Parameter)
 		e := []string{}
 		pi, ok := s.spec.Paths.Paths["/fixture"]
-		if assert.True(Pt, ok) {
+		if assert.True(pt, ok) {
 			pi.Parameters = pi.PathItemProps.Get.OperationProps.Parameters
 			s.paramsAsMap(pi.Parameters, m, func(param spec.Parameter, err error) bool {
-				//Pt.Logf("ERROR on %+v : %v", param, err)
+				//pt.Logf("ERROR on %+v : %v", param, err)
 				e = append(e, err.Error())
 				return false // Bail out
 			})
 		}
 		// We got one then bail out
-		assert.Len(Pt, e, 1)
+		assert.Len(pt, e, 1)
 	}
 
 	// Bail out after ref failure: exercising another path
 	s = prepareTestParamsInvalid("fixture-342-3.yaml")
-	if assert.NotNil(Pt, s) {
+	if assert.NotNil(pt, s) {
 		// bail out callback
 		m := make(map[string]spec.Parameter)
 		e := []string{}
 		pi, ok := s.spec.Paths.Paths["/fixture"]
-		if assert.True(Pt, ok) {
+		if assert.True(pt, ok) {
 			pi.Parameters = pi.PathItemProps.Get.OperationProps.Parameters
 			s.paramsAsMap(pi.Parameters, m, func(param spec.Parameter, err error) bool {
-				//Pt.Logf("ERROR on %+v : %v", param, err)
+				//pt.Logf("ERROR on %+v : %v", param, err)
 				e = append(e, err.Error())
 				return false // Bail out
 			})
 		}
 		// We got one then bail out
-		assert.Len(Pt, e, 1)
+		assert.Len(pt, e, 1)
 	}
 }
 
-func TestAnalyzer_paramsAsMap_Panic(Pt *testing.T) {
-	assert.Panics(Pt, panickerParamsAsMap)
+func TestAnalyzer_paramsAsMap_Panic(pt *testing.T) {
+	assert.Panics(pt, panickerParamsAsMap)
 
 	// Specifically on invalid resolved type
-	assert.Panics(Pt, panickerParamsAsMap2)
+	assert.Panics(pt, panickerParamsAsMap2)
 
 	// Specifically on invalid ref
-	assert.Panics(Pt, panickerParamsAsMap3)
+	assert.Panics(pt, panickerParamsAsMap3)
 }
 
-func TestAnalyzer_SafeParamsFor(Pt *testing.T) {
+func TestAnalyzer_SafeParamsFor(pt *testing.T) {
 	s := prepareTestParamsInvalid("fixture-342.yaml")
-	if assert.NotNil(Pt, s) {
+	if assert.NotNil(pt, s) {
 		e := []string{}
 		pi, ok := s.spec.Paths.Paths["/fixture"]
-		if assert.True(Pt, ok) {
+		if assert.True(pt, ok) {
 			pi.Parameters = pi.PathItemProps.Get.OperationProps.Parameters
 			for range s.SafeParamsFor("Get", "/fixture", func(param spec.Parameter, err error) bool {
 				e = append(e, err.Error())
 				return true // Continue
 			}) {
-				assert.Fail(Pt, "There should be no safe parameter in this testcase")
+				assert.Fail(pt, "There should be no safe parameter in this testcase")
 			}
 		}
-		assert.Contains(Pt, e, `resolved reference is not a parameter: "#/definitions/sample_info/properties/sid"`)
-		assert.Contains(Pt, e, `invalid reference: "#/definitions/sample_info/properties/sids"`)
+		assert.Contains(pt, e, `resolved reference is not a parameter: "#/definitions/sample_info/properties/sid"`)
+		assert.Contains(pt, e, `invalid reference: "#/definitions/sample_info/properties/sids"`)
 
 	}
 }
@@ -525,35 +525,35 @@ func panickerParamsFor() {
 	}
 }
 
-func TestAnalyzer_ParamsFor(Pt *testing.T) {
+func TestAnalyzer_ParamsFor(pt *testing.T) {
 	// Valid example
 	s := prepareTestParamsValid()
-	if assert.NotNil(Pt, s) {
+	if assert.NotNil(pt, s) {
 
 		params := s.ParamsFor("Get", "/items")
-		assert.True(Pt, len(params) > 0)
+		assert.True(pt, len(params) > 0)
 	}
 
 	// Invalid example
-	assert.Panics(Pt, panickerParamsFor)
+	assert.Panics(pt, panickerParamsFor)
 }
 
-func TestAnalyzer_SafeParametersFor(Pt *testing.T) {
+func TestAnalyzer_SafeParametersFor(pt *testing.T) {
 	s := prepareTestParamsInvalid("fixture-342.yaml")
-	if assert.NotNil(Pt, s) {
+	if assert.NotNil(pt, s) {
 		e := []string{}
 		pi, ok := s.spec.Paths.Paths["/fixture"]
-		if assert.True(Pt, ok) {
+		if assert.True(pt, ok) {
 			pi.Parameters = pi.PathItemProps.Get.OperationProps.Parameters
 			for range s.SafeParametersFor("fixtureOp", func(param spec.Parameter, err error) bool {
 				e = append(e, err.Error())
 				return true // Continue
 			}) {
-				assert.Fail(Pt, "There should be no safe parameter in this testcase")
+				assert.Fail(pt, "There should be no safe parameter in this testcase")
 			}
 		}
-		assert.Contains(Pt, e, `resolved reference is not a parameter: "#/definitions/sample_info/properties/sid"`)
-		assert.Contains(Pt, e, `invalid reference: "#/definitions/sample_info/properties/sids"`)
+		assert.Contains(pt, e, `resolved reference is not a parameter: "#/definitions/sample_info/properties/sid"`)
+		assert.Contains(pt, e, `invalid reference: "#/definitions/sample_info/properties/sids"`)
 	}
 }
 
@@ -570,14 +570,14 @@ func panickerParametersFor() {
 	}
 }
 
-func TestAnalyzer_ParametersFor(Pt *testing.T) {
+func TestAnalyzer_ParametersFor(pt *testing.T) {
 	// Valid example
 	s := prepareTestParamsValid()
 	params := s.ParamsFor("Get", "/items")
-	assert.True(Pt, len(params) > 0)
+	assert.True(pt, len(params) > 0)
 
 	// Invalid example
-	assert.Panics(Pt, panickerParametersFor)
+	assert.Panics(pt, panickerParametersFor)
 }
 
 func prepareTestParamsValid() *Spec {

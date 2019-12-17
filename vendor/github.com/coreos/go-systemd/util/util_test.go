@@ -40,6 +40,11 @@ func TestRunningFromSystemService(t *testing.T) {
 func TestCurrentUnitName(t *testing.T) {
 	testIsRunningSystemd(t)
 
+	fromService, err := RunningFromSystemService()
+	if err != nil || !fromService {
+		t.Skip("Not running from a systemd service")
+	}
+
 	s, err := CurrentUnitName()
 	if err != nil {
 		t.Error(err.Error())

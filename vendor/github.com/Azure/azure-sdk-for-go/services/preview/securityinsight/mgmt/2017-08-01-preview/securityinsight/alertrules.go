@@ -150,7 +150,7 @@ func (client AlertRulesClient) CreateOrUpdateResponder(resp *http.Response) (res
 // ruleID - alert rule ID
 // actionID - action ID
 // action - the action
-func (client AlertRulesClient) CreateOrUpdateAction(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, ruleID string, actionID string, action Action) (result Action, err error) {
+func (client AlertRulesClient) CreateOrUpdateAction(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, ruleID string, actionID string, action ActionRequest) (result ActionResponse, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/AlertRulesClient.CreateOrUpdateAction")
 		defer func() {
@@ -196,7 +196,7 @@ func (client AlertRulesClient) CreateOrUpdateAction(ctx context.Context, resourc
 }
 
 // CreateOrUpdateActionPreparer prepares the CreateOrUpdateAction request.
-func (client AlertRulesClient) CreateOrUpdateActionPreparer(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, ruleID string, actionID string, action Action) (*http.Request, error) {
+func (client AlertRulesClient) CreateOrUpdateActionPreparer(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, ruleID string, actionID string, action ActionRequest) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"actionId":                            autorest.Encode("path", actionID),
 		"operationalInsightsResourceProvider": autorest.Encode("path", operationalInsightsResourceProvider),
@@ -230,7 +230,7 @@ func (client AlertRulesClient) CreateOrUpdateActionSender(req *http.Request) (*h
 
 // CreateOrUpdateActionResponder handles the response to the CreateOrUpdateAction request. The method always
 // closes the http.Response Body.
-func (client AlertRulesClient) CreateOrUpdateActionResponder(resp *http.Response) (result Action, err error) {
+func (client AlertRulesClient) CreateOrUpdateActionResponder(resp *http.Response) (result ActionResponse, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -538,7 +538,7 @@ func (client AlertRulesClient) GetResponder(resp *http.Response) (result AlertRu
 // workspaceName - the name of the workspace.
 // ruleID - alert rule ID
 // actionID - action ID
-func (client AlertRulesClient) GetAction(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, ruleID string, actionID string) (result Action, err error) {
+func (client AlertRulesClient) GetAction(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, ruleID string, actionID string) (result ActionResponse, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/AlertRulesClient.GetAction")
 		defer func() {
@@ -616,7 +616,7 @@ func (client AlertRulesClient) GetActionSender(req *http.Request) (*http.Respons
 
 // GetActionResponder handles the response to the GetAction request. The method always
 // closes the http.Response Body.
-func (client AlertRulesClient) GetActionResponder(resp *http.Response) (result Action, err error) {
+func (client AlertRulesClient) GetActionResponder(resp *http.Response) (result ActionResponse, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),

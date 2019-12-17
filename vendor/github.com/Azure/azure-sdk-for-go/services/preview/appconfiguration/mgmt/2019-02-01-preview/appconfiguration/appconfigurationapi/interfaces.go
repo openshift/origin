@@ -30,6 +30,7 @@ type ConfigurationStoresClientAPI interface {
 	List(ctx context.Context, skipToken string) (result appconfiguration.ConfigurationStoreListResultPage, err error)
 	ListByResourceGroup(ctx context.Context, resourceGroupName string, skipToken string) (result appconfiguration.ConfigurationStoreListResultPage, err error)
 	ListKeys(ctx context.Context, resourceGroupName string, configStoreName string, skipToken string) (result appconfiguration.APIKeyListResultPage, err error)
+	ListKeyValue(ctx context.Context, resourceGroupName string, configStoreName string, listKeyValueParameters appconfiguration.ListKeyValueParameters) (result appconfiguration.KeyValue, err error)
 	RegenerateKey(ctx context.Context, resourceGroupName string, configStoreName string, regenerateKeyParameters appconfiguration.RegenerateKeyParameters) (result appconfiguration.APIKey, err error)
 	Update(ctx context.Context, resourceGroupName string, configStoreName string, configStoreUpdateParameters appconfiguration.ConfigurationStoreUpdateParameters) (result appconfiguration.ConfigurationStoresUpdateFuture, err error)
 }

@@ -23,16 +23,6 @@ func createLCOWSpec(coi *createOptionsInternal) (*specs.Spec, error) {
 		return nil, err
 	}
 
-	// TODO
-	// Translate the mounts. The root has already been translated in
-	// allocateLinuxResources.
-	/*
-		for i := range spec.Mounts {
-			spec.Mounts[i].Source = "???"
-			spec.Mounts[i].Destination = "???"
-		}
-	*/
-
 	// Linux containers don't care about Windows aspects of the spec except the
 	// network namespace
 	spec.Windows = nil
@@ -51,8 +41,10 @@ func createLCOWSpec(coi *createOptionsInternal) (*specs.Spec, error) {
 
 	// Clear unsupported features
 	if spec.Linux.Resources != nil {
+		if len(spec.Linux.Resources.Devices) > 0 {
+			logrus.Warning("clearing non-empty spec.Linux.Resources.Devices")
+		}
 		spec.Linux.Resources.Devices = nil
-		spec.Linux.Resources.Memory = nil
 		spec.Linux.Resources.Pids = nil
 		spec.Linux.Resources.BlockIO = nil
 		spec.Linux.Resources.HugepageLimits = nil

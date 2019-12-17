@@ -71,6 +71,7 @@ type Project struct {
 	Spec ProjectSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status describes the current status of a Namespace
+	// +optional
 	Status ProjectStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 

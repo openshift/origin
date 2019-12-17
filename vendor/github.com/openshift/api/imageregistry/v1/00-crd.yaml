@@ -11,6 +11,7 @@ spec:
     listKind: ConfigList
     plural: configs
     singular: config
+  preserveUnknownFields: false
   subresources:
     status: {}
   validation:
@@ -192,6 +193,9 @@ spec:
                       description: container defines Azure's container to be used
                         by registry.
                       type: string
+                      maxLength: 63
+                      minLength: 3
+                      pattern: ^[0-9a-z]+(-[0-9a-z]+)*$
                 emptyDir:
                   description: 'emptyDir represents ephemeral storage on the pod''s
                     host node. WARNING: this storage cannot be used with more than
@@ -456,6 +460,9 @@ spec:
                       description: container defines Azure's container to be used
                         by registry.
                       type: string
+                      maxLength: 63
+                      minLength: 3
+                      pattern: ^[0-9a-z]+(-[0-9a-z]+)*$
                 emptyDir:
                   description: 'emptyDir represents ephemeral storage on the pod''s
                     host node. WARNING: this storage cannot be used with more than

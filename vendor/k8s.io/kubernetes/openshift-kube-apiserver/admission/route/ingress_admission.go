@@ -98,7 +98,7 @@ func (r *ingressAdmission) Validate(ctx context.Context, a admission.Attributes,
 							ResourceRequest: true,
 						}
 						kind := schema.GroupKind{Group: a.GetResource().Group, Kind: a.GetResource().Resource}
-						authorized, _, err := r.authorizer.Authorize(attr)
+						authorized, _, err := r.authorizer.Authorize(ctx, attr)
 						if err != nil {
 							return errors.NewInvalid(kind, ingress.Name, field.ErrorList{field.InternalError(field.NewPath("spec", "rules").Index(i), err)})
 						}
@@ -131,7 +131,7 @@ func (r *ingressAdmission) Validate(ctx context.Context, a admission.Attributes,
 						ResourceRequest: true,
 					}
 					kind := schema.GroupKind{Group: a.GetResource().Group, Kind: a.GetResource().Resource}
-					authorized, _, err := r.authorizer.Authorize(attr)
+					authorized, _, err := r.authorizer.Authorize(ctx, attr)
 					if err != nil {
 						return errors.NewInvalid(kind, newIngress.Name, field.ErrorList{field.InternalError(field.NewPath("spec", "rules"), err)})
 					}

@@ -19,7 +19,7 @@
 
 package subscriptionsapi
 
-import original "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2018-06-01/subscriptions/subscriptionsapi"
+import original "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2019-06-01/subscriptions/subscriptionsapi"
 
 type ClientAPI = original.ClientAPI
 type OperationsClientAPI = original.OperationsClientAPI

@@ -146,8 +146,7 @@ func (client ClustersClient) CreateOrUpdate(ctx context.Context, resourceGroupNa
 	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Sku", Name: validation.Null, Rule: true,
-				Chain: []validation.Constraint{{Target: "parameters.Sku.Tier", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "parameters.Sku", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("kusto.ClustersClient", "CreateOrUpdate", err.Error())
 	}
 

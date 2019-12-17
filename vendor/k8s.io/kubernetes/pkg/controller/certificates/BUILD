@@ -43,6 +43,7 @@ filegroup(
     srcs = [
         ":package-srcs",
         "//pkg/controller/certificates/approver:all-srcs",
+        "//pkg/controller/certificates/authority:all-srcs",
         "//pkg/controller/certificates/cleaner:all-srcs",
         "//pkg/controller/certificates/csrsuicider:all-srcs",
         "//pkg/controller/certificates/rootcacertpublisher:all-srcs",

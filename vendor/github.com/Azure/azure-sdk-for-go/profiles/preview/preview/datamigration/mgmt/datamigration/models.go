@@ -84,11 +84,11 @@ type CommandType = original.CommandType
 
 const (
 	CommandTypeCancel                               CommandType = original.CommandTypeCancel
+	CommandTypeCommandProperties                    CommandType = original.CommandTypeCommandProperties
 	CommandTypeFinish                               CommandType = original.CommandTypeFinish
 	CommandTypeMigrateSQLServerAzureDbSQLMiComplete CommandType = original.CommandTypeMigrateSQLServerAzureDbSQLMiComplete
 	CommandTypeMigrateSyncCompleteDatabase          CommandType = original.CommandTypeMigrateSyncCompleteDatabase
 	CommandTypeRestart                              CommandType = original.CommandTypeRestart
-	CommandTypeUnknown                              CommandType = original.CommandTypeUnknown
 )
 
 type DatabaseCompatLevel = original.DatabaseCompatLevel
@@ -610,7 +610,7 @@ const (
 	TaskTypeGetUserTablesSQL                                   TaskType = original.TaskTypeGetUserTablesSQL
 	TaskTypeMigrateMongoDb                                     TaskType = original.TaskTypeMigrateMongoDb
 	TaskTypeMigrateMySQLAzureDbForMySQLSync                    TaskType = original.TaskTypeMigrateMySQLAzureDbForMySQLSync
-	TaskTypeMigrateOracleSQLSync                               TaskType = original.TaskTypeMigrateOracleSQLSync
+	TaskTypeMigrateOracleAzureDbForPostgreSQLSync              TaskType = original.TaskTypeMigrateOracleAzureDbForPostgreSQLSync
 	TaskTypeMigratePostgreSQLAzureDbForPostgreSQLSync          TaskType = original.TaskTypeMigratePostgreSQLAzureDbForPostgreSQLSync
 	TaskTypeMigrateSchemaSQLServerSQLDb                        TaskType = original.TaskTypeMigrateSchemaSQLServerSQLDb
 	TaskTypeMigrateSQLServerAzureSQLDbMI                       TaskType = original.TaskTypeMigrateSQLServerAzureSQLDbMI
@@ -618,10 +618,10 @@ const (
 	TaskTypeMigrateSQLServerAzureSQLDbSync                     TaskType = original.TaskTypeMigrateSQLServerAzureSQLDbSync
 	TaskTypeMigrateSQLServerSQLDb                              TaskType = original.TaskTypeMigrateSQLServerSQLDb
 	TaskTypeMigrateSsis                                        TaskType = original.TaskTypeMigrateSsis
+	TaskTypeProjectTaskProperties                              TaskType = original.TaskTypeProjectTaskProperties
 	TaskTypeServiceCheckOCI                                    TaskType = original.TaskTypeServiceCheckOCI
 	TaskTypeServiceInstallOCI                                  TaskType = original.TaskTypeServiceInstallOCI
 	TaskTypeServiceUploadOCI                                   TaskType = original.TaskTypeServiceUploadOCI
-	TaskTypeUnknown                                            TaskType = original.TaskTypeUnknown
 	TaskTypeValidateMigrationInputSQLServerAzureSQLDbMI        TaskType = original.TaskTypeValidateMigrationInputSQLServerAzureSQLDbMI
 	TaskTypeValidateMigrationInputSQLServerAzureSQLDbMISyncLRS TaskType = original.TaskTypeValidateMigrationInputSQLServerAzureSQLDbMISyncLRS
 	TaskTypeValidateMigrationInputSQLServerSQLDbSync           TaskType = original.TaskTypeValidateMigrationInputSQLServerSQLDbSync
@@ -632,13 +632,13 @@ const (
 type Type = original.Type
 
 const (
+	TypeConnectionInfo           Type = original.TypeConnectionInfo
 	TypeMiSQLConnectionInfo      Type = original.TypeMiSQLConnectionInfo
 	TypeMongoDbConnectionInfo    Type = original.TypeMongoDbConnectionInfo
 	TypeMySQLConnectionInfo      Type = original.TypeMySQLConnectionInfo
 	TypeOracleConnectionInfo     Type = original.TypeOracleConnectionInfo
 	TypePostgreSQLConnectionInfo Type = original.TypePostgreSQLConnectionInfo
 	TypeSQLConnectionInfo        Type = original.TypeSQLConnectionInfo
-	TypeUnknown                  Type = original.TypeUnknown
 )
 
 type UpdateActionType = original.UpdateActionType

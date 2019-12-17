@@ -1,4 +1,0 @@
-package: github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries
-import:
-- package: github.com/openshift/api
-- package: k8s.io/apimachinery

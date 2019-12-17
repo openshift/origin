@@ -21,7 +21,7 @@ export GOPATH
 
 # Only set PROTOC_VER if it has an empty value.
 ifeq (,$(strip $(PROTOC_VER)))
-PROTOC_VER := 3.5.1
+PROTOC_VER := 3.9.1
 endif
 
 PROTOC_OS := $(shell uname -s)
@@ -58,7 +58,7 @@ $(PROTOC):
 PROTOC_GEN_GO_PKG := github.com/golang/protobuf/protoc-gen-go
 PROTOC_GEN_GO := protoc-gen-go
 $(PROTOC_GEN_GO): PROTOBUF_PKG := $(dir $(PROTOC_GEN_GO_PKG))
-$(PROTOC_GEN_GO): PROTOBUF_VERSION := v1.2.0
+$(PROTOC_GEN_GO): PROTOBUF_VERSION := v1.3.2
 $(PROTOC_GEN_GO):
 	mkdir -p $(dir $(GOPATH)/src/$(PROTOBUF_PKG))
 	test -d $(GOPATH)/src/$(PROTOBUF_PKG)/.git || git clone https://$(PROTOBUF_PKG) $(GOPATH)/src/$(PROTOBUF_PKG)

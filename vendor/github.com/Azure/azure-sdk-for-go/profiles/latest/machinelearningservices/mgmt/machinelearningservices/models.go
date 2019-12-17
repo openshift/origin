@@ -22,7 +22,7 @@ package machinelearningservices
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/machinelearningservices/mgmt/2019-05-01/machinelearningservices"
+	original "github.com/Azure/azure-sdk-for-go/services/machinelearningservices/mgmt/2019-06-01/machinelearningservices"
 )
 
 const (
@@ -77,6 +77,17 @@ const (
 	ComputeTypeBasicComputeSecretsComputeTypeVirtualMachine ComputeTypeBasicComputeSecrets = original.ComputeTypeBasicComputeSecretsComputeTypeVirtualMachine
 )
 
+type NodeState = original.NodeState
+
+const (
+	Idle      NodeState = original.Idle
+	Leaving   NodeState = original.Leaving
+	Preempted NodeState = original.Preempted
+	Preparing NodeState = original.Preparing
+	Running   NodeState = original.Running
+	Unusable  NodeState = original.Unusable
+)
+
 type ProvisioningState = original.ProvisioningState
 
 const (
@@ -89,6 +100,20 @@ const (
 	Updating  ProvisioningState = original.Updating
 )
 
+type QuotaUnit = original.QuotaUnit
+
+const (
+	Count QuotaUnit = original.Count
+)
+
+type RemoteLoginPortPublicAccess = original.RemoteLoginPortPublicAccess
+
+const (
+	Disabled     RemoteLoginPortPublicAccess = original.Disabled
+	Enabled      RemoteLoginPortPublicAccess = original.Enabled
+	NotSpecified RemoteLoginPortPublicAccess = original.NotSpecified
+)
+
 type ResourceIdentityType = original.ResourceIdentityType
 
 const (
@@ -98,8 +123,19 @@ const (
 type Status = original.Status
 
 const (
-	Disabled Status = original.Disabled
-	Enabled  Status = original.Enabled
+	Failure                              Status = original.Failure
+	InvalidQuotaBelowClusterMinimum      Status = original.InvalidQuotaBelowClusterMinimum
+	InvalidQuotaExceedsSubscriptionLimit Status = original.InvalidQuotaExceedsSubscriptionLimit
+	InvalidVMFamilyName                  Status = original.InvalidVMFamilyName
+	Success                              Status = original.Success
+	Undefined                            Status = original.Undefined
+)
+
+type Status1 = original.Status1
+
+const (
+	Status1Disabled Status1 = original.Status1Disabled
+	Status1Enabled  Status1 = original.Status1Enabled
 )
 
 type UnderlyingResourceAction = original.UnderlyingResourceAction
@@ -112,7 +148,7 @@ const (
 type UsageUnit = original.UsageUnit
 
 const (
-	Count UsageUnit = original.Count
+	UsageUnitCount UsageUnit = original.UsageUnitCount
 )
 
 type VMPriority = original.VMPriority
@@ -157,6 +193,9 @@ type ListUsagesResult = original.ListUsagesResult
 type ListUsagesResultIterator = original.ListUsagesResultIterator
 type ListUsagesResultPage = original.ListUsagesResultPage
 type ListWorkspaceKeysResult = original.ListWorkspaceKeysResult
+type ListWorkspaceQuotas = original.ListWorkspaceQuotas
+type ListWorkspaceQuotasIterator = original.ListWorkspaceQuotasIterator
+type ListWorkspaceQuotasPage = original.ListWorkspaceQuotasPage
 type MachineLearningComputeClient = original.MachineLearningComputeClient
 type MachineLearningComputeCreateOrUpdateFuture = original.MachineLearningComputeCreateOrUpdateFuture
 type MachineLearningComputeDeleteFuture = original.MachineLearningComputeDeleteFuture
@@ -170,13 +209,20 @@ type PaginatedComputeResourcesList = original.PaginatedComputeResourcesList
 type PaginatedComputeResourcesListIterator = original.PaginatedComputeResourcesListIterator
 type PaginatedComputeResourcesListPage = original.PaginatedComputeResourcesListPage
 type Password = original.Password
+type QuotaBaseProperties = original.QuotaBaseProperties
+type QuotaUpdateParameters = original.QuotaUpdateParameters
+type QuotasClient = original.QuotasClient
 type RegistryListCredentialsResult = original.RegistryListCredentialsResult
 type Resource = original.Resource
 type ResourceID = original.ResourceID
+type ResourceName = original.ResourceName
+type ResourceQuota = original.ResourceQuota
 type ScaleSettings = original.ScaleSettings
 type ServicePrincipalCredentials = original.ServicePrincipalCredentials
 type SslConfiguration = original.SslConfiguration
 type SystemService = original.SystemService
+type UpdateWorkspaceQuotas = original.UpdateWorkspaceQuotas
+type UpdateWorkspaceQuotasResult = original.UpdateWorkspaceQuotasResult
 type Usage = original.Usage
 type UsageName = original.UsageName
 type UsagesClient = original.UsagesClient
@@ -206,6 +252,12 @@ func NewListUsagesResultIterator(page ListUsagesResultPage) ListUsagesResultIter
 func NewListUsagesResultPage(getNextPage func(context.Context, ListUsagesResult) (ListUsagesResult, error)) ListUsagesResultPage {
 	return original.NewListUsagesResultPage(getNextPage)
 }
+func NewListWorkspaceQuotasIterator(page ListWorkspaceQuotasPage) ListWorkspaceQuotasIterator {
+	return original.NewListWorkspaceQuotasIterator(page)
+}
+func NewListWorkspaceQuotasPage(getNextPage func(context.Context, ListWorkspaceQuotas) (ListWorkspaceQuotas, error)) ListWorkspaceQuotasPage {
+	return original.NewListWorkspaceQuotasPage(getNextPage)
+}
 func NewMachineLearningComputeClient(subscriptionID string) MachineLearningComputeClient {
 	return original.NewMachineLearningComputeClient(subscriptionID)
 }
@@ -223,6 +275,12 @@ func NewPaginatedComputeResourcesListIterator(page PaginatedComputeResourcesList
 }
 func NewPaginatedComputeResourcesListPage(getNextPage func(context.Context, PaginatedComputeResourcesList) (PaginatedComputeResourcesList, error)) PaginatedComputeResourcesListPage {
 	return original.NewPaginatedComputeResourcesListPage(getNextPage)
+}
+func NewQuotasClient(subscriptionID string) QuotasClient {
+	return original.NewQuotasClient(subscriptionID)
+}
+func NewQuotasClientWithBaseURI(baseURI string, subscriptionID string) QuotasClient {
+	return original.NewQuotasClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewUsagesClient(subscriptionID string) UsagesClient {
 	return original.NewUsagesClient(subscriptionID)
@@ -266,11 +324,23 @@ func PossibleComputeTypeBasicComputeValues() []ComputeTypeBasicCompute {
 func PossibleComputeTypeValues() []ComputeType {
 	return original.PossibleComputeTypeValues()
 }
+func PossibleNodeStateValues() []NodeState {
+	return original.PossibleNodeStateValues()
+}
 func PossibleProvisioningStateValues() []ProvisioningState {
 	return original.PossibleProvisioningStateValues()
 }
+func PossibleQuotaUnitValues() []QuotaUnit {
+	return original.PossibleQuotaUnitValues()
+}
+func PossibleRemoteLoginPortPublicAccessValues() []RemoteLoginPortPublicAccess {
+	return original.PossibleRemoteLoginPortPublicAccessValues()
+}
 func PossibleResourceIdentityTypeValues() []ResourceIdentityType {
 	return original.PossibleResourceIdentityTypeValues()
+}
+func PossibleStatus1Values() []Status1 {
+	return original.PossibleStatus1Values()
 }
 func PossibleStatusValues() []Status {
 	return original.PossibleStatusValues()

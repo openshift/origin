@@ -6,11 +6,14 @@ if [ ! -f ./_output/tools/bin/yq ]; then
     chmod +x ./_output/tools/bin/yq
 fi
 
-FILES="config/v1/*.crd.yaml
-authorization/v1/*.crd.yaml
+FILES="authorization/v1/*.crd.yaml
+config/v1/*.crd.yaml
 console/v1/*.crd.yaml
+imageregistry/v1/*crd.yaml
+operator/v1/*.crd.yaml
 operator/v1alpha1/*.crd.yaml
 quota/v1/*.crd.yaml
+samples/v1/*.crd.yaml
 security/v1/*.crd.yaml
 "
 FAILS=false

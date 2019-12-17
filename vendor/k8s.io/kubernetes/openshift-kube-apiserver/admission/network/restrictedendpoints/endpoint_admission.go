@@ -140,7 +140,7 @@ func (r *restrictedEndpointsAdmission) findRestrictedPort(ep *kapi.Endpoints, re
 	return nil
 }
 
-func (r *restrictedEndpointsAdmission) checkAccess(attr admission.Attributes) (bool, error) {
+func (r *restrictedEndpointsAdmission) checkAccess(ctx context.Context, attr admission.Attributes) (bool, error) {
 	authzAttr := authorizer.AttributesRecord{
 		User:            attr.GetUserInfo(),
 		Verb:            "create",
@@ -151,7 +151,7 @@ func (r *restrictedEndpointsAdmission) checkAccess(attr admission.Attributes) (b
 		Name:            attr.GetName(),
 		ResourceRequest: true,
 	}
-	authorized, _, err := r.authorizer.Authorize(authzAttr)
+	authorized, _, err := r.authorizer.Authorize(ctx, authzAttr)
 	return authorized == authorizer.DecisionAllow, err
 }
 
@@ -180,7 +180,7 @@ func (r *restrictedEndpointsAdmission) Validate(ctx context.Context, a admission
 		return nil
 	}
 
-	allow, err := r.checkAccess(a)
+	allow, err := r.checkAccess(ctx, a)
 	if err != nil {
 		return err
 	}

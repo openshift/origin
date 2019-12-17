@@ -136,3 +136,99 @@ func (client TriggerRunsClient) QueryByFactoryResponder(resp *http.Response) (re
 	result.Response = autorest.Response{Response: resp}
 	return
 }
+
+// Rerun rerun single trigger instance by runId.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
+// runID - the pipeline run identifier.
+func (client TriggerRunsClient) Rerun(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, runID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggerRunsClient.Rerun")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: factoryName,
+			Constraints: []validation.Constraint{{Target: "factoryName", Name: validation.MaxLength, Rule: 63, Chain: nil},
+				{Target: "factoryName", Name: validation.MinLength, Rule: 3, Chain: nil},
+				{Target: "factoryName", Name: validation.Pattern, Rule: `^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$`, Chain: nil}}},
+		{TargetValue: triggerName,
+			Constraints: []validation.Constraint{{Target: "triggerName", Name: validation.MaxLength, Rule: 260, Chain: nil},
+				{Target: "triggerName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "triggerName", Name: validation.Pattern, Rule: `^[A-Za-z0-9_][^<>*#.%&:\\+?/]*$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("datafactory.TriggerRunsClient", "Rerun", err.Error())
+	}
+
+	req, err := client.RerunPreparer(ctx, resourceGroupName, factoryName, triggerName, runID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.TriggerRunsClient", "Rerun", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.RerunSender(req)
+	if err != nil {
+		result.Response = resp
+		err = autorest.NewErrorWithError(err, "datafactory.TriggerRunsClient", "Rerun", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.RerunResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.TriggerRunsClient", "Rerun", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// RerunPreparer prepares the Rerun request.
+func (client TriggerRunsClient) RerunPreparer(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, runID string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"factoryName":       autorest.Encode("path", factoryName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"runId":             autorest.Encode("path", runID),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+		"triggerName":       autorest.Encode("path", triggerName),
+	}
+
+	const APIVersion = "2018-06-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/triggers/{triggerName}/triggerRuns/{runId}/rerun", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// RerunSender sends the Rerun request. The method will close the
+// http.Response Body if it receives an error.
+func (client TriggerRunsClient) RerunSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// RerunResponder handles the response to the Rerun request. The method always
+// closes the http.Response Body.
+func (client TriggerRunsClient) RerunResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+	result.Response = resp
+	return
+}

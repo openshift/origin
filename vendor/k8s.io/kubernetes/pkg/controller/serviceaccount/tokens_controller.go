@@ -35,10 +35,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 	clientretry "k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/component-base/metrics/prometheus/ratelimiter"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/registry/core/secret"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/util/metrics"
 )
 
 const ServiceServingCASecretKey = "service-ca.crt"
@@ -92,7 +92,7 @@ func NewTokensController(serviceAccounts informers.ServiceAccountInformer, secre
 		maxRetries: maxRetries,
 	}
 	if cl != nil && cl.CoreV1().RESTClient().GetRateLimiter() != nil {
-		if err := metrics.RegisterMetricAndTrackRateLimiterUsage("serviceaccount_tokens_controller", cl.CoreV1().RESTClient().GetRateLimiter()); err != nil {
+		if err := ratelimiter.RegisterMetricAndTrackRateLimiterUsage("serviceaccount_tokens_controller", cl.CoreV1().RESTClient().GetRateLimiter()); err != nil {
 			return nil, err
 		}
 	}
@@ -509,7 +509,7 @@ func (e *TokensController) hasReferencedToken(serviceAccount *v1.ServiceAccount)
 
 func (e *TokensController) secretUpdateNeeded(secret *v1.Secret) (bool, bool, bool, bool) {
 	caData := secret.Data[v1.ServiceAccountRootCAKey]
-	needsCA := len(e.rootCA) > 0 && bytes.Compare(caData, e.rootCA) != 0
+	needsCA := len(e.rootCA) > 0 && !bytes.Equal(caData, e.rootCA)
 	needsServiceServingCA := len(e.serviceServingCA) > 0 && bytes.Compare(secret.Data[ServiceServingCASecretKey], e.serviceServingCA) != 0
 
 	needsNamespace := len(secret.Data[v1.ServiceAccountNamespaceKey]) == 0

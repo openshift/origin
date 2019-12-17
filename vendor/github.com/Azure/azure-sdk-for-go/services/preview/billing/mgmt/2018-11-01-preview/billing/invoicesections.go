@@ -266,7 +266,7 @@ func (client InvoiceSectionsClient) GetResponder(resp *http.Response) (result In
 	return
 }
 
-// ListByBillingAccountName lists all invoice sections for a user which he has access to.
+// ListByBillingAccountName lists all invoice sections for which a user has access.
 // Parameters:
 // billingAccountName - billing Account Id.
 // expand - may be used to expand the billingProfiles.
@@ -344,21 +344,22 @@ func (client InvoiceSectionsClient) ListByBillingAccountNameResponder(resp *http
 	return
 }
 
-// ListByBillingProfileName lists all invoice sections under a billing profile for a user which he has access to.
+// ListByBillingProfileName lists all invoice sections under a billing profile for which a user has access.
 // Parameters:
 // billingAccountName - billing Account Id.
 // billingProfileName - billing Profile Id.
-func (client InvoiceSectionsClient) ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string) (result InvoiceSectionListResult, err error) {
+func (client InvoiceSectionsClient) ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string) (result InvoiceSectionListResultPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/InvoiceSectionsClient.ListByBillingProfileName")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.islr.Response.Response != nil {
+				sc = result.islr.Response.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	result.fn = client.listByBillingProfileNameNextResults
 	req, err := client.ListByBillingProfileNamePreparer(ctx, billingAccountName, billingProfileName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "ListByBillingProfileName", nil, "Failure preparing request")
@@ -367,12 +368,12 @@ func (client InvoiceSectionsClient) ListByBillingProfileName(ctx context.Context
 
 	resp, err := client.ListByBillingProfileNameSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.islr.Response = autorest.Response{Response: resp}
 		err = autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "ListByBillingProfileName", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.ListByBillingProfileNameResponder(resp)
+	result.islr, err = client.ListByBillingProfileNameResponder(resp)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "ListByBillingProfileName", resp, "Failure responding to request")
 	}
@@ -420,21 +421,59 @@ func (client InvoiceSectionsClient) ListByBillingProfileNameResponder(resp *http
 	return
 }
 
-// ListByCreateSubscriptionPermission lists all invoiceSections with create subscription permission for a user.
-// Parameters:
-// billingAccountName - billing Account Id.
-// expand - may be used to expand the billingProfiles.
-func (client InvoiceSectionsClient) ListByCreateSubscriptionPermission(ctx context.Context, billingAccountName string, expand string) (result InvoiceSectionListResult, err error) {
+// listByBillingProfileNameNextResults retrieves the next set of results, if any.
+func (client InvoiceSectionsClient) listByBillingProfileNameNextResults(ctx context.Context, lastResults InvoiceSectionListResult) (result InvoiceSectionListResult, err error) {
+	req, err := lastResults.invoiceSectionListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "listByBillingProfileNameNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByBillingProfileNameSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "listByBillingProfileNameNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByBillingProfileNameResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "listByBillingProfileNameNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByBillingProfileNameComplete enumerates all values, automatically crossing page boundaries as required.
+func (client InvoiceSectionsClient) ListByBillingProfileNameComplete(ctx context.Context, billingAccountName string, billingProfileName string) (result InvoiceSectionListResultIterator, err error) {
 	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/InvoiceSectionsClient.ListByCreateSubscriptionPermission")
+		ctx = tracing.StartSpan(ctx, fqdn+"/InvoiceSectionsClient.ListByBillingProfileName")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	result.page, err = client.ListByBillingProfileName(ctx, billingAccountName, billingProfileName)
+	return
+}
+
+// ListByCreateSubscriptionPermission lists all invoiceSections with create subscription permission for a user.
+// Parameters:
+// billingAccountName - billing Account Id.
+// expand - may be used to expand the billingProfiles.
+func (client InvoiceSectionsClient) ListByCreateSubscriptionPermission(ctx context.Context, billingAccountName string, expand string) (result InvoiceSectionListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InvoiceSectionsClient.ListByCreateSubscriptionPermission")
+		defer func() {
+			sc := -1
+			if result.islr.Response.Response != nil {
+				sc = result.islr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.fn = client.listByCreateSubscriptionPermissionNextResults
 	req, err := client.ListByCreateSubscriptionPermissionPreparer(ctx, billingAccountName, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "ListByCreateSubscriptionPermission", nil, "Failure preparing request")
@@ -443,12 +482,12 @@ func (client InvoiceSectionsClient) ListByCreateSubscriptionPermission(ctx conte
 
 	resp, err := client.ListByCreateSubscriptionPermissionSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.islr.Response = autorest.Response{Response: resp}
 		err = autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "ListByCreateSubscriptionPermission", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.ListByCreateSubscriptionPermissionResponder(resp)
+	result.islr, err = client.ListByCreateSubscriptionPermissionResponder(resp)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "ListByCreateSubscriptionPermission", resp, "Failure responding to request")
 	}
@@ -495,6 +534,43 @@ func (client InvoiceSectionsClient) ListByCreateSubscriptionPermissionResponder(
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByCreateSubscriptionPermissionNextResults retrieves the next set of results, if any.
+func (client InvoiceSectionsClient) listByCreateSubscriptionPermissionNextResults(ctx context.Context, lastResults InvoiceSectionListResult) (result InvoiceSectionListResult, err error) {
+	req, err := lastResults.invoiceSectionListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "listByCreateSubscriptionPermissionNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByCreateSubscriptionPermissionSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "listByCreateSubscriptionPermissionNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByCreateSubscriptionPermissionResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.InvoiceSectionsClient", "listByCreateSubscriptionPermissionNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByCreateSubscriptionPermissionComplete enumerates all values, automatically crossing page boundaries as required.
+func (client InvoiceSectionsClient) ListByCreateSubscriptionPermissionComplete(ctx context.Context, billingAccountName string, expand string) (result InvoiceSectionListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InvoiceSectionsClient.ListByCreateSubscriptionPermission")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByCreateSubscriptionPermission(ctx, billingAccountName, expand)
 	return
 }
 

@@ -15,13 +15,13 @@ package procfs
 
 import "testing"
 
-func TestNewLimits(t *testing.T) {
-	p, err := FS("fixtures").NewProc(26231)
+func TestLimits(t *testing.T) {
+	p, err := getProcFixtures(t).Proc(26231)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	l, err := p.NewLimits()
+	l, err := p.Limits()
 	if err != nil {
 		t.Fatal(err)
 	}

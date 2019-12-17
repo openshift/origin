@@ -106,15 +106,6 @@ type OperationEntity = original.OperationEntity
 type OperationEntityListResult = original.OperationEntityListResult
 type OperationEntityListResultIterator = original.OperationEntityListResultIterator
 type OperationEntityListResultPage = original.OperationEntityListResultPage
-type ReplicaSet = original.ReplicaSet
-type ReplicaSetListResult = original.ReplicaSetListResult
-type ReplicaSetListResultIterator = original.ReplicaSetListResultIterator
-type ReplicaSetListResultPage = original.ReplicaSetListResultPage
-type ReplicaSetProperties = original.ReplicaSetProperties
-type ReplicaSetsClient = original.ReplicaSetsClient
-type ReplicaSetsCreateOrUpdateFuture = original.ReplicaSetsCreateOrUpdateFuture
-type ReplicaSetsDeleteFuture = original.ReplicaSetsDeleteFuture
-type ReplicaSetsUpdateFuture = original.ReplicaSetsUpdateFuture
 type Resource = original.Resource
 
 func New(subscriptionID string) BaseClient {
@@ -143,18 +134,6 @@ func NewOperationEntityListResultIterator(page OperationEntityListResultPage) Op
 }
 func NewOperationEntityListResultPage(getNextPage func(context.Context, OperationEntityListResult) (OperationEntityListResult, error)) OperationEntityListResultPage {
 	return original.NewOperationEntityListResultPage(getNextPage)
-}
-func NewReplicaSetListResultIterator(page ReplicaSetListResultPage) ReplicaSetListResultIterator {
-	return original.NewReplicaSetListResultIterator(page)
-}
-func NewReplicaSetListResultPage(getNextPage func(context.Context, ReplicaSetListResult) (ReplicaSetListResult, error)) ReplicaSetListResultPage {
-	return original.NewReplicaSetListResultPage(getNextPage)
-}
-func NewReplicaSetsClient(subscriptionID string) ReplicaSetsClient {
-	return original.NewReplicaSetsClient(subscriptionID)
-}
-func NewReplicaSetsClientWithBaseURI(baseURI string, subscriptionID string) ReplicaSetsClient {
-	return original.NewReplicaSetsClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)

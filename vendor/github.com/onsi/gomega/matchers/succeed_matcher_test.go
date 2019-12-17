@@ -2,10 +2,11 @@ package matchers_test
 
 import (
 	"errors"
+	"regexp"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/matchers"
-	"regexp"
 )
 
 func Erroring() error {

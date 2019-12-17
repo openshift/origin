@@ -41,7 +41,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/pkg/server/certs"
 	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -174,7 +173,7 @@ func TestServerRunWithSNI(t *testing.T) {
 		},
 		"loopback: LoopbackClientServerNameOverride on server cert": {
 			Cert: TestCertSpec{
-				host: certs.LoopbackClientServerNameOverride,
+				host: server.LoopbackClientServerNameOverride,
 			},
 			SNICerts: []NamedTestCertSpec{
 				{
@@ -192,7 +191,7 @@ func TestServerRunWithSNI(t *testing.T) {
 			SNICerts: []NamedTestCertSpec{
 				{
 					TestCertSpec: TestCertSpec{
-						host: certs.LoopbackClientServerNameOverride,
+						host: server.LoopbackClientServerNameOverride,
 					},
 				},
 			},

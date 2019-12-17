@@ -25,7 +25,7 @@ type WrapCommandTransport struct {
 }
 
 func (w *WrapCommandTransport) ExecCommands(
-	host string, commands []string, timeoutMinutes int) (rex.Results, error) {
+	host string, commands rex.Cmds, timeoutMinutes int) (rex.Results, error) {
 
 	results := make(rex.Results, len(commands))
 	for i, c := range commands {
@@ -35,7 +35,7 @@ func (w *WrapCommandTransport) ExecCommands(
 			continue
 		}
 		tres, err := w.Transport.ExecCommands(
-			host, []string{c}, timeoutMinutes)
+			host, rex.Cmds{c}, timeoutMinutes)
 		if err != nil {
 			return results, err
 		}
@@ -81,10 +81,10 @@ func (w *WrapCommandTransport) XfsSu() int {
 // processing of the command is needed the first return value will
 // be true. The remaining return values are the command's results
 // or error.
-func (w *WrapCommandTransport) Before(command string) rex.Result {
+func (w *WrapCommandTransport) Before(command rex.Cmd) rex.Result {
 
 	if w.handleBefore != nil {
-		return w.handleBefore(command)
+		return w.handleBefore(command.String())
 	}
 	return rex.Result{}
 }
@@ -93,11 +93,11 @@ func (w *WrapCommandTransport) Before(command string) rex.Result {
 // if one is set. The handleAfter function may or may not alter
 // the results of the input results or error condition.
 func (w *WrapCommandTransport) After(
-	command string, results rex.Results) rex.Result {
+	command rex.Cmd, results rex.Results) rex.Result {
 
 	r := results[0]
 	if w.handleAfter != nil {
-		return w.handleAfter(command, r)
+		return w.handleAfter(command.String(), r)
 	}
 	return r
 }

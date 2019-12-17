@@ -197,7 +197,7 @@ func TestSetInsertHas(t *testing.T) {
 }
 
 func TestSetString(t *testing.T) {
-	p := MakePathOrDie("foo", PathElement{Key: &value.Map{Items: KeyByFields("name", value.StringValue("first"))}})
+	p := MakePathOrDie("foo", PathElement{Key: KeyByFields("name", value.StringValue("first"))})
 	s1 := NewSet(p)
 
 	if p.String() != s1.String() {

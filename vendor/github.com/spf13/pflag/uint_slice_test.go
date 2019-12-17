@@ -140,6 +140,29 @@ func TestUISWithDefault(t *testing.T) {
 	}
 }
 
+func TestUISAsSliceValue(t *testing.T) {
+	var uis []uint
+	f := setUpUISFlagSet(&uis)
+
+	in := []string{"1", "2"}
+	argfmt := "--uis=%s"
+	arg1 := fmt.Sprintf(argfmt, in[0])
+	arg2 := fmt.Sprintf(argfmt, in[1])
+	err := f.Parse([]string{arg1, arg2})
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+
+	f.VisitAll(func(f *Flag) {
+		if val, ok := f.Value.(SliceValue); ok {
+			_ = val.Replace([]string{"3"})
+		}
+	})
+	if len(uis) != 1 || uis[0] != 3 {
+		t.Fatalf("Expected ss to be overwritten with '3.1', but got: %v", uis)
+	}
+}
+
 func TestUISCalledTwice(t *testing.T) {
 	var uis []uint
 	f := setUpUISFlagSet(&uis)

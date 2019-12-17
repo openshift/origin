@@ -28,7 +28,7 @@ import (
 )
 
 // StartFunc is the function to call on leader election start
-type StartFunc func(*ControllerContext) error
+type StartFunc func(context.Context, *ControllerContext) error
 
 type ControllerContext struct {
 	ComponentConfig *unstructured.Unstructured
@@ -46,8 +46,6 @@ type ControllerContext struct {
 
 	// Server is the GenericAPIServer serving healthz checks and debug info
 	Server *genericapiserver.GenericAPIServer
-
-	Ctx context.Context
 }
 
 // defaultObserverInterval specifies the default interval that file observer will do rehash the files it watches and react to any changes
@@ -156,7 +154,7 @@ func (b *ControllerBuilder) WithInstanceIdentity(identity string) *ControllerBui
 }
 
 // Run starts your controller for you.  It uses leader election if you asked, otherwise it directly calls you
-func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.Context) error {
+func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstructured) error {
 	clientConfig, err := b.getClientConfig()
 	if err != nil {
 		return err
@@ -222,11 +220,10 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 		ProtoKubeConfig: protoConfig,
 		EventRecorder:   eventRecorder,
 		Server:          server,
-		Ctx:             ctx,
 	}
 
 	if b.leaderElection == nil {
-		if err := b.startFunc(controllerContext); err != nil {
+		if err := b.startFunc(ctx, controllerContext); err != nil {
 			return err
 		}
 		return fmt.Errorf("exited")
@@ -242,8 +239,7 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 	}
 
 	leaderElection.Callbacks.OnStartedLeading = func(ctx context.Context) {
-		controllerContext.Ctx = ctx
-		if err := b.startFunc(controllerContext); err != nil {
+		if err := b.startFunc(ctx, controllerContext); err != nil {
 			klog.Fatal(err)
 		}
 	}

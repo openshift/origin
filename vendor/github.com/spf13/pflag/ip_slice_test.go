@@ -141,6 +141,29 @@ func TestIPSCalledTwice(t *testing.T) {
 	}
 }
 
+func TestIPSAsSliceValue(t *testing.T) {
+	var ips []net.IP
+	f := setUpIPSFlagSet(&ips)
+
+	in := []string{"192.168.1.1", "0:0:0:0:0:0:0:1"}
+	argfmt := "--ips=%s"
+	arg1 := fmt.Sprintf(argfmt, in[0])
+	arg2 := fmt.Sprintf(argfmt, in[1])
+	err := f.Parse([]string{arg1, arg2})
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+
+	f.VisitAll(func(f *Flag) {
+		if val, ok := f.Value.(SliceValue); ok {
+			_ = val.Replace([]string{"192.168.1.2"})
+		}
+	})
+	if len(ips) != 1 || !ips[0].Equal(net.ParseIP("192.168.1.2")) {
+		t.Fatalf("Expected ss to be overwritten with '192.168.1.2', but got: %v", ips)
+	}
+}
+
 func TestIPSBadQuoting(t *testing.T) {
 
 	tests := []struct {

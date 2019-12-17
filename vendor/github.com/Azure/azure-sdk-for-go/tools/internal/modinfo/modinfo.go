@@ -206,3 +206,9 @@ func (m module) NewModule() bool {
 func (m module) GenerateReport() report.Package {
 	return report.Generate(m.lhs, m.rhs, false, false)
 }
+
+// IsValidModuleVersion returns true if the provided string is a valid module version (e.g. v1.2.3).
+func IsValidModuleVersion(v string) bool {
+	r := regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
+	return r.MatchString(v)
+}

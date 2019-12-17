@@ -71,7 +71,7 @@ func FixTabsOrDie(in typed.YAMLObject) typed.YAMLObject {
 
 func (s *State) checkInit() error {
 	if s.Live == nil {
-		obj, err := s.Parser.FromYAML("{}")
+		obj, err := s.Parser.FromUnstructured(nil)
 		if err != nil {
 			return fmt.Errorf("failed to create new empty object: %v", err)
 		}
@@ -80,13 +80,11 @@ func (s *State) checkInit() error {
 	return nil
 }
 
-// Update the current state with the passed in object
-func (s *State) Update(obj typed.YAMLObject, version fieldpath.APIVersion, manager string) error {
-	obj = FixTabsOrDie(obj)
-	if err := s.checkInit(); err != nil {
+func (s *State) UpdateObject(tv *typed.TypedValue, version fieldpath.APIVersion, manager string) error {
+	err := s.checkInit()
+	if err != nil {
 		return err
 	}
-	tv, err := s.Parser.FromYAML(obj)
 	s.Live, err = s.Updater.Converter.Convert(s.Live, version)
 	if err != nil {
 		return err
@@ -101,13 +99,17 @@ func (s *State) Update(obj typed.YAMLObject, version fieldpath.APIVersion, manag
 	return nil
 }
 
-// Apply the passed in object to the current state
-func (s *State) Apply(obj typed.YAMLObject, version fieldpath.APIVersion, manager string, force bool) error {
-	obj = FixTabsOrDie(obj)
-	if err := s.checkInit(); err != nil {
+// Update the current state with the passed in object
+func (s *State) Update(obj typed.YAMLObject, version fieldpath.APIVersion, manager string) error {
+	tv, err := s.Parser.FromYAML(FixTabsOrDie(obj))
+	if err != nil {
 		return err
 	}
-	tv, err := s.Parser.FromYAML(obj)
+	return s.UpdateObject(tv, version, manager)
+}
+
+func (s *State) ApplyObject(tv *typed.TypedValue, version fieldpath.APIVersion, manager string, force bool) error {
+	err := s.checkInit()
 	if err != nil {
 		return err
 	}
@@ -123,6 +125,15 @@ func (s *State) Apply(obj typed.YAMLObject, version fieldpath.APIVersion, manage
 	s.Managers = managers
 
 	return nil
+}
+
+// Apply the passed in object to the current state
+func (s *State) Apply(obj typed.YAMLObject, version fieldpath.APIVersion, manager string, force bool) error {
+	tv, err := s.Parser.FromYAML(FixTabsOrDie(obj))
+	if err != nil {
+		return err
+	}
+	return s.ApplyObject(tv, version, manager, force)
 }
 
 // CompareLive takes a YAML string and returns the comparison with the
@@ -159,6 +170,7 @@ func (dummyConverter) IsMissingVersionError(err error) bool {
 // Operation is a step that will run when building a table-driven test.
 type Operation interface {
 	run(*State) error
+	preprocess(typed.ParseableType) (Operation, error)
 }
 
 func hasConflict(conflicts merge.Conflicts, conflict merge.Conflict) bool {
@@ -194,7 +206,37 @@ type Apply struct {
 var _ Operation = &Apply{}
 
 func (a Apply) run(state *State) error {
-	err := state.Apply(a.Object, a.APIVersion, a.Manager, false)
+	p, err := a.preprocess(state.Parser)
+	if err != nil {
+		return err
+	}
+	return p.run(state)
+}
+
+func (a Apply) preprocess(parser typed.ParseableType) (Operation, error) {
+	tv, err := parser.FromYAML(FixTabsOrDie(a.Object))
+	if err != nil {
+		return nil, err
+	}
+	return ApplyObject{
+		Manager:    a.Manager,
+		APIVersion: a.APIVersion,
+		Object:     tv,
+		Conflicts:  a.Conflicts,
+	}, nil
+}
+
+type ApplyObject struct {
+	Manager    string
+	APIVersion fieldpath.APIVersion
+	Object     *typed.TypedValue
+	Conflicts  merge.Conflicts
+}
+
+var _ Operation = &ApplyObject{}
+
+func (a ApplyObject) run(state *State) error {
+	err := state.ApplyObject(a.Object, a.APIVersion, a.Manager, false)
 	if err != nil {
 		if _, ok := err.(merge.Conflicts); !ok || a.Conflicts == nil {
 			return err
@@ -215,7 +257,10 @@ func (a Apply) run(state *State) error {
 		}
 	}
 	return nil
+}
 
+func (a ApplyObject) preprocess(parser typed.ParseableType) (Operation, error) {
+	return a, nil
 }
 
 // ForceApply is a type of operation. It is a forced-apply run by a
@@ -232,6 +277,36 @@ func (f ForceApply) run(state *State) error {
 	return state.Apply(f.Object, f.APIVersion, f.Manager, true)
 }
 
+func (f ForceApply) preprocess(parser typed.ParseableType) (Operation, error) {
+	tv, err := parser.FromYAML(FixTabsOrDie(f.Object))
+	if err != nil {
+		return nil, err
+	}
+	return ForceApplyObject{
+		Manager:    f.Manager,
+		APIVersion: f.APIVersion,
+		Object:     tv,
+	}, nil
+}
+
+// ForceApplyObject is a type of operation. It is a forced-apply run by
+// a manager with a given object. Any error will be returned.
+type ForceApplyObject struct {
+	Manager    string
+	APIVersion fieldpath.APIVersion
+	Object     *typed.TypedValue
+}
+
+var _ Operation = &ForceApplyObject{}
+
+func (f ForceApplyObject) run(state *State) error {
+	return state.ApplyObject(f.Object, f.APIVersion, f.Manager, true)
+}
+
+func (f ForceApplyObject) preprocess(parser typed.ParseableType) (Operation, error) {
+	return f, nil
+}
+
 // Update is a type of operation. It is a controller type of
 // update. Errors are passed along.
 type Update struct {
@@ -244,6 +319,36 @@ var _ Operation = &Update{}
 
 func (u Update) run(state *State) error {
 	return state.Update(u.Object, u.APIVersion, u.Manager)
+}
+
+func (u Update) preprocess(parser typed.ParseableType) (Operation, error) {
+	tv, err := parser.FromYAML(FixTabsOrDie(u.Object))
+	if err != nil {
+		return nil, err
+	}
+	return UpdateObject{
+		Manager:    u.Manager,
+		APIVersion: u.APIVersion,
+		Object:     tv,
+	}, nil
+}
+
+// UpdateObject is a type of operation. It is a controller type of
+// update. Errors are passed along.
+type UpdateObject struct {
+	Manager    string
+	APIVersion fieldpath.APIVersion
+	Object     *typed.TypedValue
+}
+
+var _ Operation = &Update{}
+
+func (u UpdateObject) run(state *State) error {
+	return state.UpdateObject(u.Object, u.APIVersion, u.Manager)
+}
+
+func (f UpdateObject) preprocess(parser typed.ParseableType) (Operation, error) {
+	return f, nil
 }
 
 // TestCase is the list of operations that need to be run, as well as
@@ -274,6 +379,18 @@ func (tc TestCase) Test(parser typed.ParseableType) error {
 // doesn't check exit conditions--see the comment for BenchWithConverter.
 func (tc TestCase) Bench(parser typed.ParseableType) error {
 	return tc.BenchWithConverter(parser, &dummyConverter{})
+}
+
+// Preprocess all the operations by parsing the yaml before-hand.
+func (tc TestCase) PreprocessOperations(parser typed.ParseableType) error {
+	for i := range tc.Ops {
+		op, err := tc.Ops[i].preprocess(parser)
+		if err != nil {
+			return err
+		}
+		tc.Ops[i] = op
+	}
+	return nil
 }
 
 // BenchWithConverter runs the test-case using the given parser and converter,

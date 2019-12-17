@@ -66,11 +66,19 @@ const (
 	BlobFolder DataSetType = "BlobFolder"
 	// Container ...
 	Container DataSetType = "Container"
+	// KustoCluster ...
+	KustoCluster DataSetType = "KustoCluster"
+	// KustoDatabase ...
+	KustoDatabase DataSetType = "KustoDatabase"
+	// SQLDBTable ...
+	SQLDBTable DataSetType = "SqlDBTable"
+	// SQLDWTable ...
+	SQLDWTable DataSetType = "SqlDWTable"
 )
 
 // PossibleDataSetTypeValues returns an array of possible values for the DataSetType const type.
 func PossibleDataSetTypeValues() []DataSetType {
-	return []DataSetType{AdlsGen1File, AdlsGen1Folder, AdlsGen2File, AdlsGen2FileSystem, AdlsGen2Folder, Blob, BlobFolder, Container}
+	return []DataSetType{AdlsGen1File, AdlsGen1Folder, AdlsGen2File, AdlsGen2FileSystem, AdlsGen2Folder, Blob, BlobFolder, Container, KustoCluster, KustoDatabase, SQLDBTable, SQLDWTable}
 }
 
 // InvitationStatus enumerates the values for invitation status.
@@ -114,11 +122,19 @@ const (
 	KindContainer Kind = "Container"
 	// KindDataSet ...
 	KindDataSet Kind = "DataSet"
+	// KindKustoCluster ...
+	KindKustoCluster Kind = "KustoCluster"
+	// KindKustoDatabase ...
+	KindKustoDatabase Kind = "KustoDatabase"
+	// KindSQLDBTable ...
+	KindSQLDBTable Kind = "SqlDBTable"
+	// KindSQLDWTable ...
+	KindSQLDWTable Kind = "SqlDWTable"
 )
 
 // PossibleKindValues returns an array of possible values for the Kind const type.
 func PossibleKindValues() []Kind {
-	return []Kind{KindAdlsGen1File, KindAdlsGen1Folder, KindAdlsGen2File, KindAdlsGen2FileSystem, KindAdlsGen2Folder, KindBlob, KindBlobFolder, KindContainer, KindDataSet}
+	return []Kind{KindAdlsGen1File, KindAdlsGen1Folder, KindAdlsGen2File, KindAdlsGen2FileSystem, KindAdlsGen2Folder, KindBlob, KindBlobFolder, KindContainer, KindDataSet, KindKustoCluster, KindKustoDatabase, KindSQLDBTable, KindSQLDWTable}
 }
 
 // KindBasicDataSetMapping enumerates the values for kind basic data set mapping.
@@ -139,11 +155,19 @@ const (
 	KindBasicDataSetMappingKindContainer KindBasicDataSetMapping = "Container"
 	// KindBasicDataSetMappingKindDataSetMapping ...
 	KindBasicDataSetMappingKindDataSetMapping KindBasicDataSetMapping = "DataSetMapping"
+	// KindBasicDataSetMappingKindKustoCluster ...
+	KindBasicDataSetMappingKindKustoCluster KindBasicDataSetMapping = "KustoCluster"
+	// KindBasicDataSetMappingKindKustoDatabase ...
+	KindBasicDataSetMappingKindKustoDatabase KindBasicDataSetMapping = "KustoDatabase"
+	// KindBasicDataSetMappingKindSQLDBTable ...
+	KindBasicDataSetMappingKindSQLDBTable KindBasicDataSetMapping = "SqlDBTable"
+	// KindBasicDataSetMappingKindSQLDWTable ...
+	KindBasicDataSetMappingKindSQLDWTable KindBasicDataSetMapping = "SqlDWTable"
 )
 
 // PossibleKindBasicDataSetMappingValues returns an array of possible values for the KindBasicDataSetMapping const type.
 func PossibleKindBasicDataSetMappingValues() []KindBasicDataSetMapping {
-	return []KindBasicDataSetMapping{KindBasicDataSetMappingKindAdlsGen2File, KindBasicDataSetMappingKindAdlsGen2FileSystem, KindBasicDataSetMappingKindAdlsGen2Folder, KindBasicDataSetMappingKindBlob, KindBasicDataSetMappingKindBlobFolder, KindBasicDataSetMappingKindContainer, KindBasicDataSetMappingKindDataSetMapping}
+	return []KindBasicDataSetMapping{KindBasicDataSetMappingKindAdlsGen2File, KindBasicDataSetMappingKindAdlsGen2FileSystem, KindBasicDataSetMappingKindAdlsGen2Folder, KindBasicDataSetMappingKindBlob, KindBasicDataSetMappingKindBlobFolder, KindBasicDataSetMappingKindContainer, KindBasicDataSetMappingKindDataSetMapping, KindBasicDataSetMappingKindKustoCluster, KindBasicDataSetMappingKindKustoDatabase, KindBasicDataSetMappingKindSQLDBTable, KindBasicDataSetMappingKindSQLDWTable}
 }
 
 // KindBasicSourceShareSynchronizationSetting enumerates the values for kind basic source share synchronization
@@ -192,6 +216,21 @@ func PossibleKindBasicTriggerValues() []KindBasicTrigger {
 	return []KindBasicTrigger{KindBasicTriggerKindScheduleBased, KindBasicTriggerKindTrigger}
 }
 
+// OutputType enumerates the values for output type.
+type OutputType string
+
+const (
+	// Csv ...
+	Csv OutputType = "Csv"
+	// Parquet ...
+	Parquet OutputType = "Parquet"
+)
+
+// PossibleOutputTypeValues returns an array of possible values for the OutputType const type.
+func PossibleOutputTypeValues() []OutputType {
+	return []OutputType{Csv, Parquet}
+}
+
 // ProvisioningState enumerates the values for provisioning state.
 type ProvisioningState string
 
@@ -234,11 +273,13 @@ type ShareKind string
 const (
 	// CopyBased ...
 	CopyBased ShareKind = "CopyBased"
+	// InPlace ...
+	InPlace ShareKind = "InPlace"
 )
 
 // PossibleShareKindValues returns an array of possible values for the ShareKind const type.
 func PossibleShareKindValues() []ShareKind {
-	return []ShareKind{CopyBased}
+	return []ShareKind{CopyBased, InPlace}
 }
 
 // ShareSubscriptionStatus enumerates the values for share subscription status.
@@ -593,10 +634,12 @@ func NewAccountListPage(getNextPage func(context.Context, AccountList) (AccountL
 type AccountProperties struct {
 	// CreatedAt - READ-ONLY; Time at which the account was created.
 	CreatedAt *date.Time `json:"createdAt,omitempty"`
-	// CreatedBy - READ-ONLY; Name of the user who created the account.
-	CreatedBy *string `json:"createdBy,omitempty"`
 	// ProvisioningState - READ-ONLY; Provisioning state of the Account. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
+	// UserEmail - READ-ONLY; Email of the user who created the resource
+	UserEmail *string `json:"userEmail,omitempty"`
+	// UserName - READ-ONLY; Name of the user who created the resource
+	UserName *string `json:"userName,omitempty"`
 }
 
 // AccountsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
@@ -672,9 +715,9 @@ func (aup AccountUpdateParameters) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// ADLSGen1FileDataSet an ADLS Gen 1 file dataset.
+// ADLSGen1FileDataSet an ADLS Gen 1 file data set.
 type ADLSGen1FileDataSet struct {
-	// ADLSGen1FileProperties - ADLS Gen 1 file dataset properties.
+	// ADLSGen1FileProperties - ADLS Gen 1 file data set properties.
 	*ADLSGen1FileProperties `json:"properties,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -682,7 +725,7 @@ type ADLSGen1FileDataSet struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Type of the azure resource
 	Type *string `json:"type,omitempty"`
-	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File'
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
 	Kind Kind `json:"kind,omitempty"`
 }
 
@@ -737,6 +780,26 @@ func (ag1fds ADLSGen1FileDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderData
 // AsADLSGen1FileDataSet is the BasicDataSet implementation for ADLSGen1FileDataSet.
 func (ag1fds ADLSGen1FileDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
 	return &ag1fds, true
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for ADLSGen1FileDataSet.
+func (ag1fds ADLSGen1FileDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for ADLSGen1FileDataSet.
+func (ag1fds ADLSGen1FileDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for ADLSGen1FileDataSet.
+func (ag1fds ADLSGen1FileDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for ADLSGen1FileDataSet.
+func (ag1fds ADLSGen1FileDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
+	return nil, false
 }
 
 // AsDataSet is the BasicDataSet implementation for ADLSGen1FileDataSet.
@@ -813,7 +876,7 @@ func (ag1fds *ADLSGen1FileDataSet) UnmarshalJSON(body []byte) error {
 type ADLSGen1FileProperties struct {
 	// AccountName - The ADLS account name.
 	AccountName *string `json:"accountName,omitempty"`
-	// DataSetID - READ-ONLY; Unique DataSet id.
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
 	DataSetID *string `json:"dataSetId,omitempty"`
 	// FileName - The file name in the ADLS account.
 	FileName *string `json:"fileName,omitempty"`
@@ -825,11 +888,11 @@ type ADLSGen1FileProperties struct {
 	SubscriptionID *string `json:"subscriptionId,omitempty"`
 }
 
-// ADLSGen1FolderDataSet an ADLS Gen 1 folder dataset.
+// ADLSGen1FolderDataSet an ADLS Gen 1 folder data set.
 type ADLSGen1FolderDataSet struct {
-	// ADLSGen1FolderProperties - ADLS Gen 1 folder  dataset properties.
+	// ADLSGen1FolderProperties - ADLS Gen 1 folder data set properties.
 	*ADLSGen1FolderProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File'
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
 	Kind Kind `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -889,6 +952,26 @@ func (ag1fds ADLSGen1FolderDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDa
 
 // AsADLSGen1FileDataSet is the BasicDataSet implementation for ADLSGen1FolderDataSet.
 func (ag1fds ADLSGen1FolderDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for ADLSGen1FolderDataSet.
+func (ag1fds ADLSGen1FolderDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for ADLSGen1FolderDataSet.
+func (ag1fds ADLSGen1FolderDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for ADLSGen1FolderDataSet.
+func (ag1fds ADLSGen1FolderDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for ADLSGen1FolderDataSet.
+func (ag1fds ADLSGen1FolderDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
 	return nil, false
 }
 
@@ -966,7 +1049,7 @@ func (ag1fds *ADLSGen1FolderDataSet) UnmarshalJSON(body []byte) error {
 type ADLSGen1FolderProperties struct {
 	// AccountName - The ADLS account name.
 	AccountName *string `json:"accountName,omitempty"`
-	// DataSetID - READ-ONLY; Unique DataSet id.
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
 	DataSetID *string `json:"dataSetId,omitempty"`
 	// FolderPath - The folder path within the ADLS account.
 	FolderPath *string `json:"folderPath,omitempty"`
@@ -976,11 +1059,11 @@ type ADLSGen1FolderProperties struct {
 	SubscriptionID *string `json:"subscriptionId,omitempty"`
 }
 
-// ADLSGen2FileDataSet an ADLS Gen 2 file dataset.
+// ADLSGen2FileDataSet an ADLS Gen 2 file data set.
 type ADLSGen2FileDataSet struct {
-	// ADLSGen2FileProperties - ADLS Gen 2 file dataset properties.
+	// ADLSGen2FileProperties - ADLS Gen 2 file data set properties.
 	*ADLSGen2FileProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File'
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
 	Kind Kind `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -1040,6 +1123,26 @@ func (ag2fds ADLSGen2FileDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderData
 
 // AsADLSGen1FileDataSet is the BasicDataSet implementation for ADLSGen2FileDataSet.
 func (ag2fds ADLSGen2FileDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for ADLSGen2FileDataSet.
+func (ag2fds ADLSGen2FileDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for ADLSGen2FileDataSet.
+func (ag2fds ADLSGen2FileDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for ADLSGen2FileDataSet.
+func (ag2fds ADLSGen2FileDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for ADLSGen2FileDataSet.
+func (ag2fds ADLSGen2FileDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
 	return nil, false
 }
 
@@ -1113,9 +1216,9 @@ func (ag2fds *ADLSGen2FileDataSet) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ADLSGen2FileDataSetMapping an ADLS Gen2 file dataset mapping.
+// ADLSGen2FileDataSetMapping an ADLS Gen2 file data set mapping.
 type ADLSGen2FileDataSetMapping struct {
-	// ADLSGen2FileDataSetMappingProperties - ADLS Gen2 file dataset mapping properties.
+	// ADLSGen2FileDataSetMappingProperties - ADLS Gen2 file data set mapping properties.
 	*ADLSGen2FileDataSetMappingProperties `json:"properties,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -1123,7 +1226,7 @@ type ADLSGen2FileDataSetMapping struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Type of the azure resource
 	Type *string `json:"type,omitempty"`
-	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem'
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
 	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
 }
 
@@ -1167,6 +1270,26 @@ func (ag2fdsm ADLSGen2FileDataSetMapping) AsADLSGen2FolderDataSetMapping() (*ADL
 
 // AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileDataSetMapping.
 func (ag2fdsm ADLSGen2FileDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileDataSetMapping.
+func (ag2fdsm ADLSGen2FileDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileDataSetMapping.
+func (ag2fdsm ADLSGen2FileDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileDataSetMapping.
+func (ag2fdsm ADLSGen2FileDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileDataSetMapping.
+func (ag2fdsm ADLSGen2FileDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
 	return nil, false
 }
 
@@ -1240,16 +1363,20 @@ func (ag2fdsm *ADLSGen2FileDataSetMapping) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ADLSGen2FileDataSetMappingProperties ADLS Gen 2 file dataset mapping property bag.
+// ADLSGen2FileDataSetMappingProperties ADLS Gen 2 file data set mapping property bag.
 type ADLSGen2FileDataSetMappingProperties struct {
-	// DataSetID - Gets the id of source dataset.
+	// DataSetID - The id of the source data set.
 	DataSetID *string `json:"dataSetId,omitempty"`
-	// DataSetMappingStatus - Gets the status of the dataset mapping. Possible values include: 'Ok', 'Broken'
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
 	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
 	// FilePath - File path within the file system.
 	FilePath *string `json:"filePath,omitempty"`
 	// FileSystem - File system to which the file belongs.
 	FileSystem *string `json:"fileSystem,omitempty"`
+	// OutputType - Type of output file. Possible values include: 'Csv', 'Parquet'
+	OutputType OutputType `json:"outputType,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// ResourceGroup - Resource group of storage account.
 	ResourceGroup *string `json:"resourceGroup,omitempty"`
 	// StorageAccountName - Storage account name of the source data set.
@@ -1260,7 +1387,7 @@ type ADLSGen2FileDataSetMappingProperties struct {
 
 // ADLSGen2FileProperties properties of the ADLS Gen2 file data set.
 type ADLSGen2FileProperties struct {
-	// DataSetID - READ-ONLY; Unique DataSet id.
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
 	DataSetID *string `json:"dataSetId,omitempty"`
 	// FilePath - File path within the file system.
 	FilePath *string `json:"filePath,omitempty"`
@@ -1274,11 +1401,11 @@ type ADLSGen2FileProperties struct {
 	SubscriptionID *string `json:"subscriptionId,omitempty"`
 }
 
-// ADLSGen2FileSystemDataSet an ADLS Gen 2 file system dataset.
+// ADLSGen2FileSystemDataSet an ADLS Gen 2 file system data set.
 type ADLSGen2FileSystemDataSet struct {
-	// ADLSGen2FileSystemProperties - ADLS Gen 2 file system dataset properties.
+	// ADLSGen2FileSystemProperties - ADLS Gen 2 file system data set properties.
 	*ADLSGen2FileSystemProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File'
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
 	Kind Kind `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -1338,6 +1465,26 @@ func (ag2fsds ADLSGen2FileSystemDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1Fol
 
 // AsADLSGen1FileDataSet is the BasicDataSet implementation for ADLSGen2FileSystemDataSet.
 func (ag2fsds ADLSGen2FileSystemDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for ADLSGen2FileSystemDataSet.
+func (ag2fsds ADLSGen2FileSystemDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for ADLSGen2FileSystemDataSet.
+func (ag2fsds ADLSGen2FileSystemDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for ADLSGen2FileSystemDataSet.
+func (ag2fsds ADLSGen2FileSystemDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for ADLSGen2FileSystemDataSet.
+func (ag2fsds ADLSGen2FileSystemDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
 	return nil, false
 }
 
@@ -1411,11 +1558,11 @@ func (ag2fsds *ADLSGen2FileSystemDataSet) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ADLSGen2FileSystemDataSetMapping an ADLS Gen2 file system dataset mapping.
+// ADLSGen2FileSystemDataSetMapping an ADLS Gen2 file system data set mapping.
 type ADLSGen2FileSystemDataSetMapping struct {
-	// ADLSGen2FileSystemDataSetMappingProperties - ADLS Gen2 file system dataset mapping properties.
+	// ADLSGen2FileSystemDataSetMappingProperties - ADLS Gen2 file system data set mapping properties.
 	*ADLSGen2FileSystemDataSetMappingProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem'
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
 	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -1466,6 +1613,26 @@ func (ag2fsdsm ADLSGen2FileSystemDataSetMapping) AsADLSGen2FolderDataSetMapping(
 // AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileSystemDataSetMapping.
 func (ag2fsdsm ADLSGen2FileSystemDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
 	return &ag2fsdsm, true
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileSystemDataSetMapping.
+func (ag2fsdsm ADLSGen2FileSystemDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileSystemDataSetMapping.
+func (ag2fsdsm ADLSGen2FileSystemDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileSystemDataSetMapping.
+func (ag2fsdsm ADLSGen2FileSystemDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileSystemDataSetMapping.
+func (ag2fsdsm ADLSGen2FileSystemDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
+	return nil, false
 }
 
 // AsDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FileSystemDataSetMapping.
@@ -1538,14 +1705,16 @@ func (ag2fsdsm *ADLSGen2FileSystemDataSetMapping) UnmarshalJSON(body []byte) err
 	return nil
 }
 
-// ADLSGen2FileSystemDataSetMappingProperties ADLS Gen 2 file system dataset mapping property bag.
+// ADLSGen2FileSystemDataSetMappingProperties ADLS Gen 2 file system data set mapping property bag.
 type ADLSGen2FileSystemDataSetMappingProperties struct {
-	// DataSetID - Gets the id of source dataset.
+	// DataSetID - The id of the source data set.
 	DataSetID *string `json:"dataSetId,omitempty"`
-	// DataSetMappingStatus - Gets the status of the dataset mapping. Possible values include: 'Ok', 'Broken'
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
 	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
 	// FileSystem - The file system name.
 	FileSystem *string `json:"fileSystem,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// ResourceGroup - Resource group of storage account.
 	ResourceGroup *string `json:"resourceGroup,omitempty"`
 	// StorageAccountName - Storage account name of the source data set.
@@ -1556,7 +1725,7 @@ type ADLSGen2FileSystemDataSetMappingProperties struct {
 
 // ADLSGen2FileSystemProperties properties of the ADLS Gen2 file system data set.
 type ADLSGen2FileSystemProperties struct {
-	// DataSetID - READ-ONLY; Unique DataSet id.
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
 	DataSetID *string `json:"dataSetId,omitempty"`
 	// FileSystem - The file system name.
 	FileSystem *string `json:"fileSystem,omitempty"`
@@ -1568,11 +1737,11 @@ type ADLSGen2FileSystemProperties struct {
 	SubscriptionID *string `json:"subscriptionId,omitempty"`
 }
 
-// ADLSGen2FolderDataSet an ADLS Gen 2 folder dataset.
+// ADLSGen2FolderDataSet an ADLS Gen 2 folder data set.
 type ADLSGen2FolderDataSet struct {
-	// ADLSGen2FolderProperties - ADLS Gen 2 folder dataset properties.
+	// ADLSGen2FolderProperties - ADLS Gen 2 folder data set properties.
 	*ADLSGen2FolderProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File'
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
 	Kind Kind `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -1632,6 +1801,26 @@ func (ag2fds ADLSGen2FolderDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDa
 
 // AsADLSGen1FileDataSet is the BasicDataSet implementation for ADLSGen2FolderDataSet.
 func (ag2fds ADLSGen2FolderDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for ADLSGen2FolderDataSet.
+func (ag2fds ADLSGen2FolderDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for ADLSGen2FolderDataSet.
+func (ag2fds ADLSGen2FolderDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for ADLSGen2FolderDataSet.
+func (ag2fds ADLSGen2FolderDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for ADLSGen2FolderDataSet.
+func (ag2fds ADLSGen2FolderDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
 	return nil, false
 }
 
@@ -1705,11 +1894,11 @@ func (ag2fds *ADLSGen2FolderDataSet) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ADLSGen2FolderDataSetMapping an ADLS Gen2 folder dataset mapping.
+// ADLSGen2FolderDataSetMapping an ADLS Gen2 folder data set mapping.
 type ADLSGen2FolderDataSetMapping struct {
-	// ADLSGen2FolderDataSetMappingProperties - ADLS Gen2 folder dataset mapping properties.
+	// ADLSGen2FolderDataSetMappingProperties - ADLS Gen2 folder data set mapping properties.
 	*ADLSGen2FolderDataSetMappingProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem'
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
 	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -1759,6 +1948,26 @@ func (ag2fdsm ADLSGen2FolderDataSetMapping) AsADLSGen2FolderDataSetMapping() (*A
 
 // AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FolderDataSetMapping.
 func (ag2fdsm ADLSGen2FolderDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FolderDataSetMapping.
+func (ag2fdsm ADLSGen2FolderDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FolderDataSetMapping.
+func (ag2fdsm ADLSGen2FolderDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FolderDataSetMapping.
+func (ag2fdsm ADLSGen2FolderDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for ADLSGen2FolderDataSetMapping.
+func (ag2fdsm ADLSGen2FolderDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
 	return nil, false
 }
 
@@ -1832,16 +2041,18 @@ func (ag2fdsm *ADLSGen2FolderDataSetMapping) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ADLSGen2FolderDataSetMappingProperties ADLS Gen 2 folder dataset mapping property bag.
+// ADLSGen2FolderDataSetMappingProperties ADLS Gen 2 folder data set mapping property bag.
 type ADLSGen2FolderDataSetMappingProperties struct {
-	// DataSetID - Gets the id of source dataset.
+	// DataSetID - The id of the source data set.
 	DataSetID *string `json:"dataSetId,omitempty"`
-	// DataSetMappingStatus - Gets the status of the dataset mapping. Possible values include: 'Ok', 'Broken'
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
 	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
 	// FileSystem - File system to which the folder belongs.
 	FileSystem *string `json:"fileSystem,omitempty"`
 	// FolderPath - Folder path within the file system.
 	FolderPath *string `json:"folderPath,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// ResourceGroup - Resource group of storage account.
 	ResourceGroup *string `json:"resourceGroup,omitempty"`
 	// StorageAccountName - Storage account name of the source data set.
@@ -1852,7 +2063,7 @@ type ADLSGen2FolderDataSetMappingProperties struct {
 
 // ADLSGen2FolderProperties properties of the ADLS Gen2 folder data set.
 type ADLSGen2FolderProperties struct {
-	// DataSetID - READ-ONLY; Unique DataSet id.
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
 	DataSetID *string `json:"dataSetId,omitempty"`
 	// FileSystem - File system to which the folder belongs.
 	FileSystem *string `json:"fileSystem,omitempty"`
@@ -1866,11 +2077,11 @@ type ADLSGen2FolderProperties struct {
 	SubscriptionID *string `json:"subscriptionId,omitempty"`
 }
 
-// BlobContainerDataSet an Azure storage blob container dataset.
+// BlobContainerDataSet an Azure storage blob container data set.
 type BlobContainerDataSet struct {
-	// BlobContainerProperties - Blob container dataset properties.
+	// BlobContainerProperties - Blob container data set properties.
 	*BlobContainerProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File'
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
 	Kind Kind `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -1930,6 +2141,26 @@ func (bcds BlobContainerDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDataS
 
 // AsADLSGen1FileDataSet is the BasicDataSet implementation for BlobContainerDataSet.
 func (bcds BlobContainerDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for BlobContainerDataSet.
+func (bcds BlobContainerDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for BlobContainerDataSet.
+func (bcds BlobContainerDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for BlobContainerDataSet.
+func (bcds BlobContainerDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for BlobContainerDataSet.
+func (bcds BlobContainerDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
 	return nil, false
 }
 
@@ -2003,11 +2234,11 @@ func (bcds *BlobContainerDataSet) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobContainerDataSetMapping a Blob container dataset mapping.
+// BlobContainerDataSetMapping a Blob container data set mapping.
 type BlobContainerDataSetMapping struct {
-	// BlobContainerMappingProperties - Blob container dataset mapping properties.
+	// BlobContainerMappingProperties - Blob container data set mapping properties.
 	*BlobContainerMappingProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem'
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
 	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -2057,6 +2288,26 @@ func (bcdsm BlobContainerDataSetMapping) AsADLSGen2FolderDataSetMapping() (*ADLS
 
 // AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for BlobContainerDataSetMapping.
 func (bcdsm BlobContainerDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for BlobContainerDataSetMapping.
+func (bcdsm BlobContainerDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for BlobContainerDataSetMapping.
+func (bcdsm BlobContainerDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for BlobContainerDataSetMapping.
+func (bcdsm BlobContainerDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for BlobContainerDataSetMapping.
+func (bcdsm BlobContainerDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
 	return nil, false
 }
 
@@ -2130,14 +2381,16 @@ func (bcdsm *BlobContainerDataSetMapping) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobContainerMappingProperties azure storage Blob container dataset mapping property bag.
+// BlobContainerMappingProperties azure storage Blob container data set mapping property bag.
 type BlobContainerMappingProperties struct {
 	// ContainerName - BLOB Container name.
 	ContainerName *string `json:"containerName,omitempty"`
-	// DataSetID - Gets the id of source dataset.
+	// DataSetID - The id of the source data set.
 	DataSetID *string `json:"dataSetId,omitempty"`
-	// DataSetMappingStatus - Gets the status of the dataset mapping. Possible values include: 'Ok', 'Broken'
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
 	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// ResourceGroup - Resource group of storage account.
 	ResourceGroup *string `json:"resourceGroup,omitempty"`
 	// StorageAccountName - Storage account name of the source data set.
@@ -2150,7 +2403,7 @@ type BlobContainerMappingProperties struct {
 type BlobContainerProperties struct {
 	// ContainerName - BLOB Container name.
 	ContainerName *string `json:"containerName,omitempty"`
-	// DataSetID - READ-ONLY; Unique DataSet id.
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
 	DataSetID *string `json:"dataSetId,omitempty"`
 	// ResourceGroup - Resource group of storage account
 	ResourceGroup *string `json:"resourceGroup,omitempty"`
@@ -2160,11 +2413,11 @@ type BlobContainerProperties struct {
 	SubscriptionID *string `json:"subscriptionId,omitempty"`
 }
 
-// BlobDataSet an Azure storage blob dataset.
+// BlobDataSet an Azure storage blob data set.
 type BlobDataSet struct {
-	// BlobProperties - Blob dataset properties.
+	// BlobProperties - Blob data set properties.
 	*BlobProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File'
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
 	Kind Kind `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -2224,6 +2477,26 @@ func (bds BlobDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDataSet, bool) 
 
 // AsADLSGen1FileDataSet is the BasicDataSet implementation for BlobDataSet.
 func (bds BlobDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for BlobDataSet.
+func (bds BlobDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for BlobDataSet.
+func (bds BlobDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for BlobDataSet.
+func (bds BlobDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for BlobDataSet.
+func (bds BlobDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
 	return nil, false
 }
 
@@ -2297,11 +2570,11 @@ func (bds *BlobDataSet) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobDataSetMapping a Blob dataset mapping.
+// BlobDataSetMapping a Blob data set mapping.
 type BlobDataSetMapping struct {
-	// BlobMappingProperties - Blob dataset mapping properties.
+	// BlobMappingProperties - Blob data set mapping properties.
 	*BlobMappingProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem'
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
 	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -2351,6 +2624,26 @@ func (bdsm BlobDataSetMapping) AsADLSGen2FolderDataSetMapping() (*ADLSGen2Folder
 
 // AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for BlobDataSetMapping.
 func (bdsm BlobDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for BlobDataSetMapping.
+func (bdsm BlobDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for BlobDataSetMapping.
+func (bdsm BlobDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for BlobDataSetMapping.
+func (bdsm BlobDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for BlobDataSetMapping.
+func (bdsm BlobDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
 	return nil, false
 }
 
@@ -2424,11 +2717,11 @@ func (bdsm *BlobDataSetMapping) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobFolderDataSet an Azure storage blob folder dataset.
+// BlobFolderDataSet an Azure storage blob folder data set.
 type BlobFolderDataSet struct {
-	// BlobFolderProperties - Blob folder dataset properties.
+	// BlobFolderProperties - Blob folder data set properties.
 	*BlobFolderProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File'
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
 	Kind Kind `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -2488,6 +2781,26 @@ func (bfds BlobFolderDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDataSet,
 
 // AsADLSGen1FileDataSet is the BasicDataSet implementation for BlobFolderDataSet.
 func (bfds BlobFolderDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for BlobFolderDataSet.
+func (bfds BlobFolderDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for BlobFolderDataSet.
+func (bfds BlobFolderDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for BlobFolderDataSet.
+func (bfds BlobFolderDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for BlobFolderDataSet.
+func (bfds BlobFolderDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
 	return nil, false
 }
 
@@ -2561,11 +2874,11 @@ func (bfds *BlobFolderDataSet) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobFolderDataSetMapping a Blob folder dataset mapping.
+// BlobFolderDataSetMapping a Blob folder data set mapping.
 type BlobFolderDataSetMapping struct {
-	// BlobFolderMappingProperties - Blob folder dataset mapping properties.
+	// BlobFolderMappingProperties - Blob folder data set mapping properties.
 	*BlobFolderMappingProperties `json:"properties,omitempty"`
-	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem'
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
 	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -2615,6 +2928,26 @@ func (bfdsm BlobFolderDataSetMapping) AsADLSGen2FolderDataSetMapping() (*ADLSGen
 
 // AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for BlobFolderDataSetMapping.
 func (bfdsm BlobFolderDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for BlobFolderDataSetMapping.
+func (bfdsm BlobFolderDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for BlobFolderDataSetMapping.
+func (bfdsm BlobFolderDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for BlobFolderDataSetMapping.
+func (bfdsm BlobFolderDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for BlobFolderDataSetMapping.
+func (bfdsm BlobFolderDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
 	return nil, false
 }
 
@@ -2688,16 +3021,18 @@ func (bfdsm *BlobFolderDataSetMapping) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// BlobFolderMappingProperties azure storage Blob folder dataset mapping property bag.
+// BlobFolderMappingProperties azure storage Blob folder data set mapping property bag.
 type BlobFolderMappingProperties struct {
 	// ContainerName - Container that has the file path.
 	ContainerName *string `json:"containerName,omitempty"`
-	// DataSetID - Gets the id of source dataset.
+	// DataSetID - The id of the source data set.
 	DataSetID *string `json:"dataSetId,omitempty"`
-	// DataSetMappingStatus - Gets the status of the dataset mapping. Possible values include: 'Ok', 'Broken'
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
 	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
 	// Prefix - Prefix for blob folder
 	Prefix *string `json:"prefix,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// ResourceGroup - Resource group of storage account.
 	ResourceGroup *string `json:"resourceGroup,omitempty"`
 	// StorageAccountName - Storage account name of the source data set.
@@ -2710,7 +3045,7 @@ type BlobFolderMappingProperties struct {
 type BlobFolderProperties struct {
 	// ContainerName - Container that has the file path.
 	ContainerName *string `json:"containerName,omitempty"`
-	// DataSetID - READ-ONLY; Unique DataSet id.
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
 	DataSetID *string `json:"dataSetId,omitempty"`
 	// Prefix - Prefix for blob folder
 	Prefix *string `json:"prefix,omitempty"`
@@ -2722,16 +3057,20 @@ type BlobFolderProperties struct {
 	SubscriptionID *string `json:"subscriptionId,omitempty"`
 }
 
-// BlobMappingProperties azure storage Blob dataset mapping property bag.
+// BlobMappingProperties azure storage Blob data set mapping property bag.
 type BlobMappingProperties struct {
 	// ContainerName - Container that has the file path.
 	ContainerName *string `json:"containerName,omitempty"`
-	// DataSetID - Gets the id of source dataset.
+	// DataSetID - The id of the source data set.
 	DataSetID *string `json:"dataSetId,omitempty"`
-	// DataSetMappingStatus - Gets the status of the dataset mapping. Possible values include: 'Ok', 'Broken'
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
 	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
 	// FilePath - File path within the source data set
 	FilePath *string `json:"filePath,omitempty"`
+	// OutputType - File output type. Possible values include: 'Csv', 'Parquet'
+	OutputType OutputType `json:"outputType,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// ResourceGroup - Resource group of storage account.
 	ResourceGroup *string `json:"resourceGroup,omitempty"`
 	// StorageAccountName - Storage account name of the source data set.
@@ -2744,7 +3083,7 @@ type BlobMappingProperties struct {
 type BlobProperties struct {
 	// ContainerName - Container that has the file path.
 	ContainerName *string `json:"containerName,omitempty"`
-	// DataSetID - READ-ONLY; Unique DataSet id.
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
 	DataSetID *string `json:"dataSetId,omitempty"`
 	// FilePath - File path within the source data set
 	FilePath *string `json:"filePath,omitempty"`
@@ -2987,18 +3326,24 @@ type ConsumerInvitationProperties struct {
 	InvitationStatus InvitationStatus `json:"invitationStatus,omitempty"`
 	// Location - READ-ONLY; invitation location
 	Location *string `json:"location,omitempty"`
+	// ProviderEmail - READ-ONLY; Email of the provider who created the resource
+	ProviderEmail *string `json:"providerEmail,omitempty"`
+	// ProviderName - READ-ONLY; Name of the provider who created the resource
+	ProviderName *string `json:"providerName,omitempty"`
+	// ProviderTenantName - READ-ONLY; Tenant name of the provider who created the resource
+	ProviderTenantName *string `json:"providerTenantName,omitempty"`
 	// RespondedAt - READ-ONLY; The time the recipient responded to the invitation.
 	RespondedAt *date.Time `json:"respondedAt,omitempty"`
-	// Sender - READ-ONLY; Gets the name of the sender.
-	Sender *string `json:"sender,omitempty"`
-	// SenderCompanyName - READ-ONLY; Gets the company name of the sender.
-	SenderCompanyName *string `json:"senderCompanyName,omitempty"`
 	// SentAt - READ-ONLY; Gets the time at which the invitation was sent.
 	SentAt *date.Time `json:"sentAt,omitempty"`
 	// ShareName - READ-ONLY; Gets the source share Name.
 	ShareName *string `json:"shareName,omitempty"`
 	// TermsOfUse - READ-ONLY; Terms of use shared when the invitation was created
 	TermsOfUse *string `json:"termsOfUse,omitempty"`
+	// UserEmail - READ-ONLY; Email of the user who created the resource
+	UserEmail *string `json:"userEmail,omitempty"`
+	// UserName - READ-ONLY; Name of the user who created the resource
+	UserName *string `json:"userName,omitempty"`
 }
 
 // ConsumerSourceDataSet a consumer side dataSet data transfer object.
@@ -3223,9 +3568,13 @@ func NewConsumerSourceDataSetListPage(getNextPage func(context.Context, Consumer
 type ConsumerSourceDataSetProperties struct {
 	// DataSetID - READ-ONLY; DataSet Id
 	DataSetID *string `json:"dataSetId,omitempty"`
+	// DataSetLocation - READ-ONLY; Location of the data set.
+	DataSetLocation *string `json:"dataSetLocation,omitempty"`
 	// DataSetName - READ-ONLY; DataSet name
 	DataSetName *string `json:"dataSetName,omitempty"`
-	// DataSetType - READ-ONLY; Type of dataSet. Possible values include: 'Blob', 'Container', 'BlobFolder', 'AdlsGen2FileSystem', 'AdlsGen2Folder', 'AdlsGen2File', 'AdlsGen1Folder', 'AdlsGen1File'
+	// DataSetPath - READ-ONLY; DataSet path
+	DataSetPath *string `json:"dataSetPath,omitempty"`
+	// DataSetType - READ-ONLY; Type of data set. Possible values include: 'Blob', 'Container', 'BlobFolder', 'AdlsGen2FileSystem', 'AdlsGen2Folder', 'AdlsGen2File', 'AdlsGen1Folder', 'AdlsGen1File', 'KustoCluster', 'KustoDatabase', 'SQLDBTable', 'SQLDWTable'
 	DataSetType DataSetType `json:"dataSetType,omitempty"`
 }
 
@@ -3239,13 +3588,17 @@ type BasicDataSet interface {
 	AsADLSGen2FileSystemDataSet() (*ADLSGen2FileSystemDataSet, bool)
 	AsADLSGen1FolderDataSet() (*ADLSGen1FolderDataSet, bool)
 	AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool)
+	AsKustoClusterDataSet() (*KustoClusterDataSet, bool)
+	AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool)
+	AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool)
+	AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool)
 	AsDataSet() (*DataSet, bool)
 }
 
 // DataSet a DataSet data transfer object.
 type DataSet struct {
 	autorest.Response `json:"-"`
-	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File'
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
 	Kind Kind `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -3295,6 +3648,22 @@ func unmarshalBasicDataSet(body []byte) (BasicDataSet, error) {
 		var ag1fds ADLSGen1FileDataSet
 		err := json.Unmarshal(body, &ag1fds)
 		return ag1fds, err
+	case string(KindKustoCluster):
+		var kcds KustoClusterDataSet
+		err := json.Unmarshal(body, &kcds)
+		return kcds, err
+	case string(KindKustoDatabase):
+		var kdds KustoDatabaseDataSet
+		err := json.Unmarshal(body, &kdds)
+		return kdds, err
+	case string(KindSQLDWTable):
+		var sdtds SQLDWTableDataSet
+		err := json.Unmarshal(body, &sdtds)
+		return sdtds, err
+	case string(KindSQLDBTable):
+		var sdtds SQLDBTableDataSet
+		err := json.Unmarshal(body, &sdtds)
+		return sdtds, err
 	default:
 		var ds DataSet
 		err := json.Unmarshal(body, &ds)
@@ -3367,6 +3736,26 @@ func (ds DataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDataSet, bool) {
 
 // AsADLSGen1FileDataSet is the BasicDataSet implementation for DataSet.
 func (ds DataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for DataSet.
+func (ds DataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for DataSet.
+func (ds DataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for DataSet.
+func (ds DataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for DataSet.
+func (ds DataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
 	return nil, false
 }
 
@@ -3558,7 +3947,7 @@ func NewDataSetListPage(getNextPage func(context.Context, DataSetList) (DataSetL
 	return DataSetListPage{fn: getNextPage}
 }
 
-// BasicDataSetMapping a dataset mapping data transfer object.
+// BasicDataSetMapping a data set mapping data transfer object.
 type BasicDataSetMapping interface {
 	AsBlobDataSetMapping() (*BlobDataSetMapping, bool)
 	AsBlobFolderDataSetMapping() (*BlobFolderDataSetMapping, bool)
@@ -3566,13 +3955,17 @@ type BasicDataSetMapping interface {
 	AsADLSGen2FileDataSetMapping() (*ADLSGen2FileDataSetMapping, bool)
 	AsADLSGen2FolderDataSetMapping() (*ADLSGen2FolderDataSetMapping, bool)
 	AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool)
+	AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool)
+	AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool)
+	AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool)
+	AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool)
 	AsDataSetMapping() (*DataSetMapping, bool)
 }
 
-// DataSetMapping a dataset mapping data transfer object.
+// DataSetMapping a data set mapping data transfer object.
 type DataSetMapping struct {
 	autorest.Response `json:"-"`
-	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem'
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
 	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
 	// ID - READ-ONLY; The resource id of the azure resource
 	ID *string `json:"id,omitempty"`
@@ -3614,6 +4007,22 @@ func unmarshalBasicDataSetMapping(body []byte) (BasicDataSetMapping, error) {
 		var ag2fsdsm ADLSGen2FileSystemDataSetMapping
 		err := json.Unmarshal(body, &ag2fsdsm)
 		return ag2fsdsm, err
+	case string(KindBasicDataSetMappingKindKustoCluster):
+		var kcdsm KustoClusterDataSetMapping
+		err := json.Unmarshal(body, &kcdsm)
+		return kcdsm, err
+	case string(KindBasicDataSetMappingKindKustoDatabase):
+		var kddsm KustoDatabaseDataSetMapping
+		err := json.Unmarshal(body, &kddsm)
+		return kddsm, err
+	case string(KindBasicDataSetMappingKindSQLDWTable):
+		var sdtdsm SQLDWTableDataSetMapping
+		err := json.Unmarshal(body, &sdtdsm)
+		return sdtdsm, err
+	case string(KindBasicDataSetMappingKindSQLDBTable):
+		var sdtdsm SQLDBTableDataSetMapping
+		err := json.Unmarshal(body, &sdtdsm)
+		return sdtdsm, err
 	default:
 		var dsm DataSetMapping
 		err := json.Unmarshal(body, &dsm)
@@ -3676,6 +4085,26 @@ func (dsm DataSetMapping) AsADLSGen2FolderDataSetMapping() (*ADLSGen2FolderDataS
 
 // AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for DataSetMapping.
 func (dsm DataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for DataSetMapping.
+func (dsm DataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for DataSetMapping.
+func (dsm DataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for DataSetMapping.
+func (dsm DataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for DataSetMapping.
+func (dsm DataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
 	return nil, false
 }
 
@@ -3899,6 +4328,29 @@ func (dsm *DataSetModel) UnmarshalJSON(body []byte) error {
 	dsm.Value = ds
 
 	return nil
+}
+
+// DataSetsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
+type DataSetsDeleteFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *DataSetsDeleteFuture) Result(client DataSetsClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datashare.DataSetsDeleteFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("datashare.DataSetsDeleteFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
 }
 
 // DefaultDto base data transfer object implementation for default resources.
@@ -4190,8 +4642,6 @@ type InvitationProperties struct {
 	InvitationStatus InvitationStatus `json:"invitationStatus,omitempty"`
 	// RespondedAt - READ-ONLY; The time the recipient responded to the invitation.
 	RespondedAt *date.Time `json:"respondedAt,omitempty"`
-	// Sender - READ-ONLY; Gets the name of the sender.
-	Sender *string `json:"sender,omitempty"`
 	// SentAt - READ-ONLY; Gets the time at which the invitation was sent.
 	SentAt *date.Time `json:"sentAt,omitempty"`
 	// TargetActiveDirectoryID - The target Azure AD Id. Can't be combined with email.
@@ -4202,6 +4652,670 @@ type InvitationProperties struct {
 	// Must be specified along TargetActiveDirectoryId. This enables sending
 	// invitations to specific users or applications in an AD tenant.
 	TargetObjectID *string `json:"targetObjectId,omitempty"`
+	// UserEmail - READ-ONLY; Email of the user who created the resource
+	UserEmail *string `json:"userEmail,omitempty"`
+	// UserName - READ-ONLY; Name of the user who created the resource
+	UserName *string `json:"userName,omitempty"`
+}
+
+// KustoClusterDataSet a kusto cluster data set.
+type KustoClusterDataSet struct {
+	// KustoClusterDataSetProperties - Kusto cluster data set properties.
+	*KustoClusterDataSetProperties `json:"properties,omitempty"`
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
+	Kind Kind `json:"kind,omitempty"`
+	// ID - READ-ONLY; The resource id of the azure resource
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Name of the azure resource
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Type of the azure resource
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) MarshalJSON() ([]byte, error) {
+	kcds.Kind = KindKustoCluster
+	objectMap := make(map[string]interface{})
+	if kcds.KustoClusterDataSetProperties != nil {
+		objectMap["properties"] = kcds.KustoClusterDataSetProperties
+	}
+	if kcds.Kind != "" {
+		objectMap["kind"] = kcds.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsBlobDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsBlobDataSet() (*BlobDataSet, bool) {
+	return nil, false
+}
+
+// AsBlobFolderDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsBlobFolderDataSet() (*BlobFolderDataSet, bool) {
+	return nil, false
+}
+
+// AsBlobContainerDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsBlobContainerDataSet() (*BlobContainerDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsADLSGen2FileDataSet() (*ADLSGen2FileDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FolderDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsADLSGen2FolderDataSet() (*ADLSGen2FolderDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileSystemDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsADLSGen2FileSystemDataSet() (*ADLSGen2FileSystemDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen1FolderDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen1FileDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return &kcds, true
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
+	return nil, false
+}
+
+// AsDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsDataSet() (*DataSet, bool) {
+	return nil, false
+}
+
+// AsBasicDataSet is the BasicDataSet implementation for KustoClusterDataSet.
+func (kcds KustoClusterDataSet) AsBasicDataSet() (BasicDataSet, bool) {
+	return &kcds, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for KustoClusterDataSet struct.
+func (kcds *KustoClusterDataSet) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var kustoClusterDataSetProperties KustoClusterDataSetProperties
+				err = json.Unmarshal(*v, &kustoClusterDataSetProperties)
+				if err != nil {
+					return err
+				}
+				kcds.KustoClusterDataSetProperties = &kustoClusterDataSetProperties
+			}
+		case "kind":
+			if v != nil {
+				var kind Kind
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				kcds.Kind = kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				kcds.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				kcds.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				kcds.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// KustoClusterDataSetMapping a Kusto cluster data set mapping
+type KustoClusterDataSetMapping struct {
+	// KustoClusterDataSetMappingProperties - Kusto cluster data set mapping properties.
+	*KustoClusterDataSetMappingProperties `json:"properties,omitempty"`
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
+	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
+	// ID - READ-ONLY; The resource id of the azure resource
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Name of the azure resource
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Type of the azure resource
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) MarshalJSON() ([]byte, error) {
+	kcdsm.Kind = KindBasicDataSetMappingKindKustoCluster
+	objectMap := make(map[string]interface{})
+	if kcdsm.KustoClusterDataSetMappingProperties != nil {
+		objectMap["properties"] = kcdsm.KustoClusterDataSetMappingProperties
+	}
+	if kcdsm.Kind != "" {
+		objectMap["kind"] = kcdsm.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsBlobDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsBlobDataSetMapping() (*BlobDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBlobFolderDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsBlobFolderDataSetMapping() (*BlobFolderDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBlobContainerDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsBlobContainerDataSetMapping() (*BlobContainerDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsADLSGen2FileDataSetMapping() (*ADLSGen2FileDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FolderDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsADLSGen2FolderDataSetMapping() (*ADLSGen2FolderDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return &kcdsm, true
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsDataSetMapping() (*DataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBasicDataSetMapping is the BasicDataSetMapping implementation for KustoClusterDataSetMapping.
+func (kcdsm KustoClusterDataSetMapping) AsBasicDataSetMapping() (BasicDataSetMapping, bool) {
+	return &kcdsm, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for KustoClusterDataSetMapping struct.
+func (kcdsm *KustoClusterDataSetMapping) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var kustoClusterDataSetMappingProperties KustoClusterDataSetMappingProperties
+				err = json.Unmarshal(*v, &kustoClusterDataSetMappingProperties)
+				if err != nil {
+					return err
+				}
+				kcdsm.KustoClusterDataSetMappingProperties = &kustoClusterDataSetMappingProperties
+			}
+		case "kind":
+			if v != nil {
+				var kind KindBasicDataSetMapping
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				kcdsm.Kind = kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				kcdsm.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				kcdsm.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				kcdsm.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// KustoClusterDataSetMappingProperties properties of the Kusto cluster data set mapping
+type KustoClusterDataSetMappingProperties struct {
+	// DataSetID - The id of the source data set.
+	DataSetID *string `json:"dataSetId,omitempty"`
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
+	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
+	// KustoClusterResourceID - Resource id of the sink kusto cluster.
+	KustoClusterResourceID *string `json:"kustoClusterResourceId,omitempty"`
+	// Location - READ-ONLY; Location of the sink kusto cluster.
+	Location *string `json:"location,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
+}
+
+// KustoClusterDataSetProperties properties of the kusto cluster data set.
+type KustoClusterDataSetProperties struct {
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
+	DataSetID *string `json:"dataSetId,omitempty"`
+	// KustoClusterResourceID - Resource id of the kusto cluster.
+	KustoClusterResourceID *string `json:"kustoClusterResourceId,omitempty"`
+	// Location - READ-ONLY; Location of the kusto cluster.
+	Location *string `json:"location,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the kusto cluster data set. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
+}
+
+// KustoDatabaseDataSet a kusto database data set.
+type KustoDatabaseDataSet struct {
+	// KustoDatabaseDataSetProperties - Kusto database data set properties.
+	*KustoDatabaseDataSetProperties `json:"properties,omitempty"`
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
+	Kind Kind `json:"kind,omitempty"`
+	// ID - READ-ONLY; The resource id of the azure resource
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Name of the azure resource
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Type of the azure resource
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) MarshalJSON() ([]byte, error) {
+	kdds.Kind = KindKustoDatabase
+	objectMap := make(map[string]interface{})
+	if kdds.KustoDatabaseDataSetProperties != nil {
+		objectMap["properties"] = kdds.KustoDatabaseDataSetProperties
+	}
+	if kdds.Kind != "" {
+		objectMap["kind"] = kdds.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsBlobDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsBlobDataSet() (*BlobDataSet, bool) {
+	return nil, false
+}
+
+// AsBlobFolderDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsBlobFolderDataSet() (*BlobFolderDataSet, bool) {
+	return nil, false
+}
+
+// AsBlobContainerDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsBlobContainerDataSet() (*BlobContainerDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsADLSGen2FileDataSet() (*ADLSGen2FileDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FolderDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsADLSGen2FolderDataSet() (*ADLSGen2FolderDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileSystemDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsADLSGen2FileSystemDataSet() (*ADLSGen2FileSystemDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen1FolderDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen1FileDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return &kdds, true
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
+	return nil, false
+}
+
+// AsDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsDataSet() (*DataSet, bool) {
+	return nil, false
+}
+
+// AsBasicDataSet is the BasicDataSet implementation for KustoDatabaseDataSet.
+func (kdds KustoDatabaseDataSet) AsBasicDataSet() (BasicDataSet, bool) {
+	return &kdds, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for KustoDatabaseDataSet struct.
+func (kdds *KustoDatabaseDataSet) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var kustoDatabaseDataSetProperties KustoDatabaseDataSetProperties
+				err = json.Unmarshal(*v, &kustoDatabaseDataSetProperties)
+				if err != nil {
+					return err
+				}
+				kdds.KustoDatabaseDataSetProperties = &kustoDatabaseDataSetProperties
+			}
+		case "kind":
+			if v != nil {
+				var kind Kind
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				kdds.Kind = kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				kdds.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				kdds.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				kdds.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// KustoDatabaseDataSetMapping a Kusto database data set mapping
+type KustoDatabaseDataSetMapping struct {
+	// KustoDatabaseDataSetMappingProperties - Kusto database data set mapping properties.
+	*KustoDatabaseDataSetMappingProperties `json:"properties,omitempty"`
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
+	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
+	// ID - READ-ONLY; The resource id of the azure resource
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Name of the azure resource
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Type of the azure resource
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) MarshalJSON() ([]byte, error) {
+	kddsm.Kind = KindBasicDataSetMappingKindKustoDatabase
+	objectMap := make(map[string]interface{})
+	if kddsm.KustoDatabaseDataSetMappingProperties != nil {
+		objectMap["properties"] = kddsm.KustoDatabaseDataSetMappingProperties
+	}
+	if kddsm.Kind != "" {
+		objectMap["kind"] = kddsm.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsBlobDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsBlobDataSetMapping() (*BlobDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBlobFolderDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsBlobFolderDataSetMapping() (*BlobFolderDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBlobContainerDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsBlobContainerDataSetMapping() (*BlobContainerDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsADLSGen2FileDataSetMapping() (*ADLSGen2FileDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FolderDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsADLSGen2FolderDataSetMapping() (*ADLSGen2FolderDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return &kddsm, true
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsDataSetMapping() (*DataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBasicDataSetMapping is the BasicDataSetMapping implementation for KustoDatabaseDataSetMapping.
+func (kddsm KustoDatabaseDataSetMapping) AsBasicDataSetMapping() (BasicDataSetMapping, bool) {
+	return &kddsm, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for KustoDatabaseDataSetMapping struct.
+func (kddsm *KustoDatabaseDataSetMapping) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var kustoDatabaseDataSetMappingProperties KustoDatabaseDataSetMappingProperties
+				err = json.Unmarshal(*v, &kustoDatabaseDataSetMappingProperties)
+				if err != nil {
+					return err
+				}
+				kddsm.KustoDatabaseDataSetMappingProperties = &kustoDatabaseDataSetMappingProperties
+			}
+		case "kind":
+			if v != nil {
+				var kind KindBasicDataSetMapping
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				kddsm.Kind = kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				kddsm.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				kddsm.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				kddsm.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// KustoDatabaseDataSetMappingProperties properties of the Kusto database data set mapping
+type KustoDatabaseDataSetMappingProperties struct {
+	// DataSetID - The id of the source data set.
+	DataSetID *string `json:"dataSetId,omitempty"`
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
+	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
+	// KustoClusterResourceID - Resource id of the sink kusto cluster.
+	KustoClusterResourceID *string `json:"kustoClusterResourceId,omitempty"`
+	// Location - READ-ONLY; Location of the sink kusto cluster.
+	Location *string `json:"location,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
+}
+
+// KustoDatabaseDataSetProperties properties of the kusto database data set.
+type KustoDatabaseDataSetProperties struct {
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
+	DataSetID *string `json:"dataSetId,omitempty"`
+	// KustoDatabaseResourceID - Resource id of the kusto database.
+	KustoDatabaseResourceID *string `json:"kustoDatabaseResourceId,omitempty"`
+	// Location - READ-ONLY; Location of the kusto cluster.
+	Location *string `json:"location,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the kusto database data set. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 }
 
 // OperationList list response for get operations.
@@ -4728,16 +5842,18 @@ func NewProviderShareSubscriptionListPage(getNextPage func(context.Context, Prov
 
 // ProviderShareSubscriptionProperties provider share subscription properties
 type ProviderShareSubscriptionProperties struct {
-	// Company - READ-ONLY; Company name
-	Company *string `json:"company,omitempty"`
+	// ConsumerEmail - READ-ONLY; Email of the consumer who created the share subscription
+	ConsumerEmail *string `json:"consumerEmail,omitempty"`
+	// ConsumerName - READ-ONLY; Name of the consumer who created the share subscription
+	ConsumerName *string `json:"consumerName,omitempty"`
+	// ConsumerTenantName - READ-ONLY; Tenant name of the consumer who created the share subscription
+	ConsumerTenantName *string `json:"consumerTenantName,omitempty"`
 	// CreatedAt - READ-ONLY; created at
 	CreatedAt *date.Time `json:"createdAt,omitempty"`
-	// CreatedBy - READ-ONLY; Created by
-	CreatedBy *string `json:"createdBy,omitempty"`
+	// ProviderName - READ-ONLY; Name of the provider who created the share
+	ProviderName *string `json:"providerName,omitempty"`
 	// SharedAt - READ-ONLY; Shared at
 	SharedAt *date.Time `json:"sharedAt,omitempty"`
-	// SharedBy - READ-ONLY; Shared by
-	SharedBy *string `json:"sharedBy,omitempty"`
 	// ShareSubscriptionObjectID - READ-ONLY; share Subscription Object Id
 	ShareSubscriptionObjectID *string `json:"shareSubscriptionObjectId,omitempty"`
 	// ShareSubscriptionStatus - READ-ONLY; Gets the status of share subscription. Possible values include: 'Active', 'Revoked', 'SourceDeleted', 'Revoking'
@@ -4967,14 +6083,14 @@ func (sss *ScheduledSynchronizationSetting) UnmarshalJSON(body []byte) error {
 type ScheduledSynchronizationSettingProperties struct {
 	// CreatedAt - READ-ONLY; Time at which the synchronization setting was created.
 	CreatedAt *date.Time `json:"createdAt,omitempty"`
-	// CreatedBy - READ-ONLY; Name of the user who created the synchronization setting.
-	CreatedBy *string `json:"createdBy,omitempty"`
 	// ProvisioningState - READ-ONLY; Gets or sets the provisioning state. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// RecurrenceInterval - Recurrence Interval. Possible values include: 'Hour', 'Day'
 	RecurrenceInterval RecurrenceInterval `json:"recurrenceInterval,omitempty"`
 	// SynchronizationTime - Synchronization time
 	SynchronizationTime *date.Time `json:"synchronizationTime,omitempty"`
+	// UserName - READ-ONLY; Name of the user who created the synchronization setting.
+	UserName *string `json:"userName,omitempty"`
 }
 
 // ScheduledTrigger a type of trigger based on schedule
@@ -5083,8 +6199,6 @@ func (st *ScheduledTrigger) UnmarshalJSON(body []byte) error {
 type ScheduledTriggerProperties struct {
 	// CreatedAt - READ-ONLY; Time at which the trigger was created.
 	CreatedAt *date.Time `json:"createdAt,omitempty"`
-	// CreatedBy - READ-ONLY; Name of the user who created the trigger.
-	CreatedBy *string `json:"createdBy,omitempty"`
 	// ProvisioningState - READ-ONLY; Gets the provisioning state. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// RecurrenceInterval - Recurrence Interval. Possible values include: 'Hour', 'Day'
@@ -5095,6 +6209,8 @@ type ScheduledTriggerProperties struct {
 	SynchronizationTime *date.Time `json:"synchronizationTime,omitempty"`
 	// TriggerStatus - READ-ONLY; Gets the trigger state. Possible values include: 'TriggerStatusActive', 'TriggerStatusInactive', 'TriggerStatusSourceSynchronizationSettingDeleted'
 	TriggerStatus TriggerStatus `json:"triggerStatus,omitempty"`
+	// UserName - READ-ONLY; Name of the user who created the trigger.
+	UserName *string `json:"userName,omitempty"`
 }
 
 // Share a share data transfer object.
@@ -5320,16 +6436,18 @@ func NewShareListPage(getNextPage func(context.Context, ShareList) (ShareList, e
 type ShareProperties struct {
 	// CreatedAt - READ-ONLY; Time at which the share was created.
 	CreatedAt *date.Time `json:"createdAt,omitempty"`
-	// CreatedBy - READ-ONLY; Name of the user who created the share.
-	CreatedBy *string `json:"createdBy,omitempty"`
 	// Description - Share description.
 	Description *string `json:"description,omitempty"`
 	// ProvisioningState - READ-ONLY; Gets or sets the provisioning state. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
-	// ShareKind - Share kind. Possible values include: 'CopyBased'
+	// ShareKind - Share kind. Possible values include: 'CopyBased', 'InPlace'
 	ShareKind ShareKind `json:"shareKind,omitempty"`
 	// Terms - Share terms.
 	Terms *string `json:"terms,omitempty"`
+	// UserEmail - READ-ONLY; Email of the user who created the resource
+	UserEmail *string `json:"userEmail,omitempty"`
+	// UserName - READ-ONLY; Name of the user who created the resource
+	UserName *string `json:"userName,omitempty"`
 }
 
 // SharesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
@@ -5583,26 +6701,30 @@ func NewShareSubscriptionListPage(getNextPage func(context.Context, ShareSubscri
 type ShareSubscriptionProperties struct {
 	// CreatedAt - READ-ONLY; Time at which the share subscription was created.
 	CreatedAt *date.Time `json:"createdAt,omitempty"`
-	// CreatedBy - READ-ONLY; The user who created the share subscription.
-	CreatedBy *string `json:"createdBy,omitempty"`
 	// InvitationID - The invitation id.
 	InvitationID *string `json:"invitationId,omitempty"`
+	// ProviderEmail - READ-ONLY; Email of the provider who created the resource
+	ProviderEmail *string `json:"providerEmail,omitempty"`
+	// ProviderName - READ-ONLY; Name of the provider who created the resource
+	ProviderName *string `json:"providerName,omitempty"`
+	// ProviderTenantName - READ-ONLY; Tenant name of the provider who created the resource
+	ProviderTenantName *string `json:"providerTenantName,omitempty"`
 	// ProvisioningState - READ-ONLY; Provisioning state of the share subscription. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// ShareDescription - READ-ONLY; Description of share
 	ShareDescription *string `json:"shareDescription,omitempty"`
-	// ShareKind - READ-ONLY; Kind of share. Possible values include: 'CopyBased'
+	// ShareKind - READ-ONLY; Kind of share. Possible values include: 'CopyBased', 'InPlace'
 	ShareKind ShareKind `json:"shareKind,omitempty"`
 	// ShareName - READ-ONLY; Name of the share
 	ShareName *string `json:"shareName,omitempty"`
-	// ShareSender - READ-ONLY; Sender of the share
-	ShareSender *string `json:"shareSender,omitempty"`
-	// ShareSenderCompanyName - READ-ONLY; Company name of the share sender
-	ShareSenderCompanyName *string `json:"shareSenderCompanyName,omitempty"`
 	// ShareSubscriptionStatus - READ-ONLY; Gets the current status of share subscription. Possible values include: 'Active', 'Revoked', 'SourceDeleted', 'Revoking'
 	ShareSubscriptionStatus ShareSubscriptionStatus `json:"shareSubscriptionStatus,omitempty"`
 	// ShareTerms - READ-ONLY; Terms of a share
 	ShareTerms *string `json:"shareTerms,omitempty"`
+	// UserEmail - READ-ONLY; Email of the user who created the resource
+	UserEmail *string `json:"userEmail,omitempty"`
+	// UserName - READ-ONLY; Name of the user who created the resource
+	UserName *string `json:"userName,omitempty"`
 }
 
 // ShareSubscriptionsCancelSynchronizationFuture an abstraction for monitoring and retrieving the results
@@ -5707,6 +6829,8 @@ type ShareSubscriptionSynchronization struct {
 	Status *string `json:"status,omitempty"`
 	// SynchronizationID - Synchronization id
 	SynchronizationID *string `json:"synchronizationId,omitempty"`
+	// SynchronizationMode - READ-ONLY; Synchronization Mode. Possible values include: 'Incremental', 'FullSync'
+	SynchronizationMode SynchronizationMode `json:"synchronizationMode,omitempty"`
 }
 
 // ShareSubscriptionSynchronizationList a consumer side list of share subscription synchronizations
@@ -5858,22 +6982,26 @@ func NewShareSubscriptionSynchronizationListPage(getNextPage func(context.Contex
 
 // ShareSynchronization a ShareSynchronization data transfer object.
 type ShareSynchronization struct {
-	// Company - Company name
-	Company *string `json:"company,omitempty"`
+	// ConsumerEmail - Email of the user who created the synchronization
+	ConsumerEmail *string `json:"consumerEmail,omitempty"`
+	// ConsumerName - Name of the user who created the synchronization
+	ConsumerName *string `json:"consumerName,omitempty"`
+	// ConsumerTenantName - Tenant name of the consumer who created the synchronization
+	ConsumerTenantName *string `json:"consumerTenantName,omitempty"`
 	// DurationMs - synchronization duration
 	DurationMs *int32 `json:"durationMs,omitempty"`
 	// EndTime - End time of synchronization
 	EndTime *date.Time `json:"endTime,omitempty"`
 	// Message - message of synchronization
 	Message *string `json:"message,omitempty"`
-	// Recipient - Recipient id
-	Recipient *string `json:"recipient,omitempty"`
 	// StartTime - start time of synchronization
 	StartTime *date.Time `json:"startTime,omitempty"`
 	// Status - Raw Status
 	Status *string `json:"status,omitempty"`
 	// SynchronizationID - Synchronization id
 	SynchronizationID *string `json:"synchronizationId,omitempty"`
+	// SynchronizationMode - READ-ONLY; Synchronization mode. Possible values include: 'Incremental', 'FullSync'
+	SynchronizationMode SynchronizationMode `json:"synchronizationMode,omitempty"`
 }
 
 // ShareSynchronizationList list response for get ShareSynchronization.
@@ -6276,33 +7404,709 @@ func NewSourceShareSynchronizationSettingListPage(getNextPage func(context.Conte
 	return SourceShareSynchronizationSettingListPage{fn: getNextPage}
 }
 
-// SynchronizationDetails synchronization details at dataset level
-type SynchronizationDetails struct {
-	// DataSetID - READ-ONLY; id of dataSet
-	DataSetID *string `json:"dataSetId,omitempty"`
-	// DataSetType - READ-ONLY; type of DataSet. Possible values include: 'Blob', 'Container', 'BlobFolder', 'AdlsGen2FileSystem', 'AdlsGen2Folder', 'AdlsGen2File', 'AdlsGen1Folder', 'AdlsGen1File'
-	DataSetType DataSetType `json:"dataSetType,omitempty"`
-	// DurationMs - READ-ONLY; duration of dataset level copy
-	DurationMs *int32 `json:"durationMs,omitempty"`
-	// EndTime - READ-ONLY; End time of dataset level copy
-	EndTime *date.Time `json:"endTime,omitempty"`
-	// FilesRead - READ-ONLY; The number of files read from the source dataset.
-	FilesRead *int64 `json:"filesRead,omitempty"`
-	// FilesWritten - READ-ONLY; The number of files written into the sink dataset.
-	FilesWritten *int64 `json:"filesWritten,omitempty"`
-	// Message - READ-ONLY; Error Message if any
-	Message *string `json:"message,omitempty"`
-	// Name - READ-ONLY; name of dataSet
+// SQLDBTableDataSet a SQL DB table data set.
+type SQLDBTableDataSet struct {
+	// SQLDBTableProperties - SQL DB table data set properties.
+	*SQLDBTableProperties `json:"properties,omitempty"`
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
+	Kind Kind `json:"kind,omitempty"`
+	// ID - READ-ONLY; The resource id of the azure resource
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Name of the azure resource
 	Name *string `json:"name,omitempty"`
-	// SizeRead - READ-ONLY; The size of the data read from the source dataset in bytes.
+	// Type - READ-ONLY; Type of the azure resource
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) MarshalJSON() ([]byte, error) {
+	sdtds.Kind = KindSQLDBTable
+	objectMap := make(map[string]interface{})
+	if sdtds.SQLDBTableProperties != nil {
+		objectMap["properties"] = sdtds.SQLDBTableProperties
+	}
+	if sdtds.Kind != "" {
+		objectMap["kind"] = sdtds.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsBlobDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsBlobDataSet() (*BlobDataSet, bool) {
+	return nil, false
+}
+
+// AsBlobFolderDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsBlobFolderDataSet() (*BlobFolderDataSet, bool) {
+	return nil, false
+}
+
+// AsBlobContainerDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsBlobContainerDataSet() (*BlobContainerDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsADLSGen2FileDataSet() (*ADLSGen2FileDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FolderDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsADLSGen2FolderDataSet() (*ADLSGen2FolderDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileSystemDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsADLSGen2FileSystemDataSet() (*ADLSGen2FileSystemDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen1FolderDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen1FileDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
+	return &sdtds, true
+}
+
+// AsDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsDataSet() (*DataSet, bool) {
+	return nil, false
+}
+
+// AsBasicDataSet is the BasicDataSet implementation for SQLDBTableDataSet.
+func (sdtds SQLDBTableDataSet) AsBasicDataSet() (BasicDataSet, bool) {
+	return &sdtds, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for SQLDBTableDataSet struct.
+func (sdtds *SQLDBTableDataSet) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var sQLDBTableProperties SQLDBTableProperties
+				err = json.Unmarshal(*v, &sQLDBTableProperties)
+				if err != nil {
+					return err
+				}
+				sdtds.SQLDBTableProperties = &sQLDBTableProperties
+			}
+		case "kind":
+			if v != nil {
+				var kind Kind
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				sdtds.Kind = kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				sdtds.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				sdtds.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				sdtds.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// SQLDBTableDataSetMapping a SQL DB Table data set mapping.
+type SQLDBTableDataSetMapping struct {
+	// SQLDBTableDataSetMappingProperties - Sql DB data set mapping properties.
+	*SQLDBTableDataSetMappingProperties `json:"properties,omitempty"`
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
+	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
+	// ID - READ-ONLY; The resource id of the azure resource
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Name of the azure resource
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Type of the azure resource
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) MarshalJSON() ([]byte, error) {
+	sdtdsm.Kind = KindBasicDataSetMappingKindSQLDBTable
+	objectMap := make(map[string]interface{})
+	if sdtdsm.SQLDBTableDataSetMappingProperties != nil {
+		objectMap["properties"] = sdtdsm.SQLDBTableDataSetMappingProperties
+	}
+	if sdtdsm.Kind != "" {
+		objectMap["kind"] = sdtdsm.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsBlobDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsBlobDataSetMapping() (*BlobDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBlobFolderDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsBlobFolderDataSetMapping() (*BlobFolderDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBlobContainerDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsBlobContainerDataSetMapping() (*BlobContainerDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsADLSGen2FileDataSetMapping() (*ADLSGen2FileDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FolderDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsADLSGen2FolderDataSetMapping() (*ADLSGen2FolderDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
+	return &sdtdsm, true
+}
+
+// AsDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsDataSetMapping() (*DataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBasicDataSetMapping is the BasicDataSetMapping implementation for SQLDBTableDataSetMapping.
+func (sdtdsm SQLDBTableDataSetMapping) AsBasicDataSetMapping() (BasicDataSetMapping, bool) {
+	return &sdtdsm, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for SQLDBTableDataSetMapping struct.
+func (sdtdsm *SQLDBTableDataSetMapping) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var sQLDBTableDataSetMappingProperties SQLDBTableDataSetMappingProperties
+				err = json.Unmarshal(*v, &sQLDBTableDataSetMappingProperties)
+				if err != nil {
+					return err
+				}
+				sdtdsm.SQLDBTableDataSetMappingProperties = &sQLDBTableDataSetMappingProperties
+			}
+		case "kind":
+			if v != nil {
+				var kind KindBasicDataSetMapping
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				sdtdsm.Kind = kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				sdtdsm.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				sdtdsm.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				sdtdsm.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// SQLDBTableDataSetMappingProperties properties of the SQL DB table data set mapping.
+type SQLDBTableDataSetMappingProperties struct {
+	// DatabaseName - DatabaseName name of the sink data set
+	DatabaseName *string `json:"databaseName,omitempty"`
+	// DataSetID - The id of the source data set.
+	DataSetID *string `json:"dataSetId,omitempty"`
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
+	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
+	// SchemaName - Schema of the table. Default value is dbo.
+	SchemaName *string `json:"schemaName,omitempty"`
+	// SQLServerResourceID - Resource id of SQL server
+	SQLServerResourceID *string `json:"sqlServerResourceId,omitempty"`
+	// TableName - SQL DB table name.
+	TableName *string `json:"tableName,omitempty"`
+}
+
+// SQLDBTableProperties properties of the SQL DB table data set.
+type SQLDBTableProperties struct {
+	// DatabaseName - Database name of the source data set
+	DatabaseName *string `json:"databaseName,omitempty"`
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
+	DataSetID *string `json:"dataSetId,omitempty"`
+	// SchemaName - Schema of the table. Default value is dbo.
+	SchemaName *string `json:"schemaName,omitempty"`
+	// SQLServerResourceID - Resource id of SQL server
+	SQLServerResourceID *string `json:"sqlServerResourceId,omitempty"`
+	// TableName - SQL DB table name.
+	TableName *string `json:"tableName,omitempty"`
+}
+
+// SQLDWTableDataSet a SQL DW table data set.
+type SQLDWTableDataSet struct {
+	// SQLDWTableProperties - SQL DW table data set properties.
+	*SQLDWTableProperties `json:"properties,omitempty"`
+	// Kind - Possible values include: 'KindDataSet', 'KindBlob', 'KindBlobFolder', 'KindContainer', 'KindAdlsGen2File', 'KindAdlsGen2Folder', 'KindAdlsGen2FileSystem', 'KindAdlsGen1Folder', 'KindAdlsGen1File', 'KindKustoCluster', 'KindKustoDatabase', 'KindSQLDWTable', 'KindSQLDBTable'
+	Kind Kind `json:"kind,omitempty"`
+	// ID - READ-ONLY; The resource id of the azure resource
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Name of the azure resource
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Type of the azure resource
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) MarshalJSON() ([]byte, error) {
+	sdtds.Kind = KindSQLDWTable
+	objectMap := make(map[string]interface{})
+	if sdtds.SQLDWTableProperties != nil {
+		objectMap["properties"] = sdtds.SQLDWTableProperties
+	}
+	if sdtds.Kind != "" {
+		objectMap["kind"] = sdtds.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsBlobDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsBlobDataSet() (*BlobDataSet, bool) {
+	return nil, false
+}
+
+// AsBlobFolderDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsBlobFolderDataSet() (*BlobFolderDataSet, bool) {
+	return nil, false
+}
+
+// AsBlobContainerDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsBlobContainerDataSet() (*BlobContainerDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsADLSGen2FileDataSet() (*ADLSGen2FileDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FolderDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsADLSGen2FolderDataSet() (*ADLSGen2FolderDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileSystemDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsADLSGen2FileSystemDataSet() (*ADLSGen2FileSystemDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen1FolderDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsADLSGen1FolderDataSet() (*ADLSGen1FolderDataSet, bool) {
+	return nil, false
+}
+
+// AsADLSGen1FileDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsADLSGen1FileDataSet() (*ADLSGen1FileDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsKustoClusterDataSet() (*KustoClusterDataSet, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsKustoDatabaseDataSet() (*KustoDatabaseDataSet, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsSQLDWTableDataSet() (*SQLDWTableDataSet, bool) {
+	return &sdtds, true
+}
+
+// AsSQLDBTableDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsSQLDBTableDataSet() (*SQLDBTableDataSet, bool) {
+	return nil, false
+}
+
+// AsDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsDataSet() (*DataSet, bool) {
+	return nil, false
+}
+
+// AsBasicDataSet is the BasicDataSet implementation for SQLDWTableDataSet.
+func (sdtds SQLDWTableDataSet) AsBasicDataSet() (BasicDataSet, bool) {
+	return &sdtds, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for SQLDWTableDataSet struct.
+func (sdtds *SQLDWTableDataSet) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var sQLDWTableProperties SQLDWTableProperties
+				err = json.Unmarshal(*v, &sQLDWTableProperties)
+				if err != nil {
+					return err
+				}
+				sdtds.SQLDWTableProperties = &sQLDWTableProperties
+			}
+		case "kind":
+			if v != nil {
+				var kind Kind
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				sdtds.Kind = kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				sdtds.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				sdtds.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				sdtds.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// SQLDWTableDataSetMapping a SQL DW Table data set mapping.
+type SQLDWTableDataSetMapping struct {
+	// SQLDWTableDataSetMappingProperties - Sql DW data set mapping properties.
+	*SQLDWTableDataSetMappingProperties `json:"properties,omitempty"`
+	// Kind - Possible values include: 'KindBasicDataSetMappingKindDataSetMapping', 'KindBasicDataSetMappingKindBlob', 'KindBasicDataSetMappingKindBlobFolder', 'KindBasicDataSetMappingKindContainer', 'KindBasicDataSetMappingKindAdlsGen2File', 'KindBasicDataSetMappingKindAdlsGen2Folder', 'KindBasicDataSetMappingKindAdlsGen2FileSystem', 'KindBasicDataSetMappingKindKustoCluster', 'KindBasicDataSetMappingKindKustoDatabase', 'KindBasicDataSetMappingKindSQLDWTable', 'KindBasicDataSetMappingKindSQLDBTable'
+	Kind KindBasicDataSetMapping `json:"kind,omitempty"`
+	// ID - READ-ONLY; The resource id of the azure resource
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Name of the azure resource
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Type of the azure resource
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) MarshalJSON() ([]byte, error) {
+	sdtdsm.Kind = KindBasicDataSetMappingKindSQLDWTable
+	objectMap := make(map[string]interface{})
+	if sdtdsm.SQLDWTableDataSetMappingProperties != nil {
+		objectMap["properties"] = sdtdsm.SQLDWTableDataSetMappingProperties
+	}
+	if sdtdsm.Kind != "" {
+		objectMap["kind"] = sdtdsm.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsBlobDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsBlobDataSetMapping() (*BlobDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBlobFolderDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsBlobFolderDataSetMapping() (*BlobFolderDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBlobContainerDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsBlobContainerDataSetMapping() (*BlobContainerDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsADLSGen2FileDataSetMapping() (*ADLSGen2FileDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FolderDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsADLSGen2FolderDataSetMapping() (*ADLSGen2FolderDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsADLSGen2FileSystemDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsADLSGen2FileSystemDataSetMapping() (*ADLSGen2FileSystemDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoClusterDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsKustoClusterDataSetMapping() (*KustoClusterDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsKustoDatabaseDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsKustoDatabaseDataSetMapping() (*KustoDatabaseDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsSQLDWTableDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsSQLDWTableDataSetMapping() (*SQLDWTableDataSetMapping, bool) {
+	return &sdtdsm, true
+}
+
+// AsSQLDBTableDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsSQLDBTableDataSetMapping() (*SQLDBTableDataSetMapping, bool) {
+	return nil, false
+}
+
+// AsDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsDataSetMapping() (*DataSetMapping, bool) {
+	return nil, false
+}
+
+// AsBasicDataSetMapping is the BasicDataSetMapping implementation for SQLDWTableDataSetMapping.
+func (sdtdsm SQLDWTableDataSetMapping) AsBasicDataSetMapping() (BasicDataSetMapping, bool) {
+	return &sdtdsm, true
+}
+
+// UnmarshalJSON is the custom unmarshaler for SQLDWTableDataSetMapping struct.
+func (sdtdsm *SQLDWTableDataSetMapping) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var sQLDWTableDataSetMappingProperties SQLDWTableDataSetMappingProperties
+				err = json.Unmarshal(*v, &sQLDWTableDataSetMappingProperties)
+				if err != nil {
+					return err
+				}
+				sdtdsm.SQLDWTableDataSetMappingProperties = &sQLDWTableDataSetMappingProperties
+			}
+		case "kind":
+			if v != nil {
+				var kind KindBasicDataSetMapping
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				sdtdsm.Kind = kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				sdtdsm.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				sdtdsm.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				sdtdsm.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// SQLDWTableDataSetMappingProperties properties of the SQL DW table data set mapping.
+type SQLDWTableDataSetMappingProperties struct {
+	// DataSetID - The id of the source data set.
+	DataSetID *string `json:"dataSetId,omitempty"`
+	// DataSetMappingStatus - READ-ONLY; Gets the status of the data set mapping. Possible values include: 'Ok', 'Broken'
+	DataSetMappingStatus DataSetMappingStatus `json:"dataSetMappingStatus,omitempty"`
+	// DataWarehouseName - DataWarehouse name of the source data set
+	DataWarehouseName *string `json:"dataWarehouseName,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the data set mapping. Possible values include: 'Succeeded', 'Creating', 'Deleting', 'Moving', 'Failed'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
+	// SchemaName - Schema of the table. Default value is dbo.
+	SchemaName *string `json:"schemaName,omitempty"`
+	// SQLServerResourceID - Resource id of SQL server
+	SQLServerResourceID *string `json:"sqlServerResourceId,omitempty"`
+	// TableName - SQL DW table name.
+	TableName *string `json:"tableName,omitempty"`
+}
+
+// SQLDWTableProperties properties of the SQL DW table data set.
+type SQLDWTableProperties struct {
+	// DataSetID - READ-ONLY; Unique id for identifying a data set resource
+	DataSetID *string `json:"dataSetId,omitempty"`
+	// DataWarehouseName - DataWarehouse name of the source data set
+	DataWarehouseName *string `json:"dataWarehouseName,omitempty"`
+	// SchemaName - Schema of the table. Default value is dbo.
+	SchemaName *string `json:"schemaName,omitempty"`
+	// SQLServerResourceID - Resource id of SQL server
+	SQLServerResourceID *string `json:"sqlServerResourceId,omitempty"`
+	// TableName - SQL DW table name.
+	TableName *string `json:"tableName,omitempty"`
+}
+
+// SynchronizationDetails synchronization details at data set level
+type SynchronizationDetails struct {
+	// DataSetID - READ-ONLY; Id of data set
+	DataSetID *string `json:"dataSetId,omitempty"`
+	// DataSetType - READ-ONLY; Type of the data set. Possible values include: 'Blob', 'Container', 'BlobFolder', 'AdlsGen2FileSystem', 'AdlsGen2Folder', 'AdlsGen2File', 'AdlsGen1Folder', 'AdlsGen1File', 'KustoCluster', 'KustoDatabase', 'SQLDBTable', 'SQLDWTable'
+	DataSetType DataSetType `json:"dataSetType,omitempty"`
+	// DurationMs - READ-ONLY; Duration of data set level copy
+	DurationMs *int32 `json:"durationMs,omitempty"`
+	// EndTime - READ-ONLY; End time of data set level copy
+	EndTime *date.Time `json:"endTime,omitempty"`
+	// FilesRead - READ-ONLY; The number of files read from the source data set
+	FilesRead *int64 `json:"filesRead,omitempty"`
+	// FilesWritten - READ-ONLY; The number of files written into the sink data set
+	FilesWritten *int64 `json:"filesWritten,omitempty"`
+	// Message - READ-ONLY; Error message if any
+	Message *string `json:"message,omitempty"`
+	// Name - READ-ONLY; Name of the data set
+	Name *string `json:"name,omitempty"`
+	// RowsCopied - READ-ONLY; The number of files copied into the sink data set
+	RowsCopied *int64 `json:"rowsCopied,omitempty"`
+	// RowsRead - READ-ONLY; The number of rows read from the source data set.
+	RowsRead *int64 `json:"rowsRead,omitempty"`
+	// SizeRead - READ-ONLY; The size of the data read from the source data set in bytes
 	SizeRead *int64 `json:"sizeRead,omitempty"`
-	// SizeWritten - READ-ONLY; The size of the data written into the sink dataset in bytes.
+	// SizeWritten - READ-ONLY; The size of the data written into the sink data set in bytes
 	SizeWritten *int64 `json:"sizeWritten,omitempty"`
-	// StartTime - READ-ONLY; start time of dataset level copy
+	// StartTime - READ-ONLY; Start time of data set level copy
 	StartTime *date.Time `json:"startTime,omitempty"`
 	// Status - READ-ONLY; Raw Status
 	Status *string `json:"status,omitempty"`
-	// VCore - READ-ONLY; The vCore units consumed for the dataset synchronization.
+	// VCore - READ-ONLY; The vCore units consumed for the data set synchronization
 	VCore *int64 `json:"vCore,omitempty"`
 }
 

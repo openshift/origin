@@ -22,7 +22,7 @@ package kusto
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/kusto/mgmt/2019-01-21/kusto"
+	original "github.com/Azure/azure-sdk-for-go/services/kusto/mgmt/2019-09-07/kusto"
 )
 
 const (
@@ -40,13 +40,25 @@ const (
 type AzureSkuName = original.AzureSkuName
 
 const (
-	D11V2 AzureSkuName = original.D11V2
-	D12V2 AzureSkuName = original.D12V2
-	D13V2 AzureSkuName = original.D13V2
-	D14V2 AzureSkuName = original.D14V2
-	L16   AzureSkuName = original.L16
-	L4    AzureSkuName = original.L4
-	L8    AzureSkuName = original.L8
+	DevNoSLAStandardD11V2 AzureSkuName = original.DevNoSLAStandardD11V2
+	StandardD11V2         AzureSkuName = original.StandardD11V2
+	StandardD12V2         AzureSkuName = original.StandardD12V2
+	StandardD13V2         AzureSkuName = original.StandardD13V2
+	StandardD14V2         AzureSkuName = original.StandardD14V2
+	StandardDS13V21TBPS   AzureSkuName = original.StandardDS13V21TBPS
+	StandardDS13V22TBPS   AzureSkuName = original.StandardDS13V22TBPS
+	StandardDS14V23TBPS   AzureSkuName = original.StandardDS14V23TBPS
+	StandardDS14V24TBPS   AzureSkuName = original.StandardDS14V24TBPS
+	StandardL16s          AzureSkuName = original.StandardL16s
+	StandardL4s           AzureSkuName = original.StandardL4s
+	StandardL8s           AzureSkuName = original.StandardL8s
+)
+
+type AzureSkuTier = original.AzureSkuTier
+
+const (
+	Basic    AzureSkuTier = original.Basic
+	Standard AzureSkuTier = original.Standard
 )
 
 type DataFormat = original.DataFormat
@@ -62,6 +74,7 @@ const (
 	SINGLEJSON DataFormat = original.SINGLEJSON
 	SOHSV      DataFormat = original.SOHSV
 	TSV        DataFormat = original.TSV
+	TSVE       DataFormat = original.TSVE
 	TXT        DataFormat = original.TXT
 )
 
@@ -84,12 +97,44 @@ const (
 	DatabasePrincipalTypeUser  DatabasePrincipalType = original.DatabasePrincipalTypeUser
 )
 
+type DefaultPrincipalsModificationKind = original.DefaultPrincipalsModificationKind
+
+const (
+	DefaultPrincipalsModificationKindNone    DefaultPrincipalsModificationKind = original.DefaultPrincipalsModificationKindNone
+	DefaultPrincipalsModificationKindReplace DefaultPrincipalsModificationKind = original.DefaultPrincipalsModificationKindReplace
+	DefaultPrincipalsModificationKindUnion   DefaultPrincipalsModificationKind = original.DefaultPrincipalsModificationKindUnion
+)
+
+type IdentityType = original.IdentityType
+
+const (
+	IdentityTypeNone           IdentityType = original.IdentityTypeNone
+	IdentityTypeSystemAssigned IdentityType = original.IdentityTypeSystemAssigned
+)
+
 type Kind = original.Kind
 
 const (
-	KindDataConnection Kind = original.KindDataConnection
-	KindEventGrid      Kind = original.KindEventGrid
-	KindEventHub       Kind = original.KindEventHub
+	KindDatabase          Kind = original.KindDatabase
+	KindReadOnlyFollowing Kind = original.KindReadOnlyFollowing
+	KindReadWrite         Kind = original.KindReadWrite
+)
+
+type KindBasicDataConnection = original.KindBasicDataConnection
+
+const (
+	KindDataConnection KindBasicDataConnection = original.KindDataConnection
+	KindEventGrid      KindBasicDataConnection = original.KindEventGrid
+	KindEventHub       KindBasicDataConnection = original.KindEventHub
+	KindIotHub         KindBasicDataConnection = original.KindIotHub
+)
+
+type PrincipalsModificationKind = original.PrincipalsModificationKind
+
+const (
+	PrincipalsModificationKindNone    PrincipalsModificationKind = original.PrincipalsModificationKindNone
+	PrincipalsModificationKindReplace PrincipalsModificationKind = original.PrincipalsModificationKindReplace
+	PrincipalsModificationKindUnion   PrincipalsModificationKind = original.PrincipalsModificationKindUnion
 )
 
 type ProvisioningState = original.ProvisioningState
@@ -98,6 +143,7 @@ const (
 	Creating  ProvisioningState = original.Creating
 	Deleting  ProvisioningState = original.Deleting
 	Failed    ProvisioningState = original.Failed
+	Moving    ProvisioningState = original.Moving
 	Running   ProvisioningState = original.Running
 	Succeeded ProvisioningState = original.Succeeded
 )
@@ -123,12 +169,27 @@ const (
 	StateUpdating    State = original.StateUpdating
 )
 
+type Type = original.Type
+
+const (
+	MicrosoftKustoclustersattachedDatabaseConfigurations Type = original.MicrosoftKustoclustersattachedDatabaseConfigurations
+	MicrosoftKustoclustersdatabases                      Type = original.MicrosoftKustoclustersdatabases
+)
+
+type AttachedDatabaseConfiguration = original.AttachedDatabaseConfiguration
+type AttachedDatabaseConfigurationListResult = original.AttachedDatabaseConfigurationListResult
+type AttachedDatabaseConfigurationProperties = original.AttachedDatabaseConfigurationProperties
+type AttachedDatabaseConfigurationsClient = original.AttachedDatabaseConfigurationsClient
+type AttachedDatabaseConfigurationsCreateOrUpdateFuture = original.AttachedDatabaseConfigurationsCreateOrUpdateFuture
+type AttachedDatabaseConfigurationsDeleteFuture = original.AttachedDatabaseConfigurationsDeleteFuture
 type AzureCapacity = original.AzureCapacity
 type AzureEntityResource = original.AzureEntityResource
 type AzureResourceSku = original.AzureResourceSku
 type AzureSku = original.AzureSku
 type BaseClient = original.BaseClient
 type BasicDataConnection = original.BasicDataConnection
+type BasicDatabase = original.BasicDatabase
+type CheckNameRequest = original.CheckNameRequest
 type CheckNameResult = original.CheckNameResult
 type CloudError = original.CloudError
 type CloudErrorBody = original.CloudErrorBody
@@ -140,6 +201,7 @@ type ClusterUpdate = original.ClusterUpdate
 type ClustersClient = original.ClustersClient
 type ClustersCreateOrUpdateFuture = original.ClustersCreateOrUpdateFuture
 type ClustersDeleteFuture = original.ClustersDeleteFuture
+type ClustersDetachFollowerDatabasesFuture = original.ClustersDetachFollowerDatabasesFuture
 type ClustersStartFuture = original.ClustersStartFuture
 type ClustersStopFuture = original.ClustersStopFuture
 type ClustersUpdateFuture = original.ClustersUpdateFuture
@@ -155,14 +217,12 @@ type DataConnectionsCreateOrUpdateFuture = original.DataConnectionsCreateOrUpdat
 type DataConnectionsDeleteFuture = original.DataConnectionsDeleteFuture
 type DataConnectionsUpdateFuture = original.DataConnectionsUpdateFuture
 type Database = original.Database
-type DatabaseCheckNameRequest = original.DatabaseCheckNameRequest
 type DatabaseListResult = original.DatabaseListResult
+type DatabaseModel = original.DatabaseModel
 type DatabasePrincipal = original.DatabasePrincipal
 type DatabasePrincipalListRequest = original.DatabasePrincipalListRequest
 type DatabasePrincipalListResult = original.DatabasePrincipalListResult
-type DatabaseProperties = original.DatabaseProperties
 type DatabaseStatistics = original.DatabaseStatistics
-type DatabaseUpdate = original.DatabaseUpdate
 type DatabasesClient = original.DatabasesClient
 type DatabasesCreateOrUpdateFuture = original.DatabasesCreateOrUpdateFuture
 type DatabasesDeleteFuture = original.DatabasesDeleteFuture
@@ -171,21 +231,42 @@ type EventGridConnectionProperties = original.EventGridConnectionProperties
 type EventGridDataConnection = original.EventGridDataConnection
 type EventHubConnectionProperties = original.EventHubConnectionProperties
 type EventHubDataConnection = original.EventHubDataConnection
+type FollowerDatabaseDefinition = original.FollowerDatabaseDefinition
+type FollowerDatabaseListResult = original.FollowerDatabaseListResult
+type Identity = original.Identity
+type IdentityUserAssignedIdentitiesValue = original.IdentityUserAssignedIdentitiesValue
+type IotHubConnectionProperties = original.IotHubConnectionProperties
+type IotHubDataConnection = original.IotHubDataConnection
+type KeyVaultProperties = original.KeyVaultProperties
 type ListResourceSkusResult = original.ListResourceSkusResult
-type ListSkusResult = original.ListSkusResult
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
 type OperationListResult = original.OperationListResult
 type OperationListResultIterator = original.OperationListResultIterator
 type OperationListResultPage = original.OperationListResultPage
 type OperationsClient = original.OperationsClient
+type OptimizedAutoscale = original.OptimizedAutoscale
 type ProxyResource = original.ProxyResource
+type ReadOnlyFollowingDatabase = original.ReadOnlyFollowingDatabase
+type ReadOnlyFollowingDatabaseProperties = original.ReadOnlyFollowingDatabaseProperties
+type ReadWriteDatabase = original.ReadWriteDatabase
+type ReadWriteDatabaseProperties = original.ReadWriteDatabaseProperties
 type Resource = original.Resource
+type SkuDescription = original.SkuDescription
+type SkuDescriptionList = original.SkuDescriptionList
+type SkuLocationInfoItem = original.SkuLocationInfoItem
 type TrackedResource = original.TrackedResource
 type TrustedExternalTenant = original.TrustedExternalTenant
+type VirtualNetworkConfiguration = original.VirtualNetworkConfiguration
 
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
+}
+func NewAttachedDatabaseConfigurationsClient(subscriptionID string) AttachedDatabaseConfigurationsClient {
+	return original.NewAttachedDatabaseConfigurationsClient(subscriptionID)
+}
+func NewAttachedDatabaseConfigurationsClientWithBaseURI(baseURI string, subscriptionID string) AttachedDatabaseConfigurationsClient {
+	return original.NewAttachedDatabaseConfigurationsClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewClustersClient(subscriptionID string) ClustersClient {
 	return original.NewClustersClient(subscriptionID)
@@ -226,6 +307,9 @@ func PossibleAzureScaleTypeValues() []AzureScaleType {
 func PossibleAzureSkuNameValues() []AzureSkuName {
 	return original.PossibleAzureSkuNameValues()
 }
+func PossibleAzureSkuTierValues() []AzureSkuTier {
+	return original.PossibleAzureSkuTierValues()
+}
 func PossibleDataFormatValues() []DataFormat {
 	return original.PossibleDataFormatValues()
 }
@@ -235,8 +319,20 @@ func PossibleDatabasePrincipalRoleValues() []DatabasePrincipalRole {
 func PossibleDatabasePrincipalTypeValues() []DatabasePrincipalType {
 	return original.PossibleDatabasePrincipalTypeValues()
 }
+func PossibleDefaultPrincipalsModificationKindValues() []DefaultPrincipalsModificationKind {
+	return original.PossibleDefaultPrincipalsModificationKindValues()
+}
+func PossibleIdentityTypeValues() []IdentityType {
+	return original.PossibleIdentityTypeValues()
+}
+func PossibleKindBasicDataConnectionValues() []KindBasicDataConnection {
+	return original.PossibleKindBasicDataConnectionValues()
+}
 func PossibleKindValues() []Kind {
 	return original.PossibleKindValues()
+}
+func PossiblePrincipalsModificationKindValues() []PrincipalsModificationKind {
+	return original.PossiblePrincipalsModificationKindValues()
 }
 func PossibleProvisioningStateValues() []ProvisioningState {
 	return original.PossibleProvisioningStateValues()
@@ -246,6 +342,9 @@ func PossibleReasonValues() []Reason {
 }
 func PossibleStateValues() []State {
 	return original.PossibleStateValues()
+}
+func PossibleTypeValues() []Type {
+	return original.PossibleTypeValues()
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/latest"

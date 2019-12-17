@@ -103,6 +103,10 @@ func (p *mockPolicy) RemoveContainer(s state.State, containerID string) error {
 	return p.err
 }
 
+func (p *mockPolicy) GetTopologyHints(s state.State, pod v1.Pod, container v1.Container) map[string][]topologymanager.TopologyHint {
+	return nil
+}
+
 type mockRuntimeService struct {
 	err error
 }
@@ -634,7 +638,7 @@ func TestReconcileState(t *testing.T) {
 				found:     testCase.pspFound,
 			},
 		}
-
+		mgr.sourcesReady = &sourcesReadyStub{}
 		success, failure := mgr.reconcileState()
 
 		if testCase.expectSucceededContainerName != "" {

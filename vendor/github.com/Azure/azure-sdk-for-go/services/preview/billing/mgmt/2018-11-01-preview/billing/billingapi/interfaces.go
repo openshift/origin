@@ -26,7 +26,7 @@ import (
 // AccountsClientAPI contains the set of methods on the AccountsClient type.
 type AccountsClientAPI interface {
 	Get(ctx context.Context, billingAccountName string, expand string) (result billing.Account, err error)
-	List(ctx context.Context, expand string) (result billing.AccountListResult, err error)
+	List(ctx context.Context, expand string) (result billing.AccountListResultPage, err error)
 	Update(ctx context.Context, billingAccountName string, parameters billing.AccountUpdateProperties) (result billing.AccountsUpdateFuture, err error)
 }
 
@@ -58,11 +58,19 @@ var _ AvailableBalancesClientAPI = (*billing.AvailableBalancesClient)(nil)
 type ProfilesClientAPI interface {
 	Create(ctx context.Context, billingAccountName string, parameters billing.ProfileCreationParameters) (result billing.ProfilesCreateFuture, err error)
 	Get(ctx context.Context, billingAccountName string, billingProfileName string, expand string) (result billing.Profile, err error)
-	ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string) (result billing.ProfileListResult, err error)
+	ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string) (result billing.ProfileListResultPage, err error)
 	Update(ctx context.Context, billingAccountName string, billingProfileName string, parameters billing.Profile) (result billing.ProfilesUpdateFuture, err error)
 }
 
 var _ ProfilesClientAPI = (*billing.ProfilesClient)(nil)
+
+// CustomersClientAPI contains the set of methods on the CustomersClient type.
+type CustomersClientAPI interface {
+	Get(ctx context.Context, billingAccountName string, customerName string, expand string) (result billing.Customer, err error)
+	ListByBillingAccountName(ctx context.Context, billingAccountName string, filter string, skiptoken string) (result billing.CustomerListResultPage, err error)
+}
+
+var _ CustomersClientAPI = (*billing.CustomersClient)(nil)
 
 // InvoiceSectionsClientAPI contains the set of methods on the InvoiceSectionsClient type.
 type InvoiceSectionsClientAPI interface {
@@ -70,8 +78,8 @@ type InvoiceSectionsClientAPI interface {
 	ElevateToBillingProfile(ctx context.Context, billingAccountName string, invoiceSectionName string) (result autorest.Response, err error)
 	Get(ctx context.Context, billingAccountName string, invoiceSectionName string, expand string) (result billing.InvoiceSection, err error)
 	ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string) (result billing.InvoiceSectionListResult, err error)
-	ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string) (result billing.InvoiceSectionListResult, err error)
-	ListByCreateSubscriptionPermission(ctx context.Context, billingAccountName string, expand string) (result billing.InvoiceSectionListResult, err error)
+	ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string) (result billing.InvoiceSectionListResultPage, err error)
+	ListByCreateSubscriptionPermission(ctx context.Context, billingAccountName string, expand string) (result billing.InvoiceSectionListResultPage, err error)
 	Update(ctx context.Context, billingAccountName string, invoiceSectionName string, parameters billing.InvoiceSection) (result billing.InvoiceSectionsUpdateFuture, err error)
 }
 
@@ -80,7 +88,7 @@ var _ InvoiceSectionsClientAPI = (*billing.InvoiceSectionsClient)(nil)
 // DepartmentsClientAPI contains the set of methods on the DepartmentsClient type.
 type DepartmentsClientAPI interface {
 	Get(ctx context.Context, billingAccountName string, departmentName string, expand string, filter string) (result billing.Department, err error)
-	ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string, filter string) (result billing.DepartmentListResult, err error)
+	ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string, filter string) (result billing.DepartmentListResultPage, err error)
 }
 
 var _ DepartmentsClientAPI = (*billing.DepartmentsClient)(nil)
@@ -88,7 +96,7 @@ var _ DepartmentsClientAPI = (*billing.DepartmentsClient)(nil)
 // EnrollmentAccountsClientAPI contains the set of methods on the EnrollmentAccountsClient type.
 type EnrollmentAccountsClientAPI interface {
 	GetByEnrollmentAccountID(ctx context.Context, billingAccountName string, enrollmentAccountName string, expand string, filter string) (result billing.EnrollmentAccount, err error)
-	ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string, filter string) (result billing.EnrollmentAccountListResult, err error)
+	ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string, filter string) (result billing.EnrollmentAccountListResultPage, err error)
 }
 
 var _ EnrollmentAccountsClientAPI = (*billing.EnrollmentAccountsClient)(nil)
@@ -96,8 +104,8 @@ var _ EnrollmentAccountsClientAPI = (*billing.EnrollmentAccountsClient)(nil)
 // InvoicesClientAPI contains the set of methods on the InvoicesClient type.
 type InvoicesClientAPI interface {
 	Get(ctx context.Context, billingAccountName string, billingProfileName string, invoiceName string) (result billing.InvoiceSummary, err error)
-	ListByBillingAccountName(ctx context.Context, billingAccountName string, periodStartDate string, periodEndDate string) (result billing.InvoiceListResult, err error)
-	ListByBillingProfile(ctx context.Context, billingAccountName string, billingProfileName string, periodStartDate string, periodEndDate string) (result billing.InvoiceListResult, err error)
+	ListByBillingAccountName(ctx context.Context, billingAccountName string, periodStartDate string, periodEndDate string) (result billing.InvoiceListResultPage, err error)
+	ListByBillingProfile(ctx context.Context, billingAccountName string, billingProfileName string, periodStartDate string, periodEndDate string) (result billing.InvoiceListResultPage, err error)
 }
 
 var _ InvoicesClientAPI = (*billing.InvoicesClient)(nil)
@@ -112,9 +120,11 @@ var _ PriceSheetClientAPI = (*billing.PriceSheetClient)(nil)
 // SubscriptionsClientAPI contains the set of methods on the SubscriptionsClient type.
 type SubscriptionsClientAPI interface {
 	Get(ctx context.Context, billingAccountName string, invoiceSectionName string, billingSubscriptionName string) (result billing.SubscriptionSummary, err error)
+	GetByCustomerName(ctx context.Context, billingAccountName string, customerName string, billingSubscriptionName string) (result billing.SubscriptionSummary, err error)
 	ListByBillingAccountName(ctx context.Context, billingAccountName string) (result billing.SubscriptionsListResultPage, err error)
-	ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string) (result billing.SubscriptionsListResult, err error)
-	ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string) (result billing.SubscriptionsListResult, err error)
+	ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string) (result billing.SubscriptionsListResultPage, err error)
+	ListByCustomerName(ctx context.Context, billingAccountName string, customerName string) (result billing.SubscriptionsListResultPage, err error)
+	ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string) (result billing.SubscriptionsListResultPage, err error)
 	Transfer(ctx context.Context, billingAccountName string, invoiceSectionName string, billingSubscriptionName string, parameters billing.TransferBillingSubscriptionRequestProperties) (result billing.SubscriptionsTransferFuture, err error)
 	ValidateTransfer(ctx context.Context, billingAccountName string, invoiceSectionName string, billingSubscriptionName string, parameters billing.TransferBillingSubscriptionRequestProperties) (result billing.ValidateSubscriptionTransferEligibilityResult, err error)
 }
@@ -125,7 +135,7 @@ var _ SubscriptionsClientAPI = (*billing.SubscriptionsClient)(nil)
 type ProductsClientAPI interface {
 	Get(ctx context.Context, billingAccountName string, invoiceSectionName string, productName string) (result billing.ProductSummary, err error)
 	ListByBillingAccountName(ctx context.Context, billingAccountName string, filter string) (result billing.ProductsListResultPage, err error)
-	ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string, filter string) (result billing.ProductsListResult, err error)
+	ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string, filter string) (result billing.ProductsListResultPage, err error)
 	Transfer(ctx context.Context, billingAccountName string, invoiceSectionName string, productName string, parameters billing.TransferProductRequestProperties) (result billing.ProductSummary, err error)
 	UpdateAutoRenewByBillingAccountName(ctx context.Context, billingAccountName string, productName string, body billing.UpdateAutoRenewRequest) (result billing.UpdateAutoRenewOperationSummary, err error)
 	UpdateAutoRenewByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string, productName string, body billing.UpdateAutoRenewRequest) (result billing.UpdateAutoRenewOperationSummary, err error)
@@ -137,8 +147,9 @@ var _ ProductsClientAPI = (*billing.ProductsClient)(nil)
 // TransactionsClientAPI contains the set of methods on the TransactionsClient type.
 type TransactionsClientAPI interface {
 	ListByBillingAccountName(ctx context.Context, billingAccountName string, startDate string, endDate string, filter string) (result billing.TransactionsListResultPage, err error)
-	ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string, startDate string, endDate string, filter string) (result billing.TransactionsListResult, err error)
-	ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string, startDate string, endDate string, filter string) (result billing.TransactionsListResult, err error)
+	ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string, startDate string, endDate string, filter string) (result billing.TransactionsListResultPage, err error)
+	ListByCustomerName(ctx context.Context, billingAccountName string, customerName string, startDate string, endDate string, filter string) (result billing.TransactionsListResultPage, err error)
+	ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string, startDate string, endDate string, filter string) (result billing.TransactionsListResultPage, err error)
 }
 
 var _ TransactionsClientAPI = (*billing.TransactionsClient)(nil)
@@ -189,6 +200,7 @@ var _ OperationsClientAPI = (*billing.OperationsClient)(nil)
 type PermissionsClientAPI interface {
 	ListByBillingAccount(ctx context.Context, billingAccountName string) (result billing.PermissionsListResult, err error)
 	ListByBillingProfile(ctx context.Context, billingAccountName string, billingProfileName string) (result billing.PermissionsListResult, err error)
+	ListByCustomers(ctx context.Context, billingAccountName string, customerName string) (result billing.PermissionsListResult, err error)
 	ListByInvoiceSections(ctx context.Context, billingAccountName string, invoiceSectionName string) (result billing.PermissionsListResult, err error)
 }
 
@@ -227,7 +239,7 @@ var _ RoleAssignmentsClientAPI = (*billing.RoleAssignmentsClient)(nil)
 // AgreementsClientAPI contains the set of methods on the AgreementsClient type.
 type AgreementsClientAPI interface {
 	Get(ctx context.Context, billingAccountName string, agreementName string, expand string) (result billing.Agreement, err error)
-	ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string) (result billing.AgreementListResult, err error)
+	ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string) (result billing.AgreementListResultPage, err error)
 }
 
 var _ AgreementsClientAPI = (*billing.AgreementsClient)(nil)

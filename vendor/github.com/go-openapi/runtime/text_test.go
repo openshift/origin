@@ -43,7 +43,7 @@ func TestTextConsumer(t *testing.T) {
 	assert.Equal(t, consProdText, tu.str)
 
 	// text unmarshal objects can return an error as well, this will be propagated
-	assert.Error(t, cons.Consume(bytes.NewBuffer(nil), &tu))
+	assert.NoError(t, cons.Consume(bytes.NewBuffer(nil), &tu))
 
 	// when readers can't be read, those errors will be propogated as well
 	assert.Error(t, cons.Consume(new(nopReader), &tu))

@@ -39,6 +39,8 @@ const (
 	Cost Category = "Cost"
 	// HighAvailability ...
 	HighAvailability Category = "HighAvailability"
+	// OperationalExcellence ...
+	OperationalExcellence Category = "OperationalExcellence"
 	// Performance ...
 	Performance Category = "Performance"
 	// Security ...
@@ -47,7 +49,7 @@ const (
 
 // PossibleCategoryValues returns an array of possible values for the Category const type.
 func PossibleCategoryValues() []Category {
-	return []Category{Cost, HighAvailability, Performance, Security}
+	return []Category{Cost, HighAvailability, OperationalExcellence, Performance, Security}
 }
 
 // Impact enumerates the values for impact.
@@ -258,7 +260,7 @@ func NewOperationEntityListResultPage(getNextPage func(context.Context, Operatio
 
 // RecommendationProperties the properties of the recommendation.
 type RecommendationProperties struct {
-	// Category - The category of the recommendation. Possible values include: 'HighAvailability', 'Security', 'Performance', 'Cost'
+	// Category - The category of the recommendation. Possible values include: 'HighAvailability', 'Security', 'Performance', 'Cost', 'OperationalExcellence'
 	Category Category `json:"category,omitempty"`
 	// Impact - The business impact of the recommendation. Possible values include: 'High', 'Medium', 'Low'
 	Impact Impact `json:"impact,omitempty"`

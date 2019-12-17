@@ -86,7 +86,7 @@ func (client JobDetailsClient) GetPreparer(ctx context.Context, vaultName string
 		"vaultName":         autorest.Encode("path", vaultName),
 	}
 
-	const APIVersion = "2017-07-01"
+	const APIVersion = "2019-05-13"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}

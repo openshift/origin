@@ -265,7 +265,7 @@ var _ = Describe("ReceiveMatcher", func() {
 	Describe("when used with eventually and a custom matcher", func() {
 		It("should return the matcher's error when a failing value is received on the channel, instead of the must receive something failure", func() {
 			failures := InterceptGomegaFailures(func() {
-				c := make(chan string, 0)
+				c := make(chan string)
 				Eventually(c, 0.01).Should(Receive(Equal("hello")))
 			})
 			Expect(failures[0]).Should(ContainSubstring("When passed a matcher, ReceiveMatcher's channel *must* receive something."))

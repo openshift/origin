@@ -19,18 +19,20 @@
 
 package runtime
 
-import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.0/luis/runtime"
+import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v3.0/luis/runtime"
 
-type APIError = original.APIError
 type BaseClient = original.BaseClient
-type CompositeChildModel = original.CompositeChildModel
-type CompositeEntityModel = original.CompositeEntityModel
-type EntityModel = original.EntityModel
-type EntityWithResolution = original.EntityWithResolution
-type EntityWithScore = original.EntityWithScore
-type IntentModel = original.IntentModel
-type LuisResult = original.LuisResult
+type DynamicList = original.DynamicList
+type Error = original.Error
+type ErrorBody = original.ErrorBody
+type ExternalEntity = original.ExternalEntity
+type Intent = original.Intent
+type Prediction = original.Prediction
 type PredictionClient = original.PredictionClient
+type PredictionRequest = original.PredictionRequest
+type PredictionRequestOptions = original.PredictionRequestOptions
+type PredictionResponse = original.PredictionResponse
+type RequestList = original.RequestList
 type Sentiment = original.Sentiment
 
 func New(endpoint string) BaseClient {

@@ -21,6 +21,10 @@ import:
   - ssh
   - ssh/agent
 - package: k8s.io/client-go
-  version: v3.0.0-beta.0
+  version: kubernetes-1.15.3
+- package: k8s.io/api
+  version: kubernetes-1.15.3
+- package: k8s.io/apimachinery
+  version: kubernetes-1.15.3
 - package: github.com/go-ozzo/ozzo-validation
   version: v3.3

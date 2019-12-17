@@ -101,7 +101,8 @@ func (client PersonGroupPersonClient) AddFaceFromStream(ctx context.Context, per
 			Constraints: []validation.Constraint{{Target: "personGroupID", Name: validation.MaxLength, Rule: 64, Chain: nil},
 				{Target: "personGroupID", Name: validation.Pattern, Rule: `^[a-z0-9-_]+$`, Chain: nil}}},
 		{TargetValue: userData,
-			Constraints: []validation.Constraint{{Target: "userData", Name: validation.MaxLength, Rule: 1024, Chain: nil}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "userData", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "userData", Name: validation.MaxLength, Rule: 1024, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewError("face.PersonGroupPersonClient", "AddFaceFromStream", err.Error())
 	}
 
@@ -243,7 +244,8 @@ func (client PersonGroupPersonClient) AddFaceFromURL(ctx context.Context, person
 			Constraints: []validation.Constraint{{Target: "personGroupID", Name: validation.MaxLength, Rule: 64, Chain: nil},
 				{Target: "personGroupID", Name: validation.Pattern, Rule: `^[a-z0-9-_]+$`, Chain: nil}}},
 		{TargetValue: userData,
-			Constraints: []validation.Constraint{{Target: "userData", Name: validation.MaxLength, Rule: 1024, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "userData", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "userData", Name: validation.MaxLength, Rule: 1024, Chain: nil}}}}},
 		{TargetValue: imageURL,
 			Constraints: []validation.Constraint{{Target: "imageURL.URL", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("face.PersonGroupPersonClient", "AddFaceFromURL", err.Error())

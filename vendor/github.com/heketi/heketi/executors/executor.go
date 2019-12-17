@@ -9,16 +9,19 @@
 
 package executors
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"fmt"
+)
 
 type Executor interface {
 	GlusterdCheck(host string) error
 	PeerProbe(exec_host, newnode string) error
 	PeerDetach(exec_host, detachnode string) error
 	DeviceSetup(host, device, vgid string, destroy bool) (*DeviceInfo, error)
-	GetDeviceInfo(host, device, vgid string) (*DeviceInfo, error)
-	DeviceTeardown(host, device, vgid string) error
-	DeviceForget(host, device, vgid string) error
+	GetDeviceInfo(host string, dh *DeviceVgHandle) (*DeviceInfo, error)
+	DeviceTeardown(host string, dh *DeviceVgHandle) error
+	DeviceForget(host string, dh *DeviceVgHandle) error
 	BrickCreate(host string, brick *BrickRequest) (*BrickInfo, error)
 	BrickDestroy(host string, brick *BrickRequest) (bool, error)
 	VolumeCreate(host string, volume *VolumeRequest) (*Volume, error)
@@ -30,6 +33,7 @@ type Executor interface {
 	VolumesInfo(host string) (*VolInfo, error)
 	VolumeClone(host string, vsr *VolumeCloneRequest) (*Volume, error)
 	VolumeSnapshot(host string, vsr *VolumeSnapshotRequest) (*Snapshot, error)
+	VolumeModify(host string, mod *VolumeModifyRequest) error
 	SnapshotCloneVolume(host string, scr *SnapshotCloneRequest) (*Volume, error)
 	SnapshotCloneBlockVolume(host string, scr *SnapshotCloneRequest) (*BlockVolumeInfo, error)
 	SnapshotDestroy(host string, snapshot string) error
@@ -116,6 +120,9 @@ type DeviceInfo struct {
 	FreeSize   uint64
 	UsedSize   uint64
 	ExtentSize uint64
+
+	// device identification metadata
+	Meta *DeviceHandle
 }
 
 type BrickFormatType int
@@ -320,4 +327,63 @@ type VolumeDoesNotExistErr struct {
 
 func (dne *VolumeDoesNotExistErr) Error() string {
 	return "Volume Does Not Exist: " + dne.Name
+}
+
+// DeviceHandle identifies a device on a node by either a UUID
+// or by a list of paths. Either one of UUID or Paths must be
+// populated.
+type DeviceHandle struct {
+	UUID  string
+	Paths []string
+}
+
+// DeviceVgHandle identifies a device and the vg paired with that
+// device.
+type DeviceVgHandle struct {
+	DeviceHandle
+	VgId string
+}
+
+func SimpleDeviceVgHandle(device, vgid string) *DeviceVgHandle {
+	return &DeviceVgHandle{
+		DeviceHandle: DeviceHandle{
+			Paths: []string{device},
+		},
+		VgId: vgid,
+	}
+}
+
+type DeviceNotAvailableErr struct {
+	OriginalError error
+	Path          string
+	ConnectionOk  bool
+	CurrentMeta   *DeviceHandle
+}
+
+func (e *DeviceNotAvailableErr) Error() string {
+	head := fmt.Sprintf("Initializing device %v failed", e.Path)
+	if !e.ConnectionOk {
+		return fmt.Sprintf(
+			"%s (failed to check device contents): %v",
+			head, e.OriginalError)
+	}
+	if e.CurrentMeta != nil {
+		return fmt.Sprintf(
+			"%s (aleady contains Physical Volume %v): %v",
+			head, e.CurrentMeta.UUID, e.OriginalError)
+	}
+	return fmt.Sprintf(
+		"%s (already initialized or contains data?): %v",
+		head, e.OriginalError)
+}
+
+type VolumeModifyRequest struct {
+	Name string
+
+	// Stopped should be set if the changes may only be applied
+	// while the volume is stopped
+	Stopped bool
+
+	// A new set of gluster volume options
+	GlusterVolumeOptions []string
 }

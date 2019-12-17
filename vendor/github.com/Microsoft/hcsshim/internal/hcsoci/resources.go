@@ -37,7 +37,7 @@ type Resources struct {
 
 	// plan9Mounts is an array of all the host paths which have been added to
 	// an LCOW utility VM
-	plan9Mounts []string
+	plan9Mounts []*uvm.Plan9Share
 
 	// netNS is the network namespace
 	netNS string
@@ -59,8 +59,7 @@ type Resources struct {
 // TODO: Method on the resources?
 func ReleaseResources(r *Resources, vm *uvm.UtilityVM, all bool) error {
 	if vm != nil && r.addedNetNSToVM {
-		err := vm.RemoveNetNS(r.netNS)
-		if err != nil {
+		if err := vm.RemoveNetNS(r.netNS); err != nil {
 			logrus.Warn(err)
 		}
 		r.addedNetNSToVM = false

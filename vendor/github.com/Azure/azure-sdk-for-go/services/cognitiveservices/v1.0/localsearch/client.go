@@ -28,7 +28,7 @@ import (
 
 const (
 	// DefaultBaseURI is the default URI used for the service Localsearch
-	DefaultBaseURI = "https://api.cognitive.microsoft.com/localbusinesses/v7.0/search"
+	DefaultBaseURI = "https://api.cognitive.microsoft.com/bing"
 )
 
 // BaseClient is the base client for Localsearch.

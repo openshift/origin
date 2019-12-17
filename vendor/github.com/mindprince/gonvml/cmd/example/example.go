@@ -109,6 +109,34 @@ func main() {
 			return
 		}
 		fmt.Printf("\taverage utilization.gpu for last 10s: %v\n", averageGPUUtilization)
+
+		temperature, err := dev.Temperature()
+		if err != nil {
+			fmt.Printf("\tdev.Temperature() error: %v\n", err)
+			return
+		}
+		fmt.Printf("\ttemperature.gpu: %v C\n", temperature)
+
+		fanSpeed, err := dev.FanSpeed()
+		if err != nil {
+			fmt.Printf("\tdev.FanSpeed() error: %v\n", err)
+			return
+		}
+		fmt.Printf("\tfan.speed: %v%%\n", fanSpeed)
+
+		encoderUtilization, _, err := dev.EncoderUtilization()
+		if err != nil {
+			fmt.Printf("\tdev.EncoderUtilization() error: %v\n", err)
+			return
+		}
+		fmt.Printf("\tutilization.encoder: %d\n", encoderUtilization)
+
+		decoderUtilization, _, err := dev.DecoderUtilization()
+		if err != nil {
+			fmt.Printf("\tdev.DecoderUtilization() error: %v\n", err)
+			return
+		}
+		fmt.Printf("\tutilization.decoder: %d\n", decoderUtilization)
 		fmt.Println()
 	}
 }

@@ -16,8 +16,9 @@ fi
 
 rm -rf go-to-protobuf
 rm -rf protoc-gen-gogo
-go build -o _output/bin/go-to-protobuf github.com/openshift/api/vendor/k8s.io/code-generator/cmd/go-to-protobuf
-go build -o _output/bin/protoc-gen-gogo github.com/openshift/api/vendor/k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
+
+GOFLAGS="" go build -o _output/bin/go-to-protobuf github.com/openshift/api/vendor/k8s.io/code-generator/cmd/go-to-protobuf
+GOFLAGS="" go build -o _output/bin/protoc-gen-gogo github.com/openshift/api/vendor/k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
 
 PATH="$PATH:_output/bin" go-to-protobuf \
   --output-base="${GOPATH}/src" \

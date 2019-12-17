@@ -25,6 +25,7 @@ type AccountsClientAPI = original.AccountsClientAPI
 type AddressesClientAPI = original.AddressesClientAPI
 type AgreementsClientAPI = original.AgreementsClientAPI
 type AvailableBalancesClientAPI = original.AvailableBalancesClientAPI
+type CustomersClientAPI = original.CustomersClientAPI
 type DepartmentsClientAPI = original.DepartmentsClientAPI
 type EnrollmentAccountsClientAPI = original.EnrollmentAccountsClientAPI
 type InvoiceSectionsClientAPI = original.InvoiceSectionsClientAPI

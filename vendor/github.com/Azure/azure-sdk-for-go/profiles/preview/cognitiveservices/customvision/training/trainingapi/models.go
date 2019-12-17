@@ -19,6 +19,6 @@
 
 package trainingapi
 
-import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v3.0/customvision/training/trainingapi"
+import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v3.1/customvision/training/trainingapi"
 
 type BaseClientAPI = original.BaseClientAPI

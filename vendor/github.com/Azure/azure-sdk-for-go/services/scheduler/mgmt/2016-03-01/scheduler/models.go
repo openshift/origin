@@ -51,13 +51,11 @@ const (
 	Wednesday DayOfWeek = "Wednesday"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleDayOfWeekValues returns an array of possible values for the DayOfWeek const type.
 func PossibleDayOfWeekValues() []DayOfWeek {
 	return []DayOfWeek{Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobActionType enumerates the values for job action type.
 type JobActionType string
 
@@ -74,13 +72,11 @@ const (
 	StorageQueue JobActionType = "StorageQueue"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleJobActionTypeValues returns an array of possible values for the JobActionType const type.
 func PossibleJobActionTypeValues() []JobActionType {
 	return []JobActionType{HTTP, HTTPS, ServiceBusQueue, ServiceBusTopic, StorageQueue}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobCollectionState enumerates the values for job collection state.
 type JobCollectionState string
 
@@ -95,13 +91,11 @@ const (
 	Suspended JobCollectionState = "Suspended"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleJobCollectionStateValues returns an array of possible values for the JobCollectionState const type.
 func PossibleJobCollectionStateValues() []JobCollectionState {
 	return []JobCollectionState{Deleted, Disabled, Enabled, Suspended}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobExecutionStatus enumerates the values for job execution status.
 type JobExecutionStatus string
 
@@ -114,13 +108,11 @@ const (
 	Postponed JobExecutionStatus = "Postponed"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleJobExecutionStatusValues returns an array of possible values for the JobExecutionStatus const type.
 func PossibleJobExecutionStatusValues() []JobExecutionStatus {
 	return []JobExecutionStatus{Completed, Failed, Postponed}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobHistoryActionName enumerates the values for job history action name.
 type JobHistoryActionName string
 
@@ -131,13 +123,11 @@ const (
 	MainAction JobHistoryActionName = "MainAction"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleJobHistoryActionNameValues returns an array of possible values for the JobHistoryActionName const type.
 func PossibleJobHistoryActionNameValues() []JobHistoryActionName {
 	return []JobHistoryActionName{ErrorAction, MainAction}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobScheduleDay enumerates the values for job schedule day.
 type JobScheduleDay string
 
@@ -158,13 +148,11 @@ const (
 	JobScheduleDayWednesday JobScheduleDay = "Wednesday"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleJobScheduleDayValues returns an array of possible values for the JobScheduleDay const type.
 func PossibleJobScheduleDayValues() []JobScheduleDay {
 	return []JobScheduleDay{JobScheduleDayFriday, JobScheduleDayMonday, JobScheduleDaySaturday, JobScheduleDaySunday, JobScheduleDayThursday, JobScheduleDayTuesday, JobScheduleDayWednesday}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobState enumerates the values for job state.
 type JobState string
 
@@ -179,13 +167,11 @@ const (
 	JobStateFaulted JobState = "Faulted"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleJobStateValues returns an array of possible values for the JobState const type.
 func PossibleJobStateValues() []JobState {
 	return []JobState{JobStateCompleted, JobStateDisabled, JobStateEnabled, JobStateFaulted}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // RecurrenceFrequency enumerates the values for recurrence frequency.
 type RecurrenceFrequency string
 
@@ -202,13 +188,11 @@ const (
 	Week RecurrenceFrequency = "Week"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleRecurrenceFrequencyValues returns an array of possible values for the RecurrenceFrequency const type.
 func PossibleRecurrenceFrequencyValues() []RecurrenceFrequency {
 	return []RecurrenceFrequency{Day, Hour, Minute, Month, Week}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // RetryType enumerates the values for retry type.
 type RetryType string
 
@@ -219,13 +203,11 @@ const (
 	None RetryType = "None"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleRetryTypeValues returns an array of possible values for the RetryType const type.
 func PossibleRetryTypeValues() []RetryType {
 	return []RetryType{Fixed, None}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // ServiceBusAuthenticationType enumerates the values for service bus authentication type.
 type ServiceBusAuthenticationType string
 
@@ -236,13 +218,11 @@ const (
 	SharedAccessKey ServiceBusAuthenticationType = "SharedAccessKey"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleServiceBusAuthenticationTypeValues returns an array of possible values for the ServiceBusAuthenticationType const type.
 func PossibleServiceBusAuthenticationTypeValues() []ServiceBusAuthenticationType {
 	return []ServiceBusAuthenticationType{NotSpecified, SharedAccessKey}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // ServiceBusTransportType enumerates the values for service bus transport type.
 type ServiceBusTransportType string
 
@@ -255,13 +235,11 @@ const (
 	ServiceBusTransportTypeNotSpecified ServiceBusTransportType = "NotSpecified"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleServiceBusTransportTypeValues returns an array of possible values for the ServiceBusTransportType const type.
 func PossibleServiceBusTransportTypeValues() []ServiceBusTransportType {
 	return []ServiceBusTransportType{ServiceBusTransportTypeAMQP, ServiceBusTransportTypeNetMessaging, ServiceBusTransportTypeNotSpecified}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // SkuDefinition enumerates the values for sku definition.
 type SkuDefinition string
 
@@ -276,13 +254,11 @@ const (
 	Standard SkuDefinition = "Standard"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleSkuDefinitionValues returns an array of possible values for the SkuDefinition const type.
 func PossibleSkuDefinitionValues() []SkuDefinition {
 	return []SkuDefinition{Free, P10Premium, P20Premium, Standard}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Type enumerates the values for type.
 type Type string
 
@@ -297,13 +273,11 @@ const (
 	TypeHTTPAuthentication Type = "HttpAuthentication"
 )
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // PossibleTypeValues returns an array of possible values for the Type const type.
 func PossibleTypeValues() []Type {
 	return []Type{TypeActiveDirectoryOAuth, TypeBasic, TypeClientCertificate, TypeHTTPAuthentication}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // BasicAuthentication ...
 type BasicAuthentication struct {
 	// Username - Gets or sets the username.
@@ -314,7 +288,6 @@ type BasicAuthentication struct {
 	Type Type `json:"type,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // MarshalJSON is the custom marshaler for BasicAuthentication.
 func (ba BasicAuthentication) MarshalJSON() ([]byte, error) {
 	ba.Type = TypeBasic
@@ -331,37 +304,31 @@ func (ba BasicAuthentication) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsClientCertAuthentication is the BasicHTTPAuthentication implementation for BasicAuthentication.
 func (ba BasicAuthentication) AsClientCertAuthentication() (*ClientCertAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsBasicAuthentication is the BasicHTTPAuthentication implementation for BasicAuthentication.
 func (ba BasicAuthentication) AsBasicAuthentication() (*BasicAuthentication, bool) {
 	return &ba, true
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsOAuthAuthentication is the BasicHTTPAuthentication implementation for BasicAuthentication.
 func (ba BasicAuthentication) AsOAuthAuthentication() (*OAuthAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsHTTPAuthentication is the BasicHTTPAuthentication implementation for BasicAuthentication.
 func (ba BasicAuthentication) AsHTTPAuthentication() (*HTTPAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsBasicHTTPAuthentication is the BasicHTTPAuthentication implementation for BasicAuthentication.
 func (ba BasicAuthentication) AsBasicHTTPAuthentication() (BasicHTTPAuthentication, bool) {
 	return &ba, true
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // ClientCertAuthentication ...
 type ClientCertAuthentication struct {
 	// Password - Gets or sets the certificate password, return value will always be empty.
@@ -378,7 +345,6 @@ type ClientCertAuthentication struct {
 	Type Type `json:"type,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // MarshalJSON is the custom marshaler for ClientCertAuthentication.
 func (cca ClientCertAuthentication) MarshalJSON() ([]byte, error) {
 	cca.Type = TypeClientCertificate
@@ -404,37 +370,31 @@ func (cca ClientCertAuthentication) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsClientCertAuthentication is the BasicHTTPAuthentication implementation for ClientCertAuthentication.
 func (cca ClientCertAuthentication) AsClientCertAuthentication() (*ClientCertAuthentication, bool) {
 	return &cca, true
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsBasicAuthentication is the BasicHTTPAuthentication implementation for ClientCertAuthentication.
 func (cca ClientCertAuthentication) AsBasicAuthentication() (*BasicAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsOAuthAuthentication is the BasicHTTPAuthentication implementation for ClientCertAuthentication.
 func (cca ClientCertAuthentication) AsOAuthAuthentication() (*OAuthAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsHTTPAuthentication is the BasicHTTPAuthentication implementation for ClientCertAuthentication.
 func (cca ClientCertAuthentication) AsHTTPAuthentication() (*HTTPAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsBasicHTTPAuthentication is the BasicHTTPAuthentication implementation for ClientCertAuthentication.
 func (cca ClientCertAuthentication) AsBasicHTTPAuthentication() (BasicHTTPAuthentication, bool) {
 	return &cca, true
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // BasicHTTPAuthentication ...
 type BasicHTTPAuthentication interface {
 	AsClientCertAuthentication() (*ClientCertAuthentication, bool)
@@ -443,7 +403,6 @@ type BasicHTTPAuthentication interface {
 	AsHTTPAuthentication() (*HTTPAuthentication, bool)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // HTTPAuthentication ...
 type HTTPAuthentication struct {
 	// Type - Possible values include: 'TypeHTTPAuthentication', 'TypeClientCertificate', 'TypeBasic', 'TypeActiveDirectoryOAuth'
@@ -495,7 +454,6 @@ func unmarshalBasicHTTPAuthenticationArray(body []byte) ([]BasicHTTPAuthenticati
 	return haArray, nil
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // MarshalJSON is the custom marshaler for HTTPAuthentication.
 func (ha HTTPAuthentication) MarshalJSON() ([]byte, error) {
 	ha.Type = TypeHTTPAuthentication
@@ -506,37 +464,31 @@ func (ha HTTPAuthentication) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsClientCertAuthentication is the BasicHTTPAuthentication implementation for HTTPAuthentication.
 func (ha HTTPAuthentication) AsClientCertAuthentication() (*ClientCertAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsBasicAuthentication is the BasicHTTPAuthentication implementation for HTTPAuthentication.
 func (ha HTTPAuthentication) AsBasicAuthentication() (*BasicAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsOAuthAuthentication is the BasicHTTPAuthentication implementation for HTTPAuthentication.
 func (ha HTTPAuthentication) AsOAuthAuthentication() (*OAuthAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsHTTPAuthentication is the BasicHTTPAuthentication implementation for HTTPAuthentication.
 func (ha HTTPAuthentication) AsHTTPAuthentication() (*HTTPAuthentication, bool) {
 	return &ha, true
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsBasicHTTPAuthentication is the BasicHTTPAuthentication implementation for HTTPAuthentication.
 func (ha HTTPAuthentication) AsBasicHTTPAuthentication() (BasicHTTPAuthentication, bool) {
 	return &ha, true
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // HTTPRequest ...
 type HTTPRequest struct {
 	// Authentication - Gets or sets the authentication method of the request.
@@ -551,7 +503,6 @@ type HTTPRequest struct {
 	Headers map[string]*string `json:"headers"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // MarshalJSON is the custom marshaler for HTTPRequest.
 func (hr HTTPRequest) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
@@ -571,7 +522,6 @@ func (hr HTTPRequest) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // UnmarshalJSON is the custom unmarshaler for HTTPRequest struct.
 func (hr *HTTPRequest) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -631,7 +581,6 @@ func (hr *HTTPRequest) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobAction ...
 type JobAction struct {
 	// Type - Gets or sets the job action type. Possible values include: 'HTTP', 'HTTPS', 'StorageQueue', 'ServiceBusQueue', 'ServiceBusTopic'
@@ -650,7 +599,6 @@ type JobAction struct {
 	ErrorAction *JobErrorAction `json:"errorAction,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobCollectionDefinition ...
 type JobCollectionDefinition struct {
 	autorest.Response `json:"-"`
@@ -668,7 +616,6 @@ type JobCollectionDefinition struct {
 	Properties *JobCollectionProperties `json:"properties,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // MarshalJSON is the custom marshaler for JobCollectionDefinition.
 func (jcd JobCollectionDefinition) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
@@ -687,7 +634,6 @@ func (jcd JobCollectionDefinition) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobCollectionListResult ...
 type JobCollectionListResult struct {
 	autorest.Response `json:"-"`
@@ -697,7 +643,6 @@ type JobCollectionListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobCollectionListResultIterator provides access to a complete listing of JobCollectionDefinition values.
 type JobCollectionListResultIterator struct {
 	i    int
@@ -742,13 +687,11 @@ func (iter JobCollectionListResultIterator) NotDone() bool {
 	return iter.page.NotDone() && iter.i < len(iter.page.Values())
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Response returns the raw server response from the last page request.
 func (iter JobCollectionListResultIterator) Response() JobCollectionListResult {
 	return iter.page.Response()
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Value returns the current value or a zero-initialized value if the
 // iterator has advanced beyond the end of the collection.
 func (iter JobCollectionListResultIterator) Value() JobCollectionDefinition {
@@ -758,13 +701,11 @@ func (iter JobCollectionListResultIterator) Value() JobCollectionDefinition {
 	return iter.page.Values()[iter.i]
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Creates a new instance of the JobCollectionListResultIterator type.
 func NewJobCollectionListResultIterator(page JobCollectionListResultPage) JobCollectionListResultIterator {
 	return JobCollectionListResultIterator{page: page}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // IsEmpty returns true if the ListResult contains no values.
 func (jclr JobCollectionListResult) IsEmpty() bool {
 	return jclr.Value == nil || len(*jclr.Value) == 0
@@ -782,7 +723,6 @@ func (jclr JobCollectionListResult) jobCollectionListResultPreparer(ctx context.
 		autorest.WithBaseURL(to.String(jclr.NextLink)))
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobCollectionListResultPage contains a page of JobCollectionDefinition values.
 type JobCollectionListResultPage struct {
 	fn   func(context.Context, JobCollectionListResult) (JobCollectionListResult, error)
@@ -822,13 +762,11 @@ func (page JobCollectionListResultPage) NotDone() bool {
 	return !page.jclr.IsEmpty()
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Response returns the raw server response from the last page request.
 func (page JobCollectionListResultPage) Response() JobCollectionListResult {
 	return page.jclr
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Values returns the slice of values for the current page or nil if there are no values.
 func (page JobCollectionListResultPage) Values() []JobCollectionDefinition {
 	if page.jclr.IsEmpty() {
@@ -837,13 +775,11 @@ func (page JobCollectionListResultPage) Values() []JobCollectionDefinition {
 	return *page.jclr.Value
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Creates a new instance of the JobCollectionListResultPage type.
 func NewJobCollectionListResultPage(getNextPage func(context.Context, JobCollectionListResult) (JobCollectionListResult, error)) JobCollectionListResultPage {
 	return JobCollectionListResultPage{fn: getNextPage}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobCollectionProperties ...
 type JobCollectionProperties struct {
 	// Sku - Gets or sets the SKU.
@@ -854,7 +790,6 @@ type JobCollectionProperties struct {
 	Quota *JobCollectionQuota `json:"quota,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobCollectionQuota ...
 type JobCollectionQuota struct {
 	// MaxJobCount - Gets or set the maximum job count.
@@ -871,7 +806,6 @@ type JobCollectionsDeleteFuture struct {
 	azure.Future
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
 func (future *JobCollectionsDeleteFuture) Result(client JobCollectionsClient) (ar autorest.Response, err error) {
@@ -889,14 +823,12 @@ func (future *JobCollectionsDeleteFuture) Result(client JobCollectionsClient) (a
 	return
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobCollectionsDisableFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
 type JobCollectionsDisableFuture struct {
 	azure.Future
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
 func (future *JobCollectionsDisableFuture) Result(client JobCollectionsClient) (ar autorest.Response, err error) {
@@ -920,7 +852,6 @@ type JobCollectionsEnableFuture struct {
 	azure.Future
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
 func (future *JobCollectionsEnableFuture) Result(client JobCollectionsClient) (ar autorest.Response, err error) {
@@ -938,7 +869,6 @@ func (future *JobCollectionsEnableFuture) Result(client JobCollectionsClient) (a
 	return
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobDefinition ...
 type JobDefinition struct {
 	autorest.Response `json:"-"`
@@ -952,7 +882,6 @@ type JobDefinition struct {
 	Properties *JobProperties `json:"properties,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobErrorAction ...
 type JobErrorAction struct {
 	// Type - Gets or sets the job error action type. Possible values include: 'HTTP', 'HTTPS', 'StorageQueue', 'ServiceBusQueue', 'ServiceBusTopic'
@@ -969,7 +898,6 @@ type JobErrorAction struct {
 	RetryPolicy *RetryPolicy `json:"retryPolicy,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobHistoryDefinition ...
 type JobHistoryDefinition struct {
 	// ID - READ-ONLY; Gets the job history identifier.
@@ -982,7 +910,6 @@ type JobHistoryDefinition struct {
 	Properties *JobHistoryDefinitionProperties `json:"properties,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobHistoryDefinitionProperties ...
 type JobHistoryDefinitionProperties struct {
 	// StartTime - READ-ONLY; Gets the start time for this job.
@@ -1003,14 +930,12 @@ type JobHistoryDefinitionProperties struct {
 	RepeatCount *int32 `json:"repeatCount,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobHistoryFilter ...
 type JobHistoryFilter struct {
 	// Status - Gets or sets the job execution status. Possible values include: 'Completed', 'Failed', 'Postponed'
 	Status JobExecutionStatus `json:"status,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobHistoryListResult ...
 type JobHistoryListResult struct {
 	autorest.Response `json:"-"`
@@ -1020,7 +945,6 @@ type JobHistoryListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobHistoryListResultIterator provides access to a complete listing of JobHistoryDefinition values.
 type JobHistoryListResultIterator struct {
 	i    int
@@ -1065,13 +989,11 @@ func (iter JobHistoryListResultIterator) NotDone() bool {
 	return iter.page.NotDone() && iter.i < len(iter.page.Values())
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Response returns the raw server response from the last page request.
 func (iter JobHistoryListResultIterator) Response() JobHistoryListResult {
 	return iter.page.Response()
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Value returns the current value or a zero-initialized value if the
 // iterator has advanced beyond the end of the collection.
 func (iter JobHistoryListResultIterator) Value() JobHistoryDefinition {
@@ -1081,13 +1003,11 @@ func (iter JobHistoryListResultIterator) Value() JobHistoryDefinition {
 	return iter.page.Values()[iter.i]
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Creates a new instance of the JobHistoryListResultIterator type.
 func NewJobHistoryListResultIterator(page JobHistoryListResultPage) JobHistoryListResultIterator {
 	return JobHistoryListResultIterator{page: page}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // IsEmpty returns true if the ListResult contains no values.
 func (jhlr JobHistoryListResult) IsEmpty() bool {
 	return jhlr.Value == nil || len(*jhlr.Value) == 0
@@ -1105,7 +1025,6 @@ func (jhlr JobHistoryListResult) jobHistoryListResultPreparer(ctx context.Contex
 		autorest.WithBaseURL(to.String(jhlr.NextLink)))
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobHistoryListResultPage contains a page of JobHistoryDefinition values.
 type JobHistoryListResultPage struct {
 	fn   func(context.Context, JobHistoryListResult) (JobHistoryListResult, error)
@@ -1145,13 +1064,11 @@ func (page JobHistoryListResultPage) NotDone() bool {
 	return !page.jhlr.IsEmpty()
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Response returns the raw server response from the last page request.
 func (page JobHistoryListResultPage) Response() JobHistoryListResult {
 	return page.jhlr
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Values returns the slice of values for the current page or nil if there are no values.
 func (page JobHistoryListResultPage) Values() []JobHistoryDefinition {
 	if page.jhlr.IsEmpty() {
@@ -1160,13 +1077,11 @@ func (page JobHistoryListResultPage) Values() []JobHistoryDefinition {
 	return *page.jhlr.Value
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Creates a new instance of the JobHistoryListResultPage type.
 func NewJobHistoryListResultPage(getNextPage func(context.Context, JobHistoryListResult) (JobHistoryListResult, error)) JobHistoryListResultPage {
 	return JobHistoryListResultPage{fn: getNextPage}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobListResult ...
 type JobListResult struct {
 	autorest.Response `json:"-"`
@@ -1176,7 +1091,6 @@ type JobListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobListResultIterator provides access to a complete listing of JobDefinition values.
 type JobListResultIterator struct {
 	i    int
@@ -1221,13 +1135,11 @@ func (iter JobListResultIterator) NotDone() bool {
 	return iter.page.NotDone() && iter.i < len(iter.page.Values())
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Response returns the raw server response from the last page request.
 func (iter JobListResultIterator) Response() JobListResult {
 	return iter.page.Response()
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Value returns the current value or a zero-initialized value if the
 // iterator has advanced beyond the end of the collection.
 func (iter JobListResultIterator) Value() JobDefinition {
@@ -1237,13 +1149,11 @@ func (iter JobListResultIterator) Value() JobDefinition {
 	return iter.page.Values()[iter.i]
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Creates a new instance of the JobListResultIterator type.
 func NewJobListResultIterator(page JobListResultPage) JobListResultIterator {
 	return JobListResultIterator{page: page}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // IsEmpty returns true if the ListResult contains no values.
 func (jlr JobListResult) IsEmpty() bool {
 	return jlr.Value == nil || len(*jlr.Value) == 0
@@ -1261,7 +1171,6 @@ func (jlr JobListResult) jobListResultPreparer(ctx context.Context) (*http.Reque
 		autorest.WithBaseURL(to.String(jlr.NextLink)))
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobListResultPage contains a page of JobDefinition values.
 type JobListResultPage struct {
 	fn  func(context.Context, JobListResult) (JobListResult, error)
@@ -1301,13 +1210,11 @@ func (page JobListResultPage) NotDone() bool {
 	return !page.jlr.IsEmpty()
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Response returns the raw server response from the last page request.
 func (page JobListResultPage) Response() JobListResult {
 	return page.jlr
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Values returns the slice of values for the current page or nil if there are no values.
 func (page JobListResultPage) Values() []JobDefinition {
 	if page.jlr.IsEmpty() {
@@ -1316,13 +1223,11 @@ func (page JobListResultPage) Values() []JobDefinition {
 	return *page.jlr.Value
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Creates a new instance of the JobListResultPage type.
 func NewJobListResultPage(getNextPage func(context.Context, JobListResult) (JobListResult, error)) JobListResultPage {
 	return JobListResultPage{fn: getNextPage}
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobMaxRecurrence ...
 type JobMaxRecurrence struct {
 	// Frequency - Gets or sets the frequency of recurrence (second, minute, hour, day, week, month). Possible values include: 'Minute', 'Hour', 'Day', 'Week', 'Month'
@@ -1331,7 +1236,6 @@ type JobMaxRecurrence struct {
 	Interval *int32 `json:"interval,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobProperties ...
 type JobProperties struct {
 	// StartTime - Gets or sets the job start time.
@@ -1346,7 +1250,6 @@ type JobProperties struct {
 	Status *JobStatus `json:"status,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobRecurrence ...
 type JobRecurrence struct {
 	// Frequency - Gets or sets the frequency of recurrence (second, minute, hour, day, week, month). Possible values include: 'Minute', 'Hour', 'Day', 'Week', 'Month'
@@ -1360,7 +1263,6 @@ type JobRecurrence struct {
 	Schedule *JobRecurrenceSchedule `json:"schedule,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobRecurrenceSchedule ...
 type JobRecurrenceSchedule struct {
 	// WeekDays - Gets or sets the days of the week that the job should execute on.
@@ -1375,7 +1277,6 @@ type JobRecurrenceSchedule struct {
 	MonthlyOccurrences *[]JobRecurrenceScheduleMonthlyOccurrence `json:"monthlyOccurrences,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobRecurrenceScheduleMonthlyOccurrence ...
 type JobRecurrenceScheduleMonthlyOccurrence struct {
 	// Day - Gets or sets the day. Must be one of monday, tuesday, wednesday, thursday, friday, saturday, sunday. Possible values include: 'JobScheduleDayMonday', 'JobScheduleDayTuesday', 'JobScheduleDayWednesday', 'JobScheduleDayThursday', 'JobScheduleDayFriday', 'JobScheduleDaySaturday', 'JobScheduleDaySunday'
@@ -1384,14 +1285,12 @@ type JobRecurrenceScheduleMonthlyOccurrence struct {
 	Occurrence *int32 `json:"Occurrence,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobStateFilter ...
 type JobStateFilter struct {
 	// State - Gets or sets the job state. Possible values include: 'JobStateEnabled', 'JobStateDisabled', 'JobStateFaulted', 'JobStateCompleted'
 	State JobState `json:"state,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // JobStatus ...
 type JobStatus struct {
 	// ExecutionCount - READ-ONLY; Gets the number of times this job has executed.
@@ -1406,7 +1305,6 @@ type JobStatus struct {
 	NextExecutionTime *date.Time `json:"nextExecutionTime,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // OAuthAuthentication ...
 type OAuthAuthentication struct {
 	// Secret - Gets or sets the secret, return value will always be empty.
@@ -1421,7 +1319,6 @@ type OAuthAuthentication struct {
 	Type Type `json:"type,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // MarshalJSON is the custom marshaler for OAuthAuthentication.
 func (oaa OAuthAuthentication) MarshalJSON() ([]byte, error) {
 	oaa.Type = TypeActiveDirectoryOAuth
@@ -1444,37 +1341,31 @@ func (oaa OAuthAuthentication) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsClientCertAuthentication is the BasicHTTPAuthentication implementation for OAuthAuthentication.
 func (oaa OAuthAuthentication) AsClientCertAuthentication() (*ClientCertAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsBasicAuthentication is the BasicHTTPAuthentication implementation for OAuthAuthentication.
 func (oaa OAuthAuthentication) AsBasicAuthentication() (*BasicAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsOAuthAuthentication is the BasicHTTPAuthentication implementation for OAuthAuthentication.
 func (oaa OAuthAuthentication) AsOAuthAuthentication() (*OAuthAuthentication, bool) {
 	return &oaa, true
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsHTTPAuthentication is the BasicHTTPAuthentication implementation for OAuthAuthentication.
 func (oaa OAuthAuthentication) AsHTTPAuthentication() (*HTTPAuthentication, bool) {
 	return nil, false
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // AsBasicHTTPAuthentication is the BasicHTTPAuthentication implementation for OAuthAuthentication.
 func (oaa OAuthAuthentication) AsBasicHTTPAuthentication() (BasicHTTPAuthentication, bool) {
 	return &oaa, true
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // RetryPolicy ...
 type RetryPolicy struct {
 	// RetryType - Gets or sets the retry strategy to be used. Possible values include: 'None', 'Fixed'
@@ -1485,7 +1376,6 @@ type RetryPolicy struct {
 	RetryCount *int32 `json:"retryCount,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // ServiceBusAuthentication ...
 type ServiceBusAuthentication struct {
 	// SasKey - Gets or sets the SAS key.
@@ -1496,7 +1386,6 @@ type ServiceBusAuthentication struct {
 	Type ServiceBusAuthenticationType `json:"type,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // ServiceBusBrokeredMessageProperties ...
 type ServiceBusBrokeredMessageProperties struct {
 	// ContentType - Gets or sets the content type.
@@ -1527,7 +1416,6 @@ type ServiceBusBrokeredMessageProperties struct {
 	ViaPartitionKey *string `json:"viaPartitionKey,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // ServiceBusMessage ...
 type ServiceBusMessage struct {
 	// Authentication - Gets or sets the Service Bus authentication.
@@ -1544,7 +1432,6 @@ type ServiceBusMessage struct {
 	TransportType ServiceBusTransportType `json:"transportType,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // MarshalJSON is the custom marshaler for ServiceBusMessage.
 func (sbm ServiceBusMessage) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
@@ -1569,7 +1456,6 @@ func (sbm ServiceBusMessage) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // ServiceBusQueueMessage ...
 type ServiceBusQueueMessage struct {
 	// QueueName - Gets or sets the queue name.
@@ -1588,7 +1474,6 @@ type ServiceBusQueueMessage struct {
 	TransportType ServiceBusTransportType `json:"transportType,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // MarshalJSON is the custom marshaler for ServiceBusQueueMessage.
 func (sbqm ServiceBusQueueMessage) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
@@ -1616,7 +1501,6 @@ func (sbqm ServiceBusQueueMessage) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // ServiceBusTopicMessage ...
 type ServiceBusTopicMessage struct {
 	// TopicPath - Gets or sets the topic path.
@@ -1635,7 +1519,6 @@ type ServiceBusTopicMessage struct {
 	TransportType ServiceBusTransportType `json:"transportType,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // MarshalJSON is the custom marshaler for ServiceBusTopicMessage.
 func (sbtm ServiceBusTopicMessage) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
@@ -1663,14 +1546,12 @@ func (sbtm ServiceBusTopicMessage) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // Sku ...
 type Sku struct {
 	// Name - Gets or set the SKU. Possible values include: 'Standard', 'Free', 'P10Premium', 'P20Premium'
 	Name SkuDefinition `json:"name,omitempty"`
 }
 
-// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/logic/mgmt/2016-06-01/logic instead.
 // StorageQueueMessage ...
 type StorageQueueMessage struct {
 	// StorageAccount - Gets or sets the storage account name.

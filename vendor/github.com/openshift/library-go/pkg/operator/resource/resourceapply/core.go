@@ -222,23 +222,54 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 		return nil, false, err
 	}
 
-	modified := resourcemerge.BoolPtr(false)
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(resourcemerge.BoolPtr(false), &existingCopy.ObjectMeta, required.ObjectMeta)
 
-	dataSame := equality.Semantic.DeepEqual(existingCopy.Data, required.Data)
-	if dataSame && !*modified {
-		return existingCopy, false, nil
+	switch required.Type {
+	case corev1.SecretTypeServiceAccountToken:
+		// Secrets for ServiceAccountTokens will have data injected by kube controller manager.
+		// We will apply only the explicitly set keys.
+		if existingCopy.Data == nil {
+			existingCopy.Data = map[string][]byte{}
+		}
+
+		for k, v := range required.Data {
+			existingCopy.Data[k] = v
+		}
+
+	default:
+		existingCopy.Data = required.Data
 	}
-	existingCopy.Data = required.Data
+
+	existingCopy.Type = required.Type
+
+	if equality.Semantic.DeepEqual(existingCopy, existing) {
+		return existing, false, nil
+	}
 
 	if klog.V(4) {
-		klog.Infof("Secret %s/%s changes: %v", required.Namespace, required.Name, JSONPatchSecretNoError(existing, required))
+		klog.Infof("Secret %s/%s changes: %v", required.Namespace, required.Name, JSONPatchSecretNoError(existing, existingCopy))
 	}
 	actual, err := client.Secrets(required.Namespace).Update(existingCopy)
+	reportUpdateEvent(recorder, existingCopy, err)
 
-	reportUpdateEvent(recorder, required, err)
+	if err == nil {
+		return actual, true, err
+	}
+	if !strings.Contains(err.Error(), "field is immutable") {
+		return actual, true, err
+	}
+
+	// if the field was immutable on a secret, we're going to be stuck until we delete it.  Try to delete and then create
+	deleteErr := client.Secrets(required.Namespace).Delete(existingCopy.Name, nil)
+	reportDeleteEvent(recorder, existingCopy, deleteErr)
+
+	// clear the RV and track the original actual and error for the return like our create value.
+	existingCopy.ResourceVersion = ""
+	actual, err = client.Secrets(required.Namespace).Create(existingCopy)
+	reportCreateEvent(recorder, existingCopy, err)
+
 	return actual, true, err
 }
 

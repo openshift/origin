@@ -18,6 +18,52 @@ import (
 	"testing"
 )
 
+func TestFSBcacheStats(t *testing.T) {
+	bcache, err := NewFS("../fixtures/sys")
+	if err != nil {
+		t.Fatalf("failed to access bcache fs: %v", err)
+	}
+	stats, err := bcache.Stats()
+	if err != nil {
+		t.Fatalf("failed to parse bcache stats: %v", err)
+	}
+
+	tests := []struct {
+		name   string
+		bdevs  int
+		caches int
+	}{
+		{
+			name:   "deaddd54-c735-46d5-868e-f331c5fd7c74",
+			bdevs:  1,
+			caches: 1,
+		},
+	}
+
+	const expect = 1
+
+	if l := len(stats); l != expect {
+		t.Fatalf("unexpected number of bcache stats: %d", l)
+	}
+	if l := len(tests); l != expect {
+		t.Fatalf("unexpected number of tests: %d", l)
+	}
+
+	for i, tt := range tests {
+		if want, got := tt.name, stats[i].Name; want != got {
+			t.Errorf("unexpected stats name:\nwant: %q\nhave: %q", want, got)
+		}
+
+		if want, got := tt.bdevs, len(stats[i].Bdevs); want != got {
+			t.Errorf("unexpected value allocated:\nwant: %d\nhave: %d", want, got)
+		}
+
+		if want, got := tt.caches, len(stats[i].Caches); want != got {
+			t.Errorf("unexpected value allocated:\nwant: %d\nhave: %d", want, got)
+		}
+	}
+}
+
 func TestDehumanizeTests(t *testing.T) {
 	dehumanizeTests := []struct {
 		in      []byte

@@ -23,6 +23,5 @@ import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/mg
 
 type AccountsClientAPI = original.AccountsClientAPI
 type BaseClientAPI = original.BaseClientAPI
-type CheckSkuAvailabilityClientAPI = original.CheckSkuAvailabilityClientAPI
 type OperationsClientAPI = original.OperationsClientAPI
 type ResourceSkusClientAPI = original.ResourceSkusClientAPI

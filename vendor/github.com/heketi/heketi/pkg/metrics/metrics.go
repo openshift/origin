@@ -108,6 +108,36 @@ var (
 		"Number of bricks on device",
 		[]string{"cluster", "hostname", "device"},
 	)
+
+	staleCount = promDesc(
+		"operations_stale_count",
+		"Number of Stale Operations",
+		nil,
+	)
+
+	failedCount = promDesc(
+		"operations_failed_count",
+		"Number of Failed Operations",
+		nil,
+	)
+
+	newCount = promDesc(
+		"operations_new_count",
+		"Number of New Operations",
+		nil,
+	)
+
+	totalCount = promDesc(
+		"operations_total_count",
+		"Total Number of Operations",
+		nil,
+	)
+
+	inFlightCount = promDesc(
+		"operations_inFlight_count",
+		"Number of in flight Operations",
+		nil,
+	)
 )
 
 func promDesc(name, help string, variableLabels []string) *prometheus.Desc {
@@ -133,6 +163,12 @@ func (m *Metrics) Describe(ch chan<- *prometheus.Desc) {
 	ch <- deviceFreeInBytes
 	ch <- deviceUsedInBytes
 	ch <- brickCount
+	/* following metrics are grabbed from operations list, gives number of stale|failed|new|total|inFlight operations */
+	ch <- staleCount
+	ch <- failedCount
+	ch <- newCount
+	ch <- totalCount
+	ch <- inFlightCount
 
 }
 
@@ -149,7 +185,7 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 
 	//Do not collect further metrics if heketi is down
 	if err != nil {
-		log.Println("Can't collect toplogy info for metrics: " + err.Error())
+		log.Println("Can't collect topology info for metrics: " + err.Error())
 		return
 	}
 
@@ -158,6 +194,37 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 		prometheus.GaugeValue,
 		float64(len(topinfo.ClusterList)),
 	)
+
+	opinfo, err := m.app.AppOperationsInfo()
+	if err != nil {
+		log.Println("Can't collect Operations info for metrics: " + err.Error())
+	} else {
+		ch <- prometheus.MustNewConstMetric(
+			staleCount,
+			prometheus.GaugeValue,
+			float64(opinfo.Stale))
+
+		ch <- prometheus.MustNewConstMetric(
+			failedCount,
+			prometheus.GaugeValue,
+			float64(opinfo.Failed))
+
+		ch <- prometheus.MustNewConstMetric(
+			newCount,
+			prometheus.GaugeValue,
+			float64(opinfo.New))
+
+		ch <- prometheus.MustNewConstMetric(
+			totalCount,
+			prometheus.GaugeValue,
+			float64(opinfo.Total))
+
+		ch <- prometheus.MustNewConstMetric(
+			inFlightCount,
+			prometheus.GaugeValue,
+			float64(opinfo.InFlight))
+	}
+
 	for _, cluster := range topinfo.ClusterList {
 		ch <- prometheus.MustNewConstMetric(
 			volumesCount,

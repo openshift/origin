@@ -73,7 +73,11 @@ func (client CasesClient) CreateOrUpdate(ctx context.Context, resourceGroupName 
 				{Target: "workspaceName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
 		{TargetValue: caseParameter,
 			Constraints: []validation.Constraint{{Target: "caseParameter.CaseProperties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "caseParameter.CaseProperties.Title", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+				Chain: []validation.Constraint{{Target: "caseParameter.CaseProperties.Owner", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "caseParameter.CaseProperties.Owner.ObjectID", Name: validation.Null, Rule: true, Chain: nil}}},
+					{Target: "caseParameter.CaseProperties.StartTimeUtc", Name: validation.Null, Rule: true, Chain: nil},
+					{Target: "caseParameter.CaseProperties.Title", Name: validation.Null, Rule: true, Chain: nil},
+				}}}}}); err != nil {
 		return result, validation.NewError("securityinsight.CasesClient", "CreateOrUpdate", err.Error())
 	}
 
@@ -334,6 +338,104 @@ func (client CasesClient) GetResponder(resp *http.Response) (result Case, err er
 	return
 }
 
+// GetComment gets a case comment.
+// Parameters:
+// resourceGroupName - the name of the resource group within the user's subscription. The name is case
+// insensitive.
+// operationalInsightsResourceProvider - the namespace of workspaces resource provider-
+// Microsoft.OperationalInsights.
+// workspaceName - the name of the workspace.
+// caseID - case ID
+// caseCommentID - case comment ID
+func (client CasesClient) GetComment(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, caseID string, caseCommentID string) (result CaseComment, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/CasesClient.GetComment")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.Pattern, Rule: `^[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}$`, Chain: nil}}},
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: workspaceName,
+			Constraints: []validation.Constraint{{Target: "workspaceName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "workspaceName", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("securityinsight.CasesClient", "GetComment", err.Error())
+	}
+
+	req, err := client.GetCommentPreparer(ctx, resourceGroupName, operationalInsightsResourceProvider, workspaceName, caseID, caseCommentID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "securityinsight.CasesClient", "GetComment", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetCommentSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "securityinsight.CasesClient", "GetComment", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetCommentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "securityinsight.CasesClient", "GetComment", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetCommentPreparer prepares the GetComment request.
+func (client CasesClient) GetCommentPreparer(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, caseID string, caseCommentID string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"caseCommentId":                       autorest.Encode("path", caseCommentID),
+		"caseId":                              autorest.Encode("path", caseID),
+		"operationalInsightsResourceProvider": autorest.Encode("path", operationalInsightsResourceProvider),
+		"resourceGroupName":                   autorest.Encode("path", resourceGroupName),
+		"subscriptionId":                      autorest.Encode("path", client.SubscriptionID),
+		"workspaceName":                       autorest.Encode("path", workspaceName),
+	}
+
+	const APIVersion = "2019-01-01-preview"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{operationalInsightsResourceProvider}/workspaces/{workspaceName}/providers/Microsoft.SecurityInsights/cases/{caseId}/comments/{caseCommentId}", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetCommentSender sends the GetComment request. The method will close the
+// http.Response Body if it receives an error.
+func (client CasesClient) GetCommentSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// GetCommentResponder handles the response to the GetComment request. The method always
+// closes the http.Response Body.
+func (client CasesClient) GetCommentResponder(resp *http.Response) (result CaseComment, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // List gets all cases.
 // Parameters:
 // resourceGroupName - the name of the resource group within the user's subscription. The name is case
@@ -341,7 +443,13 @@ func (client CasesClient) GetResponder(resp *http.Response) (result Case, err er
 // operationalInsightsResourceProvider - the namespace of workspaces resource provider-
 // Microsoft.OperationalInsights.
 // workspaceName - the name of the workspace.
-func (client CasesClient) List(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string) (result CaseListPage, err error) {
+// filter - filters the results, based on a Boolean condition. Optional.
+// orderby - sorts the results. Optional.
+// top - returns only the first n results. Optional.
+// skipToken - skiptoken is only used if a previous operation returned a partial result. If a previous response
+// contains a nextLink element, the value of the nextLink element will include a skiptoken parameter that
+// specifies a starting point to use for subsequent calls. Optional.
+func (client CasesClient) List(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, filter string, orderby string, top *int32, skipToken string) (result CaseListPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/CasesClient.List")
 		defer func() {
@@ -366,7 +474,7 @@ func (client CasesClient) List(ctx context.Context, resourceGroupName string, op
 	}
 
 	result.fn = client.listNextResults
-	req, err := client.ListPreparer(ctx, resourceGroupName, operationalInsightsResourceProvider, workspaceName)
+	req, err := client.ListPreparer(ctx, resourceGroupName, operationalInsightsResourceProvider, workspaceName, filter, orderby, top, skipToken)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "securityinsight.CasesClient", "List", nil, "Failure preparing request")
 		return
@@ -388,7 +496,7 @@ func (client CasesClient) List(ctx context.Context, resourceGroupName string, op
 }
 
 // ListPreparer prepares the List request.
-func (client CasesClient) ListPreparer(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string) (*http.Request, error) {
+func (client CasesClient) ListPreparer(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, filter string, orderby string, top *int32, skipToken string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"operationalInsightsResourceProvider": autorest.Encode("path", operationalInsightsResourceProvider),
 		"resourceGroupName":                   autorest.Encode("path", resourceGroupName),
@@ -399,6 +507,18 @@ func (client CasesClient) ListPreparer(ctx context.Context, resourceGroupName st
 	const APIVersion = "2019-01-01-preview"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
+	}
+	if len(filter) > 0 {
+		queryParameters["$filter"] = autorest.Encode("query", filter)
+	}
+	if len(orderby) > 0 {
+		queryParameters["$orderby"] = autorest.Encode("query", orderby)
+	}
+	if top != nil {
+		queryParameters["$top"] = autorest.Encode("query", *top)
+	}
+	if len(skipToken) > 0 {
+		queryParameters["$skipToken"] = autorest.Encode("query", skipToken)
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -451,7 +571,7 @@ func (client CasesClient) listNextResults(ctx context.Context, lastResults CaseL
 }
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
-func (client CasesClient) ListComplete(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string) (result CaseListIterator, err error) {
+func (client CasesClient) ListComplete(ctx context.Context, resourceGroupName string, operationalInsightsResourceProvider string, workspaceName string, filter string, orderby string, top *int32, skipToken string) (result CaseListIterator, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/CasesClient.List")
 		defer func() {
@@ -462,6 +582,6 @@ func (client CasesClient) ListComplete(ctx context.Context, resourceGroupName st
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	result.page, err = client.List(ctx, resourceGroupName, operationalInsightsResourceProvider, workspaceName)
+	result.page, err = client.List(ctx, resourceGroupName, operationalInsightsResourceProvider, workspaceName, filter, orderby, top, skipToken)
 	return
 }

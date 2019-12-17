@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	DB_GENERATION_ID = "DB_GENERATION_ID"
+	DB_GENERATION_ID      = "DB_GENERATION_ID"
+	DB_DEVICE_HAS_ID_META = "DB_DEVICE_HAS_ID_META"
 )
 
 type Db struct {
@@ -176,6 +177,13 @@ func UpgradeDB(tx *bolt.Tx) error {
 	if err != nil {
 		logger.LogError(
 			"Failed to fix reserved sizes for block hosting volumes %v", err)
+		return err
+	}
+
+	err = upgradeDeviceEntryMetaSupport(tx)
+	if err != nil {
+		logger.LogError(
+			"Failed to set device entry metadata support: %v", err)
 		return err
 	}
 
@@ -345,4 +353,23 @@ func fixBlockHostingReservedSize(tx *bolt.Tx) error {
 		}
 	}
 	return nil
+}
+
+// upgradeDeviceEntryMetaSupport sets the dbattribute flag needed to
+// indicate that this db support extra identifying metadata on device
+// entries. It primarily exists as a guard against old versions of
+// heketi trying to access new dbs and ignoring the new metadata.
+func upgradeDeviceEntryMetaSupport(tx *bolt.Tx) error {
+	_, err := NewDbAttributeEntryFromKey(tx, DB_DEVICE_HAS_ID_META)
+	switch err {
+	case ErrNotFound:
+		entry := NewDbAttributeEntry()
+		entry.Key = DB_DEVICE_HAS_ID_META
+		entry.Value = "yes"
+		return entry.Save(tx)
+	case nil:
+		return nil
+	default:
+		return err
+	}
 }

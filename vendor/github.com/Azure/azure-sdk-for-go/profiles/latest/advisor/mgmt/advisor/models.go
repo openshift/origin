@@ -32,10 +32,11 @@ const (
 type Category = original.Category
 
 const (
-	Cost             Category = original.Cost
-	HighAvailability Category = original.HighAvailability
-	Performance      Category = original.Performance
-	Security         Category = original.Security
+	Cost                  Category = original.Cost
+	HighAvailability      Category = original.HighAvailability
+	OperationalExcellence Category = original.OperationalExcellence
+	Performance           Category = original.Performance
+	Security              Category = original.Security
 )
 
 type Impact = original.Impact

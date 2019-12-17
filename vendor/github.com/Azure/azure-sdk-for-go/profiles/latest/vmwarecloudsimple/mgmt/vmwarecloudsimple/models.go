@@ -36,6 +36,13 @@ const (
 	Total   AggregationType = original.Total
 )
 
+type Allocation = original.Allocation
+
+const (
+	Dynamic Allocation = original.Dynamic
+	Static  Allocation = original.Static
+)
+
 type DiskIndependenceMode = original.DiskIndependenceMode
 
 const (
@@ -102,6 +109,40 @@ const (
 	Suspend  StopMode = original.Suspend
 )
 
+type Type = original.Type
+
+const (
+	CUSTOMNAME         Type = original.CUSTOMNAME
+	FIXED              Type = original.FIXED
+	PREFIXBASED        Type = original.PREFIXBASED
+	USERDEFINED        Type = original.USERDEFINED
+	VIRTUALMACHINENAME Type = original.VIRTUALMACHINENAME
+)
+
+type Type1 = original.Type1
+
+const (
+	Type1CUSTOM      Type1 = original.Type1CUSTOM
+	Type1DHCPIP      Type1 = original.Type1DHCPIP
+	Type1FIXEDIP     Type1 = original.Type1FIXEDIP
+	Type1USERDEFINED Type1 = original.Type1USERDEFINED
+)
+
+type Type2 = original.Type2
+
+const (
+	LINUX       Type2 = original.LINUX
+	WINDOWS     Type2 = original.WINDOWS
+	WINDOWSTEXT Type2 = original.WINDOWSTEXT
+)
+
+type Type3 = original.Type3
+
+const (
+	Type3LINUX   Type3 = original.Type3LINUX
+	Type3WINDOWS Type3 = original.Type3WINDOWS
+)
+
 type UsageCount = original.UsageCount
 
 const (
@@ -129,40 +170,54 @@ type AvailableOperationDisplay = original.AvailableOperationDisplay
 type AvailableOperationDisplayPropertyServiceSpecification = original.AvailableOperationDisplayPropertyServiceSpecification
 type AvailableOperationDisplayPropertyServiceSpecificationMetricsItem = original.AvailableOperationDisplayPropertyServiceSpecificationMetricsItem
 type AvailableOperationDisplayPropertyServiceSpecificationMetricsList = original.AvailableOperationDisplayPropertyServiceSpecificationMetricsList
-type AvailableOperationsClient = original.AvailableOperationsClient
 type AvailableOperationsListResponse = original.AvailableOperationsListResponse
 type AvailableOperationsListResponseIterator = original.AvailableOperationsListResponseIterator
 type AvailableOperationsListResponsePage = original.AvailableOperationsListResponsePage
 type BaseClient = original.BaseClient
 type CSRPError = original.CSRPError
 type CSRPErrorBody = original.CSRPErrorBody
+type CustomizationHostName = original.CustomizationHostName
+type CustomizationIPAddress = original.CustomizationIPAddress
+type CustomizationIPSettings = original.CustomizationIPSettings
+type CustomizationIdentity = original.CustomizationIdentity
+type CustomizationIdentityUserData = original.CustomizationIdentityUserData
+type CustomizationNicSetting = original.CustomizationNicSetting
+type CustomizationPoliciesClient = original.CustomizationPoliciesClient
+type CustomizationPoliciesListResponse = original.CustomizationPoliciesListResponse
+type CustomizationPoliciesListResponseIterator = original.CustomizationPoliciesListResponseIterator
+type CustomizationPoliciesListResponsePage = original.CustomizationPoliciesListResponsePage
+type CustomizationPolicy = original.CustomizationPolicy
+type CustomizationPolicyProperties = original.CustomizationPolicyProperties
+type CustomizationSpecification = original.CustomizationSpecification
 type DedicatedCloudNode = original.DedicatedCloudNode
-type DedicatedCloudNodeClient = original.DedicatedCloudNodeClient
-type DedicatedCloudNodeCreateOrUpdateFuture = original.DedicatedCloudNodeCreateOrUpdateFuture
 type DedicatedCloudNodeListResponse = original.DedicatedCloudNodeListResponse
 type DedicatedCloudNodeListResponseIterator = original.DedicatedCloudNodeListResponseIterator
 type DedicatedCloudNodeListResponsePage = original.DedicatedCloudNodeListResponsePage
 type DedicatedCloudNodeProperties = original.DedicatedCloudNodeProperties
+type DedicatedCloudNodesClient = original.DedicatedCloudNodesClient
+type DedicatedCloudNodesCreateOrUpdateFuture = original.DedicatedCloudNodesCreateOrUpdateFuture
 type DedicatedCloudService = original.DedicatedCloudService
-type DedicatedCloudServiceClient = original.DedicatedCloudServiceClient
-type DedicatedCloudServiceDeleteFuture = original.DedicatedCloudServiceDeleteFuture
 type DedicatedCloudServiceListResponse = original.DedicatedCloudServiceListResponse
 type DedicatedCloudServiceListResponseIterator = original.DedicatedCloudServiceListResponseIterator
 type DedicatedCloudServiceListResponsePage = original.DedicatedCloudServiceListResponsePage
 type DedicatedCloudServiceProperties = original.DedicatedCloudServiceProperties
+type DedicatedCloudServicesClient = original.DedicatedCloudServicesClient
+type DedicatedCloudServicesDeleteFuture = original.DedicatedCloudServicesDeleteFuture
+type GuestOSCustomization = original.GuestOSCustomization
+type GuestOSNICCustomization = original.GuestOSNICCustomization
 type OperationError = original.OperationError
 type OperationResource = original.OperationResource
+type OperationsClient = original.OperationsClient
 type PatchPayload = original.PatchPayload
 type PrivateCloud = original.PrivateCloud
-type PrivateCloudByRegionClient = original.PrivateCloudByRegionClient
 type PrivateCloudList = original.PrivateCloudList
 type PrivateCloudListIterator = original.PrivateCloudListIterator
 type PrivateCloudListPage = original.PrivateCloudListPage
 type PrivateCloudProperties = original.PrivateCloudProperties
+type PrivateCloudsClient = original.PrivateCloudsClient
 type ResourcePool = original.ResourcePool
-type ResourcePoolByPCClient = original.ResourcePoolByPCClient
 type ResourcePoolProperties = original.ResourcePoolProperties
-type ResourcePoolsByPCClient = original.ResourcePoolsByPCClient
+type ResourcePoolsClient = original.ResourcePoolsClient
 type ResourcePoolsListResponse = original.ResourcePoolsListResponse
 type ResourcePoolsListResponseIterator = original.ResourcePoolsListResponseIterator
 type ResourcePoolsListResponsePage = original.ResourcePoolsListResponsePage
@@ -172,51 +227,43 @@ type SkuAvailabilityListResponse = original.SkuAvailabilityListResponse
 type SkuAvailabilityListResponseIterator = original.SkuAvailabilityListResponseIterator
 type SkuAvailabilityListResponsePage = original.SkuAvailabilityListResponsePage
 type SkuDescription = original.SkuDescription
-type SkusAvailabilityWithinRegionClient = original.SkusAvailabilityWithinRegionClient
+type SkusAvailabilityClient = original.SkusAvailabilityClient
 type Usage = original.Usage
 type UsageListResponse = original.UsageListResponse
 type UsageListResponseIterator = original.UsageListResponseIterator
 type UsageListResponsePage = original.UsageListResponsePage
 type UsageName = original.UsageName
-type UsagesWithinRegionClient = original.UsagesWithinRegionClient
+type UsagesClient = original.UsagesClient
 type VirtualDisk = original.VirtualDisk
 type VirtualDiskController = original.VirtualDiskController
 type VirtualMachine = original.VirtualMachine
-type VirtualMachineClient = original.VirtualMachineClient
-type VirtualMachineCreateOrUpdateFuture = original.VirtualMachineCreateOrUpdateFuture
-type VirtualMachineDeleteFuture = original.VirtualMachineDeleteFuture
 type VirtualMachineListResponse = original.VirtualMachineListResponse
 type VirtualMachineListResponseIterator = original.VirtualMachineListResponseIterator
 type VirtualMachineListResponsePage = original.VirtualMachineListResponsePage
 type VirtualMachineProperties = original.VirtualMachineProperties
-type VirtualMachineStartFuture = original.VirtualMachineStartFuture
-type VirtualMachineStopFuture = original.VirtualMachineStopFuture
 type VirtualMachineStopMode = original.VirtualMachineStopMode
 type VirtualMachineTemplate = original.VirtualMachineTemplate
-type VirtualMachineTemplateByPCClient = original.VirtualMachineTemplateByPCClient
 type VirtualMachineTemplateListResponse = original.VirtualMachineTemplateListResponse
 type VirtualMachineTemplateListResponseIterator = original.VirtualMachineTemplateListResponseIterator
 type VirtualMachineTemplateListResponsePage = original.VirtualMachineTemplateListResponsePage
 type VirtualMachineTemplateProperties = original.VirtualMachineTemplateProperties
-type VirtualMachineTemplatesByPCClient = original.VirtualMachineTemplatesByPCClient
-type VirtualMachineUpdateFuture = original.VirtualMachineUpdateFuture
+type VirtualMachineTemplatesClient = original.VirtualMachineTemplatesClient
+type VirtualMachinesClient = original.VirtualMachinesClient
+type VirtualMachinesCreateOrUpdateFuture = original.VirtualMachinesCreateOrUpdateFuture
+type VirtualMachinesDeleteFuture = original.VirtualMachinesDeleteFuture
+type VirtualMachinesStartFuture = original.VirtualMachinesStartFuture
+type VirtualMachinesStopFuture = original.VirtualMachinesStopFuture
+type VirtualMachinesUpdateFuture = original.VirtualMachinesUpdateFuture
 type VirtualNetwork = original.VirtualNetwork
-type VirtualNetworkByPCClient = original.VirtualNetworkByPCClient
 type VirtualNetworkListResponse = original.VirtualNetworkListResponse
 type VirtualNetworkListResponseIterator = original.VirtualNetworkListResponseIterator
 type VirtualNetworkListResponsePage = original.VirtualNetworkListResponsePage
 type VirtualNetworkProperties = original.VirtualNetworkProperties
-type VirtualNetworksByPCClient = original.VirtualNetworksByPCClient
+type VirtualNetworksClient = original.VirtualNetworksClient
 type VirtualNic = original.VirtualNic
 
-func New(referer string, regionID string, subscriptionID string) BaseClient {
-	return original.New(referer, regionID, subscriptionID)
-}
-func NewAvailableOperationsClient(referer string, regionID string, subscriptionID string) AvailableOperationsClient {
-	return original.NewAvailableOperationsClient(referer, regionID, subscriptionID)
-}
-func NewAvailableOperationsClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) AvailableOperationsClient {
-	return original.NewAvailableOperationsClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func New(subscriptionID string, referer string) BaseClient {
+	return original.New(subscriptionID, referer)
 }
 func NewAvailableOperationsListResponseIterator(page AvailableOperationsListResponsePage) AvailableOperationsListResponseIterator {
 	return original.NewAvailableOperationsListResponseIterator(page)
@@ -224,11 +271,17 @@ func NewAvailableOperationsListResponseIterator(page AvailableOperationsListResp
 func NewAvailableOperationsListResponsePage(getNextPage func(context.Context, AvailableOperationsListResponse) (AvailableOperationsListResponse, error)) AvailableOperationsListResponsePage {
 	return original.NewAvailableOperationsListResponsePage(getNextPage)
 }
-func NewDedicatedCloudNodeClient(referer string, regionID string, subscriptionID string) DedicatedCloudNodeClient {
-	return original.NewDedicatedCloudNodeClient(referer, regionID, subscriptionID)
+func NewCustomizationPoliciesClient(subscriptionID string, referer string) CustomizationPoliciesClient {
+	return original.NewCustomizationPoliciesClient(subscriptionID, referer)
 }
-func NewDedicatedCloudNodeClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) DedicatedCloudNodeClient {
-	return original.NewDedicatedCloudNodeClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewCustomizationPoliciesClientWithBaseURI(baseURI string, subscriptionID string, referer string) CustomizationPoliciesClient {
+	return original.NewCustomizationPoliciesClientWithBaseURI(baseURI, subscriptionID, referer)
+}
+func NewCustomizationPoliciesListResponseIterator(page CustomizationPoliciesListResponsePage) CustomizationPoliciesListResponseIterator {
+	return original.NewCustomizationPoliciesListResponseIterator(page)
+}
+func NewCustomizationPoliciesListResponsePage(getNextPage func(context.Context, CustomizationPoliciesListResponse) (CustomizationPoliciesListResponse, error)) CustomizationPoliciesListResponsePage {
+	return original.NewCustomizationPoliciesListResponsePage(getNextPage)
 }
 func NewDedicatedCloudNodeListResponseIterator(page DedicatedCloudNodeListResponsePage) DedicatedCloudNodeListResponseIterator {
 	return original.NewDedicatedCloudNodeListResponseIterator(page)
@@ -236,11 +289,11 @@ func NewDedicatedCloudNodeListResponseIterator(page DedicatedCloudNodeListRespon
 func NewDedicatedCloudNodeListResponsePage(getNextPage func(context.Context, DedicatedCloudNodeListResponse) (DedicatedCloudNodeListResponse, error)) DedicatedCloudNodeListResponsePage {
 	return original.NewDedicatedCloudNodeListResponsePage(getNextPage)
 }
-func NewDedicatedCloudServiceClient(referer string, regionID string, subscriptionID string) DedicatedCloudServiceClient {
-	return original.NewDedicatedCloudServiceClient(referer, regionID, subscriptionID)
+func NewDedicatedCloudNodesClient(subscriptionID string, referer string) DedicatedCloudNodesClient {
+	return original.NewDedicatedCloudNodesClient(subscriptionID, referer)
 }
-func NewDedicatedCloudServiceClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) DedicatedCloudServiceClient {
-	return original.NewDedicatedCloudServiceClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewDedicatedCloudNodesClientWithBaseURI(baseURI string, subscriptionID string, referer string) DedicatedCloudNodesClient {
+	return original.NewDedicatedCloudNodesClientWithBaseURI(baseURI, subscriptionID, referer)
 }
 func NewDedicatedCloudServiceListResponseIterator(page DedicatedCloudServiceListResponsePage) DedicatedCloudServiceListResponseIterator {
 	return original.NewDedicatedCloudServiceListResponseIterator(page)
@@ -248,11 +301,17 @@ func NewDedicatedCloudServiceListResponseIterator(page DedicatedCloudServiceList
 func NewDedicatedCloudServiceListResponsePage(getNextPage func(context.Context, DedicatedCloudServiceListResponse) (DedicatedCloudServiceListResponse, error)) DedicatedCloudServiceListResponsePage {
 	return original.NewDedicatedCloudServiceListResponsePage(getNextPage)
 }
-func NewPrivateCloudByRegionClient(referer string, regionID string, subscriptionID string) PrivateCloudByRegionClient {
-	return original.NewPrivateCloudByRegionClient(referer, regionID, subscriptionID)
+func NewDedicatedCloudServicesClient(subscriptionID string, referer string) DedicatedCloudServicesClient {
+	return original.NewDedicatedCloudServicesClient(subscriptionID, referer)
 }
-func NewPrivateCloudByRegionClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) PrivateCloudByRegionClient {
-	return original.NewPrivateCloudByRegionClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewDedicatedCloudServicesClientWithBaseURI(baseURI string, subscriptionID string, referer string) DedicatedCloudServicesClient {
+	return original.NewDedicatedCloudServicesClientWithBaseURI(baseURI, subscriptionID, referer)
+}
+func NewOperationsClient(subscriptionID string, referer string) OperationsClient {
+	return original.NewOperationsClient(subscriptionID, referer)
+}
+func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string, referer string) OperationsClient {
+	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID, referer)
 }
 func NewPrivateCloudListIterator(page PrivateCloudListPage) PrivateCloudListIterator {
 	return original.NewPrivateCloudListIterator(page)
@@ -260,17 +319,17 @@ func NewPrivateCloudListIterator(page PrivateCloudListPage) PrivateCloudListIter
 func NewPrivateCloudListPage(getNextPage func(context.Context, PrivateCloudList) (PrivateCloudList, error)) PrivateCloudListPage {
 	return original.NewPrivateCloudListPage(getNextPage)
 }
-func NewResourcePoolByPCClient(referer string, regionID string, subscriptionID string) ResourcePoolByPCClient {
-	return original.NewResourcePoolByPCClient(referer, regionID, subscriptionID)
+func NewPrivateCloudsClient(subscriptionID string, referer string) PrivateCloudsClient {
+	return original.NewPrivateCloudsClient(subscriptionID, referer)
 }
-func NewResourcePoolByPCClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) ResourcePoolByPCClient {
-	return original.NewResourcePoolByPCClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewPrivateCloudsClientWithBaseURI(baseURI string, subscriptionID string, referer string) PrivateCloudsClient {
+	return original.NewPrivateCloudsClientWithBaseURI(baseURI, subscriptionID, referer)
 }
-func NewResourcePoolsByPCClient(referer string, regionID string, subscriptionID string) ResourcePoolsByPCClient {
-	return original.NewResourcePoolsByPCClient(referer, regionID, subscriptionID)
+func NewResourcePoolsClient(subscriptionID string, referer string) ResourcePoolsClient {
+	return original.NewResourcePoolsClient(subscriptionID, referer)
 }
-func NewResourcePoolsByPCClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) ResourcePoolsByPCClient {
-	return original.NewResourcePoolsByPCClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewResourcePoolsClientWithBaseURI(baseURI string, subscriptionID string, referer string) ResourcePoolsClient {
+	return original.NewResourcePoolsClientWithBaseURI(baseURI, subscriptionID, referer)
 }
 func NewResourcePoolsListResponseIterator(page ResourcePoolsListResponsePage) ResourcePoolsListResponseIterator {
 	return original.NewResourcePoolsListResponseIterator(page)
@@ -284,11 +343,11 @@ func NewSkuAvailabilityListResponseIterator(page SkuAvailabilityListResponsePage
 func NewSkuAvailabilityListResponsePage(getNextPage func(context.Context, SkuAvailabilityListResponse) (SkuAvailabilityListResponse, error)) SkuAvailabilityListResponsePage {
 	return original.NewSkuAvailabilityListResponsePage(getNextPage)
 }
-func NewSkusAvailabilityWithinRegionClient(referer string, regionID string, subscriptionID string) SkusAvailabilityWithinRegionClient {
-	return original.NewSkusAvailabilityWithinRegionClient(referer, regionID, subscriptionID)
+func NewSkusAvailabilityClient(subscriptionID string, referer string) SkusAvailabilityClient {
+	return original.NewSkusAvailabilityClient(subscriptionID, referer)
 }
-func NewSkusAvailabilityWithinRegionClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) SkusAvailabilityWithinRegionClient {
-	return original.NewSkusAvailabilityWithinRegionClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewSkusAvailabilityClientWithBaseURI(baseURI string, subscriptionID string, referer string) SkusAvailabilityClient {
+	return original.NewSkusAvailabilityClientWithBaseURI(baseURI, subscriptionID, referer)
 }
 func NewUsageListResponseIterator(page UsageListResponsePage) UsageListResponseIterator {
 	return original.NewUsageListResponseIterator(page)
@@ -296,17 +355,11 @@ func NewUsageListResponseIterator(page UsageListResponsePage) UsageListResponseI
 func NewUsageListResponsePage(getNextPage func(context.Context, UsageListResponse) (UsageListResponse, error)) UsageListResponsePage {
 	return original.NewUsageListResponsePage(getNextPage)
 }
-func NewUsagesWithinRegionClient(referer string, regionID string, subscriptionID string) UsagesWithinRegionClient {
-	return original.NewUsagesWithinRegionClient(referer, regionID, subscriptionID)
+func NewUsagesClient(subscriptionID string, referer string) UsagesClient {
+	return original.NewUsagesClient(subscriptionID, referer)
 }
-func NewUsagesWithinRegionClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) UsagesWithinRegionClient {
-	return original.NewUsagesWithinRegionClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
-}
-func NewVirtualMachineClient(referer string, regionID string, subscriptionID string) VirtualMachineClient {
-	return original.NewVirtualMachineClient(referer, regionID, subscriptionID)
-}
-func NewVirtualMachineClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) VirtualMachineClient {
-	return original.NewVirtualMachineClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewUsagesClientWithBaseURI(baseURI string, subscriptionID string, referer string) UsagesClient {
+	return original.NewUsagesClientWithBaseURI(baseURI, subscriptionID, referer)
 }
 func NewVirtualMachineListResponseIterator(page VirtualMachineListResponsePage) VirtualMachineListResponseIterator {
 	return original.NewVirtualMachineListResponseIterator(page)
@@ -314,29 +367,23 @@ func NewVirtualMachineListResponseIterator(page VirtualMachineListResponsePage) 
 func NewVirtualMachineListResponsePage(getNextPage func(context.Context, VirtualMachineListResponse) (VirtualMachineListResponse, error)) VirtualMachineListResponsePage {
 	return original.NewVirtualMachineListResponsePage(getNextPage)
 }
-func NewVirtualMachineTemplateByPCClient(referer string, regionID string, subscriptionID string) VirtualMachineTemplateByPCClient {
-	return original.NewVirtualMachineTemplateByPCClient(referer, regionID, subscriptionID)
-}
-func NewVirtualMachineTemplateByPCClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) VirtualMachineTemplateByPCClient {
-	return original.NewVirtualMachineTemplateByPCClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
-}
 func NewVirtualMachineTemplateListResponseIterator(page VirtualMachineTemplateListResponsePage) VirtualMachineTemplateListResponseIterator {
 	return original.NewVirtualMachineTemplateListResponseIterator(page)
 }
 func NewVirtualMachineTemplateListResponsePage(getNextPage func(context.Context, VirtualMachineTemplateListResponse) (VirtualMachineTemplateListResponse, error)) VirtualMachineTemplateListResponsePage {
 	return original.NewVirtualMachineTemplateListResponsePage(getNextPage)
 }
-func NewVirtualMachineTemplatesByPCClient(referer string, regionID string, subscriptionID string) VirtualMachineTemplatesByPCClient {
-	return original.NewVirtualMachineTemplatesByPCClient(referer, regionID, subscriptionID)
+func NewVirtualMachineTemplatesClient(subscriptionID string, referer string) VirtualMachineTemplatesClient {
+	return original.NewVirtualMachineTemplatesClient(subscriptionID, referer)
 }
-func NewVirtualMachineTemplatesByPCClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) VirtualMachineTemplatesByPCClient {
-	return original.NewVirtualMachineTemplatesByPCClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewVirtualMachineTemplatesClientWithBaseURI(baseURI string, subscriptionID string, referer string) VirtualMachineTemplatesClient {
+	return original.NewVirtualMachineTemplatesClientWithBaseURI(baseURI, subscriptionID, referer)
 }
-func NewVirtualNetworkByPCClient(referer string, regionID string, subscriptionID string) VirtualNetworkByPCClient {
-	return original.NewVirtualNetworkByPCClient(referer, regionID, subscriptionID)
+func NewVirtualMachinesClient(subscriptionID string, referer string) VirtualMachinesClient {
+	return original.NewVirtualMachinesClient(subscriptionID, referer)
 }
-func NewVirtualNetworkByPCClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) VirtualNetworkByPCClient {
-	return original.NewVirtualNetworkByPCClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewVirtualMachinesClientWithBaseURI(baseURI string, subscriptionID string, referer string) VirtualMachinesClient {
+	return original.NewVirtualMachinesClientWithBaseURI(baseURI, subscriptionID, referer)
 }
 func NewVirtualNetworkListResponseIterator(page VirtualNetworkListResponsePage) VirtualNetworkListResponseIterator {
 	return original.NewVirtualNetworkListResponseIterator(page)
@@ -344,17 +391,20 @@ func NewVirtualNetworkListResponseIterator(page VirtualNetworkListResponsePage) 
 func NewVirtualNetworkListResponsePage(getNextPage func(context.Context, VirtualNetworkListResponse) (VirtualNetworkListResponse, error)) VirtualNetworkListResponsePage {
 	return original.NewVirtualNetworkListResponsePage(getNextPage)
 }
-func NewVirtualNetworksByPCClient(referer string, regionID string, subscriptionID string) VirtualNetworksByPCClient {
-	return original.NewVirtualNetworksByPCClient(referer, regionID, subscriptionID)
+func NewVirtualNetworksClient(subscriptionID string, referer string) VirtualNetworksClient {
+	return original.NewVirtualNetworksClient(subscriptionID, referer)
 }
-func NewVirtualNetworksByPCClientWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) VirtualNetworksByPCClient {
-	return original.NewVirtualNetworksByPCClientWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewVirtualNetworksClientWithBaseURI(baseURI string, subscriptionID string, referer string) VirtualNetworksClient {
+	return original.NewVirtualNetworksClientWithBaseURI(baseURI, subscriptionID, referer)
 }
-func NewWithBaseURI(baseURI string, referer string, regionID string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, referer, regionID, subscriptionID)
+func NewWithBaseURI(baseURI string, subscriptionID string, referer string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID, referer)
 }
 func PossibleAggregationTypeValues() []AggregationType {
 	return original.PossibleAggregationTypeValues()
+}
+func PossibleAllocationValues() []Allocation {
+	return original.PossibleAllocationValues()
 }
 func PossibleDiskIndependenceModeValues() []DiskIndependenceMode {
 	return original.PossibleDiskIndependenceModeValues()
@@ -379,6 +429,18 @@ func PossiblePrivateCloudResourceTypeValues() []PrivateCloudResourceType {
 }
 func PossibleStopModeValues() []StopMode {
 	return original.PossibleStopModeValues()
+}
+func PossibleType1Values() []Type1 {
+	return original.PossibleType1Values()
+}
+func PossibleType2Values() []Type2 {
+	return original.PossibleType2Values()
+}
+func PossibleType3Values() []Type3 {
+	return original.PossibleType3Values()
+}
+func PossibleTypeValues() []Type {
+	return original.PossibleTypeValues()
 }
 func PossibleUsageCountValues() []UsageCount {
 	return original.PossibleUsageCountValues()

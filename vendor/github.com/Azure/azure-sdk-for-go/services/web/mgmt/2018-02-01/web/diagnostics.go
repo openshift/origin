@@ -68,7 +68,8 @@ func (client DiagnosticsClient) ExecuteSiteAnalysis(ctx context.Context, resourc
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}},
 		{TargetValue: timeGrain,
-			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewError("web.DiagnosticsClient", "ExecuteSiteAnalysis", err.Error())
 	}
 
@@ -172,7 +173,8 @@ func (client DiagnosticsClient) ExecuteSiteAnalysisSlot(ctx context.Context, res
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}},
 		{TargetValue: timeGrain,
-			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewError("web.DiagnosticsClient", "ExecuteSiteAnalysisSlot", err.Error())
 	}
 
@@ -276,7 +278,8 @@ func (client DiagnosticsClient) ExecuteSiteDetector(ctx context.Context, resourc
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}},
 		{TargetValue: timeGrain,
-			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewError("web.DiagnosticsClient", "ExecuteSiteDetector", err.Error())
 	}
 
@@ -380,7 +383,8 @@ func (client DiagnosticsClient) ExecuteSiteDetectorSlot(ctx context.Context, res
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}},
 		{TargetValue: timeGrain,
-			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewError("web.DiagnosticsClient", "ExecuteSiteDetectorSlot", err.Error())
 	}
 
@@ -483,7 +487,8 @@ func (client DiagnosticsClient) GetHostingEnvironmentDetectorResponse(ctx contex
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}},
 		{TargetValue: timeGrain,
-			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewError("web.DiagnosticsClient", "GetHostingEnvironmentDetectorResponse", err.Error())
 	}
 
@@ -891,7 +896,8 @@ func (client DiagnosticsClient) GetSiteDetectorResponse(ctx context.Context, res
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}},
 		{TargetValue: timeGrain,
-			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewError("web.DiagnosticsClient", "GetSiteDetectorResponse", err.Error())
 	}
 
@@ -993,7 +999,8 @@ func (client DiagnosticsClient) GetSiteDetectorResponseSlot(ctx context.Context,
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}},
 		{TargetValue: timeGrain,
-			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "timeGrain", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "timeGrain", Name: validation.Pattern, Rule: `PT[1-9][0-9]+[SMH]`, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewError("web.DiagnosticsClient", "GetSiteDetectorResponseSlot", err.Error())
 	}
 

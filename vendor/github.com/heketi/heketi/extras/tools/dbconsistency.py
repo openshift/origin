@@ -17,6 +17,7 @@ INFO = 'Info'
 
 ERR_COUNT = collections.Counter()
 
+
 def report(otype, oid, *msg):
     ERR_COUNT[otype] += 1
     print ('{} {}: {}'.format(otype, oid, ': '.join(msg)))
@@ -54,6 +55,10 @@ def check_brick(data, bid, brick):
     _check_pending('Brick', bid, brick, data)
 
 
+def vol_bv_list(volume):
+    return volume[INFO].get("blockinfo", {}).get("blockvolume", [])
+
+
 def check_volume(data, vid, volume):
     if vid != volume[INFO]['id']:
         report('Volume', vid, 'id mismatch', volume[INFO]['id'])
@@ -61,7 +66,7 @@ def check_volume(data, vid, volume):
         if bid not in data['brickentries']:
             report('Volume', vid, 'unknown brick', bid)
     bvsize = 0
-    for bvid in volume[INFO].get("blockinfo", {}).get("blockvolume", []):
+    for bvid in vol_bv_list(volume):
         if bvid not in data["blockvolumeentries"]:
             report('Volume', vid, 'unknown block volume', bvid)
         else:
@@ -73,9 +78,11 @@ def check_volume(data, vid, volume):
         rsvd_size = volume[INFO].get("blockinfo", {}).get("reservedsize", 0)
         used_size = vol_size - free_size - rsvd_size
         if bvsize != used_size:
-            report('Volume', vid, 'block size differs',
-                'calulated-size={} size={} free-size={} reserved-size={} used-size={}'.format(
-                    bvsize, vol_size, free_size, rsvd_size, used_size))
+            rf = ('block-vol-sum={}'
+                  ' size={} free-size={} reserved-size={} used-size={}')
+            report(
+                'Volume', vid, 'block size differs',
+                rf.format(bvsize, vol_size, free_size, rsvd_size, used_size))
     elif bvsize != 0:
         report('Volume', vid, 'has block volumes but not block flag')
     _check_pending('Volume', vid, volume, data)
@@ -90,6 +97,8 @@ def check_block_volume(data, bvid, bvol):
         report("Block Volume", bvid, "cluster not found", cluster_id)
     if bhv_id not in data["volumeentries"]:
         report("Block Volume", bvid, "hosting volume not found", bhv_id)
+    elif bvid not in vol_bv_list(data["volumeentries"][bhv_id]):
+        report("Block Volume", bvid, "not tracked in hosting volume", bhv_id)
     _check_pending('Block Volume', bvid, bvol, data)
 
 
@@ -117,17 +126,17 @@ def check_pending(data, pid, pop):
     if pid != pop["Id"]:
         report("Pending Op", pid, "id mismatch", pop["Id"])
     changetype_to_key = {
-        1: "brickentries", # add brick
-        2: "volumeentries", # add vol
-        3: "brickentries", # del brick
-        4: "volumeentries", # del vol
-        5: "volumeentries", #ExpandVolume
-        6: "blockvolumeentries", #AddBlockVolume
-        7: "blockvolumeentries", #DeleteBlockVolume
-        8: "deviceentries", #RemoveDevice
-        9: "volumeentries", #CloneVolume
-        10: "volumeentries", #SnapshotVolume
-        11: "volumeentries", #AddVolumeClone
+        1: "brickentries",  # add brick
+        2: "volumeentries",  # add vol
+        3: "brickentries",  # del brick
+        4: "volumeentries",  # del vol
+        5: "volumeentries",  # ExpandVolume
+        6: "blockvolumeentries",  # AddBlockVolume
+        7: "blockvolumeentries",  # DeleteBlockVolume
+        8: "deviceentries",  # RemoveDevice
+        9: "volumeentries",  # CloneVolume
+        10: "volumeentries",  # SnapshotVolume
+        11: "volumeentries",  # AddVolumeClone
     }
     for a in pop["Actions"]:
         ch_type = a["Change"]
@@ -138,7 +147,7 @@ def check_pending(data, pid, pop):
             continue
         if ch_id not in data[key]:
             report("Pending Op", pid, "id in change missing",
-                "{} not found in {}".format(ch_id, key))
+                   "{} not found in {}".format(ch_id, key))
 
 
 def _check_pending(what, myid, item, data):
@@ -201,7 +210,7 @@ def summarize_db(data):
 try:
     filename = sys.argv[1]
 except IndexError:
-    sys.stderr.write("error: filename required")
+    sys.stderr.write("error: filename required\n")
     sys.exit(2)
 
 with open(filename) as fh:

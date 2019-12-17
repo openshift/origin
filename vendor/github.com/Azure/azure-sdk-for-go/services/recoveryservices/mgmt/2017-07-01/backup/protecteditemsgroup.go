@@ -40,257 +40,82 @@ func NewProtectedItemsGroupClientWithBaseURI(baseURI string, subscriptionID stri
 	return ProtectedItemsGroupClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate enables backup of an item or to modifies the backup policy information of an already backed up item.
-// This is an
-// asynchronous operation. To know the status of the operation, call the GetItemOperationResult API.
+// List provides a pageable list of all items that are backed up within a vault.
 // Parameters:
 // vaultName - the name of the recovery services vault.
 // resourceGroupName - the name of the resource group where the recovery services vault is present.
-// fabricName - fabric name associated with the backup item.
-// containerName - container name associated with the backup item.
-// protectedItemName - item name to be backed up.
-// parameters - resource backed up item
-func (client ProtectedItemsGroupClient) CreateOrUpdate(ctx context.Context, vaultName string, resourceGroupName string, fabricName string, containerName string, protectedItemName string, parameters ProtectedItemResource) (result ProtectedItemResource, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProtectedItemsGroupClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.CreateOrUpdatePreparer(ctx, vaultName, resourceGroupName, fabricName, containerName, protectedItemName, parameters)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "CreateOrUpdate", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.CreateOrUpdateSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "CreateOrUpdate", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "CreateOrUpdate", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// CreateOrUpdatePreparer prepares the CreateOrUpdate request.
-func (client ProtectedItemsGroupClient) CreateOrUpdatePreparer(ctx context.Context, vaultName string, resourceGroupName string, fabricName string, containerName string, protectedItemName string, parameters ProtectedItemResource) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"containerName":     autorest.Encode("path", containerName),
-		"fabricName":        autorest.Encode("path", fabricName),
-		"protectedItemName": autorest.Encode("path", protectedItemName),
-		"resourceGroupName": autorest.Encode("path", resourceGroupName),
-		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-		"vaultName":         autorest.Encode("path", vaultName),
-	}
-
-	const APIVersion = "2016-12-01"
-	queryParameters := map[string]interface{}{
-		"api-version": APIVersion,
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsContentType("application/json; charset=utf-8"),
-		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{vaultName}/backupFabrics/{fabricName}/protectionContainers/{containerName}/protectedItems/{protectedItemName}", pathParameters),
-		autorest.WithJSON(parameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
-// http.Response Body if it receives an error.
-func (client ProtectedItemsGroupClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
-// closes the http.Response Body.
-func (client ProtectedItemsGroupClient) CreateOrUpdateResponder(resp *http.Response) (result ProtectedItemResource, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
-		autorest.ByUnmarshallingJSON(&result),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// Delete used to disable backup of an item within a container. This is an asynchronous operation. To know the status
-// of the
-// request, call the GetItemOperationResult API.
-// Parameters:
-// vaultName - the name of the recovery services vault.
-// resourceGroupName - the name of the resource group where the recovery services vault is present.
-// fabricName - fabric name associated with the backed up item.
-// containerName - container name associated with the backed up item.
-// protectedItemName - backed up item to be deleted.
-func (client ProtectedItemsGroupClient) Delete(ctx context.Context, vaultName string, resourceGroupName string, fabricName string, containerName string, protectedItemName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProtectedItemsGroupClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
-	req, err := client.DeletePreparer(ctx, vaultName, resourceGroupName, fabricName, containerName, protectedItemName)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "Delete", nil, "Failure preparing request")
-		return
-	}
-
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "Delete", resp, "Failure sending request")
-		return
-	}
-
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// DeletePreparer prepares the Delete request.
-func (client ProtectedItemsGroupClient) DeletePreparer(ctx context.Context, vaultName string, resourceGroupName string, fabricName string, containerName string, protectedItemName string) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"containerName":     autorest.Encode("path", containerName),
-		"fabricName":        autorest.Encode("path", fabricName),
-		"protectedItemName": autorest.Encode("path", protectedItemName),
-		"resourceGroupName": autorest.Encode("path", resourceGroupName),
-		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-		"vaultName":         autorest.Encode("path", vaultName),
-	}
-
-	const APIVersion = "2016-12-01"
-	queryParameters := map[string]interface{}{
-		"api-version": APIVersion,
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{vaultName}/backupFabrics/{fabricName}/protectionContainers/{containerName}/protectedItems/{protectedItemName}", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare((&http.Request{}).WithContext(ctx))
-}
-
-// DeleteSender sends the Delete request. The method will close the
-// http.Response Body if it receives an error.
-func (client ProtectedItemsGroupClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
-}
-
-// DeleteResponder handles the response to the Delete request. The method always
-// closes the http.Response Body.
-func (client ProtectedItemsGroupClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent),
-		autorest.ByClosing())
-	result.Response = resp
-	return
-}
-
-// Get provides the details of the backed up item. This is an asynchronous operation. To know the status of the
-// operation,
-// call the GetItemOperationResult API.
-// Parameters:
-// vaultName - the name of the recovery services vault.
-// resourceGroupName - the name of the resource group where the recovery services vault is present.
-// fabricName - fabric name associated with the backed up item.
-// containerName - container name associated with the backed up item.
-// protectedItemName - backed up item name whose details are to be fetched.
 // filter - oData filter options.
-func (client ProtectedItemsGroupClient) Get(ctx context.Context, vaultName string, resourceGroupName string, fabricName string, containerName string, protectedItemName string, filter string) (result ProtectedItemResource, err error) {
+// skipToken - skipToken Filter.
+func (client ProtectedItemsGroupClient) List(ctx context.Context, vaultName string, resourceGroupName string, filter string, skipToken string) (result ProtectedItemResourceListPage, err error) {
 	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/ProtectedItemsGroupClient.Get")
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProtectedItemsGroupClient.List")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.pirl.Response.Response != nil {
+				sc = result.pirl.Response.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	req, err := client.GetPreparer(ctx, vaultName, resourceGroupName, fabricName, containerName, protectedItemName, filter)
+	result.fn = client.listNextResults
+	req, err := client.ListPreparer(ctx, vaultName, resourceGroupName, filter, skipToken)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "List", nil, "Failure preparing request")
 		return
 	}
 
-	resp, err := client.GetSender(req)
+	resp, err := client.ListSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "Get", resp, "Failure sending request")
+		result.pirl.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "List", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.GetResponder(resp)
+	result.pirl, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "Get", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "List", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// GetPreparer prepares the Get request.
-func (client ProtectedItemsGroupClient) GetPreparer(ctx context.Context, vaultName string, resourceGroupName string, fabricName string, containerName string, protectedItemName string, filter string) (*http.Request, error) {
+// ListPreparer prepares the List request.
+func (client ProtectedItemsGroupClient) ListPreparer(ctx context.Context, vaultName string, resourceGroupName string, filter string, skipToken string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
-		"containerName":     autorest.Encode("path", containerName),
-		"fabricName":        autorest.Encode("path", fabricName),
-		"protectedItemName": autorest.Encode("path", protectedItemName),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 		"vaultName":         autorest.Encode("path", vaultName),
 	}
 
-	const APIVersion = "2016-12-01"
+	const APIVersion = "2019-05-13"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
 	if len(filter) > 0 {
 		queryParameters["$filter"] = autorest.Encode("query", filter)
 	}
+	if len(skipToken) > 0 {
+		queryParameters["$skipToken"] = autorest.Encode("query", skipToken)
+	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{vaultName}/backupFabrics/{fabricName}/protectionContainers/{containerName}/protectedItems/{protectedItemName}", pathParameters),
+		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{vaultName}/backupProtectedItems", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
-// GetSender sends the Get request. The method will close the
+// ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
-func (client ProtectedItemsGroupClient) GetSender(req *http.Request) (*http.Response, error) {
+func (client ProtectedItemsGroupClient) ListSender(req *http.Request) (*http.Response, error) {
 	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	return autorest.SendWithSender(client, req, sd...)
 }
 
-// GetResponder handles the response to the Get request. The method always
+// ListResponder handles the response to the List request. The method always
 // closes the http.Response Body.
-func (client ProtectedItemsGroupClient) GetResponder(resp *http.Response) (result ProtectedItemResource, err error) {
+func (client ProtectedItemsGroupClient) ListResponder(resp *http.Response) (result ProtectedItemResourceList, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -298,5 +123,42 @@ func (client ProtectedItemsGroupClient) GetResponder(resp *http.Response) (resul
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listNextResults retrieves the next set of results, if any.
+func (client ProtectedItemsGroupClient) listNextResults(ctx context.Context, lastResults ProtectedItemResourceList) (result ProtectedItemResourceList, err error) {
+	req, err := lastResults.protectedItemResourceListPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "listNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "listNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "backup.ProtectedItemsGroupClient", "listNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListComplete enumerates all values, automatically crossing page boundaries as required.
+func (client ProtectedItemsGroupClient) ListComplete(ctx context.Context, vaultName string, resourceGroupName string, filter string, skipToken string) (result ProtectedItemResourceListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProtectedItemsGroupClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.List(ctx, vaultName, resourceGroupName, filter, skipToken)
 	return
 }

@@ -3,18 +3,13 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
-        "admission.go",
         "enablement.go",
         "intialization.go",
-        "kubecontrolplane_refs.go",
     ],
     importpath = "k8s.io/kubernetes/openshift-kube-apiserver/enablement",
     visibility = ["//visibility:public"],
     deps = [
-        "//cmd/kube-apiserver/app/options:go_default_library",
-        "//openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration:go_default_library",
         "//openshift-kube-apiserver/configdefault:go_default_library",
-        "//openshift-kube-apiserver/kubeadmission:go_default_library",
         "//pkg/capabilities:go_default_library",
         "//pkg/kubelet/types:go_default_library",
         "//plugin/pkg/auth/authorizer/rbac/bootstrappolicy:go_default_library",
@@ -22,6 +17,8 @@ go_library(
         "//staging/src/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
+        "//staging/src/k8s.io/apiserver/pkg/server:go_default_library",
+        "//staging/src/k8s.io/client-go/rest:go_default_library",
         "//staging/src/k8s.io/client-go/tools/clientcmd/api:go_default_library",
         "//staging/src/k8s.io/kube-aggregator/pkg/apiserver:go_default_library",
         "//vendor/github.com/openshift/api/config/v1:go_default_library",

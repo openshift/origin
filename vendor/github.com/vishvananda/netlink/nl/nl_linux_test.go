@@ -5,9 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"reflect"
-	"syscall"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 type testSerializer interface {
@@ -40,7 +41,7 @@ func (msg *IfInfomsg) write(b []byte) {
 }
 
 func (msg *IfInfomsg) serializeSafe() []byte {
-	length := syscall.SizeofIfInfomsg
+	length := unix.SizeofIfInfomsg
 	b := make([]byte, length)
 	msg.write(b)
 	return b
@@ -48,12 +49,12 @@ func (msg *IfInfomsg) serializeSafe() []byte {
 
 func deserializeIfInfomsgSafe(b []byte) *IfInfomsg {
 	var msg = IfInfomsg{}
-	binary.Read(bytes.NewReader(b[0:syscall.SizeofIfInfomsg]), NativeEndian(), &msg)
+	binary.Read(bytes.NewReader(b[0:unix.SizeofIfInfomsg]), NativeEndian(), &msg)
 	return &msg
 }
 
 func TestIfInfomsgDeserializeSerialize(t *testing.T) {
-	var orig = make([]byte, syscall.SizeofIfInfomsg)
+	var orig = make([]byte, unix.SizeofIfInfomsg)
 	rand.Read(orig)
 	// zero out the pad byte
 	orig[1] = 0
@@ -63,18 +64,18 @@ func TestIfInfomsgDeserializeSerialize(t *testing.T) {
 }
 
 func TestIfSocketCloses(t *testing.T) {
-	nlSock, err := Subscribe(syscall.NETLINK_ROUTE, syscall.RTNLGRP_NEIGH)
+	nlSock, err := Subscribe(unix.NETLINK_ROUTE, unix.RTNLGRP_NEIGH)
 	if err != nil {
 		t.Fatalf("Error on creating the socket: %v", err)
 	}
-	nlSock.SetReceiveTimeout(&syscall.Timeval{Sec: 2, Usec: 0})
+	nlSock.SetReceiveTimeout(&unix.Timeval{Sec: 2, Usec: 0})
 	endCh := make(chan error)
 	go func(sk *NetlinkSocket, endCh chan error) {
 		endCh <- nil
 		for {
 			_, err := sk.Receive()
 			// Receive returned because of a timeout and the FD == -1 means that the socket got closed
-			if err == syscall.EAGAIN && nlSock.GetFd() == -1 {
+			if err == unix.EAGAIN && nlSock.GetFd() == -1 {
 				endCh <- err
 				return
 			}

@@ -35,6 +35,8 @@ type ServerCfg struct {
 	ConfPath  string
 	DbPath    string
 	KeepDB    bool
+	// disable auth in the server
+	DisableAuth bool
 	// HelloPort is _only_ to test if the server is running.
 	// It does not control the port the server listens to.
 	HelloPort string
@@ -72,6 +74,9 @@ func NewServerCfgFromEnv(dirDefault string) *ServerCfg {
 		DbPath:    getEnvValue("HEKETI_DB_PATH", "./heketi.db"),
 		ConfPath:  getEnvValue("HEKETI_CONF_PATH", "heketi.json"),
 		HelloPort: getEnvValue("HEKETI_HELLO_PORT", "8080"),
+		// defaulting DisableAuth to true for now to match
+		// historical behavior of our functional tests
+		DisableAuth: true,
 	}
 }
 
@@ -132,6 +137,18 @@ func (s *ServerCtl) ConfigArg() string {
 	return fmt.Sprintf("--config=%v", s.ConfPath)
 }
 
+// ServerArgs returns a string slice of all the arguments to be
+// passed to the heketi binary for server start up.
+func (s *ServerCtl) ServerArgs() []string {
+	args := []string{
+		s.ConfigArg(),
+	}
+	if s.DisableAuth {
+		args = append(args, "--disable-auth")
+	}
+	return args
+}
+
 // Start will start a new instance of the heketi server.
 func (s *ServerCtl) Start() error {
 	if !s.KeepDB {
@@ -141,7 +158,7 @@ func (s *ServerCtl) Start() error {
 	if err := s.openLog(); err != nil {
 		return err
 	}
-	c := exec.Command(s.HeketiBin, s.ConfigArg())
+	c := exec.Command(s.HeketiBin, s.ServerArgs()...)
 	if err := s.run(c, nil, nil); err != nil {
 		return err
 	}
@@ -230,6 +247,7 @@ func (s *ServerCtl) Stop() error {
 // set of functionally from testing.T.
 type Tester interface {
 	Fatalf(format string, args ...interface{})
+	Helper()
 }
 
 // ServerStarted asserts that the server s is in the started
@@ -237,6 +255,7 @@ type Tester interface {
 // the server fails to start the function triggers a test
 // failure (through the Tester interface).
 func ServerStarted(t Tester, s *ServerCtl) {
+	t.Helper()
 	if s.IsAvailable() {
 		return
 	}
@@ -253,6 +272,7 @@ func ServerStarted(t Tester, s *ServerCtl) {
 // the server fails to stop the function triggers a test
 // failure (through the Tester interface).
 func ServerStopped(t Tester, s *ServerCtl) {
+	t.Helper()
 	if !s.IsAlive() {
 		return
 	}
@@ -269,6 +289,7 @@ func ServerStopped(t Tester, s *ServerCtl) {
 // steps fails the function triggers a test failure
 // (through the TestSuite interface).
 func ServerRestarted(t Tester, s *ServerCtl) {
+	t.Helper()
 	ServerStopped(t, s)
 	ServerStarted(t, s)
 }

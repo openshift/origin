@@ -53,6 +53,7 @@ func TestInit(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
 func TestDuplicateLabel(t *testing.T) {
 	secopt, err := DupSecOpt("system_u:system_r:container_t:s0:c1,c2")
 	if err != nil {
@@ -212,5 +213,21 @@ func TestKeyLabel(t *testing.T) {
 	}
 	if label != nlabel {
 		t.Errorf("KeyLabel %s != %s", nlabel, label)
+	}
+}
+
+func TestFileLabel(t *testing.T) {
+	if !selinux.GetEnabled() {
+		return
+	}
+	testUser := []string{"filetype:test_file_t", "level:s0:c1,c15"}
+	_, mlabel, err := InitLabels(testUser)
+	if err != nil {
+		t.Log("InitLabels User Failed")
+		t.Fatal(err)
+	}
+	if mlabel != "system_u:object_r:test_file_t:s0:c1,c15" {
+		t.Log("InitLabels filetype Failed")
+		t.Fatal(err)
 	}
 }

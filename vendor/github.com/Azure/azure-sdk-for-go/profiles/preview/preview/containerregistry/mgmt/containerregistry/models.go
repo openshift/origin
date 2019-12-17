@@ -294,7 +294,6 @@ type RegistriesQueueBuildFuture = original.RegistriesQueueBuildFuture
 type RegistriesUpdateFuture = original.RegistriesUpdateFuture
 type RegistriesUpdatePoliciesFuture = original.RegistriesUpdatePoliciesFuture
 type Registry = original.Registry
-type RegistryIdentity = original.RegistryIdentity
 type RegistryListCredentialsResult = original.RegistryListCredentialsResult
 type RegistryListResult = original.RegistryListResult
 type RegistryListResultIterator = original.RegistryListResultIterator

@@ -78,6 +78,17 @@ func (wt WorkingTree) Branch() (string, error) {
 	return "", fmt.Errorf("failed to determine active branch: %s", strings.Join(branches, ","))
 }
 
+// DeleteBranch call "git branch -d branchname" to delete a local branch.
+func (wt WorkingTree) DeleteBranch(branchName string) error {
+	cmd := exec.Command("git", "branch", "-d", branchName)
+	cmd.Dir = wt.dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.New(string(output))
+	}
+	return nil
+}
+
 // Clone calls "git clone", cloning the working tree into the specified directory.
 // The returned WorkingTree points to the clone of the repository.
 func (wt WorkingTree) Clone(dest string) (result WorkingTree, err error) {
@@ -168,7 +179,32 @@ func (wt WorkingTree) ListTags(pattern string) ([]string, error) {
 	if err != nil {
 		return nil, errors.New(string(output))
 	}
+	if len(output) == 0 {
+		return []string{}, nil
+	}
 	tags := strings.Split(strings.TrimSpace(string(output)), "\n")
 	sort.Strings(tags)
 	return tags, nil
+}
+
+// Pull calls "git pull upstream branch" to update local working tree.
+func (wt WorkingTree) Pull(upstream, branch string) error {
+	cmd := exec.Command("git", "pull", upstream, branch)
+	cmd.Dir = wt.dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.New(string(output))
+	}
+	return nil
+}
+
+// CreateAndCheckout create and checkout to a new branch
+func (wt WorkingTree) CreateAndCheckout(branch string) error {
+	cmd := exec.Command("git", "checkout", "-b", branch)
+	cmd.Dir = wt.dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.New(string(output))
+	}
+	return nil
 }

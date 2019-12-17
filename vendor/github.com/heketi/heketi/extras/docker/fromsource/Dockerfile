@@ -1,7 +1,5 @@
 # set author and base
-# need to use fedora 27 until glide is fixed in fedora 28
-# (or we get an alternative glide)
-FROM fedora:27
+FROM fedora
 MAINTAINER Heketi Developers <heketi-devel@gluster.org>
 
 LABEL version="1.3.1"

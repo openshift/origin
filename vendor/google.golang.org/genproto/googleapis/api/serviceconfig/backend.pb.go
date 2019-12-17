@@ -90,7 +90,7 @@ func (x BackendRule_PathTranslation) String() string {
 	return proto.EnumName(BackendRule_PathTranslation_name, int32(x))
 }
 func (BackendRule_PathTranslation) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_backend_8829b3f344060960, []int{1, 0}
+	return fileDescriptor_backend_525705f4783ed271, []int{1, 0}
 }
 
 // `Backend` defines the backend configuration for a service.
@@ -108,7 +108,7 @@ func (m *Backend) Reset()         { *m = Backend{} }
 func (m *Backend) String() string { return proto.CompactTextString(m) }
 func (*Backend) ProtoMessage()    {}
 func (*Backend) Descriptor() ([]byte, []int) {
-	return fileDescriptor_backend_8829b3f344060960, []int{0}
+	return fileDescriptor_backend_525705f4783ed271, []int{0}
 }
 func (m *Backend) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Backend.Unmarshal(m, b)
@@ -139,7 +139,8 @@ func (m *Backend) GetRules() []*BackendRule {
 type BackendRule struct {
 	// Selects the methods to which this rule applies.
 	//
-	// Refer to [selector][google.api.DocumentationRule.selector] for syntax details.
+	// Refer to [selector][google.api.DocumentationRule.selector] for syntax
+	// details.
 	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// The address of the API backend.
 	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
@@ -174,7 +175,7 @@ func (m *BackendRule) Reset()         { *m = BackendRule{} }
 func (m *BackendRule) String() string { return proto.CompactTextString(m) }
 func (*BackendRule) ProtoMessage()    {}
 func (*BackendRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_backend_8829b3f344060960, []int{1}
+	return fileDescriptor_backend_525705f4783ed271, []int{1}
 }
 func (m *BackendRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BackendRule.Unmarshal(m, b)
@@ -317,9 +318,9 @@ func init() {
 	proto.RegisterEnum("google.api.BackendRule_PathTranslation", BackendRule_PathTranslation_name, BackendRule_PathTranslation_value)
 }
 
-func init() { proto.RegisterFile("google/api/backend.proto", fileDescriptor_backend_8829b3f344060960) }
+func init() { proto.RegisterFile("google/api/backend.proto", fileDescriptor_backend_525705f4783ed271) }
 
-var fileDescriptor_backend_8829b3f344060960 = []byte{
+var fileDescriptor_backend_525705f4783ed271 = []byte{
 	// 408 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x92, 0x41, 0x6f, 0xd3, 0x30,
 	0x14, 0xc7, 0x97, 0x76, 0x5b, 0xe1, 0xb5, 0xea, 0x82, 0x85, 0x20, 0x9a, 0x38, 0x84, 0x72, 0xa0,

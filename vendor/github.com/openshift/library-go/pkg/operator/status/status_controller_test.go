@@ -79,7 +79,7 @@ func TestDegraded(t *testing.T) {
 				{Type: "TypeADegraded", Status: operatorv1.ConditionTrue, Message: "a message from type a", LastTransitionTime: threeMinutesAgo},
 			},
 			expectedStatus: configv1.ConditionTrue,
-			expectedReason: "TypeADegraded",
+			expectedReason: "TypeA",
 			expectedMessages: []string{
 				"TypeADegraded: a message from type a",
 			},
@@ -103,7 +103,7 @@ func TestDegraded(t *testing.T) {
 				{Type: "TypeBDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
 			},
 			expectedStatus: configv1.ConditionTrue,
-			expectedReason: "TypeADegraded",
+			expectedReason: "TypeA",
 			expectedMessages: []string{
 				"TypeADegraded: a message from type a",
 			},
@@ -127,7 +127,7 @@ func TestDegraded(t *testing.T) {
 				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type b"},
 			},
 			expectedStatus: configv1.ConditionTrue,
-			expectedReason: "TypeBDegraded",
+			expectedReason: "TypeB",
 			expectedMessages: []string{
 				"TypeBDegraded: a message from type b",
 			},
@@ -175,7 +175,7 @@ func TestDegraded(t *testing.T) {
 				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type d"},
 			},
 			expectedStatus: configv1.ConditionTrue,
-			expectedReason: "MultipleConditionsMatching",
+			expectedReason: "TypeB::TypeD",
 			expectedMessages: []string{
 				"TypeBDegraded: a message from type b",
 				"TypeBDegraded: another message from type b",
@@ -191,7 +191,7 @@ func TestDegraded(t *testing.T) {
 				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type d"},
 			},
 			expectedStatus: configv1.ConditionTrue,
-			expectedReason: "MultipleConditionsMatching",
+			expectedReason: "TypeB::TypeC::TypeD",
 			expectedMessages: []string{
 				"TypeBDegraded: a message from type b",
 				"TypeBDegraded: another message from type b",
@@ -208,7 +208,7 @@ func TestDegraded(t *testing.T) {
 				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type d"},
 			},
 			expectedStatus: configv1.ConditionTrue,
-			expectedReason: "MultipleConditionsMatching",
+			expectedReason: "TypeB::TypeD",
 			expectedMessages: []string{
 				"TypeBDegraded: a message from type b",
 				"TypeBDegraded: another message from type b",
@@ -222,7 +222,7 @@ func TestDegraded(t *testing.T) {
 			},
 			expectedType:   configv1.OperatorProgressing,
 			expectedStatus: configv1.ConditionTrue,
-			expectedReason: "TypeAProgressing",
+			expectedReason: "TypeA",
 			expectedMessages: []string{
 				"TypeAProgressing: a message from type a",
 			},
@@ -234,7 +234,7 @@ func TestDegraded(t *testing.T) {
 			},
 			expectedType:   configv1.OperatorAvailable,
 			expectedStatus: configv1.ConditionFalse,
-			expectedReason: "TypeAAvailable",
+			expectedReason: "TypeA",
 			expectedMessages: []string{
 				"TypeAAvailable: a message from type a",
 			},
@@ -247,7 +247,7 @@ func TestDegraded(t *testing.T) {
 			},
 			expectedType:   configv1.OperatorAvailable,
 			expectedStatus: configv1.ConditionUnknown,
-			expectedReason: "TypeBAvailable",
+			expectedReason: "TypeB",
 			expectedMessages: []string{
 				"TypeBAvailable: b is confused",
 			},
@@ -255,12 +255,12 @@ func TestDegraded(t *testing.T) {
 		{
 			name: "two present/one unavailable/one unknown",
 			conditions: []operatorv1.OperatorCondition{
-				{Type: "TypeAAvailable", Status: operatorv1.ConditionFalse, LastTransitionTime: fiveSecondsAgo, Message: "a is bad"},
+				{Type: "TypeAAvailable", Status: operatorv1.ConditionFalse, LastTransitionTime: fiveSecondsAgo, Message: "a is bad", Reason: "Something"},
 				{Type: "TypeBAvailable", Status: operatorv1.ConditionUnknown, LastTransitionTime: fiveSecondsAgo, Message: "b is confused"},
 			},
 			expectedType:   configv1.OperatorAvailable,
 			expectedStatus: configv1.ConditionFalse,
-			expectedReason: "MultipleConditionsMatching",
+			expectedReason: "TypeA_Something::TypeB",
 			expectedMessages: []string{
 				"TypeAAvailable: a is bad",
 				"TypeBAvailable: b is confused",

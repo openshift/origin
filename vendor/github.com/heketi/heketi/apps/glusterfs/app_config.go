@@ -21,6 +21,7 @@ type RetryLimitConfig struct {
 
 type GlusterFSConfig struct {
 	DBfile       string                  `json:"db"`
+	DBReadOnly   bool                    `json:"db_read_only"`
 	Executor     string                  `json:"executor"`
 	Allocator    string                  `json:"allocator"`
 	SshConfig    sshexec.SshConfig       `json:"sshexec"`

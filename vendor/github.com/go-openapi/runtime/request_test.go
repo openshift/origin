@@ -15,27 +15,79 @@
 package runtime
 
 import (
+	"bufio"
+	"bytes"
+	"io"
+	"io/ioutil"
 	"net/url"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 )
 
-/*
-type tstreadcloser struct {
-	closed bool
+type eofReader struct{}
+
+func (e *eofReader) Read(d []byte) (int, error) {
+	return 0, io.EOF
 }
 
-func (t *tstreadcloser) Read(p []byte) (int, error) { return 0, nil }
-func (t *tstreadcloser) Close() error {
-	t.closed = true
+func closeReader(rdr io.Reader) *closeCounting {
+	return &closeCounting{
+		rdr: rdr,
+	}
+}
+
+type closeCounting struct {
+	rdr    io.Reader
+	closed int
+}
+
+func (c *closeCounting) Read(d []byte) (int, error) {
+	return c.rdr.Read(d)
+}
+
+func (c *closeCounting) Close() error {
+	c.closed++
+	if cr, ok := c.rdr.(io.ReadCloser); ok {
+		return cr.Close()
+	}
 	return nil
+}
+
+type countingBufioReader struct {
+	buffereds int
+	peeks     int
+	reads     int
+
+	br interface {
+		Buffered() int
+		Peek(int) ([]byte, error)
+		Read([]byte) (int, error)
+	}
+}
+
+func (c *countingBufioReader) Buffered() int {
+	c.buffereds++
+	return c.br.Buffered()
+}
+
+func (c *countingBufioReader) Peek(v int) ([]byte, error) {
+	c.peeks++
+	return c.br.Peek(v)
+}
+
+func (c *countingBufioReader) Read(p []byte) (int, error) {
+	c.reads++
+	return c.br.Read(p)
 }
 
 func TestPeekingReader(t *testing.T) {
 	// just passes to original reader when nothing called
 	exp1 := []byte("original")
-	pr1 := &peekingReader{rdr: ioutil.NopCloser(bytes.NewReader(exp1))}
+	pr1 := newPeekingReader(closeReader(bytes.NewReader(exp1)))
 	b1, err := ioutil.ReadAll(pr1)
 	if assert.NoError(t, err) {
 		assert.Equal(t, exp1, b1)
@@ -43,30 +95,50 @@ func TestPeekingReader(t *testing.T) {
 
 	// uses actual when there was some buffering
 	exp2 := []byte("actual")
-	pt1, pt2 := []byte("a"), []byte("ctual")
-	pr2 := &peekingReader{
-		rdr:    ioutil.NopCloser(bytes.NewReader(exp1)),
-		actual: io.MultiReader(bytes.NewReader(pt1), bytes.NewReader(pt2)),
-		peeked: pt1,
-	}
+	pr2 := newPeekingReader(closeReader(bytes.NewReader(exp2)))
+	peeked, err := pr2.underlying.Peek(1)
+	require.NoError(t, err)
+	require.Equal(t, "a", string(peeked))
 	b2, err := ioutil.ReadAll(pr2)
 	if assert.NoError(t, err) {
-		assert.Equal(t, exp2, b2)
+		assert.Equal(t, string(exp2), string(b2))
 	}
 
-	// closes original reader
-	tr := new(tstreadcloser)
-	pr3 := &peekingReader{
-		rdr:    tr,
-		actual: ioutil.NopCloser(bytes.NewBuffer(nil)),
-		peeked: pt1,
+	// passes close call through to original reader
+	cr := closeReader(closeReader(bytes.NewReader(exp2)))
+	pr3 := newPeekingReader(cr)
+	require.NoError(t, pr3.Close())
+	require.Equal(t, 1, cr.closed)
+
+	// returns false when the stream is empty
+	pr4 := newPeekingReader(closeReader(&eofReader{}))
+	require.False(t, pr4.HasContent())
+
+	// returns true when the stream has content
+	rdr := closeReader(strings.NewReader("hello"))
+	pr := newPeekingReader(rdr)
+	cbr := &countingBufioReader{
+		br: bufio.NewReader(rdr),
 	}
+	pr.underlying = cbr
 
+	require.True(t, pr.HasContent())
+	require.Equal(t, 1, cbr.buffereds)
+	require.Equal(t, 1, cbr.peeks)
+	require.Equal(t, 0, cbr.reads)
+	require.True(t, pr.HasContent())
+	require.Equal(t, 2, cbr.buffereds)
+	require.Equal(t, 1, cbr.peeks)
+	require.Equal(t, 0, cbr.reads)
 
-	// returns true when peeked previously with data
-	// returns true when peeked with data
+	b, err := ioutil.ReadAll(pr)
+	require.NoError(t, err)
+	require.Equal(t, "hello", string(b))
+	require.Equal(t, 2, cbr.buffereds)
+	require.Equal(t, 1, cbr.peeks)
+	require.Equal(t, 2, cbr.reads)
+	require.Equal(t, 0, cbr.br.Buffered())
 }
-*/
 
 func TestJSONRequest(t *testing.T) {
 	req, err := JSONRequest("GET", "/swagger.json", nil)

@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	//	"os"
 	"strings"
 
 	"github.com/heketi/heketi/pkg/glusterfs/api"
@@ -57,8 +56,8 @@ func init() {
 
 var blockVolumeCommand = &cobra.Command{
 	Use:   "blockvolume",
-	Short: "Heketi Volume Management",
-	Long:  "Heketi Volume Management",
+	Short: "Heketi Block Volume Management",
+	Long:  "Heketi Block Volume Management",
 }
 
 var blockVolumeCreateCommand = &cobra.Command{

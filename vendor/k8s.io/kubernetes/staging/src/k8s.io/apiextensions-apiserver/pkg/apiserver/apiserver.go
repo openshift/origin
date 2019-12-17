@@ -249,9 +249,6 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil
 	})
 	s.GenericAPIServer.AddPostStartHookOrDie("crd-discovery-available", func(context genericapiserver.PostStartHookContext) error {
-		if true {
-			return nil
-		}
 		return wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) {
 			// only check if we have a valid list for a given resourceversion
 			if !s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Informer().HasSynced() {

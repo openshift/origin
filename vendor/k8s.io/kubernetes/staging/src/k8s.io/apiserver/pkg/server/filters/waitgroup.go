@@ -44,6 +44,7 @@ func WithWaitGroup(handler http.Handler, longRunning apirequest.LongRunningReque
 		if !longRunning(req, requestInfo) {
 			if err := wg.Add(1); err != nil {
 				// When apiserver is shutting down, signal clients to retry
+				// There is a good chance the client hit a different server, so a tight retry is good for client responsiveness.
 				w.Header().Add("Retry-After", "1")
 				w.Header().Set("Content-Type", runtime.ContentTypeJSON)
 				w.Header().Set("X-Content-Type-Options", "nosniff")

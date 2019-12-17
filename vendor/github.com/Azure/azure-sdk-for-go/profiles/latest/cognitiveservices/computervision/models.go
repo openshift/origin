@@ -19,13 +19,20 @@
 
 package computervision
 
-import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.0/computervision"
+import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.1/computervision"
+
+type DescriptionExclude = original.DescriptionExclude
+
+const (
+	Celebrities DescriptionExclude = original.Celebrities
+	Landmarks   DescriptionExclude = original.Landmarks
+)
 
 type Details = original.Details
 
 const (
-	Celebrities Details = original.Celebrities
-	Landmarks   Details = original.Landmarks
+	DetailsCelebrities Details = original.DetailsCelebrities
+	DetailsLandmarks   Details = original.DetailsLandmarks
 )
 
 type Gender = original.Gender
@@ -157,6 +164,9 @@ func New(endpoint string) BaseClient {
 }
 func NewWithoutDefaults(endpoint string) BaseClient {
 	return original.NewWithoutDefaults(endpoint)
+}
+func PossibleDescriptionExcludeValues() []DescriptionExclude {
+	return original.PossibleDescriptionExcludeValues()
 }
 func PossibleDetailsValues() []Details {
 	return original.PossibleDetailsValues()

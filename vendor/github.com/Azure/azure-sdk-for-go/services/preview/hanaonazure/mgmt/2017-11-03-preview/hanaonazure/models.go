@@ -356,29 +356,6 @@ func (future *HanaInstancesDeleteFuture) Result(client HanaInstancesClient) (ar 
 	return
 }
 
-// HanaInstancesEnableMonitoringFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
-type HanaInstancesEnableMonitoringFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *HanaInstancesEnableMonitoringFuture) Result(client HanaInstancesClient) (ar autorest.Response, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "hanaonazure.HanaInstancesEnableMonitoringFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("hanaonazure.HanaInstancesEnableMonitoringFuture")
-		return
-	}
-	ar.Response = future.Response()
-	return
-}
-
 // HanaInstancesListResult the response from the List HANA Instances operation.
 type HanaInstancesListResult struct {
 	autorest.Response `json:"-"`
@@ -944,8 +921,14 @@ type SapMonitorProperties struct {
 	HanaDbPasswordKeyVaultURL *string `json:"hanaDbPasswordKeyVaultUrl,omitempty"`
 	// HanaDbCredentialsMsiID - MSI ID passed by customer which has access to customer's KeyVault and to be assigned to the Collector VM.
 	HanaDbCredentialsMsiID *string `json:"hanaDbCredentialsMsiId,omitempty"`
+	// KeyVaultID - Key Vault ID containing customer's HANA credentials.
+	KeyVaultID *string `json:"keyVaultId,omitempty"`
 	// ProvisioningState - READ-ONLY; State of provisioning of the HanaInstance. Possible values include: 'Accepted', 'Creating', 'Updating', 'Failed', 'Succeeded', 'Deleting', 'Migrating'
 	ProvisioningState HanaProvisioningStatesEnum `json:"provisioningState,omitempty"`
+	// ManagedResourceGroupName - READ-ONLY; The name of the resource group the SAP Monitor resources get deployed into.
+	ManagedResourceGroupName *string `json:"managedResourceGroupName,omitempty"`
+	// LogAnalyticsWorkspaceArmID - READ-ONLY; The ARM ID of the Log Analytics Workspace that is used for monitoring
+	LogAnalyticsWorkspaceArmID *string `json:"logAnalyticsWorkspaceArmId,omitempty"`
 }
 
 // SapMonitorsCreateFuture an abstraction for monitoring and retrieving the results of a long-running

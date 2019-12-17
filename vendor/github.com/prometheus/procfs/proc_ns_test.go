@@ -18,12 +18,12 @@ import (
 )
 
 func TestNewNamespaces(t *testing.T) {
-	p, err := FS("fixtures").NewProc(26231)
+	p, err := getProcFixtures(t).Proc(26231)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	namespaces, err := p.NewNamespaces()
+	namespaces, err := p.Namespaces()
 	if err != nil {
 		t.Fatal(err)
 	}

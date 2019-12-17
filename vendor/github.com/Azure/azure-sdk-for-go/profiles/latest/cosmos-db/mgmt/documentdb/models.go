@@ -112,12 +112,12 @@ const (
 type PrimaryAggregationType = original.PrimaryAggregationType
 
 const (
-	PrimaryAggregationTypeAverage   PrimaryAggregationType = original.PrimaryAggregationTypeAverage
-	PrimaryAggregationTypeLast      PrimaryAggregationType = original.PrimaryAggregationTypeLast
-	PrimaryAggregationTypeMaximum   PrimaryAggregationType = original.PrimaryAggregationTypeMaximum
-	PrimaryAggregationTypeMinimimum PrimaryAggregationType = original.PrimaryAggregationTypeMinimimum
-	PrimaryAggregationTypeNone      PrimaryAggregationType = original.PrimaryAggregationTypeNone
-	PrimaryAggregationTypeTotal     PrimaryAggregationType = original.PrimaryAggregationTypeTotal
+	PrimaryAggregationTypeAverage PrimaryAggregationType = original.PrimaryAggregationTypeAverage
+	PrimaryAggregationTypeLast    PrimaryAggregationType = original.PrimaryAggregationTypeLast
+	PrimaryAggregationTypeMaximum PrimaryAggregationType = original.PrimaryAggregationTypeMaximum
+	PrimaryAggregationTypeMinimum PrimaryAggregationType = original.PrimaryAggregationTypeMinimum
+	PrimaryAggregationTypeNone    PrimaryAggregationType = original.PrimaryAggregationTypeNone
+	PrimaryAggregationTypeTotal   PrimaryAggregationType = original.PrimaryAggregationTypeTotal
 )
 
 type UnitType = original.UnitType

@@ -239,6 +239,12 @@ func TestConnection(t *testing.T) {
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 }
 
+// NOTE: this test is "unclean" as it turns off a node and then
+// never resets the node state nor tears down the cluster.
+// This means it cannot be easily combined with other test suites
+// without changing the behavior of the test or supporting
+// more control of nodes from the test code.
+// Fixes TDB.
 func TestVolumeNotDeletedWhenNodeIsDown(t *testing.T) {
 	na := testutils.RequireNodeAccess(t)
 

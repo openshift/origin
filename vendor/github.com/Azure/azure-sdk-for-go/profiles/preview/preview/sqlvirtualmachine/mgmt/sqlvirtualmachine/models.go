@@ -142,6 +142,14 @@ const (
 	HA ScaleType = original.HA
 )
 
+type StorageWorkloadType = original.StorageWorkloadType
+
+const (
+	StorageWorkloadTypeDW      StorageWorkloadType = original.StorageWorkloadTypeDW
+	StorageWorkloadTypeGENERAL StorageWorkloadType = original.StorageWorkloadTypeGENERAL
+	StorageWorkloadTypeOLTP    StorageWorkloadType = original.StorageWorkloadTypeOLTP
+)
+
 type AdditionalFeaturesServerConfigurations = original.AdditionalFeaturesServerConfigurations
 type AutoBackupSettings = original.AutoBackupSettings
 type AutoPatchingSettings = original.AutoPatchingSettings
@@ -181,6 +189,7 @@ type ProxyResource = original.ProxyResource
 type Resource = original.Resource
 type ResourceIdentity = original.ResourceIdentity
 type SQLConnectivityUpdateSettings = original.SQLConnectivityUpdateSettings
+type SQLStorageSettings = original.SQLStorageSettings
 type SQLStorageUpdateSettings = original.SQLStorageUpdateSettings
 type SQLVirtualMachine = original.SQLVirtualMachine
 type SQLVirtualMachinesClient = original.SQLVirtualMachinesClient
@@ -189,6 +198,7 @@ type SQLVirtualMachinesDeleteFutureType = original.SQLVirtualMachinesDeleteFutur
 type SQLVirtualMachinesUpdateFutureType = original.SQLVirtualMachinesUpdateFutureType
 type SQLWorkloadTypeUpdateSettings = original.SQLWorkloadTypeUpdateSettings
 type ServerConfigurationsManagementSettings = original.ServerConfigurationsManagementSettings
+type StorageConfigurationSettings = original.StorageConfigurationSettings
 type TrackedResource = original.TrackedResource
 type Update = original.Update
 type WsfcDomainCredentials = original.WsfcDomainCredentials
@@ -292,6 +302,9 @@ func PossibleSQLWorkloadTypeValues() []SQLWorkloadType {
 }
 func PossibleScaleTypeValues() []ScaleType {
 	return original.PossibleScaleTypeValues()
+}
+func PossibleStorageWorkloadTypeValues() []StorageWorkloadType {
+	return original.PossibleStorageWorkloadTypeValues()
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

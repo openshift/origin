@@ -37,12 +37,10 @@ type ProductSearchParams struct {
 	ProductCategories []string `protobuf:"bytes,7,rep,name=product_categories,json=productCategories,proto3" json:"product_categories,omitempty"`
 	// The filtering expression. This can be used to restrict search results based
 	// on Product labels. We currently support an AND of OR of key-value
-	// expressions, where each expression within an OR must have the same key. An
-	// '=' should be used to connect the key and value.
+	// expressions, where each expression within an OR must have the same key.
 	//
 	// For example, "(color = red OR color = blue) AND brand = Google" is
-	// acceptable, but "(color = red OR brand = Google)" is not acceptable.
-	// "color: red" is not acceptable because it uses a ':' instead of an '='.
+	// acceptable, but not "(color = red OR brand = Google)" or "color: red".
 	Filter               string   `protobuf:"bytes,8,opt,name=filter,proto3" json:"filter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -53,7 +51,7 @@ func (m *ProductSearchParams) Reset()         { *m = ProductSearchParams{} }
 func (m *ProductSearchParams) String() string { return proto.CompactTextString(m) }
 func (*ProductSearchParams) ProtoMessage()    {}
 func (*ProductSearchParams) Descriptor() ([]byte, []int) {
-	return fileDescriptor_product_search_2518938c42ac81f7, []int{0}
+	return fileDescriptor_product_search_30d05cab1317cb78, []int{0}
 }
 func (m *ProductSearchParams) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ProductSearchParams.Unmarshal(m, b)
@@ -103,9 +101,8 @@ func (m *ProductSearchParams) GetFilter() string {
 
 // Results for a product search request.
 type ProductSearchResults struct {
-	// Timestamp of the index which provided these results. Products added to the
-	// product set and products removed from the product set after this time are
-	// not reflected in the current results.
+	// Timestamp of the index which provided these results. Changes made after
+	// this time are not reflected in the current results.
 	IndexTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=index_time,json=indexTime,proto3" json:"index_time,omitempty"`
 	// List of results, one for each product match.
 	Results []*ProductSearchResults_Result `protobuf:"bytes,5,rep,name=results,proto3" json:"results,omitempty"`
@@ -123,7 +120,7 @@ func (m *ProductSearchResults) Reset()         { *m = ProductSearchResults{} }
 func (m *ProductSearchResults) String() string { return proto.CompactTextString(m) }
 func (*ProductSearchResults) ProtoMessage()    {}
 func (*ProductSearchResults) Descriptor() ([]byte, []int) {
-	return fileDescriptor_product_search_2518938c42ac81f7, []int{1}
+	return fileDescriptor_product_search_30d05cab1317cb78, []int{1}
 }
 func (m *ProductSearchResults) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ProductSearchResults.Unmarshal(m, b)
@@ -183,7 +180,7 @@ func (m *ProductSearchResults_Result) Reset()         { *m = ProductSearchResult
 func (m *ProductSearchResults_Result) String() string { return proto.CompactTextString(m) }
 func (*ProductSearchResults_Result) ProtoMessage()    {}
 func (*ProductSearchResults_Result) Descriptor() ([]byte, []int) {
-	return fileDescriptor_product_search_2518938c42ac81f7, []int{1, 0}
+	return fileDescriptor_product_search_30d05cab1317cb78, []int{1, 0}
 }
 func (m *ProductSearchResults_Result) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ProductSearchResults_Result.Unmarshal(m, b)
@@ -240,7 +237,7 @@ func (m *ProductSearchResults_GroupedResult) Reset()         { *m = ProductSearc
 func (m *ProductSearchResults_GroupedResult) String() string { return proto.CompactTextString(m) }
 func (*ProductSearchResults_GroupedResult) ProtoMessage()    {}
 func (*ProductSearchResults_GroupedResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_product_search_2518938c42ac81f7, []int{1, 1}
+	return fileDescriptor_product_search_30d05cab1317cb78, []int{1, 1}
 }
 func (m *ProductSearchResults_GroupedResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ProductSearchResults_GroupedResult.Unmarshal(m, b)
@@ -282,10 +279,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/cloud/vision/v1/product_search.proto", fileDescriptor_product_search_2518938c42ac81f7)
+	proto.RegisterFile("google/cloud/vision/v1/product_search.proto", fileDescriptor_product_search_30d05cab1317cb78)
 }
 
-var fileDescriptor_product_search_2518938c42ac81f7 = []byte{
+var fileDescriptor_product_search_30d05cab1317cb78 = []byte{
 	// 485 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x93, 0xcf, 0x6f, 0xd3, 0x30,
 	0x14, 0xc7, 0x95, 0x76, 0x4b, 0xa9, 0xcb, 0x0e, 0x98, 0x31, 0xa2, 0x08, 0xa9, 0xd5, 0x04, 0x52,

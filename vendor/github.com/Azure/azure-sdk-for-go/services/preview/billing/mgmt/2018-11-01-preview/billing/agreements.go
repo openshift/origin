@@ -124,17 +124,18 @@ func (client AgreementsClient) GetResponder(resp *http.Response) (result Agreeme
 // Parameters:
 // billingAccountName - billing Account Id.
 // expand - may be used to expand the participants.
-func (client AgreementsClient) ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string) (result AgreementListResult, err error) {
+func (client AgreementsClient) ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string) (result AgreementListResultPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/AgreementsClient.ListByBillingAccountName")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.alr.Response.Response != nil {
+				sc = result.alr.Response.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	result.fn = client.listByBillingAccountNameNextResults
 	req, err := client.ListByBillingAccountNamePreparer(ctx, billingAccountName, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.AgreementsClient", "ListByBillingAccountName", nil, "Failure preparing request")
@@ -143,12 +144,12 @@ func (client AgreementsClient) ListByBillingAccountName(ctx context.Context, bil
 
 	resp, err := client.ListByBillingAccountNameSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.alr.Response = autorest.Response{Response: resp}
 		err = autorest.NewErrorWithError(err, "billing.AgreementsClient", "ListByBillingAccountName", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.ListByBillingAccountNameResponder(resp)
+	result.alr, err = client.ListByBillingAccountNameResponder(resp)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.AgreementsClient", "ListByBillingAccountName", resp, "Failure responding to request")
 	}
@@ -195,5 +196,42 @@ func (client AgreementsClient) ListByBillingAccountNameResponder(resp *http.Resp
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByBillingAccountNameNextResults retrieves the next set of results, if any.
+func (client AgreementsClient) listByBillingAccountNameNextResults(ctx context.Context, lastResults AgreementListResult) (result AgreementListResult, err error) {
+	req, err := lastResults.agreementListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "billing.AgreementsClient", "listByBillingAccountNameNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByBillingAccountNameSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "billing.AgreementsClient", "listByBillingAccountNameNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByBillingAccountNameResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.AgreementsClient", "listByBillingAccountNameNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByBillingAccountNameComplete enumerates all values, automatically crossing page boundaries as required.
+func (client AgreementsClient) ListByBillingAccountNameComplete(ctx context.Context, billingAccountName string, expand string) (result AgreementListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AgreementsClient.ListByBillingAccountName")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByBillingAccountName(ctx, billingAccountName, expand)
 	return
 }

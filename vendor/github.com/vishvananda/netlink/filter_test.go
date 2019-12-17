@@ -4,8 +4,9 @@ package netlink
 
 import (
 	"reflect"
-	"syscall"
 	"testing"
+
+	"golang.org/x/sys/unix"
 )
 
 func TestFilterAddDel(t *testing.T) {
@@ -58,7 +59,7 @@ func TestFilterAddDel(t *testing.T) {
 			LinkIndex: link.Attrs().Index,
 			Parent:    MakeHandle(0xffff, 0),
 			Priority:  1,
-			Protocol:  syscall.ETH_P_IP,
+			Protocol:  unix.ETH_P_IP,
 		},
 		RedirIndex: redir.Attrs().Index,
 		ClassId:    classId,
@@ -167,13 +168,13 @@ func TestAdvancedFilterAddDel(t *testing.T) {
 	}
 
 	u32SelKeys := []TcU32Key{
-		TcU32Key{
+		{
 			Mask:    0xff,
 			Val:     80,
 			Off:     20,
 			OffMask: 0,
 		},
-		TcU32Key{
+		{
 			Mask:    0xffff,
 			Val:     0x146ca,
 			Off:     32,
@@ -185,7 +186,7 @@ func TestAdvancedFilterAddDel(t *testing.T) {
 			LinkIndex: index,
 			Parent:    qdiscHandle,
 			Priority:  1,
-			Protocol:  syscall.ETH_P_ALL,
+			Protocol:  unix.ETH_P_ALL,
 		},
 		Sel: &TcU32Sel{
 			Keys:  u32SelKeys,
@@ -337,7 +338,7 @@ func TestFilterFwAddDel(t *testing.T) {
 		Parent:    MakeHandle(0xffff, 0),
 		Handle:    MakeHandle(0, 0x6),
 		Priority:  1,
-		Protocol:  syscall.ETH_P_IP,
+		Protocol:  unix.ETH_P_IP,
 	}
 	fwattrs := FilterFwAttrs{
 		Buffer:   12345,
@@ -369,14 +370,6 @@ func TestFilterFwAddDel(t *testing.T) {
 	}
 	if fw.Police.Rate.Rate != filter.Police.Rate.Rate {
 		t.Fatal("Police Rate doesn't match")
-	}
-	for i := range fw.Rtab {
-		if fw.Rtab[i] != filter.Rtab[i] {
-			t.Fatal("Rtab doesn't match")
-		}
-		if fw.Ptab[i] != filter.Ptab[i] {
-			t.Fatal("Ptab doesn't match")
-		}
 	}
 	if fw.ClassId != filter.ClassId {
 		t.Fatal("ClassId doesn't match")
@@ -476,7 +469,7 @@ func TestFilterU32BpfAddDel(t *testing.T) {
 			LinkIndex: link.Attrs().Index,
 			Parent:    MakeHandle(0xffff, 0),
 			Priority:  1,
-			Protocol:  syscall.ETH_P_ALL,
+			Protocol:  unix.ETH_P_ALL,
 		},
 		ClassId: classId,
 		Actions: []Action{
@@ -553,13 +546,11 @@ func TestFilterU32BpfAddDel(t *testing.T) {
 	}
 }
 
-func TestFilterClsActBpfAddDel(t *testing.T) {
-	tearDown := setUpNetlinkTest(t)
-	defer tearDown()
-	if err := LinkAdd(&Ifb{LinkAttrs{Name: "foo"}}); err != nil {
+func setupLinkForTestWithQdisc(t *testing.T, linkName string) (Qdisc, Link) {
+	if err := LinkAdd(&Ifb{LinkAttrs{Name: linkName}}); err != nil {
 		t.Fatal(err)
 	}
-	link, err := LinkByName("foo")
+	link, err := LinkByName(linkName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -575,9 +566,9 @@ func TestFilterClsActBpfAddDel(t *testing.T) {
 		QdiscAttrs: attrs,
 		QdiscType:  "clsact",
 	}
-	// This feature was added in kernel 4.5
+
 	if err := QdiscAdd(qdisc); err != nil {
-		t.Skipf("Failed adding clsact qdisc, unsupported kernel")
+		t.Fatal(err)
 	}
 	qdiscs, err := SafeQdiscList(link)
 	if err != nil {
@@ -589,12 +580,22 @@ func TestFilterClsActBpfAddDel(t *testing.T) {
 	if q, ok := qdiscs[0].(*GenericQdisc); !ok || q.Type() != "clsact" {
 		t.Fatal("qdisc is the wrong type")
 	}
+	return qdiscs[0], link
+}
 
+func TestFilterClsActBpfAddDel(t *testing.T) {
+	// This feature was added in kernel 4.5
+	minKernelRequired(t, 4, 5)
+
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	qdisc, link := setupLinkForTestWithQdisc(t, "foo")
 	filterattrs := FilterAttrs{
 		LinkIndex: link.Attrs().Index,
 		Parent:    HANDLE_MIN_EGRESS,
 		Handle:    MakeHandle(0, 1),
-		Protocol:  syscall.ETH_P_ALL,
+		Protocol:  unix.ETH_P_ALL,
 		Priority:  1,
 	}
 	fd, err := loadSimpleBpf(BPF_PROG_TYPE_SCHED_CLS, 1)
@@ -648,11 +649,82 @@ func TestFilterClsActBpfAddDel(t *testing.T) {
 	if err := QdiscDel(qdisc); err != nil {
 		t.Fatal(err)
 	}
-	qdiscs, err = SafeQdiscList(link)
+	qdiscs, err := SafeQdiscList(link)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(qdiscs) != 0 {
 		t.Fatal("Failed to remove qdisc")
 	}
+}
+
+func TestFilterMatchAllAddDel(t *testing.T) {
+	// This classifier was added in kernel 4.7
+	minKernelRequired(t, 4, 7)
+
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+	_, link := setupLinkForTestWithQdisc(t, "foo")
+	_, link2 := setupLinkForTestWithQdisc(t, "bar")
+	filter := &MatchAll{
+		FilterAttrs: FilterAttrs{
+			LinkIndex: link.Attrs().Index,
+			Parent:    HANDLE_MIN_EGRESS,
+			Priority:  32000,
+			Protocol:  unix.ETH_P_ALL,
+		},
+		Actions: []Action{
+			&MirredAction{
+				ActionAttrs: ActionAttrs{
+					Action: TC_ACT_STOLEN,
+				},
+				MirredAction: TCA_EGRESS_REDIR,
+				Ifindex:      link2.Attrs().Index,
+			},
+		},
+	}
+	if err := FilterAdd(filter); err != nil {
+		t.Fatal(err)
+	}
+
+	filters, err := FilterList(link, HANDLE_MIN_EGRESS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(filters) != 1 {
+		t.Fatal("Failed to add filter")
+	}
+	matchall, ok := filters[0].(*MatchAll)
+	if !ok {
+		t.Fatal("Filter is the wrong type")
+	}
+
+	if matchall.Priority != 32000 {
+		t.Fatal("Filter priority does not match")
+	}
+
+	if len(matchall.Actions) != 1 {
+		t.Fatal("Filter has no actions")
+	}
+
+	mirredAction, ok := matchall.Actions[0].(*MirredAction)
+	if !ok {
+		t.Fatal("Action does not match")
+	}
+
+	if mirredAction.Ifindex != link2.Attrs().Index {
+		t.Fatal("Action ifindex does not match")
+	}
+
+	if err := FilterDel(filter); err != nil {
+		t.Fatal(err)
+	}
+	filters, err = FilterList(link, HANDLE_MIN_EGRESS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(filters) != 0 {
+		t.Fatal("Failed to remove filter")
+	}
+
 }

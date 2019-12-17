@@ -21,10 +21,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	"k8s.io/utils/mount"
+
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utiltesting "k8s.io/client-go/util/testing"
-	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 )
@@ -75,7 +76,7 @@ func TestPlugin(t *testing.T) {
 			},
 		},
 	}
-	mounter, err := plug.(*cephfsPlugin).newMounterInternal(volume.NewSpecFromVolume(spec), types.UID("poduid"), &mount.FakeMounter{}, "secrets")
+	mounter, err := plug.(*cephfsPlugin).newMounterInternal(volume.NewSpecFromVolume(spec), types.UID("poduid"), mount.NewFakeMounter(nil), "secrets")
 	if err != nil {
 		t.Errorf("Failed to make a new Mounter: %v", err)
 	}
@@ -97,7 +98,7 @@ func TestPlugin(t *testing.T) {
 			t.Errorf("SetUp() failed: %v", err)
 		}
 	}
-	unmounter, err := plug.(*cephfsPlugin).newUnmounterInternal("vol1", types.UID("poduid"), &mount.FakeMounter{})
+	unmounter, err := plug.(*cephfsPlugin).newUnmounterInternal("vol1", types.UID("poduid"), mount.NewFakeMounter(nil))
 	if err != nil {
 		t.Errorf("Failed to make a new Unmounter: %v", err)
 	}
@@ -128,6 +129,9 @@ func TestConstructVolumeSpec(t *testing.T) {
 	}
 
 	cephfsSpec, err := plug.(*cephfsPlugin).ConstructVolumeSpec("cephfsVolume", "/cephfsVolume/")
+	if err != nil {
+		t.Errorf("ConstructVolumeSpec() failed: %v", err)
+	}
 
 	if cephfsSpec.Name() != "cephfsVolume" {
 		t.Errorf("Get wrong cephfs spec name, got: %s", cephfsSpec.Name())

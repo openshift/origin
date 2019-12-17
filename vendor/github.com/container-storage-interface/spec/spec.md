@@ -1132,6 +1132,12 @@ This RPC will be called by the CO to deprovision a volume.
 This operation MUST be idempotent.
 If a volume corresponding to the specified `volume_id` does not exist or the artifacts associated with the volume do not exist anymore, the Plugin MUST reply `0 OK`.
 
+CSI plugins SHOULD treat volumes independent from their snapshots.
+
+If the Controller Plugin supports deleting a volume without affecting its existing snapshots, then these snapshots MUST still be fully operational and acceptable as sources for new volumes as well as appear on `ListSnapshot` calls once the volume has been deleted.
+
+When a Controller Plugin does not support deleting a volume without affecting its existing snapshots, then the volume MUST NOT be altered in any way by the request and the operation must return the `FAILED_PRECONDITION` error code and MAY include meaningful human-readable information in the `status.message` field.
+
 ```protobuf
 message DeleteVolumeRequest {
   // The ID of the volume to be deprovisioned.
@@ -1157,7 +1163,7 @@ The CO MUST implement the specified error recovery behavior when it encounters t
 
 | Condition | gRPC Code | Description | Recovery Behavior |
 |-----------|-----------|-------------|-------------------|
-| Volume in use | 9 FAILED_PRECONDITION | Indicates that the volume corresponding to the specified `volume_id` could not be deleted because it is in use by another resource. | Caller SHOULD ensure that there are no other resources using the volume, and then retry with exponential back off. |
+| Volume in use | 9 FAILED_PRECONDITION | Indicates that the volume corresponding to the specified `volume_id` could not be deleted because it is in use by another resource or has snapshots and the plugin doesn't treat them as independent entities. | Caller SHOULD ensure that there are no other resources using the volume and that it has no snapshots, and then retry with exponential back off. |
 
 
 #### `ControllerPublishVolume`
@@ -1251,6 +1257,7 @@ This RPC is typically called by the CO when the workload using the volume is bei
 
 This operation MUST be idempotent.
 If the volume corresponding to the `volume_id` is not attached to the node corresponding to the `node_id`, the Plugin MUST reply `0 OK`.
+If the volume corresponding to the `volume_id` or the node corresponding to `node_id` cannot be found by the Plugin and the volume can be safely regarded as ControllerUnpublished from the node, the plugin SHOULD return `0 OK`.
 If this operation failed, or the CO does not know if the operation failed or not, it can choose to call `ControllerUnpublishVolume` again.
 
 ```protobuf
@@ -1286,8 +1293,8 @@ The CO MUST implement the specified error recovery behavior when it encounters t
 
 | Condition | gRPC Code | Description | Recovery Behavior |
 |-----------|-----------|-------------|-------------------|
-| Volume does not exist | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist. | Caller MUST verify that the `volume_id` is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
-| Node does not exist | 5 NOT_FOUND | Indicates that a node corresponding to the specified `node_id` does not exist. | Caller MUST verify that the `node_id` is correct and that the node is available and has not been terminated or deleted before retrying with exponential backoff. |
+| Volume does not exist and volume not assumed ControllerUnpublished from node | 5 NOT_FOUND | Indicates that a volume corresponding to the specified `volume_id` does not exist and is not assumed to be ControllerUnpublished from node corresponding to the specified `node_id`. | Caller SHOULD verify that the `volume_id` is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
+| Node does not exist and volume not assumed ControllerUnpublished from node  | 5 NOT_FOUND | Indicates that a node corresponding to the specified `node_id` does not exist and the volume corresponding to the specified `volume_id` is not assumed to be ControllerUnpublished from node. | Caller SHOULD verify that the `node_id` is correct and that the node is available and has not been terminated or deleted before retrying with exponential backoff. |
 
 
 #### `ValidateVolumeCapabilities`
@@ -1395,8 +1402,28 @@ message ListVolumesRequest {
 }
 
 message ListVolumesResponse {
+  message VolumeStatus{
+    // A list of all `node_id` of nodes that the volume in this entry
+    // is controller published on.
+    // This field is OPTIONAL. If it is not specified and the SP has
+    // the LIST_VOLUMES_PUBLISHED_NODES controller capability, the CO
+    // MAY assume the volume is not controller published to any nodes.
+    // If the field is not specified and the SP does not have the
+    // LIST_VOLUMES_PUBLISHED_NODES controller capability, the CO MUST
+    // not interpret this field.
+    // published_node_ids MAY include nodes not published to or
+    // reported by the SP. The CO MUST be resilient to that.
+    repeated string published_node_ids = 1;
+  }
+
   message Entry {
+    // This field is REQUIRED
     Volume volume = 1;
+
+    // This field is OPTIONAL. This field MUST be specified if the
+    // LIST_VOLUMES_PUBLISHED_NODES controller capability is
+    // supported.
+    VolumeStatus status = 2;
   }
 
   repeated Entry entries = 1;
@@ -1509,6 +1536,10 @@ message ControllerServiceCapability {
 
       // See VolumeExpansion for details.
       EXPAND_VOLUME = 9;
+
+      // Indicates the SP supports the
+      // ListVolumesResponse.entry.published_nodes field
+      LIST_VOLUMES_PUBLISHED_NODES = 10;
     }
 
     Type type = 1;
@@ -1731,6 +1762,11 @@ message ListSnapshotsRequest {
   // and will not block if the snapshot is being processed after
   // it is cut.
   string snapshot_id = 4;
+
+  // Secrets required by plugin to complete ListSnapshot request.
+  // This field is OPTIONAL. Refer to the `Secrets Requirements`
+  // section on how to use this field.
+  map<string, string> secrets = 5 [(csi_secret) = true];
 }
 
 message ListSnapshotsResponse {
@@ -1768,6 +1804,8 @@ This RPC allows the CO to expand the size of a volume.
 
 This call MAY be made by the CO during any time in the lifecycle of the volume after creation if plugin has `VolumeExpansion.ONLINE` capability.
 If plugin has `EXPAND_VOLUME` node capability, then `NodeExpandVolume` MUST be called after successful `ControllerExpandVolume` and `node_expansion_required` in `ControllerExpandVolumeResponse` is `true`.
+
+If specified, the `volume_capability` in `ControllerExpandVolumeRequest` should be same as what CO would pass in `ControllerPublishVolumeRequest`.
 
 If the plugin has only `VolumeExpansion.OFFLINE` expansion capability and volume is currently published or available on a node then `ControllerExpandVolume` MUST be called ONLY after either:
 - The plugin has controller `PUBLISH_UNPUBLISH_VOLUME` capability and `ControllerUnpublishVolume` has been invoked successfully.
@@ -1809,6 +1847,15 @@ message ControllerExpandVolumeRequest {
   // Secrets required by the plugin for expanding the volume.
   // This field is OPTIONAL.
   map<string, string> secrets = 3 [(csi_secret) = true];
+
+  // Volume capability describing how the CO intends to use this volume.
+  // This allows SP to determine if volume is being used as a block
+  // device or mounted file system. For example - if volume is
+  // being used as a block device - the SP MAY set
+  // node_expansion_required to false in ControllerExpandVolumeResponse
+  // to skip invocation of NodeExpandVolume on the node by the CO.
+  // This is an OPTIONAL field.
+  VolumeCapability volume_capability = 4;
 }
 
 message ControllerExpandVolumeResponse {
@@ -1826,6 +1873,7 @@ message ControllerExpandVolumeResponse {
 
 | Condition | gRPC Code | Description | Recovery Behavior |
 |-----------|-----------|-------------|-------------------|
+| Exceeds capabilities | 3 INVALID_ARGUMENT | Indicates that CO has specified capabilities not supported by the volume. | Caller MAY verify volume capabilities by calling ValidateVolumeCapabilities and retry with matching capabilities. |
 | Volume does not exist | 5 NOT FOUND | Indicates that a volume corresponding to the specified volume_id does not exist. | Caller MUST verify that the volume_id is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
 | Volume in use | 9 FAILED_PRECONDITION | Indicates that the volume corresponding to the specified `volume_id` could not be expanded because it is currently published on a node but the plugin does not have ONLINE expansion capability. | Caller SHOULD ensure that volume is not published and retry with exponential back off. |
 | Unsupported `capacity_range` | 11 OUT_OF_RANGE | Indicates that the capacity range is not allowed by the Plugin. More human-readable information MAY be provided in the gRPC `status.message` field. | Caller MUST fix the capacity range before retrying. |
@@ -2134,6 +2182,9 @@ A Node plugin MUST implement this RPC call if it has GET_VOLUME_STATS node capab
 If the volume is being used in `BlockVolume` mode then `used` and `available` MAY be omitted from `usage` field of `NodeGetVolumeStatsResponse`.
 Similarly, inode information MAY be omitted from `NodeGetVolumeStatsResponse` when unavailable.
 
+The `staging_target_path` field is not required, for backwards compatibility, but the CO SHOULD supply it.
+Plugins can use this field to determine if `volume_path` is where the volume is published or staged,
+and setting this field to non-empty allows plugins to function with less stored state on the node.
 
 ```protobuf
 message NodeGetVolumeStatsRequest {
@@ -2146,6 +2197,13 @@ message NodeGetVolumeStatsRequest {
   // the process serving this request.
   // This is a REQUIRED field.
   string volume_path = 2;
+
+  // The path where the volume is staged, if the plugin has the
+  // STAGE_UNSTAGE_VOLUME capability, otherwise empty.
+  // If not empty, it MUST be an absolute path in the root
+  // filesystem of the process serving this request.
+  // This field is OPTIONAL.
+  string staging_target_path = 3;
 }
 
 message NodeGetVolumeStatsResponse {
@@ -2303,6 +2361,10 @@ Otherwise `NodeExpandVolume` MUST be called after successful `NodePublishVolume`
 
 If a plugin only supports expansion via the `VolumeExpansion.OFFLINE` capability, then the volume MUST first be taken offline and expanded via `ControllerExpandVolume` (see `ControllerExpandVolume` for more details), and then node-staged or node-published before it can be expanded on the node via `NodeExpandVolume`.
 
+The `staging_target_path` field is not required, for backwards compatibility, but the CO SHOULD supply it.
+Plugins can use this field to determine if `volume_path` is where the volume is published or staged,
+and setting this field to non-empty allows plugins to function with less stored state on the node.
+
 ```protobuf
 message NodeExpandVolumeRequest {
   // The ID of the volume. This field is REQUIRED.
@@ -2318,6 +2380,24 @@ message NodeExpandVolumeRequest {
   // plugin MAY expand the volume to its maximum capacity.
   // This field is OPTIONAL.
   CapacityRange capacity_range = 3;
+
+  // The path where the volume is staged, if the plugin has the
+  // STAGE_UNSTAGE_VOLUME capability, otherwise empty.
+  // If not empty, it MUST be an absolute path in the root
+  // filesystem of the process serving this request.
+  // This field is OPTIONAL.
+  string staging_target_path = 4;
+
+  // Volume capability describing how the CO intends to use this volume.
+  // This allows SP to determine if volume is being used as a block
+  // device or mounted file system. For example - if volume is being
+  // used as a block device the SP MAY choose to skip expanding the
+  // filesystem in NodeExpandVolume implementation but still perform
+  // rest of the housekeeping needed for expanding the volume. If
+  // volume_capability is omitted the SP MAY determine
+  // access_type from given volume_path for the volume and perform
+  // node expansion. This is an OPTIONAL field.
+  VolumeCapability volume_capability = 5;
 }
 
 message NodeExpandVolumeResponse {
@@ -2330,6 +2410,7 @@ message NodeExpandVolumeResponse {
 
 | Condition             | gRPC code | Description           | Recovery Behavior                 |
 |-----------------------|-----------|-----------------------|-----------------------------------|
+| Exceeds capabilities | 3 INVALID_ARGUMENT | Indicates that CO has specified capabilities not supported by the volume. | Caller MAY verify volume capabilities by calling ValidateVolumeCapabilities and retry with matching capabilities. |
 | Volume does not exist | 5 NOT FOUND | Indicates that a volume corresponding to the specified volume_id does not exist. | Caller MUST verify that the volume_id is correct and that the volume is accessible and has not been deleted before retrying with exponential back off. |
 | Volume in use | 9 FAILED_PRECONDITION | Indicates that the volume corresponding to the specified `volume_id` could not be expanded because it is node-published or node-staged and the underlying filesystem does not support expansion of published or staged volumes. | Caller MUST NOT retry. |
 | Unsupported capacity_range | 11 OUT_OF_RANGE | Indicates that the capacity range is not allowed by the Plugin. More human-readable information MAY be provided in the gRPC `status.message` field. | Caller MUST fix the capacity range before retrying. |

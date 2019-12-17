@@ -19,14 +19,13 @@ package e2e_node
 import (
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/features"
 	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	"k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	testutils "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
@@ -38,9 +37,12 @@ const (
 	defaultObservationTimeout = time.Minute * 4
 )
 
-var _ = framework.KubeDescribe("StartupProbe [Serial] [Disruptive] [NodeFeature:StartupProbe]", func() {
-	f := framework.NewDefaultFramework("critical-pod-test")
+var _ = framework.KubeDescribe("StartupProbe [Serial] [Disruptive] [NodeAlphaFeature:StartupProbe]", func() {
+	f := framework.NewDefaultFramework("startup-probe-test")
 	var podClient *framework.PodClient
+	ginkgo.BeforeEach(func() {
+		podClient = f.PodClient()
+	})
 
 	/*
 		These tests are located here as they require tempSetCurrentKubeletConfig to enable the feature gate for startupProbe.
@@ -56,15 +58,15 @@ var _ = framework.KubeDescribe("StartupProbe [Serial] [Disruptive] [NodeFeature:
 
 		/*
 			Release : v1.16
-			Testname: Pod liveness probe, using local file, delayed by startup probe
-			Description: A Pod is created with liveness probe that uses ‘exec’ command to cat the non-existent /tmp/health file. Liveness probe MUST NOT fail until startup probe expires.
+			Testname: Pod startup probe restart
+			Description: A Pod is created with a failing startup probe. The Pod MUST be killed and restarted incrementing restart count to 1, even if liveness would succeed.
 		*/
-		framework.ConformanceIt("should *not* be restarted with a exec \"cat /tmp/health\" because startup probe delays it [NodeConformance]", func() {
+		framework.ConformanceIt("should be restarted startup probe fails [NodeConformance]", func() {
 			cmd := []string{"/bin/sh", "-c", "sleep 600"}
 			livenessProbe := &v1.Probe{
 				Handler: v1.Handler{
 					Exec: &v1.ExecAction{
-						Command: []string{"cat", "/tmp/health"},
+						Command: []string{"/bin/true"},
 					},
 				},
 				InitialDelaySeconds: 15,
@@ -73,36 +75,7 @@ var _ = framework.KubeDescribe("StartupProbe [Serial] [Disruptive] [NodeFeature:
 			startupProbe := &v1.Probe{
 				Handler: v1.Handler{
 					Exec: &v1.ExecAction{
-						Command: []string{"cat", "/tmp/health"},
-					},
-				},
-				InitialDelaySeconds: 15,
-				FailureThreshold:    60,
-			}
-			pod := startupPodSpec(startupProbe, nil, livenessProbe, cmd)
-			common.RunLivenessTest(f, pod, 0, defaultObservationTimeout)
-		})
-
-		/*
-			Release : v1.16
-			Testname: Pod liveness probe, using local file, delayed by startup probe
-			Description: A Pod is created with liveness probe that uses ‘exec’ command to cat the non-existent /tmp/health file. Liveness probe MUST fail after startup probe expires. The Pod MUST now be killed and restarted incrementing restart count to 1.
-		*/
-		framework.ConformanceIt("should be restarted with a exec \"cat /tmp/health\" because startup probe does not delay it long enough [NodeConformance]", func() {
-			cmd := []string{"/bin/sh", "-c", "sleep 600"}
-			livenessProbe := &v1.Probe{
-				Handler: v1.Handler{
-					Exec: &v1.ExecAction{
-						Command: []string{"cat", "/tmp/health"},
-					},
-				},
-				InitialDelaySeconds: 15,
-				FailureThreshold:    1,
-			}
-			startupProbe := &v1.Probe{
-				Handler: v1.Handler{
-					Exec: &v1.ExecAction{
-						Command: []string{"cat", "/tmp/health"},
+						Command: []string{"/bin/false"},
 					},
 				},
 				InitialDelaySeconds: 15,
@@ -114,15 +87,44 @@ var _ = framework.KubeDescribe("StartupProbe [Serial] [Disruptive] [NodeFeature:
 
 		/*
 			Release : v1.16
-			Testname: Pod liveness probe, using local file, startup finished restart
-			Description: A Pod is created with liveness probe that uses ‘exec’ command to cat /temp/health file. The Container is started by creating /tmp/startup after 10 seconds, triggering liveness probe to fail. The Pod MUST now be killed and restarted incrementing restart count to 1.
+			Testname: Pod liveness probe delayed (long) by startup probe
+			Description: A Pod is created with failing liveness and startup probes. Liveness probe MUST NOT fail until startup probe expires.
 		*/
-		framework.ConformanceIt("should be restarted with a exec \"cat /tmp/health\" after startup probe succeeds it [NodeConformance]", func() {
+		framework.ConformanceIt("should *not* be restarted by liveness probe because startup probe delays it [NodeConformance]", func() {
+			cmd := []string{"/bin/sh", "-c", "sleep 600"}
+			livenessProbe := &v1.Probe{
+				Handler: v1.Handler{
+					Exec: &v1.ExecAction{
+						Command: []string{"/bin/false"},
+					},
+				},
+				InitialDelaySeconds: 15,
+				FailureThreshold:    1,
+			}
+			startupProbe := &v1.Probe{
+				Handler: v1.Handler{
+					Exec: &v1.ExecAction{
+						Command: []string{"/bin/false"},
+					},
+				},
+				InitialDelaySeconds: 15,
+				FailureThreshold:    60,
+			}
+			pod := startupPodSpec(startupProbe, nil, livenessProbe, cmd)
+			common.RunLivenessTest(f, pod, 0, defaultObservationTimeout)
+		})
+
+		/*
+			Release : v1.16
+			Testname: Pod liveness probe fails after startup success
+			Description: A Pod is created with failing liveness probe and delayed startup probe that uses ‘exec’ command to cat /temp/health file. The Container is started by creating /tmp/startup after 10 seconds, triggering liveness probe to fail. The Pod MUST now be killed and restarted incrementing restart count to 1.
+		*/
+		framework.ConformanceIt("should be restarted by liveness probe after startup probe enables it [NodeConformance]", func() {
 			cmd := []string{"/bin/sh", "-c", "sleep 10; echo ok >/tmp/startup; sleep 600"}
 			livenessProbe := &v1.Probe{
 				Handler: v1.Handler{
 					Exec: &v1.ExecAction{
-						Command: []string{"cat", "/tmp/health"},
+						Command: []string{"/bin/false"},
 					},
 				},
 				InitialDelaySeconds: 15,
@@ -171,6 +173,10 @@ var _ = framework.KubeDescribe("StartupProbe [Serial] [Disruptive] [NodeFeature:
 			framework.ExpectNoError(err)
 
 			f.WaitForPodReady(p.Name)
+
+			p, err = podClient.Get(p.Name, metav1.GetOptions{})
+			framework.ExpectNoError(err)
+
 			isReady, err := testutils.PodRunningReady(p)
 			framework.ExpectNoError(err)
 			gomega.Expect(isReady).To(gomega.BeTrue(), "pod should be ready")
@@ -182,9 +188,9 @@ var _ = framework.KubeDescribe("StartupProbe [Serial] [Disruptive] [NodeFeature:
 			startedTime, err := common.GetContainerStartedTime(p, "busybox")
 			framework.ExpectNoError(err)
 
-			e2elog.Logf("Container started at %v, pod became ready at %v", startedTime, readyTime)
+			framework.Logf("Container started at %v, pod became ready at %v", startedTime, readyTime)
 			if readyTime.Sub(startedTime) < 40*time.Second {
-				e2elog.Failf("Pod became ready before startupProbe succeeded")
+				framework.Failf("Pod became ready before startupProbe succeeded")
 			}
 		})
 	})

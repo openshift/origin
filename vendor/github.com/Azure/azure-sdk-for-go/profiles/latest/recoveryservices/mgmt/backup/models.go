@@ -265,14 +265,16 @@ const (
 type JobOperationType = original.JobOperationType
 
 const (
-	JobOperationTypeBackup           JobOperationType = original.JobOperationTypeBackup
-	JobOperationTypeConfigureBackup  JobOperationType = original.JobOperationTypeConfigureBackup
-	JobOperationTypeDeleteBackupData JobOperationType = original.JobOperationTypeDeleteBackupData
-	JobOperationTypeDisableBackup    JobOperationType = original.JobOperationTypeDisableBackup
-	JobOperationTypeInvalid          JobOperationType = original.JobOperationTypeInvalid
-	JobOperationTypeRegister         JobOperationType = original.JobOperationTypeRegister
-	JobOperationTypeRestore          JobOperationType = original.JobOperationTypeRestore
-	JobOperationTypeUnRegister       JobOperationType = original.JobOperationTypeUnRegister
+	JobOperationTypeBackup             JobOperationType = original.JobOperationTypeBackup
+	JobOperationTypeConfigureBackup    JobOperationType = original.JobOperationTypeConfigureBackup
+	JobOperationTypeCrossRegionRestore JobOperationType = original.JobOperationTypeCrossRegionRestore
+	JobOperationTypeDeleteBackupData   JobOperationType = original.JobOperationTypeDeleteBackupData
+	JobOperationTypeDisableBackup      JobOperationType = original.JobOperationTypeDisableBackup
+	JobOperationTypeInvalid            JobOperationType = original.JobOperationTypeInvalid
+	JobOperationTypeRegister           JobOperationType = original.JobOperationTypeRegister
+	JobOperationTypeRestore            JobOperationType = original.JobOperationTypeRestore
+	JobOperationTypeUndelete           JobOperationType = original.JobOperationTypeUndelete
+	JobOperationTypeUnRegister         JobOperationType = original.JobOperationTypeUnRegister
 )
 
 type JobStatus = original.JobStatus
@@ -390,8 +392,9 @@ const (
 type ObjectTypeBasicILRRequest = original.ObjectTypeBasicILRRequest
 
 const (
-	ObjectTypeIaasVMILRRegistrationRequest ObjectTypeBasicILRRequest = original.ObjectTypeIaasVMILRRegistrationRequest
-	ObjectTypeILRRequest                   ObjectTypeBasicILRRequest = original.ObjectTypeILRRequest
+	ObjectTypeAzureFileShareProvisionILRRequest ObjectTypeBasicILRRequest = original.ObjectTypeAzureFileShareProvisionILRRequest
+	ObjectTypeIaasVMILRRegistrationRequest      ObjectTypeBasicILRRequest = original.ObjectTypeIaasVMILRRegistrationRequest
+	ObjectTypeILRRequest                        ObjectTypeBasicILRRequest = original.ObjectTypeILRRequest
 )
 
 type ObjectTypeBasicOperationStatusExtendedInfo = original.ObjectTypeBasicOperationStatusExtendedInfo
@@ -501,7 +504,6 @@ const (
 	ProtectableItemTypeIaaSVMProtectableItem                  ProtectableItemType = original.ProtectableItemTypeIaaSVMProtectableItem
 	ProtectableItemTypeMicrosoftClassicComputevirtualMachines ProtectableItemType = original.ProtectableItemTypeMicrosoftClassicComputevirtualMachines
 	ProtectableItemTypeMicrosoftComputevirtualMachines        ProtectableItemType = original.ProtectableItemTypeMicrosoftComputevirtualMachines
-	ProtectableItemTypeSAPAseDatabase                         ProtectableItemType = original.ProtectableItemTypeSAPAseDatabase
 	ProtectableItemTypeSAPAseSystem                           ProtectableItemType = original.ProtectableItemTypeSAPAseSystem
 	ProtectableItemTypeSAPHanaDatabase                        ProtectableItemType = original.ProtectableItemTypeSAPHanaDatabase
 	ProtectableItemTypeSAPHanaSystem                          ProtectableItemType = original.ProtectableItemTypeSAPHanaSystem
@@ -581,6 +583,14 @@ const (
 	ProtectionStatusProtectionFailed ProtectionStatus = original.ProtectionStatusProtectionFailed
 )
 
+type RecoveryMode = original.RecoveryMode
+
+const (
+	RecoveryModeFileRecovery     RecoveryMode = original.RecoveryModeFileRecovery
+	RecoveryModeInvalid          RecoveryMode = original.RecoveryModeInvalid
+	RecoveryModeWorkloadRecovery RecoveryMode = original.RecoveryModeWorkloadRecovery
+)
+
 type RecoveryPointTierStatus = original.RecoveryPointTierStatus
 
 const (
@@ -603,6 +613,7 @@ type RecoveryType = original.RecoveryType
 const (
 	RecoveryTypeAlternateLocation RecoveryType = original.RecoveryTypeAlternateLocation
 	RecoveryTypeInvalid           RecoveryType = original.RecoveryTypeInvalid
+	RecoveryTypeOffline           RecoveryType = original.RecoveryTypeOffline
 	RecoveryTypeOriginalLocation  RecoveryType = original.RecoveryTypeOriginalLocation
 	RecoveryTypeRestoreDisks      RecoveryType = original.RecoveryTypeRestoreDisks
 )
@@ -684,6 +695,14 @@ const (
 	ScheduleRunTypeDaily   ScheduleRunType = original.ScheduleRunTypeDaily
 	ScheduleRunTypeInvalid ScheduleRunType = original.ScheduleRunTypeInvalid
 	ScheduleRunTypeWeekly  ScheduleRunType = original.ScheduleRunTypeWeekly
+)
+
+type SoftDeleteFeatureState = original.SoftDeleteFeatureState
+
+const (
+	SoftDeleteFeatureStateDisabled SoftDeleteFeatureState = original.SoftDeleteFeatureStateDisabled
+	SoftDeleteFeatureStateEnabled  SoftDeleteFeatureState = original.SoftDeleteFeatureStateEnabled
+	SoftDeleteFeatureStateInvalid  SoftDeleteFeatureState = original.SoftDeleteFeatureStateInvalid
 )
 
 type StorageType = original.StorageType
@@ -811,6 +830,7 @@ type AzureBackupServerEngine = original.AzureBackupServerEngine
 type AzureFileShareBackupRequest = original.AzureFileShareBackupRequest
 type AzureFileShareProtectableItem = original.AzureFileShareProtectableItem
 type AzureFileShareProtectionPolicy = original.AzureFileShareProtectionPolicy
+type AzureFileShareProvisionILRRequest = original.AzureFileShareProvisionILRRequest
 type AzureFileShareRecoveryPoint = original.AzureFileShareRecoveryPoint
 type AzureFileShareRestoreRequest = original.AzureFileShareRestoreRequest
 type AzureFileshareProtectedItem = original.AzureFileshareProtectedItem
@@ -851,7 +871,6 @@ type AzureVMWorkloadProtectableItem = original.AzureVMWorkloadProtectableItem
 type AzureVMWorkloadProtectedItem = original.AzureVMWorkloadProtectedItem
 type AzureVMWorkloadProtectedItemExtendedInfo = original.AzureVMWorkloadProtectedItemExtendedInfo
 type AzureVMWorkloadProtectionPolicy = original.AzureVMWorkloadProtectionPolicy
-type AzureVMWorkloadSAPAseDatabaseProtectableItem = original.AzureVMWorkloadSAPAseDatabaseProtectableItem
 type AzureVMWorkloadSAPAseDatabaseProtectedItem = original.AzureVMWorkloadSAPAseDatabaseProtectedItem
 type AzureVMWorkloadSAPAseDatabaseWorkloadItem = original.AzureVMWorkloadSAPAseDatabaseWorkloadItem
 type AzureVMWorkloadSAPAseSystemProtectableItem = original.AzureVMWorkloadSAPAseSystemProtectableItem
@@ -953,6 +972,8 @@ type DPMProtectedItemExtendedInfo = original.DPMProtectedItemExtendedInfo
 type DailyRetentionFormat = original.DailyRetentionFormat
 type DailyRetentionSchedule = original.DailyRetentionSchedule
 type Day = original.Day
+type DiskExclusionProperties = original.DiskExclusionProperties
+type DiskInformation = original.DiskInformation
 type DistributedNodesInfo = original.DistributedNodesInfo
 type DpmBackupEngine = original.DpmBackupEngine
 type DpmContainer = original.DpmContainer
@@ -971,6 +992,7 @@ type EnginesClient = original.EnginesClient
 type ErrorDetail = original.ErrorDetail
 type ExportJobsOperationResultInfo = original.ExportJobsOperationResultInfo
 type ExportJobsOperationResultsClient = original.ExportJobsOperationResultsClient
+type ExtendedProperties = original.ExtendedProperties
 type FeatureSupportClient = original.FeatureSupportClient
 type FeatureSupportRequest = original.FeatureSupportRequest
 type GenericContainer = original.GenericContainer
@@ -990,6 +1012,7 @@ type IaasVMRestoreRequest = original.IaasVMRestoreRequest
 type InquiryInfo = original.InquiryInfo
 type InquiryValidation = original.InquiryValidation
 type InstantItemRecoveryTarget = original.InstantItemRecoveryTarget
+type InstantRPAdditionalDetails = original.InstantRPAdditionalDetails
 type ItemLevelRecoveryConnectionsClient = original.ItemLevelRecoveryConnectionsClient
 type Job = original.Job
 type JobCancellationsClient = original.JobCancellationsClient
@@ -1084,6 +1107,7 @@ type ProtectionPolicyResourceList = original.ProtectionPolicyResourceList
 type ProtectionPolicyResourceListIterator = original.ProtectionPolicyResourceListIterator
 type ProtectionPolicyResourceListPage = original.ProtectionPolicyResourceListPage
 type RecoveryPoint = original.RecoveryPoint
+type RecoveryPointDiskConfiguration = original.RecoveryPointDiskConfiguration
 type RecoveryPointResource = original.RecoveryPointResource
 type RecoveryPointResourceList = original.RecoveryPointResourceList
 type RecoveryPointResourceListIterator = original.RecoveryPointResourceListIterator
@@ -1577,6 +1601,9 @@ func PossibleProtectionStateValues() []ProtectionState {
 func PossibleProtectionStatusValues() []ProtectionStatus {
 	return original.PossibleProtectionStatusValues()
 }
+func PossibleRecoveryModeValues() []RecoveryMode {
+	return original.PossibleRecoveryModeValues()
+}
 func PossibleRecoveryPointTierStatusValues() []RecoveryPointTierStatus {
 	return original.PossibleRecoveryPointTierStatusValues()
 }
@@ -1612,6 +1639,9 @@ func PossibleSchedulePolicyTypeValues() []SchedulePolicyType {
 }
 func PossibleScheduleRunTypeValues() []ScheduleRunType {
 	return original.PossibleScheduleRunTypeValues()
+}
+func PossibleSoftDeleteFeatureStateValues() []SoftDeleteFeatureState {
+	return original.PossibleSoftDeleteFeatureStateValues()
 }
 func PossibleStorageTypeStateValues() []StorageTypeState {
 	return original.PossibleStorageTypeStateValues()

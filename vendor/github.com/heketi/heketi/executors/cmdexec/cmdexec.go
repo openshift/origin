@@ -26,7 +26,7 @@ var (
 )
 
 type RemoteCommandTransport interface {
-	ExecCommands(host string, commands []string, timeoutMinutes int) (rex.Results, error)
+	ExecCommands(host string, commands rex.Cmds, timeoutMinutes int) (rex.Results, error)
 	RebalanceOnExpansion() bool
 	SnapShotLimit() int
 	GlusterCliTimeout() uint32

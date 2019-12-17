@@ -63,6 +63,8 @@ func init() {
 	// Register the summary and the histogram with Prometheus's default registry.
 	prometheus.MustRegister(rpcDurations)
 	prometheus.MustRegister(rpcDurationsHistogram)
+	// Add Go module build info.
+	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }
 
 func main() {

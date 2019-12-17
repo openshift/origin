@@ -120,16 +120,20 @@ func (client PathClient) Create(ctx context.Context, filesystem string, pathPara
 	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: xMsLeaseID,
-			Constraints: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: xMsProposedLeaseID,
-			Constraints: []validation.Constraint{{Target: "xMsProposedLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsProposedLeaseID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsProposedLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: xMsSourceLeaseID,
-			Constraints: []validation.Constraint{{Target: "xMsSourceLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsSourceLeaseID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsSourceLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: filesystem,
 			Constraints: []validation.Constraint{{Target: "filesystem", Name: validation.MaxLength, Rule: 63, Chain: nil},
 				{Target: "filesystem", Name: validation.MinLength, Rule: 3, Chain: nil}}},
 		{TargetValue: xMsClientRequestID,
-			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "timeout", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}}}); err != nil {
@@ -185,7 +189,7 @@ func (client PathClient) CreatePreparer(ctx context.Context, filesystem string, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsPut(),
-		autorest.WithCustomBaseURL("http://{accountName}.{dnsSuffix}", urlParameters),
+		autorest.WithCustomBaseURL("https://{accountName}.{dnsSuffix}", urlParameters),
 		autorest.WithPathParameters("/{filesystem}/{path}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	if len(cacheControl) > 0 {
@@ -354,12 +358,14 @@ func (client PathClient) Delete(ctx context.Context, filesystem string, pathPara
 	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: xMsLeaseID,
-			Constraints: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: filesystem,
 			Constraints: []validation.Constraint{{Target: "filesystem", Name: validation.MaxLength, Rule: 63, Chain: nil},
 				{Target: "filesystem", Name: validation.MinLength, Rule: 3, Chain: nil}}},
 		{TargetValue: xMsClientRequestID,
-			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "timeout", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}}}); err != nil {
@@ -412,7 +418,7 @@ func (client PathClient) DeletePreparer(ctx context.Context, filesystem string, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithCustomBaseURL("http://{accountName}.{dnsSuffix}", urlParameters),
+		autorest.WithCustomBaseURL("https://{accountName}.{dnsSuffix}", urlParameters),
 		autorest.WithPathParameters("/{filesystem}/{path}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	if len(xMsLeaseID) > 0 {
@@ -508,7 +514,8 @@ func (client PathClient) GetProperties(ctx context.Context, filesystem string, p
 			Constraints: []validation.Constraint{{Target: "filesystem", Name: validation.MaxLength, Rule: 63, Chain: nil},
 				{Target: "filesystem", Name: validation.MinLength, Rule: 3, Chain: nil}}},
 		{TargetValue: xMsClientRequestID,
-			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "timeout", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}}}); err != nil {
@@ -558,7 +565,7 @@ func (client PathClient) GetPropertiesPreparer(ctx context.Context, filesystem s
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsHead(),
-		autorest.WithCustomBaseURL("http://{accountName}.{dnsSuffix}", urlParameters),
+		autorest.WithCustomBaseURL("https://{accountName}.{dnsSuffix}", urlParameters),
 		autorest.WithPathParameters("/{filesystem}/{path}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	if len(ifMatch) > 0 {
@@ -661,14 +668,17 @@ func (client PathClient) Lease(ctx context.Context, xMsLeaseAction PathLeaseActi
 	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: xMsLeaseID,
-			Constraints: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: xMsProposedLeaseID,
-			Constraints: []validation.Constraint{{Target: "xMsProposedLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsProposedLeaseID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsProposedLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: filesystem,
 			Constraints: []validation.Constraint{{Target: "filesystem", Name: validation.MaxLength, Rule: 63, Chain: nil},
 				{Target: "filesystem", Name: validation.MinLength, Rule: 3, Chain: nil}}},
 		{TargetValue: xMsClientRequestID,
-			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "timeout", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}}}); err != nil {
@@ -715,17 +725,17 @@ func (client PathClient) LeasePreparer(ctx context.Context, xMsLeaseAction PathL
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsPost(),
-		autorest.WithCustomBaseURL("http://{accountName}.{dnsSuffix}", urlParameters),
+		autorest.WithCustomBaseURL("https://{accountName}.{dnsSuffix}", urlParameters),
 		autorest.WithPathParameters("/{filesystem}/{path}", pathParameters),
 		autorest.WithQueryParameters(queryParameters),
 		autorest.WithHeader("x-ms-lease-action", autorest.String(xMsLeaseAction)))
 	if xMsLeaseDuration != nil {
 		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithHeader("x-ms-lease-duration", autorest.String(xMsLeaseDuration)))
+			autorest.WithHeader("x-ms-lease-duration", autorest.String(*xMsLeaseDuration)))
 	}
 	if xMsLeaseBreakPeriod != nil {
 		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithHeader("x-ms-lease-break-period", autorest.String(xMsLeaseBreakPeriod)))
+			autorest.WithHeader("x-ms-lease-break-period", autorest.String(*xMsLeaseBreakPeriod)))
 	}
 	if len(xMsLeaseID) > 0 {
 		preparer = autorest.DecoratePreparer(preparer,
@@ -821,7 +831,8 @@ func (client PathClient) List(ctx context.Context, recursive bool, filesystem st
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}},
 		{TargetValue: xMsClientRequestID,
-			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "timeout", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}}}); err != nil {
@@ -879,7 +890,7 @@ func (client PathClient) ListPreparer(ctx context.Context, recursive bool, files
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithCustomBaseURL("http://{accountName}.{dnsSuffix}", urlParameters),
+		autorest.WithCustomBaseURL("https://{accountName}.{dnsSuffix}", urlParameters),
 		autorest.WithPathParameters("/{filesystem}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	if len(xMsClientRequestID) > 0 {
@@ -955,7 +966,8 @@ func (client PathClient) Read(ctx context.Context, filesystem string, pathParame
 			Constraints: []validation.Constraint{{Target: "filesystem", Name: validation.MaxLength, Rule: 63, Chain: nil},
 				{Target: "filesystem", Name: validation.MinLength, Rule: 3, Chain: nil}}},
 		{TargetValue: xMsClientRequestID,
-			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "timeout", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}}}); err != nil {
@@ -1002,7 +1014,7 @@ func (client PathClient) ReadPreparer(ctx context.Context, filesystem string, pa
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithCustomBaseURL("http://{accountName}.{dnsSuffix}", urlParameters),
+		autorest.WithCustomBaseURL("https://{accountName}.{dnsSuffix}", urlParameters),
 		autorest.WithPathParameters("/{filesystem}/{path}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	if len(rangeParameter) > 0 {
@@ -1160,12 +1172,14 @@ func (client PathClient) Update(ctx context.Context, action PathUpdateAction, fi
 	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: xMsLeaseID,
-			Constraints: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsLeaseID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: filesystem,
 			Constraints: []validation.Constraint{{Target: "filesystem", Name: validation.MaxLength, Rule: 63, Chain: nil},
 				{Target: "filesystem", Name: validation.MinLength, Rule: 3, Chain: nil}}},
 		{TargetValue: xMsClientRequestID,
-			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "xMsClientRequestID", Name: validation.Pattern, Rule: `^[{(]?[0-9a-f]{8}[-]?([0-9a-f]{4}[-]?){3}[0-9a-f]{12}[)}]?$`, Chain: nil}}}}},
 		{TargetValue: timeout,
 			Constraints: []validation.Constraint{{Target: "timeout", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "timeout", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}}}); err != nil {
@@ -1221,7 +1235,7 @@ func (client PathClient) UpdatePreparer(ctx context.Context, action PathUpdateAc
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/octet-stream"),
 		autorest.AsPatch(),
-		autorest.WithCustomBaseURL("http://{accountName}.{dnsSuffix}", urlParameters),
+		autorest.WithCustomBaseURL("https://{accountName}.{dnsSuffix}", urlParameters),
 		autorest.WithPathParameters("/{filesystem}/{path}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	if requestBody != nil {

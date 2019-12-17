@@ -397,7 +397,7 @@ func (runner *runner) runContext(ctx context.Context, op operation, args []strin
 	iptablesCmd := iptablesCommand(runner.protocol)
 	fullArgs := append(runner.waitFlag, string(op))
 	fullArgs = append(fullArgs, args...)
-	klog.V(5).Infof("running iptables %s %v", string(op), args)
+	klog.V(5).Infof("running iptables: %s %v", iptablesCmd, fullArgs)
 	if ctx == nil {
 		return runner.exec.Command(iptablesCmd, fullArgs...).CombinedOutput()
 	}
@@ -579,6 +579,8 @@ func makeFullArgs(table Table, chain Chain, args ...string) []string {
 	return append([]string{string(chain), "-t", string(table)}, args...)
 }
 
+const iptablesVersionPattern = `v([0-9]+(\.[0-9]+)+)`
+
 // getIPTablesVersion runs "iptables --version" and parses the returned version
 func getIPTablesVersion(exec utilexec.Interface, protocol Protocol) (*utilversion.Version, error) {
 	// this doesn't access mutable state so we don't need to use the interface / runner
@@ -587,7 +589,7 @@ func getIPTablesVersion(exec utilexec.Interface, protocol Protocol) (*utilversio
 	if err != nil {
 		return nil, err
 	}
-	versionMatcher := regexp.MustCompile("v([0-9]+(\\.[0-9]+)+)")
+	versionMatcher := regexp.MustCompile(iptablesVersionPattern)
 	match := versionMatcher.FindStringSubmatch(string(bytes))
 	if match == nil {
 		return nil, fmt.Errorf("no iptables version found in string: %s", bytes)
@@ -647,7 +649,7 @@ func getIPTablesRestoreVersionString(exec utilexec.Interface, protocol Protocol)
 	if err != nil {
 		return "", err
 	}
-	versionMatcher := regexp.MustCompile("v([0-9]+(\\.[0-9]+)+)")
+	versionMatcher := regexp.MustCompile(iptablesVersionPattern)
 	match := versionMatcher.FindStringSubmatch(string(bytes))
 	if match == nil {
 		return "", fmt.Errorf("no iptables version found in string: %s", bytes)

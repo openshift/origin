@@ -96,7 +96,7 @@ func TestPush(t *testing.T) {
 	if lastMethod != "PUT" {
 		t.Error("want method PUT for Push, got", lastMethod)
 	}
-	if bytes.Compare(lastBody, wantBody) != 0 {
+	if !bytes.Equal(lastBody, wantBody) {
 		t.Errorf("got body %v, want %v", lastBody, wantBody)
 	}
 	if lastPath != "/metrics/job/testjob" {
@@ -113,7 +113,7 @@ func TestPush(t *testing.T) {
 	if lastMethod != "POST" {
 		t.Error("want method POST for Add, got", lastMethod)
 	}
-	if bytes.Compare(lastBody, wantBody) != 0 {
+	if !bytes.Equal(lastBody, wantBody) {
 		t.Errorf("got body %v, want %v", lastBody, wantBody)
 	}
 	if lastPath != "/metrics/job/testjob" {
@@ -170,7 +170,7 @@ func TestPush(t *testing.T) {
 	if lastMethod != "PUT" {
 		t.Error("want method PUT for Push, got", lastMethod)
 	}
-	if bytes.Compare(lastBody, wantBody) != 0 {
+	if !bytes.Equal(lastBody, wantBody) {
 		t.Errorf("got body %v, want %v", lastBody, wantBody)
 	}
 
@@ -185,7 +185,7 @@ func TestPush(t *testing.T) {
 	if lastMethod != "POST" {
 		t.Error("want method POST for Add, got", lastMethod)
 	}
-	if bytes.Compare(lastBody, wantBody) != 0 {
+	if !bytes.Equal(lastBody, wantBody) {
 		t.Errorf("got body %v, want %v", lastBody, wantBody)
 	}
 	if lastPath != "/metrics/job/testjob/a/x/b/y" && lastPath != "/metrics/job/testjob/b/y/a/x" {

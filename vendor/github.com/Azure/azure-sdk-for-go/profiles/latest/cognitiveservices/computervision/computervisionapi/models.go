@@ -19,6 +19,6 @@
 
 package computervisionapi
 
-import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.0/computervision/computervisionapi"
+import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.1/computervision/computervisionapi"
 
 type BaseClientAPI = original.BaseClientAPI

@@ -51,25 +51,50 @@ func PossibleAzureScaleTypeValues() []AzureScaleType {
 type AzureSkuName string
 
 const (
-	// D11V2 ...
-	D11V2 AzureSkuName = "D11_v2"
-	// D12V2 ...
-	D12V2 AzureSkuName = "D12_v2"
-	// D13V2 ...
-	D13V2 AzureSkuName = "D13_v2"
-	// D14V2 ...
-	D14V2 AzureSkuName = "D14_v2"
-	// L16 ...
-	L16 AzureSkuName = "L16"
-	// L4 ...
-	L4 AzureSkuName = "L4"
-	// L8 ...
-	L8 AzureSkuName = "L8"
+	// DevNoSLAStandardD11V2 ...
+	DevNoSLAStandardD11V2 AzureSkuName = "Dev(No SLA)_Standard_D11_v2"
+	// StandardD11V2 ...
+	StandardD11V2 AzureSkuName = "Standard_D11_v2"
+	// StandardD12V2 ...
+	StandardD12V2 AzureSkuName = "Standard_D12_v2"
+	// StandardD13V2 ...
+	StandardD13V2 AzureSkuName = "Standard_D13_v2"
+	// StandardD14V2 ...
+	StandardD14V2 AzureSkuName = "Standard_D14_v2"
+	// StandardDS13V21TBPS ...
+	StandardDS13V21TBPS AzureSkuName = "Standard_DS13_v2+1TB_PS"
+	// StandardDS13V22TBPS ...
+	StandardDS13V22TBPS AzureSkuName = "Standard_DS13_v2+2TB_PS"
+	// StandardDS14V23TBPS ...
+	StandardDS14V23TBPS AzureSkuName = "Standard_DS14_v2+3TB_PS"
+	// StandardDS14V24TBPS ...
+	StandardDS14V24TBPS AzureSkuName = "Standard_DS14_v2+4TB_PS"
+	// StandardL16s ...
+	StandardL16s AzureSkuName = "Standard_L16s"
+	// StandardL4s ...
+	StandardL4s AzureSkuName = "Standard_L4s"
+	// StandardL8s ...
+	StandardL8s AzureSkuName = "Standard_L8s"
 )
 
 // PossibleAzureSkuNameValues returns an array of possible values for the AzureSkuName const type.
 func PossibleAzureSkuNameValues() []AzureSkuName {
-	return []AzureSkuName{D11V2, D12V2, D13V2, D14V2, L16, L4, L8}
+	return []AzureSkuName{DevNoSLAStandardD11V2, StandardD11V2, StandardD12V2, StandardD13V2, StandardD14V2, StandardDS13V21TBPS, StandardDS13V22TBPS, StandardDS14V23TBPS, StandardDS14V24TBPS, StandardL16s, StandardL4s, StandardL8s}
+}
+
+// AzureSkuTier enumerates the values for azure sku tier.
+type AzureSkuTier string
+
+const (
+	// Basic ...
+	Basic AzureSkuTier = "Basic"
+	// Standard ...
+	Standard AzureSkuTier = "Standard"
+)
+
+// PossibleAzureSkuTierValues returns an array of possible values for the AzureSkuTier const type.
+func PossibleAzureSkuTierValues() []AzureSkuTier {
+	return []AzureSkuTier{Basic, Standard}
 }
 
 // DatabasePrincipalRole enumerates the values for database principal role.
@@ -231,9 +256,9 @@ func PossibleStateValues() []State {
 type AzureCapacity struct {
 	// ScaleType - Scale type. Possible values include: 'Automatic', 'Manual', 'None'
 	ScaleType AzureScaleType `json:"scaleType,omitempty"`
-	// Minimum - Minimum allowed capacity.
+	// Minimum - Minimum allowed instances count.
 	Minimum *int32 `json:"minimum,omitempty"`
-	// Maximum - Maximum allowed capacity.
+	// Maximum - Maximum allowed instances count.
 	Maximum *int32 `json:"maximum,omitempty"`
 	// Default - The default capacity that would be used.
 	Default *int32 `json:"default,omitempty"`
@@ -257,18 +282,18 @@ type AzureResourceSku struct {
 	ResourceType *string `json:"resourceType,omitempty"`
 	// Sku - The SKU details.
 	Sku *AzureSku `json:"sku,omitempty"`
-	// Capacity - The SKU capacity.
+	// Capacity - The number of instances of the cluster.
 	Capacity *AzureCapacity `json:"capacity,omitempty"`
 }
 
 // AzureSku azure SKU definition.
 type AzureSku struct {
-	// Name - SKU name. Possible values include: 'D13V2', 'D14V2', 'L8', 'L16', 'D11V2', 'D12V2', 'L4'
+	// Name - SKU name. Possible values include: 'StandardDS13V21TBPS', 'StandardDS13V22TBPS', 'StandardDS14V23TBPS', 'StandardDS14V24TBPS', 'StandardD13V2', 'StandardD14V2', 'StandardL8s', 'StandardL16s', 'StandardD11V2', 'StandardD12V2', 'StandardL4s', 'DevNoSLAStandardD11V2'
 	Name AzureSkuName `json:"name,omitempty"`
-	// Capacity - SKU capacity.
+	// Capacity - The number of instances of the cluster.
 	Capacity *int32 `json:"capacity,omitempty"`
-	// Tier - SKU tier.
-	Tier *string `json:"tier,omitempty"`
+	// Tier - SKU tier. Possible values include: 'Basic', 'Standard'
+	Tier AzureSkuTier `json:"tier,omitempty"`
 }
 
 // CheckNameResult the result returned from a check name availability request.

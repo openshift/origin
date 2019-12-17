@@ -196,6 +196,27 @@ const (
 	TaskStatusEnabled  TaskStatus = original.TaskStatusEnabled
 )
 
+type TokenCertificateName = original.TokenCertificateName
+
+const (
+	Certificate1 TokenCertificateName = original.Certificate1
+	Certificate2 TokenCertificateName = original.Certificate2
+)
+
+type TokenPasswordName = original.TokenPasswordName
+
+const (
+	TokenPasswordNamePassword1 TokenPasswordName = original.TokenPasswordNamePassword1
+	TokenPasswordNamePassword2 TokenPasswordName = original.TokenPasswordNamePassword2
+)
+
+type TokenStatus = original.TokenStatus
+
+const (
+	TokenStatusDisabled TokenStatus = original.TokenStatusDisabled
+	TokenStatusEnabled  TokenStatus = original.TokenStatusEnabled
+)
+
 type TokenType = original.TokenType
 
 const (
@@ -247,8 +268,8 @@ const (
 type UpdateTriggerPayloadType = original.UpdateTriggerPayloadType
 
 const (
-	Default UpdateTriggerPayloadType = original.Default
-	Token   UpdateTriggerPayloadType = original.Token
+	UpdateTriggerPayloadTypeDefault UpdateTriggerPayloadType = original.UpdateTriggerPayloadTypeDefault
+	UpdateTriggerPayloadTypeToken   UpdateTriggerPayloadType = original.UpdateTriggerPayloadTypeToken
 )
 
 type Variant = original.Variant
@@ -308,6 +329,8 @@ type EventResponseMessage = original.EventResponseMessage
 type FileTaskRunRequest = original.FileTaskRunRequest
 type FileTaskStep = original.FileTaskStep
 type FileTaskStepUpdateParameters = original.FileTaskStepUpdateParameters
+type GenerateCredentialsParameters = original.GenerateCredentialsParameters
+type GenerateCredentialsResult = original.GenerateCredentialsResult
 type IPRule = original.IPRule
 type IdentityProperties = original.IdentityProperties
 type ImageDescriptor = original.ImageDescriptor
@@ -335,6 +358,7 @@ type RegenerateCredentialParameters = original.RegenerateCredentialParameters
 type RegistriesClient = original.RegistriesClient
 type RegistriesCreateFuture = original.RegistriesCreateFuture
 type RegistriesDeleteFuture = original.RegistriesDeleteFuture
+type RegistriesGenerateCredentialsFuture = original.RegistriesGenerateCredentialsFuture
 type RegistriesImportImageFuture = original.RegistriesImportImageFuture
 type RegistriesScheduleRunFuture = original.RegistriesScheduleRunFuture
 type RegistriesUpdateFuture = original.RegistriesUpdateFuture
@@ -376,6 +400,17 @@ type RunUpdateParameters = original.RunUpdateParameters
 type RunsCancelFuture = original.RunsCancelFuture
 type RunsClient = original.RunsClient
 type RunsUpdateFuture = original.RunsUpdateFuture
+type ScopeMap = original.ScopeMap
+type ScopeMapListResult = original.ScopeMapListResult
+type ScopeMapListResultIterator = original.ScopeMapListResultIterator
+type ScopeMapListResultPage = original.ScopeMapListResultPage
+type ScopeMapProperties = original.ScopeMapProperties
+type ScopeMapPropertiesUpdateParameters = original.ScopeMapPropertiesUpdateParameters
+type ScopeMapUpdateParameters = original.ScopeMapUpdateParameters
+type ScopeMapsClient = original.ScopeMapsClient
+type ScopeMapsCreateFuture = original.ScopeMapsCreateFuture
+type ScopeMapsDeleteFuture = original.ScopeMapsDeleteFuture
+type ScopeMapsUpdateFuture = original.ScopeMapsUpdateFuture
 type SecretObject = original.SecretObject
 type SetValue = original.SetValue
 type Sku = original.Sku
@@ -407,6 +442,20 @@ type TasksUpdateFuture = original.TasksUpdateFuture
 type TimerTrigger = original.TimerTrigger
 type TimerTriggerDescriptor = original.TimerTriggerDescriptor
 type TimerTriggerUpdateParameters = original.TimerTriggerUpdateParameters
+type Token = original.Token
+type TokenCertificate = original.TokenCertificate
+type TokenCredentialsProperties = original.TokenCredentialsProperties
+type TokenListResult = original.TokenListResult
+type TokenListResultIterator = original.TokenListResultIterator
+type TokenListResultPage = original.TokenListResultPage
+type TokenPassword = original.TokenPassword
+type TokenProperties = original.TokenProperties
+type TokenUpdateParameters = original.TokenUpdateParameters
+type TokenUpdateProperties = original.TokenUpdateProperties
+type TokensClient = original.TokensClient
+type TokensCreateFuture = original.TokensCreateFuture
+type TokensDeleteFuture = original.TokensDeleteFuture
+type TokensUpdateFuture = original.TokensUpdateFuture
 type TriggerProperties = original.TriggerProperties
 type TriggerUpdateParameters = original.TriggerUpdateParameters
 type TrustPolicy = original.TrustPolicy
@@ -483,6 +532,18 @@ func NewRunsClient(subscriptionID string) RunsClient {
 func NewRunsClientWithBaseURI(baseURI string, subscriptionID string) RunsClient {
 	return original.NewRunsClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewScopeMapListResultIterator(page ScopeMapListResultPage) ScopeMapListResultIterator {
+	return original.NewScopeMapListResultIterator(page)
+}
+func NewScopeMapListResultPage(getNextPage func(context.Context, ScopeMapListResult) (ScopeMapListResult, error)) ScopeMapListResultPage {
+	return original.NewScopeMapListResultPage(getNextPage)
+}
+func NewScopeMapsClient(subscriptionID string) ScopeMapsClient {
+	return original.NewScopeMapsClient(subscriptionID)
+}
+func NewScopeMapsClientWithBaseURI(baseURI string, subscriptionID string) ScopeMapsClient {
+	return original.NewScopeMapsClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewTaskListResultIterator(page TaskListResultPage) TaskListResultIterator {
 	return original.NewTaskListResultIterator(page)
 }
@@ -494,6 +555,18 @@ func NewTasksClient(subscriptionID string) TasksClient {
 }
 func NewTasksClientWithBaseURI(baseURI string, subscriptionID string) TasksClient {
 	return original.NewTasksClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewTokenListResultIterator(page TokenListResultPage) TokenListResultIterator {
+	return original.NewTokenListResultIterator(page)
+}
+func NewTokenListResultPage(getNextPage func(context.Context, TokenListResult) (TokenListResult, error)) TokenListResultPage {
+	return original.NewTokenListResultPage(getNextPage)
+}
+func NewTokensClient(subscriptionID string) TokensClient {
+	return original.NewTokensClient(subscriptionID)
+}
+func NewTokensClientWithBaseURI(baseURI string, subscriptionID string) TokensClient {
+	return original.NewTokensClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewWebhookListResultIterator(page WebhookListResultPage) WebhookListResultIterator {
 	return original.NewWebhookListResultIterator(page)
@@ -572,6 +645,15 @@ func PossibleSourceTriggerEventValues() []SourceTriggerEvent {
 }
 func PossibleTaskStatusValues() []TaskStatus {
 	return original.PossibleTaskStatusValues()
+}
+func PossibleTokenCertificateNameValues() []TokenCertificateName {
+	return original.PossibleTokenCertificateNameValues()
+}
+func PossibleTokenPasswordNameValues() []TokenPasswordName {
+	return original.PossibleTokenPasswordNameValues()
+}
+func PossibleTokenStatusValues() []TokenStatus {
+	return original.PossibleTokenStatusValues()
 }
 func PossibleTokenTypeValues() []TokenType {
 	return original.PossibleTokenTypeValues()

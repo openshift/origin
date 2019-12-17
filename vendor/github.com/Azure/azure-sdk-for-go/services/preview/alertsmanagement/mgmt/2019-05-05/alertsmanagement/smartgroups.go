@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
@@ -55,6 +56,12 @@ func (client SmartGroupsClient) ChangeState(ctx context.Context, smartGroupID st
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.SmartGroupsClient", "ChangeState", err.Error())
+	}
+
 	req, err := client.ChangeStatePreparer(ctx, smartGroupID, newState)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.SmartGroupsClient", "ChangeState", nil, "Failure preparing request")
@@ -144,6 +151,12 @@ func (client SmartGroupsClient) GetAll(ctx context.Context, targetResource strin
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.SmartGroupsClient", "GetAll", err.Error())
+	}
+
 	result.fn = client.getAllNextResults
 	req, err := client.GetAllPreparer(ctx, targetResource, targetResourceGroup, targetResourceType, monitorService, monitorCondition, severity, smartGroupState, timeRange, pageCount, sortBy, sortOrder)
 	if err != nil {
@@ -289,6 +302,12 @@ func (client SmartGroupsClient) GetByID(ctx context.Context, smartGroupID string
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.SmartGroupsClient", "GetByID", err.Error())
+	}
+
 	req, err := client.GetByIDPreparer(ctx, smartGroupID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.SmartGroupsClient", "GetByID", nil, "Failure preparing request")
@@ -364,6 +383,12 @@ func (client SmartGroupsClient) GetHistory(ctx context.Context, smartGroupID str
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.SmartGroupsClient", "GetHistory", err.Error())
+	}
+
 	req, err := client.GetHistoryPreparer(ctx, smartGroupID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.SmartGroupsClient", "GetHistory", nil, "Failure preparing request")

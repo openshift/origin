@@ -38,7 +38,7 @@ A more comprehensive example is available at https://onsi.github.io/gomega/#_tes
 			})
 
 			Context("when requesting all sprockets", func() {
-				Context("when the response is succesful", func() {
+				Context("when the response is successful", func() {
 					BeforeEach(func() {
 						sprockets = []Sprocket{
 							NewSprocket("Alfalfa"),
@@ -103,6 +103,9 @@ A more comprehensive example is available at https://onsi.github.io/gomega/#_tes
 		})
 	})
 */
+
+// untested sections: 5
+
 package ghttp
 
 import (

@@ -44,6 +44,8 @@ var (
 	deleteAllBricksWithEmptyPath bool
 	dryRun                       bool
 	force                        bool
+	disableAuth                  bool
+	updateDbVolName              string
 )
 
 var RootCmd = &cobra.Command{
@@ -302,9 +304,48 @@ var examineGlusterCmd = &cobra.Command{
 	},
 }
 
+var updateDbVolCmd = &cobra.Command{
+	Use:     "update-dbvol",
+	Short:   "(special) update settings on heketi db storage volume",
+	Long:    "(special) update settings on heketi db storage volume",
+	Example: "heketi offline update-dbvol --config=heketi.json",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Fprintf(os.Stdout, "OFFLINE COMMAND: update dbvol\n")
+		if configfile == "" {
+			fmt.Fprintf(os.Stderr, "Configuration file is required\n")
+			os.Exit(1)
+		}
+		if updateDbVolName == "" {
+			updateDbVolName = "heketidbstorage"
+		}
+
+		// Read configuration
+		c, err := config.ReadConfig(configfile)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		randSeed()
+		// require that the db only be opened in read-only mode
+		// since this is a "fix tool" we do not want this command
+		// making any changes to file we're trying to make more robust
+		c.GlusterFS.DBReadOnly = true
+		app := setupApp(c)
+
+		err = glusterfs.UpdateDbVol(app, updateDbVolName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error updating db volume: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	},
+}
+
 func init() {
 	RootCmd.Flags().StringVar(&configfile, "config", "", "Configuration file")
 	RootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Show version")
+	RootCmd.Flags().BoolVarP(&disableAuth, "disable-auth", "", false,
+		"Disable JWT Authentication")
 	RootCmd.SilenceUsage = true
 
 	RootCmd.AddCommand(dbCmd)
@@ -351,20 +392,22 @@ func init() {
 	examineGlusterCmd.SilenceUsage = true
 	examineGlusterCmd.Flags().StringVar(&configfile, "config", "", "Configuration file")
 
+	offlineCmd.AddCommand(updateDbVolCmd)
+	updateDbVolCmd.SilenceUsage = true
+	updateDbVolCmd.Flags().StringVar(&configfile, "config", "", "Configuration file")
+	updateDbVolCmd.Flags().StringVar(&updateDbVolName, "force-volume-name", "", "Force volume name")
 }
 
 func setWithEnvVariables(options *config.Config) {
 	// Check for user key
 	env := os.Getenv("HEKETI_USER_KEY")
 	if "" != env {
-		options.AuthEnabled = true
 		options.JwtConfig.User.PrivateKey = env
 	}
 
 	// Check for user key
 	env = os.Getenv("HEKETI_ADMIN_KEY")
 	if "" != env {
-		options.AuthEnabled = true
 		options.JwtConfig.Admin.PrivateKey = env
 	}
 
@@ -503,7 +546,7 @@ func main() {
 	}
 
 	// Load authorization JWT middleware
-	if options.AuthEnabled {
+	if !disableAuth {
 		jwtauth := middleware.NewJwtAuth(&options.JwtConfig)
 		if jwtauth == nil {
 			fmt.Fprintln(os.Stderr, "ERROR: Missing JWT information in config file")
@@ -515,8 +558,8 @@ func main() {
 
 		// Add application middleware check
 		n.UseFunc(app.Auth)
-
-		fmt.Println("Authorization loaded")
+	} else {
+		fmt.Fprintln(os.Stderr, "WARNING: Heketi started with --disable-auth")
 	}
 
 	adminss := admin.New()

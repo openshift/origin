@@ -43,24 +43,24 @@ var IntrospectData = introspect.Interface{
 		{
 			Name: "Get",
 			Args: []introspect.Arg{
-				{"interface", "s", "in"},
-				{"property", "s", "in"},
-				{"value", "v", "out"},
+				{Name: "interface", Type: "s", Direction: "in"},
+				{Name: "property", Type: "s", Direction: "in"},
+				{Name: "value", Type: "v", Direction: "out"},
 			},
 		},
 		{
 			Name: "GetAll",
 			Args: []introspect.Arg{
-				{"interface", "s", "in"},
-				{"props", "a{sv}", "out"},
+				{Name: "interface", Type: "s", Direction: "in"},
+				{Name: "props", Type: "a{sv}", Direction: "out"},
 			},
 		},
 		{
 			Name: "Set",
 			Args: []introspect.Arg{
-				{"interface", "s", "in"},
-				{"property", "s", "in"},
-				{"value", "v", "in"},
+				{Name: "interface", Type: "s", Direction: "in"},
+				{Name: "property", Type: "s", Direction: "in"},
+				{Name: "value", Type: "v", Direction: "in"},
 			},
 		},
 	},
@@ -68,9 +68,9 @@ var IntrospectData = introspect.Interface{
 		{
 			Name: "PropertiesChanged",
 			Args: []introspect.Arg{
-				{"interface", "s", "out"},
-				{"changed_properties", "a{sv}", "out"},
-				{"invalidates_properties", "as", "out"},
+				{Name: "interface", Type: "s", Direction: "out"},
+				{Name: "changed_properties", Type: "a{sv}", Direction: "out"},
+				{Name: "invalidates_properties", Type: "as", Direction: "out"},
 			},
 		},
 	},

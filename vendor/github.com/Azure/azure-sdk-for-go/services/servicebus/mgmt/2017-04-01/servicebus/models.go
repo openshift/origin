@@ -122,21 +122,6 @@ func PossibleFilterTypeValues() []FilterType {
 	return []FilterType{FilterTypeCorrelationFilter, FilterTypeSQLFilter}
 }
 
-// IPAction enumerates the values for ip action.
-type IPAction string
-
-const (
-	// Accept ...
-	Accept IPAction = "Accept"
-	// Reject ...
-	Reject IPAction = "Reject"
-)
-
-// PossibleIPActionValues returns an array of possible values for the IPAction const type.
-func PossibleIPActionValues() []IPAction {
-	return []IPAction{Accept, Reject}
-}
-
 // KeyType enumerates the values for key type.
 type KeyType string
 
@@ -948,200 +933,6 @@ type EventhubProperties struct {
 	CaptureDescription *CaptureDescription `json:"captureDescription,omitempty"`
 }
 
-// IPFilterRule single item in a List or Get IpFilterRules operation
-type IPFilterRule struct {
-	autorest.Response `json:"-"`
-	// IPFilterRuleProperties - Properties supplied to create or update IpFilterRules
-	*IPFilterRuleProperties `json:"properties,omitempty"`
-	// ID - Resource Id
-	ID *string `json:"id,omitempty"`
-	// Name - Resource name
-	Name *string `json:"name,omitempty"`
-	// Type - Resource type
-	Type *string `json:"type,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for IPFilterRule.
-func (ifr IPFilterRule) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if ifr.IPFilterRuleProperties != nil {
-		objectMap["properties"] = ifr.IPFilterRuleProperties
-	}
-	if ifr.ID != nil {
-		objectMap["id"] = ifr.ID
-	}
-	if ifr.Name != nil {
-		objectMap["name"] = ifr.Name
-	}
-	if ifr.Type != nil {
-		objectMap["type"] = ifr.Type
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for IPFilterRule struct.
-func (ifr *IPFilterRule) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "properties":
-			if v != nil {
-				var IPFilterRuleProperties IPFilterRuleProperties
-				err = json.Unmarshal(*v, &IPFilterRuleProperties)
-				if err != nil {
-					return err
-				}
-				ifr.IPFilterRuleProperties = &IPFilterRuleProperties
-			}
-		case "id":
-			if v != nil {
-				var ID string
-				err = json.Unmarshal(*v, &ID)
-				if err != nil {
-					return err
-				}
-				ifr.ID = &ID
-			}
-		case "name":
-			if v != nil {
-				var name string
-				err = json.Unmarshal(*v, &name)
-				if err != nil {
-					return err
-				}
-				ifr.Name = &name
-			}
-		case "type":
-			if v != nil {
-				var typeVar string
-				err = json.Unmarshal(*v, &typeVar)
-				if err != nil {
-					return err
-				}
-				ifr.Type = &typeVar
-			}
-		}
-	}
-
-	return nil
-}
-
-// IPFilterRuleListResult the response from the List namespace operation.
-type IPFilterRuleListResult struct {
-	autorest.Response `json:"-"`
-	// Value - Result of the List IpFilter Rules operation.
-	Value *[]IPFilterRule `json:"value,omitempty"`
-	// NextLink - Link to the next set of results. Not empty if Value contains an incomplete list of IpFilter Rules
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// IPFilterRuleListResultIterator provides access to a complete listing of IPFilterRule values.
-type IPFilterRuleListResultIterator struct {
-	i    int
-	page IPFilterRuleListResultPage
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *IPFilterRuleListResultIterator) Next() error {
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err := iter.page.Next()
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter IPFilterRuleListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter IPFilterRuleListResultIterator) Response() IPFilterRuleListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter IPFilterRuleListResultIterator) Value() IPFilterRule {
-	if !iter.page.NotDone() {
-		return IPFilterRule{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (ifrlr IPFilterRuleListResult) IsEmpty() bool {
-	return ifrlr.Value == nil || len(*ifrlr.Value) == 0
-}
-
-// iPFilterRuleListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (ifrlr IPFilterRuleListResult) iPFilterRuleListResultPreparer() (*http.Request, error) {
-	if ifrlr.NextLink == nil || len(to.String(ifrlr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare(&http.Request{},
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(ifrlr.NextLink)))
-}
-
-// IPFilterRuleListResultPage contains a page of IPFilterRule values.
-type IPFilterRuleListResultPage struct {
-	fn    func(IPFilterRuleListResult) (IPFilterRuleListResult, error)
-	ifrlr IPFilterRuleListResult
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *IPFilterRuleListResultPage) Next() error {
-	next, err := page.fn(page.ifrlr)
-	if err != nil {
-		return err
-	}
-	page.ifrlr = next
-	return nil
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page IPFilterRuleListResultPage) NotDone() bool {
-	return !page.ifrlr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page IPFilterRuleListResultPage) Response() IPFilterRuleListResult {
-	return page.ifrlr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page IPFilterRuleListResultPage) Values() []IPFilterRule {
-	if page.ifrlr.IsEmpty() {
-		return nil
-	}
-	return *page.ifrlr.Value
-}
-
-// IPFilterRuleProperties properties supplied to create or update IpFilterRules
-type IPFilterRuleProperties struct {
-	// IPMask - IP Mask
-	IPMask *string `json:"ipMask,omitempty"`
-	// Action - The IP Filter Action. Possible values include: 'Accept', 'Reject'
-	Action IPAction `json:"action,omitempty"`
-	// FilterName - IP Filter name
-	FilterName *string `json:"filterName,omitempty"`
-}
-
 // MessageCountDetails message Count Details.
 type MessageCountDetails struct {
 	// ActiveMessageCount - READ-ONLY; Number of active messages in the queue, topic, or subscription.
@@ -1542,6 +1333,152 @@ func (nrs *NetworkRuleSet) UnmarshalJSON(body []byte) error {
 	}
 
 	return nil
+}
+
+// NetworkRuleSetListResult the response of the List NetworkRuleSet operation.
+type NetworkRuleSetListResult struct {
+	autorest.Response `json:"-"`
+	// Value - Result of the List NetworkRuleSet operation.
+	Value *[]NetworkRuleSet `json:"value,omitempty"`
+	// NextLink - Link to the next set of results. Not empty if Value contains incomplete list of NetworkRuleSet.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// NetworkRuleSetListResultIterator provides access to a complete listing of NetworkRuleSet values.
+type NetworkRuleSetListResultIterator struct {
+	i    int
+	page NetworkRuleSetListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *NetworkRuleSetListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NetworkRuleSetListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *NetworkRuleSetListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter NetworkRuleSetListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter NetworkRuleSetListResultIterator) Response() NetworkRuleSetListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter NetworkRuleSetListResultIterator) Value() NetworkRuleSet {
+	if !iter.page.NotDone() {
+		return NetworkRuleSet{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the NetworkRuleSetListResultIterator type.
+func NewNetworkRuleSetListResultIterator(page NetworkRuleSetListResultPage) NetworkRuleSetListResultIterator {
+	return NetworkRuleSetListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (nrslr NetworkRuleSetListResult) IsEmpty() bool {
+	return nrslr.Value == nil || len(*nrslr.Value) == 0
+}
+
+// networkRuleSetListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (nrslr NetworkRuleSetListResult) networkRuleSetListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if nrslr.NextLink == nil || len(to.String(nrslr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(nrslr.NextLink)))
+}
+
+// NetworkRuleSetListResultPage contains a page of NetworkRuleSet values.
+type NetworkRuleSetListResultPage struct {
+	fn    func(context.Context, NetworkRuleSetListResult) (NetworkRuleSetListResult, error)
+	nrslr NetworkRuleSetListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *NetworkRuleSetListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NetworkRuleSetListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.nrslr)
+	if err != nil {
+		return err
+	}
+	page.nrslr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *NetworkRuleSetListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page NetworkRuleSetListResultPage) NotDone() bool {
+	return !page.nrslr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page NetworkRuleSetListResultPage) Response() NetworkRuleSetListResult {
+	return page.nrslr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page NetworkRuleSetListResultPage) Values() []NetworkRuleSet {
+	if page.nrslr.IsEmpty() {
+		return nil
+	}
+	return *page.nrslr.Value
+}
+
+// Creates a new instance of the NetworkRuleSetListResultPage type.
+func NewNetworkRuleSetListResultPage(getNextPage func(context.Context, NetworkRuleSetListResult) (NetworkRuleSetListResult, error)) NetworkRuleSetListResultPage {
+	return NetworkRuleSetListResultPage{fn: getNextPage}
 }
 
 // NetworkRuleSetProperties networkRuleSet properties
@@ -3609,7 +3546,7 @@ type SBTopicProperties struct {
 type SQLFilter struct {
 	// SQLExpression - The SQL expression. e.g. MyProperty='ABC'
 	SQLExpression *string `json:"sqlExpression,omitempty"`
-	// CompatibilityLevel - READ-ONLY; This property is reserved for future use. An integer value showing the compatibility level, currently hard-coded to 20.
+	// CompatibilityLevel - This property is reserved for future use. An integer value showing the compatibility level, currently hard-coded to 20.
 	CompatibilityLevel *int32 `json:"compatibilityLevel,omitempty"`
 	// RequiresPreprocessing - Value that indicates whether the rule action requires preprocessing.
 	RequiresPreprocessing *bool `json:"requiresPreprocessing,omitempty"`
@@ -3656,194 +3593,4 @@ func (tr TrackedResource) MarshalJSON() ([]byte, error) {
 		objectMap["tags"] = tr.Tags
 	}
 	return json.Marshal(objectMap)
-}
-
-// VirtualNetworkRule single item in a List or Get VirtualNetworkRules operation
-type VirtualNetworkRule struct {
-	autorest.Response `json:"-"`
-	// VirtualNetworkRuleProperties - Properties supplied to create or update VirtualNetworkRules
-	*VirtualNetworkRuleProperties `json:"properties,omitempty"`
-	// ID - Resource Id
-	ID *string `json:"id,omitempty"`
-	// Name - Resource name
-	Name *string `json:"name,omitempty"`
-	// Type - Resource type
-	Type *string `json:"type,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for VirtualNetworkRule.
-func (vnr VirtualNetworkRule) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if vnr.VirtualNetworkRuleProperties != nil {
-		objectMap["properties"] = vnr.VirtualNetworkRuleProperties
-	}
-	if vnr.ID != nil {
-		objectMap["id"] = vnr.ID
-	}
-	if vnr.Name != nil {
-		objectMap["name"] = vnr.Name
-	}
-	if vnr.Type != nil {
-		objectMap["type"] = vnr.Type
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for VirtualNetworkRule struct.
-func (vnr *VirtualNetworkRule) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "properties":
-			if v != nil {
-				var virtualNetworkRuleProperties VirtualNetworkRuleProperties
-				err = json.Unmarshal(*v, &virtualNetworkRuleProperties)
-				if err != nil {
-					return err
-				}
-				vnr.VirtualNetworkRuleProperties = &virtualNetworkRuleProperties
-			}
-		case "id":
-			if v != nil {
-				var ID string
-				err = json.Unmarshal(*v, &ID)
-				if err != nil {
-					return err
-				}
-				vnr.ID = &ID
-			}
-		case "name":
-			if v != nil {
-				var name string
-				err = json.Unmarshal(*v, &name)
-				if err != nil {
-					return err
-				}
-				vnr.Name = &name
-			}
-		case "type":
-			if v != nil {
-				var typeVar string
-				err = json.Unmarshal(*v, &typeVar)
-				if err != nil {
-					return err
-				}
-				vnr.Type = &typeVar
-			}
-		}
-	}
-
-	return nil
-}
-
-// VirtualNetworkRuleListResult the response from the List namespace operation.
-type VirtualNetworkRuleListResult struct {
-	autorest.Response `json:"-"`
-	// Value - Result of the List VirtualNetwork Rules operation.
-	Value *[]VirtualNetworkRule `json:"value,omitempty"`
-	// NextLink - Link to the next set of results. Not empty if Value contains an incomplete list of VirtualNetwork Rules
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// VirtualNetworkRuleListResultIterator provides access to a complete listing of VirtualNetworkRule values.
-type VirtualNetworkRuleListResultIterator struct {
-	i    int
-	page VirtualNetworkRuleListResultPage
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *VirtualNetworkRuleListResultIterator) Next() error {
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err := iter.page.Next()
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter VirtualNetworkRuleListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter VirtualNetworkRuleListResultIterator) Response() VirtualNetworkRuleListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter VirtualNetworkRuleListResultIterator) Value() VirtualNetworkRule {
-	if !iter.page.NotDone() {
-		return VirtualNetworkRule{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (vnrlr VirtualNetworkRuleListResult) IsEmpty() bool {
-	return vnrlr.Value == nil || len(*vnrlr.Value) == 0
-}
-
-// virtualNetworkRuleListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (vnrlr VirtualNetworkRuleListResult) virtualNetworkRuleListResultPreparer() (*http.Request, error) {
-	if vnrlr.NextLink == nil || len(to.String(vnrlr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare(&http.Request{},
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(vnrlr.NextLink)))
-}
-
-// VirtualNetworkRuleListResultPage contains a page of VirtualNetworkRule values.
-type VirtualNetworkRuleListResultPage struct {
-	fn    func(VirtualNetworkRuleListResult) (VirtualNetworkRuleListResult, error)
-	vnrlr VirtualNetworkRuleListResult
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *VirtualNetworkRuleListResultPage) Next() error {
-	next, err := page.fn(page.vnrlr)
-	if err != nil {
-		return err
-	}
-	page.vnrlr = next
-	return nil
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page VirtualNetworkRuleListResultPage) NotDone() bool {
-	return !page.vnrlr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page VirtualNetworkRuleListResultPage) Response() VirtualNetworkRuleListResult {
-	return page.vnrlr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page VirtualNetworkRuleListResultPage) Values() []VirtualNetworkRule {
-	if page.vnrlr.IsEmpty() {
-		return nil
-	}
-	return *page.vnrlr.Value
-}
-
-// VirtualNetworkRuleProperties properties supplied to create or update VirtualNetworkRules
-type VirtualNetworkRuleProperties struct {
-	// VirtualNetworkSubnetID - Resource ID of Virtual Network Subnet
-	VirtualNetworkSubnetID *string `json:"virtualNetworkSubnetId,omitempty"`
 }

@@ -81,7 +81,7 @@ func (l *chanListener) Accept() (net.Conn, error) {
 }
 
 func testListener(t *testing.T) (net.Listener, func()) {
-	l, err := net.Listen("tcp", ":0")
+	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -622,6 +622,35 @@ func TestErrorHandler(t *testing.T) {
 	}
 }
 
+func TestMultipleMatchers(t *testing.T) {
+	defer leakCheck(t)()
+	errCh := make(chan error)
+	defer func() {
+		select {
+		case err := <-errCh:
+			t.Fatal(err)
+		default:
+		}
+	}()
+	l, cleanup := testListener(t)
+	defer cleanup()
+
+	matcher := func(r io.Reader) bool {
+		return true
+	}
+	unmatcher := func(r io.Reader) bool {
+		return false
+	}
+
+	muxl := New(l)
+	lis := muxl.Match(unmatcher, matcher, unmatcher)
+
+	go runTestHTTPServer(errCh, lis)
+	go safeServe(errCh, muxl)
+
+	runTestHTTP1Client(t, l.Addr())
+}
+
 func TestClose(t *testing.T) {
 	defer leakCheck(t)()
 	errCh := make(chan error)
@@ -659,7 +688,9 @@ func TestClose(t *testing.T) {
 		if err != ErrListenerClosed {
 			t.Fatal(err)
 		}
-		if _, err := c2.Read([]byte{}); err != io.ErrClosedPipe {
+		// The error is either io.ErrClosedPipe or net.OpError wrapping
+		// a net.pipeError depending on the go version.
+		if _, err := c2.Read([]byte{}); !strings.Contains(err.Error(), "closed") {
 			t.Fatalf("connection is not closed and is leaked: %v", err)
 		}
 	}

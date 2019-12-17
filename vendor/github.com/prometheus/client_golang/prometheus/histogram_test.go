@@ -231,13 +231,6 @@ func TestHistogramVecConcurrency(t *testing.T) {
 
 	rand.Seed(42)
 
-	objectives := make([]float64, 0, len(DefObjectives))
-	for qu := range DefObjectives {
-
-		objectives = append(objectives, qu)
-	}
-	sort.Float64s(objectives)
-
 	it := func(n uint32) bool {
 		mutations := int(n%1e4 + 1e4)
 		concLevel := int(n%7 + 1)

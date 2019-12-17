@@ -38,12 +38,12 @@ func TestFromValue(t *testing.T) {
 			MakePathOrDie("a", KeyByFields("key", value.StringValue("a")), "key"),
 		)}, {`{"a": [{"name": "a", "key": "b"}]}`, NewSet(
 			MakePathOrDie("a", KeyByFields(
-				"name", value.StringValue("a"),
 				"key", value.StringValue("b"),
+				"name", value.StringValue("a"),
 			), "key"),
 			MakePathOrDie("a", KeyByFields(
-				"name", value.StringValue("a"),
 				"key", value.StringValue("b"),
+				"name", value.StringValue("a"),
 			), "name"),
 		)}, {`{"a": [5]}`, NewSet(
 			MakePathOrDie("a", 0),

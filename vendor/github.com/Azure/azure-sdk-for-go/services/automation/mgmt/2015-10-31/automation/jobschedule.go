@@ -19,13 +19,12 @@ package automation
 
 import (
 	"context"
-	"net/http"
-
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
 	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
+	"net/http"
 )
 
 // JobScheduleClient is the automation Client

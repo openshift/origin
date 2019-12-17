@@ -29,6 +29,7 @@ type IntegrationAccountBatchConfigurationsClientAPI = original.IntegrationAccoun
 type IntegrationAccountsClientAPI = original.IntegrationAccountsClientAPI
 type MapsClientAPI = original.MapsClientAPI
 type PartnersClientAPI = original.PartnersClientAPI
+type RosettaNetProcessConfigurationsClientAPI = original.RosettaNetProcessConfigurationsClientAPI
 type SchemasClientAPI = original.SchemasClientAPI
 type SessionsClientAPI = original.SessionsClientAPI
 type WorkflowRunActionRepetitionsClientAPI = original.WorkflowRunActionRepetitionsClientAPI

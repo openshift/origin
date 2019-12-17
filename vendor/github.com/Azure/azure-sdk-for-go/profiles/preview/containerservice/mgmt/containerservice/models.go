@@ -22,7 +22,7 @@ package containerservice
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/containerservice/mgmt/2019-06-01/containerservice"
+	original "github.com/Azure/azure-sdk-for-go/services/containerservice/mgmt/2019-10-01/containerservice"
 )
 
 const (
@@ -367,6 +367,7 @@ type ListResultIterator = original.ListResultIterator
 type ListResultPage = original.ListResultPage
 type ManagedCluster = original.ManagedCluster
 type ManagedClusterAADProfile = original.ManagedClusterAADProfile
+type ManagedClusterAPIServerAccessProfile = original.ManagedClusterAPIServerAccessProfile
 type ManagedClusterAccessProfile = original.ManagedClusterAccessProfile
 type ManagedClusterAddonProfile = original.ManagedClusterAddonProfile
 type ManagedClusterAgentPoolProfile = original.ManagedClusterAgentPoolProfile
@@ -375,6 +376,10 @@ type ManagedClusterIdentity = original.ManagedClusterIdentity
 type ManagedClusterListResult = original.ManagedClusterListResult
 type ManagedClusterListResultIterator = original.ManagedClusterListResultIterator
 type ManagedClusterListResultPage = original.ManagedClusterListResultPage
+type ManagedClusterLoadBalancerProfile = original.ManagedClusterLoadBalancerProfile
+type ManagedClusterLoadBalancerProfileManagedOutboundIPs = original.ManagedClusterLoadBalancerProfileManagedOutboundIPs
+type ManagedClusterLoadBalancerProfileOutboundIPPrefixes = original.ManagedClusterLoadBalancerProfileOutboundIPPrefixes
+type ManagedClusterLoadBalancerProfileOutboundIPs = original.ManagedClusterLoadBalancerProfileOutboundIPs
 type ManagedClusterPoolUpgradeProfile = original.ManagedClusterPoolUpgradeProfile
 type ManagedClusterPoolUpgradeProfileUpgradesItem = original.ManagedClusterPoolUpgradeProfileUpgradesItem
 type ManagedClusterProperties = original.ManagedClusterProperties
@@ -387,6 +392,7 @@ type ManagedClustersCreateOrUpdateFuture = original.ManagedClustersCreateOrUpdat
 type ManagedClustersDeleteFuture = original.ManagedClustersDeleteFuture
 type ManagedClustersResetAADProfileFuture = original.ManagedClustersResetAADProfileFuture
 type ManagedClustersResetServicePrincipalProfileFuture = original.ManagedClustersResetServicePrincipalProfileFuture
+type ManagedClustersRotateClusterCertificatesFuture = original.ManagedClustersRotateClusterCertificatesFuture
 type ManagedClustersUpdateTagsFuture = original.ManagedClustersUpdateTagsFuture
 type MasterProfile = original.MasterProfile
 type NetworkProfile = original.NetworkProfile
@@ -419,6 +425,7 @@ type OrchestratorVersionProfileProperties = original.OrchestratorVersionProfileP
 type Properties = original.Properties
 type PurchasePlan = original.PurchasePlan
 type Resource = original.Resource
+type ResourceReference = original.ResourceReference
 type SSHConfiguration = original.SSHConfiguration
 type SSHPublicKey = original.SSHPublicKey
 type ServicePrincipalProfile = original.ServicePrincipalProfile

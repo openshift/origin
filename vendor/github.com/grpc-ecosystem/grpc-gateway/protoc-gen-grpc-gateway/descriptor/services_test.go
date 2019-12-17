@@ -99,11 +99,11 @@ func testExtractServices(t *testing.T, input []*descriptor.FileDescriptorProto, 
 			}
 			for ; k < len(meth.Bindings); k++ {
 				got := meth.Bindings[k]
-				t.Errorf("svcs[%d].Methods[%d].Bindings[%d] = %q; want it to be missing; input = %v", i, j, k, got, input)
+				t.Errorf("svcs[%d].Methods[%d].Bindings[%d] = %v; want it to be missing; input = %v", i, j, k, got, input)
 			}
 			for ; k < len(wantMeth.Bindings); k++ {
 				want := wantMeth.Bindings[k]
-				t.Errorf("svcs[%d].Methods[%d].Bindings[%d] missing; want %q; input = %v", i, j, k, want, input)
+				t.Errorf("svcs[%d].Methods[%d].Bindings[%d] missing; want %v; input = %v", i, j, k, want, input)
 			}
 		}
 		for ; j < len(svc.Methods); j++ {
@@ -1097,7 +1097,7 @@ func TestResolveFieldPath(t *testing.T) {
 		if err != nil {
 			t.Fatalf("reg.LookupFile(%q) failed with %v; want success; on file=%s", file.GetName(), err, spec.src)
 		}
-		_, err = reg.resolveFiledPath(f.Messages[0], spec.path)
+		_, err = reg.resolveFieldPath(f.Messages[0], spec.path, false)
 		if got, want := err != nil, spec.wantErr; got != want {
 			if want {
 				t.Errorf("reg.resolveFiledPath(%q, %q) succeeded; want an error", f.Messages[0].GetName(), spec.path)

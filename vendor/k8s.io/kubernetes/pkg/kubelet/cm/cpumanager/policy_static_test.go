@@ -26,7 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager"
-	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager/socketmask"
+	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager/bitmask"
 )
 
 type staticPolicyTest struct {
@@ -212,6 +212,20 @@ func TestStaticPolicyAdd(t *testing.T) {
 			expErr:          nil,
 			expCPUAlloc:     true,
 			expCSet:         cpuset.NewCPUSet(1, 5),
+		},
+		{
+			description:     "GuPodMultipleCores, SingleSocketHT, ExpectSameAllocation",
+			topo:            topoSingleSocketHT,
+			numReservedCPUs: 1,
+			containerID:     "fakeID3",
+			stAssignments: state.ContainerCPUAssignments{
+				"fakeID3": cpuset.NewCPUSet(2, 3, 6, 7),
+			},
+			stDefaultCPUSet: cpuset.NewCPUSet(0, 1, 4, 5),
+			pod:             makePod("4000m", "4000m"),
+			expErr:          nil,
+			expCPUAlloc:     true,
+			expCSet:         cpuset.NewCPUSet(2, 3, 6, 7),
 		},
 		{
 			description:     "GuPodMultipleCores, DualSocketHT, ExpectAllocOneSocket",
@@ -746,11 +760,11 @@ func TestTopologyAwareAllocateCPUs(t *testing.T) {
 		stAssignments   state.ContainerCPUAssignments
 		stDefaultCPUSet cpuset.CPUSet
 		numRequested    int
-		socketMask      socketmask.SocketMask
+		socketMask      bitmask.BitMask
 		expCSet         cpuset.CPUSet
 	}{
 		{
-			description:     "Request 2 CPUs, No SocketMask",
+			description:     "Request 2 CPUs, No BitMask",
 			topo:            topoDualSocketHT,
 			stAssignments:   state.ContainerCPUAssignments{},
 			stDefaultCPUSet: cpuset.NewCPUSet(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
@@ -759,49 +773,49 @@ func TestTopologyAwareAllocateCPUs(t *testing.T) {
 			expCSet:         cpuset.NewCPUSet(0, 6),
 		},
 		{
-			description:     "Request 2 CPUs, SocketMask on Socket 0",
+			description:     "Request 2 CPUs, BitMask on Socket 0",
 			topo:            topoDualSocketHT,
 			stAssignments:   state.ContainerCPUAssignments{},
 			stDefaultCPUSet: cpuset.NewCPUSet(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
 			numRequested:    2,
-			socketMask: func() socketmask.SocketMask {
-				mask, _ := socketmask.NewSocketMask(0)
+			socketMask: func() bitmask.BitMask {
+				mask, _ := bitmask.NewBitMask(0)
 				return mask
 			}(),
 			expCSet: cpuset.NewCPUSet(0, 6),
 		},
 		{
-			description:     "Request 2 CPUs, SocketMask on Socket 1",
+			description:     "Request 2 CPUs, BitMask on Socket 1",
 			topo:            topoDualSocketHT,
 			stAssignments:   state.ContainerCPUAssignments{},
 			stDefaultCPUSet: cpuset.NewCPUSet(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
 			numRequested:    2,
-			socketMask: func() socketmask.SocketMask {
-				mask, _ := socketmask.NewSocketMask(1)
+			socketMask: func() bitmask.BitMask {
+				mask, _ := bitmask.NewBitMask(1)
 				return mask
 			}(),
 			expCSet: cpuset.NewCPUSet(1, 7),
 		},
 		{
-			description:     "Request 8 CPUs, SocketMask on Socket 0",
+			description:     "Request 8 CPUs, BitMask on Socket 0",
 			topo:            topoDualSocketHT,
 			stAssignments:   state.ContainerCPUAssignments{},
 			stDefaultCPUSet: cpuset.NewCPUSet(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
 			numRequested:    8,
-			socketMask: func() socketmask.SocketMask {
-				mask, _ := socketmask.NewSocketMask(0)
+			socketMask: func() bitmask.BitMask {
+				mask, _ := bitmask.NewBitMask(0)
 				return mask
 			}(),
 			expCSet: cpuset.NewCPUSet(0, 6, 2, 8, 4, 10, 1, 7),
 		},
 		{
-			description:     "Request 8 CPUs, SocketMask on Socket 1",
+			description:     "Request 8 CPUs, BitMask on Socket 1",
 			topo:            topoDualSocketHT,
 			stAssignments:   state.ContainerCPUAssignments{},
 			stDefaultCPUSet: cpuset.NewCPUSet(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
 			numRequested:    8,
-			socketMask: func() socketmask.SocketMask {
-				mask, _ := socketmask.NewSocketMask(1)
+			socketMask: func() bitmask.BitMask {
+				mask, _ := bitmask.NewBitMask(1)
 				return mask
 			}(),
 			expCSet: cpuset.NewCPUSet(1, 7, 3, 9, 5, 11, 0, 6),

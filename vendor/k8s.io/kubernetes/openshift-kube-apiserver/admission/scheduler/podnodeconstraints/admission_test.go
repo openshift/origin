@@ -245,7 +245,7 @@ func fakeAuthorizer(t *testing.T) authorizer.Authorizer {
 	}
 }
 
-func (a *fakeTestAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
+func (a *fakeTestAuthorizer) Authorize(_ context.Context, attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	ui := attributes.GetUser()
 	if ui == nil {
 		return authorizer.DecisionNoOpinion, "", fmt.Errorf("No valid UserInfo for Context")

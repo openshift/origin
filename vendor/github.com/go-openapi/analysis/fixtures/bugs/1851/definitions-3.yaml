@@ -1,0 +1,19 @@
+definitions:
+  ServerStatus:
+    type: string
+    enum: [OK, Not OK]
+
+  Server:
+    type: object
+    properties:
+      Name:
+        type: string
+      Status:
+        $ref: '#/definitions/ServerStatus'
+      # introduce a circular ref here
+      SiblingServer:
+        $ref: '#/definitions/Server'
+      # introduce a nest ref here
+      RemoteProps:
+        $ref: 'definitions-31.yaml#/definitions/RemoteProperty'
+        # TODO: same with absolute ref (e.g. http://...)

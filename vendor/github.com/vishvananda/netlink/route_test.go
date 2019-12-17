@@ -5,11 +5,12 @@ package netlink
 import (
 	"net"
 	"strconv"
-	"syscall"
 	"testing"
 	"time"
 
+	"github.com/vishvananda/netlink/nl"
 	"github.com/vishvananda/netns"
+	"golang.org/x/sys/unix"
 )
 
 func TestRouteAddDel(t *testing.T) {
@@ -156,7 +157,9 @@ func expectRouteUpdate(ch <-chan RouteUpdate, t uint16, dst net.IP) bool {
 		timeout := time.After(time.Minute)
 		select {
 		case update := <-ch:
-			if update.Type == t && update.Route.Dst.IP.Equal(dst) {
+			if update.Type == t &&
+				update.Route.Dst != nil &&
+				update.Route.Dst.IP.Equal(dst) {
 				return true
 			}
 		case <-timeout:
@@ -199,13 +202,13 @@ func TestRouteSubscribe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !expectRouteUpdate(ch, syscall.RTM_NEWROUTE, dst.IP) {
+	if !expectRouteUpdate(ch, unix.RTM_NEWROUTE, dst.IP) {
 		t.Fatal("Add update not received as expected")
 	}
 	if err := RouteDel(&route); err != nil {
 		t.Fatal(err)
 	}
-	if !expectRouteUpdate(ch, syscall.RTM_DELROUTE, dst.IP) {
+	if !expectRouteUpdate(ch, unix.RTM_DELROUTE, dst.IP) {
 		t.Fatal("Del update not received as expected")
 	}
 }
@@ -254,7 +257,7 @@ func TestRouteSubscribeWithOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !expectRouteUpdate(ch, syscall.RTM_NEWROUTE, dst.IP) {
+	if !expectRouteUpdate(ch, unix.RTM_NEWROUTE, dst.IP) {
 		t.Fatal("Add update not received as expected")
 	}
 }
@@ -306,13 +309,95 @@ func TestRouteSubscribeAt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !expectRouteUpdate(ch, syscall.RTM_NEWROUTE, dst.IP) {
+	if !expectRouteUpdate(ch, unix.RTM_NEWROUTE, dst.IP) {
 		t.Fatal("Add update not received as expected")
 	}
 	if err := nh.RouteDel(&route); err != nil {
 		t.Fatal(err)
 	}
-	if !expectRouteUpdate(ch, syscall.RTM_DELROUTE, dst.IP) {
+	if !expectRouteUpdate(ch, unix.RTM_DELROUTE, dst.IP) {
+		t.Fatal("Del update not received as expected")
+	}
+}
+
+func TestRouteSubscribeListExisting(t *testing.T) {
+	skipUnlessRoot(t)
+
+	// Create an handle on a custom netns
+	newNs, err := netns.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer newNs.Close()
+
+	nh, err := NewHandleAt(newNs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer nh.Delete()
+
+	// get loopback interface
+	link, err := nh.LinkByName("lo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// bring the interface up
+	if err = nh.LinkSetUp(link); err != nil {
+		t.Fatal(err)
+	}
+
+	// add a gateway route before subscribing
+	dst10 := &net.IPNet{
+		IP:   net.IPv4(10, 10, 10, 0),
+		Mask: net.CIDRMask(24, 32),
+	}
+
+	ip := net.IPv4(127, 100, 1, 1)
+	route10 := Route{LinkIndex: link.Attrs().Index, Dst: dst10, Src: ip}
+	if err := nh.RouteAdd(&route10); err != nil {
+		t.Fatal(err)
+	}
+
+	// Subscribe for Route events including existing routes
+	ch := make(chan RouteUpdate)
+	done := make(chan struct{})
+	defer close(done)
+	if err := RouteSubscribeWithOptions(ch, done, RouteSubscribeOptions{
+		Namespace:    &newNs,
+		ListExisting: true},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	if !expectRouteUpdate(ch, unix.RTM_NEWROUTE, dst10.IP) {
+		t.Fatal("Existing add update not received as expected")
+	}
+
+	// add a gateway route
+	dst := &net.IPNet{
+		IP:   net.IPv4(192, 169, 0, 0),
+		Mask: net.CIDRMask(24, 32),
+	}
+
+	route := Route{LinkIndex: link.Attrs().Index, Dst: dst, Src: ip}
+	if err := nh.RouteAdd(&route); err != nil {
+		t.Fatal(err)
+	}
+
+	if !expectRouteUpdate(ch, unix.RTM_NEWROUTE, dst.IP) {
+		t.Fatal("Add update not received as expected")
+	}
+	if err := nh.RouteDel(&route); err != nil {
+		t.Fatal(err)
+	}
+	if !expectRouteUpdate(ch, unix.RTM_DELROUTE, dst.IP) {
+		t.Fatal("Del update not received as expected")
+	}
+	if err := nh.RouteDel(&route10); err != nil {
+		t.Fatal(err)
+	}
+	if !expectRouteUpdate(ch, unix.RTM_DELROUTE, dst10.IP) {
 		t.Fatal("Del update not received as expected")
 	}
 }
@@ -344,10 +429,10 @@ func TestRouteFilterAllTables(t *testing.T) {
 			LinkIndex: link.Attrs().Index,
 			Dst:       dst,
 			Src:       src,
-			Scope:     syscall.RT_SCOPE_LINK,
+			Scope:     unix.RT_SCOPE_LINK,
 			Priority:  13,
 			Table:     table,
-			Type:      syscall.RTN_UNICAST,
+			Type:      unix.RTN_UNICAST,
 			Tos:       14,
 		}
 		if err := RouteAdd(&route); err != nil {
@@ -357,9 +442,9 @@ func TestRouteFilterAllTables(t *testing.T) {
 	routes, err := RouteListFiltered(FAMILY_V4, &Route{
 		Dst:   dst,
 		Src:   src,
-		Scope: syscall.RT_SCOPE_LINK,
-		Table: syscall.RT_TABLE_UNSPEC,
-		Type:  syscall.RTN_UNICAST,
+		Scope: unix.RT_SCOPE_LINK,
+		Table: unix.RT_TABLE_UNSPEC,
+		Type:  unix.RTN_UNICAST,
 		Tos:   14,
 	}, RT_FILTER_DST|RT_FILTER_SRC|RT_FILTER_SCOPE|RT_FILTER_TABLE|RT_FILTER_TYPE|RT_FILTER_TOS)
 	if err != nil {
@@ -370,7 +455,7 @@ func TestRouteFilterAllTables(t *testing.T) {
 	}
 
 	for _, route := range routes {
-		if route.Scope != syscall.RT_SCOPE_LINK {
+		if route.Scope != unix.RT_SCOPE_LINK {
 			t.Fatal("Invalid Scope. Route not added properly")
 		}
 		if route.Priority != 13 {
@@ -379,7 +464,7 @@ func TestRouteFilterAllTables(t *testing.T) {
 		if !tableIDIn(tables, route.Table) {
 			t.Fatalf("Invalid Table %d. Route not added properly", route.Table)
 		}
-		if route.Type != syscall.RTN_UNICAST {
+		if route.Type != unix.RTN_UNICAST {
 			t.Fatal("Invalid Type. Route not added properly")
 		}
 		if route.Tos != 14 {
@@ -422,10 +507,10 @@ func TestRouteExtraFields(t *testing.T) {
 		LinkIndex: link.Attrs().Index,
 		Dst:       dst,
 		Src:       src,
-		Scope:     syscall.RT_SCOPE_LINK,
+		Scope:     unix.RT_SCOPE_LINK,
 		Priority:  13,
-		Table:     syscall.RT_TABLE_MAIN,
-		Type:      syscall.RTN_UNICAST,
+		Table:     unix.RT_TABLE_MAIN,
+		Type:      unix.RTN_UNICAST,
 		Tos:       14,
 	}
 	if err := RouteAdd(&route); err != nil {
@@ -434,9 +519,9 @@ func TestRouteExtraFields(t *testing.T) {
 	routes, err := RouteListFiltered(FAMILY_V4, &Route{
 		Dst:   dst,
 		Src:   src,
-		Scope: syscall.RT_SCOPE_LINK,
-		Table: syscall.RT_TABLE_MAIN,
-		Type:  syscall.RTN_UNICAST,
+		Scope: unix.RT_SCOPE_LINK,
+		Table: unix.RT_TABLE_MAIN,
+		Type:  unix.RTN_UNICAST,
 		Tos:   14,
 	}, RT_FILTER_DST|RT_FILTER_SRC|RT_FILTER_SCOPE|RT_FILTER_TABLE|RT_FILTER_TYPE|RT_FILTER_TOS)
 	if err != nil {
@@ -446,16 +531,16 @@ func TestRouteExtraFields(t *testing.T) {
 		t.Fatal("Route not added properly")
 	}
 
-	if routes[0].Scope != syscall.RT_SCOPE_LINK {
+	if routes[0].Scope != unix.RT_SCOPE_LINK {
 		t.Fatal("Invalid Scope. Route not added properly")
 	}
 	if routes[0].Priority != 13 {
 		t.Fatal("Invalid Priority. Route not added properly")
 	}
-	if routes[0].Table != syscall.RT_TABLE_MAIN {
+	if routes[0].Table != unix.RT_TABLE_MAIN {
 		t.Fatal("Invalid Scope. Route not added properly")
 	}
-	if routes[0].Type != syscall.RTN_UNICAST {
+	if routes[0].Type != unix.RTN_UNICAST {
 		t.Fatal("Invalid Type. Route not added properly")
 	}
 	if routes[0].Tos != 14 {
@@ -484,7 +569,7 @@ func TestRouteMultiPath(t *testing.T) {
 	}
 
 	idx := link.Attrs().Index
-	route := Route{Dst: dst, MultiPath: []*NexthopInfo{&NexthopInfo{LinkIndex: idx}, &NexthopInfo{LinkIndex: idx}}}
+	route := Route{Dst: dst, MultiPath: []*NexthopInfo{{LinkIndex: idx}, {LinkIndex: idx}}}
 	if err := RouteAdd(&route); err != nil {
 		t.Fatal(err)
 	}
@@ -631,59 +716,61 @@ func TestMPLSRouteAddDel(t *testing.T) {
 
 func TestRouteEqual(t *testing.T) {
 	mplsDst := 100
+	seg6encap := &SEG6Encap{Mode: nl.SEG6_IPTUN_MODE_ENCAP}
+	seg6encap.Segments = []net.IP{net.ParseIP("fc00:a000::11")}
 	cases := []Route{
-		Route{
+		{
 			Dst: nil,
 			Gw:  net.IPv4(1, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 20,
 			Dst:       nil,
 			Gw:        net.IPv4(1, 1, 1, 1),
 		},
-		Route{
+		{
 			ILinkIndex: 21,
 			LinkIndex:  20,
 			Dst:        nil,
 			Gw:         net.IPv4(1, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 20,
 			Dst:       nil,
 			Protocol:  20,
 			Gw:        net.IPv4(1, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 20,
 			Dst:       nil,
 			Priority:  20,
 			Gw:        net.IPv4(1, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 20,
 			Dst:       nil,
 			Type:      20,
 			Gw:        net.IPv4(1, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 20,
 			Dst:       nil,
 			Table:     200,
 			Gw:        net.IPv4(1, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 20,
 			Dst:       nil,
 			Tos:       1,
 			Gw:        net.IPv4(1, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 20,
 			Dst:       nil,
 			Flags:     int(FLAG_ONLINK),
 			Gw:        net.IPv4(1, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 10,
 			Dst: &net.IPNet{
 				IP:   net.IPv4(192, 168, 0, 0),
@@ -691,71 +778,86 @@ func TestRouteEqual(t *testing.T) {
 			},
 			Src: net.IPv4(127, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 10,
-			Scope:     syscall.RT_SCOPE_LINK,
+			Scope:     unix.RT_SCOPE_LINK,
 			Dst: &net.IPNet{
 				IP:   net.IPv4(192, 168, 0, 0),
 				Mask: net.CIDRMask(24, 32),
 			},
 			Src: net.IPv4(127, 1, 1, 1),
 		},
-		Route{
+		{
 			LinkIndex: 3,
 			Dst: &net.IPNet{
 				IP:   net.IPv4(1, 1, 1, 1),
 				Mask: net.CIDRMask(32, 32),
 			},
 			Src:      net.IPv4(127, 3, 3, 3),
-			Scope:    syscall.RT_SCOPE_LINK,
+			Scope:    unix.RT_SCOPE_LINK,
 			Priority: 13,
-			Table:    syscall.RT_TABLE_MAIN,
-			Type:     syscall.RTN_UNICAST,
+			Table:    unix.RT_TABLE_MAIN,
+			Type:     unix.RTN_UNICAST,
 			Tos:      14,
 		},
-		Route{
+		{
 			LinkIndex: 10,
 			MPLSDst:   &mplsDst,
 			NewDst: &MPLSDestination{
 				Labels: []int{200, 300},
 			},
 		},
-		Route{
+		{
 			Dst: nil,
 			Gw:  net.IPv4(1, 1, 1, 1),
 			Encap: &MPLSEncap{
 				Labels: []int{100},
 			},
 		},
-		Route{
-			Dst:       nil,
-			MultiPath: []*NexthopInfo{&NexthopInfo{LinkIndex: 10}, &NexthopInfo{LinkIndex: 20}},
+		{
+			LinkIndex: 10,
+			Dst: &net.IPNet{
+				IP:   net.IPv4(10, 0, 0, 102),
+				Mask: net.CIDRMask(32, 32),
+			},
+			Encap: seg6encap,
 		},
-		Route{
+		{
+			Dst:       nil,
+			MultiPath: []*NexthopInfo{{LinkIndex: 10}, {LinkIndex: 20}},
+		},
+		{
 			Dst: nil,
-			MultiPath: []*NexthopInfo{&NexthopInfo{
+			MultiPath: []*NexthopInfo{{
 				LinkIndex: 10,
 				Gw:        net.IPv4(1, 1, 1, 1),
-			}, &NexthopInfo{LinkIndex: 20}},
+			}, {LinkIndex: 20}},
 		},
-		Route{
+		{
 			Dst: nil,
-			MultiPath: []*NexthopInfo{&NexthopInfo{
+			MultiPath: []*NexthopInfo{{
 				LinkIndex: 10,
 				Gw:        net.IPv4(1, 1, 1, 1),
 				Encap: &MPLSEncap{
 					Labels: []int{100},
 				},
-			}, &NexthopInfo{LinkIndex: 20}},
+			}, {LinkIndex: 20}},
 		},
-		Route{
+		{
 			Dst: nil,
-			MultiPath: []*NexthopInfo{&NexthopInfo{
+			MultiPath: []*NexthopInfo{{
 				LinkIndex: 10,
 				NewDst: &MPLSDestination{
 					Labels: []int{200, 300},
 				},
-			}, &NexthopInfo{LinkIndex: 20}},
+			}, {LinkIndex: 20}},
+		},
+		{
+			Dst: nil,
+			MultiPath: []*NexthopInfo{{
+				LinkIndex: 10,
+				Encap:     seg6encap,
+			}, {LinkIndex: 20}},
 		},
 	}
 	for i1 := range cases {
@@ -812,5 +914,131 @@ func TestIPNetEqual(t *testing.T) {
 					strconv.FormatBool(expected))
 			}
 		}
+	}
+}
+
+func TestSEG6RouteAddDel(t *testing.T) {
+	// add/del IPv4 routes with LWTUNNEL_SEG6 to/from loopback interface.
+	// Test both seg6 modes: encap & inline.
+	tearDown := setUpSEG6NetlinkTest(t)
+	defer tearDown()
+
+	// get loopback interface and bring it up
+	link, err := LinkByName("lo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := LinkSetUp(link); err != nil {
+		t.Fatal(err)
+	}
+
+	dst1 := &net.IPNet{
+		IP:   net.IPv4(10, 0, 0, 101),
+		Mask: net.CIDRMask(32, 32),
+	}
+	dst2 := &net.IPNet{
+		IP:   net.IPv4(10, 0, 0, 102),
+		Mask: net.CIDRMask(32, 32),
+	}
+	var s1, s2 []net.IP
+	s1 = append(s1, net.ParseIP("::")) // inline requires "::"
+	s1 = append(s1, net.ParseIP("fc00:a000::12"))
+	s1 = append(s1, net.ParseIP("fc00:a000::11"))
+	s2 = append(s2, net.ParseIP("fc00:a000::22"))
+	s2 = append(s2, net.ParseIP("fc00:a000::21"))
+	e1 := &SEG6Encap{Mode: nl.SEG6_IPTUN_MODE_INLINE}
+	e2 := &SEG6Encap{Mode: nl.SEG6_IPTUN_MODE_ENCAP}
+	e1.Segments = s1
+	e2.Segments = s2
+	route1 := Route{LinkIndex: link.Attrs().Index, Dst: dst1, Encap: e1}
+	route2 := Route{LinkIndex: link.Attrs().Index, Dst: dst2, Encap: e2}
+
+	// Add SEG6 routes
+	if err := RouteAdd(&route1); err != nil {
+		t.Fatal(err)
+	}
+	if err := RouteAdd(&route2); err != nil {
+		t.Fatal(err)
+	}
+	routes, err := RouteList(link, FAMILY_V4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(routes) != 2 {
+		t.Fatal("SEG6 routes not added properly")
+	}
+	for _, route := range routes {
+		if route.Encap.Type() != nl.LWTUNNEL_ENCAP_SEG6 {
+			t.Fatal("Invalid Type. SEG6 routes not added properly")
+		}
+	}
+
+	// Del (remove) SEG6 routes
+	if err := RouteDel(&route1); err != nil {
+		t.Fatal(err)
+	}
+	if err := RouteDel(&route2); err != nil {
+		t.Fatal(err)
+	}
+	routes, err = RouteList(link, FAMILY_V4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(routes) != 0 {
+		t.Fatal("SEG6 routes not removed properly")
+	}
+}
+
+func TestMTURouteAddDel(t *testing.T) {
+	_, err := RouteList(nil, FAMILY_V4)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	// get loopback interface
+	link, err := LinkByName("lo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// bring the interface up
+	if err := LinkSetUp(link); err != nil {
+		t.Fatal(err)
+	}
+
+	// add a gateway route
+	dst := &net.IPNet{
+		IP:   net.IPv4(192, 168, 0, 0),
+		Mask: net.CIDRMask(24, 32),
+	}
+
+	route := Route{LinkIndex: link.Attrs().Index, Dst: dst, MTU: 500}
+	if err := RouteAdd(&route); err != nil {
+		t.Fatal(err)
+	}
+	routes, err := RouteList(link, FAMILY_V4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(routes) != 1 {
+		t.Fatal("Route not added properly")
+	}
+
+	if route.MTU != routes[0].MTU {
+		t.Fatal("Route mtu not set properly")
+	}
+
+	if err := RouteDel(&route); err != nil {
+		t.Fatal(err)
+	}
+	routes, err = RouteList(link, FAMILY_V4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(routes) != 0 {
+		t.Fatal("Route not removed properly")
 	}
 }

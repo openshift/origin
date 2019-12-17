@@ -21,6 +21,33 @@ import (
 	"github.com/heketi/heketi/pkg/utils"
 )
 
+func (a *App) AppOperationsInfo() (*api.OperationsInfo, error) {
+	info := &api.OperationsInfo{}
+
+	err := a.db.View(func(tx *bolt.Tx) error {
+		ops, err := PendingOperationList(tx)
+		if err != nil {
+			return err
+		}
+		info.Total = uint64(len(ops))
+		m, err := PendingOperationStateCount(tx)
+		if err != nil {
+			return err
+		}
+		info.New = uint64(m[NewOperation])
+		info.Stale = uint64(m[StaleOperation])
+		info.Failed = uint64(m[FailedOperation])
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	info.InFlight = a.optracker.Get()
+
+	return info, nil
+}
+
 func (a *App) OperationsInfo(w http.ResponseWriter, r *http.Request) {
 	info := &api.OperationsInfo{}
 

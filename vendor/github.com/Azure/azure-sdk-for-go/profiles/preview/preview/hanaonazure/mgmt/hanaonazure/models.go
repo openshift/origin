@@ -96,7 +96,6 @@ type HanaInstanceProperties = original.HanaInstanceProperties
 type HanaInstancesClient = original.HanaInstancesClient
 type HanaInstancesCreateFuture = original.HanaInstancesCreateFuture
 type HanaInstancesDeleteFuture = original.HanaInstancesDeleteFuture
-type HanaInstancesEnableMonitoringFuture = original.HanaInstancesEnableMonitoringFuture
 type HanaInstancesListResult = original.HanaInstancesListResult
 type HanaInstancesListResultIterator = original.HanaInstancesListResultIterator
 type HanaInstancesListResultPage = original.HanaInstancesListResultPage

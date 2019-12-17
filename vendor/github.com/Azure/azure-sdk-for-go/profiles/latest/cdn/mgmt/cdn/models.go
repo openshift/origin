@@ -52,6 +52,20 @@ const (
 	Shared    CertificateType = original.Shared
 )
 
+type CookiesOperator = original.CookiesOperator
+
+const (
+	Any                CookiesOperator = original.Any
+	BeginsWith         CookiesOperator = original.BeginsWith
+	Contains           CookiesOperator = original.Contains
+	EndsWith           CookiesOperator = original.EndsWith
+	Equal              CookiesOperator = original.Equal
+	GreaterThan        CookiesOperator = original.GreaterThan
+	GreaterThanOrEqual CookiesOperator = original.GreaterThanOrEqual
+	LessThan           CookiesOperator = original.LessThan
+	LessThanOrEqual    CookiesOperator = original.LessThanOrEqual
+)
+
 type CustomDomainResourceState = original.CustomDomainResourceState
 
 const (
@@ -119,10 +133,20 @@ const (
 	Overwrite HeaderAction = original.Overwrite
 )
 
+type MinimumTLSVersion = original.MinimumTLSVersion
+
+const (
+	None  MinimumTLSVersion = original.None
+	TLS10 MinimumTLSVersion = original.TLS10
+	TLS12 MinimumTLSVersion = original.TLS12
+)
+
 type Name = original.Name
 
 const (
+	NameCookies               Name = original.NameCookies
 	NameDeliveryRuleCondition Name = original.NameDeliveryRuleCondition
+	NameHTTPVersion           Name = original.NameHTTPVersion
 	NameIsDevice              Name = original.NameIsDevice
 	NamePostArgs              Name = original.NamePostArgs
 	NameQueryString           Name = original.NameQueryString
@@ -170,15 +194,15 @@ const (
 type PostArgsOperator = original.PostArgsOperator
 
 const (
-	Any                PostArgsOperator = original.Any
-	BeginsWith         PostArgsOperator = original.BeginsWith
-	Contains           PostArgsOperator = original.Contains
-	EndsWith           PostArgsOperator = original.EndsWith
-	Equal              PostArgsOperator = original.Equal
-	GreaterThan        PostArgsOperator = original.GreaterThan
-	GreaterThanOrEqual PostArgsOperator = original.GreaterThanOrEqual
-	LessThan           PostArgsOperator = original.LessThan
-	LessThanOrEqual    PostArgsOperator = original.LessThanOrEqual
+	PostArgsOperatorAny                PostArgsOperator = original.PostArgsOperatorAny
+	PostArgsOperatorBeginsWith         PostArgsOperator = original.PostArgsOperatorBeginsWith
+	PostArgsOperatorContains           PostArgsOperator = original.PostArgsOperatorContains
+	PostArgsOperatorEndsWith           PostArgsOperator = original.PostArgsOperatorEndsWith
+	PostArgsOperatorEqual              PostArgsOperator = original.PostArgsOperatorEqual
+	PostArgsOperatorGreaterThan        PostArgsOperator = original.PostArgsOperatorGreaterThan
+	PostArgsOperatorGreaterThanOrEqual PostArgsOperator = original.PostArgsOperatorGreaterThanOrEqual
+	PostArgsOperatorLessThan           PostArgsOperator = original.PostArgsOperatorLessThan
+	PostArgsOperatorLessThanOrEqual    PostArgsOperator = original.PostArgsOperatorLessThanOrEqual
 )
 
 type ProfileResourceState = original.ProfileResourceState
@@ -366,6 +390,7 @@ type CertificateSourceParameters = original.CertificateSourceParameters
 type CheckNameAvailabilityInput = original.CheckNameAvailabilityInput
 type CheckNameAvailabilityOutput = original.CheckNameAvailabilityOutput
 type CidrIPAddress = original.CidrIPAddress
+type CookiesMatchConditionParameters = original.CookiesMatchConditionParameters
 type CustomDomain = original.CustomDomain
 type CustomDomainHTTPSParameters = original.CustomDomainHTTPSParameters
 type CustomDomainListResult = original.CustomDomainListResult
@@ -384,6 +409,8 @@ type DeliveryRuleAction = original.DeliveryRuleAction
 type DeliveryRuleCacheExpirationAction = original.DeliveryRuleCacheExpirationAction
 type DeliveryRuleCacheKeyQueryStringAction = original.DeliveryRuleCacheKeyQueryStringAction
 type DeliveryRuleCondition = original.DeliveryRuleCondition
+type DeliveryRuleCookiesCondition = original.DeliveryRuleCookiesCondition
+type DeliveryRuleHTTPVersionCondition = original.DeliveryRuleHTTPVersionCondition
 type DeliveryRuleIsDeviceCondition = original.DeliveryRuleIsDeviceCondition
 type DeliveryRulePostArgsCondition = original.DeliveryRulePostArgsCondition
 type DeliveryRuleQueryStringCondition = original.DeliveryRuleQueryStringCondition
@@ -422,6 +449,7 @@ type EndpointsStopFuture = original.EndpointsStopFuture
 type EndpointsUpdateFuture = original.EndpointsUpdateFuture
 type ErrorResponse = original.ErrorResponse
 type GeoFilter = original.GeoFilter
+type HTTPVersionMatchConditionParameters = original.HTTPVersionMatchConditionParameters
 type HeaderActionParameters = original.HeaderActionParameters
 type IPAddressGroup = original.IPAddressGroup
 type IsDeviceMatchConditionParameters = original.IsDeviceMatchConditionParameters
@@ -585,6 +613,9 @@ func PossibleCertificateSourceValues() []CertificateSource {
 func PossibleCertificateTypeValues() []CertificateType {
 	return original.PossibleCertificateTypeValues()
 }
+func PossibleCookiesOperatorValues() []CookiesOperator {
+	return original.PossibleCookiesOperatorValues()
+}
 func PossibleCustomDomainResourceStateValues() []CustomDomainResourceState {
 	return original.PossibleCustomDomainResourceStateValues()
 }
@@ -605,6 +636,9 @@ func PossibleGeoFilterActionsValues() []GeoFilterActions {
 }
 func PossibleHeaderActionValues() []HeaderAction {
 	return original.PossibleHeaderActionValues()
+}
+func PossibleMinimumTLSVersionValues() []MinimumTLSVersion {
+	return original.PossibleMinimumTLSVersionValues()
 }
 func PossibleNameBasicDeliveryRuleActionValues() []NameBasicDeliveryRuleAction {
 	return original.PossibleNameBasicDeliveryRuleActionValues()

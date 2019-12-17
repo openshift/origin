@@ -1,14 +1,17 @@
 package resourceapply
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 
@@ -198,6 +201,169 @@ func TestApplyConfigMap(t *testing.T) {
 				t.Errorf("expected %v, got %v", test.expectedModified, actualModified)
 			}
 			test.verifyActions(client.Actions(), t)
+		})
+	}
+}
+
+func TestApplySecret(t *testing.T) {
+	m := metav1.ObjectMeta{
+		Name:        "test",
+		Namespace:   "default",
+		Annotations: map[string]string{},
+	}
+
+	r := schema.GroupVersionResource{Group: "", Resource: "secrets", Version: "v1"}
+
+	tt := []struct {
+		name     string
+		existing []runtime.Object
+		required *corev1.Secret
+		expected *corev1.Secret
+		actions  []clienttesting.Action
+		changed  bool
+		err      error
+	}{
+		{
+			name:     "secret gets created if it doesn't exist",
+			existing: nil,
+			required: &corev1.Secret{
+				ObjectMeta: m,
+				Type:       corev1.SecretTypeTLS,
+			},
+			changed: false,
+			expected: &corev1.Secret{
+				ObjectMeta: m,
+				Type:       corev1.SecretTypeTLS,
+			},
+			actions: []clienttesting.Action{
+				clienttesting.GetActionImpl{
+					Name: m.Name,
+					ActionImpl: clienttesting.ActionImpl{
+						Namespace: m.Namespace,
+						Verb:      "get",
+						Resource:  r,
+					},
+				},
+				clienttesting.CreateActionImpl{
+					ActionImpl: clienttesting.ActionImpl{
+						Namespace: m.Namespace,
+						Verb:      "create",
+						Resource:  r,
+					},
+					Object: &corev1.Secret{
+						ObjectMeta: m,
+						Type:       corev1.SecretTypeTLS,
+					},
+				},
+			},
+		},
+		{
+			name: "replaces data",
+			existing: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: m,
+					Type:       corev1.SecretTypeTLS,
+					Data: map[string][]byte{
+						"foo": []byte("aaa"),
+					},
+				},
+			},
+			required: &corev1.Secret{
+				ObjectMeta: m,
+				Type:       corev1.SecretTypeTLS,
+				Data: map[string][]byte{
+					"bar": []byte("bbb"),
+				},
+			},
+			changed: false,
+			expected: &corev1.Secret{
+				ObjectMeta: m,
+				Type:       corev1.SecretTypeTLS,
+				Data: map[string][]byte{
+					"bar": []byte("bbb"),
+				},
+			},
+			actions: []clienttesting.Action{
+				clienttesting.GetActionImpl{
+					Name: m.Name,
+					ActionImpl: clienttesting.ActionImpl{
+						Namespace: m.Namespace,
+						Verb:      "get",
+						Resource:  r,
+					},
+				},
+				clienttesting.UpdateActionImpl{
+					ActionImpl: clienttesting.ActionImpl{
+						Namespace: m.Namespace,
+						Verb:      "update",
+						Resource:  r,
+					},
+					Object: &corev1.Secret{
+						ObjectMeta: m,
+						Type:       corev1.SecretTypeTLS,
+						Data: map[string][]byte{
+							"bar": []byte("bbb"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "doesn't replace existing data for service account tokens",
+			existing: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: m,
+					Type:       corev1.SecretTypeServiceAccountToken,
+					Data: map[string][]byte{
+						"tls.key": []byte("aaa"),
+					},
+				},
+			},
+			required: &corev1.Secret{
+				ObjectMeta: m,
+				Type:       corev1.SecretTypeServiceAccountToken,
+				Data:       nil,
+			},
+			changed: false,
+			expected: &corev1.Secret{
+				ObjectMeta: m,
+				Type:       corev1.SecretTypeServiceAccountToken,
+				Data: map[string][]byte{
+					"tls.key": []byte("aaa"),
+				},
+			},
+			actions: []clienttesting.Action{
+				clienttesting.GetActionImpl{
+					Name: m.Name,
+					ActionImpl: clienttesting.ActionImpl{
+						Namespace: m.Namespace,
+						Verb:      "get",
+						Resource:  r,
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			client := fake.NewSimpleClientset(tc.existing...)
+			got, changed, err := ApplySecret(client.CoreV1(), events.NewInMemoryRecorder("test"), tc.required)
+			if !reflect.DeepEqual(tc.err, err) {
+				t.Errorf("expected error %v, got %v", tc.err, err)
+			}
+
+			if !equality.Semantic.DeepEqual(tc.expected, got) {
+				t.Errorf("objects don't match %s", cmp.Diff(tc.expected, got))
+			}
+
+			if !reflect.DeepEqual(tc.err, err) {
+				t.Errorf("expected changed %t, got %t", tc.changed, changed)
+			}
+
+			gotActions := client.Actions()
+			if !equality.Semantic.DeepEqual(tc.actions, gotActions) {
+				t.Errorf("actions don't match: %s", cmp.Diff(tc.actions, gotActions))
+			}
 		})
 	}
 }

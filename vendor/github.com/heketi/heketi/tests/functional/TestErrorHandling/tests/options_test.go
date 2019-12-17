@@ -22,6 +22,8 @@ import (
 
 	"github.com/heketi/tests"
 
+	client "github.com/heketi/heketi/client/api/go-client"
+	"github.com/heketi/heketi/middleware"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/testutils"
 	"github.com/heketi/heketi/server/config"
@@ -156,5 +158,104 @@ func TestServerStateDefaults(t *testing.T) {
 		tests.Assert(t, err != nil, "expected err != nil, got:", err)
 		isAlive := heketiServer.IsAlive()
 		tests.Assert(t, !isAlive, "expected isAlive == false")
+	})
+}
+
+func TestServerAuthConfig(t *testing.T) {
+	heketiServer := testutils.NewServerCtlFromEnv("..")
+	origConf := path.Join(heketiServer.ServerDir, heketiServer.ConfPath)
+
+	heketiServer.ConfPath = tests.Tempfile()
+	defer os.Remove(heketiServer.ConfPath)
+	CopyFile(origConf, heketiServer.ConfPath)
+
+	defer func() {
+		heketiServer.DisableAuth = true
+		CopyFile(origConf, heketiServer.ConfPath)
+		testutils.ServerRestarted(t, heketiServer)
+		testCluster.Teardown(t)
+		testutils.ServerStopped(t, heketiServer)
+	}()
+
+	testutils.ServerStarted(t, heketiServer)
+	heketiServer.KeepDB = true
+	testCluster.Setup(t, 3, 1)
+
+	t.Run("StartServerAuthNoConfig", func(t *testing.T) {
+		testutils.ServerStopped(t, heketiServer)
+		UpdateConfig(origConf, heketiServer.ConfPath, func(c *config.Config) {
+			c.JwtConfig = middleware.JwtAuthConfig{}
+		})
+		heketiServer.DisableAuth = false
+
+		err := heketiServer.Start()
+		tests.Assert(t, err != nil, "expected err != nil, got:", err)
+		isAlive := heketiServer.IsAlive()
+		tests.Assert(t, !isAlive, "expected isAlive == false")
+	})
+
+	t.Run("StartServerAuth", func(t *testing.T) {
+		// start server with auth (default)
+		UpdateConfig(origConf, heketiServer.ConfPath, func(c *config.Config) {
+			c.JwtConfig = middleware.JwtAuthConfig{
+				Admin: middleware.Issuer{"snivlem"},
+				User:  middleware.Issuer{"neew"},
+			}
+		})
+		heketiServer.DisableAuth = false
+		testutils.ServerRestarted(t, heketiServer)
+
+		// verify a client without auth can't connect
+		copts := client.DefaultClientOptions()
+		hc := client.NewClientWithOptions(
+			testCluster.HeketiUrl, "", "", copts)
+
+		_, err := hc.TopologyInfo()
+		tests.Assert(t, err != nil, "expected err != nil, got:", err)
+
+		// verify a client with proper auth can connect
+		hc2 := client.NewClientWithOptions(
+			testCluster.HeketiUrl, "admin", "snivlem", copts)
+
+		_, err = hc2.TopologyInfo()
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+		// verify a client with incorrect auth can't connect
+		hc3 := client.NewClientWithOptions(
+			testCluster.HeketiUrl, "admin", "whoopsie", copts)
+
+		_, err = hc3.TopologyInfo()
+		tests.Assert(t, err != nil, "expected err != nil, got:", err)
+	})
+
+	t.Run("StartServerDisableAuth", func(t *testing.T) {
+		// start server without auth
+		UpdateConfig(origConf, heketiServer.ConfPath, func(c *config.Config) {
+			c.JwtConfig = middleware.JwtAuthConfig{}
+		})
+		heketiServer.DisableAuth = true
+		testutils.ServerRestarted(t, heketiServer)
+
+		// verify a client without auth connects
+		copts := client.DefaultClientOptions()
+		hc := client.NewClientWithOptions(
+			testCluster.HeketiUrl, "", "", copts)
+
+		_, err := hc.TopologyInfo()
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+		// verify a client with auth params is ok (ignored)
+		hc2 := client.NewClientWithOptions(
+			testCluster.HeketiUrl, "admin", "snivlem", copts)
+
+		_, err = hc2.TopologyInfo()
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+		// verify a client with auth params is ok (ignored)
+		hc3 := client.NewClientWithOptions(
+			testCluster.HeketiUrl, "admin", "whoopsie", copts)
+
+		_, err = hc3.TopologyInfo()
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	})
 }

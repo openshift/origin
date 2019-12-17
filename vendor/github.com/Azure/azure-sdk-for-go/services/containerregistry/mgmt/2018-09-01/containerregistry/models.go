@@ -2180,8 +2180,6 @@ type Registry struct {
 	autorest.Response `json:"-"`
 	// Sku - The SKU of the container registry.
 	Sku *Sku `json:"sku,omitempty"`
-	// Identity - The identity of the container registry.
-	Identity *RegistryIdentity `json:"identity,omitempty"`
 	// RegistryProperties - The properties of the container registry.
 	*RegistryProperties `json:"properties,omitempty"`
 	// ID - READ-ONLY; The resource ID.
@@ -2201,9 +2199,6 @@ func (r Registry) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if r.Sku != nil {
 		objectMap["sku"] = r.Sku
-	}
-	if r.Identity != nil {
-		objectMap["identity"] = r.Identity
 	}
 	if r.RegistryProperties != nil {
 		objectMap["properties"] = r.RegistryProperties
@@ -2234,15 +2229,6 @@ func (r *Registry) UnmarshalJSON(body []byte) error {
 					return err
 				}
 				r.Sku = &sku
-			}
-		case "identity":
-			if v != nil {
-				var identity RegistryIdentity
-				err = json.Unmarshal(*v, &identity)
-				if err != nil {
-					return err
-				}
-				r.Identity = &identity
 			}
 		case "properties":
 			if v != nil {
@@ -2302,16 +2288,6 @@ func (r *Registry) UnmarshalJSON(body []byte) error {
 	}
 
 	return nil
-}
-
-// RegistryIdentity the identity of the container registry.
-type RegistryIdentity struct {
-	// Type - The type of identity used for the registry.
-	Type *string `json:"type,omitempty"`
-	// PrincipalID - The principal ID of registry identity.
-	PrincipalID *string `json:"principalId,omitempty"`
-	// TenantID - The tenant ID associated with the registry.
-	TenantID *string `json:"tenantId,omitempty"`
 }
 
 // RegistryListCredentialsResult the response from the ListCredentials operation.
@@ -2539,8 +2515,6 @@ type RegistryUpdateParameters struct {
 	Tags map[string]*string `json:"tags"`
 	// Sku - The SKU of the container registry.
 	Sku *Sku `json:"sku,omitempty"`
-	// Identity - The identity of the container registry.
-	Identity *RegistryIdentity `json:"identity,omitempty"`
 	// RegistryPropertiesUpdateParameters - The properties that the container registry will be updated with.
 	*RegistryPropertiesUpdateParameters `json:"properties,omitempty"`
 }
@@ -2553,9 +2527,6 @@ func (rup RegistryUpdateParameters) MarshalJSON() ([]byte, error) {
 	}
 	if rup.Sku != nil {
 		objectMap["sku"] = rup.Sku
-	}
-	if rup.Identity != nil {
-		objectMap["identity"] = rup.Identity
 	}
 	if rup.RegistryPropertiesUpdateParameters != nil {
 		objectMap["properties"] = rup.RegistryPropertiesUpdateParameters
@@ -2589,15 +2560,6 @@ func (rup *RegistryUpdateParameters) UnmarshalJSON(body []byte) error {
 					return err
 				}
 				rup.Sku = &sku
-			}
-		case "identity":
-			if v != nil {
-				var identity RegistryIdentity
-				err = json.Unmarshal(*v, &identity)
-				if err != nil {
-					return err
-				}
-				rup.Identity = &identity
 			}
 		case "properties":
 			if v != nil {

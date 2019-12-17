@@ -45,6 +45,7 @@ type NamespacesClientAPI interface {
 	ListAuthorizationRules(ctx context.Context, resourceGroupName string, namespaceName string) (result servicebus.SBAuthorizationRuleListResultPage, err error)
 	ListByResourceGroup(ctx context.Context, resourceGroupName string) (result servicebus.SBNamespaceListResultPage, err error)
 	ListKeys(ctx context.Context, resourceGroupName string, namespaceName string, authorizationRuleName string) (result servicebus.AccessKeys, err error)
+	ListNetworkRuleSets(ctx context.Context, resourceGroupName string, namespaceName string) (result servicebus.NetworkRuleSetListResultPage, err error)
 	Migrate(ctx context.Context, resourceGroupName string, namespaceName string, parameters servicebus.SBNamespaceMigrate) (result autorest.Response, err error)
 	RegenerateKeys(ctx context.Context, resourceGroupName string, namespaceName string, authorizationRuleName string, parameters servicebus.RegenerateAccessKeyParameters) (result servicebus.AccessKeys, err error)
 	Update(ctx context.Context, resourceGroupName string, namespaceName string, parameters servicebus.SBNamespaceUpdateParameters) (result servicebus.SBNamespace, err error)

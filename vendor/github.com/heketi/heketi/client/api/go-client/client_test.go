@@ -39,6 +39,12 @@ type clientTestMiddleware struct {
 	intercept func(w http.ResponseWriter, r *http.Request) bool
 }
 
+func newTestClient(url, user, password string) *Client {
+	opts := DefaultClientOptions()
+	opts.PollDelay = 10 // all server functions are faked
+	return NewClientWithOptions(url, user, password, opts)
+}
+
 func (cm *clientTestMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	if cm.intercept != nil && cm.intercept(w, r) {
 		return
@@ -90,7 +96,7 @@ func TestTopology(t *testing.T) {
 	defer ts.Close()
 
 	// Create cluster correctly
-	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	c := newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
 
 	//Create multiple clusters
@@ -290,7 +296,7 @@ func TestClientCluster(t *testing.T) {
 	defer ts.Close()
 
 	// Create cluster with unknown user
-	c := NewClient(ts.URL, "asdf", "")
+	c := newTestClient(ts.URL, "asdf", "")
 	tests.Assert(t, c != nil)
 	cluster_req := &api.ClusterCreateRequest{
 		ClusterFlags: api.ClusterFlags{
@@ -303,14 +309,14 @@ func TestClientCluster(t *testing.T) {
 	tests.Assert(t, cluster == nil)
 
 	// Create cluster with bad password
-	c = NewClient(ts.URL, "admin", "badpassword")
+	c = newTestClient(ts.URL, "admin", "badpassword")
 	tests.Assert(t, c != nil)
 	cluster, err = c.ClusterCreate(cluster_req)
 	tests.Assert(t, err != nil)
 	tests.Assert(t, cluster == nil)
 
 	// Create cluster correctly
-	c = NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	c = newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
 	cluster, err = c.ClusterCreate(cluster_req)
 	tests.Assert(t, err == nil)
@@ -372,7 +378,7 @@ func TestClientNode(t *testing.T) {
 	defer ts.Close()
 
 	// Create cluster
-	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	c := newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
 	cluster_req := &api.ClusterCreateRequest{
 		ClusterFlags: api.ClusterFlags{
@@ -464,7 +470,7 @@ func TestClientDevice(t *testing.T) {
 	defer ts.Close()
 
 	// Create cluster
-	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	c := newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
 	cluster_req := &api.ClusterCreateRequest{
 		ClusterFlags: api.ClusterFlags{
@@ -583,7 +589,7 @@ func TestClientVolume(t *testing.T) {
 	defer ts.Close()
 
 	// Create cluster
-	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	c := newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
 	cluster_req := &api.ClusterCreateRequest{
 		ClusterFlags: api.ClusterFlags{
@@ -741,8 +747,8 @@ func TestLogLevel(t *testing.T) {
 	defer ts.Close()
 
 	// Create cluster
-	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
-	tests.Assert(t, c != nil, "NewClient failed:", c)
+	c := newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	tests.Assert(t, c != nil, "newTestClient failed:", c)
 	llinfo, err := c.LogLevelGet()
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, llinfo.LogLevel["glusterfs"] == "info",
@@ -790,7 +796,7 @@ func TestDeviceTags(t *testing.T) {
 	defer ts.Close()
 
 	// Create cluster
-	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	c := newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
 	cluster_req := &api.ClusterCreateRequest{
 		ClusterFlags: api.ClusterFlags{
@@ -947,7 +953,7 @@ func TestNodeTags(t *testing.T) {
 	defer ts.Close()
 
 	// Create cluster
-	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	c := newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
 	cluster_req := &api.ClusterCreateRequest{
 		ClusterFlags: api.ClusterFlags{
@@ -1085,6 +1091,7 @@ func TestRetryAfterThrottle(t *testing.T) {
 		RetryCount:    RETRY_COUNT,
 		RetryMinDelay: 1, // this is a test. we want short delays
 		RetryMaxDelay: 2,
+		PollDelay:     10,
 	})
 
 	cluster_req := &api.ClusterCreateRequest{
@@ -1141,6 +1148,7 @@ func TestRetryAfterThrottle(t *testing.T) {
 		RetryCount:    RETRY_COUNT,
 		RetryMinDelay: 1, // this is a test. we want short delays
 		RetryMaxDelay: 2,
+		PollDelay:     10,
 	})
 
 	// verify that the NodeAdd command fails without doing retries
@@ -1164,8 +1172,8 @@ func TestAdminStatus(t *testing.T) {
 	ts := setupHeketiServer(app)
 	defer ts.Close()
 
-	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
-	tests.Assert(t, c != nil, "NewClient failed:", c)
+	c := newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	tests.Assert(t, c != nil, "newTestClient failed:", c)
 
 	as, err := c.AdminStatusGet()
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
@@ -1204,7 +1212,7 @@ func TestVolumeSetBlockRestriction(t *testing.T) {
 	defer ts.Close()
 
 	// Create cluster
-	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	c := newTestClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
 	cluster_req := &api.ClusterCreateRequest{
 		ClusterFlags: api.ClusterFlags{

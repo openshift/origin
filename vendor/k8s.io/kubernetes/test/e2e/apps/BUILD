@@ -64,8 +64,10 @@ go_library(
         "//test/e2e/framework:go_default_library",
         "//test/e2e/framework/deployment:go_default_library",
         "//test/e2e/framework/job:go_default_library",
+        "//test/e2e/framework/network:go_default_library",
         "//test/e2e/framework/node:go_default_library",
         "//test/e2e/framework/pod:go_default_library",
+        "//test/e2e/framework/pv:go_default_library",
         "//test/e2e/framework/replicaset:go_default_library",
         "//test/e2e/framework/service:go_default_library",
         "//test/e2e/framework/ssh:go_default_library",
@@ -75,6 +77,7 @@ go_library(
         "//vendor/github.com/davecgh/go-spew/spew:go_default_library",
         "//vendor/github.com/onsi/ginkgo:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",
+        "//vendor/k8s.io/utils/integer:go_default_library",
         "//vendor/k8s.io/utils/pointer:go_default_library",
     ],
 )

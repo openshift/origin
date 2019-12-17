@@ -27,7 +27,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
@@ -86,7 +88,9 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 		policyName = GetAndExpectStringEnvVar(SPBMPolicyName)
 		datastoreName = GetAndExpectStringEnvVar(StorageClassDatastoreName)
 
-		nodes = framework.GetReadySchedulableNodesOrDie(client)
+		var err error
+		nodes, err = e2enode.GetReadySchedulableNodes(client)
+		framework.ExpectNoError(err)
 		if len(nodes.Items) < 2 {
 			framework.Skipf("Requires at least %d nodes (not %d)", 2, len(nodes.Items))
 		}
@@ -164,7 +168,7 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 		framework.ExpectNoError(err)
 
 		for _, pvcClaim := range pvcClaimList {
-			err = framework.DeletePersistentVolumeClaim(client, pvcClaim, namespace)
+			err = e2epv.DeletePersistentVolumeClaim(client, pvcClaim, namespace)
 			framework.ExpectNoError(err)
 		}
 	})
@@ -193,13 +197,13 @@ func VolumeCreateAndAttach(client clientset.Interface, namespace string, sc []*s
 		pvclaims := make([]*v1.PersistentVolumeClaim, volumesPerPod)
 		for i := 0; i < volumesPerPod; i++ {
 			ginkgo.By("Creating PVC using the Storage Class")
-			pvclaim, err := framework.CreatePVC(client, namespace, getVSphereClaimSpecWithStorageClass(namespace, "2Gi", sc[index%len(sc)]))
+			pvclaim, err := e2epv.CreatePVC(client, namespace, getVSphereClaimSpecWithStorageClass(namespace, "2Gi", sc[index%len(sc)]))
 			framework.ExpectNoError(err)
 			pvclaims[i] = pvclaim
 		}
 
 		ginkgo.By("Waiting for claim to be in bound phase")
-		persistentvolumes, err := framework.WaitForPVClaimBoundPhase(client, pvclaims, framework.ClaimProvisionTimeout)
+		persistentvolumes, err := e2epv.WaitForPVClaimBoundPhase(client, pvclaims, framework.ClaimProvisionTimeout)
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Creating pod to attach PV to the node")

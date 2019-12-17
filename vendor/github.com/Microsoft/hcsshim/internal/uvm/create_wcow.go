@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Microsoft/hcsshim/internal/guid"
 	"github.com/Microsoft/hcsshim/internal/hcs"
+	"github.com/Microsoft/hcsshim/internal/logfields"
 	"github.com/Microsoft/hcsshim/internal/mergemaps"
 	"github.com/Microsoft/hcsshim/internal/schema2"
 	"github.com/Microsoft/hcsshim/internal/schemaversion"
@@ -30,25 +30,9 @@ type OptionsWCOW struct {
 // `owner` the owner of the compute system. If not passed will use the
 // executable files name.
 func NewDefaultOptionsWCOW(id, owner string) *OptionsWCOW {
-	opts := &OptionsWCOW{
-		Options: &Options{
-			ID:                   id,
-			Owner:                owner,
-			MemorySizeInMB:       1024,
-			AllowOvercommit:      true,
-			EnableDeferredCommit: false,
-			ProcessorCount:       defaultProcessorCount(),
-		},
+	return &OptionsWCOW{
+		Options: newDefaultOptions(id, owner),
 	}
-
-	if opts.ID == "" {
-		opts.ID = guid.New().String()
-	}
-	if opts.Owner == "" {
-		opts.Owner = filepath.Base(os.Args[0])
-	}
-
-	return opts
 }
 
 // CreateWCOW creates an HCS compute system representing a utility VM.
@@ -57,11 +41,19 @@ func NewDefaultOptionsWCOW(id, owner string) *OptionsWCOW {
 //   - The scratch is always attached to SCSI 0:0
 //
 func CreateWCOW(opts *OptionsWCOW) (_ *UtilityVM, err error) {
-	logrus.Debugf("uvm::CreateWCOW %+v", opts)
-
-	if opts.Options == nil {
-		opts.Options = &Options{}
-	}
+	op := "uvm::CreateWCOW"
+	log := logrus.WithFields(logrus.Fields{
+		logfields.UVMID: opts.ID,
+	})
+	log.Debugf(op+" - Begin Operation: %+v", opts)
+	defer func() {
+		if err != nil {
+			log.Data[logrus.ErrorKey] = err
+			log.Error(op + " - End Operation - Error")
+		} else {
+			log.Debug(op + " - End Operation - Success")
+		}
+	}()
 
 	uvm := &UtilityVM{
 		id:                  opts.ID,
@@ -70,6 +62,10 @@ func CreateWCOW(opts *OptionsWCOW) (_ *UtilityVM, err error) {
 		scsiControllerCount: 1,
 		vsmbShares:          make(map[string]*vsmbShare),
 	}
+
+	// To maintain compatability with Docker we need to automatically downgrade
+	// a user CPU count if the setting is not possible.
+	uvm.normalizeProcessorCount(opts.ProcessorCount)
 
 	if len(opts.LayerFolders) < 2 {
 		return nil, fmt.Errorf("at least 2 LayerFolders must be supplied")
@@ -127,7 +123,9 @@ func CreateWCOW(opts *OptionsWCOW) (_ *UtilityVM, err error) {
 					EnableDeferredCommit: opts.EnableDeferredCommit,
 				},
 				Processor: &hcsschema.Processor2{
-					Count: defaultProcessorCount(),
+					Count:  uvm.processorCount,
+					Limit:  opts.ProcessorLimit,
+					Weight: opts.ProcessorWeight,
 				},
 			},
 			GuestConnection: &hcsschema.GuestConnection{},
@@ -167,6 +165,14 @@ func CreateWCOW(opts *OptionsWCOW) (_ *UtilityVM, err error) {
 				},
 			},
 		},
+	}
+
+	// Handle StorageQoS if set
+	if opts.StorageQoSBandwidthMaximum > 0 || opts.StorageQoSIopsMaximum > 0 {
+		doc.VirtualMachine.StorageQoS = &hcsschema.StorageQoS{
+			IopsMaximum:      opts.StorageQoSIopsMaximum,
+			BandwidthMaximum: opts.StorageQoSBandwidthMaximum,
+		}
 	}
 
 	uvm.scsiLocations[0][0].hostPath = doc.VirtualMachine.Devices.Scsi["0"].Attachments["0"].Path

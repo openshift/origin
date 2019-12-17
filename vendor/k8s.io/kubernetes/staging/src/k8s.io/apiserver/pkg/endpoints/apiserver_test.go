@@ -44,6 +44,7 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metainternalversionscheme "k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	metav1beta1 "k8s.io/apimachinery/pkg/apis/meta/v1beta1"
@@ -1874,7 +1875,7 @@ func TestGetTable(t *testing.T) {
 	{
 		partial := meta.AsPartialObjectMetadata(m)
 		partial.GetObjectKind().SetGroupVersionKind(metav1beta1.SchemeGroupVersion.WithKind("PartialObjectMetadata"))
-		encodedBody, err := runtime.Encode(metainternalversion.Codecs.LegacyCodec(metav1beta1.SchemeGroupVersion), partial)
+		encodedBody, err := runtime.Encode(metainternalversionscheme.Codecs.LegacyCodec(metav1beta1.SchemeGroupVersion), partial)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1885,7 +1886,7 @@ func TestGetTable(t *testing.T) {
 	{
 		partial := meta.AsPartialObjectMetadata(m)
 		partial.GetObjectKind().SetGroupVersionKind(metav1.SchemeGroupVersion.WithKind("PartialObjectMetadata"))
-		encodedBody, err := runtime.Encode(metainternalversion.Codecs.LegacyCodec(metav1.SchemeGroupVersion), partial)
+		encodedBody, err := runtime.Encode(metainternalversionscheme.Codecs.LegacyCodec(metav1.SchemeGroupVersion), partial)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -2075,14 +2076,14 @@ func TestWatchTable(t *testing.T) {
 	}
 	partial := meta.AsPartialObjectMetadata(m)
 	partial.GetObjectKind().SetGroupVersionKind(metav1beta1.SchemeGroupVersion.WithKind("PartialObjectMetadata"))
-	encodedBody, err := runtime.Encode(metainternalversion.Codecs.LegacyCodec(metav1beta1.SchemeGroupVersion), partial)
+	encodedBody, err := runtime.Encode(metainternalversionscheme.Codecs.LegacyCodec(metav1beta1.SchemeGroupVersion), partial)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// the codec includes a trailing newline that is not present during decode
 	encodedBody = bytes.TrimSpace(encodedBody)
 
-	encodedBodyV1, err := runtime.Encode(metainternalversion.Codecs.LegacyCodec(metav1.SchemeGroupVersion), partial)
+	encodedBodyV1, err := runtime.Encode(metainternalversionscheme.Codecs.LegacyCodec(metav1.SchemeGroupVersion), partial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2091,7 +2092,7 @@ func TestWatchTable(t *testing.T) {
 
 	metaDoc := metav1.ObjectMeta{}.SwaggerDoc()
 
-	s := metainternalversion.Codecs.SupportedMediaTypes()[0].Serializer
+	s := metainternalversionscheme.Codecs.SupportedMediaTypes()[0].Serializer
 
 	tests := []struct {
 		accept string
@@ -2308,7 +2309,7 @@ func TestWatchTable(t *testing.T) {
 }
 
 func watcher(mediaType string, r io.ReadCloser) streaming.Decoder {
-	info, ok := runtime.SerializerInfoForMediaType(metainternalversion.Codecs.SupportedMediaTypes(), mediaType)
+	info, ok := runtime.SerializerInfoForMediaType(metainternalversionscheme.Codecs.SupportedMediaTypes(), mediaType)
 	if !ok || info.StreamSerializer == nil {
 		panic(info)
 	}
@@ -2482,7 +2483,7 @@ func TestGetPartialObjectMetadata(t *testing.T) {
 		}
 		body := ""
 		if test.expected != nil {
-			itemOut, d, err := extractBodyObject(resp, metainternalversion.Codecs.LegacyCodec(metav1beta1.SchemeGroupVersion))
+			itemOut, d, err := extractBodyObject(resp, metainternalversionscheme.Codecs.LegacyCodec(metav1beta1.SchemeGroupVersion))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2674,16 +2675,25 @@ func TestGetWithOptions(t *testing.T) {
 			t.Errorf("%s: unexpected response: %#v", test.name, resp)
 			continue
 		}
-		var itemOut genericapitesting.Simple
-		body, err := extractBody(resp, &itemOut)
+
+		var itemOut runtime.Object
+		if test.rootScoped {
+			itemOut = &genericapitesting.SimpleRoot{}
+		} else {
+			itemOut = &genericapitesting.Simple{}
+		}
+		body, err := extractBody(resp, itemOut)
 		if err != nil {
 			t.Errorf("%s: %v", test.name, err)
 			continue
 		}
-
-		if itemOut.Name != simpleStorage.item.Name {
-			t.Errorf("%s: Unexpected data: %#v, expected %#v (%s)", test.name, itemOut, simpleStorage.item, string(body))
-			continue
+		if metadata, err := meta.Accessor(itemOut); err == nil {
+			if metadata.GetName() != simpleStorage.item.Name {
+				t.Errorf("%s: Unexpected data: %#v, expected %#v (%s)", test.name, itemOut, simpleStorage.item, string(body))
+				continue
+			}
+		} else {
+			t.Errorf("%s: Couldn't get name from %#v: %v", test.name, itemOut, err)
 		}
 
 		var opts *genericapitesting.SimpleGetOptions
@@ -3083,6 +3093,9 @@ func TestDelete(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("DELETE", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, nil)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	res, err := client.Do(request)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -3115,6 +3128,9 @@ func TestDeleteWithOptions(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("DELETE", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, bytes.NewReader(body))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	res, err := client.Do(request)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -3152,6 +3168,9 @@ func TestDeleteWithOptionsQuery(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("DELETE", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID+"?gracePeriodSeconds="+strconv.FormatInt(grace, 10), nil)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	res, err := client.Do(request)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -3192,6 +3211,9 @@ func TestDeleteWithOptionsQueryAndBody(t *testing.T) {
 	}
 	client := http.Client{}
 	request, err := http.NewRequest("DELETE", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID+"?gracePeriodSeconds="+strconv.FormatInt(grace+10, 10), bytes.NewReader(body))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	res, err := client.Do(request)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -3228,6 +3250,9 @@ func TestDeleteInvokesAdmissionControl(t *testing.T) {
 
 		client := http.Client{}
 		request, err := http.NewRequest("DELETE", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, nil)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 		response, err := client.Do(request)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -3251,6 +3276,9 @@ func TestDeleteMissing(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("DELETE", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, nil)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -3291,6 +3319,9 @@ func TestUpdate(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("PUT", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, bytes.NewReader(body))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -3333,6 +3364,9 @@ func TestUpdateInvokesAdmissionControl(t *testing.T) {
 
 		client := http.Client{}
 		request, err := http.NewRequest("PUT", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, bytes.NewReader(body))
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 		response, err := client.Do(request)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -3366,6 +3400,9 @@ func TestUpdateRequiresMatchingName(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("PUT", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, bytes.NewReader(body))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -3400,6 +3437,9 @@ func TestUpdateAllowsMissingNamespace(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("PUT", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, bytes.NewReader(body))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -3441,6 +3481,9 @@ func TestUpdateDisallowsMismatchedNamespaceOnError(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("PUT", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, bytes.NewReader(body))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -3480,6 +3523,9 @@ func TestUpdatePreventsMismatchedNamespace(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("PUT", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, bytes.NewReader(body))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -3514,6 +3560,9 @@ func TestUpdateMissing(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("PUT", server.URL+"/"+prefix+"/"+testGroupVersion.Group+"/"+testGroupVersion.Version+"/namespaces/default/simple/"+ID, bytes.NewReader(body))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

@@ -36,7 +36,6 @@ import (
 	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/framework/replicaset"
@@ -88,7 +87,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		e2enode.WaitForTotalHealthy(cs, time.Minute)
 		masterNodes, nodeList, err = e2enode.GetMasterAndWorkerNodes(cs)
 		if err != nil {
-			e2elog.Logf("Unexpected error occurred: %v", err)
+			framework.Logf("Unexpected error occurred: %v", err)
 		}
 		// TODO: write a wrapper for ExpectNoErrorWithOffset()
 		framework.ExpectNoErrorWithOffset(0, err)
@@ -239,7 +238,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 				},
 				NodeName: node.Name,
 			}))
-			e2elog.Logf("Created pod: %v", currentPod)
+			framework.Logf("Created pod: %v", currentPod)
 		}
 		if len(pods) < 2 {
 			framework.Skipf("We need atleast two pods to be created but" +
@@ -289,43 +288,6 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 	})
 })
 
-var _ = SIGDescribe("PodPriorityResolution [Serial]", func() {
-	var cs clientset.Interface
-	var ns string
-	f := framework.NewDefaultFramework("sched-pod-priority")
-
-	ginkgo.BeforeEach(func() {
-		cs = f.ClientSet
-		ns = f.Namespace.Name
-
-		err := framework.CheckTestingNSDeletedExcept(cs, ns)
-		framework.ExpectNoError(err)
-	})
-
-	// This test verifies that system critical priorities are created automatically and resolved properly.
-	ginkgo.It("validates critical system priorities are created and resolved", func() {
-		// Create pods that use system critical priorities and
-		ginkgo.By("Create pods that use critical system priorities.")
-		systemPriorityClasses := []string{
-			scheduling.SystemNodeCritical, scheduling.SystemClusterCritical,
-		}
-		for i, spc := range systemPriorityClasses {
-			pod := createPausePod(f, pausePodConfig{
-				Name:              fmt.Sprintf("pod%d-%v", i, spc),
-				Namespace:         metav1.NamespaceSystem,
-				PriorityClassName: spc,
-			})
-			defer func() {
-				// Clean-up the pod.
-				err := f.ClientSet.CoreV1().Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
-				framework.ExpectNoError(err)
-			}()
-			gomega.Expect(pod.Spec.Priority).NotTo(gomega.BeNil())
-			e2elog.Logf("Created pod: %v", pod.Name)
-		}
-	})
-})
-
 // construct a fakecpu so as to set it to status of Node object
 // otherwise if we update CPU/Memory/etc, those values will be corrected back by kubelet
 var fakecpu v1.ResourceName = "example.com/fakecpu"
@@ -344,11 +306,11 @@ var _ = SIGDescribe("PreemptionExecutionPath", func() {
 			// list existing priorities
 			priorityList, err := cs.SchedulingV1().PriorityClasses().List(metav1.ListOptions{})
 			if err != nil {
-				e2elog.Logf("Unable to list priorities: %v", err)
+				framework.Logf("Unable to list priorities: %v", err)
 			} else {
-				e2elog.Logf("List existing priorities:")
+				framework.Logf("List existing priorities:")
 				for _, p := range priorityList.Items {
-					e2elog.Logf("%v/%v created at %v", p.Name, p.Value, p.CreationTimestamp)
+					framework.Logf("%v/%v created at %v", p.Name, p.Value, p.CreationTimestamp)
 				}
 			}
 		}
@@ -373,18 +335,18 @@ var _ = SIGDescribe("PreemptionExecutionPath", func() {
 		// find an available node
 		ginkgo.By("Finding an available node")
 		nodeName := GetNodeThatCanRunPod(f)
-		e2elog.Logf("found a healthy node: %s", nodeName)
+		framework.Logf("found a healthy node: %s", nodeName)
 
 		// get the node API object
 		var err error
 		node, err = cs.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
 		if err != nil {
-			e2elog.Failf("error getting node %q: %v", nodeName, err)
+			framework.Failf("error getting node %q: %v", nodeName, err)
 		}
 		var ok bool
 		nodeHostNameLabel, ok = node.GetObjectMeta().GetLabels()["kubernetes.io/hostname"]
 		if !ok {
-			e2elog.Failf("error getting kubernetes.io/hostname label on node %s", nodeName)
+			framework.Failf("error getting kubernetes.io/hostname label on node %s", nodeName)
 		}
 
 		// update Node API object with a fake resource
@@ -402,8 +364,8 @@ var _ = SIGDescribe("PreemptionExecutionPath", func() {
 			priorityPairs = append(priorityPairs, priorityPair{name: priorityName, value: priorityVal})
 			_, err := cs.SchedulingV1().PriorityClasses().Create(&schedulingv1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: priorityName}, Value: priorityVal})
 			if err != nil {
-				e2elog.Logf("Failed to create priority '%v/%v': %v", priorityName, priorityVal, err)
-				e2elog.Logf("Reason: %v. Msg: %v", errors.ReasonForError(err), err)
+				framework.Logf("Failed to create priority '%v/%v': %v", priorityName, priorityVal, err)
+				framework.Logf("Reason: %v. Msg: %v", errors.ReasonForError(err), err)
 			}
 			framework.ExpectEqual(err == nil || errors.IsAlreadyExists(err), true)
 		}
@@ -502,16 +464,16 @@ var _ = SIGDescribe("PreemptionExecutionPath", func() {
 			runPauseRS(f, rsConfs[i])
 		}
 
-		e2elog.Logf("pods created so far: %v", podNamesSeen)
-		e2elog.Logf("length of pods created so far: %v", len(podNamesSeen))
+		framework.Logf("pods created so far: %v", podNamesSeen)
+		framework.Logf("length of pods created so far: %v", len(podNamesSeen))
 
 		// create ReplicaSet4
 		// if runPauseRS failed, it means ReplicaSet4 cannot be scheduled even after 1 minute
 		// which is unacceptable
 		runPauseRS(f, rsConfs[rsNum-1])
 
-		e2elog.Logf("pods created so far: %v", podNamesSeen)
-		e2elog.Logf("length of pods created so far: %v", len(podNamesSeen))
+		framework.Logf("pods created so far: %v", podNamesSeen)
+		framework.Logf("length of pods created so far: %v", len(podNamesSeen))
 
 		// count pods number of ReplicaSet{1,2,3}, if it's more than expected replicas
 		// then it denotes its pods have been over-preempted
@@ -530,7 +492,7 @@ var _ = SIGDescribe("PreemptionExecutionPath", func() {
 		for i, got := range rsPodsSeen {
 			expected := maxRSPodsSeen[i]
 			if got > expected {
-				e2elog.Failf("pods of ReplicaSet%d have been over-preempted: expect %v pod names, but got %d", i+1, expected, got)
+				framework.Failf("pods of ReplicaSet%d have been over-preempted: expect %v pod names, but got %d", i+1, expected, got)
 			}
 		}
 	})

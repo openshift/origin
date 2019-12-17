@@ -592,6 +592,45 @@ type Error struct {
 	Message *string `json:"message,omitempty"`
 }
 
+// KeyValue the result of a request to retrieve a key-value from the specified configuration store.
+type KeyValue struct {
+	autorest.Response `json:"-"`
+	// Key - READ-ONLY; The primary identifier of a key-value.
+	// The key is used in unison with the label to uniquely identify a key-value.
+	Key *string `json:"key,omitempty"`
+	// Label - READ-ONLY; A value used to group key-values.
+	// The label is used in unison with the key to uniquely identify a key-value.
+	Label *string `json:"label,omitempty"`
+	// Value - READ-ONLY; The value of the key-value.
+	Value *string `json:"value,omitempty"`
+	// ContentType - READ-ONLY; The content type of the key-value's value.
+	// Providing a proper content-type can enable transformations of values when they are retrieved by applications.
+	ContentType *string `json:"contentType,omitempty"`
+	// ETag - READ-ONLY; An ETag indicating the state of a key-value within a configuration store.
+	ETag *string `json:"eTag,omitempty"`
+	// LastModified - READ-ONLY; The last time a modifying operation was performed on the given key-value.
+	LastModified *date.Time `json:"lastModified,omitempty"`
+	// Locked - READ-ONLY; A value indicating whether the key-value is locked.
+	// A locked key-value may not be modified until it is unlocked.
+	Locked *bool `json:"locked,omitempty"`
+	// Tags - READ-ONLY; A dictionary of tags that can help identify what a key-value may be applicable for.
+	Tags map[string]*string `json:"tags"`
+}
+
+// MarshalJSON is the custom marshaler for KeyValue.
+func (kv KeyValue) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	return json.Marshal(objectMap)
+}
+
+// ListKeyValueParameters the parameters used to list a configuration store key-value
+type ListKeyValueParameters struct {
+	// Key - The key to retrieve.
+	Key *string `json:"key,omitempty"`
+	// Label - The label of the key.
+	Label *string `json:"label,omitempty"`
+}
+
 // NameAvailabilityStatus the result of a request to check the availability of a resource name.
 type NameAvailabilityStatus struct {
 	autorest.Response `json:"-"`

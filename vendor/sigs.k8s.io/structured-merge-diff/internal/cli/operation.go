@@ -56,6 +56,30 @@ func (v validation) Execute(_ io.Writer) error {
 	return err
 }
 
+type fieldset struct {
+	operationBase
+
+	fileToUse string
+}
+
+func (f fieldset) Execute(w io.Writer) error {
+	tv, err := f.parseFile(f.fileToUse)
+	if err != nil {
+		return err
+	}
+
+	empty, err := f.parser.Type(f.typeName).FromYAML(typed.YAMLObject("{}"))
+	if err != nil {
+		return err
+	}
+	c, err := empty.Compare(tv)
+	if err != nil {
+		return err
+	}
+
+	return c.Added.ToJSONStream(w)
+}
+
 type listTypes struct {
 	operationBase
 }

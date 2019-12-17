@@ -69,6 +69,27 @@ message Build {
   optional BuildStatus status = 3;
 }
 
+// BuildCondition describes the state of a build at a certain point.
+message BuildCondition {
+  // Type of build condition.
+  optional string type = 1;
+
+  // Status of the condition, one of True, False, Unknown.
+  optional string status = 2;
+
+  // The last time this condition was updated.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastUpdateTime = 6;
+
+  // The last time the condition transitioned from one status to another.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 3;
+
+  // The reason for the condition's last transition.
+  optional string reason = 4;
+
+  // A human readable message indicating details about the transition.
+  optional string message = 5;
+}
+
 // Build configurations define a build process for new container images. There are three types of builds possible - a container image build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary container images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the container image registry specified in the "output" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.
 //
 // Each build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have "output" set can be used to test code or run a verification build.
@@ -436,6 +457,11 @@ message BuildStatus {
 
   // logSnippet is the last few lines of the build log.  This value is only set for builds that failed.
   optional string logSnippet = 12;
+
+  // Conditions represents the latest available observations of a build's current state.
+  // +patchMergeKey=type
+  // +patchStrategy=merge
+  repeated BuildCondition conditions = 13;
 }
 
 // BuildStatusOutput contains the status of the built image.

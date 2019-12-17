@@ -285,7 +285,7 @@ type ApplianceArtifact struct {
 	Name *string `json:"name,omitempty"`
 	// URI - The appliance artifact blob uri.
 	URI *string `json:"uri,omitempty"`
-	// Type - The the appliance artifact type. Possible values include: 'Template', 'Custom'
+	// Type - The appliance artifact type. Possible values include: 'Template', 'Custom'
 	Type ApplianceArtifactType `json:"type,omitempty"`
 }
 

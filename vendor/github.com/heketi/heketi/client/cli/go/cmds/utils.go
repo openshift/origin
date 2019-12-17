@@ -111,3 +111,14 @@ func newHeketiClient() (*client.Client, error) {
 			VerifyCerts:        options.TLSCerts,
 		})
 }
+
+func entryStateString(s api.EntryState) string {
+	var out string
+	switch s {
+	case api.EntryStateFailed:
+		out = "removed"
+	default:
+		out = string(s)
+	}
+	return out
+}

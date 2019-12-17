@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
@@ -56,6 +57,12 @@ func (client ActionRulesClient) CreateUpdate(ctx context.Context, resourceGroupN
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.ActionRulesClient", "CreateUpdate", err.Error())
+	}
+
 	req, err := client.CreateUpdatePreparer(ctx, resourceGroupName, actionRuleName, actionRule)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.ActionRulesClient", "CreateUpdate", nil, "Failure preparing request")
@@ -135,6 +142,12 @@ func (client ActionRulesClient) Delete(ctx context.Context, resourceGroupName st
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.ActionRulesClient", "Delete", err.Error())
+	}
+
 	req, err := client.DeletePreparer(ctx, resourceGroupName, actionRuleName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.ActionRulesClient", "Delete", nil, "Failure preparing request")
@@ -212,6 +225,12 @@ func (client ActionRulesClient) GetByName(ctx context.Context, resourceGroupName
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.ActionRulesClient", "GetByName", err.Error())
+	}
+
 	req, err := client.GetByNamePreparer(ctx, resourceGroupName, actionRuleName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.ActionRulesClient", "GetByName", nil, "Failure preparing request")
@@ -300,6 +319,12 @@ func (client ActionRulesClient) ListByResourceGroup(ctx context.Context, resourc
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.ActionRulesClient", "ListByResourceGroup", err.Error())
+	}
+
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, targetResourceGroup, targetResourceType, targetResource, severity, monitorService, impactedScope, description, alertRuleID, actionGroup, name)
 	if err != nil {
@@ -453,6 +478,12 @@ func (client ActionRulesClient) ListBySubscription(ctx context.Context, targetRe
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.ActionRulesClient", "ListBySubscription", err.Error())
+	}
+
 	result.fn = client.listBySubscriptionNextResults
 	req, err := client.ListBySubscriptionPreparer(ctx, targetResourceGroup, targetResourceType, targetResource, severity, monitorService, impactedScope, description, alertRuleID, actionGroup, name)
 	if err != nil {
@@ -597,6 +628,12 @@ func (client ActionRulesClient) Update(ctx context.Context, resourceGroupName st
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.ActionRulesClient", "Update", err.Error())
+	}
+
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, actionRuleName, actionRulePatch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.ActionRulesClient", "Update", nil, "Failure preparing request")

@@ -549,38 +549,9 @@ func TestBadTar(t *testing.T) {
 	}
 }
 
-// clean prevents path traversals by stripping them out.
-// This is adapted from https://golang.org/src/net/http/fs.go#L74
-func clean(fileName string) string {
-	return path.Clean(string(os.PathSeparator) + fileName)
-}
-
-func TestClean(t *testing.T) {
-	tests := []struct {
-		input   string
-		cleaned string
-	}{
-		{
-			"../../../tmp/foo",
-			"/tmp/foo",
-		},
-		{
-			"/../../../tmp/foo",
-			"/tmp/foo",
-		},
-	}
-
-	for _, test := range tests {
-		out := clean(test.input)
-		if out != test.cleaned {
-			t.Errorf("Expected: %s, saw %s", test.cleaned, out)
-		}
-	}
-}
-
 func TestCopyToPod(t *testing.T) {
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
-	ns := scheme.Codecs
+	ns := scheme.Codecs.WithoutConversion()
 	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.Client = &fake.RESTClient{
@@ -650,7 +621,7 @@ func TestCopyToPod(t *testing.T) {
 
 func TestCopyToPodNoPreserve(t *testing.T) {
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
-	ns := scheme.Codecs
+	ns := scheme.Codecs.WithoutConversion()
 	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.Client = &fake.RESTClient{

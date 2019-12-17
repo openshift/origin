@@ -343,6 +343,101 @@ func (client TriggersClient) GetResponder(resp *http.Response) (result TriggerRe
 	return
 }
 
+// GetEventSubscriptionStatus get a trigger's event subscription status.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
+func (client TriggersClient) GetEventSubscriptionStatus(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result TriggerSubscriptionOperationStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.GetEventSubscriptionStatus")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: factoryName,
+			Constraints: []validation.Constraint{{Target: "factoryName", Name: validation.MaxLength, Rule: 63, Chain: nil},
+				{Target: "factoryName", Name: validation.MinLength, Rule: 3, Chain: nil},
+				{Target: "factoryName", Name: validation.Pattern, Rule: `^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$`, Chain: nil}}},
+		{TargetValue: triggerName,
+			Constraints: []validation.Constraint{{Target: "triggerName", Name: validation.MaxLength, Rule: 260, Chain: nil},
+				{Target: "triggerName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "triggerName", Name: validation.Pattern, Rule: `^[A-Za-z0-9_][^<>*#.%&:\\+?/]*$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("datafactory.TriggersClient", "GetEventSubscriptionStatus", err.Error())
+	}
+
+	req, err := client.GetEventSubscriptionStatusPreparer(ctx, resourceGroupName, factoryName, triggerName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.TriggersClient", "GetEventSubscriptionStatus", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetEventSubscriptionStatusSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "datafactory.TriggersClient", "GetEventSubscriptionStatus", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetEventSubscriptionStatusResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.TriggersClient", "GetEventSubscriptionStatus", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetEventSubscriptionStatusPreparer prepares the GetEventSubscriptionStatus request.
+func (client TriggersClient) GetEventSubscriptionStatusPreparer(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"factoryName":       autorest.Encode("path", factoryName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+		"triggerName":       autorest.Encode("path", triggerName),
+	}
+
+	const APIVersion = "2018-06-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/triggers/{triggerName}/getEventSubscriptionStatus", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetEventSubscriptionStatusSender sends the GetEventSubscriptionStatus request. The method will close the
+// http.Response Body if it receives an error.
+func (client TriggersClient) GetEventSubscriptionStatusSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// GetEventSubscriptionStatusResponder handles the response to the GetEventSubscriptionStatus request. The method always
+// closes the http.Response Body.
+func (client TriggersClient) GetEventSubscriptionStatusResponder(resp *http.Response) (result TriggerSubscriptionOperationStatus, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // ListByFactory lists triggers.
 // Parameters:
 // resourceGroupName - the resource group name.
@@ -655,5 +750,195 @@ func (client TriggersClient) StopResponder(resp *http.Response) (result autorest
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByClosing())
 	result.Response = resp
+	return
+}
+
+// SubscribeToEvents subscribe event trigger to events.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
+func (client TriggersClient) SubscribeToEvents(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result TriggersSubscribeToEventsFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.SubscribeToEvents")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: factoryName,
+			Constraints: []validation.Constraint{{Target: "factoryName", Name: validation.MaxLength, Rule: 63, Chain: nil},
+				{Target: "factoryName", Name: validation.MinLength, Rule: 3, Chain: nil},
+				{Target: "factoryName", Name: validation.Pattern, Rule: `^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$`, Chain: nil}}},
+		{TargetValue: triggerName,
+			Constraints: []validation.Constraint{{Target: "triggerName", Name: validation.MaxLength, Rule: 260, Chain: nil},
+				{Target: "triggerName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "triggerName", Name: validation.Pattern, Rule: `^[A-Za-z0-9_][^<>*#.%&:\\+?/]*$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("datafactory.TriggersClient", "SubscribeToEvents", err.Error())
+	}
+
+	req, err := client.SubscribeToEventsPreparer(ctx, resourceGroupName, factoryName, triggerName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.TriggersClient", "SubscribeToEvents", nil, "Failure preparing request")
+		return
+	}
+
+	result, err = client.SubscribeToEventsSender(req)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.TriggersClient", "SubscribeToEvents", result.Response(), "Failure sending request")
+		return
+	}
+
+	return
+}
+
+// SubscribeToEventsPreparer prepares the SubscribeToEvents request.
+func (client TriggersClient) SubscribeToEventsPreparer(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"factoryName":       autorest.Encode("path", factoryName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+		"triggerName":       autorest.Encode("path", triggerName),
+	}
+
+	const APIVersion = "2018-06-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/triggers/{triggerName}/subscribeToEvents", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// SubscribeToEventsSender sends the SubscribeToEvents request. The method will close the
+// http.Response Body if it receives an error.
+func (client TriggersClient) SubscribeToEventsSender(req *http.Request) (future TriggersSubscribeToEventsFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req, sd...)
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
+	return
+}
+
+// SubscribeToEventsResponder handles the response to the SubscribeToEvents request. The method always
+// closes the http.Response Body.
+func (client TriggersClient) SubscribeToEventsResponder(resp *http.Response) (result TriggerSubscriptionOperationStatus, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// UnsubscribeFromEvents unsubscribe event trigger from events.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
+func (client TriggersClient) UnsubscribeFromEvents(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result TriggersUnsubscribeFromEventsFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TriggersClient.UnsubscribeFromEvents")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: factoryName,
+			Constraints: []validation.Constraint{{Target: "factoryName", Name: validation.MaxLength, Rule: 63, Chain: nil},
+				{Target: "factoryName", Name: validation.MinLength, Rule: 3, Chain: nil},
+				{Target: "factoryName", Name: validation.Pattern, Rule: `^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$`, Chain: nil}}},
+		{TargetValue: triggerName,
+			Constraints: []validation.Constraint{{Target: "triggerName", Name: validation.MaxLength, Rule: 260, Chain: nil},
+				{Target: "triggerName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "triggerName", Name: validation.Pattern, Rule: `^[A-Za-z0-9_][^<>*#.%&:\\+?/]*$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("datafactory.TriggersClient", "UnsubscribeFromEvents", err.Error())
+	}
+
+	req, err := client.UnsubscribeFromEventsPreparer(ctx, resourceGroupName, factoryName, triggerName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.TriggersClient", "UnsubscribeFromEvents", nil, "Failure preparing request")
+		return
+	}
+
+	result, err = client.UnsubscribeFromEventsSender(req)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.TriggersClient", "UnsubscribeFromEvents", result.Response(), "Failure sending request")
+		return
+	}
+
+	return
+}
+
+// UnsubscribeFromEventsPreparer prepares the UnsubscribeFromEvents request.
+func (client TriggersClient) UnsubscribeFromEventsPreparer(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"factoryName":       autorest.Encode("path", factoryName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+		"triggerName":       autorest.Encode("path", triggerName),
+	}
+
+	const APIVersion = "2018-06-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/triggers/{triggerName}/unsubscribeFromEvents", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// UnsubscribeFromEventsSender sends the UnsubscribeFromEvents request. The method will close the
+// http.Response Body if it receives an error.
+func (client TriggersClient) UnsubscribeFromEventsSender(req *http.Request) (future TriggersUnsubscribeFromEventsFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req, sd...)
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
+	return
+}
+
+// UnsubscribeFromEventsResponder handles the response to the UnsubscribeFromEvents request. The method always
+// closes the http.Response Body.
+func (client TriggersClient) UnsubscribeFromEventsResponder(resp *http.Response) (result TriggerSubscriptionOperationStatus, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
 	return
 }

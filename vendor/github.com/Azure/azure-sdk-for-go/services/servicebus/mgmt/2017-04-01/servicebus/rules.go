@@ -74,7 +74,16 @@ func (client RulesClient) CreateOrUpdate(ctx context.Context, resourceGroupName 
 				{Target: "subscriptionName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
 		{TargetValue: ruleName,
 			Constraints: []validation.Constraint{{Target: "ruleName", Name: validation.MaxLength, Rule: 50, Chain: nil},
-				{Target: "ruleName", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+				{Target: "ruleName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Ruleproperties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Ruleproperties.SQLFilter", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Ruleproperties.SQLFilter.CompatibilityLevel", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Ruleproperties.SQLFilter.CompatibilityLevel", Name: validation.InclusiveMaximum, Rule: int64(20), Chain: nil},
+							{Target: "parameters.Ruleproperties.SQLFilter.CompatibilityLevel", Name: validation.InclusiveMinimum, Rule: 20, Chain: nil},
+						}},
+					}},
+				}}}}}); err != nil {
 		return result, validation.NewError("servicebus.RulesClient", "CreateOrUpdate", err.Error())
 	}
 

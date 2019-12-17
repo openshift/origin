@@ -779,7 +779,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 
 	for k, v := range testCases {
 		sccMatcher := sccmatching.NewDefaultSCCMatcher(lister, v.authorizer)
-		sccs, err := sccMatcher.FindApplicableSCCs(v.namespace, v.userInfo)
+		sccs, err := sccMatcher.FindApplicableSCCs(context.TODO(), v.namespace, v.userInfo)
 		if err != nil {
 			t.Errorf("%s received error %v", k, err)
 			continue
@@ -808,7 +808,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 	testAuthorizer := &sccTestAuthorizer{t: t}
 	namespace := "does-not-matter"
 	sccMatcher := sccmatching.NewDefaultSCCMatcher(lister, testAuthorizer)
-	sccs2, err := sccMatcher.FindApplicableSCCs(namespace, userInfo)
+	sccs2, err := sccMatcher.FindApplicableSCCs(context.TODO(), namespace, userInfo)
 	if err != nil {
 		t.Fatalf("matching many sccs returned error %v", err)
 	}
@@ -1302,7 +1302,7 @@ type sccTestAuthorizer struct {
 	scc       string
 }
 
-func (s *sccTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+func (s *sccTestAuthorizer) Authorize(ctx context.Context, a authorizer.Attributes) (authorizer.Decision, string, error) {
 	s.t.Helper()
 	if !isValidSCCAttributes(a) {
 		s.t.Errorf("invalid attributes seen: %#v", a)

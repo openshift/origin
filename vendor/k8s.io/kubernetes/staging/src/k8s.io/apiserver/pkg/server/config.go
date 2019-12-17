@@ -30,9 +30,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/go-openapi/spec"
 	"github.com/google/uuid"
@@ -67,6 +64,8 @@ import (
 	"k8s.io/apiserver/pkg/server/routes"
 	serverstore "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog"
@@ -724,7 +723,6 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, c.LongRunningFunc, c.RequestTimeout)
 	handler = genericfilters.WithWaitGroup(handler, c.LongRunningFunc, c.HandlerChainWaitGroup)
 	handler = genericapifilters.WithRequestInfo(handler, c.RequestInfoResolver)
-	handler = genericapifilters.WithCacheControl(handler)
 	handler = genericfilters.WithPanicRecovery(handler)
 	return handler
 }

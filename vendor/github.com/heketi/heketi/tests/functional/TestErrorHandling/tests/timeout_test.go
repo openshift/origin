@@ -33,7 +33,7 @@ var (
 
 func addDelay(timeOut int, node string, exec *ssh.SshExec) error {
 	dumpData := fmt.Sprintf("echo -e %ds >%s", timeOut, delayFile)
-	cmd := []string{dumpData}
+	cmd := rex.OneCmd(dumpData)
 	err := rex.AnyError(exec.ExecCommands(node, cmd, 10, true))
 	return err
 }
@@ -44,7 +44,7 @@ func cleanDelay(node string, exec *ssh.SshExec) error {
 	removePIDFile := fmt.Sprintf("rm -f %s", pidFile)
 
 	cmd := []string{removeSleep, removeDelayFile, removePIDFile}
-	err := rex.AnyError(exec.ExecCommands(node, cmd, 10, true))
+	err := rex.AnyError(exec.ExecCommands(node, rex.ToCmds(cmd), 10, true))
 	return err
 }
 

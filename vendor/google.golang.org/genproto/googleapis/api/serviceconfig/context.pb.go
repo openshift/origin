@@ -68,7 +68,7 @@ func (m *Context) Reset()         { *m = Context{} }
 func (m *Context) String() string { return proto.CompactTextString(m) }
 func (*Context) ProtoMessage()    {}
 func (*Context) Descriptor() ([]byte, []int) {
-	return fileDescriptor_context_e07622750671eacc, []int{0}
+	return fileDescriptor_context_18179baee0be03e4, []int{0}
 }
 func (m *Context) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Context.Unmarshal(m, b)
@@ -100,7 +100,8 @@ func (m *Context) GetRules() []*ContextRule {
 type ContextRule struct {
 	// Selects the methods to which this rule applies.
 	//
-	// Refer to [selector][google.api.DocumentationRule.selector] for syntax details.
+	// Refer to [selector][google.api.DocumentationRule.selector] for syntax
+	// details.
 	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// A list of full type names of requested contexts.
 	Requested []string `protobuf:"bytes,2,rep,name=requested,proto3" json:"requested,omitempty"`
@@ -121,7 +122,7 @@ func (m *ContextRule) Reset()         { *m = ContextRule{} }
 func (m *ContextRule) String() string { return proto.CompactTextString(m) }
 func (*ContextRule) ProtoMessage()    {}
 func (*ContextRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_context_e07622750671eacc, []int{1}
+	return fileDescriptor_context_18179baee0be03e4, []int{1}
 }
 func (m *ContextRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ContextRule.Unmarshal(m, b)
@@ -181,9 +182,9 @@ func init() {
 	proto.RegisterType((*ContextRule)(nil), "google.api.ContextRule")
 }
 
-func init() { proto.RegisterFile("google/api/context.proto", fileDescriptor_context_e07622750671eacc) }
+func init() { proto.RegisterFile("google/api/context.proto", fileDescriptor_context_18179baee0be03e4) }
 
-var fileDescriptor_context_e07622750671eacc = []byte{
+var fileDescriptor_context_18179baee0be03e4 = []byte{
 	// 281 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x91, 0xbd, 0x4e, 0xc3, 0x30,
 	0x10, 0x80, 0x95, 0xfe, 0x00, 0x71, 0x11, 0x83, 0x17, 0x4c, 0x61, 0x88, 0x3a, 0x65, 0x21, 0x91,

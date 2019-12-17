@@ -20,13 +20,13 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/klog"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
 
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	informers "k8s.io/kube-aggregator/pkg/client/informers/externalversions/apiregistration/v1"
@@ -168,16 +168,4 @@ func (c *APIServiceRegistrationController) deleteAPIService(obj interface{}) {
 	}
 	klog.V(4).Infof("Deleting %q", castObj.Name)
 	c.enqueue(castObj)
-}
-
-// resyncAll queues all apiservices to be rehandled.
-func (c *APIServiceRegistrationController) resyncAll() {
-	apiServices, err := c.apiServiceLister.List(labels.Everything())
-	if err != nil {
-		utilruntime.HandleError(err)
-		return
-	}
-	for _, apiService := range apiServices {
-		c.addAPIService(apiService)
-	}
 }

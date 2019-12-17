@@ -32,6 +32,7 @@ var _ OperationsClientAPI = (*resources.OperationsClient)(nil)
 
 // DeploymentsClientAPI contains the set of methods on the DeploymentsClient type.
 type DeploymentsClientAPI interface {
+	CalculateTemplateHash(ctx context.Context, templateParameter interface{}) (result resources.TemplateHashResult, err error)
 	Cancel(ctx context.Context, resourceGroupName string, deploymentName string) (result autorest.Response, err error)
 	CancelAtSubscriptionScope(ctx context.Context, deploymentName string) (result autorest.Response, err error)
 	CheckExistence(ctx context.Context, resourceGroupName string, deploymentName string) (result autorest.Response, err error)

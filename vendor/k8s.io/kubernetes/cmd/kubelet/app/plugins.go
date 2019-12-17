@@ -22,6 +22,8 @@ import (
 	_ "k8s.io/kubernetes/pkg/credentialprovider/aws"
 	_ "k8s.io/kubernetes/pkg/credentialprovider/azure"
 	_ "k8s.io/kubernetes/pkg/credentialprovider/gcp"
+
+	"k8s.io/component-base/featuregate"
 	"k8s.io/utils/exec"
 
 	// Volume plugins
@@ -52,8 +54,8 @@ import (
 	_ "k8s.io/kubernetes/pkg/cloudprovider/providers"
 )
 
-// ProbeVolumePlugins collects all volume plugins into an easy to use list.
-func probeVolumePlugins() []volume.VolumePlugin {
+// probeVolumePlugins collects all volume plugins into an easy to use list.
+func probeVolumePlugins(featureGate featuregate.FeatureGate) ([]volume.VolumePlugin, error) {
 	allPlugins := []volume.VolumePlugin{}
 
 	// The list of plugins to probe is decided by the kubelet binary, not
@@ -62,7 +64,11 @@ func probeVolumePlugins() []volume.VolumePlugin {
 	//
 	// Kubelet does not currently need to configure volume plugins.
 	// If/when it does, see kube-controller-manager/app/plugins.go for example of using volume.VolumeConfig
-	allPlugins = appendLegacyProviderVolumes(allPlugins)
+	var err error
+	allPlugins, err = appendLegacyProviderVolumes(allPlugins, featureGate)
+	if err != nil {
+		return allPlugins, err
+	}
 	allPlugins = append(allPlugins, emptydir.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, git_repo.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, hostpath.ProbeVolumePlugins(volume.VolumeConfig{})...)
@@ -83,7 +89,7 @@ func probeVolumePlugins() []volume.VolumePlugin {
 	allPlugins = append(allPlugins, local.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, storageos.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, csi.ProbeVolumePlugins()...)
-	return allPlugins
+	return allPlugins, nil
 }
 
 // GetDynamicPluginProber gets the probers of dynamically discoverable plugins

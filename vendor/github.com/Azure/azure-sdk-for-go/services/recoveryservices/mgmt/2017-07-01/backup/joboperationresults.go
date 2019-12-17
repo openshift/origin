@@ -41,7 +41,6 @@ func NewJobOperationResultsClientWithBaseURI(baseURI string, subscriptionID stri
 }
 
 // Get fetches the result of any operation.
-// the operation.
 // Parameters:
 // vaultName - the name of the recovery services vault.
 // resourceGroupName - the name of the resource group where the recovery services vault is present.
@@ -89,7 +88,7 @@ func (client JobOperationResultsClient) GetPreparer(ctx context.Context, vaultNa
 		"vaultName":         autorest.Encode("path", vaultName),
 	}
 
-	const APIVersion = "2016-12-01"
+	const APIVersion = "2019-05-13"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}

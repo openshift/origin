@@ -313,7 +313,7 @@ func newServiceAccountAuthenticator(iss string, keyfiles []string, apiAudiences 
 }
 
 func newWebhookTokenAuthenticator(webhookConfigFile string, version string, ttl time.Duration, implicitAuds authenticator.Audiences) (authenticator.Token, error) {
-	webhookTokenAuthenticator, err := webhook.New(webhookConfigFile, implicitAuds)
+	webhookTokenAuthenticator, err := webhook.New(webhookConfigFile, version, implicitAuds)
 	if err != nil {
 		return nil, err
 	}

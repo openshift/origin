@@ -190,6 +190,82 @@ func (client PermissionsClient) ListByBillingProfileResponder(resp *http.Respons
 	return
 }
 
+// ListByCustomers lists all billing permissions for the caller under customer.
+// Parameters:
+// billingAccountName - billing Account Id.
+// customerName - customer Id.
+func (client PermissionsClient) ListByCustomers(ctx context.Context, billingAccountName string, customerName string) (result PermissionsListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PermissionsClient.ListByCustomers")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	req, err := client.ListByCustomersPreparer(ctx, billingAccountName, customerName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.PermissionsClient", "ListByCustomers", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListByCustomersSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "billing.PermissionsClient", "ListByCustomers", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.ListByCustomersResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.PermissionsClient", "ListByCustomers", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListByCustomersPreparer prepares the ListByCustomers request.
+func (client PermissionsClient) ListByCustomersPreparer(ctx context.Context, billingAccountName string, customerName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"billingAccountName": autorest.Encode("path", billingAccountName),
+		"customerName":       autorest.Encode("path", customerName),
+	}
+
+	const APIVersion = "2018-11-01-preview"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/providers/Microsoft.Billing/billingAccounts/{billingAccountName}/customers/{customerName}/providers/Microsoft.Billing/billingPermissions", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListByCustomersSender sends the ListByCustomers request. The method will close the
+// http.Response Body if it receives an error.
+func (client PermissionsClient) ListByCustomersSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListByCustomersResponder handles the response to the ListByCustomers request. The method always
+// closes the http.Response Body.
+func (client PermissionsClient) ListByCustomersResponder(resp *http.Response) (result PermissionsListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // ListByInvoiceSections lists all billing permissions for the caller under invoice section.
 // Parameters:
 // billingAccountName - billing Account Id.

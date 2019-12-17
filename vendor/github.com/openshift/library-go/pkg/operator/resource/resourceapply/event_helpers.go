@@ -84,3 +84,27 @@ func reportUpdateEvent(recorder events.Recorder, obj runtime.Object, originalErr
 		recorder.Eventf(fmt.Sprintf("%sUpdated", reportingKind), "Updated %s%s/%s%s: %s", reportingKind, reportingGroup, accessor.GetName(), namespace, strings.Join(details, "\n"))
 	}
 }
+
+func reportDeleteEvent(recorder events.Recorder, obj runtime.Object, originalErr error, details ...string) {
+	reportingGroup, reportingKind := guessObjectGroupKind(obj)
+	if len(reportingGroup) != 0 {
+		reportingGroup = "." + reportingGroup
+	}
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		klog.Errorf("Failed to get accessor for %+v", obj)
+		return
+	}
+	namespace := ""
+	if len(accessor.GetNamespace()) > 0 {
+		namespace = " -n " + accessor.GetNamespace()
+	}
+	switch {
+	case originalErr != nil:
+		recorder.Warningf(fmt.Sprintf("%sDeleteFailed", reportingKind), "Failed to delete %s%s/%s%s: %v", reportingKind, reportingGroup, accessor.GetName(), namespace, originalErr)
+	case len(details) == 0:
+		recorder.Eventf(fmt.Sprintf("%sDeleted", reportingKind), "sDeleted %s%s/%s%s because it changed", reportingKind, reportingGroup, accessor.GetName(), namespace)
+	default:
+		recorder.Eventf(fmt.Sprintf("%sDeleted", reportingKind), "sDeleted %s%s/%s%s: %s", reportingKind, reportingGroup, accessor.GetName(), namespace, strings.Join(details, "\n"))
+	}
+}

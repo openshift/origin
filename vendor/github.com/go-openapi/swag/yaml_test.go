@@ -183,6 +183,38 @@ func TestWithYKey(t *testing.T) {
 	}
 }
 
+func TestMapKeyTypes(t *testing.T) {
+	d := yaml.MapSlice{
+		yaml.MapItem{Key: 12345, Value: "int"},
+		yaml.MapItem{Key: int8(1), Value: "int8"},
+		yaml.MapItem{Key: int16(12345), Value: "int16"},
+		yaml.MapItem{Key: int32(12345678), Value: "int32"},
+		yaml.MapItem{Key: int64(12345678910), Value: "int64"},
+		yaml.MapItem{Key: uint(12345), Value: "uint"},
+		yaml.MapItem{Key: uint8(1), Value: "uint8"},
+		yaml.MapItem{Key: uint16(12345), Value: "uint16"},
+		yaml.MapItem{Key: uint32(12345678), Value: "uint32"},
+		yaml.MapItem{Key: uint64(12345678910), Value: "uint64"},
+	}
+	_, err := YAMLToJSON(d)
+	assert.NoError(t, err)
+
+	dm := map[interface{}]interface{}{
+		12345:               "int",
+		int8(1):             "int8",
+		int16(12345):        "int16",
+		int32(12345678):     "int32",
+		int64(12345678910):  "int64",
+		uint(12345):         "uint",
+		uint8(1):            "uint8",
+		uint16(12345):       "uint16",
+		uint32(12345678):    "uint32",
+		uint64(12345678910): "uint64",
+	}
+	_, err = YAMLToJSON(dm)
+	assert.NoError(t, err)
+}
+
 const withQuotedYKey = `consumes:
 - application/json
 definitions:

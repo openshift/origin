@@ -329,11 +329,16 @@ func removeTerminatedContainerInfo(containerInfo map[string]cadvisorapiv2.Contai
 			continue
 		}
 		sort.Sort(ByCreationTime(refs))
-		for i := len(refs) - 1; i >= 0; i-- {
+		i := 0
+		for ; i < len(refs); i++ {
 			if hasMemoryAndCPUInstUsage(&refs[i].cinfo) {
-				result[refs[i].cgroup] = refs[i].cinfo
+				// Stops removing when we first see an info with non-zero
+				// CPU/Memory usage.
 				break
 			}
+		}
+		for ; i < len(refs); i++ {
+			result[refs[i].cgroup] = refs[i].cinfo
 		}
 	}
 	return result

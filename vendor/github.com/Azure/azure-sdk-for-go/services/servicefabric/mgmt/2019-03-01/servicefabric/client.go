@@ -1,4 +1,4 @@
-// Package servicefabric implements the Azure ARM Servicefabric service API version .
+// Package servicefabric implements the Azure ARM Servicefabric service API version 2019-03-01.
 //
 // Service Fabric Management Client
 package servicefabric

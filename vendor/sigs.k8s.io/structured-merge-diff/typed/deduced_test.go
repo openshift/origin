@@ -246,7 +246,7 @@ func TestToSetDeduced(t *testing.T) {
 
 			tv, err := typed.DeducedParseableType.FromYAML(v.object)
 			if err != nil {
-				t.Errorf("failed to parse object: %v", err)
+				t.Fatalf("failed to parse object: %v", err)
 			}
 			fs, err := tv.ToFieldSet()
 			if err != nil {
@@ -456,17 +456,16 @@ func TestSymdiffDeduced(t *testing.T) {
 
 			tvLHS, err := pt.FromYAML(quint.lhs)
 			if err != nil {
-				t.Errorf("failed to parse lhs: %v", err)
+				t.Fatalf("failed to parse lhs: %v", err)
 			}
 			tvRHS, err := pt.FromYAML(quint.rhs)
 			if err != nil {
-				t.Errorf("failed to parse rhs: %v", err)
+				t.Fatalf("failed to parse rhs: %v", err)
 			}
 			got, err := tvLHS.Compare(tvRHS)
 			if err != nil {
 				t.Fatalf("got validation errors: %v", err)
 			}
-			t.Logf("got merged:\n%s\n", got.Merged.AsValue())
 			t.Logf("got added:\n%s\n", got.Added)
 			if !got.Added.Equals(quint.added) {
 				t.Errorf("Expected added:\n%s\n", quint.added)

@@ -135,15 +135,14 @@ func (n *network) addLBBackend(ip net.IP, lb *loadBalancer) {
 			if ep := sb.getGatewayEndpoint(); ep != nil {
 				gwIP = ep.Iface().Address().IP
 			}
-			filteredPorts := filterPortConfigs(lb.service.ingressPorts, false)
-			if err := programIngress(gwIP, filteredPorts, false); err != nil {
+			if err := programIngress(gwIP, lb.service.ingressPorts, false); err != nil {
 				logrus.Errorf("Failed to add ingress: %v", err)
 				return
 			}
 		}
 
 		logrus.Debugf("Creating service for vip %s fwMark %d ingressPorts %#v in sbox %.7s (%.7s)", lb.vip, lb.fwMark, lb.service.ingressPorts, sb.ID(), sb.ContainerID())
-		if err := invokeFWMarker(sb.Key(), lb.vip, lb.fwMark, lb.service.ingressPorts, eIP, false); err != nil {
+		if err := invokeFWMarker(sb.Key(), lb.vip, lb.fwMark, lb.service.ingressPorts, eIP, false, n.loadBalancerMode); err != nil {
 			logrus.Errorf("Failed to add firewall mark rule in sbox %.7s (%.7s): %v", sb.ID(), sb.ContainerID(), err)
 			return
 		}
@@ -158,6 +157,9 @@ func (n *network) addLBBackend(ip net.IP, lb *loadBalancer) {
 		AddressFamily: nl.FAMILY_V4,
 		Address:       ip,
 		Weight:        1,
+	}
+	if n.loadBalancerMode == loadBalancerModeDSR {
+		d.ConnectionFlags = ipvs.ConnFwdDirectRoute
 	}
 
 	// Remove the sched name before using the service to add
@@ -204,6 +206,9 @@ func (n *network) rmLBBackend(ip net.IP, lb *loadBalancer, rmService bool, fullR
 		Address:       ip,
 		Weight:        1,
 	}
+	if n.loadBalancerMode == loadBalancerModeDSR {
+		d.ConnectionFlags = ipvs.ConnFwdDirectRoute
+	}
 
 	if fullRemove {
 		if err := i.DelDestination(s, d); err != nil && err != syscall.ENOENT {
@@ -227,13 +232,12 @@ func (n *network) rmLBBackend(ip net.IP, lb *loadBalancer, rmService bool, fullR
 			if ep := sb.getGatewayEndpoint(); ep != nil {
 				gwIP = ep.Iface().Address().IP
 			}
-			filteredPorts := filterPortConfigs(lb.service.ingressPorts, true)
-			if err := programIngress(gwIP, filteredPorts, true); err != nil {
+			if err := programIngress(gwIP, lb.service.ingressPorts, true); err != nil {
 				logrus.Errorf("Failed to delete ingress: %v", err)
 			}
 		}
 
-		if err := invokeFWMarker(sb.Key(), lb.vip, lb.fwMark, lb.service.ingressPorts, eIP, true); err != nil {
+		if err := invokeFWMarker(sb.Key(), lb.vip, lb.fwMark, lb.service.ingressPorts, eIP, true, n.loadBalancerMode); err != nil {
 			logrus.Errorf("Failed to delete firewall mark rule in sbox %.7s (%.7s): %v", sb.ID(), sb.ContainerID(), err)
 		}
 
@@ -299,8 +303,10 @@ func filterPortConfigs(ingressPorts []*PortConfig, isDelete bool) []*PortConfig 
 
 func programIngress(gwIP net.IP, ingressPorts []*PortConfig, isDelete bool) error {
 	addDelOpt := "-I"
+	rollbackAddDelOpt := "-D"
 	if isDelete {
 		addDelOpt = "-D"
+		rollbackAddDelOpt = "-I"
 	}
 
 	ingressMu.Lock()
@@ -381,18 +387,35 @@ func programIngress(gwIP net.IP, ingressPorts []*PortConfig, isDelete bool) erro
 		}
 	}
 
-	for _, iPort := range ingressPorts {
+	//Filter the ingress ports until port rules start to be added/deleted
+	filteredPorts := filterPortConfigs(ingressPorts, isDelete)
+	rollbackRules := make([][]string, 0, len(filteredPorts)*3)
+	var portErr error
+	defer func() {
+		if portErr != nil && !isDelete {
+			filterPortConfigs(filteredPorts, !isDelete)
+			for _, rule := range rollbackRules {
+				if err := iptables.RawCombinedOutput(rule...); err != nil {
+					logrus.Warnf("roll back rule failed, %v: %v", rule, err)
+				}
+			}
+		}
+	}()
+
+	for _, iPort := range filteredPorts {
 		if iptables.ExistChain(ingressChain, iptables.Nat) {
 			rule := strings.Fields(fmt.Sprintf("-t nat %s %s -p %s --dport %d -j DNAT --to-destination %s:%d",
 				addDelOpt, ingressChain, strings.ToLower(PortConfig_Protocol_name[int32(iPort.Protocol)]), iPort.PublishedPort, gwIP, iPort.PublishedPort))
-			if err := iptables.RawCombinedOutput(rule...); err != nil {
-				errStr := fmt.Sprintf("setting up rule failed, %v: %v", rule, err)
+			if portErr = iptables.RawCombinedOutput(rule...); portErr != nil {
+				errStr := fmt.Sprintf("set up rule failed, %v: %v", rule, portErr)
 				if !isDelete {
 					return fmt.Errorf("%s", errStr)
 				}
-
 				logrus.Infof("%s", errStr)
 			}
+			rollbackRule := strings.Fields(fmt.Sprintf("-t nat %s %s -p %s --dport %d -j DNAT --to-destination %s:%d", rollbackAddDelOpt,
+				ingressChain, strings.ToLower(PortConfig_Protocol_name[int32(iPort.Protocol)]), iPort.PublishedPort, gwIP, iPort.PublishedPort))
+			rollbackRules = append(rollbackRules, rollbackRule)
 		}
 
 		// Filter table rules to allow a published service to be accessible in the local node from..
@@ -400,24 +423,29 @@ func programIngress(gwIP net.IP, ingressPorts []*PortConfig, isDelete bool) erro
 		// 2) unmanaged containers on bridge networks
 		rule := strings.Fields(fmt.Sprintf("%s %s -m state -p %s --sport %d --state ESTABLISHED,RELATED -j ACCEPT",
 			addDelOpt, ingressChain, strings.ToLower(PortConfig_Protocol_name[int32(iPort.Protocol)]), iPort.PublishedPort))
-		if err := iptables.RawCombinedOutput(rule...); err != nil {
-			errStr := fmt.Sprintf("setting up rule failed, %v: %v", rule, err)
+		if portErr = iptables.RawCombinedOutput(rule...); portErr != nil {
+			errStr := fmt.Sprintf("set up rule failed, %v: %v", rule, portErr)
 			if !isDelete {
 				return fmt.Errorf("%s", errStr)
 			}
 			logrus.Warnf("%s", errStr)
 		}
+		rollbackRule := strings.Fields(fmt.Sprintf("%s %s -m state -p %s --sport %d --state ESTABLISHED,RELATED -j ACCEPT", rollbackAddDelOpt,
+			ingressChain, strings.ToLower(PortConfig_Protocol_name[int32(iPort.Protocol)]), iPort.PublishedPort))
+		rollbackRules = append(rollbackRules, rollbackRule)
 
 		rule = strings.Fields(fmt.Sprintf("%s %s -p %s --dport %d -j ACCEPT",
 			addDelOpt, ingressChain, strings.ToLower(PortConfig_Protocol_name[int32(iPort.Protocol)]), iPort.PublishedPort))
-		if err := iptables.RawCombinedOutput(rule...); err != nil {
-			errStr := fmt.Sprintf("setting up rule failed, %v: %v", rule, err)
+		if portErr = iptables.RawCombinedOutput(rule...); portErr != nil {
+			errStr := fmt.Sprintf("set up rule failed, %v: %v", rule, portErr)
 			if !isDelete {
 				return fmt.Errorf("%s", errStr)
 			}
-
 			logrus.Warnf("%s", errStr)
 		}
+		rollbackRule = strings.Fields(fmt.Sprintf("%s %s -p %s --dport %d -j ACCEPT", rollbackAddDelOpt,
+			ingressChain, strings.ToLower(PortConfig_Protocol_name[int32(iPort.Protocol)]), iPort.PublishedPort))
+		rollbackRules = append(rollbackRules, rollbackRule)
 
 		if err := plumbProxy(iPort, isDelete); err != nil {
 			logrus.Warnf("failed to create proxy for port %d: %v", iPort.PublishedPort, err)
@@ -544,7 +572,7 @@ func readPortsFromFile(fileName string) ([]*PortConfig, error) {
 
 // Invoke fwmarker reexec routine to mark vip destined packets with
 // the passed firewall mark.
-func invokeFWMarker(path string, vip net.IP, fwMark uint32, ingressPorts []*PortConfig, eIP *net.IPNet, isDelete bool) error {
+func invokeFWMarker(path string, vip net.IP, fwMark uint32, ingressPorts []*PortConfig, eIP *net.IPNet, isDelete bool, lbMode string) error {
 	var ingressPortsFile string
 
 	if len(ingressPorts) != 0 {
@@ -564,7 +592,7 @@ func invokeFWMarker(path string, vip net.IP, fwMark uint32, ingressPorts []*Port
 
 	cmd := &exec.Cmd{
 		Path:   reexec.Self(),
-		Args:   append([]string{"fwmarker"}, path, vip.String(), fmt.Sprintf("%d", fwMark), addDelOpt, ingressPortsFile, eIP.String()),
+		Args:   append([]string{"fwmarker"}, path, vip.String(), fmt.Sprintf("%d", fwMark), addDelOpt, ingressPortsFile, eIP.String(), lbMode),
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
@@ -581,7 +609,7 @@ func fwMarker() {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if len(os.Args) < 7 {
+	if len(os.Args) < 8 {
 		logrus.Error("invalid number of arguments..")
 		os.Exit(1)
 	}
@@ -623,7 +651,8 @@ func fwMarker() {
 		os.Exit(5)
 	}
 
-	if addDelOpt == "-A" {
+	lbMode := os.Args[7]
+	if addDelOpt == "-A" && lbMode == loadBalancerModeNAT {
 		eIP, subnet, err := net.ParseCIDR(os.Args[6])
 		if err != nil {
 			logrus.Errorf("Failed to parse endpoint IP %s: %v", os.Args[6], err)
@@ -648,7 +677,7 @@ func fwMarker() {
 
 	for _, rule := range rules {
 		if err := iptables.RawCombinedOutputNative(rule...); err != nil {
-			logrus.Errorf("setting up rule failed, %v: %v", rule, err)
+			logrus.Errorf("set up rule failed, %v: %v", rule, err)
 			os.Exit(8)
 		}
 	}
@@ -735,7 +764,7 @@ func redirector() {
 
 	for _, rule := range rules {
 		if err := iptables.RawCombinedOutputNative(rule...); err != nil {
-			logrus.Errorf("setting up rule failed, %v: %v", rule, err)
+			logrus.Errorf("set up rule failed, %v: %v", rule, err)
 			os.Exit(6)
 		}
 	}
@@ -752,14 +781,14 @@ func redirector() {
 	} {
 		if !iptables.ExistsNative(iptables.Filter, "INPUT", rule...) {
 			if err := iptables.RawCombinedOutputNative(append([]string{"-A", "INPUT"}, rule...)...); err != nil {
-				logrus.Errorf("setting up rule failed, %v: %v", rule, err)
+				logrus.Errorf("set up rule failed, %v: %v", rule, err)
 				os.Exit(7)
 			}
 		}
 		rule[0] = "-s"
 		if !iptables.ExistsNative(iptables.Filter, "OUTPUT", rule...) {
 			if err := iptables.RawCombinedOutputNative(append([]string{"-A", "OUTPUT"}, rule...)...); err != nil {
-				logrus.Errorf("setting up rule failed, %v: %v", rule, err)
+				logrus.Errorf("set up rule failed, %v: %v", rule, err)
 				os.Exit(8)
 			}
 		}

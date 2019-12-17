@@ -144,6 +144,29 @@ func TestDSWithDefault(t *testing.T) {
 	}
 }
 
+func TestDSAsSliceValue(t *testing.T) {
+	var ds []time.Duration
+	f := setUpDSFlagSet(&ds)
+
+	in := []string{"1ns", "2ns"}
+	argfmt := "--ds=%s"
+	arg1 := fmt.Sprintf(argfmt, in[0])
+	arg2 := fmt.Sprintf(argfmt, in[1])
+	err := f.Parse([]string{arg1, arg2})
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+
+	f.VisitAll(func(f *Flag) {
+		if val, ok := f.Value.(SliceValue); ok {
+			_ = val.Replace([]string{"3ns"})
+		}
+	})
+	if len(ds) != 1 || ds[0] != time.Duration(3) {
+		t.Fatalf("Expected ss to be overwritten with '3ns', but got: %v", ds)
+	}
+}
+
 func TestDSCalledTwice(t *testing.T) {
 	var ds []time.Duration
 	f := setUpDSFlagSet(&ds)

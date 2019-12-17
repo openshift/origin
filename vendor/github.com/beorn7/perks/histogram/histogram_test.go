@@ -6,7 +6,7 @@ import (
 )
 
 func TestHistogram(t *testing.T) {
-	const numPoints = 1e6
+	const numPoints = 1000000
 	const maxBins = 3
 
 	h := New(maxBins)

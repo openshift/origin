@@ -466,7 +466,9 @@ func (client AvailabilitySetsClient) ListAvailableSizesResponder(resp *http.Resp
 }
 
 // ListBySubscription lists all availability sets in a subscription.
-func (client AvailabilitySetsClient) ListBySubscription(ctx context.Context) (result AvailabilitySetListResultPage, err error) {
+// Parameters:
+// expand - the expand expression to apply to the operation.
+func (client AvailabilitySetsClient) ListBySubscription(ctx context.Context, expand string) (result AvailabilitySetListResultPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/AvailabilitySetsClient.ListBySubscription")
 		defer func() {
@@ -478,7 +480,7 @@ func (client AvailabilitySetsClient) ListBySubscription(ctx context.Context) (re
 		}()
 	}
 	result.fn = client.listBySubscriptionNextResults
-	req, err := client.ListBySubscriptionPreparer(ctx)
+	req, err := client.ListBySubscriptionPreparer(ctx, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "compute.AvailabilitySetsClient", "ListBySubscription", nil, "Failure preparing request")
 		return
@@ -500,7 +502,7 @@ func (client AvailabilitySetsClient) ListBySubscription(ctx context.Context) (re
 }
 
 // ListBySubscriptionPreparer prepares the ListBySubscription request.
-func (client AvailabilitySetsClient) ListBySubscriptionPreparer(ctx context.Context) (*http.Request, error) {
+func (client AvailabilitySetsClient) ListBySubscriptionPreparer(ctx context.Context, expand string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
@@ -508,6 +510,9 @@ func (client AvailabilitySetsClient) ListBySubscriptionPreparer(ctx context.Cont
 	const APIVersion = "2017-12-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
+	}
+	if len(expand) > 0 {
+		queryParameters["$expand"] = autorest.Encode("query", expand)
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -560,7 +565,7 @@ func (client AvailabilitySetsClient) listBySubscriptionNextResults(ctx context.C
 }
 
 // ListBySubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
-func (client AvailabilitySetsClient) ListBySubscriptionComplete(ctx context.Context) (result AvailabilitySetListResultIterator, err error) {
+func (client AvailabilitySetsClient) ListBySubscriptionComplete(ctx context.Context, expand string) (result AvailabilitySetListResultIterator, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/AvailabilitySetsClient.ListBySubscription")
 		defer func() {
@@ -571,7 +576,7 @@ func (client AvailabilitySetsClient) ListBySubscriptionComplete(ctx context.Cont
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	result.page, err = client.ListBySubscription(ctx)
+	result.page, err = client.ListBySubscription(ctx, expand)
 	return
 }
 

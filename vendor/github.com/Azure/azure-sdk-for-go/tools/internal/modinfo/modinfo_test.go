@@ -212,3 +212,15 @@ func TestCreateModuleNameFromPathFail(t *testing.T) {
 		t.Fatalf("expected empty module name, got %s", n)
 	}
 }
+
+func TestIsValidModuleVersion(t *testing.T) {
+	if !IsValidModuleVersion("v10.21.23") {
+		t.Fatal("unexpected invalid module version")
+	}
+	if IsValidModuleVersion("1.2.3") {
+		t.Fatal("unexpected valid module version, missing v")
+	}
+	if IsValidModuleVersion("v11.563") {
+		t.Fatal("unexpected valid module version, missing patch")
+	}
+}

@@ -164,6 +164,7 @@ type ManagedInstanceEncryptionProtectorsClientAPI interface {
 	CreateOrUpdate(ctx context.Context, resourceGroupName string, managedInstanceName string, parameters sql.ManagedInstanceEncryptionProtector) (result sql.ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture, err error)
 	Get(ctx context.Context, resourceGroupName string, managedInstanceName string) (result sql.ManagedInstanceEncryptionProtector, err error)
 	ListByInstance(ctx context.Context, resourceGroupName string, managedInstanceName string) (result sql.ManagedInstanceEncryptionProtectorListResultPage, err error)
+	Revalidate(ctx context.Context, resourceGroupName string, managedInstanceName string) (result sql.ManagedInstanceEncryptionProtectorsRevalidateFuture, err error)
 }
 
 var _ ManagedInstanceEncryptionProtectorsClientAPI = (*sql.ManagedInstanceEncryptionProtectorsClient)(nil)

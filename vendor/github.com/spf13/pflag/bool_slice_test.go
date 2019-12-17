@@ -160,6 +160,29 @@ func TestBSCalledTwice(t *testing.T) {
 	}
 }
 
+func TestBSAsSliceValue(t *testing.T) {
+	var bs []bool
+	f := setUpBSFlagSet(&bs)
+
+	in := []string{"true", "false"}
+	argfmt := "--bs=%s"
+	arg1 := fmt.Sprintf(argfmt, in[0])
+	arg2 := fmt.Sprintf(argfmt, in[1])
+	err := f.Parse([]string{arg1, arg2})
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+
+	f.VisitAll(func(f *Flag) {
+		if val, ok := f.Value.(SliceValue); ok {
+			_ = val.Replace([]string{"false"})
+		}
+	})
+	if len(bs) != 1 || bs[0] != false {
+		t.Fatalf("Expected ss to be overwritten with 'false', but got: %v", bs)
+	}
+}
+
 func TestBSBadQuoting(t *testing.T) {
 
 	tests := []struct {

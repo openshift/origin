@@ -1197,12 +1197,6 @@ func NewOperationListResultPage(getNextPage func(context.Context, OperationListR
 	return OperationListResultPage{fn: getNextPage}
 }
 
-// SetObject ...
-type SetObject struct {
-	autorest.Response `json:"-"`
-	Value             interface{} `json:"value,omitempty"`
-}
-
 // TagsResource a container holding only the Tags for a resource, allowing the user to update the tags on a
 // WebTest instance.
 type TagsResource struct {

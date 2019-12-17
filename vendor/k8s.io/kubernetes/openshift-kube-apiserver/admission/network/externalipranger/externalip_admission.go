@@ -182,7 +182,7 @@ func (r *externalIPRanger) Validate(ctx context.Context, a admission.Attributes,
 	if len(errs) > 0 {
 		//if there are errors reported, resort to RBAC check to see
 		//if this is an admin user who can over-ride the check
-		allow, err := r.checkAccess(a)
+		allow, err := r.checkAccess(ctx, a)
 		if err != nil {
 			return err
 		}
@@ -194,7 +194,7 @@ func (r *externalIPRanger) Validate(ctx context.Context, a admission.Attributes,
 	return nil
 }
 
-func (r *externalIPRanger) checkAccess(attr admission.Attributes) (bool, error) {
+func (r *externalIPRanger) checkAccess(ctx context.Context, attr admission.Attributes) (bool, error) {
 	authzAttr := authorizer.AttributesRecord{
 		User:            attr.GetUserInfo(),
 		Verb:            "create",
@@ -203,6 +203,6 @@ func (r *externalIPRanger) checkAccess(attr admission.Attributes) (bool, error) 
 		APIGroup:        "network.openshift.io",
 		ResourceRequest: true,
 	}
-	authorized, _, err := r.authorizer.Authorize(authzAttr)
+	authorized, _, err := r.authorizer.Authorize(ctx, authzAttr)
 	return authorized == authorizer.DecisionAllow, err
 }

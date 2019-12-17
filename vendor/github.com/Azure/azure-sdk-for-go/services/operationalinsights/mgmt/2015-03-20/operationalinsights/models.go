@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/Azure/go-autorest/tracing"
@@ -264,7 +263,7 @@ func (ss *SavedSearch) UnmarshalJSON(body []byte) error {
 // SavedSearchesListResult the saved search list operation response.
 type SavedSearchesListResult struct {
 	autorest.Response `json:"-"`
-	// Metadata - The metadata from search results.
+	// Metadata - Unused legacy property, kept here for backward compatibility.
 	Metadata *SearchMetadata `json:"__metadata,omitempty"`
 	// Value - The array of result values.
 	Value *[]SavedSearch `json:"value,omitempty"`
@@ -284,14 +283,6 @@ type SavedSearchProperties struct {
 	Tags *[]Tag `json:"tags,omitempty"`
 }
 
-// SearchError details for a search error.
-type SearchError struct {
-	// Type - The error type.
-	Type *string `json:"type,omitempty"`
-	// Message - The error message.
-	Message *string `json:"message,omitempty"`
-}
-
 // SearchGetSchemaResponse the get schema operation response.
 type SearchGetSchemaResponse struct {
 	autorest.Response `json:"-"`
@@ -299,14 +290,6 @@ type SearchGetSchemaResponse struct {
 	Metadata *SearchMetadata `json:"metadata,omitempty"`
 	// Value - The array of result values.
 	Value *[]SearchSchemaValue `json:"value,omitempty"`
-}
-
-// SearchHighlight highlight details.
-type SearchHighlight struct {
-	// Pre - The string that is put before a matched result.
-	Pre *string `json:"pre,omitempty"`
-	// Post - The string that is put after a matched result.
-	Post *string `json:"post,omitempty"`
 }
 
 // SearchMetadata metadata for search results.
@@ -353,33 +336,6 @@ type SearchMetadataSchema struct {
 	Name *string `json:"name,omitempty"`
 	// Version - The version of the metadata schema.
 	Version *int32 `json:"version,omitempty"`
-}
-
-// SearchParameters parameters specifying the search query and range.
-type SearchParameters struct {
-	// Top - The number to get from the top.
-	Top *int64 `json:"top,omitempty"`
-	// Highlight - The highlight that looks for all occurrences of a string.
-	Highlight *SearchHighlight `json:"highlight,omitempty"`
-	// Query - The query to search.
-	Query *string `json:"query,omitempty"`
-	// Start - The start date filter, so the only query results returned are after this date.
-	Start *date.Time `json:"start,omitempty"`
-	// End - The end date filter, so the only query results returned are before this date.
-	End *date.Time `json:"end,omitempty"`
-}
-
-// SearchResultsResponse the get search result operation response.
-type SearchResultsResponse struct {
-	autorest.Response `json:"-"`
-	// ID - READ-ONLY; The id of the search, which includes the full url.
-	ID *string `json:"id,omitempty"`
-	// Metadata - The metadata from search results.
-	Metadata *SearchMetadata `json:"metaData,omitempty"`
-	// Value - The array of result values.
-	Value *[]interface{} `json:"value,omitempty"`
-	// Error - The error.
-	Error *SearchError `json:"error,omitempty"`
 }
 
 // SearchSchemaValue value object for schema results.
@@ -732,33 +688,4 @@ type WorkspacePurgeStatusResponse struct {
 	autorest.Response `json:"-"`
 	// Status - Status of the operation represented by the requested Id. Possible values include: 'Pending', 'Completed'
 	Status PurgeState `json:"status,omitempty"`
-}
-
-// WorkspacesGetSearchResultsFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
-type WorkspacesGetSearchResultsFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *WorkspacesGetSearchResultsFuture) Result(client WorkspacesClient) (srr SearchResultsResponse, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "operationalinsights.WorkspacesGetSearchResultsFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("operationalinsights.WorkspacesGetSearchResultsFuture")
-		return
-	}
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if srr.Response.Response, err = future.GetResult(sender); err == nil && srr.Response.Response.StatusCode != http.StatusNoContent {
-		srr, err = client.GetSearchResultsResponder(srr.Response.Response)
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "operationalinsights.WorkspacesGetSearchResultsFuture", "Result", srr.Response.Response, "Failure responding to request")
-		}
-	}
-	return
 }

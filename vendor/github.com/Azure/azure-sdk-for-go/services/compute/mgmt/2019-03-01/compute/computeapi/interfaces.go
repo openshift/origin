@@ -37,7 +37,7 @@ type AvailabilitySetsClientAPI interface {
 	Get(ctx context.Context, resourceGroupName string, availabilitySetName string) (result compute.AvailabilitySet, err error)
 	List(ctx context.Context, resourceGroupName string) (result compute.AvailabilitySetListResultPage, err error)
 	ListAvailableSizes(ctx context.Context, resourceGroupName string, availabilitySetName string) (result compute.VirtualMachineSizeListResult, err error)
-	ListBySubscription(ctx context.Context) (result compute.AvailabilitySetListResultPage, err error)
+	ListBySubscription(ctx context.Context, expand string) (result compute.AvailabilitySetListResultPage, err error)
 	Update(ctx context.Context, resourceGroupName string, availabilitySetName string, parameters compute.AvailabilitySetUpdate) (result compute.AvailabilitySet, err error)
 }
 
@@ -212,7 +212,7 @@ var _ VirtualMachineScaleSetRollingUpgradesClientAPI = (*compute.VirtualMachineS
 type VirtualMachineScaleSetVMsClientAPI interface {
 	Deallocate(ctx context.Context, resourceGroupName string, VMScaleSetName string, instanceID string) (result compute.VirtualMachineScaleSetVMsDeallocateFuture, err error)
 	Delete(ctx context.Context, resourceGroupName string, VMScaleSetName string, instanceID string) (result compute.VirtualMachineScaleSetVMsDeleteFuture, err error)
-	Get(ctx context.Context, resourceGroupName string, VMScaleSetName string, instanceID string) (result compute.VirtualMachineScaleSetVM, err error)
+	Get(ctx context.Context, resourceGroupName string, VMScaleSetName string, instanceID string, expand compute.InstanceViewTypes) (result compute.VirtualMachineScaleSetVM, err error)
 	GetInstanceView(ctx context.Context, resourceGroupName string, VMScaleSetName string, instanceID string) (result compute.VirtualMachineScaleSetVMInstanceView, err error)
 	List(ctx context.Context, resourceGroupName string, virtualMachineScaleSetName string, filter string, selectParameter string, expand string) (result compute.VirtualMachineScaleSetVMListResultPage, err error)
 	PerformMaintenance(ctx context.Context, resourceGroupName string, VMScaleSetName string, instanceID string) (result compute.VirtualMachineScaleSetVMsPerformMaintenanceFuture, err error)
@@ -246,7 +246,7 @@ var _ VirtualMachineRunCommandsClientAPI = (*compute.VirtualMachineRunCommandsCl
 
 // ResourceSkusClientAPI contains the set of methods on the ResourceSkusClient type.
 type ResourceSkusClientAPI interface {
-	List(ctx context.Context) (result compute.ResourceSkusResultPage, err error)
+	List(ctx context.Context, filter string) (result compute.ResourceSkusResultPage, err error)
 }
 
 var _ ResourceSkusClientAPI = (*compute.ResourceSkusClient)(nil)

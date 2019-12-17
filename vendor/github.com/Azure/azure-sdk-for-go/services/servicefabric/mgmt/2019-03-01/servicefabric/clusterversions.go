@@ -84,7 +84,7 @@ func (client ClusterVersionsClient) GetPreparer(ctx context.Context, location st
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2018-02-01"
+	const APIVersion = "2019-03-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -100,8 +100,8 @@ func (client ClusterVersionsClient) GetPreparer(ctx context.Context, location st
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClusterVersionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -163,7 +163,7 @@ func (client ClusterVersionsClient) GetByEnvironmentPreparer(ctx context.Context
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2018-02-01"
+	const APIVersion = "2019-03-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -179,8 +179,8 @@ func (client ClusterVersionsClient) GetByEnvironmentPreparer(ctx context.Context
 // GetByEnvironmentSender sends the GetByEnvironment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClusterVersionsClient) GetByEnvironmentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetByEnvironmentResponder handles the response to the GetByEnvironment request. The method always
@@ -238,7 +238,7 @@ func (client ClusterVersionsClient) ListPreparer(ctx context.Context, location s
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2018-02-01"
+	const APIVersion = "2019-03-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -254,8 +254,8 @@ func (client ClusterVersionsClient) ListPreparer(ctx context.Context, location s
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClusterVersionsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -315,7 +315,7 @@ func (client ClusterVersionsClient) ListByEnvironmentPreparer(ctx context.Contex
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2018-02-01"
+	const APIVersion = "2019-03-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -331,8 +331,8 @@ func (client ClusterVersionsClient) ListByEnvironmentPreparer(ctx context.Contex
 // ListByEnvironmentSender sends the ListByEnvironment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClusterVersionsClient) ListByEnvironmentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByEnvironmentResponder handles the response to the ListByEnvironment request. The method always

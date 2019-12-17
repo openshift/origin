@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-openapi/errors"
@@ -81,7 +82,7 @@ func TestContentTypeValidation(t *testing.T) {
 	assert.Equal(t, "application/json", recorder.Header().Get("content-type"))
 
 	recorder = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/api/pets", nil)
+	request, _ = http.NewRequest("POST", "/api/pets", strings.NewReader(`{"name":"dog"}`))
 	request.Header.Add("Accept", "application/json")
 	request.Header.Add("content-type", "text/html")
 	request.TransferEncoding = []string{"chunked"}

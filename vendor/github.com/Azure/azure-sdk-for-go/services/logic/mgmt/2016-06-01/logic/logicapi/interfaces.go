@@ -85,6 +85,7 @@ var _ WorkflowTriggerHistoriesClientAPI = (*logic.WorkflowTriggerHistoriesClient
 // WorkflowRunsClientAPI contains the set of methods on the WorkflowRunsClient type.
 type WorkflowRunsClientAPI interface {
 	Cancel(ctx context.Context, resourceGroupName string, workflowName string, runName string) (result autorest.Response, err error)
+	Delete(ctx context.Context, resourceGroupName string, workflowName string, runName string) (result autorest.Response, err error)
 	Get(ctx context.Context, resourceGroupName string, workflowName string, runName string) (result logic.WorkflowRun, err error)
 	List(ctx context.Context, resourceGroupName string, workflowName string, top *int32, filter string) (result logic.WorkflowRunListResultPage, err error)
 }
@@ -240,3 +241,13 @@ type SessionsClientAPI interface {
 }
 
 var _ SessionsClientAPI = (*logic.SessionsClient)(nil)
+
+// RosettaNetProcessConfigurationsClientAPI contains the set of methods on the RosettaNetProcessConfigurationsClient type.
+type RosettaNetProcessConfigurationsClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, integrationAccountName string, rosettaNetProcessConfigurationName string, rosettaNetProcessConfiguration logic.IntegrationAccountRosettaNetProcessConfiguration) (result logic.IntegrationAccountRosettaNetProcessConfiguration, err error)
+	Delete(ctx context.Context, resourceGroupName string, integrationAccountName string, rosettaNetProcessConfigurationName string) (result autorest.Response, err error)
+	Get(ctx context.Context, resourceGroupName string, integrationAccountName string, rosettaNetProcessConfigurationName string) (result logic.IntegrationAccountRosettaNetProcessConfiguration, err error)
+	ListByIntegrationAccounts(ctx context.Context, resourceGroupName string, integrationAccountName string, top *int32, filter string) (result logic.IntegrationAccountRosettaNetProcessConfigurationListResultPage, err error)
+}
+
+var _ RosettaNetProcessConfigurationsClientAPI = (*logic.RosettaNetProcessConfigurationsClient)(nil)

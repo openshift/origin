@@ -92,7 +92,7 @@ func TestXfrmPolicyAddUpdateDel(t *testing.T) {
 }
 
 func TestXfrmPolicyFlush(t *testing.T) {
-	setUpNetlinkTest(t)()
+	defer setUpNetlinkTest(t)()
 
 	p1 := getPolicy()
 	if err := XfrmPolicyAdd(p1); err != nil {

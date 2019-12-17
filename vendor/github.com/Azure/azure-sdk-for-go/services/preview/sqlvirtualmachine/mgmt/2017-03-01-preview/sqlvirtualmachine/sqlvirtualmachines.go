@@ -507,6 +507,122 @@ func (client SQLVirtualMachinesClient) ListByResourceGroupComplete(ctx context.C
 	return
 }
 
+// ListBySQLVMGroup gets the list of sql virtual machines in a SQL virtual machine group.
+// Parameters:
+// resourceGroupName - name of the resource group that contains the resource. You can obtain this value from
+// the Azure Resource Manager API or the portal.
+// SQLVirtualMachineGroupName - name of the SQL virtual machine group.
+func (client SQLVirtualMachinesClient) ListBySQLVMGroup(ctx context.Context, resourceGroupName string, SQLVirtualMachineGroupName string) (result ListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SQLVirtualMachinesClient.ListBySQLVMGroup")
+		defer func() {
+			sc := -1
+			if result.lr.Response.Response != nil {
+				sc = result.lr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.fn = client.listBySQLVMGroupNextResults
+	req, err := client.ListBySQLVMGroupPreparer(ctx, resourceGroupName, SQLVirtualMachineGroupName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sqlvirtualmachine.SQLVirtualMachinesClient", "ListBySQLVMGroup", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListBySQLVMGroupSender(req)
+	if err != nil {
+		result.lr.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "sqlvirtualmachine.SQLVirtualMachinesClient", "ListBySQLVMGroup", resp, "Failure sending request")
+		return
+	}
+
+	result.lr, err = client.ListBySQLVMGroupResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sqlvirtualmachine.SQLVirtualMachinesClient", "ListBySQLVMGroup", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListBySQLVMGroupPreparer prepares the ListBySQLVMGroup request.
+func (client SQLVirtualMachinesClient) ListBySQLVMGroupPreparer(ctx context.Context, resourceGroupName string, SQLVirtualMachineGroupName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"resourceGroupName":          autorest.Encode("path", resourceGroupName),
+		"sqlVirtualMachineGroupName": autorest.Encode("path", SQLVirtualMachineGroupName),
+		"subscriptionId":             autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2017-03-01-preview"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.SqlVirtualMachine/sqlVirtualMachineGroups/{sqlVirtualMachineGroupName}/sqlVirtualMachines", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListBySQLVMGroupSender sends the ListBySQLVMGroup request. The method will close the
+// http.Response Body if it receives an error.
+func (client SQLVirtualMachinesClient) ListBySQLVMGroupSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListBySQLVMGroupResponder handles the response to the ListBySQLVMGroup request. The method always
+// closes the http.Response Body.
+func (client SQLVirtualMachinesClient) ListBySQLVMGroupResponder(resp *http.Response) (result ListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listBySQLVMGroupNextResults retrieves the next set of results, if any.
+func (client SQLVirtualMachinesClient) listBySQLVMGroupNextResults(ctx context.Context, lastResults ListResult) (result ListResult, err error) {
+	req, err := lastResults.listResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "sqlvirtualmachine.SQLVirtualMachinesClient", "listBySQLVMGroupNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListBySQLVMGroupSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "sqlvirtualmachine.SQLVirtualMachinesClient", "listBySQLVMGroupNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListBySQLVMGroupResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sqlvirtualmachine.SQLVirtualMachinesClient", "listBySQLVMGroupNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListBySQLVMGroupComplete enumerates all values, automatically crossing page boundaries as required.
+func (client SQLVirtualMachinesClient) ListBySQLVMGroupComplete(ctx context.Context, resourceGroupName string, SQLVirtualMachineGroupName string) (result ListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SQLVirtualMachinesClient.ListBySQLVMGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListBySQLVMGroup(ctx, resourceGroupName, SQLVirtualMachineGroupName)
+	return
+}
+
 // Update updates a SQL virtual machine.
 // Parameters:
 // resourceGroupName - name of the resource group that contains the resource. You can obtain this value from

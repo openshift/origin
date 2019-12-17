@@ -40,14 +40,3 @@ type DomainServicesClientAPI interface {
 }
 
 var _ DomainServicesClientAPI = (*aad.DomainServicesClient)(nil)
-
-// ReplicaSetsClientAPI contains the set of methods on the ReplicaSetsClient type.
-type ReplicaSetsClientAPI interface {
-	CreateOrUpdate(ctx context.Context, resourceGroupName string, domainServiceName string, replicaSetName string, replicaSet aad.ReplicaSet) (result aad.ReplicaSetsCreateOrUpdateFuture, err error)
-	Delete(ctx context.Context, resourceGroupName string, domainServiceName string, replicaSetName string) (result aad.ReplicaSetsDeleteFuture, err error)
-	Get(ctx context.Context, resourceGroupName string, domainServiceName string, replicaSetName string) (result aad.ReplicaSet, err error)
-	ListByResourceGroup(ctx context.Context, resourceGroupName string, domainServiceName string) (result aad.ReplicaSetListResultPage, err error)
-	Update(ctx context.Context, resourceGroupName string, domainServiceName string, replicaSetName string, replicaSet aad.ReplicaSet) (result aad.ReplicaSetsUpdateFuture, err error)
-}
-
-var _ ReplicaSetsClientAPI = (*aad.ReplicaSetsClient)(nil)

@@ -172,7 +172,7 @@ func TestCounterAddLarge(t *testing.T) {
 	}).(*counter)
 
 	// large overflows the underlying type and should therefore be stored in valBits.
-	large := float64(math.MaxUint64 + 1)
+	large := math.Nextafter(float64(math.MaxUint64), 1e20)
 	counter.Add(large)
 	if expected, got := large, math.Float64frombits(counter.valBits); expected != got {
 		t.Errorf("valBits expected %f, got %f.", expected, got)

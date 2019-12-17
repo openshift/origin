@@ -19,7 +19,7 @@
 
 package eventgridapi
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/eventgrid/mgmt/2019-02-01-preview/eventgrid/eventgridapi"
+import original "github.com/Azure/azure-sdk-for-go/services/preview/eventgrid/mgmt/2020-01-01-preview/eventgrid/eventgridapi"
 
 type DomainTopicsClientAPI = original.DomainTopicsClientAPI
 type DomainsClientAPI = original.DomainsClientAPI

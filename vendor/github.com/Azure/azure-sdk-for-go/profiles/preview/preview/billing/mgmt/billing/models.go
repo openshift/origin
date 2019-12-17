@@ -194,6 +194,8 @@ type AcceptTransferProperties = original.AcceptTransferProperties
 type AcceptTransferRequest = original.AcceptTransferRequest
 type Account = original.Account
 type AccountListResult = original.AccountListResult
+type AccountListResultIterator = original.AccountListResultIterator
+type AccountListResultPage = original.AccountListResultPage
 type AccountProperties = original.AccountProperties
 type AccountUpdateProperties = original.AccountUpdateProperties
 type AccountsClient = original.AccountsClient
@@ -202,6 +204,8 @@ type Address = original.Address
 type AddressesClient = original.AddressesClient
 type Agreement = original.Agreement
 type AgreementListResult = original.AgreementListResult
+type AgreementListResultIterator = original.AgreementListResultIterator
+type AgreementListResultPage = original.AgreementListResultPage
 type AgreementProperties = original.AgreementProperties
 type AgreementsClient = original.AgreementsClient
 type Amount = original.Amount
@@ -209,8 +213,16 @@ type AvailableBalance = original.AvailableBalance
 type AvailableBalanceProperties = original.AvailableBalanceProperties
 type AvailableBalancesClient = original.AvailableBalancesClient
 type BaseClient = original.BaseClient
+type Customer = original.Customer
+type CustomerListResult = original.CustomerListResult
+type CustomerListResultIterator = original.CustomerListResultIterator
+type CustomerListResultPage = original.CustomerListResultPage
+type CustomerProperties = original.CustomerProperties
+type CustomersClient = original.CustomersClient
 type Department = original.Department
 type DepartmentListResult = original.DepartmentListResult
+type DepartmentListResultIterator = original.DepartmentListResultIterator
+type DepartmentListResultPage = original.DepartmentListResultPage
 type DepartmentProperties = original.DepartmentProperties
 type DepartmentsClient = original.DepartmentsClient
 type DetailedTransferStatus = original.DetailedTransferStatus
@@ -221,6 +233,8 @@ type Enrollment = original.Enrollment
 type EnrollmentAccount = original.EnrollmentAccount
 type EnrollmentAccountContext = original.EnrollmentAccountContext
 type EnrollmentAccountListResult = original.EnrollmentAccountListResult
+type EnrollmentAccountListResultIterator = original.EnrollmentAccountListResultIterator
+type EnrollmentAccountListResultPage = original.EnrollmentAccountListResultPage
 type EnrollmentAccountProperties = original.EnrollmentAccountProperties
 type EnrollmentAccountsClient = original.EnrollmentAccountsClient
 type EnrollmentPolicies = original.EnrollmentPolicies
@@ -230,9 +244,13 @@ type ErrorResponse = original.ErrorResponse
 type InitiateTransferProperties = original.InitiateTransferProperties
 type InitiateTransferRequest = original.InitiateTransferRequest
 type InvoiceListResult = original.InvoiceListResult
+type InvoiceListResultIterator = original.InvoiceListResultIterator
+type InvoiceListResultPage = original.InvoiceListResultPage
 type InvoiceSection = original.InvoiceSection
 type InvoiceSectionCreationRequest = original.InvoiceSectionCreationRequest
 type InvoiceSectionListResult = original.InvoiceSectionListResult
+type InvoiceSectionListResultIterator = original.InvoiceSectionListResultIterator
+type InvoiceSectionListResultPage = original.InvoiceSectionListResultPage
 type InvoiceSectionProperties = original.InvoiceSectionProperties
 type InvoiceSectionsClient = original.InvoiceSectionsClient
 type InvoiceSectionsCreateFuture = original.InvoiceSectionsCreateFuture
@@ -277,6 +295,8 @@ type ProductsListResultPage = original.ProductsListResultPage
 type Profile = original.Profile
 type ProfileCreationParameters = original.ProfileCreationParameters
 type ProfileListResult = original.ProfileListResult
+type ProfileListResultIterator = original.ProfileListResultIterator
+type ProfileListResultPage = original.ProfileListResultPage
 type ProfileProperties = original.ProfileProperties
 type ProfilesClient = original.ProfilesClient
 type ProfilesCreateFuture = original.ProfilesCreateFuture
@@ -290,6 +310,7 @@ type RecipientTransferDetailsListResultIterator = original.RecipientTransferDeta
 type RecipientTransferDetailsListResultPage = original.RecipientTransferDetailsListResultPage
 type RecipientTransferProperties = original.RecipientTransferProperties
 type RecipientTransfersClient = original.RecipientTransfersClient
+type Reseller = original.Reseller
 type Resource = original.Resource
 type RoleAssignment = original.RoleAssignment
 type RoleAssignmentListResult = original.RoleAssignmentListResult
@@ -336,6 +357,12 @@ type ValidateSubscriptionTransferEligibilityResult = original.ValidateSubscripti
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
 }
+func NewAccountListResultIterator(page AccountListResultPage) AccountListResultIterator {
+	return original.NewAccountListResultIterator(page)
+}
+func NewAccountListResultPage(getNextPage func(context.Context, AccountListResult) (AccountListResult, error)) AccountListResultPage {
+	return original.NewAccountListResultPage(getNextPage)
+}
 func NewAccountsClient(subscriptionID string) AccountsClient {
 	return original.NewAccountsClient(subscriptionID)
 }
@@ -347,6 +374,12 @@ func NewAddressesClient(subscriptionID string) AddressesClient {
 }
 func NewAddressesClientWithBaseURI(baseURI string, subscriptionID string) AddressesClient {
 	return original.NewAddressesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewAgreementListResultIterator(page AgreementListResultPage) AgreementListResultIterator {
+	return original.NewAgreementListResultIterator(page)
+}
+func NewAgreementListResultPage(getNextPage func(context.Context, AgreementListResult) (AgreementListResult, error)) AgreementListResultPage {
+	return original.NewAgreementListResultPage(getNextPage)
 }
 func NewAgreementsClient(subscriptionID string) AgreementsClient {
 	return original.NewAgreementsClient(subscriptionID)
@@ -360,17 +393,53 @@ func NewAvailableBalancesClient(subscriptionID string) AvailableBalancesClient {
 func NewAvailableBalancesClientWithBaseURI(baseURI string, subscriptionID string) AvailableBalancesClient {
 	return original.NewAvailableBalancesClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewCustomerListResultIterator(page CustomerListResultPage) CustomerListResultIterator {
+	return original.NewCustomerListResultIterator(page)
+}
+func NewCustomerListResultPage(getNextPage func(context.Context, CustomerListResult) (CustomerListResult, error)) CustomerListResultPage {
+	return original.NewCustomerListResultPage(getNextPage)
+}
+func NewCustomersClient(subscriptionID string) CustomersClient {
+	return original.NewCustomersClient(subscriptionID)
+}
+func NewCustomersClientWithBaseURI(baseURI string, subscriptionID string) CustomersClient {
+	return original.NewCustomersClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDepartmentListResultIterator(page DepartmentListResultPage) DepartmentListResultIterator {
+	return original.NewDepartmentListResultIterator(page)
+}
+func NewDepartmentListResultPage(getNextPage func(context.Context, DepartmentListResult) (DepartmentListResult, error)) DepartmentListResultPage {
+	return original.NewDepartmentListResultPage(getNextPage)
+}
 func NewDepartmentsClient(subscriptionID string) DepartmentsClient {
 	return original.NewDepartmentsClient(subscriptionID)
 }
 func NewDepartmentsClientWithBaseURI(baseURI string, subscriptionID string) DepartmentsClient {
 	return original.NewDepartmentsClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewEnrollmentAccountListResultIterator(page EnrollmentAccountListResultPage) EnrollmentAccountListResultIterator {
+	return original.NewEnrollmentAccountListResultIterator(page)
+}
+func NewEnrollmentAccountListResultPage(getNextPage func(context.Context, EnrollmentAccountListResult) (EnrollmentAccountListResult, error)) EnrollmentAccountListResultPage {
+	return original.NewEnrollmentAccountListResultPage(getNextPage)
+}
 func NewEnrollmentAccountsClient(subscriptionID string) EnrollmentAccountsClient {
 	return original.NewEnrollmentAccountsClient(subscriptionID)
 }
 func NewEnrollmentAccountsClientWithBaseURI(baseURI string, subscriptionID string) EnrollmentAccountsClient {
 	return original.NewEnrollmentAccountsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewInvoiceListResultIterator(page InvoiceListResultPage) InvoiceListResultIterator {
+	return original.NewInvoiceListResultIterator(page)
+}
+func NewInvoiceListResultPage(getNextPage func(context.Context, InvoiceListResult) (InvoiceListResult, error)) InvoiceListResultPage {
+	return original.NewInvoiceListResultPage(getNextPage)
+}
+func NewInvoiceSectionListResultIterator(page InvoiceSectionListResultPage) InvoiceSectionListResultIterator {
+	return original.NewInvoiceSectionListResultIterator(page)
+}
+func NewInvoiceSectionListResultPage(getNextPage func(context.Context, InvoiceSectionListResult) (InvoiceSectionListResult, error)) InvoiceSectionListResultPage {
+	return original.NewInvoiceSectionListResultPage(getNextPage)
 }
 func NewInvoiceSectionsClient(subscriptionID string) InvoiceSectionsClient {
 	return original.NewInvoiceSectionsClient(subscriptionID)
@@ -443,6 +512,12 @@ func NewProductsListResultIterator(page ProductsListResultPage) ProductsListResu
 }
 func NewProductsListResultPage(getNextPage func(context.Context, ProductsListResult) (ProductsListResult, error)) ProductsListResultPage {
 	return original.NewProductsListResultPage(getNextPage)
+}
+func NewProfileListResultIterator(page ProfileListResultPage) ProfileListResultIterator {
+	return original.NewProfileListResultIterator(page)
+}
+func NewProfileListResultPage(getNextPage func(context.Context, ProfileListResult) (ProfileListResult, error)) ProfileListResultPage {
+	return original.NewProfileListResultPage(getNextPage)
 }
 func NewProfilesClient(subscriptionID string) ProfilesClient {
 	return original.NewProfilesClient(subscriptionID)

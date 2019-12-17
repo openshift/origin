@@ -29,6 +29,7 @@ func TestValidBearerAuth(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "admin", usr)
 	assert.NoError(t, err)
+	assert.Equal(t, OAuth2SchemeName(req1), "owners_auth")
 
 	req2, _ := http.NewRequest("GET", "/blah", nil)
 	req2.Header.Set("Authorization", "Bearer token123")
@@ -37,6 +38,7 @@ func TestValidBearerAuth(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "admin", usr)
 	assert.NoError(t, err)
+	assert.Equal(t, OAuth2SchemeName(req2), "owners_auth")
 
 	body := url.Values(map[string][]string{})
 	body.Set("access_token", "token123")
@@ -47,6 +49,7 @@ func TestValidBearerAuth(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "admin", usr)
 	assert.NoError(t, err)
+	assert.Equal(t, OAuth2SchemeName(req3), "owners_auth")
 
 	mpbody := bytes.NewBuffer(nil)
 	writer := multipart.NewWriter(mpbody)
@@ -59,6 +62,7 @@ func TestValidBearerAuth(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "admin", usr)
 	assert.NoError(t, err)
+	assert.Equal(t, OAuth2SchemeName(req4), "owners_auth")
 }
 
 func TestInvalidBearerAuth(t *testing.T) {
@@ -162,6 +166,7 @@ func TestValidBearerAuthCtx(t *testing.T) {
 	assert.Equal(t, wisdom, req1.Context().Value(original))
 	assert.Equal(t, extraWisdom, req1.Context().Value(extra))
 	assert.Nil(t, req1.Context().Value(reason))
+	assert.Equal(t, OAuth2SchemeName(req1), "owners_auth")
 
 	req2, _ := http.NewRequest("GET", "/blah", nil)
 	req2 = req2.WithContext(context.WithValue(req2.Context(), original, wisdom))
@@ -174,6 +179,7 @@ func TestValidBearerAuthCtx(t *testing.T) {
 	assert.Equal(t, wisdom, req2.Context().Value(original))
 	assert.Equal(t, extraWisdom, req2.Context().Value(extra))
 	assert.Nil(t, req2.Context().Value(reason))
+	assert.Equal(t, OAuth2SchemeName(req2), "owners_auth")
 
 	body := url.Values(map[string][]string{})
 	body.Set("access_token", "token123")
@@ -188,6 +194,7 @@ func TestValidBearerAuthCtx(t *testing.T) {
 	assert.Equal(t, wisdom, req3.Context().Value(original))
 	assert.Equal(t, extraWisdom, req3.Context().Value(extra))
 	assert.Nil(t, req3.Context().Value(reason))
+	assert.Equal(t, OAuth2SchemeName(req3), "owners_auth")
 
 	mpbody := bytes.NewBuffer(nil)
 	writer := multipart.NewWriter(mpbody)
@@ -204,6 +211,7 @@ func TestValidBearerAuthCtx(t *testing.T) {
 	assert.Equal(t, wisdom, req4.Context().Value(original))
 	assert.Equal(t, extraWisdom, req4.Context().Value(extra))
 	assert.Nil(t, req4.Context().Value(reason))
+	assert.Equal(t, OAuth2SchemeName(req4), "owners_auth")
 }
 
 func TestInvalidBearerAuthCtx(t *testing.T) {

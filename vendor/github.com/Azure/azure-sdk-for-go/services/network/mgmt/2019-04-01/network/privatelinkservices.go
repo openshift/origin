@@ -202,7 +202,7 @@ func (client PrivateLinkServicesClient) CheckPrivateLinkServiceVisibilityByResou
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // serviceName - the name of the private link service.
-// parameters - parameters supplied to the create or update private link service operation
+// parameters - parameters supplied to the create or update private link service operation.
 func (client PrivateLinkServicesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serviceName string, parameters PrivateLinkService) (result PrivateLinkServicesCreateOrUpdateFuture, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/PrivateLinkServicesClient.CreateOrUpdate")
@@ -1019,6 +1019,8 @@ func (client PrivateLinkServicesClient) UpdatePrivateEndpointConnectionPreparer(
 		"api-version": APIVersion,
 	}
 
+	parameters.Type = nil
+	parameters.Etag = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),

@@ -73,7 +73,7 @@ func (s *CmdExecutor) VolumeCreate(host string,
 
 	commands = append(commands, fmt.Sprintf("%v volume start %v", s.glusterCommand(), volume.Name))
 
-	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands,
+	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, rex.ToCmds(commands),
 		s.GlusterCliExecTimeout()))
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (s *CmdExecutor) VolumeExpand(host string,
 		0, // start at the beginning of the brick list
 		inSet,
 		maxPerSet)
-	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands,
+	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, rex.ToCmds(commands),
 		s.GlusterCliExecTimeout()))
 	if err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ func (s *CmdExecutor) VolumeExpand(host string,
 
 	if s.RemoteExecutor.RebalanceOnExpansion() {
 		commands = []string{fmt.Sprintf("%v volume rebalance %v start", s.glusterCommand(), volume.Name)}
-		err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands,
+		err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, rex.ToCmds(commands),
 			s.GlusterCliExecTimeout()))
 		if err != nil {
 			// This is a hack. We fake success if rebalance fails.
@@ -144,7 +144,7 @@ func (s *CmdExecutor) VolumeDestroy(host string, volume string) error {
 		fmt.Sprintf("%v volume stop %v force", s.glusterCommand(), volume),
 	}
 
-	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands,
+	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, rex.ToCmds(commands),
 		s.GlusterCliExecTimeout()))
 	if err != nil {
 		logger.LogError("Unable to stop volume %v: %v", volume, err)
@@ -154,7 +154,7 @@ func (s *CmdExecutor) VolumeDestroy(host string, volume string) error {
 		fmt.Sprintf("%v volume delete %v", s.glusterCommand(), volume),
 	}
 
-	err = rex.AnyError(s.RemoteExecutor.ExecCommands(host, commands,
+	err = rex.AnyError(s.RemoteExecutor.ExecCommands(host, rex.ToCmds(commands),
 		s.GlusterCliExecTimeout()))
 	if err != nil {
 		return logger.Err(fmt.Errorf("Unable to delete volume %v: %v", volume, err))
@@ -232,7 +232,7 @@ func (s *CmdExecutor) checkForSnapshots(host, volume string) error {
 		fmt.Sprintf("%v snapshot list %v --xml", s.glusterCommand(), volume),
 	}
 
-	results, err := s.RemoteExecutor.ExecCommands(host, commands,
+	results, err := s.RemoteExecutor.ExecCommands(host, rex.ToCmds(commands),
 		s.GlusterCliExecTimeout())
 	if err := rex.AnyError(results, err); err != nil {
 		return fmt.Errorf("Unable to get snapshot information from volume %v: %v", volume, err)
@@ -269,9 +269,9 @@ func (s *CmdExecutor) VolumeInfo(host string, volume string) (*executors.Volume,
 		VolInfo  executors.VolInfo `xml:"volInfo"`
 	}
 
-	command := []string{
+	command := rex.OneCmd(
 		fmt.Sprintf("%v volume info %v --xml", s.glusterCommand(), volume),
-	}
+	)
 
 	//Get the xml output of volume info
 	results, err := s.RemoteExecutor.ExecCommands(host, command,
@@ -299,9 +299,9 @@ func (s *CmdExecutor) VolumesInfo(host string) (*executors.VolInfo, error) {
 		VolInfo  executors.VolInfo `xml:"volInfo"`
 	}
 
-	command := []string{
+	command := rex.OneCmd(
 		fmt.Sprintf("%v volume info --xml", s.glusterCommand()),
-	}
+	)
 
 	//Get the xml output of volume info
 	results, err := s.RemoteExecutor.ExecCommands(host, command,
@@ -324,9 +324,9 @@ func (s *CmdExecutor) VolumeReplaceBrick(host string, volume string, oldBrick *e
 	godbc.Require(newBrick != nil)
 
 	// Replace the brick
-	command := []string{
+	command := rex.OneCmd(
 		fmt.Sprintf("%v volume replace-brick %v %v:%v %v:%v commit force", s.glusterCommand(), volume, oldBrick.Host, oldBrick.Path, newBrick.Host, newBrick.Path),
-	}
+	)
 	err := rex.AnyError(s.RemoteExecutor.ExecCommands(host, command,
 		s.GlusterCliExecTimeout()))
 	if err != nil {
@@ -378,10 +378,10 @@ func (s *CmdExecutor) VolumeSnapshot(host string, vsr *executors.VolumeSnapshotR
 		SnapCreate executors.SnapCreate `xml:"snapCreate"`
 	}
 
-	command := []string{
+	command := rex.OneCmd(
 		fmt.Sprintf("%v --xml snapshot create %v %v no-timestamp", s.glusterCommand(), vsr.Snapshot, vsr.Volume),
 		// TODO: set the snapshot description if vsr.Description is non-empty
-	}
+	)
 
 	results, err := s.RemoteExecutor.ExecCommands(host, command,
 		s.GlusterCliExecTimeout())
@@ -418,9 +418,9 @@ func (s *CmdExecutor) HealInfo(host string, volume string) (*executors.HealInfo,
 		HealInfo executors.HealInfo `xml:"healInfo"`
 	}
 
-	command := []string{
+	command := rex.OneCmd(
 		fmt.Sprintf("%v volume heal %v info --xml", s.glusterCommand(), volume),
-	}
+	)
 
 	results, err := s.RemoteExecutor.ExecCommands(host, command,
 		s.GlusterCliExecTimeout())
@@ -434,4 +434,29 @@ func (s *CmdExecutor) HealInfo(host string, volume string) (*executors.HealInfo,
 	}
 	logger.Debug("%+v\n", healInfo)
 	return &healInfo.HealInfo, nil
+}
+
+// VolumeModify is used to alter the configuration of an existing volume.
+func (s *CmdExecutor) VolumeModify(host string, mod *executors.VolumeModifyRequest) error {
+
+	commands := rex.Cmds{}
+	if mod.Stopped {
+		c := fmt.Sprintf("%v volume stop %v", s.glusterCommand(), mod.Name)
+		commands = append(commands, rex.ToCmd(c))
+	}
+	for _, volOption := range mod.GlusterVolumeOptions {
+		if volOption == "" {
+			continue
+		}
+		c := fmt.Sprintf("%v volume set %v %v", s.glusterCommand(), mod.Name, volOption)
+		commands = append(commands, rex.ToCmd(c))
+	}
+	if mod.Stopped {
+		c := fmt.Sprintf("%v volume start %v", s.glusterCommand(), mod.Name)
+		commands = append(commands, rex.ToCmd(c))
+	}
+
+	err := rex.AnyError(s.RemoteExecutor.ExecCommands(
+		host, commands, s.GlusterCliExecTimeout()))
+	return err
 }

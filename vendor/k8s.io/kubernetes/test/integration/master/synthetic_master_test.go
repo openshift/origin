@@ -18,6 +18,7 @@ package master
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -59,7 +60,7 @@ const (
 
 type allowAliceAuthorizer struct{}
 
-func (allowAliceAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+func (allowAliceAuthorizer) Authorize(ctx context.Context, a authorizer.Attributes) (authorizer.Decision, string, error) {
 	if a.GetUser() != nil && a.GetUser().GetName() == "alice" {
 		return authorizer.DecisionAllow, "", nil
 	}
@@ -312,7 +313,7 @@ func TestObjectSizeResponses(t *testing.T) {
 	expectedMsgFor1MB := `etcdserver: request is too large`
 	expectedMsgFor2MB := `rpc error: code = ResourceExhausted desc = trying to send message larger than max`
 	expectedMsgFor3MB := `Request entity too large: limit is 3145728`
-	expectedMsgForLargeAnnotation := `metadata.annotations: Too long: must have at most 262144 characters`
+	expectedMsgForLargeAnnotation := `metadata.annotations: Too long: must have at most 262144 bytes`
 
 	deployment1 := constructBody("a", DeploymentMegabyteSize, "labels", t)      // >1 MB file
 	deployment2 := constructBody("a", DeploymentTwoMegabyteSize, "labels", t)   // >2 MB file
@@ -381,33 +382,6 @@ var hpaV1 = `
     "minReplicas": 1,
     "maxReplicas": 10,
     "targetCPUUtilizationPercentage": 50
-  }
-}
-`
-
-var deploymentExtensions = `
-{
-  "apiVersion": "extensions/v1beta1",
-  "kind": "Deployment",
-  "metadata": {
-     "name": "test-deployment1",
-     "namespace": "default"
-  },
-  "spec": {
-    "replicas": 1,
-    "template": {
-      "metadata": {
-        "labels": {
-          "app": "nginx0"
-        }
-      },
-      "spec": {
-        "containers": [{
-          "name": "nginx",
-          "image": "k8s.gcr.io/nginx:1.7.9"
-        }]
-      }
-    }
   }
 }
 `

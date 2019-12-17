@@ -30,6 +30,23 @@ import (
 // The package's fully qualified name.
 const fqdn = "github.com/Azure/azure-sdk-for-go/services/preview/healthcareapis/mgmt/2018-08-20-preview/healthcareapis"
 
+// Kind enumerates the values for kind.
+type Kind string
+
+const (
+	// Fhir ...
+	Fhir Kind = "fhir"
+	// FhirR4 ...
+	FhirR4 Kind = "fhir-R4"
+	// FhirStu3 ...
+	FhirStu3 Kind = "fhir-Stu3"
+)
+
+// PossibleKindValues returns an array of possible values for the Kind const type.
+func PossibleKindValues() []Kind {
+	return []Kind{Fhir, FhirR4, FhirStu3}
+}
+
 // OperationResultStatus enumerates the values for operation result status.
 type OperationResultStatus string
 
@@ -310,8 +327,8 @@ type Resource struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; The resource type.
 	Type *string `json:"type,omitempty"`
-	// Kind - The kind of the service. Valid values are: fhir.
-	Kind *string `json:"kind,omitempty"`
+	// Kind - The kind of the service. Valid values are: fhir, fhir-Stu3 and fhir-R4. Possible values include: 'Fhir', 'FhirStu3', 'FhirR4'
+	Kind Kind `json:"kind,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
 	// Tags - The resource tags.
@@ -323,7 +340,7 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if r.Kind != nil {
+	if r.Kind != "" {
 		objectMap["kind"] = r.Kind
 	}
 	if r.Location != nil {
@@ -437,8 +454,8 @@ type ServicesDescription struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; The resource type.
 	Type *string `json:"type,omitempty"`
-	// Kind - The kind of the service. Valid values are: fhir.
-	Kind *string `json:"kind,omitempty"`
+	// Kind - The kind of the service. Valid values are: fhir, fhir-Stu3 and fhir-R4. Possible values include: 'Fhir', 'FhirStu3', 'FhirR4'
+	Kind Kind `json:"kind,omitempty"`
 	// Location - The resource location.
 	Location *string `json:"location,omitempty"`
 	// Tags - The resource tags.
@@ -453,7 +470,7 @@ func (sd ServicesDescription) MarshalJSON() ([]byte, error) {
 	if sd.Properties != nil {
 		objectMap["properties"] = sd.Properties
 	}
-	if sd.Kind != nil {
+	if sd.Kind != "" {
 		objectMap["kind"] = sd.Kind
 	}
 	if sd.Location != nil {

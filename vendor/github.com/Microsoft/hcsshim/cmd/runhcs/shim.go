@@ -180,14 +180,13 @@ var shimCommand = cli.Command{
 				Environment:      environment,
 				User:             spec.User.Username,
 			}
-			for i, arg := range spec.Args {
-				e := windows.EscapeArg(arg)
-				if i == 0 {
-					wpp.CommandLine = e
-				} else {
-					wpp.CommandLine += " " + e
-				}
+
+			if spec.CommandLine != "" {
+				wpp.CommandLine = spec.CommandLine
+			} else {
+				wpp.CommandLine = escapeArgs(spec.Args)
 			}
+
 			if spec.ConsoleSize != nil {
 				wpp.ConsoleSize = []int32{
 					int32(spec.ConsoleSize.Height),
@@ -320,4 +319,13 @@ var shimCommand = cli.Command{
 
 		return cli.NewExitError("", code)
 	},
+}
+
+// escapeArgs makes a Windows-style escaped command line from a set of arguments
+func escapeArgs(args []string) string {
+	escapedArgs := make([]string, len(args))
+	for i, a := range args {
+		escapedArgs[i] = windows.EscapeArg(a)
+	}
+	return strings.Join(escapedArgs, " ")
 }

@@ -47,6 +47,9 @@ func TestSELinux(t *testing.T) {
 	if err := SetExecLabel("foobar"); err != nil {
 		t.Fatal(err)
 	}
+	if err := SetTaskLabel("foobar"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := ExecLabel(); err != nil {
 		t.Fatal(err)
 	}
@@ -57,6 +60,9 @@ func TestSELinux(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := SocketLabel(); err != nil {
+		t.Fatal(err)
+	}
+	if _,err := PeerLabel(0); err != nil {
 		t.Fatal(err)
 	}
 	if err := SetKeyLabel("foobar"); err != nil {

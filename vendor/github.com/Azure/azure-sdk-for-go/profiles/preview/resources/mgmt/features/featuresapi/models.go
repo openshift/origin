@@ -19,7 +19,12 @@
 
 package featuresapi
 
-import original "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2015-12-01/features/featuresapi"
+import original "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2019-07-01/features/featuresapi"
 
-type BaseClientAPI = original.BaseClientAPI
-type ClientAPI = original.ClientAPI
+type DeploymentOperationsClientAPI = original.DeploymentOperationsClientAPI
+type DeploymentsClientAPI = original.DeploymentsClientAPI
+type OperationsClientAPI = original.OperationsClientAPI
+type ProvidersClientAPI = original.ProvidersClientAPI
+type ResourceGroupsClientAPI = original.ResourceGroupsClientAPI
+type ResourcesClientAPI = original.ResourcesClientAPI
+type TagsClientAPI = original.TagsClientAPI

@@ -35,7 +35,7 @@ func newMockBase() *mockexec.MockExecutor {
 	m.MockDeviceSetup = func(host, device, vgid string, destroy bool) (*executors.DeviceInfo, error) {
 		return nil, NotSupportedError
 	}
-	m.MockDeviceTeardown = func(host, device, vgid string) error {
+	m.MockDeviceTeardown = func(host string, dh *executors.DeviceVgHandle) error {
 		return NotSupportedError
 	}
 	m.MockBrickCreate = func(host string, brick *executors.BrickRequest) (*executors.BrickInfo, error) {
@@ -103,6 +103,9 @@ func newMockBase() *mockexec.MockExecutor {
 	}
 	m.MockListBlockVolumes = func(host string, blockhostingvolume string) ([]string, error) {
 		return nil, NotSupportedError
+	}
+	m.MockVolumeModify = func(host string, mod *executors.VolumeModifyRequest) error {
+		return NotSupportedError
 	}
 	return m
 }

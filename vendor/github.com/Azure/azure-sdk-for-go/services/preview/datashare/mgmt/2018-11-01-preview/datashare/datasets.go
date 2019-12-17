@@ -130,13 +130,13 @@ func (client DataSetsClient) CreateResponder(resp *http.Response) (result DataSe
 // accountName - the name of the share account.
 // shareName - the name of the share.
 // dataSetName - the name of the dataSet.
-func (client DataSetsClient) Delete(ctx context.Context, resourceGroupName string, accountName string, shareName string, dataSetName string) (result autorest.Response, err error) {
+func (client DataSetsClient) Delete(ctx context.Context, resourceGroupName string, accountName string, shareName string, dataSetName string) (result DataSetsDeleteFuture, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/DataSetsClient.Delete")
 		defer func() {
 			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
@@ -147,16 +147,10 @@ func (client DataSetsClient) Delete(ctx context.Context, resourceGroupName strin
 		return
 	}
 
-	resp, err := client.DeleteSender(req)
+	result, err = client.DeleteSender(req)
 	if err != nil {
-		result.Response = resp
-		err = autorest.NewErrorWithError(err, "datashare.DataSetsClient", "Delete", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "datashare.DataSetsClient", "Delete", result.Response(), "Failure sending request")
 		return
-	}
-
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "datashare.DataSetsClient", "Delete", resp, "Failure responding to request")
 	}
 
 	return
@@ -187,9 +181,15 @@ func (client DataSetsClient) DeletePreparer(ctx context.Context, resourceGroupNa
 
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
-func (client DataSetsClient) DeleteSender(req *http.Request) (*http.Response, error) {
+func (client DataSetsClient) DeleteSender(req *http.Request) (future DataSetsDeleteFuture, err error) {
 	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req, sd...)
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
+	return
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -198,7 +198,7 @@ func (client DataSetsClient) DeleteResponder(resp *http.Response) (result autore
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp
 	return

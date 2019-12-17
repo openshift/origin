@@ -46,6 +46,23 @@ func PossibleArmServicePackageActivationModeValues() []ArmServicePackageActivati
 	return []ArmServicePackageActivationMode{ExclusiveProcess, SharedProcess}
 }
 
+// ArmUpgradeFailureAction enumerates the values for arm upgrade failure action.
+type ArmUpgradeFailureAction string
+
+const (
+	// Manual Indicates that a manual repair will need to be performed by the administrator if the upgrade
+	// fails. Service Fabric will not proceed to the next upgrade domain automatically.
+	Manual ArmUpgradeFailureAction = "Manual"
+	// Rollback Indicates that a rollback of the upgrade will be performed by Service Fabric if the upgrade
+	// fails.
+	Rollback ArmUpgradeFailureAction = "Rollback"
+)
+
+// PossibleArmUpgradeFailureActionValues returns an array of possible values for the ArmUpgradeFailureAction const type.
+func PossibleArmUpgradeFailureActionValues() []ArmUpgradeFailureAction {
+	return []ArmUpgradeFailureAction{Manual, Rollback}
+}
+
 // ClusterState enumerates the values for cluster state.
 type ClusterState string
 
@@ -385,15 +402,15 @@ func PossibleTypeValues() []Type {
 type UpgradeMode string
 
 const (
-	// Automatic ...
-	Automatic UpgradeMode = "Automatic"
-	// Manual ...
-	Manual UpgradeMode = "Manual"
+	// UpgradeModeAutomatic ...
+	UpgradeModeAutomatic UpgradeMode = "Automatic"
+	// UpgradeModeManual ...
+	UpgradeModeManual UpgradeMode = "Manual"
 )
 
 // PossibleUpgradeModeValues returns an array of possible values for the UpgradeMode const type.
 func PossibleUpgradeModeValues() []UpgradeMode {
-	return []UpgradeMode{Automatic, Manual}
+	return []UpgradeMode{UpgradeModeAutomatic, UpgradeModeManual}
 }
 
 // UpgradeMode1 enumerates the values for upgrade mode 1.
@@ -511,23 +528,23 @@ func (ahp ApplicationHealthPolicy) MarshalJSON() ([]byte, error) {
 // can be used to limit the total consumption of this metric by the services of this application.
 type ApplicationMetricDescription struct {
 	// Name - The name of the metric.
-	Name *string `json:"Name,omitempty"`
+	Name *string `json:"name,omitempty"`
 	// MaximumCapacity - The maximum node capacity for Service Fabric application.
 	// This is the maximum Load for an instance of this application on a single node. Even if the capacity of node is greater than this value, Service Fabric will limit the total load of services within the application on each node to this value.
 	// If set to zero, capacity for this metric is unlimited on each node.
 	// When creating a new application with application capacity defined, the product of MaximumNodes and this value must always be smaller than or equal to TotalApplicationCapacity.
 	// When updating existing application with application capacity, the product of MaximumNodes and this value must always be smaller than or equal to TotalApplicationCapacity.
-	MaximumCapacity *int64 `json:"MaximumCapacity,omitempty"`
+	MaximumCapacity *int64 `json:"maximumCapacity,omitempty"`
 	// ReservationCapacity - The node reservation capacity for Service Fabric application.
 	// This is the amount of load which is reserved on nodes which have instances of this application.
 	// If MinimumNodes is specified, then the product of these values will be the capacity reserved in the cluster for the application.
 	// If set to zero, no capacity is reserved for this metric.
 	// When setting application capacity or when updating application capacity; this value must be smaller than or equal to MaximumCapacity for each metric.
-	ReservationCapacity *int64 `json:"ReservationCapacity,omitempty"`
+	ReservationCapacity *int64 `json:"reservationCapacity,omitempty"`
 	// TotalApplicationCapacity - The total metric capacity for Service Fabric application.
 	// This is the total metric capacity for this application in the cluster. Service Fabric will try to limit the sum of loads of services within the application to this value.
 	// When creating a new application with application capacity defined, the product of MaximumNodes and MaximumCapacity must always be smaller than or equal to this value.
-	TotalApplicationCapacity *int64 `json:"TotalApplicationCapacity,omitempty"`
+	TotalApplicationCapacity *int64 `json:"totalApplicationCapacity,omitempty"`
 }
 
 // ApplicationResource the application resource.
@@ -541,8 +558,12 @@ type ApplicationResource struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Azure resource type.
 	Type *string `json:"type,omitempty"`
-	// Location - Azure resource location.
+	// Location - It will be deprecated in New API, resource location depends on the parent resource.
 	Location *string `json:"location,omitempty"`
+	// Tags - Azure resource tags.
+	Tags map[string]*string `json:"tags"`
+	// Etag - READ-ONLY; Azure resource etag.
+	Etag *string `json:"etag,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ApplicationResource.
@@ -553,6 +574,9 @@ func (ar ApplicationResource) MarshalJSON() ([]byte, error) {
 	}
 	if ar.Location != nil {
 		objectMap["location"] = ar.Location
+	}
+	if ar.Tags != nil {
+		objectMap["tags"] = ar.Tags
 	}
 	return json.Marshal(objectMap)
 }
@@ -611,6 +635,24 @@ func (ar *ApplicationResource) UnmarshalJSON(body []byte) error {
 				}
 				ar.Location = &location
 			}
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				ar.Tags = tags
+			}
+		case "etag":
+			if v != nil {
+				var etag string
+				err = json.Unmarshal(*v, &etag)
+				if err != nil {
+					return err
+				}
+				ar.Etag = &etag
+			}
 		}
 	}
 
@@ -621,6 +663,8 @@ func (ar *ApplicationResource) UnmarshalJSON(body []byte) error {
 type ApplicationResourceList struct {
 	autorest.Response `json:"-"`
 	Value             *[]ApplicationResource `json:"value,omitempty"`
+	// NextLink - READ-ONLY; URL to get the next set of application list results if there are any.
+	NextLink *string `json:"nextLink,omitempty"`
 }
 
 // ApplicationResourceProperties the application resource properties.
@@ -677,7 +721,6 @@ func (arp ApplicationResourceProperties) MarshalJSON() ([]byte, error) {
 
 // ApplicationResourceUpdate the application resource for patch operations.
 type ApplicationResourceUpdate struct {
-	autorest.Response `json:"-"`
 	// ApplicationResourceUpdateProperties - The application resource properties for patch operations.
 	*ApplicationResourceUpdateProperties `json:"properties,omitempty"`
 	// ID - READ-ONLY; Azure resource identifier.
@@ -686,8 +729,12 @@ type ApplicationResourceUpdate struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Azure resource type.
 	Type *string `json:"type,omitempty"`
-	// Location - Azure resource location.
+	// Location - It will be deprecated in New API, resource location depends on the parent resource.
 	Location *string `json:"location,omitempty"`
+	// Tags - Azure resource tags.
+	Tags map[string]*string `json:"tags"`
+	// Etag - READ-ONLY; Azure resource etag.
+	Etag *string `json:"etag,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ApplicationResourceUpdate.
@@ -698,6 +745,9 @@ func (aru ApplicationResourceUpdate) MarshalJSON() ([]byte, error) {
 	}
 	if aru.Location != nil {
 		objectMap["location"] = aru.Location
+	}
+	if aru.Tags != nil {
+		objectMap["tags"] = aru.Tags
 	}
 	return json.Marshal(objectMap)
 }
@@ -756,6 +806,24 @@ func (aru *ApplicationResourceUpdate) UnmarshalJSON(body []byte) error {
 				}
 				aru.Location = &location
 			}
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				aru.Tags = tags
+			}
+		case "etag":
+			if v != nil {
+				var etag string
+				err = json.Unmarshal(*v, &etag)
+				if err != nil {
+					return err
+				}
+				aru.Etag = &etag
+			}
 		}
 	}
 
@@ -807,30 +875,30 @@ func (arup ApplicationResourceUpdateProperties) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// ApplicationsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
-type ApplicationsCreateFuture struct {
+// ApplicationsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type ApplicationsCreateOrUpdateFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ApplicationsCreateFuture) Result(client ApplicationsClient) (ar ApplicationResource, err error) {
+func (future *ApplicationsCreateOrUpdateFuture) Result(client ApplicationsClient) (ar ApplicationResource, err error) {
 	var done bool
 	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationsCreateFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("servicefabric.ApplicationsCreateFuture")
+		err = azure.NewAsyncOpIncompleteError("servicefabric.ApplicationsCreateOrUpdateFuture")
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if ar.Response.Response, err = future.GetResult(sender); err == nil && ar.Response.Response.StatusCode != http.StatusNoContent {
-		ar, err = client.CreateResponder(ar.Response.Response)
+		ar, err = client.CreateOrUpdateResponder(ar.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "servicefabric.ApplicationsCreateFuture", "Result", ar.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "servicefabric.ApplicationsCreateOrUpdateFuture", "Result", ar.Response.Response, "Failure responding to request")
 		}
 	}
 	return
@@ -867,7 +935,7 @@ type ApplicationsUpdateFuture struct {
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ApplicationsUpdateFuture) Result(client ApplicationsClient) (aru ApplicationResourceUpdate, err error) {
+func (future *ApplicationsUpdateFuture) Result(client ApplicationsClient) (ar ApplicationResource, err error) {
 	var done bool
 	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
@@ -879,10 +947,10 @@ func (future *ApplicationsUpdateFuture) Result(client ApplicationsClient) (aru A
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if aru.Response.Response, err = future.GetResult(sender); err == nil && aru.Response.Response.StatusCode != http.StatusNoContent {
-		aru, err = client.UpdateResponder(aru.Response.Response)
+	if ar.Response.Response, err = future.GetResult(sender); err == nil && ar.Response.Response.StatusCode != http.StatusNoContent {
+		ar, err = client.UpdateResponder(ar.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "servicefabric.ApplicationsUpdateFuture", "Result", aru.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "servicefabric.ApplicationsUpdateFuture", "Result", ar.Response.Response, "Failure responding to request")
 		}
 	}
 	return
@@ -899,8 +967,12 @@ type ApplicationTypeResource struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Azure resource type.
 	Type *string `json:"type,omitempty"`
-	// Location - Azure resource location.
+	// Location - It will be deprecated in New API, resource location depends on the parent resource.
 	Location *string `json:"location,omitempty"`
+	// Tags - Azure resource tags.
+	Tags map[string]*string `json:"tags"`
+	// Etag - READ-ONLY; Azure resource etag.
+	Etag *string `json:"etag,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ApplicationTypeResource.
@@ -911,6 +983,9 @@ func (atr ApplicationTypeResource) MarshalJSON() ([]byte, error) {
 	}
 	if atr.Location != nil {
 		objectMap["location"] = atr.Location
+	}
+	if atr.Tags != nil {
+		objectMap["tags"] = atr.Tags
 	}
 	return json.Marshal(objectMap)
 }
@@ -969,6 +1044,24 @@ func (atr *ApplicationTypeResource) UnmarshalJSON(body []byte) error {
 				}
 				atr.Location = &location
 			}
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				atr.Tags = tags
+			}
+		case "etag":
+			if v != nil {
+				var etag string
+				err = json.Unmarshal(*v, &etag)
+				if err != nil {
+					return err
+				}
+				atr.Etag = &etag
+			}
 		}
 	}
 
@@ -979,6 +1072,8 @@ func (atr *ApplicationTypeResource) UnmarshalJSON(body []byte) error {
 type ApplicationTypeResourceList struct {
 	autorest.Response `json:"-"`
 	Value             *[]ApplicationTypeResource `json:"value,omitempty"`
+	// NextLink - READ-ONLY; URL to get the next set of application type list results if there are any.
+	NextLink *string `json:"nextLink,omitempty"`
 }
 
 // ApplicationTypeResourceProperties the application type name properties
@@ -1022,8 +1117,12 @@ type ApplicationTypeVersionResource struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Azure resource type.
 	Type *string `json:"type,omitempty"`
-	// Location - Azure resource location.
+	// Location - It will be deprecated in New API, resource location depends on the parent resource.
 	Location *string `json:"location,omitempty"`
+	// Tags - Azure resource tags.
+	Tags map[string]*string `json:"tags"`
+	// Etag - READ-ONLY; Azure resource etag.
+	Etag *string `json:"etag,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ApplicationTypeVersionResource.
@@ -1034,6 +1133,9 @@ func (atvr ApplicationTypeVersionResource) MarshalJSON() ([]byte, error) {
 	}
 	if atvr.Location != nil {
 		objectMap["location"] = atvr.Location
+	}
+	if atvr.Tags != nil {
+		objectMap["tags"] = atvr.Tags
 	}
 	return json.Marshal(objectMap)
 }
@@ -1092,6 +1194,24 @@ func (atvr *ApplicationTypeVersionResource) UnmarshalJSON(body []byte) error {
 				}
 				atvr.Location = &location
 			}
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				atvr.Tags = tags
+			}
+		case "etag":
+			if v != nil {
+				var etag string
+				err = json.Unmarshal(*v, &etag)
+				if err != nil {
+					return err
+				}
+				atvr.Etag = &etag
+			}
 		}
 	}
 
@@ -1103,6 +1223,8 @@ func (atvr *ApplicationTypeVersionResource) UnmarshalJSON(body []byte) error {
 type ApplicationTypeVersionResourceList struct {
 	autorest.Response `json:"-"`
 	Value             *[]ApplicationTypeVersionResource `json:"value,omitempty"`
+	// NextLink - READ-ONLY; URL to get the next set of application type version list results if there are any.
+	NextLink *string `json:"nextLink,omitempty"`
 }
 
 // ApplicationTypeVersionResourceProperties the properties of the application type version resource.
@@ -1124,30 +1246,30 @@ func (atvrp ApplicationTypeVersionResourceProperties) MarshalJSON() ([]byte, err
 	return json.Marshal(objectMap)
 }
 
-// ApplicationTypeVersionsCreateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
-type ApplicationTypeVersionsCreateFuture struct {
+// ApplicationTypeVersionsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of
+// a long-running operation.
+type ApplicationTypeVersionsCreateOrUpdateFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ApplicationTypeVersionsCreateFuture) Result(client ApplicationTypeVersionsClient) (atvr ApplicationTypeVersionResource, err error) {
+func (future *ApplicationTypeVersionsCreateOrUpdateFuture) Result(client ApplicationTypeVersionsClient) (atvr ApplicationTypeVersionResource, err error) {
 	var done bool
 	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypeVersionsCreateFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypeVersionsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("servicefabric.ApplicationTypeVersionsCreateFuture")
+		err = azure.NewAsyncOpIncompleteError("servicefabric.ApplicationTypeVersionsCreateOrUpdateFuture")
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if atvr.Response.Response, err = future.GetResult(sender); err == nil && atvr.Response.Response.StatusCode != http.StatusNoContent {
-		atvr, err = client.CreateResponder(atvr.Response.Response)
+		atvr, err = client.CreateOrUpdateResponder(atvr.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypeVersionsCreateFuture", "Result", atvr.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "servicefabric.ApplicationTypeVersionsCreateOrUpdateFuture", "Result", atvr.Response.Response, "Failure responding to request")
 		}
 	}
 	return
@@ -1179,11 +1301,11 @@ func (future *ApplicationTypeVersionsDeleteFuture) Result(client ApplicationType
 // ApplicationUpgradePolicy describes the policy for a monitored application upgrade.
 type ApplicationUpgradePolicy struct {
 	// UpgradeReplicaSetCheckTimeout - The maximum amount of time to block processing of an upgrade domain and prevent loss of availability when there are unexpected issues. When this timeout expires, processing of the upgrade domain will proceed regardless of availability loss issues. The timeout is reset at the start of each upgrade domain. Valid values are between 0 and 42949672925 inclusive. (unsigned 32-bit integer).
-	UpgradeReplicaSetCheckTimeout *int64 `json:"upgradeReplicaSetCheckTimeout,omitempty"`
+	UpgradeReplicaSetCheckTimeout *string `json:"upgradeReplicaSetCheckTimeout,omitempty"`
 	// ForceRestart - If true, then processes are forcefully restarted during upgrade even when the code version has not changed (the upgrade only changes configuration or data).
 	ForceRestart *bool `json:"forceRestart,omitempty"`
 	// RollingUpgradeMonitoringPolicy - The policy used for monitoring the application upgrade
-	RollingUpgradeMonitoringPolicy *RollingUpgradeMonitoringPolicy `json:"rollingUpgradeMonitoringPolicy,omitempty"`
+	RollingUpgradeMonitoringPolicy *ArmRollingUpgradeMonitoringPolicy `json:"rollingUpgradeMonitoringPolicy,omitempty"`
 	// ApplicationHealthPolicy - Defines a health policy used to evaluate the health of an application or one of its children entities.
 	ApplicationHealthPolicy *ArmApplicationHealthPolicy `json:"applicationHealthPolicy,omitempty"`
 }
@@ -1192,37 +1314,64 @@ type ApplicationUpgradePolicy struct {
 // of its children entities.
 type ArmApplicationHealthPolicy struct {
 	// ConsiderWarningAsError - Indicates whether warnings are treated with the same severity as errors.
-	ConsiderWarningAsError *bool `json:"ConsiderWarningAsError,omitempty"`
+	ConsiderWarningAsError *bool `json:"considerWarningAsError,omitempty"`
 	// MaxPercentUnhealthyDeployedApplications - The maximum allowed percentage of unhealthy deployed applications. Allowed values are Byte values from zero to 100.
 	// The percentage represents the maximum tolerated percentage of deployed applications that can be unhealthy before the application is considered in error.
 	// This is calculated by dividing the number of unhealthy deployed applications over the number of nodes where the application is currently deployed on in the cluster.
 	// The computation rounds up to tolerate one failure on small numbers of nodes. Default percentage is zero.
-	MaxPercentUnhealthyDeployedApplications *int32 `json:"MaxPercentUnhealthyDeployedApplications,omitempty"`
+	MaxPercentUnhealthyDeployedApplications *int32 `json:"maxPercentUnhealthyDeployedApplications,omitempty"`
 	// DefaultServiceTypeHealthPolicy - The health policy used by default to evaluate the health of a service type.
-	DefaultServiceTypeHealthPolicy *ServiceTypeHealthPolicy `json:"DefaultServiceTypeHealthPolicy,omitempty"`
+	DefaultServiceTypeHealthPolicy *ArmServiceTypeHealthPolicy `json:"defaultServiceTypeHealthPolicy,omitempty"`
 	// ServiceTypeHealthPolicyMap - The map with service type health policy per service type name. The map is empty by default.
-	ServiceTypeHealthPolicyMap map[string]*ServiceTypeHealthPolicy `json:"ServiceTypeHealthPolicyMap"`
+	ServiceTypeHealthPolicyMap map[string]*ArmServiceTypeHealthPolicy `json:"serviceTypeHealthPolicyMap"`
 }
 
 // MarshalJSON is the custom marshaler for ArmApplicationHealthPolicy.
 func (aahp ArmApplicationHealthPolicy) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if aahp.ConsiderWarningAsError != nil {
-		objectMap["ConsiderWarningAsError"] = aahp.ConsiderWarningAsError
+		objectMap["considerWarningAsError"] = aahp.ConsiderWarningAsError
 	}
 	if aahp.MaxPercentUnhealthyDeployedApplications != nil {
-		objectMap["MaxPercentUnhealthyDeployedApplications"] = aahp.MaxPercentUnhealthyDeployedApplications
+		objectMap["maxPercentUnhealthyDeployedApplications"] = aahp.MaxPercentUnhealthyDeployedApplications
 	}
 	if aahp.DefaultServiceTypeHealthPolicy != nil {
-		objectMap["DefaultServiceTypeHealthPolicy"] = aahp.DefaultServiceTypeHealthPolicy
+		objectMap["defaultServiceTypeHealthPolicy"] = aahp.DefaultServiceTypeHealthPolicy
 	}
 	if aahp.ServiceTypeHealthPolicyMap != nil {
-		objectMap["ServiceTypeHealthPolicyMap"] = aahp.ServiceTypeHealthPolicyMap
+		objectMap["serviceTypeHealthPolicyMap"] = aahp.ServiceTypeHealthPolicyMap
 	}
 	return json.Marshal(objectMap)
 }
 
-// AvailableOperationDisplay operation supported by Service Fabric resource provider
+// ArmRollingUpgradeMonitoringPolicy the policy used for monitoring the application upgrade
+type ArmRollingUpgradeMonitoringPolicy struct {
+	// FailureAction - The activation Mode of the service package. Possible values include: 'Rollback', 'Manual'
+	FailureAction ArmUpgradeFailureAction `json:"failureAction,omitempty"`
+	// HealthCheckWaitDuration - The amount of time to wait after completing an upgrade domain before applying health policies. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
+	HealthCheckWaitDuration *string `json:"healthCheckWaitDuration,omitempty"`
+	// HealthCheckStableDuration - The amount of time that the application or cluster must remain healthy before the upgrade proceeds to the next upgrade domain. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
+	HealthCheckStableDuration *string `json:"healthCheckStableDuration,omitempty"`
+	// HealthCheckRetryTimeout - The amount of time to retry health evaluation when the application or cluster is unhealthy before FailureAction is executed. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
+	HealthCheckRetryTimeout *string `json:"healthCheckRetryTimeout,omitempty"`
+	// UpgradeTimeout - The amount of time the overall upgrade has to complete before FailureAction is executed. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
+	UpgradeTimeout *string `json:"upgradeTimeout,omitempty"`
+	// UpgradeDomainTimeout - The amount of time each upgrade domain has to complete before FailureAction is executed. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
+	UpgradeDomainTimeout *string `json:"upgradeDomainTimeout,omitempty"`
+}
+
+// ArmServiceTypeHealthPolicy represents the health policy used to evaluate the health of services
+// belonging to a service type.
+type ArmServiceTypeHealthPolicy struct {
+	// MaxPercentUnhealthyServices - The maximum percentage of services allowed to be unhealthy before your application is considered in error.
+	MaxPercentUnhealthyServices *int32 `json:"maxPercentUnhealthyServices,omitempty"`
+	// MaxPercentUnhealthyPartitionsPerService - The maximum percentage of partitions per service allowed to be unhealthy before your application is considered in error.
+	MaxPercentUnhealthyPartitionsPerService *int32 `json:"maxPercentUnhealthyPartitionsPerService,omitempty"`
+	// MaxPercentUnhealthyReplicasPerPartition - The maximum percentage of replicas per partition allowed to be unhealthy before your application is considered in error.
+	MaxPercentUnhealthyReplicasPerPartition *int32 `json:"maxPercentUnhealthyReplicasPerPartition,omitempty"`
+}
+
+// AvailableOperationDisplay operation supported by the Service Fabric resource provider
 type AvailableOperationDisplay struct {
 	// Provider - The name of the provider.
 	Provider *string `json:"provider,omitempty"`
@@ -1287,6 +1436,8 @@ type Cluster struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Azure resource tags.
 	Tags map[string]*string `json:"tags"`
+	// Etag - READ-ONLY; Azure resource etag.
+	Etag *string `json:"etag,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for Cluster.
@@ -1367,13 +1518,22 @@ func (c *Cluster) UnmarshalJSON(body []byte) error {
 				}
 				c.Tags = tags
 			}
+		case "etag":
+			if v != nil {
+				var etag string
+				err = json.Unmarshal(*v, &etag)
+				if err != nil {
+					return err
+				}
+				c.Etag = &etag
+			}
 		}
 	}
 
 	return nil
 }
 
-// ClusterCodeVersionsListResult the list results of the ServiceFabric runtime versions.
+// ClusterCodeVersionsListResult the list results of the Service Fabric runtime versions.
 type ClusterCodeVersionsListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]ClusterCodeVersionsResult `json:"value,omitempty"`
@@ -1381,7 +1541,7 @@ type ClusterCodeVersionsListResult struct {
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// ClusterCodeVersionsResult the result of the ServiceFabric runtime versions
+// ClusterCodeVersionsResult the result of the Service Fabric runtime versions
 type ClusterCodeVersionsResult struct {
 	// ID - The identification of the result
 	ID *string `json:"id,omitempty"`
@@ -1542,6 +1702,8 @@ type ClusterProperties struct {
 	ClusterState ClusterState `json:"clusterState,omitempty"`
 	// DiagnosticsStorageAccountConfig - The storage account information for storing Service Fabric diagnostic logs.
 	DiagnosticsStorageAccountConfig *DiagnosticsStorageAccountConfig `json:"diagnosticsStorageAccountConfig,omitempty"`
+	// EventStoreServiceEnabled - Indicates if the event store service is enabled.
+	EventStoreServiceEnabled *bool `json:"eventStoreServiceEnabled,omitempty"`
 	// FabricSettings - The list of custom fabric settings to configure the cluster.
 	FabricSettings *[]SettingsSectionDescription `json:"fabricSettings,omitempty"`
 	// ManagementEndpoint - The http management endpoint of the cluster.
@@ -1567,7 +1729,7 @@ type ClusterProperties struct {
 	// UpgradeMode - The upgrade mode of the cluster when new Service Fabric runtime version is available.
 	//   - Automatic - The cluster will be automatically upgraded to the latest Service Fabric runtime version as soon as it is available.
 	//   - Manual - The cluster will not be automatically upgraded to the latest Service Fabric runtime version. The cluster is upgraded by setting the **clusterCodeVersion** property in the cluster resource.
-	// . Possible values include: 'Automatic', 'Manual'
+	// . Possible values include: 'UpgradeModeAutomatic', 'UpgradeModeManual'
 	UpgradeMode UpgradeMode `json:"upgradeMode,omitempty"`
 	// VMImage - The VM image VMSS has been configured with. Generic names such as Windows or Linux can be used.
 	VMImage *string `json:"vmImage,omitempty"`
@@ -1588,6 +1750,8 @@ type ClusterPropertiesUpdateParameters struct {
 	ClientCertificateThumbprints *[]ClientCertificateThumbprint `json:"clientCertificateThumbprints,omitempty"`
 	// ClusterCodeVersion - The Service Fabric runtime version of the cluster. This property can only by set the user when **upgradeMode** is set to 'Manual'. To get list of available Service Fabric versions for new clusters use [ClusterVersion API](./ClusterVersion.md). To get the list of available version for existing clusters use **availableClusterVersions**.
 	ClusterCodeVersion *string `json:"clusterCodeVersion,omitempty"`
+	// EventStoreServiceEnabled - Indicates if the event store service is enabled.
+	EventStoreServiceEnabled *bool `json:"eventStoreServiceEnabled,omitempty"`
 	// FabricSettings - The list of custom fabric settings to configure the cluster. This will overwrite the existing list.
 	FabricSettings *[]SettingsSectionDescription `json:"fabricSettings,omitempty"`
 	// NodeTypes - The list of node types in the cluster. This will overwrite the existing list.
@@ -1611,30 +1775,30 @@ type ClusterPropertiesUpdateParameters struct {
 	UpgradeMode UpgradeMode1 `json:"upgradeMode,omitempty"`
 }
 
-// ClustersCreateFuture an abstraction for monitoring and retrieving the results of a long-running
+// ClustersCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type ClustersCreateFuture struct {
+type ClustersCreateOrUpdateFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ClustersCreateFuture) Result(client ClustersClient) (c Cluster, err error) {
+func (future *ClustersCreateOrUpdateFuture) Result(client ClustersClient) (c Cluster, err error) {
 	var done bool
 	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ClustersCreateFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "servicefabric.ClustersCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("servicefabric.ClustersCreateFuture")
+		err = azure.NewAsyncOpIncompleteError("servicefabric.ClustersCreateOrUpdateFuture")
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if c.Response.Response, err = future.GetResult(sender); err == nil && c.Response.Response.StatusCode != http.StatusNoContent {
-		c, err = client.CreateResponder(c.Response.Response)
+		c, err = client.CreateOrUpdateResponder(c.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "servicefabric.ClustersCreateFuture", "Result", c.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "servicefabric.ClustersCreateOrUpdateFuture", "Result", c.Response.Response, "Failure responding to request")
 		}
 	}
 	return
@@ -1762,7 +1926,7 @@ func (cudhp ClusterUpgradeDeltaHealthPolicy) MarshalJSON() ([]byte, error) {
 type ClusterUpgradePolicy struct {
 	// ForceRestart - If true, then processes are forcefully restarted during upgrade even when the code version has not changed (the upgrade only changes configuration or data).
 	ForceRestart *bool `json:"forceRestart,omitempty"`
-	// UpgradeReplicaSetCheckTimeout - The maximum amount of time to block processing of an upgrade domain and revent loss of availability when there are unexpected issues. When this timeout expires, processing of the upgrade domain will proceed regardless of availability loss issues. The timeout is reset at the start of each upgrade domain. The timeout can be in either hh:mm:ss or in d.hh:mm:ss.ms format.
+	// UpgradeReplicaSetCheckTimeout - The maximum amount of time to block processing of an upgrade domain and prevent loss of availability when there are unexpected issues. When this timeout expires, processing of the upgrade domain will proceed regardless of availability loss issues. The timeout is reset at the start of each upgrade domain. The timeout can be in either hh:mm:ss or in d.hh:mm:ss.ms format.
 	UpgradeReplicaSetCheckTimeout *string `json:"upgradeReplicaSetCheckTimeout,omitempty"`
 	// HealthCheckWaitDuration - The length of time to wait after completing an upgrade domain before performing health checks. The duration can be in either hh:mm:ss or in d.hh:mm:ss.ms format.
 	HealthCheckWaitDuration *string `json:"healthCheckWaitDuration,omitempty"`
@@ -1834,7 +1998,7 @@ type NamedPartitionSchemeDescription struct {
 	// Names - Array of size specified by the ‘Count’ parameter, for the names of the partitions.
 	Names *[]string `json:"Names,omitempty"`
 	// PartitionScheme - Possible values include: 'PartitionSchemePartitionSchemeDescription', 'PartitionSchemeNamed', 'PartitionSchemeSingleton', 'PartitionSchemeUniformInt64Range'
-	PartitionScheme PartitionSchemeBasicPartitionSchemeDescription `json:"PartitionScheme,omitempty"`
+	PartitionScheme PartitionSchemeBasicPartitionSchemeDescription `json:"partitionScheme,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for NamedPartitionSchemeDescription.
@@ -1848,7 +2012,7 @@ func (npsd NamedPartitionSchemeDescription) MarshalJSON() ([]byte, error) {
 		objectMap["Names"] = npsd.Names
 	}
 	if npsd.PartitionScheme != "" {
-		objectMap["PartitionScheme"] = npsd.PartitionScheme
+		objectMap["partitionScheme"] = npsd.PartitionScheme
 	}
 	return json.Marshal(objectMap)
 }
@@ -1899,7 +2063,7 @@ type NodeTypeDescription struct {
 	DurabilityLevel DurabilityLevel `json:"durabilityLevel,omitempty"`
 	// ApplicationPorts - The range of ports from which cluster assigned port to Service Fabric applications.
 	ApplicationPorts *EndpointRangeDescription `json:"applicationPorts,omitempty"`
-	// EphemeralPorts - The range of empheral ports that nodes in this node type should be configured with.
+	// EphemeralPorts - The range of ephemeral ports that nodes in this node type should be configured with.
 	EphemeralPorts *EndpointRangeDescription `json:"ephemeralPorts,omitempty"`
 	// IsPrimary - The node type on which system services will run. Only one node type should be marked as primary. Primary node type cannot be deleted or changed for existing clusters.
 	IsPrimary *bool `json:"isPrimary,omitempty"`
@@ -1948,10 +2112,11 @@ func (ntd NodeTypeDescription) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
-// OperationListResult describes the result of the request to list Service Fabric operations.
+// OperationListResult describes the result of the request to list Service Fabric resource provider
+// operations.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - List of Service Fabric operations supported by the Microsoft.ServiceFabric resource provider.
+	// Value - List of operations supported by the Service Fabric resource provider.
 	Value *[]OperationResult `json:"value,omitempty"`
 	// NextLink - READ-ONLY; URL to get the next set of operation list results if there are any.
 	NextLink *string `json:"nextLink,omitempty"`
@@ -2117,7 +2282,7 @@ type BasicPartitionSchemeDescription interface {
 // PartitionSchemeDescription describes how the service is partitioned.
 type PartitionSchemeDescription struct {
 	// PartitionScheme - Possible values include: 'PartitionSchemePartitionSchemeDescription', 'PartitionSchemeNamed', 'PartitionSchemeSingleton', 'PartitionSchemeUniformInt64Range'
-	PartitionScheme PartitionSchemeBasicPartitionSchemeDescription `json:"PartitionScheme,omitempty"`
+	PartitionScheme PartitionSchemeBasicPartitionSchemeDescription `json:"partitionScheme,omitempty"`
 }
 
 func unmarshalBasicPartitionSchemeDescription(body []byte) (BasicPartitionSchemeDescription, error) {
@@ -2127,7 +2292,7 @@ func unmarshalBasicPartitionSchemeDescription(body []byte) (BasicPartitionScheme
 		return nil, err
 	}
 
-	switch m["PartitionScheme"] {
+	switch m["partitionScheme"] {
 	case string(PartitionSchemeNamed):
 		var npsd NamedPartitionSchemeDescription
 		err := json.Unmarshal(body, &npsd)
@@ -2170,7 +2335,7 @@ func (psd PartitionSchemeDescription) MarshalJSON() ([]byte, error) {
 	psd.PartitionScheme = PartitionSchemePartitionSchemeDescription
 	objectMap := make(map[string]interface{})
 	if psd.PartitionScheme != "" {
-		objectMap["PartitionScheme"] = psd.PartitionScheme
+		objectMap["partitionScheme"] = psd.PartitionScheme
 	}
 	return json.Marshal(objectMap)
 }
@@ -2208,8 +2373,24 @@ type ProxyResource struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Azure resource type.
 	Type *string `json:"type,omitempty"`
-	// Location - Azure resource location.
+	// Location - It will be deprecated in New API, resource location depends on the parent resource.
 	Location *string `json:"location,omitempty"`
+	// Tags - Azure resource tags.
+	Tags map[string]*string `json:"tags"`
+	// Etag - READ-ONLY; Azure resource etag.
+	Etag *string `json:"etag,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ProxyResource.
+func (pr ProxyResource) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if pr.Location != nil {
+		objectMap["location"] = pr.Location
+	}
+	if pr.Tags != nil {
+		objectMap["tags"] = pr.Tags
+	}
+	return json.Marshal(objectMap)
 }
 
 // Resource the resource model definition.
@@ -2224,6 +2405,8 @@ type Resource struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Azure resource tags.
 	Tags map[string]*string `json:"tags"`
+	// Etag - READ-ONLY; Azure resource etag.
+	Etag *string `json:"etag,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for Resource.
@@ -2236,20 +2419,6 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 		objectMap["tags"] = r.Tags
 	}
 	return json.Marshal(objectMap)
-}
-
-// RollingUpgradeMonitoringPolicy the policy used for monitoring the application upgrade
-type RollingUpgradeMonitoringPolicy struct {
-	// HealthCheckWaitDuration - The amount of time to wait after completing an upgrade domain before applying health policies. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
-	HealthCheckWaitDuration *string `json:"healthCheckWaitDuration,omitempty"`
-	// HealthCheckStableDuration - The amount of time that the application or cluster must remain healthy before the upgrade proceeds to the next upgrade domain. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
-	HealthCheckStableDuration *string `json:"healthCheckStableDuration,omitempty"`
-	// HealthCheckRetryTimeout - The amount of time to retry health evaluation when the application or cluster is unhealthy before FailureAction is executed. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
-	HealthCheckRetryTimeout *string `json:"healthCheckRetryTimeout,omitempty"`
-	// UpgradeTimeout - The amount of time the overall upgrade has to complete before FailureAction is executed. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
-	UpgradeTimeout *string `json:"upgradeTimeout,omitempty"`
-	// UpgradeDomainTimeout - The amount of time each upgrade domain has to complete before FailureAction is executed. It is first interpreted as a string representing an ISO 8601 duration. If that fails, then it is interpreted as a number representing the total number of milliseconds.
-	UpgradeDomainTimeout *string `json:"upgradeDomainTimeout,omitempty"`
 }
 
 // ServerCertificateCommonName describes the server certificate details using common name.
@@ -2272,23 +2441,23 @@ type ServerCertificateCommonNames struct {
 // ServiceCorrelationDescription creates a particular correlation between services.
 type ServiceCorrelationDescription struct {
 	// Scheme - The ServiceCorrelationScheme which describes the relationship between this service and the service specified via ServiceName. Possible values include: 'ServiceCorrelationSchemeInvalid', 'ServiceCorrelationSchemeAffinity', 'ServiceCorrelationSchemeAlignedAffinity', 'ServiceCorrelationSchemeNonAlignedAffinity'
-	Scheme ServiceCorrelationScheme `json:"Scheme,omitempty"`
+	Scheme ServiceCorrelationScheme `json:"scheme,omitempty"`
 	// ServiceName - The name of the service that the correlation relationship is established with.
-	ServiceName *string `json:"ServiceName,omitempty"`
+	ServiceName *string `json:"serviceName,omitempty"`
 }
 
 // ServiceLoadMetricDescription specifies a metric to load balance a service during runtime.
 type ServiceLoadMetricDescription struct {
 	// Name - The name of the metric. If the service chooses to report load during runtime, the load metric name should match the name that is specified in Name exactly. Note that metric names are case sensitive.
-	Name *string `json:"Name,omitempty"`
+	Name *string `json:"name,omitempty"`
 	// Weight - The service load metric relative weight, compared to other metrics configured for this service, as a number. Possible values include: 'ServiceLoadMetricWeightZero', 'ServiceLoadMetricWeightLow', 'ServiceLoadMetricWeightMedium', 'ServiceLoadMetricWeightHigh'
-	Weight ServiceLoadMetricWeight `json:"Weight,omitempty"`
+	Weight ServiceLoadMetricWeight `json:"weight,omitempty"`
 	// PrimaryDefaultLoad - Used only for Stateful services. The default amount of load, as a number, that this service creates for this metric when it is a Primary replica.
-	PrimaryDefaultLoad *int32 `json:"PrimaryDefaultLoad,omitempty"`
+	PrimaryDefaultLoad *int32 `json:"primaryDefaultLoad,omitempty"`
 	// SecondaryDefaultLoad - Used only for Stateful services. The default amount of load, as a number, that this service creates for this metric when it is a Secondary replica.
-	SecondaryDefaultLoad *int32 `json:"SecondaryDefaultLoad,omitempty"`
+	SecondaryDefaultLoad *int32 `json:"secondaryDefaultLoad,omitempty"`
 	// DefaultLoad - Used only for Stateless services. The default amount of load, as a number, that this service creates for this metric.
-	DefaultLoad *int32 `json:"DefaultLoad,omitempty"`
+	DefaultLoad *int32 `json:"defaultLoad,omitempty"`
 }
 
 // BasicServicePlacementPolicyDescription describes the policy to be used for placement of a Service Fabric service.
@@ -2366,8 +2535,12 @@ type ServiceResource struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Azure resource type.
 	Type *string `json:"type,omitempty"`
-	// Location - Azure resource location.
+	// Location - It will be deprecated in New API, resource location depends on the parent resource.
 	Location *string `json:"location,omitempty"`
+	// Tags - Azure resource tags.
+	Tags map[string]*string `json:"tags"`
+	// Etag - READ-ONLY; Azure resource etag.
+	Etag *string `json:"etag,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ServiceResource.
@@ -2376,6 +2549,9 @@ func (sr ServiceResource) MarshalJSON() ([]byte, error) {
 	objectMap["properties"] = sr.BasicServiceResourceProperties
 	if sr.Location != nil {
 		objectMap["location"] = sr.Location
+	}
+	if sr.Tags != nil {
+		objectMap["tags"] = sr.Tags
 	}
 	return json.Marshal(objectMap)
 }
@@ -2433,6 +2609,24 @@ func (sr *ServiceResource) UnmarshalJSON(body []byte) error {
 				}
 				sr.Location = &location
 			}
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				sr.Tags = tags
+			}
+		case "etag":
+			if v != nil {
+				var etag string
+				err = json.Unmarshal(*v, &etag)
+				if err != nil {
+					return err
+				}
+				sr.Etag = &etag
+			}
 		}
 	}
 
@@ -2443,6 +2637,8 @@ func (sr *ServiceResource) UnmarshalJSON(body []byte) error {
 type ServiceResourceList struct {
 	autorest.Response `json:"-"`
 	Value             *[]ServiceResource `json:"value,omitempty"`
+	// NextLink - READ-ONLY; URL to get the next set of service list results if there are any.
+	NextLink *string `json:"nextLink,omitempty"`
 }
 
 // BasicServiceResourceProperties the service resource properties.
@@ -2747,7 +2943,6 @@ func (srpb *ServiceResourcePropertiesBase) UnmarshalJSON(body []byte) error {
 
 // ServiceResourceUpdate the service resource for patch operations.
 type ServiceResourceUpdate struct {
-	autorest.Response `json:"-"`
 	// BasicServiceResourceUpdateProperties - The service resource properties for patch operations.
 	BasicServiceResourceUpdateProperties `json:"properties,omitempty"`
 	// ID - READ-ONLY; Azure resource identifier.
@@ -2756,8 +2951,12 @@ type ServiceResourceUpdate struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Azure resource type.
 	Type *string `json:"type,omitempty"`
-	// Location - Azure resource location.
+	// Location - It will be deprecated in New API, resource location depends on the parent resource.
 	Location *string `json:"location,omitempty"`
+	// Tags - Azure resource tags.
+	Tags map[string]*string `json:"tags"`
+	// Etag - READ-ONLY; Azure resource etag.
+	Etag *string `json:"etag,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ServiceResourceUpdate.
@@ -2766,6 +2965,9 @@ func (sru ServiceResourceUpdate) MarshalJSON() ([]byte, error) {
 	objectMap["properties"] = sru.BasicServiceResourceUpdateProperties
 	if sru.Location != nil {
 		objectMap["location"] = sru.Location
+	}
+	if sru.Tags != nil {
+		objectMap["tags"] = sru.Tags
 	}
 	return json.Marshal(objectMap)
 }
@@ -2822,6 +3024,24 @@ func (sru *ServiceResourceUpdate) UnmarshalJSON(body []byte) error {
 					return err
 				}
 				sru.Location = &location
+			}
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				sru.Tags = tags
+			}
+		case "etag":
+			if v != nil {
+				var etag string
+				err = json.Unmarshal(*v, &etag)
+				if err != nil {
+					return err
+				}
+				sru.Etag = &etag
 			}
 		}
 	}
@@ -3006,30 +3226,30 @@ func (srup *ServiceResourceUpdateProperties) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ServicesCreateFuture an abstraction for monitoring and retrieving the results of a long-running
+// ServicesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type ServicesCreateFuture struct {
+type ServicesCreateOrUpdateFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ServicesCreateFuture) Result(client ServicesClient) (sr ServiceResource, err error) {
+func (future *ServicesCreateOrUpdateFuture) Result(client ServicesClient) (sr ServiceResource, err error) {
 	var done bool
 	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ServicesCreateFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "servicefabric.ServicesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("servicefabric.ServicesCreateFuture")
+		err = azure.NewAsyncOpIncompleteError("servicefabric.ServicesCreateOrUpdateFuture")
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if sr.Response.Response, err = future.GetResult(sender); err == nil && sr.Response.Response.StatusCode != http.StatusNoContent {
-		sr, err = client.CreateResponder(sr.Response.Response)
+		sr, err = client.CreateOrUpdateResponder(sr.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "servicefabric.ServicesCreateFuture", "Result", sr.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "servicefabric.ServicesCreateOrUpdateFuture", "Result", sr.Response.Response, "Failure responding to request")
 		}
 	}
 	return
@@ -3066,7 +3286,7 @@ type ServicesUpdateFuture struct {
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *ServicesUpdateFuture) Result(client ServicesClient) (sru ServiceResourceUpdate, err error) {
+func (future *ServicesUpdateFuture) Result(client ServicesClient) (sr ServiceResource, err error) {
 	var done bool
 	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
@@ -3078,10 +3298,10 @@ func (future *ServicesUpdateFuture) Result(client ServicesClient) (sru ServiceRe
 		return
 	}
 	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if sru.Response.Response, err = future.GetResult(sender); err == nil && sru.Response.Response.StatusCode != http.StatusNoContent {
-		sru, err = client.UpdateResponder(sru.Response.Response)
+	if sr.Response.Response, err = future.GetResult(sender); err == nil && sr.Response.Response.StatusCode != http.StatusNoContent {
+		sr, err = client.UpdateResponder(sr.Response.Response)
 		if err != nil {
-			err = autorest.NewErrorWithError(err, "servicefabric.ServicesUpdateFuture", "Result", sru.Response.Response, "Failure responding to request")
+			err = autorest.NewErrorWithError(err, "servicefabric.ServicesUpdateFuture", "Result", sr.Response.Response, "Failure responding to request")
 		}
 	}
 	return
@@ -3123,7 +3343,7 @@ type SettingsSectionDescription struct {
 // non-partitioned service.
 type SingletonPartitionSchemeDescription struct {
 	// PartitionScheme - Possible values include: 'PartitionSchemePartitionSchemeDescription', 'PartitionSchemeNamed', 'PartitionSchemeSingleton', 'PartitionSchemeUniformInt64Range'
-	PartitionScheme PartitionSchemeBasicPartitionSchemeDescription `json:"PartitionScheme,omitempty"`
+	PartitionScheme PartitionSchemeBasicPartitionSchemeDescription `json:"partitionScheme,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for SingletonPartitionSchemeDescription.
@@ -3131,7 +3351,7 @@ func (spsd SingletonPartitionSchemeDescription) MarshalJSON() ([]byte, error) {
 	spsd.PartitionScheme = PartitionSchemeSingleton
 	objectMap := make(map[string]interface{})
 	if spsd.PartitionScheme != "" {
-		objectMap["PartitionScheme"] = spsd.PartitionScheme
+		objectMap["partitionScheme"] = spsd.PartitionScheme
 	}
 	return json.Marshal(objectMap)
 }
@@ -3971,7 +4191,7 @@ type UniformInt64RangePartitionSchemeDescription struct {
 	// should be split between the partition ‘Count’
 	HighKey *string `json:"HighKey,omitempty"`
 	// PartitionScheme - Possible values include: 'PartitionSchemePartitionSchemeDescription', 'PartitionSchemeNamed', 'PartitionSchemeSingleton', 'PartitionSchemeUniformInt64Range'
-	PartitionScheme PartitionSchemeBasicPartitionSchemeDescription `json:"PartitionScheme,omitempty"`
+	PartitionScheme PartitionSchemeBasicPartitionSchemeDescription `json:"partitionScheme,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for UniformInt64RangePartitionSchemeDescription.
@@ -3988,7 +4208,7 @@ func (ui6rpsd UniformInt64RangePartitionSchemeDescription) MarshalJSON() ([]byte
 		objectMap["HighKey"] = ui6rpsd.HighKey
 	}
 	if ui6rpsd.PartitionScheme != "" {
-		objectMap["PartitionScheme"] = ui6rpsd.PartitionScheme
+		objectMap["partitionScheme"] = ui6rpsd.PartitionScheme
 	}
 	return json.Marshal(objectMap)
 }

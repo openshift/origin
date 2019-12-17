@@ -14,6 +14,7 @@
 package model
 
 import (
+	"strconv"
 	"testing"
 	"time"
 )
@@ -129,4 +130,38 @@ func TestParseDuration(t *testing.T) {
 			t.Errorf("Expected duration string %q but got %q", c.in, d.String())
 		}
 	}
+}
+
+func TestTimeJSON(t *testing.T) {
+	tests := []struct {
+		in  Time
+		out string
+	}{
+		{Time(1), `0.001`},
+		{Time(-1), `-0.001`},
+	}
+
+	for i, test := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			b, err := test.in.MarshalJSON()
+			if err != nil {
+				t.Fatalf("Error marshaling time: %v", err)
+			}
+
+			if string(b) != test.out {
+				t.Errorf("Mismatch in marshal expected=%s actual=%s", test.out, b)
+			}
+
+			var tm Time
+			if err := tm.UnmarshalJSON(b); err != nil {
+				t.Fatalf("Error Unmarshaling time: %v", err)
+			}
+
+			if !test.in.Equal(tm) {
+				t.Fatalf("Mismatch after Unmarshal expected=%v actual=%v", test.in, tm)
+			}
+
+		})
+	}
+
 }

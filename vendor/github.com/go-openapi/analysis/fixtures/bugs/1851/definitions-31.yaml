@@ -1,0 +1,12 @@
+definitions:
+  RemoteProperty:
+    type: object
+    properties:
+      RemoteName:
+        type: string
+      MoreRemoteName:
+        $ref: 'remote/definitions-32.yaml#/definitions/MoreRemoteProperty'
+      # introduce a circular ref here
+      RemoteCircular:
+        $ref: '#/definitions/RemoteProperty'
+        # TODO: same with circular in a remote

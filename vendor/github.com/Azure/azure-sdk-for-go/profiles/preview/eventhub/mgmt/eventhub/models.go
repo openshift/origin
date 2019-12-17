@@ -167,6 +167,9 @@ type NamespacesClient = original.NamespacesClient
 type NamespacesCreateOrUpdateFuture = original.NamespacesCreateOrUpdateFuture
 type NamespacesDeleteFuture = original.NamespacesDeleteFuture
 type NetworkRuleSet = original.NetworkRuleSet
+type NetworkRuleSetListResult = original.NetworkRuleSetListResult
+type NetworkRuleSetListResultIterator = original.NetworkRuleSetListResultIterator
+type NetworkRuleSetListResultPage = original.NetworkRuleSetListResultPage
 type NetworkRuleSetProperties = original.NetworkRuleSetProperties
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
@@ -244,6 +247,12 @@ func NewNamespacesClient(subscriptionID string) NamespacesClient {
 }
 func NewNamespacesClientWithBaseURI(baseURI string, subscriptionID string) NamespacesClient {
 	return original.NewNamespacesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewNetworkRuleSetListResultIterator(page NetworkRuleSetListResultPage) NetworkRuleSetListResultIterator {
+	return original.NewNetworkRuleSetListResultIterator(page)
+}
+func NewNetworkRuleSetListResultPage(getNextPage func(context.Context, NetworkRuleSetListResult) (NetworkRuleSetListResult, error)) NetworkRuleSetListResultPage {
+	return original.NewNetworkRuleSetListResultPage(getNextPage)
 }
 func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
 	return original.NewOperationListResultIterator(page)

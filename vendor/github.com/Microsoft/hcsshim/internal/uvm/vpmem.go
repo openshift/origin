@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/Microsoft/hcsshim/internal/guestrequest"
+	"github.com/Microsoft/hcsshim/internal/logfields"
 	"github.com/Microsoft/hcsshim/internal/requesttype"
 	"github.com/Microsoft/hcsshim/internal/schema2"
-	"github.com/Microsoft/hcsshim/internal/wclayer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +16,13 @@ func (uvm *UtilityVM) allocateVPMEM(hostPath string) (uint32, error) {
 	for index, vi := range uvm.vpmemDevices {
 		if vi.hostPath == "" {
 			vi.hostPath = hostPath
-			logrus.Debugf("uvm::allocateVPMEM %d %q", index, hostPath)
+			logrus.WithFields(logrus.Fields{
+				logfields.UVMID: uvm.id,
+				"host-path":     vi.hostPath,
+				"uvm-path":      vi.uvmPath,
+				"refCount":      vi.refCount,
+				"deviceNumber":  uint32(index),
+			}).Debug("uvm::allocateVPMEM")
 			return uint32(index), nil
 		}
 	}
@@ -26,7 +32,18 @@ func (uvm *UtilityVM) allocateVPMEM(hostPath string) (uint32, error) {
 func (uvm *UtilityVM) deallocateVPMEM(deviceNumber uint32) error {
 	uvm.m.Lock()
 	defer uvm.m.Unlock()
-	uvm.vpmemDevices[deviceNumber] = vpmemInfo{}
+	vi := uvm.vpmemDevices[deviceNumber]
+	if vi.hostPath != "" {
+		logrus.WithFields(logrus.Fields{
+			logfields.UVMID: uvm.id,
+			"host-path":     vi.hostPath,
+			"uvm-path":      vi.uvmPath,
+			"refCount":      vi.refCount,
+			"deviceNumber":  deviceNumber,
+		}).Debug("uvm::deallocateVPMEM")
+		uvm.vpmemDevices[deviceNumber] = vpmemInfo{}
+	}
+
 	return nil
 }
 
@@ -34,7 +51,13 @@ func (uvm *UtilityVM) deallocateVPMEM(deviceNumber uint32) error {
 func (uvm *UtilityVM) findVPMEMDevice(findThisHostPath string) (uint32, string, error) {
 	for deviceNumber, vi := range uvm.vpmemDevices {
 		if vi.hostPath == findThisHostPath {
-			logrus.Debugf("uvm::findVPMEMDeviceNumber %d %s", deviceNumber, findThisHostPath)
+			logrus.WithFields(logrus.Fields{
+				logfields.UVMID: uvm.id,
+				"host-path":     findThisHostPath,
+				"uvm-path":      vi.uvmPath,
+				"refCount":      vi.refCount,
+				"deviceNumber":  uint32(deviceNumber),
+			}).Debug("uvm::findVPMEMDevice")
 			return uint32(deviceNumber), vi.uvmPath, nil
 		}
 	}
@@ -45,27 +68,35 @@ func (uvm *UtilityVM) findVPMEMDevice(findThisHostPath string) (uint32, string, 
 //
 // Returns the location(0..MaxVPMEM-1) where the device is attached, and if exposed,
 // the utility VM path which will be /tmp/p<location>//
-func (uvm *UtilityVM) AddVPMEM(hostPath string, expose bool) (uint32, string, error) {
+func (uvm *UtilityVM) AddVPMEM(hostPath string, expose bool) (_ uint32, _ string, err error) {
+	op := "uvm::AddVPMEM"
+	log := logrus.WithFields(logrus.Fields{
+		logfields.UVMID: uvm.id,
+		"host-path":     hostPath,
+		"expose":        expose,
+	})
+	log.Debug(op + " - Begin Operation")
+	defer func() {
+		if err != nil {
+			log.Data[logrus.ErrorKey] = err
+			log.Error(op + " - End Operation - Error")
+		} else {
+			log.Debug(op + " - End Operation - Success")
+		}
+	}()
+
 	if uvm.operatingSystem != "linux" {
 		return 0, "", errNotSupported
 	}
-
-	logrus.Debugf("uvm::AddVPMEM id:%s hostPath:%s expose:%t", uvm.id, hostPath, expose)
 
 	uvm.m.Lock()
 	defer uvm.m.Unlock()
 
 	var deviceNumber uint32
-	var err error
 	uvmPath := ""
 
 	deviceNumber, uvmPath, err = uvm.findVPMEMDevice(hostPath)
 	if err != nil {
-		// Ensure the utility VM has access
-		if err := wclayer.GrantVmAccess(uvm.ID(), hostPath); err != nil {
-			return 0, "", err
-		}
-
 		// It doesn't exist, so we're going to allocate and hot-add it
 		deviceNumber, err = uvm.allocateVPMEM(hostPath)
 		if err != nil {
@@ -117,7 +148,22 @@ func (uvm *UtilityVM) AddVPMEM(hostPath string, expose bool) (uint32, string, er
 
 // RemoveVPMEM removes a VPMEM disk from a utility VM. As an external API, it
 // is "safe". Internal use can call removeVPMEM.
-func (uvm *UtilityVM) RemoveVPMEM(hostPath string) error {
+func (uvm *UtilityVM) RemoveVPMEM(hostPath string) (err error) {
+	op := "uvm::RemoveVPMEM"
+	log := logrus.WithFields(logrus.Fields{
+		logfields.UVMID: uvm.id,
+		"host-path":     hostPath,
+	})
+	log.Debug(op + " - Begin Operation")
+	defer func() {
+		if err != nil {
+			log.Data[logrus.ErrorKey] = err
+			log.Error(op + " - End Operation - Error")
+		} else {
+			log.Debug(op + " - End Operation - Success")
+		}
+	}()
+
 	if uvm.operatingSystem != "linux" {
 		return errNotSupported
 	}
@@ -140,8 +186,6 @@ func (uvm *UtilityVM) RemoveVPMEM(hostPath string) error {
 // removeVPMEM is the internally callable "unsafe" version of RemoveVPMEM. The mutex
 // MUST be held when calling this function.
 func (uvm *UtilityVM) removeVPMEM(hostPath string, uvmPath string, deviceNumber uint32) error {
-	logrus.Debugf("uvm::RemoveVPMEM id:%s hostPath:%s device:%d", uvm.id, hostPath, deviceNumber)
-
 	if uvm.vpmemDevices[deviceNumber].refCount == 1 {
 		modification := &hcsschema.ModifySettingRequest{
 			RequestType:  requesttype.Remove,
@@ -160,11 +204,14 @@ func (uvm *UtilityVM) removeVPMEM(hostPath string, uvmPath string, deviceNumber 
 			return err
 		}
 		uvm.vpmemDevices[deviceNumber] = vpmemInfo{}
-		logrus.Debugf("uvm::RemoveVPMEM: Success id:%s hostPath:%s device:%d", uvm.id, hostPath, deviceNumber)
 		return nil
 	}
 	uvm.vpmemDevices[deviceNumber].refCount--
-	logrus.Debugf("uvm::RemoveVPMEM: Success id:%s hostPath:%s device:%d refCount:%d", uvm.id, hostPath, deviceNumber, uvm.vpmemDevices[deviceNumber].refCount)
 	return nil
 
+}
+
+// PMemMaxSizeBytes returns the maximum size of a PMEM layer (LCOW)
+func (uvm *UtilityVM) PMemMaxSizeBytes() uint64 {
+	return uvm.vpmemMaxSizeBytes
 }

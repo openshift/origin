@@ -23,24 +23,17 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-// BaseClientAPI contains the set of methods on the BaseClient type.
-type BaseClientAPI interface {
-	GetOperationResultByRegion(ctx context.Context, operationID string) (result vmwarecloudsimple.OperationResource, err error)
-	GetPrivateCloud(ctx context.Context, pcName string) (result vmwarecloudsimple.PrivateCloud, err error)
-}
-
-var _ BaseClientAPI = (*vmwarecloudsimple.BaseClient)(nil)
-
-// AvailableOperationsClientAPI contains the set of methods on the AvailableOperationsClient type.
-type AvailableOperationsClientAPI interface {
+// OperationsClientAPI contains the set of methods on the OperationsClient type.
+type OperationsClientAPI interface {
+	Get(ctx context.Context, regionID string, operationID string) (result vmwarecloudsimple.OperationResource, err error)
 	List(ctx context.Context) (result vmwarecloudsimple.AvailableOperationsListResponsePage, err error)
 }
 
-var _ AvailableOperationsClientAPI = (*vmwarecloudsimple.AvailableOperationsClient)(nil)
+var _ OperationsClientAPI = (*vmwarecloudsimple.OperationsClient)(nil)
 
-// DedicatedCloudNodeClientAPI contains the set of methods on the DedicatedCloudNodeClient type.
-type DedicatedCloudNodeClientAPI interface {
-	CreateOrUpdate(ctx context.Context, resourceGroupName string, dedicatedCloudNodeName string, dedicatedCloudNodeRequest vmwarecloudsimple.DedicatedCloudNode) (result vmwarecloudsimple.DedicatedCloudNodeCreateOrUpdateFuture, err error)
+// DedicatedCloudNodesClientAPI contains the set of methods on the DedicatedCloudNodesClient type.
+type DedicatedCloudNodesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, dedicatedCloudNodeName string, dedicatedCloudNodeRequest vmwarecloudsimple.DedicatedCloudNode) (result vmwarecloudsimple.DedicatedCloudNodesCreateOrUpdateFuture, err error)
 	Delete(ctx context.Context, resourceGroupName string, dedicatedCloudNodeName string) (result autorest.Response, err error)
 	Get(ctx context.Context, resourceGroupName string, dedicatedCloudNodeName string) (result vmwarecloudsimple.DedicatedCloudNode, err error)
 	ListByResourceGroup(ctx context.Context, resourceGroupName string, filter string, top *int32, skipToken string) (result vmwarecloudsimple.DedicatedCloudNodeListResponsePage, err error)
@@ -48,93 +41,84 @@ type DedicatedCloudNodeClientAPI interface {
 	Update(ctx context.Context, resourceGroupName string, dedicatedCloudNodeName string, dedicatedCloudNodeRequest vmwarecloudsimple.PatchPayload) (result vmwarecloudsimple.DedicatedCloudNode, err error)
 }
 
-var _ DedicatedCloudNodeClientAPI = (*vmwarecloudsimple.DedicatedCloudNodeClient)(nil)
+var _ DedicatedCloudNodesClientAPI = (*vmwarecloudsimple.DedicatedCloudNodesClient)(nil)
 
-// DedicatedCloudServiceClientAPI contains the set of methods on the DedicatedCloudServiceClient type.
-type DedicatedCloudServiceClientAPI interface {
+// DedicatedCloudServicesClientAPI contains the set of methods on the DedicatedCloudServicesClient type.
+type DedicatedCloudServicesClientAPI interface {
 	CreateOrUpdate(ctx context.Context, resourceGroupName string, dedicatedCloudServiceName string, dedicatedCloudServiceRequest vmwarecloudsimple.DedicatedCloudService) (result vmwarecloudsimple.DedicatedCloudService, err error)
-	Delete(ctx context.Context, resourceGroupName string, dedicatedCloudServiceName string) (result vmwarecloudsimple.DedicatedCloudServiceDeleteFuture, err error)
+	Delete(ctx context.Context, resourceGroupName string, dedicatedCloudServiceName string) (result vmwarecloudsimple.DedicatedCloudServicesDeleteFuture, err error)
 	Get(ctx context.Context, resourceGroupName string, dedicatedCloudServiceName string) (result vmwarecloudsimple.DedicatedCloudService, err error)
 	ListByResourceGroup(ctx context.Context, resourceGroupName string, filter string, top *int32, skipToken string) (result vmwarecloudsimple.DedicatedCloudServiceListResponsePage, err error)
 	ListBySubscription(ctx context.Context, filter string, top *int32, skipToken string) (result vmwarecloudsimple.DedicatedCloudServiceListResponsePage, err error)
 	Update(ctx context.Context, resourceGroupName string, dedicatedCloudServiceName string, dedicatedCloudServiceRequest vmwarecloudsimple.PatchPayload) (result vmwarecloudsimple.DedicatedCloudService, err error)
 }
 
-var _ DedicatedCloudServiceClientAPI = (*vmwarecloudsimple.DedicatedCloudServiceClient)(nil)
+var _ DedicatedCloudServicesClientAPI = (*vmwarecloudsimple.DedicatedCloudServicesClient)(nil)
 
-// SkusAvailabilityWithinRegionClientAPI contains the set of methods on the SkusAvailabilityWithinRegionClient type.
-type SkusAvailabilityWithinRegionClientAPI interface {
-	List(ctx context.Context, skuID string) (result vmwarecloudsimple.SkuAvailabilityListResponsePage, err error)
+// SkusAvailabilityClientAPI contains the set of methods on the SkusAvailabilityClient type.
+type SkusAvailabilityClientAPI interface {
+	List(ctx context.Context, regionID string, skuID string) (result vmwarecloudsimple.SkuAvailabilityListResponsePage, err error)
 }
 
-var _ SkusAvailabilityWithinRegionClientAPI = (*vmwarecloudsimple.SkusAvailabilityWithinRegionClient)(nil)
+var _ SkusAvailabilityClientAPI = (*vmwarecloudsimple.SkusAvailabilityClient)(nil)
 
-// PrivateCloudByRegionClientAPI contains the set of methods on the PrivateCloudByRegionClient type.
-type PrivateCloudByRegionClientAPI interface {
-	List(ctx context.Context) (result vmwarecloudsimple.PrivateCloudListPage, err error)
+// PrivateCloudsClientAPI contains the set of methods on the PrivateCloudsClient type.
+type PrivateCloudsClientAPI interface {
+	Get(ctx context.Context, pcName string, regionID string) (result vmwarecloudsimple.PrivateCloud, err error)
+	List(ctx context.Context, regionID string) (result vmwarecloudsimple.PrivateCloudListPage, err error)
 }
 
-var _ PrivateCloudByRegionClientAPI = (*vmwarecloudsimple.PrivateCloudByRegionClient)(nil)
+var _ PrivateCloudsClientAPI = (*vmwarecloudsimple.PrivateCloudsClient)(nil)
 
-// ResourcePoolsByPCClientAPI contains the set of methods on the ResourcePoolsByPCClient type.
-type ResourcePoolsByPCClientAPI interface {
-	List(ctx context.Context, pcName string) (result vmwarecloudsimple.ResourcePoolsListResponsePage, err error)
+// CustomizationPoliciesClientAPI contains the set of methods on the CustomizationPoliciesClient type.
+type CustomizationPoliciesClientAPI interface {
+	Get(ctx context.Context, regionID string, pcName string, customizationPolicyName string) (result vmwarecloudsimple.CustomizationPolicy, err error)
+	List(ctx context.Context, regionID string, pcName string, filter string) (result vmwarecloudsimple.CustomizationPoliciesListResponsePage, err error)
 }
 
-var _ ResourcePoolsByPCClientAPI = (*vmwarecloudsimple.ResourcePoolsByPCClient)(nil)
+var _ CustomizationPoliciesClientAPI = (*vmwarecloudsimple.CustomizationPoliciesClient)(nil)
 
-// ResourcePoolByPCClientAPI contains the set of methods on the ResourcePoolByPCClient type.
-type ResourcePoolByPCClientAPI interface {
-	Get(ctx context.Context, pcName string, resourcePoolName string) (result vmwarecloudsimple.ResourcePool, err error)
+// ResourcePoolsClientAPI contains the set of methods on the ResourcePoolsClient type.
+type ResourcePoolsClientAPI interface {
+	Get(ctx context.Context, regionID string, pcName string, resourcePoolName string) (result vmwarecloudsimple.ResourcePool, err error)
+	List(ctx context.Context, regionID string, pcName string) (result vmwarecloudsimple.ResourcePoolsListResponsePage, err error)
 }
 
-var _ ResourcePoolByPCClientAPI = (*vmwarecloudsimple.ResourcePoolByPCClient)(nil)
+var _ ResourcePoolsClientAPI = (*vmwarecloudsimple.ResourcePoolsClient)(nil)
 
-// VirtualMachineTemplatesByPCClientAPI contains the set of methods on the VirtualMachineTemplatesByPCClient type.
-type VirtualMachineTemplatesByPCClientAPI interface {
-	List(ctx context.Context, pcName string, resourcePoolName string) (result vmwarecloudsimple.VirtualMachineTemplateListResponsePage, err error)
+// VirtualMachineTemplatesClientAPI contains the set of methods on the VirtualMachineTemplatesClient type.
+type VirtualMachineTemplatesClientAPI interface {
+	Get(ctx context.Context, regionID string, pcName string, virtualMachineTemplateName string) (result vmwarecloudsimple.VirtualMachineTemplate, err error)
+	List(ctx context.Context, pcName string, regionID string, resourcePoolName string) (result vmwarecloudsimple.VirtualMachineTemplateListResponsePage, err error)
 }
 
-var _ VirtualMachineTemplatesByPCClientAPI = (*vmwarecloudsimple.VirtualMachineTemplatesByPCClient)(nil)
+var _ VirtualMachineTemplatesClientAPI = (*vmwarecloudsimple.VirtualMachineTemplatesClient)(nil)
 
-// VirtualMachineTemplateByPCClientAPI contains the set of methods on the VirtualMachineTemplateByPCClient type.
-type VirtualMachineTemplateByPCClientAPI interface {
-	Get(ctx context.Context, pcName string, virtualMachineTemplateName string) (result vmwarecloudsimple.VirtualMachineTemplate, err error)
+// VirtualNetworksClientAPI contains the set of methods on the VirtualNetworksClient type.
+type VirtualNetworksClientAPI interface {
+	Get(ctx context.Context, regionID string, pcName string, virtualNetworkName string) (result vmwarecloudsimple.VirtualNetwork, err error)
+	List(ctx context.Context, regionID string, pcName string, resourcePoolName string) (result vmwarecloudsimple.VirtualNetworkListResponsePage, err error)
 }
 
-var _ VirtualMachineTemplateByPCClientAPI = (*vmwarecloudsimple.VirtualMachineTemplateByPCClient)(nil)
+var _ VirtualNetworksClientAPI = (*vmwarecloudsimple.VirtualNetworksClient)(nil)
 
-// VirtualNetworksByPCClientAPI contains the set of methods on the VirtualNetworksByPCClient type.
-type VirtualNetworksByPCClientAPI interface {
-	List(ctx context.Context, pcName string, resourcePoolName string) (result vmwarecloudsimple.VirtualNetworkListResponsePage, err error)
+// UsagesClientAPI contains the set of methods on the UsagesClient type.
+type UsagesClientAPI interface {
+	List(ctx context.Context, regionID string, filter string) (result vmwarecloudsimple.UsageListResponsePage, err error)
 }
 
-var _ VirtualNetworksByPCClientAPI = (*vmwarecloudsimple.VirtualNetworksByPCClient)(nil)
+var _ UsagesClientAPI = (*vmwarecloudsimple.UsagesClient)(nil)
 
-// VirtualNetworkByPCClientAPI contains the set of methods on the VirtualNetworkByPCClient type.
-type VirtualNetworkByPCClientAPI interface {
-	Get(ctx context.Context, pcName string, virtualNetworkName string) (result vmwarecloudsimple.VirtualNetwork, err error)
-}
-
-var _ VirtualNetworkByPCClientAPI = (*vmwarecloudsimple.VirtualNetworkByPCClient)(nil)
-
-// UsagesWithinRegionClientAPI contains the set of methods on the UsagesWithinRegionClient type.
-type UsagesWithinRegionClientAPI interface {
-	List(ctx context.Context, filter string) (result vmwarecloudsimple.UsageListResponsePage, err error)
-}
-
-var _ UsagesWithinRegionClientAPI = (*vmwarecloudsimple.UsagesWithinRegionClient)(nil)
-
-// VirtualMachineClientAPI contains the set of methods on the VirtualMachineClient type.
-type VirtualMachineClientAPI interface {
-	CreateOrUpdate(ctx context.Context, resourceGroupName string, virtualMachineName string, virtualMachineRequest vmwarecloudsimple.VirtualMachine) (result vmwarecloudsimple.VirtualMachineCreateOrUpdateFuture, err error)
-	Delete(ctx context.Context, resourceGroupName string, virtualMachineName string) (result vmwarecloudsimple.VirtualMachineDeleteFuture, err error)
+// VirtualMachinesClientAPI contains the set of methods on the VirtualMachinesClient type.
+type VirtualMachinesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, virtualMachineName string, virtualMachineRequest vmwarecloudsimple.VirtualMachine) (result vmwarecloudsimple.VirtualMachinesCreateOrUpdateFuture, err error)
+	Delete(ctx context.Context, resourceGroupName string, virtualMachineName string) (result vmwarecloudsimple.VirtualMachinesDeleteFuture, err error)
 	Get(ctx context.Context, resourceGroupName string, virtualMachineName string) (result vmwarecloudsimple.VirtualMachine, err error)
 	ListByResourceGroup(ctx context.Context, resourceGroupName string, filter string, top *int32, skipToken string) (result vmwarecloudsimple.VirtualMachineListResponsePage, err error)
 	ListBySubscription(ctx context.Context, filter string, top *int32, skipToken string) (result vmwarecloudsimple.VirtualMachineListResponsePage, err error)
-	Start(ctx context.Context, resourceGroupName string, virtualMachineName string) (result vmwarecloudsimple.VirtualMachineStartFuture, err error)
-	Stop(ctx context.Context, resourceGroupName string, virtualMachineName string, mParameter *vmwarecloudsimple.VirtualMachineStopMode, mode vmwarecloudsimple.StopMode) (result vmwarecloudsimple.VirtualMachineStopFuture, err error)
-	Update(ctx context.Context, resourceGroupName string, virtualMachineName string, virtualMachineRequest vmwarecloudsimple.PatchPayload) (result vmwarecloudsimple.VirtualMachineUpdateFuture, err error)
+	Start(ctx context.Context, resourceGroupName string, virtualMachineName string) (result vmwarecloudsimple.VirtualMachinesStartFuture, err error)
+	Stop(ctx context.Context, resourceGroupName string, virtualMachineName string, mParameter *vmwarecloudsimple.VirtualMachineStopMode, mode vmwarecloudsimple.StopMode) (result vmwarecloudsimple.VirtualMachinesStopFuture, err error)
+	Update(ctx context.Context, resourceGroupName string, virtualMachineName string, virtualMachineRequest vmwarecloudsimple.PatchPayload) (result vmwarecloudsimple.VirtualMachinesUpdateFuture, err error)
 }
 
-var _ VirtualMachineClientAPI = (*vmwarecloudsimple.VirtualMachineClient)(nil)
+var _ VirtualMachinesClientAPI = (*vmwarecloudsimple.VirtualMachinesClient)(nil)

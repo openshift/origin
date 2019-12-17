@@ -42,7 +42,8 @@ func Test_FixEmptyResponseDescriptions(t *testing.T) {
 		}
 	}
 	for r, resp := range sp.Responses {
-		assert.Truef(t, assertResponse(t, "/responses/"+r, &resp, true),
+		pin := resp
+		assert.Truef(t, assertResponse(t, "/responses/"+r, &pin, true),
 			"expected a fixed empty description in response %s", r)
 	}
 }
@@ -75,7 +76,8 @@ func assertResponseInOperation(t *testing.T, op *spec.Operation, isEmpty bool) (
 				"unexpected description in response %s for operation", "default")
 		}
 		for code, resp := range op.Responses.StatusCodeResponses {
-			assert.Truef(t, assertResponse(t, strconv.Itoa(code), &resp, isEmpty),
+			pin := resp
+			assert.Truef(t, assertResponse(t, strconv.Itoa(code), &pin, isEmpty),
 				"unexpected description in response %d for operation", code)
 		}
 	}

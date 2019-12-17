@@ -103,6 +103,22 @@ const (
 	On  InstanceFlexibility = original.On
 )
 
+type PaymentStatus = original.PaymentStatus
+
+const (
+	Cancelled PaymentStatus = original.Cancelled
+	Failed    PaymentStatus = original.Failed
+	Scheduled PaymentStatus = original.Scheduled
+	Succeeded PaymentStatus = original.Succeeded
+)
+
+type ReservationBillingPlan = original.ReservationBillingPlan
+
+const (
+	Monthly ReservationBillingPlan = original.Monthly
+	Upfront ReservationBillingPlan = original.Upfront
+)
+
 type ReservationTerm = original.ReservationTerm
 
 const (
@@ -164,6 +180,7 @@ type OperationList = original.OperationList
 type OperationListIterator = original.OperationListIterator
 type OperationListPage = original.OperationListPage
 type OperationResponse = original.OperationResponse
+type OrderBillingPlanInformation = original.OrderBillingPlanInformation
 type OrderClient = original.OrderClient
 type OrderList = original.OrderList
 type OrderListIterator = original.OrderListIterator
@@ -174,16 +191,21 @@ type OrderResponse = original.OrderResponse
 type Patch = original.Patch
 type PatchProperties = original.PatchProperties
 type PatchPropertiesRenewProperties = original.PatchPropertiesRenewProperties
+type PaymentDetail = original.PaymentDetail
+type Price = original.Price
 type Properties = original.Properties
+type PropertiesType = original.PropertiesType
 type PurchaseRequest = original.PurchaseRequest
 type PurchaseRequestProperties = original.PurchaseRequestProperties
 type PurchaseRequestPropertiesReservedResourceProperties = original.PurchaseRequestPropertiesReservedResourceProperties
 type RenewPropertiesResponse = original.RenewPropertiesResponse
 type RenewPropertiesResponseBillingCurrencyTotal = original.RenewPropertiesResponseBillingCurrencyTotal
 type RenewPropertiesResponsePricingCurrencyTotal = original.RenewPropertiesResponsePricingCurrencyTotal
+type ReservationAvailableScopesFuture = original.ReservationAvailableScopesFuture
 type ReservationMergeFuture = original.ReservationMergeFuture
 type ReservationUpdateFuture = original.ReservationUpdateFuture
 type Response = original.Response
+type ScopeProperties = original.ScopeProperties
 type SkuName = original.SkuName
 type SkuProperty = original.SkuProperty
 type SkuRestriction = original.SkuRestriction
@@ -191,6 +213,7 @@ type SplitFuture = original.SplitFuture
 type SplitProperties = original.SplitProperties
 type SplitPropertiesType = original.SplitPropertiesType
 type SplitRequest = original.SplitRequest
+type SubscriptionScopeProperties = original.SubscriptionScopeProperties
 
 func New() BaseClient {
 	return original.New()
@@ -242,6 +265,12 @@ func PossibleErrorResponseCodeValues() []ErrorResponseCode {
 }
 func PossibleInstanceFlexibilityValues() []InstanceFlexibility {
 	return original.PossibleInstanceFlexibilityValues()
+}
+func PossiblePaymentStatusValues() []PaymentStatus {
+	return original.PossiblePaymentStatusValues()
+}
+func PossibleReservationBillingPlanValues() []ReservationBillingPlan {
+	return original.PossibleReservationBillingPlanValues()
 }
 func PossibleReservationTermValues() []ReservationTerm {
 	return original.PossibleReservationTermValues()

@@ -234,6 +234,9 @@ type ImageRegistryConfigStorageAzure struct {
 	AccountName string `json:"accountName" protobuf:"bytes,1,opt,name=accountName"`
 	// container defines Azure's container to be used by registry.
 	// +optional
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:MinLength=3
+	// +kubebuilder:validation:Pattern=`^[0-9a-z]+(-[0-9a-z]+)*$`
 	Container string `json:"container" protobuf:"bytes,2,opt,name=container"`
 }
 

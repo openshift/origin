@@ -456,6 +456,7 @@ func (client SharesClient) ListSynchronizationDetailsPreparer(ctx context.Contex
 		queryParameters["$skipToken"] = autorest.Encode("query", skipToken)
 	}
 
+	shareSynchronization.SynchronizationMode = ""
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),

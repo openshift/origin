@@ -119,6 +119,7 @@ $> ../model/testdata/smallProfile.txt > profileBuilder list --name small_profile
 				outputRootDir = filepath.Join(outputRootDir, modver)
 			}
 		}
+		fmt.Printf("Executes profileBuilder in %s\n", outputRootDir)
 		outputLog.Printf("Output-Location set to: %s", outputRootDir)
 		if clearOutputFlag {
 			if err := dirs.DeleteChildDirs(outputRootDir); err != nil {

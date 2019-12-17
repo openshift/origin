@@ -18,10 +18,10 @@ import (
 	"github.com/boltdb/bolt"
 	wdb "github.com/heketi/heketi/pkg/db"
 
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/v1"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 var (

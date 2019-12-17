@@ -148,51 +148,53 @@ func PossibleDatabaseReadScaleValues() []DatabaseReadScale {
 type DatabaseStatus string
 
 const (
-	// AutoClosed ...
-	AutoClosed DatabaseStatus = "AutoClosed"
-	// Copying ...
-	Copying DatabaseStatus = "Copying"
-	// Creating ...
-	Creating DatabaseStatus = "Creating"
-	// EmergencyMode ...
-	EmergencyMode DatabaseStatus = "EmergencyMode"
-	// Inaccessible ...
-	Inaccessible DatabaseStatus = "Inaccessible"
-	// Offline ...
-	Offline DatabaseStatus = "Offline"
-	// OfflineChangingDwPerformanceTiers ...
-	OfflineChangingDwPerformanceTiers DatabaseStatus = "OfflineChangingDwPerformanceTiers"
-	// OfflineSecondary ...
-	OfflineSecondary DatabaseStatus = "OfflineSecondary"
-	// Online ...
-	Online DatabaseStatus = "Online"
-	// OnlineChangingDwPerformanceTiers ...
-	OnlineChangingDwPerformanceTiers DatabaseStatus = "OnlineChangingDwPerformanceTiers"
-	// Paused ...
-	Paused DatabaseStatus = "Paused"
-	// Pausing ...
-	Pausing DatabaseStatus = "Pausing"
-	// Recovering ...
-	Recovering DatabaseStatus = "Recovering"
-	// RecoveryPending ...
-	RecoveryPending DatabaseStatus = "RecoveryPending"
-	// Restoring ...
-	Restoring DatabaseStatus = "Restoring"
-	// Resuming ...
-	Resuming DatabaseStatus = "Resuming"
-	// Scaling ...
-	Scaling DatabaseStatus = "Scaling"
-	// Shutdown ...
-	Shutdown DatabaseStatus = "Shutdown"
-	// Standby ...
-	Standby DatabaseStatus = "Standby"
-	// Suspect ...
-	Suspect DatabaseStatus = "Suspect"
+	// DatabaseStatusAutoClosed ...
+	DatabaseStatusAutoClosed DatabaseStatus = "AutoClosed"
+	// DatabaseStatusCopying ...
+	DatabaseStatusCopying DatabaseStatus = "Copying"
+	// DatabaseStatusCreating ...
+	DatabaseStatusCreating DatabaseStatus = "Creating"
+	// DatabaseStatusDisabled ...
+	DatabaseStatusDisabled DatabaseStatus = "Disabled"
+	// DatabaseStatusEmergencyMode ...
+	DatabaseStatusEmergencyMode DatabaseStatus = "EmergencyMode"
+	// DatabaseStatusInaccessible ...
+	DatabaseStatusInaccessible DatabaseStatus = "Inaccessible"
+	// DatabaseStatusOffline ...
+	DatabaseStatusOffline DatabaseStatus = "Offline"
+	// DatabaseStatusOfflineChangingDwPerformanceTiers ...
+	DatabaseStatusOfflineChangingDwPerformanceTiers DatabaseStatus = "OfflineChangingDwPerformanceTiers"
+	// DatabaseStatusOfflineSecondary ...
+	DatabaseStatusOfflineSecondary DatabaseStatus = "OfflineSecondary"
+	// DatabaseStatusOnline ...
+	DatabaseStatusOnline DatabaseStatus = "Online"
+	// DatabaseStatusOnlineChangingDwPerformanceTiers ...
+	DatabaseStatusOnlineChangingDwPerformanceTiers DatabaseStatus = "OnlineChangingDwPerformanceTiers"
+	// DatabaseStatusPaused ...
+	DatabaseStatusPaused DatabaseStatus = "Paused"
+	// DatabaseStatusPausing ...
+	DatabaseStatusPausing DatabaseStatus = "Pausing"
+	// DatabaseStatusRecovering ...
+	DatabaseStatusRecovering DatabaseStatus = "Recovering"
+	// DatabaseStatusRecoveryPending ...
+	DatabaseStatusRecoveryPending DatabaseStatus = "RecoveryPending"
+	// DatabaseStatusRestoring ...
+	DatabaseStatusRestoring DatabaseStatus = "Restoring"
+	// DatabaseStatusResuming ...
+	DatabaseStatusResuming DatabaseStatus = "Resuming"
+	// DatabaseStatusScaling ...
+	DatabaseStatusScaling DatabaseStatus = "Scaling"
+	// DatabaseStatusShutdown ...
+	DatabaseStatusShutdown DatabaseStatus = "Shutdown"
+	// DatabaseStatusStandby ...
+	DatabaseStatusStandby DatabaseStatus = "Standby"
+	// DatabaseStatusSuspect ...
+	DatabaseStatusSuspect DatabaseStatus = "Suspect"
 )
 
 // PossibleDatabaseStatusValues returns an array of possible values for the DatabaseStatus const type.
 func PossibleDatabaseStatusValues() []DatabaseStatus {
-	return []DatabaseStatus{AutoClosed, Copying, Creating, EmergencyMode, Inaccessible, Offline, OfflineChangingDwPerformanceTiers, OfflineSecondary, Online, OnlineChangingDwPerformanceTiers, Paused, Pausing, Recovering, RecoveryPending, Restoring, Resuming, Scaling, Shutdown, Standby, Suspect}
+	return []DatabaseStatus{DatabaseStatusAutoClosed, DatabaseStatusCopying, DatabaseStatusCreating, DatabaseStatusDisabled, DatabaseStatusEmergencyMode, DatabaseStatusInaccessible, DatabaseStatusOffline, DatabaseStatusOfflineChangingDwPerformanceTiers, DatabaseStatusOfflineSecondary, DatabaseStatusOnline, DatabaseStatusOnlineChangingDwPerformanceTiers, DatabaseStatusPaused, DatabaseStatusPausing, DatabaseStatusRecovering, DatabaseStatusRecoveryPending, DatabaseStatusRestoring, DatabaseStatusResuming, DatabaseStatusScaling, DatabaseStatusShutdown, DatabaseStatusStandby, DatabaseStatusSuspect}
 }
 
 // ElasticPoolLicenseType enumerates the values for elastic pool license type.
@@ -1289,7 +1291,7 @@ type DatabaseProperties struct {
 	ElasticPoolID *string `json:"elasticPoolId,omitempty"`
 	// SourceDatabaseID - The resource identifier of the source database associated with create operation of this database.
 	SourceDatabaseID *string `json:"sourceDatabaseId,omitempty"`
-	// Status - READ-ONLY; The status of the database. Possible values include: 'Online', 'Restoring', 'RecoveryPending', 'Recovering', 'Suspect', 'Offline', 'Standby', 'Shutdown', 'EmergencyMode', 'AutoClosed', 'Copying', 'Creating', 'Inaccessible', 'OfflineSecondary', 'Pausing', 'Paused', 'Resuming', 'Scaling', 'OfflineChangingDwPerformanceTiers', 'OnlineChangingDwPerformanceTiers'
+	// Status - READ-ONLY; The status of the database. Possible values include: 'DatabaseStatusOnline', 'DatabaseStatusRestoring', 'DatabaseStatusRecoveryPending', 'DatabaseStatusRecovering', 'DatabaseStatusSuspect', 'DatabaseStatusOffline', 'DatabaseStatusStandby', 'DatabaseStatusShutdown', 'DatabaseStatusEmergencyMode', 'DatabaseStatusAutoClosed', 'DatabaseStatusCopying', 'DatabaseStatusCreating', 'DatabaseStatusInaccessible', 'DatabaseStatusOfflineSecondary', 'DatabaseStatusPausing', 'DatabaseStatusPaused', 'DatabaseStatusResuming', 'DatabaseStatusScaling', 'DatabaseStatusOfflineChangingDwPerformanceTiers', 'DatabaseStatusOnlineChangingDwPerformanceTiers', 'DatabaseStatusDisabled'
 	Status DatabaseStatus `json:"status,omitempty"`
 	// DatabaseID - READ-ONLY; The ID of the database.
 	DatabaseID *uuid.UUID `json:"databaseId,omitempty"`
@@ -1325,14 +1327,20 @@ type DatabaseProperties struct {
 	MaxLogSizeBytes *int64 `json:"maxLogSizeBytes,omitempty"`
 	// EarliestRestoreDate - READ-ONLY; This records the earliest start date and time that restore is available for this database (ISO8601 format).
 	EarliestRestoreDate *date.Time `json:"earliestRestoreDate,omitempty"`
-	// ReadScale - The state of read-only routing. If enabled, connections that have application intent set to readonly in their connection string may be routed to a readonly secondary replica in the same region. Possible values include: 'DatabaseReadScaleEnabled', 'DatabaseReadScaleDisabled'
+	// ReadScale - If enabled, connections that have application intent set to readonly in their connection string may be routed to a readonly secondary replica. This property is only settable for Premium and Business Critical databases. Possible values include: 'DatabaseReadScaleEnabled', 'DatabaseReadScaleDisabled'
 	ReadScale DatabaseReadScale `json:"readScale,omitempty"`
+	// ReadReplicaCount - The number of readonly secondary replicas associated with the database to which readonly application intent connections may be routed. This property is only settable for Hyperscale edition databases.
+	ReadReplicaCount *int32 `json:"readReplicaCount,omitempty"`
 	// CurrentSku - READ-ONLY; The name and tier of the SKU.
 	CurrentSku *Sku `json:"currentSku,omitempty"`
 	// AutoPauseDelay - Time in minutes after which database is automatically paused. A value of -1 means that automatic pause is disabled
 	AutoPauseDelay *int32 `json:"autoPauseDelay,omitempty"`
 	// MinCapacity - Minimal capacity that database will always have allocated, if not paused
 	MinCapacity *float64 `json:"minCapacity,omitempty"`
+	// PausedDate - READ-ONLY; The date when database was paused by user configuration or action (ISO8601 format). Null if the database is ready.
+	PausedDate *date.Time `json:"pausedDate,omitempty"`
+	// ResumedDate - READ-ONLY; The date when database was resumed by user action or database login (ISO8601 format). Null if the database is paused.
+	ResumedDate *date.Time `json:"resumedDate,omitempty"`
 }
 
 // DatabasesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
@@ -3477,6 +3485,29 @@ func (future *ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture) Result(cl
 	return
 }
 
+// ManagedInstanceEncryptionProtectorsRevalidateFuture an abstraction for monitoring and retrieving the
+// results of a long-running operation.
+type ManagedInstanceEncryptionProtectorsRevalidateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ManagedInstanceEncryptionProtectorsRevalidateFuture) Result(client ManagedInstanceEncryptionProtectorsClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ManagedInstanceEncryptionProtectorsRevalidateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.ManagedInstanceEncryptionProtectorsRevalidateFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
 // ManagedInstanceFamilyCapability the managed server family capability.
 type ManagedInstanceFamilyCapability struct {
 	// Name - READ-ONLY; Family name.
@@ -4174,17 +4205,17 @@ type ServiceObjectiveCapability struct {
 	Reason *string `json:"reason,omitempty"`
 }
 
-// Sku the resource model definition representing SKU
+// Sku an ARM Resource SKU.
 type Sku struct {
-	// Name - The name of the SKU. Ex - P3. It is typically a letter+number code
+	// Name - The name of the SKU, typically, a letter + Number code, e.g. P3.
 	Name *string `json:"name,omitempty"`
-	// Tier - This field is required to be implemented by the Resource Provider if the service has more than one tier, but is not required on a PUT.
+	// Tier - The tier or edition of the particular SKU, e.g. Basic, Premium.
 	Tier *string `json:"tier,omitempty"`
-	// Size - The SKU size. When the name field is the combination of tier and some other value, this would be the standalone code.
+	// Size - Size of the particular SKU
 	Size *string `json:"size,omitempty"`
 	// Family - If the service has different generations of hardware, for the same SKU, then that can be captured here.
 	Family *string `json:"family,omitempty"`
-	// Capacity - If the SKU supports scale out/in then the capacity integer should be included. If scale out/in is not possible for the resource this may be omitted.
+	// Capacity - Capacity of the particular SKU.
 	Capacity *int32 `json:"capacity,omitempty"`
 }
 

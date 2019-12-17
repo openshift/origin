@@ -33,7 +33,6 @@ var _ OperationsClientAPI = (*hanaonazure.OperationsClient)(nil)
 type HanaInstancesClientAPI interface {
 	Create(ctx context.Context, resourceGroupName string, hanaInstanceName string, hanaInstanceParameter hanaonazure.HanaInstance) (result hanaonazure.HanaInstancesCreateFuture, err error)
 	Delete(ctx context.Context, resourceGroupName string, hanaInstanceName string) (result hanaonazure.HanaInstancesDeleteFuture, err error)
-	EnableMonitoring(ctx context.Context, resourceGroupName string, hanaInstanceName string, monitoringParameter hanaonazure.MonitoringDetails) (result hanaonazure.HanaInstancesEnableMonitoringFuture, err error)
 	Get(ctx context.Context, resourceGroupName string, hanaInstanceName string) (result hanaonazure.HanaInstance, err error)
 	List(ctx context.Context) (result hanaonazure.HanaInstancesListResultPage, err error)
 	ListByResourceGroup(ctx context.Context, resourceGroupName string) (result hanaonazure.HanaInstancesListResultPage, err error)

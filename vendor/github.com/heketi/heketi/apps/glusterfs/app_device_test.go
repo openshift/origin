@@ -151,11 +151,6 @@ func TestDeviceAddDelete(t *testing.T) {
 		}
 	}
 
-	// Add the same device.  It should conflict
-	r, err = http.Post(ts.URL+"/devices", "application/json", bytes.NewBuffer(request))
-	tests.Assert(t, err == nil)
-	tests.Assert(t, r.StatusCode == http.StatusConflict)
-
 	// Add a second device
 	request = []byte(`{
         "node" : "` + node.Info.Id + `",
@@ -849,7 +844,7 @@ func TestDeviceSync(t *testing.T) {
 	})
 	tests.Assert(t, err == nil)
 
-	app.xo.MockGetDeviceInfo = func(host, device, vgid string) (*executors.DeviceInfo, error) {
+	app.xo.MockGetDeviceInfo = func(host string, dh *executors.DeviceVgHandle) (*executors.DeviceInfo, error) {
 		d := &executors.DeviceInfo{}
 		d.TotalSize = total
 		d.FreeSize = free
@@ -909,6 +904,81 @@ func TestDeviceSyncIdNotFound(t *testing.T) {
 	r, err := http.Get(ts.URL + "/devices/" + deviceId + "/resync")
 	tests.Assert(t, err == nil)
 	tests.Assert(t, r.StatusCode == http.StatusNotFound)
+}
+
+func TestDeviceSyncBlockedByPending(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+	router := mux.NewRouter()
+	app.SetRoutes(router)
+
+	// Setup the server
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	var total uint64 = 600 * 1024 * 1024
+	var used uint64 = 250 * 1024 * 1024
+	var free uint64 = 350 * 1024 * 1024
+
+	// Init test database
+	err := setupSampleDbWithTopology(app,
+		1,    // clusters
+		1,    // nodes_per_cluster
+		1,    // devices_per_node,
+		1*TB, // disksize)
+	)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	var deviceId string
+	app.db.View(func(tx *bolt.Tx) error {
+		ids, err := DeviceList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		tests.Assert(t, len(ids) == 1)
+		deviceId = ids[0]
+		return nil
+	})
+
+	app.xo.MockGetDeviceInfo = func(host string, dh *executors.DeviceVgHandle) (*executors.DeviceInfo, error) {
+		d := &executors.DeviceInfo{}
+		d.TotalSize = total
+		d.FreeSize = free
+		d.UsedSize = used
+		d.ExtentSize = 4096
+		return d, nil
+	}
+
+	vreq := &api.VolumeCreateRequest{
+		Size: 1,
+	}
+	vop := NewVolumeCreateOperation(
+		NewVolumeEntryFromRequest(vreq),
+		app.db)
+	err = vop.Build()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	r, err := http.Get(ts.URL + "/devices/" + deviceId + "/resync")
+	tests.Assert(t, err == nil)
+	tests.Assert(t, r.StatusCode == http.StatusAccepted)
+
+	location, err := r.Location()
+	tests.Assert(t, err == nil)
+
+	for {
+		r, err := http.Get(location.String())
+		tests.Assert(t, err == nil)
+		if r.Header.Get("X-Pending") == "true" {
+			tests.Assert(t, r.StatusCode == http.StatusOK)
+			time.Sleep(time.Millisecond * 10)
+			continue
+		} else {
+			tests.Assert(t, r.StatusCode == http.StatusInternalServerError)
+			break
+		}
+	}
 }
 
 func TestDeviceSetTags(t *testing.T) {

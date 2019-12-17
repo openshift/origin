@@ -22,7 +22,7 @@ package batch
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/batch/2019-06-01.9.0/batch"
+	original "github.com/Azure/azure-sdk-for-go/services/batch/2019-08-01.10.0/batch"
 )
 
 type AccessScope = original.AccessScope
@@ -371,7 +371,10 @@ type AutoPoolSpecification = original.AutoPoolSpecification
 type AutoScaleRun = original.AutoScaleRun
 type AutoScaleRunError = original.AutoScaleRunError
 type AutoUserSpecification = original.AutoUserSpecification
+type AzureBlobFileSystemConfiguration = original.AzureBlobFileSystemConfiguration
+type AzureFileShareConfiguration = original.AzureFileShareConfiguration
 type BaseClient = original.BaseClient
+type CIFSMountConfiguration = original.CIFSMountConfiguration
 type Certificate = original.Certificate
 type CertificateAddParameter = original.CertificateAddParameter
 type CertificateClient = original.CertificateClient
@@ -454,7 +457,9 @@ type JobTerminateParameter = original.JobTerminateParameter
 type JobUpdateParameter = original.JobUpdateParameter
 type LinuxUserConfiguration = original.LinuxUserConfiguration
 type MetadataItem = original.MetadataItem
+type MountConfiguration = original.MountConfiguration
 type MultiInstanceSettings = original.MultiInstanceSettings
+type NFSMountConfiguration = original.NFSMountConfiguration
 type NameValuePair = original.NameValuePair
 type NetworkConfiguration = original.NetworkConfiguration
 type NetworkSecurityGroupRule = original.NetworkSecurityGroupRule

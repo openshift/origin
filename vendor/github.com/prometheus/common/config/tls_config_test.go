@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build go1.8
+
 package config
 
 import (
@@ -50,11 +52,12 @@ var expectedTLSConfigs = []struct {
 
 func TestValidTLSConfig(t *testing.T) {
 	for _, cfg := range expectedTLSConfigs {
-		cfg.config.BuildNameToCertificate()
 		got, err := LoadTLSConfig("testdata/" + cfg.filename)
 		if err != nil {
 			t.Errorf("Error parsing %s: %s", cfg.filename, err)
 		}
+		// non-nil functions are never equal.
+		got.GetClientCertificate = nil
 		if !reflect.DeepEqual(*got, *cfg.config) {
 			t.Fatalf("%v: unexpected config result: \n\n%v\n expected\n\n%v", cfg.filename, got, cfg.config)
 		}

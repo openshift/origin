@@ -211,8 +211,8 @@ const (
 	PrimaryAggregationTypeLast PrimaryAggregationType = "Last"
 	// PrimaryAggregationTypeMaximum ...
 	PrimaryAggregationTypeMaximum PrimaryAggregationType = "Maximum"
-	// PrimaryAggregationTypeMinimimum ...
-	PrimaryAggregationTypeMinimimum PrimaryAggregationType = "Minimimum"
+	// PrimaryAggregationTypeMinimum ...
+	PrimaryAggregationTypeMinimum PrimaryAggregationType = "Minimum"
 	// PrimaryAggregationTypeNone ...
 	PrimaryAggregationTypeNone PrimaryAggregationType = "None"
 	// PrimaryAggregationTypeTotal ...
@@ -221,7 +221,7 @@ const (
 
 // PossiblePrimaryAggregationTypeValues returns an array of possible values for the PrimaryAggregationType const type.
 func PossiblePrimaryAggregationTypeValues() []PrimaryAggregationType {
-	return []PrimaryAggregationType{PrimaryAggregationTypeAverage, PrimaryAggregationTypeLast, PrimaryAggregationTypeMaximum, PrimaryAggregationTypeMinimimum, PrimaryAggregationTypeNone, PrimaryAggregationTypeTotal}
+	return []PrimaryAggregationType{PrimaryAggregationTypeAverage, PrimaryAggregationTypeLast, PrimaryAggregationTypeMaximum, PrimaryAggregationTypeMinimum, PrimaryAggregationTypeNone, PrimaryAggregationTypeTotal}
 }
 
 // UnitType enumerates the values for unit type.
@@ -2480,7 +2480,7 @@ type MetricAvailability struct {
 type MetricDefinition struct {
 	// MetricAvailabilities - READ-ONLY; The list of metric availabilities for the account.
 	MetricAvailabilities *[]MetricAvailability `json:"metricAvailabilities,omitempty"`
-	// PrimaryAggregationType - READ-ONLY; The primary aggregation type of the metric. Possible values include: 'PrimaryAggregationTypeNone', 'PrimaryAggregationTypeAverage', 'PrimaryAggregationTypeTotal', 'PrimaryAggregationTypeMinimimum', 'PrimaryAggregationTypeMaximum', 'PrimaryAggregationTypeLast'
+	// PrimaryAggregationType - READ-ONLY; The primary aggregation type of the metric. Possible values include: 'PrimaryAggregationTypeNone', 'PrimaryAggregationTypeAverage', 'PrimaryAggregationTypeTotal', 'PrimaryAggregationTypeMinimum', 'PrimaryAggregationTypeMaximum', 'PrimaryAggregationTypeLast'
 	PrimaryAggregationType PrimaryAggregationType `json:"primaryAggregationType,omitempty"`
 	// Unit - The unit of the metric. Possible values include: 'Count', 'Bytes', 'Seconds', 'Percent', 'CountPerSecond', 'BytesPerSecond', 'Milliseconds'
 	Unit UnitType `json:"unit,omitempty"`

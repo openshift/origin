@@ -20,43 +20,53 @@ import (
 	"testing"
 )
 
-func TestNewSystemCpufreq(t *testing.T) {
-	fs, err := NewFS("fixtures")
+func makeUint64(v uint64) *uint64 {
+	return &v
+}
+
+func TestSystemCpufreq(t *testing.T) {
+	fs, err := NewFS(sysTestFixtures)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	c, err := fs.NewSystemCpufreq()
+	c, err := fs.SystemCpufreq()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	systemCpufreq := []SystemCPUCpufreqStats{
-		// Ubuntu 16.04 (4.15.0-20-generic), has `scaling_cur_freq` file.
+		// Has missing `cpuinfo_cur_freq` file.
 		{
-			Name:               "0",
-			CurrentFrequency:   1219917,
-			MinimumFrequency:   800000,
-			MaximumFrequency:   2400000,
-			TransitionLatency:  0,
-			AvailableGovernors: "performance powersave",
-			Driver:             "intel_pstate",
-			Govenor:            "powersave",
-			RelatedCpus:        "0",
-			SetSpeed:           "<unsupported>",
+			Name:                     "0",
+			CpuinfoCurrentFrequency:  nil,
+			CpuinfoMinimumFrequency:  makeUint64(800000),
+			CpuinfoMaximumFrequency:  makeUint64(2400000),
+			CpuinfoTransitionLatency: makeUint64(0),
+			ScalingCurrentFrequency:  makeUint64(1219917),
+			ScalingMinimumFrequency:  makeUint64(800000),
+			ScalingMaximumFrequency:  makeUint64(2400000),
+			AvailableGovernors:       "performance powersave",
+			Driver:                   "intel_pstate",
+			Governor:                 "powersave",
+			RelatedCpus:              "0",
+			SetSpeed:                 "<unsupported>",
 		},
-		// RHEL 7.3 (3.10.0-514.26.2.el7), missing `scaling_cur_freq` file.
+		// Has missing `scaling_cur_freq` file.
 		{
-			Name:               "1",
-			CurrentFrequency:   1200195,
-			MinimumFrequency:   1200000,
-			MaximumFrequency:   3300000,
-			TransitionLatency:  4294967295,
-			AvailableGovernors: "performance powersave",
-			Driver:             "intel_pstate",
-			Govenor:            "powersave",
-			RelatedCpus:        "1",
-			SetSpeed:           "<unsupported>",
+			Name:                     "1",
+			CpuinfoCurrentFrequency:  makeUint64(1200195),
+			CpuinfoMinimumFrequency:  makeUint64(1200000),
+			CpuinfoMaximumFrequency:  makeUint64(3300000),
+			CpuinfoTransitionLatency: makeUint64(4294967295),
+			ScalingCurrentFrequency:  nil,
+			ScalingMinimumFrequency:  makeUint64(1200000),
+			ScalingMaximumFrequency:  makeUint64(3300000),
+			AvailableGovernors:       "performance powersave",
+			Driver:                   "intel_pstate",
+			Governor:                 "powersave",
+			RelatedCpus:              "1",
+			SetSpeed:                 "<unsupported>",
 		},
 	}
 

@@ -19,7 +19,9 @@ package machine1
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -80,12 +82,28 @@ func TestMachine(t *testing.T) {
 		t.Fatalf("did not find machine named %s", machineName)
 	}
 
+	listMachines, getErr := conn.ListMachines()
+	if getErr != nil {
+		t.Fatal(getErr)
+	}
+
+	// listMachines includes also `.host`, so by default the length should be greater than 1
+	if len(listMachines) <= 1 {
+		t.Fatalf("did not find any machine")
+	}
+
 	tErr := conn.TerminateMachine(machineName)
 	if tErr != nil {
 		t.Fatal(tErr)
 	}
 
-	machine, getErr = conn.GetMachine(machineName)
+	for i := 1; i <= 10; i++ {
+		machine, getErr = conn.GetMachine(machineName)
+		if len(machine) == 0 && getErr != nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
 	if len(machine) != 0 {
 		t.Fatalf("unexpectedly found machine named %s", machineName)
 	} else if getErr == nil {
@@ -101,4 +119,32 @@ func generateRandomLabel(n int) string {
 		s[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(s)
+}
+
+func TestImages(t *testing.T) {
+	imageName := machinePrefix + generateRandomLabel(8)
+	imagePath := filepath.Join("/var/lib/machines", imageName)
+
+	if _, err := os.Create(imagePath); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(imagePath)
+
+	if err := os.Truncate(imagePath, 500*1024*1024); err != nil {
+		t.Fatal(err)
+	}
+
+	conn, newErr := New()
+	if newErr != nil {
+		t.Fatal(newErr)
+	}
+
+	listImages, listErr := conn.ListImages()
+	if listErr != nil {
+		t.Fatal(listErr)
+	}
+
+	if len(listImages) < 1 {
+		t.Fatalf("did not find any image")
+	}
 }

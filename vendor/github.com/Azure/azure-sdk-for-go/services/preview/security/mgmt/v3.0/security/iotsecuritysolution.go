@@ -41,15 +41,15 @@ func NewIotSecuritySolutionClientWithBaseURI(baseURI string, subscriptionID stri
 	return IotSecuritySolutionClient{NewWithBaseURI(baseURI, subscriptionID, ascLocation)}
 }
 
-// Create create new solution manager
+// CreateOrUpdate use this method to create or update yours IoT Security solution
 // Parameters:
 // resourceGroupName - the name of the resource group within the user's subscription. The name is case
 // insensitive.
-// solutionName - the solution manager name
+// solutionName - the name of the IoT Security solution.
 // iotSecuritySolutionData - the security solution data
-func (client IotSecuritySolutionClient) Create(ctx context.Context, resourceGroupName string, solutionName string, iotSecuritySolutionData IoTSecuritySolutionModel) (result IoTSecuritySolutionModel, err error) {
+func (client IotSecuritySolutionClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, solutionName string, iotSecuritySolutionData IoTSecuritySolutionModel) (result IoTSecuritySolutionModel, err error) {
 	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/IotSecuritySolutionClient.Create")
+		ctx = tracing.StartSpan(ctx, fqdn+"/IotSecuritySolutionClient.CreateOrUpdate")
 		defer func() {
 			sc := -1
 			if result.Response.Response != nil {
@@ -75,39 +75,39 @@ func (client IotSecuritySolutionClient) Create(ctx context.Context, resourceGrou
 							{Target: "iotSecuritySolutionData.IoTSecuritySolutionProperties.UserDefinedResources.QuerySubscriptions", Name: validation.Null, Rule: true, Chain: nil},
 						}},
 				}}}}}); err != nil {
-		return result, validation.NewError("security.IotSecuritySolutionClient", "Create", err.Error())
+		return result, validation.NewError("security.IotSecuritySolutionClient", "CreateOrUpdate", err.Error())
 	}
 
-	req, err := client.CreatePreparer(ctx, resourceGroupName, solutionName, iotSecuritySolutionData)
+	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, solutionName, iotSecuritySolutionData)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "Create", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "CreateOrUpdate", nil, "Failure preparing request")
 		return
 	}
 
-	resp, err := client.CreateSender(req)
+	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "Create", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "CreateOrUpdate", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.CreateResponder(resp)
+	result, err = client.CreateOrUpdateResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "Create", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "CreateOrUpdate", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// CreatePreparer prepares the Create request.
-func (client IotSecuritySolutionClient) CreatePreparer(ctx context.Context, resourceGroupName string, solutionName string, iotSecuritySolutionData IoTSecuritySolutionModel) (*http.Request, error) {
+// CreateOrUpdatePreparer prepares the CreateOrUpdate request.
+func (client IotSecuritySolutionClient) CreateOrUpdatePreparer(ctx context.Context, resourceGroupName string, solutionName string, iotSecuritySolutionData IoTSecuritySolutionModel) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"solutionName":      autorest.Encode("path", solutionName),
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2017-08-01-preview"
+	const APIVersion = "2019-08-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -125,16 +125,16 @@ func (client IotSecuritySolutionClient) CreatePreparer(ctx context.Context, reso
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
-// CreateSender sends the Create request. The method will close the
+// CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
-func (client IotSecuritySolutionClient) CreateSender(req *http.Request) (*http.Response, error) {
+func (client IotSecuritySolutionClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
 	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	return autorest.SendWithSender(client, req, sd...)
 }
 
-// CreateResponder handles the response to the Create request. The method always
+// CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client IotSecuritySolutionClient) CreateResponder(resp *http.Response) (result IoTSecuritySolutionModel, err error) {
+func (client IotSecuritySolutionClient) CreateOrUpdateResponder(resp *http.Response) (result IoTSecuritySolutionModel, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -145,11 +145,11 @@ func (client IotSecuritySolutionClient) CreateResponder(resp *http.Response) (re
 	return
 }
 
-// Delete create new solution manager
+// Delete use this method to delete yours IoT Security solution
 // Parameters:
 // resourceGroupName - the name of the resource group within the user's subscription. The name is case
 // insensitive.
-// solutionName - the solution manager name
+// solutionName - the name of the IoT Security solution.
 func (client IotSecuritySolutionClient) Delete(ctx context.Context, resourceGroupName string, solutionName string) (result autorest.Response, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/IotSecuritySolutionClient.Delete")
@@ -200,7 +200,7 @@ func (client IotSecuritySolutionClient) DeletePreparer(ctx context.Context, reso
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2017-08-01-preview"
+	const APIVersion = "2019-08-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -232,11 +232,11 @@ func (client IotSecuritySolutionClient) DeleteResponder(resp *http.Response) (re
 	return
 }
 
-// Get details of a specific iot security solution
+// Get user this method to get details of a specific IoT Security solution based on solution name
 // Parameters:
 // resourceGroupName - the name of the resource group within the user's subscription. The name is case
 // insensitive.
-// solutionName - the solution manager name
+// solutionName - the name of the IoT Security solution.
 func (client IotSecuritySolutionClient) Get(ctx context.Context, resourceGroupName string, solutionName string) (result IoTSecuritySolutionModel, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/IotSecuritySolutionClient.Get")
@@ -287,7 +287,7 @@ func (client IotSecuritySolutionClient) GetPreparer(ctx context.Context, resourc
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2017-08-01-preview"
+	const APIVersion = "2019-08-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -320,12 +320,261 @@ func (client IotSecuritySolutionClient) GetResponder(resp *http.Response) (resul
 	return
 }
 
-// Update update existing Security Solution tags or user defined resources. To update other fields use the
-// CreateOrUpdate method
+// ListByResourceGroup use this method to get the list IoT Security solutions organized by resource group.
 // Parameters:
 // resourceGroupName - the name of the resource group within the user's subscription. The name is case
 // insensitive.
-// solutionName - the solution manager name
+// filter - filter the IoT Security solution with OData syntax. Supports filtering by iotHubs.
+func (client IotSecuritySolutionClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, filter string) (result IoTSecuritySolutionsListPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/IotSecuritySolutionClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.itssl.Response.Response != nil {
+				sc = result.itssl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.Pattern, Rule: `^[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}$`, Chain: nil}}},
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("security.IotSecuritySolutionClient", "ListByResourceGroup", err.Error())
+	}
+
+	result.fn = client.listByResourceGroupNextResults
+	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, filter)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "ListByResourceGroup", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListByResourceGroupSender(req)
+	if err != nil {
+		result.itssl.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "ListByResourceGroup", resp, "Failure sending request")
+		return
+	}
+
+	result.itssl, err = client.ListByResourceGroupResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "ListByResourceGroup", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListByResourceGroupPreparer prepares the ListByResourceGroup request.
+func (client IotSecuritySolutionClient) ListByResourceGroupPreparer(ctx context.Context, resourceGroupName string, filter string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2019-08-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+	if len(filter) > 0 {
+		queryParameters["$filter"] = autorest.Encode("query", filter)
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Security/iotSecuritySolutions", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
+// http.Response Body if it receives an error.
+func (client IotSecuritySolutionClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
+// closes the http.Response Body.
+func (client IotSecuritySolutionClient) ListByResourceGroupResponder(resp *http.Response) (result IoTSecuritySolutionsList, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByResourceGroupNextResults retrieves the next set of results, if any.
+func (client IotSecuritySolutionClient) listByResourceGroupNextResults(ctx context.Context, lastResults IoTSecuritySolutionsList) (result IoTSecuritySolutionsList, err error) {
+	req, err := lastResults.ioTSecuritySolutionsListPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByResourceGroupSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "listByResourceGroupNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByResourceGroupResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "listByResourceGroupNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
+func (client IotSecuritySolutionClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, filter string) (result IoTSecuritySolutionsListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/IotSecuritySolutionClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, filter)
+	return
+}
+
+// ListBySubscription use this method to get the list of IoT Security solutions by subscription.
+// Parameters:
+// filter - filter the IoT Security solution with OData syntax. Supports filtering by iotHubs.
+func (client IotSecuritySolutionClient) ListBySubscription(ctx context.Context, filter string) (result IoTSecuritySolutionsListPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/IotSecuritySolutionClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.itssl.Response.Response != nil {
+				sc = result.itssl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.Pattern, Rule: `^[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("security.IotSecuritySolutionClient", "ListBySubscription", err.Error())
+	}
+
+	result.fn = client.listBySubscriptionNextResults
+	req, err := client.ListBySubscriptionPreparer(ctx, filter)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "ListBySubscription", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListBySubscriptionSender(req)
+	if err != nil {
+		result.itssl.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "ListBySubscription", resp, "Failure sending request")
+		return
+	}
+
+	result.itssl, err = client.ListBySubscriptionResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "ListBySubscription", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListBySubscriptionPreparer prepares the ListBySubscription request.
+func (client IotSecuritySolutionClient) ListBySubscriptionPreparer(ctx context.Context, filter string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2019-08-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+	if len(filter) > 0 {
+		queryParameters["$filter"] = autorest.Encode("query", filter)
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/Microsoft.Security/iotSecuritySolutions", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListBySubscriptionSender sends the ListBySubscription request. The method will close the
+// http.Response Body if it receives an error.
+func (client IotSecuritySolutionClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
+// closes the http.Response Body.
+func (client IotSecuritySolutionClient) ListBySubscriptionResponder(resp *http.Response) (result IoTSecuritySolutionsList, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listBySubscriptionNextResults retrieves the next set of results, if any.
+func (client IotSecuritySolutionClient) listBySubscriptionNextResults(ctx context.Context, lastResults IoTSecuritySolutionsList) (result IoTSecuritySolutionsList, err error) {
+	req, err := lastResults.ioTSecuritySolutionsListPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "listBySubscriptionNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListBySubscriptionSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "listBySubscriptionNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListBySubscriptionResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "security.IotSecuritySolutionClient", "listBySubscriptionNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListBySubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
+func (client IotSecuritySolutionClient) ListBySubscriptionComplete(ctx context.Context, filter string) (result IoTSecuritySolutionsListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/IotSecuritySolutionClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListBySubscription(ctx, filter)
+	return
+}
+
+// Update use this method to update existing IoT Security solution tags or user defined resources. To update other
+// fields use the CreateOrUpdate method.
+// Parameters:
+// resourceGroupName - the name of the resource group within the user's subscription. The name is case
+// insensitive.
+// solutionName - the name of the IoT Security solution.
 // updateIotSecuritySolutionData - the security solution data
 func (client IotSecuritySolutionClient) Update(ctx context.Context, resourceGroupName string, solutionName string, updateIotSecuritySolutionData UpdateIotSecuritySolutionData) (result IoTSecuritySolutionModel, err error) {
 	if tracing.IsEnabled() {
@@ -377,7 +626,7 @@ func (client IotSecuritySolutionClient) UpdatePreparer(ctx context.Context, reso
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2017-08-01-preview"
+	const APIVersion = "2019-08-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}

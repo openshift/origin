@@ -22,7 +22,7 @@ package peering
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/preview/peering/mgmt/2019-03-01-preview/peering"
+	original "github.com/Azure/azure-sdk-for-go/services/preview/peering/mgmt/2019-09-01-preview/peering"
 )
 
 const (
@@ -42,6 +42,15 @@ const (
 	Validating            ConnectionState = original.Validating
 )
 
+type DirectPeeringType = original.DirectPeeringType
+
+const (
+	Cdn      DirectPeeringType = original.Cdn
+	Edge     DirectPeeringType = original.Edge
+	Internal DirectPeeringType = original.Internal
+	Transit  DirectPeeringType = original.Transit
+)
+
 type Family = original.Family
 
 const (
@@ -56,13 +65,35 @@ const (
 	KindExchange Kind = original.KindExchange
 )
 
+type LearnedType = original.LearnedType
+
+const (
+	LearnedTypeNone               LearnedType = original.LearnedTypeNone
+	LearnedTypeViaServiceProvider LearnedType = original.LearnedTypeViaServiceProvider
+	LearnedTypeViaSession         LearnedType = original.LearnedTypeViaSession
+)
+
 type Name = original.Name
 
 const (
 	BasicDirectFree        Name = original.BasicDirectFree
 	BasicExchangeFree      Name = original.BasicExchangeFree
 	PremiumDirectFree      Name = original.PremiumDirectFree
+	PremiumDirectMetered   Name = original.PremiumDirectMetered
+	PremiumDirectUnlimited Name = original.PremiumDirectUnlimited
 	PremiumExchangeMetered Name = original.PremiumExchangeMetered
+)
+
+type PrefixValidationState = original.PrefixValidationState
+
+const (
+	PrefixValidationStateFailed   PrefixValidationState = original.PrefixValidationStateFailed
+	PrefixValidationStateInvalid  PrefixValidationState = original.PrefixValidationStateInvalid
+	PrefixValidationStateNone     PrefixValidationState = original.PrefixValidationStateNone
+	PrefixValidationStatePending  PrefixValidationState = original.PrefixValidationStatePending
+	PrefixValidationStateUnknown  PrefixValidationState = original.PrefixValidationStateUnknown
+	PrefixValidationStateVerified PrefixValidationState = original.PrefixValidationStateVerified
+	PrefixValidationStateWarning  PrefixValidationState = original.PrefixValidationStateWarning
 )
 
 type ProvisioningState = original.ProvisioningState
@@ -74,6 +105,13 @@ const (
 	Updating  ProvisioningState = original.Updating
 )
 
+type SessionAddressProvider = original.SessionAddressProvider
+
+const (
+	Microsoft SessionAddressProvider = original.Microsoft
+	Peer      SessionAddressProvider = original.Peer
+)
+
 type SessionStateV4 = original.SessionStateV4
 
 const (
@@ -83,6 +121,7 @@ const (
 	SessionStateV4Idle          SessionStateV4 = original.SessionStateV4Idle
 	SessionStateV4None          SessionStateV4 = original.SessionStateV4None
 	SessionStateV4OpenConfirm   SessionStateV4 = original.SessionStateV4OpenConfirm
+	SessionStateV4OpenReceived  SessionStateV4 = original.SessionStateV4OpenReceived
 	SessionStateV4OpenSent      SessionStateV4 = original.SessionStateV4OpenSent
 	SessionStateV4PendingAdd    SessionStateV4 = original.SessionStateV4PendingAdd
 	SessionStateV4PendingRemove SessionStateV4 = original.SessionStateV4PendingRemove
@@ -98,6 +137,7 @@ const (
 	SessionStateV6Idle          SessionStateV6 = original.SessionStateV6Idle
 	SessionStateV6None          SessionStateV6 = original.SessionStateV6None
 	SessionStateV6OpenConfirm   SessionStateV6 = original.SessionStateV6OpenConfirm
+	SessionStateV6OpenReceived  SessionStateV6 = original.SessionStateV6OpenReceived
 	SessionStateV6OpenSent      SessionStateV6 = original.SessionStateV6OpenSent
 	SessionStateV6PendingAdd    SessionStateV6 = original.SessionStateV6PendingAdd
 	SessionStateV6PendingRemove SessionStateV6 = original.SessionStateV6PendingRemove
@@ -131,6 +171,7 @@ const (
 type BandwidthOffer = original.BandwidthOffer
 type BaseClient = original.BaseClient
 type BgpSession = original.BgpSession
+type CheckServiceProviderAvailabilityInput = original.CheckServiceProviderAvailabilityInput
 type ContactInfo = original.ContactInfo
 type DirectConnection = original.DirectConnection
 type DirectPeeringFacility = original.DirectPeeringFacility
@@ -163,12 +204,38 @@ type PeerAsnListResultPage = original.PeerAsnListResultPage
 type PeerAsnProperties = original.PeerAsnProperties
 type PeerAsnsClient = original.PeerAsnsClient
 type PeeringsClient = original.PeeringsClient
+type PrefixesClient = original.PrefixesClient
 type Properties = original.Properties
 type PropertiesDirect = original.PropertiesDirect
 type PropertiesExchange = original.PropertiesExchange
 type Resource = original.Resource
 type ResourceTags = original.ResourceTags
+type Service = original.Service
+type ServiceListResult = original.ServiceListResult
+type ServiceListResultIterator = original.ServiceListResultIterator
+type ServiceListResultPage = original.ServiceListResultPage
+type ServiceLocation = original.ServiceLocation
+type ServiceLocationListResult = original.ServiceLocationListResult
+type ServiceLocationListResultIterator = original.ServiceLocationListResultIterator
+type ServiceLocationListResultPage = original.ServiceLocationListResultPage
+type ServiceLocationProperties = original.ServiceLocationProperties
+type ServiceLocationsClient = original.ServiceLocationsClient
+type ServicePrefix = original.ServicePrefix
+type ServicePrefixEvent = original.ServicePrefixEvent
+type ServicePrefixListResult = original.ServicePrefixListResult
+type ServicePrefixListResultIterator = original.ServicePrefixListResultIterator
+type ServicePrefixListResultPage = original.ServicePrefixListResultPage
+type ServicePrefixProperties = original.ServicePrefixProperties
+type ServiceProperties = original.ServiceProperties
+type ServiceProvider = original.ServiceProvider
+type ServiceProviderListResult = original.ServiceProviderListResult
+type ServiceProviderListResultIterator = original.ServiceProviderListResultIterator
+type ServiceProviderListResultPage = original.ServiceProviderListResultPage
+type ServiceProviderProperties = original.ServiceProviderProperties
+type ServiceProvidersClient = original.ServiceProvidersClient
+type ServicesClient = original.ServicesClient
 type Sku = original.Sku
+type String = original.String
 type SubResource = original.SubResource
 
 func New(subscriptionID string) BaseClient {
@@ -228,11 +295,62 @@ func NewPeeringsClient(subscriptionID string) PeeringsClient {
 func NewPeeringsClientWithBaseURI(baseURI string, subscriptionID string) PeeringsClient {
 	return original.NewPeeringsClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewPrefixesClient(subscriptionID string) PrefixesClient {
+	return original.NewPrefixesClient(subscriptionID)
+}
+func NewPrefixesClientWithBaseURI(baseURI string, subscriptionID string) PrefixesClient {
+	return original.NewPrefixesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServiceListResultIterator(page ServiceListResultPage) ServiceListResultIterator {
+	return original.NewServiceListResultIterator(page)
+}
+func NewServiceListResultPage(getNextPage func(context.Context, ServiceListResult) (ServiceListResult, error)) ServiceListResultPage {
+	return original.NewServiceListResultPage(getNextPage)
+}
+func NewServiceLocationListResultIterator(page ServiceLocationListResultPage) ServiceLocationListResultIterator {
+	return original.NewServiceLocationListResultIterator(page)
+}
+func NewServiceLocationListResultPage(getNextPage func(context.Context, ServiceLocationListResult) (ServiceLocationListResult, error)) ServiceLocationListResultPage {
+	return original.NewServiceLocationListResultPage(getNextPage)
+}
+func NewServiceLocationsClient(subscriptionID string) ServiceLocationsClient {
+	return original.NewServiceLocationsClient(subscriptionID)
+}
+func NewServiceLocationsClientWithBaseURI(baseURI string, subscriptionID string) ServiceLocationsClient {
+	return original.NewServiceLocationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServicePrefixListResultIterator(page ServicePrefixListResultPage) ServicePrefixListResultIterator {
+	return original.NewServicePrefixListResultIterator(page)
+}
+func NewServicePrefixListResultPage(getNextPage func(context.Context, ServicePrefixListResult) (ServicePrefixListResult, error)) ServicePrefixListResultPage {
+	return original.NewServicePrefixListResultPage(getNextPage)
+}
+func NewServiceProviderListResultIterator(page ServiceProviderListResultPage) ServiceProviderListResultIterator {
+	return original.NewServiceProviderListResultIterator(page)
+}
+func NewServiceProviderListResultPage(getNextPage func(context.Context, ServiceProviderListResult) (ServiceProviderListResult, error)) ServiceProviderListResultPage {
+	return original.NewServiceProviderListResultPage(getNextPage)
+}
+func NewServiceProvidersClient(subscriptionID string) ServiceProvidersClient {
+	return original.NewServiceProvidersClient(subscriptionID)
+}
+func NewServiceProvidersClientWithBaseURI(baseURI string, subscriptionID string) ServiceProvidersClient {
+	return original.NewServiceProvidersClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServicesClient(subscriptionID string) ServicesClient {
+	return original.NewServicesClient(subscriptionID)
+}
+func NewServicesClientWithBaseURI(baseURI string, subscriptionID string) ServicesClient {
+	return original.NewServicesClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
 func PossibleConnectionStateValues() []ConnectionState {
 	return original.PossibleConnectionStateValues()
+}
+func PossibleDirectPeeringTypeValues() []DirectPeeringType {
+	return original.PossibleDirectPeeringTypeValues()
 }
 func PossibleFamilyValues() []Family {
 	return original.PossibleFamilyValues()
@@ -240,11 +358,20 @@ func PossibleFamilyValues() []Family {
 func PossibleKindValues() []Kind {
 	return original.PossibleKindValues()
 }
+func PossibleLearnedTypeValues() []LearnedType {
+	return original.PossibleLearnedTypeValues()
+}
 func PossibleNameValues() []Name {
 	return original.PossibleNameValues()
 }
+func PossiblePrefixValidationStateValues() []PrefixValidationState {
+	return original.PossiblePrefixValidationStateValues()
+}
 func PossibleProvisioningStateValues() []ProvisioningState {
 	return original.PossibleProvisioningStateValues()
+}
+func PossibleSessionAddressProviderValues() []SessionAddressProvider {
+	return original.PossibleSessionAddressProviderValues()
 }
 func PossibleSessionStateV4Values() []SessionStateV4 {
 	return original.PossibleSessionStateV4Values()

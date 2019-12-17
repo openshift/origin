@@ -536,6 +536,8 @@ func BenchmarkLeafConflictAcrossVersion(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	test.PreprocessOperations(leafFieldsParser)
+
 	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
