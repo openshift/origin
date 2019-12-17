@@ -128,7 +128,8 @@ func runQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 			}
 			metrics := result.Data.Result
 			if result.Status != "success" {
-				msg := fmt.Sprintf("promQL query: %s had reported incorrect status: %#v", query, metrics)
+				data, _ := json.Marshal(metrics)
+				msg := fmt.Sprintf("promQL query: %s had reported incorrect status:\n%s", query, data)
 				if prev, ok := queryErrors[query]; !ok || prev.Error() != msg {
 					e2e.Logf("%s", msg)
 				}
@@ -136,7 +137,8 @@ func runQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 				continue
 			}
 			if (len(metrics) > 0 && !expected) || (len(metrics) == 0 && expected) {
-				msg := fmt.Sprintf("promQL query: %s had reported incorrect results: %#v", query, metrics)
+				data, _ := json.Marshal(metrics)
+				msg := fmt.Sprintf("promQL query: %s had reported incorrect results:\n%s", query, data)
 				if prev, ok := queryErrors[query]; !ok || prev.Error() != msg {
 					e2e.Logf("%s", msg)
 				}
