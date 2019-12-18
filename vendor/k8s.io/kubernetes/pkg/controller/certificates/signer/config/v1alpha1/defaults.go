@@ -41,6 +41,6 @@ func RecommendedDefaultCSRSigningControllerConfiguration(obj *kubectrlmgrconfigv
 		obj.ClusterSigningKeyFile = "/etc/kubernetes/ca/ca.key"
 	}
 	if obj.ClusterSigningDuration == zero {
-		obj.ClusterSigningDuration = metav1.Duration{Duration: 365 * 24 * time.Hour}
+		obj.ClusterSigningDuration = metav1.Duration{Duration: 30 * time.Minute}
 	}
 }
