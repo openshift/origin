@@ -2,14 +2,15 @@ package operators
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+	"time"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
@@ -99,6 +100,7 @@ var _ = g.Describe("[Feature:Platform] Service Catalog should", func() {
 	}, 120)
 
 	g.It("check basic usages: OCP-24062, OCP-24049, OCP-15600", func() {
+		g.Skip("TODO: Disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1784406")
 		g.By("Check Service Catalog apiservice")
 		err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("apiservices", "v1beta1.servicecatalog.k8s.io", "-o=jsonpath={.status.conditions[0].reason}").Output()
