@@ -82,7 +82,7 @@ var (
 	  %[1]s %[2]s . --docker-image=repo/langimage
 
 	  # Create a Ruby application based on the provided [image]~[source code] combination
-	  %[1]s %[2]s centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+	  %[1]s %[2]s centos/ruby-25-centos7~https://github.com/openshift/ruby-ex.git
 
 	  # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
 	  %[1]s %[2]s mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql

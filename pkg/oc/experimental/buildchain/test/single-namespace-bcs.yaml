@@ -23,7 +23,7 @@ items:
       dockerStrategy:
         from:
           kind: ImageStreamTag
-          name: ruby-22-centos7:latest
+          name: ruby-25-centos7:latest
       type: Docker
     triggers:
     - github:
@@ -33,7 +33,7 @@ items:
         secret: 3kYKtANjVRCOPoM0uLNp
       type: Generic
     - imageChange:
-        lastTriggeredImageID: centos/ruby-22-centos7:latest
+        lastTriggeredImageID: centos/ruby-25-centos7:latest
       type: ImageChange
   status:
     lastVersion: 1
@@ -63,7 +63,7 @@ items:
       sourceStrategy:
         from:
           kind: ImageStreamTag
-          name: ruby-22-centos7:latest
+          name: ruby-25-centos7:latest
       type: Source
     triggers:
     - github:
@@ -73,7 +73,7 @@ items:
         secret: secret101
       type: Generic
     - imageChange:
-        lastTriggeredImageID: centos/ruby-22-centos7:latest
+        lastTriggeredImageID: centos/ruby-25-centos7:latest
       type: ImageChange
   status:
     lastVersion: 1
@@ -100,7 +100,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
         incremental: true
       type: Source
     triggers:
@@ -131,7 +131,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
         incremental: true
       type: Source
     triggers:

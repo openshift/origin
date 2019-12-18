@@ -54,7 +54,7 @@ func checkPodFlag(bldPrefix string, oc *exutil.CLI) {
 /*
 If docker.io is not responding to requests in a timely manner, this test suite will be adversely affected.
 
-If you suspect such a situation, attempt pulling some openshift images other than ruby-22-centos7
+If you suspect such a situation, attempt pulling some openshift images other than ruby-25-centos7
 while this test is running and compare results.  Restarting your docker daemon, assuming you can ping docker.io quickly, could
 be a quick fix.
 */

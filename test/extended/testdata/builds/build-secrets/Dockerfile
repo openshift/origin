@@ -1,4 +1,4 @@
-FROM centos/ruby-22-centos7
+FROM centos/ruby-25-centos7
 
 USER root
 ADD ./secret-dir /secrets

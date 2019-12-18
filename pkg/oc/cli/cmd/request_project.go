@@ -61,7 +61,7 @@ const (
 	requestProjectNewAppOutput = `
 You can add applications to this project with the 'new-app' command. For example, try:
 
-    %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+    %[1]s new-app centos/ruby-25-centos7~https://github.com/openshift/ruby-ex.git
 
 to build a new example application in Ruby.
 `

@@ -64,7 +64,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		jenkinsPersistentTemplatePath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-persistent-template.json")
 		nodejsDeclarativePipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "nodejs-sample-pipeline.yaml")
 		mavenSlavePipelinePath        = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
-		mavenSlaveGradlePipelinePath  = exutil.FixturePath("testdata", "builds", "gradle-pipeline.yaml")
+		//mavenSlaveGradlePipelinePath  = exutil.FixturePath("testdata", "builds", "gradle-pipeline.yaml")
 		//orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
 		blueGreenPipelinePath                  = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
 		clientPluginPipelinePath               = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
@@ -263,7 +263,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("is", "ruby").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "ruby-22-centos7").Execute()
+				err = oc.Run("delete").Args("is", "ruby-25-centos7").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -505,25 +505,27 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
-			g.By("should build a gradle project and complete successfully", func() {
-				err := oc.Run("create").Args("-f", mavenSlaveGradlePipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
+			// Gradle removed in https://github.com/openshift/origin/pull/23753
 
-				// start the build
-				g.By("waiting for the build to complete")
-				br := &exutil.BuildResult{Oc: oc, BuildName: "gradle-1"}
-				err = exutil.WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), br)
-				if err != nil || !br.BuildSuccess {
-					exutil.DumpBuilds(oc)
-					exutil.DumpPodLogsStartingWith("maven", oc)
-				}
-				debugAnyJenkinsFailure(br, oc.Namespace()+"-gradle-pipeline", oc, true)
-				br.AssertSuccess()
+			// g.By("should build a gradle project and complete successfully", func() {
+			// 	err := oc.Run("create").Args("-f", mavenSlaveGradlePipelinePath).Execute()
+			// 	o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "gradle").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
+			// 	// start the build
+			// 	g.By("waiting for the build to complete")
+			// 	br := &exutil.BuildResult{Oc: oc, BuildName: "gradle-1"}
+			// 	err = exutil.WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), br)
+			// 	if err != nil || !br.BuildSuccess {
+			// 		exutil.DumpBuilds(oc)
+			// 		exutil.DumpPodLogsStartingWith("maven", oc)
+			// 	}
+			// 	debugAnyJenkinsFailure(br, oc.Namespace()+"-gradle-pipeline", oc, true)
+			// 	br.AssertSuccess()
+
+			// 	g.By("clean up openshift resources for next potential run")
+			// 	err = oc.Run("delete").Args("bc", "gradle").Execute()
+			// 	o.Expect(err).NotTo(o.HaveOccurred())
+			// })
 
 			g.By("Pipelines with declarative syntax")
 

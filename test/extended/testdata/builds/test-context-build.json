@@ -57,7 +57,7 @@
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-23-centos7"
+              "name": "centos/ruby-25-centos7"
             }
           }
         },
