@@ -3,7 +3,7 @@ skip-gomod: true
 rules:
 - destination: kubernetes
   branches:
-  - name: origin-4.4-kubernetes-1.16.2
+  - name: origin-4.4-kubernetes-1.17.0-rc.2
     source:
       branch: master
       dir: vendor/k8s.io/kubernetes
