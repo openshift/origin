@@ -4,7 +4,7 @@ kind: Template
 metadata:
   name: ups-deployment-template
 objects:
-- apiVersion: apps/v1
+- apiVersion: extensions/v1beta1
   kind: Deployment
   metadata:
     labels:
