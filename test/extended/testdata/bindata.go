@@ -19775,10 +19775,15 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
         "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-25-centos7"
-      },
-      "status": {
-        "dockerImageRepository": ""
+        "tags": [
+          {
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-25-centos7:latest"
+            },
+            "name": "latest"
+          }
+        ]
       }
     },
     {
