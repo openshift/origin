@@ -466,7 +466,7 @@ func TestStandardContext(t *testing.T) {
 }
 
 func TestFileKey(t *testing.T) {
-	const firstGenTest = 0
+	os.Setenv("GAE_ENV", "standard")
 	tests := []struct {
 		mainPath string
 		file     string
@@ -499,16 +499,6 @@ func TestFileKey(t *testing.T) {
 			filepath.FromSlash("/tmp/staging3234/srv/_gopath/src/example.com/bar/main.go"),
 			filepath.FromSlash("example.com/bar/main.go"),
 		},
-		{
-			filepath.FromSlash("/tmp/staging3234/srv/gopath/src/example.com/foo"),
-			filepath.FromSlash("/tmp/staging3234/srv/gopath/src/example.com/bar/main.go"),
-			filepath.FromSlash("example.com/bar/main.go"),
-		},
-		{
-			filepath.FromSlash(""),
-			filepath.FromSlash("/tmp/staging3234/srv/gopath/src/example.com/bar/main.go"),
-			filepath.FromSlash("example.com/bar/main.go"),
-		},
 		// go mod, same package
 		{
 			filepath.FromSlash("/tmp/staging3234/srv"),
@@ -530,11 +520,6 @@ func TestFileKey(t *testing.T) {
 			filepath.FromSlash("/tmp/staging3234/srv/bar/main.go"),
 			filepath.FromSlash("bar/main.go"),
 		},
-		{
-			filepath.FromSlash(""),
-			filepath.FromSlash("/tmp/staging3234/srv/bar/main.go"),
-			filepath.FromSlash("bar/main.go"),
-		},
 		// go mod, other package
 		{
 			filepath.FromSlash("/tmp/staging3234/srv"),
@@ -543,9 +528,6 @@ func TestFileKey(t *testing.T) {
 		},
 	}
 	for i, tc := range tests {
-		if i > firstGenTest {
-			os.Setenv("GAE_ENV", "standard")
-		}
 		internal.MainPath = tc.mainPath
 		got, err := fileKey(tc.file)
 		if err != nil {
