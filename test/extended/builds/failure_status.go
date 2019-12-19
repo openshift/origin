@@ -125,7 +125,6 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 
 		g.Describe("Build status OutOfMemoryKilled", func() {
 			g.It("should contain OutOfMemoryKilled failure reason and message", func() {
-				g.Skip("Bug 1785326: Build pod reporting reason Error instead of OOMKilled")
 				err := oc.Run("create").Args("-f", oomkilled).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
