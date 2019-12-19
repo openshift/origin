@@ -2,7 +2,7 @@ kind: List
 apiVersion: v1
 items:
 # an ingress that should be captured as individual routes
-- apiVersion: extensions/v1beta1
+- apiVersion: networking.k8s.io/v1beta1
   kind: Ingress
   metadata:
     name: test
