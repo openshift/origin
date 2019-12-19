@@ -77,7 +77,7 @@ os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
 
 # make sure the imagestream has the latest tag before trying to test it or start a build with it
-os::cmd::try_until_text 'oc get is ruby-25-centos7' 'latest'
+os::cmd::try_until_success 'oc get istag ruby-25-centos7:latest'
 
 os::test::junit::declare_suite_start "cmd/builds/patch-anon-fields"
 REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
