@@ -15,11 +15,15 @@ import (
 
 // LoadConfig uses the cluster to setup the cloud provider config.
 func LoadConfig() (string, *e2e.CloudConfig, error) {
-	coreClient, err := e2e.LoadClientset()
+	// LoadClientset but don't set the UserAgent to include the current test name because
+	// we don't run any test yet and this call panics
+	coreClient, err := e2e.LoadClientset(true)
 	if err != nil {
 		return "", nil, err
 	}
-	clientConfig, err := e2e.LoadConfig()
+	// LoadConfig but don't set the UserAgent to include the current test name because
+	// we don't run any test yet and this call panics
+	clientConfig, err := e2e.LoadConfig(true)
 	if err != nil {
 		return "", nil, err
 	}
