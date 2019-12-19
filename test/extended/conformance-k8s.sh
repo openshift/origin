@@ -43,7 +43,7 @@ To recreate these results
 Nightly conformance tests are run against release branches and reported https://openshift-gce-devel.appspot.com/builds/origin-ci-test/logs/periodic-ci-origin-conformance-k8s/
 END
 
-version="${KUBERNETES_VERSION:-release-1.16}"
+version="${KUBERNETES_VERSION:-release-1.17}"
 kubernetes="${KUBERNETES_ROOT:-${OS_ROOT}/../../../k8s.io/kubernetes}"
 if [[ -d "${kubernetes}" ]]; then
   git fetch origin --tags
