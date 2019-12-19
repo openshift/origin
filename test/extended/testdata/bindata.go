@@ -6403,10 +6403,15 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
         "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-25-centos7"
-      },
-      "status": {
-        "dockerImageRepository": ""
+        "tags": [
+          {
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-25-centos7:latest"
+            },
+            "name": "latest"
+          }
+        ]
       }
     },
     {
@@ -31197,7 +31202,7 @@ os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
 
 # make sure the imagestream has the latest tag before trying to test it or start a build with it
-os::cmd::try_until_text 'oc get is ruby-25-centos7' 'latest'
+os::cmd::try_until_success 'oc get istag ruby-25-centos7:latest'
 
 os::test::junit::declare_suite_start "cmd/builds/patch-anon-fields"
 REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
@@ -32222,7 +32227,7 @@ os::cmd::expect_success_and_not_text 'oc policy --help' 'Other Commands'
 os::cmd::expect_success_and_not_text 'oc -h' 'Options'
 os::cmd::expect_success_and_not_text 'oc -h' 'Global Options'
 os::cmd::expect_failure_and_text 'oc adm ca' 'Manage certificates'
-os::cmd::expect_success_and_text 'oc exec --help' '\[\-c CONTAINER\] \-\- COMMAND \[args\.\.\.\]$'
+os::cmd::expect_success_and_text 'oc exec --help' '\-\- COMMAND \[args\.\.\.\]$'
 os::cmd::expect_success_and_text 'oc rsh --help' '\[flags\] POD \[COMMAND\]$'
 
 # help for root commands with --help flag must be consistent
@@ -39013,10 +39018,15 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
         "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-25-centos7"
-      },
-      "status": {
-        "dockerImageRepository": ""
+        "tags": [
+          {
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-25-centos7:latest"
+            },
+            "name": "latest"
+          }
+        ]
       }
     },
     {
