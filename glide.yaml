@@ -140,6 +140,9 @@ import:
   subpackages:
   - errorutil
 
+- package: github.com/ghodss/yaml
+  version: v1.0.0
+
 # needed to get the
 - package: github.com/lestrrat/go-jspointer
   repo:    https://github.com/lestrrat/go-jspointer.git

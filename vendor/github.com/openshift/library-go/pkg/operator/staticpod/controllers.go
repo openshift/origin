@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/operator/loglevel"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/installerstate"
 
 	"github.com/openshift/library-go/pkg/operator/unsupportedconfigoverridescontroller"
 
@@ -138,6 +139,7 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (*staticPodOperator
 	configMapClient := v1helpers.CachedConfigMapGetter(b.kubeClient.CoreV1(), b.kubeInformers)
 	secretClient := v1helpers.CachedSecretGetter(b.kubeClient.CoreV1(), b.kubeInformers)
 	podClient := b.kubeClient.CoreV1()
+	eventsClient := b.kubeClient.CoreV1()
 	operandInformers := b.kubeInformers.InformersFor(b.operandNamespace)
 	clusterInformers := b.kubeInformers.InformersFor("")
 
@@ -171,6 +173,14 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (*staticPodOperator
 			b.certDir,
 			b.certConfigMaps,
 			b.certSecrets,
+		)
+		controllers.installerStateController = installerstate.NewInstallerStateController(
+			operandInformers,
+			podClient,
+			eventsClient,
+			b.staticPodOperatorClient,
+			b.operandNamespace,
+			eventRecorder,
 		)
 	}
 
@@ -239,6 +249,9 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (*staticPodOperator
 	if controllers.installerController == nil {
 		errs = append(errs, fmt.Errorf("missing installerController; cannot proceed"))
 	}
+	if controllers.installerStateController == nil {
+		errs = append(errs, fmt.Errorf("missing installerStateController; cannot proceed"))
+	}
 	if controllers.staticPodStateController == nil {
 		eventRecorder.Warning("StaticPodStateControllerMissing", "not enough information provided, not all functionality is present")
 	}
@@ -255,6 +268,7 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (*staticPodOperator
 type staticPodOperatorControllers struct {
 	revisionController                   *revision.RevisionController
 	installerController                  *installer.InstallerController
+	installerStateController             *installerstate.InstallerStateController
 	staticPodStateController             *staticpodstate.StaticPodStateController
 	pruneController                      *prune.PruneController
 	nodeController                       *node.NodeController
@@ -272,6 +286,7 @@ func (o *staticPodOperatorControllers) WithInstallerPodMutationFn(installerPodMu
 func (o *staticPodOperatorControllers) Run(stopCh <-chan struct{}) {
 	go o.revisionController.Run(1, stopCh)
 	go o.installerController.Run(1, stopCh)
+	go o.installerStateController.Run(1, stopCh)
 	go o.staticPodStateController.Run(1, stopCh)
 	go o.pruneController.Run(1, stopCh)
 	go o.nodeController.Run(1, stopCh)

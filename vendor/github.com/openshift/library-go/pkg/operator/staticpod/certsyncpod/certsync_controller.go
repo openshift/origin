@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	corev1interface "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/listers/core/v1"
+	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
@@ -79,6 +79,7 @@ func getSecretDir(targetDir, secretName string) string {
 func (c *CertSyncController) sync() error {
 	errors := []error{}
 
+	klog.Infof("Syncing configmaps: %v", c.configMaps)
 	for _, cm := range c.configMaps {
 		configMap, err := c.configMapLister.ConfigMaps(c.namespace).Get(cm.Name)
 		switch {
@@ -101,11 +102,14 @@ func (c *CertSyncController) sync() error {
 
 			// remove missing content
 			if err := os.RemoveAll(getConfigMapDir(c.destinationDir, cm.Name)); err != nil {
+				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed removing file for configmap: %s/%s: %v", configMap.Namespace, configMap.Name, err)
 				errors = append(errors, err)
 			}
+			c.eventRecorder.Eventf("CertificateRemoved", "Removed file for configmap: %s/%s", configMap.Namespace, configMap.Name)
 			continue
 
 		case err != nil:
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting configmap: %s/%s: %v", configMap.Namespace, configMap.Name, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -138,6 +142,7 @@ func (c *CertSyncController) sync() error {
 		configMap, err = c.configmapGetter.Get(configMap.Name, metav1.GetOptions{})
 		if err != nil {
 			// Even if the error is not exists we will act on it when caches catch up
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting configmap: %s/%s: %v", configMap.Namespace, configMap.Name, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -150,6 +155,7 @@ func (c *CertSyncController) sync() error {
 
 		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil && !os.IsExist(err) {
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed creating directory for configmap: %s/%s: %v", configMap.Namespace, configMap.Name, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -162,12 +168,15 @@ func (c *CertSyncController) sync() error {
 
 			klog.Infof("Writing configmap manifest %q ...", fullFilename)
 			if err := ioutil.WriteFile(fullFilename, []byte(content), 0644); err != nil {
+				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed writing file for configmap: %s/%s: %v", configMap.Namespace, configMap.Name, err)
 				errors = append(errors, err)
 				continue
 			}
 		}
+		c.eventRecorder.Eventf("CertificateUpdated", "Wrote updated configmap: %s/%s", configMap.Namespace, configMap.Name)
 	}
 
+	klog.Infof("Syncing secrets: %v", c.secrets)
 	for _, s := range c.secrets {
 		secret, err := c.secretLister.Secrets(c.namespace).Get(s.Name)
 		switch {
@@ -188,13 +197,23 @@ func (c *CertSyncController) sync() error {
 				continue
 			}
 
-			// remove missing content
-			if err := os.RemoveAll(getSecretDir(c.destinationDir, s.Name)); err != nil {
-				errors = append(errors, err)
+			// check if the secret file exists, skip firing events if it does not
+			secretFile := getSecretDir(c.destinationDir, s.Name)
+			if _, err := os.Stat(secretFile); os.IsNotExist(err) {
+				continue
 			}
+
+			// remove missing content
+			if err := os.RemoveAll(secretFile); err != nil {
+				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed removing file for missing secret: %s/%s: %v", secret.Namespace, secret.Name, err)
+				errors = append(errors, err)
+				continue
+			}
+			c.eventRecorder.Warningf("CertificateRemoved", "Removed file for missing secret: %s/%s", secret.Namespace, secret.Name)
 			continue
 
 		case err != nil:
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting secret: %s/%s: %v", secret.Namespace, secret.Name, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -227,6 +246,7 @@ func (c *CertSyncController) sync() error {
 		secret, err = c.secretGetter.Get(secret.Name, metav1.GetOptions{})
 		if err != nil {
 			// Even if the error is not exists we will act on it when caches catch up
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting secret: %s/%s: %v", secret.Namespace, secret.Name, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -239,6 +259,7 @@ func (c *CertSyncController) sync() error {
 
 		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil && !os.IsExist(err) {
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed creating directory for secret: %s/%s: %v", secret.Namespace, secret.Name, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -252,10 +273,12 @@ func (c *CertSyncController) sync() error {
 
 			klog.Infof("Writing secret manifest %q ...", fullFilename)
 			if err := ioutil.WriteFile(fullFilename, content, 0644); err != nil {
+				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed writing file for secret: %s/%s: %v", secret.Namespace, secret.Name, err)
 				errors = append(errors, err)
 				continue
 			}
 		}
+		c.eventRecorder.Eventf("CertificateUpdated", "Wrote updated secret: %s/%s", secret.Namespace, secret.Name)
 	}
 
 	return utilerrors.NewAggregate(errors)

@@ -1,8 +1,8 @@
-hash: 0cbd9151ca02eb4589ec42377f028ef04de462557b1985e6e972e3d6c831df29
-updated: 2019-10-09T16:17:36.270361974-04:00
+hash: f20b6befacff8d82822479853560f9183da8575415ddcf4e4338730af6f5fbf7
+updated: 2019-12-19T16:18:34.423785+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
-  version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
+  version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
   repo: https://github.com/munnerz/goautoneg.git
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -50,6 +50,7 @@ imports:
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
+  - private/protocol/restxml
   - private/protocol/xml/xmlutil
   - service/autoscaling
   - service/ec2
@@ -57,6 +58,7 @@ imports:
   - service/elb
   - service/elbv2
   - service/kms
+  - service/route53
   - service/sts
 - name: github.com/Azure/azure-sdk-for-go
   version: 32916f57ad7b421f5fdaab86b73a795632fff117
@@ -188,7 +190,7 @@ imports:
   - errdefs
   - namespaces
 - name: github.com/containerd/continuity
-  version: 75bee3e2ccb6402e3a986ab8bd3b17003fc0fdec
+  version: 1097c8bae83b84cf3dfccfcc542e06c8c28ea3f4
   subpackages:
   - pathdriver
 - name: github.com/containernetworking/cni
@@ -405,7 +407,7 @@ imports:
 - name: github.com/getsentry/raven-go
   version: c977f96e109525a5d8fa10a19165341f601f38b0
 - name: github.com/ghodss/yaml
-  version: c7ce16629ff4cd059ed96ed06419dd3856fd3577
+  version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/globalsign/mgo
   version: eeefdecb41b842af6dc652aaea4026e8403e62df
   subpackages:
@@ -1057,7 +1059,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 27b03247913b2f6a0abcea95cb9b6c896adc2531
+  version: 61f035b9264717e7eea25dfe9db1cc2cb69d7530
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1101,7 +1103,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: f6fe06335df110bcf1ed6d4e852b760bfc15beee
+  version: acd64d450fd45fb2afa41f833f3788c8a7797219
 - name: github.com/pkg/sftp
   version: 4d0e916071f68db74f8a73926335f809396d6b42
 - name: github.com/pmezard/go-difflib
@@ -1421,7 +1423,7 @@ imports:
   - pubsub/v1
   - tpu/v1
 - name: google.golang.org/appengine
-  version: 971852bfffca25b069c31162ae8f247a3dba083b
+  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
   subpackages:
   - internal
   - internal/app_identity
@@ -1467,7 +1469,7 @@ imports:
   - tap
   - transport
 - name: gopkg.in/asn1-ber.v1
-  version: f715ec2f112d1e4195b827ad68cf44017a3ef2b1
+  version: 29be175fc3a3b1787c008093b829fbfee40decd6
 - name: gopkg.in/gcfg.v1
   version: 27e4946190b4a327b539185f2b5b1f7c84730728
   subpackages:
@@ -2105,7 +2107,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 910ed37794970984599792084da6031e2353f43b
+  version: 60cccf5ec0fe7a9c5d47ba0ed9995271c5eb2d27
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
