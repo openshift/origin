@@ -17,7 +17,9 @@ import (
 // It then uses the `AZURE_AUTH_LOCATION` to load the credentials for Azure API and update the cloud provider config with the client secret. In-cluster cloud provider config
 // uses Azure Managed Identity attached to virtual machines to provide Azure API access, while the e2e tests are usually run from outside the cluster and therefore need explicit auth creds.
 func LoadConfigFile() ([]byte, error) {
-	client, err := e2e.LoadClientset()
+	// LoadClientset but don't set the UserAgent to include the current test name because
+	// we don't run any test yet and this call panics
+	client, err := e2e.LoadClientset(true)
 	if err != nil {
 		return nil, err
 	}
