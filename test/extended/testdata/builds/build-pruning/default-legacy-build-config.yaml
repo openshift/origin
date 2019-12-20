@@ -17,7 +17,7 @@
         "from": {
           "kind": "ImageStreamTag",
           "namespace": "openshift",
-          "name": "php:7.0"
+          "name": "php:7.2"
         }
       }
     }
